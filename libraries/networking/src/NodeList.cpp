@@ -108,7 +108,8 @@ void NodeList::timePingReply(const QByteArray& packet, const SharedNodePointer& 
         "        oneWayFlightTime: " << oneWayFlightTime << "\n" <<
         "         othersReplyTime: " << othersReplyTime << "\n" <<
         "    othersExprectedReply: " << othersExprectedReply << "\n" <<
-        "               clockSkew: " << clockSkew;
+        "               clockSkew: " << clockSkew  << "\n" <<
+        "       average clockSkew: " << sendingNode->getClockSkewUsec();
     }
 }
 
@@ -341,6 +342,10 @@ void NodeList::sendDomainServerCheckIn() {
         
         PacketType domainPacketType = !_domainHandler.isConnected()
             ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+        
+        if (!_domainHandler.isConnected()) {
+            qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
+        }
         
         // construct the DS check in packet
         QUuid packetUUID = _sessionUUID;

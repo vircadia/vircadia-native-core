@@ -21,6 +21,7 @@
 #include <AccountManager.h>
 #include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
+#include <LogUtils.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
@@ -31,6 +32,7 @@
 
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
+    _shutdownEventListener(this),
     _httpManager(DOMAIN_SERVER_HTTP_PORT, QString("%1/resources/web/").arg(QCoreApplication::applicationDirPath()), this),
     _httpsManager(NULL),
     _allAssignments(),
@@ -46,10 +48,16 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _cookieSessionHash(),
     _settingsManager()
 {
+
+    LogUtils::init();
+
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+
+    installNativeEventFilter(&_shutdownEventListener);
+    connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
@@ -393,7 +401,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
 const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
-    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
+    << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
 
 void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {

@@ -60,7 +60,7 @@ public:
     /// \param box the query box
     /// \param foundParticles[out] vector of non-const Particle*
     /// \remark Side effect: any initial contents in particles will be lost
-    void findParticlesForUpdate(const AACube& box, QVector<Particle*> foundParticles);
+    void findParticles(const AACube& box, QVector<Particle*> foundParticles);
 
     void addNewlyCreatedHook(NewlyCreatedParticleHook* hook);
     void removeNewlyCreatedHook(NewlyCreatedParticleHook* hook);
@@ -84,7 +84,8 @@ private:
     static bool findByIDOperation(OctreeElement* element, void* extraData);
     static bool findAndDeleteOperation(OctreeElement* element, void* extraData);
     static bool findAndUpdateParticleIDOperation(OctreeElement* element, void* extraData);
-    static bool findInCubeForUpdateOperation(OctreeElement* element, void* extraData);
+
+    static bool findInCubeOperation(OctreeElement* element, void* extraData);
 
     void notifyNewlyCreatedParticle(const Particle& newParticle, const SharedNodePointer& senderNode);
 

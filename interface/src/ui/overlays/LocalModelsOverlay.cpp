@@ -13,16 +13,16 @@
 
 #include "LocalModelsOverlay.h"
 
-LocalModelsOverlay::LocalModelsOverlay(ModelTreeRenderer* modelTreeRenderer) :
+LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     Volume3DOverlay(),
-    _modelTreeRenderer(modelTreeRenderer) {
+    _entityTreeRenderer(entityTreeRenderer) {
 }
 
 LocalModelsOverlay::~LocalModelsOverlay() {
 }
 
 void LocalModelsOverlay::update(float deltatime) {
-    _modelTreeRenderer->update();
+    _entityTreeRenderer->update();
 }
 
 void LocalModelsOverlay::render() {
@@ -31,9 +31,7 @@ void LocalModelsOverlay::render() {
             Application* app = Application::getInstance();
             glm::vec3 oldTranslation = app->getViewMatrixTranslation();
             app->setViewMatrixTranslation(oldTranslation + _position);
-
-            _modelTreeRenderer->render();
-
+            _entityTreeRenderer->render();
             Application::getInstance()->setViewMatrixTranslation(oldTranslation);
         } glPopMatrix();
     }

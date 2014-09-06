@@ -145,7 +145,7 @@ public:
     const QUuid& getSessionUUID() { return _sessionUUID; }
 
     const glm::vec3& getPosition();
-    void setPosition(const glm::vec3 position, bool overideReferential = false);
+    virtual void setPosition(const glm::vec3 position, bool overideReferential = false);
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
@@ -239,8 +239,6 @@ public:
     bool isChatCirclingEnabled() const { return _isChatCirclingEnabled; }
     const HeadData* getHeadData() const { return _headData; }
     const HandData* getHandData() const { return _handData; }
-
-    virtual const glm::vec3& getVelocity() const { return vec3Zero; }
 
     virtual bool findSphereCollisions(const glm::vec3& particleCenter, float particleRadius, CollisionList& collisions) {
         return false;

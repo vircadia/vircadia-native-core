@@ -433,3 +433,14 @@ BoxFace AACube::getOppositeFace(BoxFace face) {
         case MAX_Z_FACE: return MIN_Z_FACE;
     }
 }
+
+AABox AACube::clamp(const glm::vec3& min, const glm::vec3& max) const {
+    AABox temp(*this);
+    return temp.clamp(min, max);
+}
+
+AABox AACube::clamp(float min, float max) const {
+    AABox temp(*this);
+    return temp.clamp(min, max);
+}
+

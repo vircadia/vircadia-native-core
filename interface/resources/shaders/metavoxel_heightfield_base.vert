@@ -20,9 +20,20 @@ uniform float heightScale;
 // the scale between height and color textures
 uniform float colorScale;
 
+// the interpolated normal
+varying vec4 normal;
+
 void main(void) {
+    // transform and store the normal for interpolation
+    vec2 heightCoord = gl_MultiTexCoord0.st;
+    float deltaX = texture2D(heightMap, heightCoord - vec2(heightScale, 0.0)).r -
+        texture2D(heightMap, heightCoord + vec2(heightScale, 0.0)).r;
+    float deltaZ = texture2D(heightMap, heightCoord - vec2(0.0, heightScale)).r -
+        texture2D(heightMap, heightCoord + vec2(0.0, heightScale)).r;
+    normal = normalize(gl_ModelViewMatrix * vec4(deltaX, heightScale, deltaZ, 0.0));
+    
     // add the height to the position
-    float height = texture2D(heightMap, gl_MultiTexCoord0.st).r;
+    float height = texture2D(heightMap, heightCoord).r;
     gl_Position = gl_ModelViewProjectionMatrix * (gl_Vertex + vec4(0.0, height, 0.0, 0.0));
     
     // the zero height should be invisible

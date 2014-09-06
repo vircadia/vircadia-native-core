@@ -52,9 +52,9 @@
 
 #include <AccountManager.h>
 #include <AudioInjector.h>
+#include <EntityScriptingInterface.h>
 #include <LocalVoxelsList.h>
 #include <Logging.h>
-#include <ModelsScriptingInterface.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -141,8 +141,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _modelClipboardRenderer(),
-        _modelClipboard(),
+        _entityClipboardRenderer(),
+        _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
         _lastQueriedViewFrustum(),
@@ -303,13 +303,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
+                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
                                                  << NodeType::MetavoxelServer);
 
     // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
     connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
-    connect(&_modelEditSender, &ModelEditPacketSender::packetSent, this, &Application::packetSent);
+    connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
     QTimer* silentNodeTimer = new QTimer();
@@ -352,7 +352,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // Tell our voxel edit sender about our known jurisdictions
     _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
     _particleEditSender.setServerJurisdictions(&_particleServerJurisdictions);
-    _modelEditSender.setServerJurisdictions(&_modelServerJurisdictions);
+    _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
 
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
@@ -364,7 +364,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
     _particleEditSender.setPacketsPerSecond(3000); // super high!!
-    _modelEditSender.setPacketsPerSecond(3000); // super high!!
+    _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
     // Set the sixense filtering
     _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
@@ -454,7 +454,7 @@ Application::~Application() {
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _particleEditSender.terminate();
-    _modelEditSender.terminate();
+    _entityEditSender.terminate();
 
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
@@ -549,7 +549,7 @@ void Application::initializeGL() {
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
     _particleEditSender.initialize(_enableProcessVoxelsThread);
-    _modelEditSender.initialize(_enableProcessVoxelsThread);
+    _entityEditSender.initialize(_enableProcessVoxelsThread);
 
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.");
@@ -589,14 +589,12 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
-    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        _textureCache.setFrameBufferSize(_glWidget->size());
+        _textureCache.setFrameBufferSize(_glWidget->getDeviceSize());
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -665,16 +663,11 @@ void Application::paintGL() {
         updateShadowMap();
     }
 
-    //If we aren't using the glow shader, we have to clear the color and depth buffer
-    if (!glowEnabled) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         //Clear the color buffer to ensure that there isnt any residual color
         //Left over from when OR was not connected.
         glClear(GL_COLOR_BUFFER_BIT);
-    }
-
-    if (OculusManager::isConnected()) {
+        
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
@@ -687,9 +680,7 @@ void Application::paintGL() {
         TV3DManager::display(whichCamera);
 
     } else {
-        if (glowEnabled) {
-            _glowEffect.prepare();
-        }
+        _glowEffect.prepare();
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -697,9 +688,7 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        if (glowEnabled) {
-            _glowEffect.render();
-        }
+        _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
@@ -801,7 +790,7 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
                 break;
             case NodeType::VoxelServer:
             case NodeType::ParticleServer:
-            case NodeType::ModelServer:
+            case NodeType::EntityServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
             default:
@@ -986,7 +975,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -998,7 +987,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
 
                 } else {
@@ -1162,7 +1151,8 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
 
-    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
+    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
+    _controllerScriptingInterface.emitMouseMoveEvent(&deviceEvent, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1177,12 +1167,13 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _seenMouseMove = true;
     }
 
-    _mouseX = event->x();
-    _mouseY = event->y();
+    _mouseX = deviceEvent.x();
+    _mouseY = deviceEvent.y();
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
+    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
+    _controllerScriptingInterface.emitMousePressEvent(&deviceEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1192,8 +1183,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
+            _mouseX = deviceEvent.x();
+            _mouseY = deviceEvent.y();
             _mouseDragStartedX = _mouseX;
             _mouseDragStartedY = _mouseY;
             _mousePressed = true;
@@ -1215,7 +1206,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
+    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
+    _controllerScriptingInterface.emitMouseReleaseEvent(&deviceEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1224,8 +1216,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
+            _mouseX = deviceEvent.x();
+            _mouseY = deviceEvent.y();
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -1315,7 +1307,7 @@ void Application::dropEvent(QDropEvent *event) {
     const QMimeData *mimeData = event->mimeData();
     foreach (QUrl url, mimeData->urls()) {
         if (url.url().toLower().endsWith(SNAPSHOT_EXTENSION)) {
-            snapshotPath = url.url().remove("file://");
+            snapshotPath = url.toLocalFile();
             break;
         }
     }
@@ -1339,7 +1331,7 @@ void Application::dropEvent(QDropEvent *event) {
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::ModelServer
+                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1424,7 +1416,7 @@ void Application::checkBandwidthMeterClick() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
             <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1438,7 +1430,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->width(),_glWidget->height());
+    resizeGL(_glWidget->getDeviceWidth(),_glWidget->getDeviceHeight());
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1451,7 +1443,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         }
     }
     
-    resizeGL(_glWidget->width(), _glWidget->height());
+    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -1523,22 +1515,21 @@ struct SendVoxelsOperationArgs {
     const unsigned char*  newBaseOctCode;
 };
 
-bool Application::exportModels(const QString& filename, float x, float y, float z, float scale) {
-    QVector<ModelItem*> models;
-    _models.getTree()->findModelsInCube(AACube(glm::vec3(x / (float)TREE_SCALE, y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), models);
-    if (models.size() > 0) {
+bool Application::exportEntities(const QString& filename, float x, float y, float z, float scale) {
+    QVector<EntityItem*> entities;
+    _entities.getTree()->findEntities(AACube(glm::vec3(x / (float)TREE_SCALE, 
+                                y / (float)TREE_SCALE, z / (float)TREE_SCALE), scale / (float)TREE_SCALE), entities);
+
+    if (entities.size() > 0) {
         glm::vec3 root(x, y, z);
-        ModelTree exportTree;
+        EntityTree exportTree;
 
-        for (int i = 0; i < models.size(); i++) {
-            ModelItemProperties properties;
-            ModelItemID id = models.at(i)->getModelItemID();
-            id.isKnownID = false;
-            properties.copyFromNewModelItem(*models.at(i));
+        for (int i = 0; i < entities.size(); i++) {
+            EntityItemProperties properties = entities.at(i)->getProperties();
+            EntityItemID id = entities.at(i)->getEntityItemID();
             properties.setPosition(properties.getPosition() - root);
-            exportTree.addModel(id, properties);
+            exportTree.addEntity(id, properties);
         }
-
         exportTree.writeToSVOFile(filename.toLocal8Bit().constData());
     } else {
         qDebug() << "No models were selected";
@@ -1631,17 +1622,17 @@ void Application::importVoxels() {
     emit importDone();
 }
 
-bool Application::importModels(const QString& filename) {
-    _modelClipboard.eraseAllOctreeElements();
-    bool success = _modelClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
+bool Application::importEntities(const QString& filename) {
+    _entityClipboard.eraseAllOctreeElements();
+    bool success = _entityClipboard.readFromSVOFile(filename.toLocal8Bit().constData());
     if (success) {
-        _modelClipboard.reaverageOctreeElements();
+        _entityClipboard.reaverageOctreeElements();
     }
     return success;
 }
 
-void Application::pasteModels(float x, float y, float z) {
-    _modelClipboard.sendModels(&_modelEditSender, x, y, z);
+void Application::pasteEntities(float x, float y, float z) {
+    _entityClipboard.sendEntities(&_entityEditSender, _entities.getTree(), x, y, z);
 }
 
 void Application::cutVoxels(const VoxelDetail& sourceVoxel) {
@@ -1743,8 +1734,8 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
 
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
+    _mouseX = _glWidget->getDeviceWidth() / 2;
+    _mouseY = _glWidget->getDeviceHeight() / 2;
     QCursor::setPos(_mouseX, _mouseY);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
@@ -1797,12 +1788,12 @@ void Application::init() {
     _particles.init();
     _particles.setViewFrustum(getViewFrustum());
 
-    _models.init();
-    _models.setViewFrustum(getViewFrustum());
+    _entities.init();
+    _entities.setViewFrustum(getViewFrustum());
 
-    _modelClipboardRenderer.init();
-    _modelClipboardRenderer.setViewFrustum(getViewFrustum());
-    _modelClipboardRenderer.setTree(&_modelClipboard);
+    _entityClipboardRenderer.init();
+    _entityClipboardRenderer.setViewFrustum(getViewFrustum());
+    _entityClipboardRenderer.setTree(&_entityClipboard);
 
     _metavoxels.init();
 
@@ -1899,8 +1890,8 @@ void Application::updateMouseRay() {
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->width();
-        y = _mouseY / (float)_glWidget->height();
+        x = _mouseX / (float)_glWidget->getDeviceWidth();
+        y = _mouseY / (float)_glWidget->getDeviceHeight();
     }
     _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
 
@@ -2032,7 +2023,7 @@ void Application::updateThreads(float deltaTime) {
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
         _particleEditSender.threadRoutine();
-        _modelEditSender.threadRoutine();
+        _entityEditSender.threadRoutine();
     }
 }
 
@@ -2165,8 +2156,8 @@ void Application::update(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("models");
-        _models.update(); // update the models...
+        PerformanceTimer perfTimer("entities");
+        _entities.update(); // update the models...
     }
 
     {
@@ -2210,9 +2201,16 @@ void Application::update(float deltaTime) {
         // if it's been a while since our last query or the view has significantly changed then send a query, otherwise suppress it
         if (queryIsDue || viewIsDifferentEnough) {
             _lastQueriedTime = now;
-            queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-            queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
-            queryOctree(NodeType::ModelServer, PacketTypeModelQuery, _modelServerJurisdictions);
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+                queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
+            }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
+                queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
+            }
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
+            }
             _lastQueriedViewFrustum = _viewFrustum;
         }
     }
@@ -2268,7 +2266,7 @@ int Application::sendNackPackets() {
         if (node->getActiveSocket() &&
             ( node->getType() == NodeType::VoxelServer
             || node->getType() == NodeType::ParticleServer
-            || node->getType() == NodeType::ModelServer)
+            || node->getType() == NodeType::EntityServer)
             ) {
 
             QUuid nodeUUID = node->getUUID();
@@ -2333,15 +2331,17 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
+QMouseEvent Application::getDeviceEvent(QMouseEvent* event, unsigned int deviceID) {
+    if (deviceID > 0) {
+        return *event;
+    }
+    return QMouseEvent(event->type(), QPointF(_glWidget->getDeviceX(event->x()), _glWidget->getDeviceY(event->y())),
+        event->windowPos(), event->screenPos(), event->button(), event->buttons(), event->modifiers());
+}
+
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
-    // if voxels are disabled, then don't send this at all...
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        return;
-    }
-
     //qDebug() << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
-
     bool wantExtraDebugging = getLogger()->extraDebugging();
 
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
@@ -2659,9 +2659,20 @@ void Application::updateShadowMap() {
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
 
-        _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
-        _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
-        _models.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        {
+            PerformanceTimer perfTimer("avatarManager");
+            _avatarManager.renderAvatars(Avatar::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("particles");
+            _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("entities");
+            _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+        }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
 
@@ -2675,7 +2686,7 @@ void Application::updateShadowMap() {
     
     fbo->release();
 
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2705,7 +2716,7 @@ QImage Application::renderAvatarBillboard() {
     glDisable(GL_BLEND);
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
@@ -2798,6 +2809,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         _stars.render(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(), whichCamera.getNearClip(), alpha);
     }
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    }
+
     // draw the sky dome
     if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
         PerformanceTimer perfTimer("atmosphere");
@@ -2858,10 +2873,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // render models...
         if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
-            PerformanceTimer perfTimer("models");
+            PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... models...");
-            _models.render();
+                "Application::displaySide() ... entities...");
+            _entities.render();
         }
 
         // render the ambient occlusion effect if enabled
@@ -2936,6 +2951,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _overlays.render3D();
         }
     }
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
@@ -2965,8 +2984,8 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->width() / 2.0f;
-    float verticalScale   = _glWidget->height() / 2.0f;
+    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
+    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
 
     // -1,-1 is 0,windowHeight
     // 1,1 is windowWidth,0
@@ -2985,7 +3004,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // -1,-1                   1,-1
 
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
+        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3021,8 +3040,8 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
-    glViewport(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
-    glScissor(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+    glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
@@ -3089,7 +3108,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     }
 
     // reset Viewport and projection matrix
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
@@ -3271,8 +3290,8 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 
 
 void Application::resetSensors() {
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
+    _mouseX = _glWidget->getDeviceWidth() / 2;
+    _mouseY = _glWidget->getDeviceHeight() / 2;
 
     _faceplus.reset();
     _faceshift.reset();
@@ -3349,8 +3368,6 @@ void Application::updateLocationInServer() {
 
     if (accountManager.isLoggedIn()) {
 
-        static QJsonObject lastLocationObject;
-
         // construct a QJsonObject given the user's current address information
         QJsonObject updatedLocationObject;
 
@@ -3361,14 +3378,9 @@ void Application::updateLocationInServer() {
 
         updatedLocationObject.insert("address", addressObject);
 
-        if (updatedLocationObject != lastLocationObject) {
-
-            accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                                JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
-
-            lastLocationObject = updatedLocationObject;
-        }
-    }
+        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
+     }
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3392,7 +3404,7 @@ void Application::domainChanged(const QString& domainHostname) {
     _particles.clear();
 
     // reset the model renderer
-    _models.clear();
+    _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
@@ -3431,7 +3443,7 @@ void Application::nodeKilled(SharedNodePointer node) {
 
     _voxelEditSender.nodeKilled(node);
     _particleEditSender.nodeKilled(node);
-    _modelEditSender.nodeKilled(node);
+    _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
         QMetaObject::invokeMethod(&_audio, "audioMixerKilled");
@@ -3511,16 +3523,16 @@ void Application::nodeKilled(SharedNodePointer node) {
         }
         _octreeSceneStatsLock.unlock();
 
-    } else if (node->getType() == NodeType::ModelServer) {
+    } else if (node->getType() == NodeType::EntityServer) {
 
         QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
-        _modelServerJurisdictions.lockForRead();
-        if (_modelServerJurisdictions.find(nodeUUID) != _modelServerJurisdictions.end()) {
-            unsigned char* rootCode = _modelServerJurisdictions[nodeUUID].getRootOctalCode();
+        _entityServerJurisdictions.lockForRead();
+        if (_entityServerJurisdictions.find(nodeUUID) != _entityServerJurisdictions.end()) {
+            unsigned char* rootCode = _entityServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
-            _modelServerJurisdictions.unlock();
+            _entityServerJurisdictions.unlock();
 
             qDebug("model server going away...... v[%f, %f, %f, %f]",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
@@ -3537,10 +3549,10 @@ void Application::nodeKilled(SharedNodePointer node) {
             }
 
             // If the model server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _modelServerJurisdictions.lockForWrite();
-            _modelServerJurisdictions.erase(_modelServerJurisdictions.find(nodeUUID));
+            _entityServerJurisdictions.lockForWrite();
+            _entityServerJurisdictions.erase(_entityServerJurisdictions.find(nodeUUID));
         }
-        _modelServerJurisdictions.unlock();
+        _entityServerJurisdictions.unlock();
 
         // also clean up scene stats for that server
         _octreeSceneStatsLock.lockForWrite();
@@ -3606,8 +3618,8 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
             jurisdiction = &_particleServerJurisdictions;
             serverType = "Particle";
         } else {
-            jurisdiction = &_modelServerJurisdictions;
-            serverType = "Model";
+            jurisdiction = &_entityServerJurisdictions;
+            serverType = "Entity";
         }
 
         jurisdiction->lockForRead();
@@ -3716,8 +3728,8 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
 
-    scriptEngine->getModelsScriptingInterface()->setPacketSender(&_modelEditSender);
-    scriptEngine->getModelsScriptingInterface()->setModelTree(_models.getTree());
+    scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
+    scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
     // model has some custom types
     Model::registerMetaTypes(scriptEngine);
@@ -3852,14 +3864,17 @@ void Application::manageRunningScriptsWidgetVisibility(bool shown) {
 }
 
 void Application::toggleRunningScriptsWidget() {
-    if (_runningScriptsWidgetWasVisible) {
-        _runningScriptsWidget->hide();
-        _runningScriptsWidgetWasVisible = false;
+    if (_runningScriptsWidget->isVisible()) {
+        if (_runningScriptsWidget->hasFocus()) {
+            _runningScriptsWidget->hide();
+        } else {
+            _runningScriptsWidget->raise();
+            setActiveWindow(_runningScriptsWidget);
+            _runningScriptsWidget->setFocus();
+        }
     } else {
-        _runningScriptsWidget->setBoundary(QRect(_window->geometry().topLeft(),
-                                                 _window->size()));
         _runningScriptsWidget->show();
-        _runningScriptsWidgetWasVisible = true;
+        _runningScriptsWidget->setFocus();
     }
 }
 
@@ -3925,6 +3940,7 @@ void Application::setPreviousScriptLocation(const QString& previousScriptLocatio
     _previousScriptLocation = previousScriptLocation;
     QMutexLocker locker(&_settingsMutex);
     _settings->setValue("LastScriptLocation", _previousScriptLocation);
+    bumpSettings();
 }
 
 void Application::loadDialog() {

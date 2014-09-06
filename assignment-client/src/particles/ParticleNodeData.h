@@ -20,7 +20,7 @@ class ParticleNodeData : public OctreeQueryNode {
 public:
     ParticleNodeData() :
         OctreeQueryNode(),
-        _lastDeletedParticlesSentAt(0) {  };
+        _lastDeletedParticlesSentAt(0) { }
 
     virtual PacketType getMyPacketType() const { return PacketTypeParticleData; }
 

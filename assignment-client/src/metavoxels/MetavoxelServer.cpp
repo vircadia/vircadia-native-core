@@ -23,7 +23,8 @@
 
 MetavoxelServer::MetavoxelServer(const QByteArray& packet) :
     ThreadedAssignment(packet),
-    _nextSender(0) {
+    _nextSender(0),
+    _savedDataInitialized(false) {
 }
 
 void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
@@ -33,8 +34,20 @@ void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
 }
 
 void MetavoxelServer::setData(const MetavoxelData& data) {
-    if (_data != data) {
-        emit dataChanged(_data = data);
+    if (_data == data) {
+        return;
+    }    
+    emit dataChanged(_data = data);
+    
+    if (!_savedDataInitialized) {
+        _savedData = data;
+        _savedDataInitialized = true;
+        
+        // start the save timer
+        QTimer* saveTimer = new QTimer(this);
+        connect(saveTimer, &QTimer::timeout, this, &MetavoxelServer::maybeSaveData);
+        const int SAVE_INTERVAL = 1000 * 30;
+        saveTimer->start(SAVE_INTERVAL);
     }
 }
 
@@ -132,6 +145,12 @@ void MetavoxelServer::maybeDeleteSession(const SharedNodePointer& node) {
             node->setLinkedData(NULL);
             session->deleteLater();
         }
+    }
+}
+
+void MetavoxelServer::maybeSaveData() {
+    if (_savedData != _data) {
+        QMetaObject::invokeMethod(_persister, "save", Q_ARG(const MetavoxelData&, _savedData = _data));
     }
 }
 

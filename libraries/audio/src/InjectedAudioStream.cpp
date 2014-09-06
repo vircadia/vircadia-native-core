@@ -36,6 +36,8 @@ int InjectedAudioStream::parseStreamProperties(PacketType type, const QByteArray
 
     // skip the stream identifier
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
+    
+    packetStream >> _isStereo;
 
     // pull the loopback flag and set our boolean
     uchar shouldLoopback;

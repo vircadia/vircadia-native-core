@@ -14,7 +14,11 @@
 // the diffuse texture
 uniform sampler2D diffuseMap;
 
+// the interpolated normal
+varying vec4 normal;
+
 void main(void) {
     // compute the base color based on OpenGL lighting model
-    gl_FragColor = gl_Color * texture2D(diffuseMap, gl_TexCoord[0].st);
+    gl_FragData[0] = gl_Color * texture2D(diffuseMap, gl_TexCoord[0].st);
+    gl_FragData[1] = normalize(normal) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
 }

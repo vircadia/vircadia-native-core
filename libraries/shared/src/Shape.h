@@ -25,8 +25,9 @@ const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 const quint8 SPHERE_SHAPE = 0;
 const quint8 CAPSULE_SHAPE = 1;
 const quint8 PLANE_SHAPE = 2;
-const quint8 LIST_SHAPE = 3;
-const quint8 UNKNOWN_SHAPE = 4;
+const quint8 AACUBE_SHAPE = 3;
+const quint8 LIST_SHAPE = 4;
+const quint8 UNKNOWN_SHAPE = 5;
 
 class Shape {
 public:
@@ -80,17 +81,22 @@ public:
 
 protected:
     // these ctors are protected (used by derived classes only)
-    Shape(Type type) : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(0.f), _rotation() {
+    Shape(Type type) : _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.f), _translation(0.f), 
+            _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
-    Shape(Type type, const glm::vec3& position) 
-        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(position), _rotation() {
+    Shape(Type type, const glm::vec3& position) : 
+            _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.f), _translation(position), 
+            _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
-    Shape(Type type, const glm::vec3& position, const glm::quat& rotation) 
-        : _type(type), _owningEntity(NULL), _boundingRadius(0.f), _translation(position), _rotation(rotation) {
+    Shape(Type type, const glm::vec3& position, const glm::quat& rotation) : _type(type), _owningEntity(NULL), 
+            _boundingRadius(0.f), _translation(position), 
+            _rotation(rotation), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 

@@ -370,7 +370,7 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, "None", 0, true));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
-    shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::AvatarsReceiveShadows, 0, true));
+    addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::AvatarsReceiveShadows, 0, true);
 
         
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
@@ -386,6 +386,7 @@ Menu::Menu() :
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, 0, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
@@ -745,6 +746,9 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
 
+    // notify that a settings has changed
+    connect(&NodeList::getInstance()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
+
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
@@ -914,6 +918,8 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
         default:
             break;
     }
+
+    bumpSettings();
 }
 
 void Menu::addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName, int menuItemLocation) {
@@ -1020,7 +1026,7 @@ QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                         QAction::NoRole, menuItemLocation);
     action->setCheckable(true);
     action->setChecked(checked);
-    connect(action, SIGNAL(changed()), Application::getInstance(), SLOT(bumpSettings()));
+    connect(action, SIGNAL(changed()), this, SLOT(bumpSettings()));
 
     return action;
 }
@@ -1060,6 +1066,10 @@ QAction* Menu::getActionForOption(const QString& menuOption) {
 
 void Menu::aboutApp() {
     InfoView::forcedShow();
+}
+
+void Menu::bumpSettings() {
+    Application::getInstance()->bumpSettings();
 }
 
 void sendFakeEnterEvent() {
@@ -1135,6 +1145,8 @@ void Menu::changePrivateKey() {
         // pull the private key from the dialog
         _walletPrivateKey = privateKeyDialog.textValue().toUtf8();
     }
+
+    bumpSettings();
     
     sendFakeEnterEvent();
 }
@@ -1657,10 +1669,12 @@ void Menu::resetLODAdjust() {
 
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
+    bumpSettings();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
+    bumpSettings();
 }
 
 void Menu::lodTools() {
@@ -1950,5 +1964,6 @@ QString Menu::getSnapshotsLocation() const {
 
 void Menu::setScriptsLocation(const QString& scriptsLocation) {
     _scriptsLocation = scriptsLocation;
+    bumpSettings();
     emit scriptLocationChanged(scriptsLocation);
 }

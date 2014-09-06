@@ -91,7 +91,6 @@ public:
     const QVector<Model*>& getAttachmentModels() const { return _attachmentModels; }
     glm::vec3 getChestPosition() const;
     float getScale() const { return _scale; }
-    Q_INVOKABLE const glm::vec3& getVelocity() const { return _velocity; }
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
     Hand* getHand() { return static_cast<Hand*>(_handData); }
@@ -152,6 +151,7 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
+    Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
     Q_INVOKABLE glm::vec3 getAngularAcceleration() const { return _angularAcceleration; }
@@ -160,6 +160,9 @@ public:
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+
+    void setPosition(const glm::vec3 position, bool overideReferential = false);
+    void slamPosition(const glm::vec3& newPosition);
     
 public slots:
     void updateCollisionGroups();
@@ -172,6 +175,12 @@ protected:
     SkeletonModel _skeletonModel;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
+
+    // These position histories and derivatives are in the world-frame.
+    // The derivatives are the MEASURED results of all external and internal forces
+    // and are therefor READ-ONLY --> motion control of the Avatar is NOT obtained 
+    // by setting these values.
+    glm::vec3 _lastPosition;
     glm::vec3 _velocity;
     glm::vec3 _lastVelocity;
     glm::vec3 _acceleration;
@@ -179,6 +188,7 @@ protected:
     glm::vec3 _lastAngularVelocity;
     glm::vec3 _angularAcceleration;
     glm::quat _lastOrientation;
+
     float _leanScale;
     float _scale;
     glm::vec3 _worldUpDirection;
@@ -195,7 +205,7 @@ protected:
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void setScale(float scale);
-    void updateAcceleration(float deltaTime);
+    void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;
     float getHeadHeight() const;

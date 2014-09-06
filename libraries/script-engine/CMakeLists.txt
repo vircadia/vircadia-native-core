@@ -5,7 +5,7 @@ setup_hifi_library(Gui Network Script Widgets)
 
 include_glm()
 
-link_hifi_libraries(shared octree voxels fbx particles models animation)
+link_hifi_libraries(shared octree voxels fbx particles entities animation)
 
 # call macro to link our dependencies and bubble them up via a property on our target
 link_shared_dependencies()

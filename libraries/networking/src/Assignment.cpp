@@ -29,8 +29,8 @@ Assignment::Type Assignment::typeForNodeType(NodeType_t nodeType) {
             return Assignment::VoxelServerType;
         case NodeType::ParticleServer:
             return Assignment::ParticleServerType;
-        case NodeType::ModelServer:
-            return Assignment::ModelServerType;
+        case NodeType::EntityServer:
+            return Assignment::EntityServerType;
         case NodeType::MetavoxelServer:
             return Assignment::MetavoxelServerType;
         default:

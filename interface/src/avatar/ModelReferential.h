@@ -14,31 +14,31 @@
 
 #include <Referential.h>
 
-class ModelTree;
+class EntityTree;
 class Model;
 
 class ModelReferential : public Referential {
 public:
-    ModelReferential(Referential* ref, ModelTree* tree, AvatarData* avatar);
-    ModelReferential(uint32_t modelID, ModelTree* tree, AvatarData* avatar);
+    ModelReferential(Referential* ref, EntityTree* tree, AvatarData* avatar);
+    ModelReferential(const QUuid& entityID, EntityTree* tree, AvatarData* avatar);
     virtual void update();
     
 protected:
     virtual int packExtraData(unsigned char* destinationBuffer) const;
     virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     
-    uint32_t _modelID;
-    ModelTree* _tree;
+    QUuid _entityID;
+    EntityTree* _tree;
 };
 
 class JointReferential : public ModelReferential {
 public:
-    JointReferential(Referential* ref, ModelTree* tree, AvatarData* avatar);
-    JointReferential(uint32_t jointIndex, uint32_t modelID, ModelTree* tree, AvatarData* avatar);
+    JointReferential(Referential* ref, EntityTree* tree, AvatarData* avatar);
+    JointReferential(uint32_t jointIndex, const QUuid& entityID, EntityTree* tree, AvatarData* avatar);
     virtual void update();
     
 protected:
-    const Model* getModel(const ModelItem* item);
+    const Model* getModel(const EntityItem* item);
     virtual int packExtraData(unsigned char* destinationBuffer) const;
     virtual int unpackExtraData(const unsigned char* sourceBuffer, int size);
     

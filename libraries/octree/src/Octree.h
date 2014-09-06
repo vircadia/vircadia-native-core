@@ -33,19 +33,22 @@ class Shape;
 
 #include <CollisionInfo.h>
 
+#include <QHash>
 #include <QObject>
 #include <QReadWriteLock>
 
 /// derive from this class to use the Octree::recurseTreeWithOperator() method
 class RecurseOctreeOperator {
 public:
-    virtual bool PreRecursion(OctreeElement* element) = 0;
-    virtual bool PostRecursion(OctreeElement* element) = 0;
+    virtual bool preRecursion(OctreeElement* element) = 0;
+    virtual bool postRecursion(OctreeElement* element) = 0;
+    virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex) { return NULL; }
 };
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseOctreeOperation)(OctreeElement* element, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
+typedef QHash<quint64, AACube> CubeList;
 
 const bool NO_EXISTS_BITS         = false;
 const bool WANT_EXISTS_BITS       = true;
@@ -84,6 +87,7 @@ public:
     OctreeSceneStats* stats;
     CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
+    OctreeElementExtraEncodeData* extraEncodeData;
 
     // output hints from the encode process
     typedef enum {
@@ -115,7 +119,8 @@ public:
         quint64 lastViewFrustumSent = IGNORE_LAST_SENT,
         bool forceSendScene = true,
         OctreeSceneStats* stats = IGNORE_SCENE_STATS,
-        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP) :
+        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP,
+        OctreeElementExtraEncodeData* extraEncodeData = NULL) :
             maxEncodeLevel(maxEncodeLevel),
             maxLevelReached(0),
             viewFrustum(viewFrustum),
@@ -132,6 +137,7 @@ public:
             stats(stats),
             map(map),
             jurisdictionMap(jurisdictionMap),
+            extraEncodeData(extraEncodeData),
             stopReason(UNKNOWN)
     {}
 
@@ -150,6 +156,23 @@ public:
             case WAS_IN_VIEW: qDebug("WAS_IN_VIEW"); break;
             case NO_CHANGE: qDebug("NO_CHANGE"); break;
             case OCCLUDED: qDebug("OCCLUDED"); break;
+        }
+    }
+
+    QString getStopReason() {
+        switch (stopReason) {
+            default:
+            case UNKNOWN: return QString("UNKNOWN"); break;
+
+            case DIDNT_FIT: return QString("DIDNT_FIT"); break;
+            case NULL_NODE: return QString("NULL_NODE"); break;
+            case TOO_DEEP: return QString("TOO_DEEP"); break;
+            case OUT_OF_JURISDICTION: return QString("OUT_OF_JURISDICTION"); break;
+            case LOD_SKIP: return QString("LOD_SKIP"); break;
+            case OUT_OF_VIEW: return QString("OUT_OF_VIEW"); break;
+            case WAS_IN_VIEW: return QString("WAS_IN_VIEW"); break;
+            case NO_CHANGE: return QString("NO_CHANGE"); break;
+            case OCCLUDED: return QString("OCCLUDED"); break;
         }
     }
 };
@@ -194,7 +217,7 @@ class Octree : public QObject {
     Q_OBJECT
 public:
     Octree(bool shouldReaverage = false);
-    ~Octree();
+    virtual ~Octree();
 
     /// Your tree class must implement this to create the correct element type
     virtual OctreeElement* createNewElement(unsigned char * octalCode = NULL) = 0;
@@ -212,13 +235,21 @@ public:
                     
     virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }
+    virtual int minimumRequiredRootDataBytes() const { return 0; }
+    virtual bool suppressEmptySubtrees() const { return true; }
+    virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
+    virtual bool mustIncludeAllChildData() const { return true; }
+    
+    /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
+    /// file. If the Octree subclass expects this for this particular version of the file, it should override this
+    /// method and return true.
+    virtual bool versionHasSVOfileBreaks(PacketVersion thisVersion) const { return false; }
 
-
-    virtual void update() { }; // nothing to do by default
+    virtual void update() { } // nothing to do by default
 
     OctreeElement* getRoot() { return _rootElement; }
 
-    void eraseAllOctreeElements();
+    virtual void eraseAllOctreeElements(bool createNewRoot = true);
 
     void processRemoveOctreeElementsBitstream(const unsigned char* bitstream, int bufferSizeBytes);
     void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
@@ -248,7 +279,7 @@ public:
 
     int encodeTreeBitstream(OctreeElement* element, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
-
+                            
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
@@ -279,6 +310,8 @@ public:
 
     bool findShapeCollisions(const Shape* shape, CollisionList& collisions, 
                                     Octree::lockType = Octree::TryLock, bool* accurateResult = NULL);
+
+    bool findContentInCube(const AACube& cube, CubeList& cubes);
 
     OctreeElement* getElementEnclosingPoint(const glm::vec3& point, 
                                     Octree::lockType lockType = Octree::TryLock, bool* accurateResult = NULL);
@@ -311,9 +344,16 @@ public:
 
     bool recurseElementWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount = 0);
 
-    bool getIsViewing() const { return _isViewing; }
+    bool getIsViewing() const { return _isViewing; } /// This tree is receiving inbound viewer datagrams.
     void setIsViewing(bool isViewing) { _isViewing = isViewing; }
+
+    bool getIsServer() const { return _isServer; } /// Is this a server based tree. Allows guards for certain operations
+    void setIsServer(bool isServer) { _isServer = isServer; }
+
+    bool getIsClient() const { return !_isServer; } /// Is this a client based tree. Allows guards for certain operations
+    void setIsClient(bool isClient) { _isServer = !isClient; }
     
+    virtual void dumpTree() { };
 
 signals:
     void importSize(float x, float y, float z);
@@ -346,8 +386,8 @@ protected:
 
     QReadWriteLock _lock;
     
-    /// This tree is receiving inbound viewer datagrams.
-    bool _isViewing;
+    bool _isViewing; 
+    bool _isServer;
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);

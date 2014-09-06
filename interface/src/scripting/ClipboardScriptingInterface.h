@@ -46,9 +46,9 @@ public slots:
     void nudgeVoxel(const VoxelDetail& sourceVoxel, const glm::vec3& nudgeVec);
     void nudgeVoxel(float x, float y, float z, float s, const glm::vec3& nudgeVec);
 
-    bool importModels(const QString& filename);
-    bool exportModels(const QString& filename, float x, float y, float z, float s);
-    void pasteModels(float x, float y, float z, float s);
+    bool importEntities(const QString& filename);
+    bool exportEntities(const QString& filename, float x, float y, float z, float s);
+    void pasteEntities(float x, float y, float z, float s);
 };
 
 #endif // hifi_ClipboardScriptingInterface_h

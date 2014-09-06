@@ -33,6 +33,8 @@ public:
     PhysicsEntity();
     virtual ~PhysicsEntity();
 
+    virtual void stepForward(float deltaTime) { }
+
     void setTranslation(const glm::vec3& translation);
     void setRotation(const glm::quat& rotation);
 

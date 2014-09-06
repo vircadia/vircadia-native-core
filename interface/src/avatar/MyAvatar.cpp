@@ -62,9 +62,9 @@ MyAvatar::MyAvatar() :
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
-    _shouldJump(false),
     _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
+    _shouldJump(false),
     _wasPushing(false),
     _isPushing(false),
     _isBraking(false),
@@ -74,12 +74,12 @@ MyAvatar::MyAvatar() :
     _motorTimescale(DEFAULT_MOTOR_TIMESCALE),
     _maxMotorSpeed(MAX_MOTOR_SPEED),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
-    _lastBodyPenetration(0.0f),
     _lastFloorContactPoint(0.0f),
     _lookAtTargetAvatar(),
     _shouldRender(true),
     _billboardValid(false),
-    _physicsSimulation()
+    _physicsSimulation(),
+    _voxelShapeManager()
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -90,11 +90,11 @@ MyAvatar::MyAvatar() :
     _skeletonModel.setEnableShapes(true);
     Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
     _physicsSimulation.setRagdoll(ragdoll);
+    _physicsSimulation.addEntity(&_voxelShapeManager);
 }
 
 MyAvatar::~MyAvatar() {
-    _physicsSimulation.setRagdoll(NULL);
-    _physicsSimulation.setEntity(NULL);
+    _physicsSimulation.clear();
     _lookAtTargetAvatar.clear();
 }
 
@@ -102,7 +102,7 @@ void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset();
 
-    setVelocity(glm::vec3(0.0f));
+    _velocity = glm::vec3(0.0f);
     setThrust(glm::vec3(0.0f));
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
@@ -484,8 +484,8 @@ void MyAvatar::clearReferential() {
     changeReferential(NULL);
 }
 
-bool MyAvatar::setModelReferential(int id) {
-    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+bool MyAvatar::setModelReferential(const QUuid& id) {
+    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new ModelReferential(id, tree, this));
     if (_referential->isValid()) {
         return true;
@@ -495,8 +495,8 @@ bool MyAvatar::setModelReferential(int id) {
     }
 }
 
-bool MyAvatar::setJointReferential(int id, int jointIndex) {
-    ModelTree* tree = Application::getInstance()->getModels()->getTree();
+bool MyAvatar::setJointReferential(const QUuid& id, int jointIndex) {
+    EntityTree* tree = Application::getInstance()->getEntities()->getTree();
     changeReferential(new JointReferential(jointIndex, id, tree, this));
     if (!_referential->isValid()) {
         return true;
@@ -1158,6 +1158,11 @@ void MyAvatar::updatePosition(float deltaTime) {
     boundingShape.getStartPoint(startCap);
     glm::vec3 bottom = startCap - boundingShape.getRadius() * _worldUpDirection;
 
+    // velocity is initialized to the measured _velocity but will be modified 
+    // by friction, external thrust, etc
+    glm::vec3 velocity = _velocity;
+
+    // apply friction
     if (gravityLength > EPSILON) {
         float speedFromGravity = _scale * deltaTime * gravityLength;
         float distanceToFall = glm::distance(bottom, _lastFloorContactPoint);
@@ -1166,26 +1171,26 @@ void MyAvatar::updatePosition(float deltaTime) {
         if (walkingOnFloor) {
             // BEGIN HACK: to prevent the avatar from bouncing on a floor surface
             if (distanceToFall < deltaTime * speedFromGravity) {
-                float verticalSpeed = glm::dot(_velocity, _worldUpDirection);
+                float verticalSpeed = glm::dot(velocity, _worldUpDirection);
                 if (fabs(verticalSpeed) < speedFromGravity) {
                     // we're standing on a floor, and nearly at rest so we zero the vertical velocity component
-                    _velocity -= verticalSpeed * _worldUpDirection;
+                    velocity -= verticalSpeed * _worldUpDirection;
                 }
             } else {
                 // fall with gravity against floor
-                _velocity -= speedFromGravity * _worldUpDirection;
+                velocity -= speedFromGravity * _worldUpDirection;
             }
             // END HACK
         } else {
             if (!_isBraking) {
                 // fall with gravity toward floor
-                _velocity -= speedFromGravity * _worldUpDirection;
+                velocity -= speedFromGravity * _worldUpDirection;
             }
 
             if (_motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
                 const float MAX_VERTICAL_FLOOR_DETECTION_SPEED = _scale * MAX_WALKING_SPEED;
                 if (keyboardInput && glm::dot(_motorVelocity, _worldUpDirection) > 0.0f &&
-                        glm::dot(_velocity, _worldUpDirection) > MAX_VERTICAL_FLOOR_DETECTION_SPEED) {
+                        glm::dot(velocity, _worldUpDirection) > MAX_VERTICAL_FLOOR_DETECTION_SPEED) {
                     // disable local gravity when flying up
                     setLocalGravity(glm::vec3(0.0f));
                 } else {
@@ -1197,93 +1202,123 @@ void MyAvatar::updatePosition(float deltaTime) {
                 }
             }
         }
-    } else {
-        if ((_collisionGroups & COLLISION_GROUP_VOXELS) && 
-            _motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
-            const float MIN_FLOOR_DETECTION_SPEED = _scale * 1.0f;
-            if (glm::length(_velocity) < MIN_FLOOR_DETECTION_SPEED ) {
-                // scan for floor under avatar
-                const float maxFloorDistance = _scale * NEARBY_FLOOR_THRESHOLD;
-                if (computeDistanceToFloor(bottom) < maxFloorDistance) {
-                    // enable local gravity
-                    setLocalGravity(-_worldUpDirection);
-                }
+    } else if ((_collisionGroups & COLLISION_GROUP_VOXELS) && 
+        _motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
+        const float MIN_FLOOR_DETECTION_SPEED = _scale * 1.0f;
+        if (glm::length(_velocity) < MIN_FLOOR_DETECTION_SPEED ) {
+            // scan for floor under avatar
+            const float maxFloorDistance = _scale * NEARBY_FLOOR_THRESHOLD;
+            if (computeDistanceToFloor(bottom) < maxFloorDistance) {
+                // enable local gravity
+                setLocalGravity(-_worldUpDirection);
             }
         }
     }
 
-    if (keyboardInput > 0.0f || glm::length2(_velocity) > 0.0f || glm::length2(_thrust) > 0.0f || ! walkingOnFloor) {
-        // update motor and thrust
-        updateMotorFromKeyboard(deltaTime, walkingOnFloor);
-        applyMotor(deltaTime);
-        applyThrust(deltaTime);
+    float speed = glm::length(velocity);
+    if (keyboardInput > 0.0f || speed > 0.0f || glm::length2(_thrust) > 0.0f || ! walkingOnFloor) {
+        // update motor
+        if (_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED) {
+            // Increase motor velocity until its length is equal to _maxMotorSpeed.
+            glm::vec3 localVelocity = velocity;
+            if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+                glm::quat orientation = getHead()->getCameraOrientation();
+                localVelocity = glm::inverse(orientation) * velocity;
+            }
+        
+            // Compute keyboard input
+            glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
+            glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
+            glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
+        
+            glm::vec3 direction = front + right + up;
+            float directionLength = glm::length(direction);
+        
+            // Compute motor magnitude
+            if (directionLength > EPSILON) {
+                direction /= directionLength;
+                // the finalMotorSpeed depends on whether we are walking or not
+                float finalMaxMotorSpeed = walkingOnFloor ? _scale * MAX_WALKING_SPEED : _scale * _maxMotorSpeed;
+        
+                float motorLength = glm::length(_motorVelocity);
+                if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
+                    // an active keyboard motor should never be slower than this
+                    _motorVelocity = _scale * MIN_KEYBOARD_CONTROL_SPEED * direction;
+                } else {
+                    float MOTOR_LENGTH_TIMESCALE = 1.5f;
+                    float tau = glm::clamp(deltaTime / MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f);
+                    float INCREASE_FACTOR = 2.0f;
+                    //_motorVelocity *= 1.0f + tau * INCREASE_FACTOR;
+                    motorLength *= 1.0f + tau * INCREASE_FACTOR;
+                    if (motorLength > finalMaxMotorSpeed) {
+                        motorLength = finalMaxMotorSpeed;
+                    }
+                    _motorVelocity = motorLength * direction;
+                }
+                _isPushing = true;
+            } else {
+                // motor opposes motion (wants to be at rest)
+                _motorVelocity = - localVelocity;
+            }
+        }
+
+        // apply motor
+        if (_motionBehaviors & AVATAR_MOTION_MOTOR_ENABLED) {
+            glm::vec3 targetVelocity = _motorVelocity;
+            if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+                // rotate _motorVelocity into world frame
+                glm::quat rotation = getHead()->getCameraOrientation();
+                targetVelocity = rotation * _motorVelocity;
+            }
+    
+            glm::vec3 targetDirection(0.0f);
+            if (glm::length2(targetVelocity) > EPSILON) {
+                targetDirection = glm::normalize(targetVelocity);
+            }
+            glm::vec3 deltaVelocity = targetVelocity - velocity;
+        
+            if (_motionBehaviors & AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY && glm::length2(_gravity) > EPSILON) {
+                // For now we subtract the component parallel to gravity but what we need to do is: 
+                // TODO: subtract the component perp to the local surface normal (motor only pushes in surface plane).
+                glm::vec3 gravityDirection = glm::normalize(_gravity);
+                glm::vec3 parallelDelta = glm::dot(deltaVelocity, gravityDirection) * gravityDirection;
+                if (glm::dot(targetVelocity, velocity) > 0.0f) {
+                    // remove parallel part from deltaVelocity
+                    deltaVelocity -= parallelDelta;
+                }
+            }
+    
+            // simple critical damping
+            float timescale = computeMotorTimescale(velocity);
+            float tau = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
+            velocity += tau * deltaVelocity;
+        }
+
+        // apply thrust
+        velocity += _thrust * deltaTime;
+        speed = glm::length(velocity);
+        if (speed > MAX_AVATAR_SPEED) {
+            velocity *= MAX_AVATAR_SPEED / speed;
+            speed = MAX_AVATAR_SPEED;
+        }
+        _thrust = glm::vec3(0.0f);
 
         // update position
-        if (glm::length2(_velocity) < EPSILON) {
-            _velocity = glm::vec3(0.0f);
-        } else { 
-            _position += _velocity * deltaTime;
+        const float MIN_AVATAR_SPEED = 0.075f;
+        if (speed > MIN_AVATAR_SPEED) {
+            _position += velocity * deltaTime;
         }
-        updateAcceleration(deltaTime);
     }
 
     // update moving flag based on speed
     const float MOVING_SPEED_THRESHOLD = 0.01f;
-    _moving = glm::length(_velocity) > MOVING_SPEED_THRESHOLD;
+    _moving = speed > MOVING_SPEED_THRESHOLD;
 
     updateChatCircle(deltaTime);
+    measureMotionDerivatives(deltaTime);
 }
 
-void MyAvatar::updateMotorFromKeyboard(float deltaTime, bool walking) {
-    // Increase motor velocity until its length is equal to _maxMotorSpeed.
-    if (!(_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED)) {
-        // nothing to do
-        return;
-    }
-
-    glm::vec3 localVelocity = _velocity;
-    if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-        glm::quat orientation = getHead()->getCameraOrientation();
-        localVelocity = glm::inverse(orientation) * _velocity;
-    }
-
-    // Compute keyboard input
-    glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
-    glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
-    glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
-
-    glm::vec3 direction = front + right + up;
-    float directionLength = glm::length(direction);
-
-    // Compute motor magnitude
-    if (directionLength > EPSILON) {
-        direction /= directionLength;
-        // the finalMotorSpeed depends on whether we are walking or not
-        float finalMaxMotorSpeed = walking ? _scale * MAX_WALKING_SPEED : _scale * _maxMotorSpeed;
-
-        float motorLength = glm::length(_motorVelocity);
-        if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
-            // an active keyboard motor should never be slower than this
-            _motorVelocity = _scale * MIN_KEYBOARD_CONTROL_SPEED * direction;
-        } else {
-            float MOTOR_LENGTH_TIMESCALE = 1.5f;
-            float tau = glm::clamp(deltaTime / MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f);
-            float INCREASE_FACTOR = 2.0f;
-            //_motorVelocity *= 1.0f + tau * INCREASE_FACTOR;
-            motorLength *= 1.0f + tau * INCREASE_FACTOR;
-            if (motorLength > finalMaxMotorSpeed) {
-                motorLength = finalMaxMotorSpeed;
-            }
-            _motorVelocity = motorLength * direction;
-        }
-        _isPushing = true;
-    } else {
-        // motor opposes motion (wants to be at rest)
-        _motorVelocity = - localVelocity;
-    }
-}
-
-float MyAvatar::computeMotorTimescale() {
+float MyAvatar::computeMotorTimescale(const glm::vec3& velocity) {
     // The timescale of the motor is the approximate time it takes for the motor to 
     // accomplish its intended velocity.  A short timescale makes the motor strong, 
     // and a long timescale makes it weak.  The value of timescale to use depends 
@@ -1303,7 +1338,7 @@ float MyAvatar::computeMotorTimescale() {
         timescale = _motorTimescale;
         _isBraking = false;
     } else {
-        float speed = glm::length(_velocity);
+        float speed = glm::length(velocity);
         _isBraking = _wasPushing || (_isBraking && speed > MIN_BRAKE_SPEED);
         if (_isBraking) {
             timescale = MIN_MOTOR_TIMESCALE;
@@ -1313,160 +1348,6 @@ float MyAvatar::computeMotorTimescale() {
     _isPushing = false;
     return timescale;
 }
-
-void MyAvatar::applyMotor(float deltaTime) {
-    // TODO: recover extra braking behavior when flying close to nearest avatar
-    if (!( _motionBehaviors & AVATAR_MOTION_MOTOR_ENABLED)) {
-        // nothing to do --> early exit
-        return;
-    }
-    glm::vec3 targetVelocity = _motorVelocity;
-    if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-        // rotate _motorVelocity into world frame
-        glm::quat rotation = getHead()->getCameraOrientation();
-        targetVelocity = rotation * _motorVelocity;
-    }
-
-    glm::vec3 targetDirection(0.0f);
-    if (glm::length2(targetVelocity) > EPSILON) {
-        targetDirection = glm::normalize(targetVelocity);
-    }
-    glm::vec3 deltaVelocity = targetVelocity - _velocity;
-
-    if (_motionBehaviors & AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY && glm::length2(_gravity) > EPSILON) {
-        // For now we subtract the component parallel to gravity but what we need to do is: 
-        // TODO: subtract the component perp to the local surface normal (motor only pushes in surface plane).
-        glm::vec3 gravityDirection = glm::normalize(_gravity);
-        glm::vec3 parallelDelta = glm::dot(deltaVelocity, gravityDirection) * gravityDirection;
-        if (glm::dot(targetVelocity, _velocity) > 0.0f) {
-            // remove parallel part from deltaVelocity
-            deltaVelocity -= parallelDelta;
-        }
-    }
-
-    // simple critical damping
-    float timescale = computeMotorTimescale();
-    float tau = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
-    _velocity += tau * deltaVelocity;
-}
-
-void MyAvatar::applyThrust(float deltaTime) {
-    _velocity += _thrust * deltaTime;
-    float speed = glm::length(_velocity);
-    // cap the speed that thrust can achieve
-    if (speed > MAX_AVATAR_SPEED) {
-        _velocity *= MAX_AVATAR_SPEED / speed;
-    }
-    // zero thrust so we don't pile up thrust from other sources
-    _thrust = glm::vec3(0.0f);
-}
-
-/* Keep this code for the short term as reference in case we need to further tune the new model 
- * to achieve legacy movement response.
-void MyAvatar::updateThrust(float deltaTime) {
-    //
-    //  Gather thrust information from keyboard and sensors to apply to avatar motion
-    //
-    glm::quat orientation = getHead()->getCameraOrientation();
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-
-    const float THRUST_MAG_UP = 800.0f;
-    const float THRUST_MAG_DOWN = 300.0f;
-    const float THRUST_MAG_FWD = 500.0f;
-    const float THRUST_MAG_BACK = 300.0f;
-    const float THRUST_MAG_LATERAL = 250.0f;
-    const float THRUST_JUMP = 120.0f;
-
-    //  Add Thrusts from keyboard
-    _thrust += _driveKeys[FWD] * _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;
-    _thrust -= _driveKeys[BACK] * _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;
-    _thrust += _driveKeys[RIGHT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
-    _thrust -= _driveKeys[LEFT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
-    _thrust += _driveKeys[UP] * _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;
-    _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
-
-    // attenuate thrust when in penetration
-    if (glm::dot(_thrust, _lastBodyPenetration) > EPSILON) {
-        const float MAX_BODY_PENETRATION_DEPTH = 0.6f * _skeletonModel.getBoundingShapeRadius();
-        float penetrationFactor = glm::min(1.0f, glm::length(_lastBodyPenetration) / MAX_BODY_PENETRATION_DEPTH);
-        glm::vec3 penetrationDirection = glm::normalize(_lastBodyPenetration);
-        // attenuate parallel component
-        glm::vec3 parallelThrust = glm::dot(_thrust, penetrationDirection) * penetrationDirection;
-        // attenuate perpendicular component (friction)
-        glm::vec3 perpendicularThrust = _thrust - parallelThrust;
-        // recombine to get the final thrust
-        _thrust = (1.0f - penetrationFactor) * parallelThrust + (1.0f - penetrationFactor * penetrationFactor) * perpendicularThrust;
-
-        // attenuate the growth of _thrustMultiplier when in penetration
-        // otherwise the avatar will eventually be able to tunnel through the obstacle
-        _thrustMultiplier *= (1.0f - penetrationFactor * penetrationFactor);
-    } else if (_thrustMultiplier < 1.0f) {
-        // rapid healing of attenuated thrustMultiplier after penetration event
-        _thrustMultiplier = 1.0f;
-    }
-    _lastBodyPenetration = glm::vec3(0.0f);
-
-    //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
-    if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
-        const float THRUST_INCREASE_RATE = 1.05f;
-        const float MAX_THRUST_MULTIPLIER = 75.0f;
-        _thrustMultiplier *= 1.0f + deltaTime * THRUST_INCREASE_RATE;
-        if (_thrustMultiplier > MAX_THRUST_MULTIPLIER) {
-            _thrustMultiplier = MAX_THRUST_MULTIPLIER;
-        }
-    } else {
-        _thrustMultiplier = 1.0f;
-    }
-
-    //  Add one time jumping force if requested
-    if (_shouldJump) {
-        if (glm::length(_gravity) > EPSILON) {
-            _thrust += _scale * THRUST_JUMP * up;
-        }
-        _shouldJump = false;
-    }
-
-    //  Update speed brake status
-    const float MIN_SPEED_BRAKE_VELOCITY = _scale * 0.4f;
-    if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {
-        _speedBrakes = true;
-    }
-    _isThrustOn = (glm::length(_thrust) > EPSILON);
-
-    if (_isThrustOn || (_speedBrakes && (glm::length(_velocity) < MIN_SPEED_BRAKE_VELOCITY))) {
-        _speedBrakes = false;
-    }
-    _velocity += _thrust * deltaTime;
-
-    // Zero thrust out now that we've added it to velocity in this frame
-    _thrust = glm::vec3(0.0f);
-
-    // apply linear damping
-    const float MAX_STATIC_FRICTION_SPEED = 0.5f;
-    const float STATIC_FRICTION_STRENGTH = _scale * 20.0f;
-    applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_SPEED, STATIC_FRICTION_STRENGTH);
-
-    const float LINEAR_DAMPING_STRENGTH = 0.5f;
-    const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    const float SQUARED_DAMPING_STRENGTH = 0.007f;
-
-    const float SLOW_NEAR_RADIUS = 5.0f;
-    float linearDamping = LINEAR_DAMPING_STRENGTH;
-    const float NEAR_AVATAR_DAMPING_FACTOR = 50.0f;
-    if (_distanceToNearestAvatar < _scale * SLOW_NEAR_RADIUS) {
-        linearDamping *= 1.0f + NEAR_AVATAR_DAMPING_FACTOR *
-                            ((SLOW_NEAR_RADIUS - _distanceToNearestAvatar) / SLOW_NEAR_RADIUS);
-    }
-    if (_speedBrakes) {
-        applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
-    } else {
-        applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);
-    }
-}
-*/
-
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
     glm::vec3 up = getBodyUpDirection();
@@ -1486,112 +1367,125 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
-    float speed = glm::length(_velocity);
-    if (speed > MAX_VOXEL_COLLISION_SPEED) {
-        // don't even bother to try to collide against voxles when moving very fast
-        _trapDuration = 0.0f;
-        return;
-    }
-    bool isTrapped = false;
-    myCollisions.clear();
-    const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-    if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
-        const float VOXEL_ELASTICITY = 0.0f;
-        const float VOXEL_DAMPING = 0.0f;
-        float capsuleRadius = boundingShape.getRadius();
-        float capsuleHalfHeight = boundingShape.getHalfHeight();
-        const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
-        const float MIN_STEP_HEIGHT = 0.0f;
-        glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
-        float highestStep = 0.0f;
-        float lowestStep = MAX_STEP_HEIGHT;
-        glm::vec3 floorPoint;
-        glm::vec3 stepPenetration(0.0f);
-        glm::vec3 totalPenetration(0.0f);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+        // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
+        float cubeScale = 4.0f * getBoundingRadius();
+        glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
+        AACube boundingCube(corner, cubeScale);
 
-        for (int i = 0; i < myCollisions.size(); ++i) {
-            CollisionInfo* collision = myCollisions[i];
-            glm::vec3 cubeCenter = collision->_vecData;
-            float cubeSide = collision->_floatData;
-            float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
-            float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
-            const float MAX_TRAP_PERIOD = 0.125f;
-            if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
-                isTrapped = true;
-                if (_trapDuration > MAX_TRAP_PERIOD) {
-                    float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
-                    if (distance < 0.0f) {
-                        distance = fabsf(distance) + 0.5f * cubeSide;
-                    }
-                    distance += capsuleRadius + capsuleHalfHeight;
-                    totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
-                    continue;
-                }
-            } else if (_trapDuration > MAX_TRAP_PERIOD) {
-                // we're trapped, ignore this collision
-                continue;
-            }
-            totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
-            if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
-                glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
-                float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
-                if (stepHeight > highestStep) {
-                    highestStep = stepHeight;
-                    stepPenetration = collision->_penetration;
-                }
-                if (stepHeight < lowestStep) {
-                    lowestStep = stepHeight;
-                    floorPoint = collision->_contactPoint - collision->_penetration;
-                }
-            }
+        // query the VoxelTree for cubes that touch avatar's boundingCube
+        CubeList cubes;
+        if (Application::getInstance()->getVoxelTree()->findContentInCube(boundingCube, cubes)) {
+            _voxelShapeManager.updateVoxels(cubes);
         }
-        if (lowestStep < MAX_STEP_HEIGHT) {
-            _lastFloorContactPoint = floorPoint;
-        }
-
-        float penetrationLength = glm::length(totalPenetration);
-        if (penetrationLength < EPSILON) {
+    } else {
+        const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
+        float speed = glm::length(_velocity);
+        if (speed > MAX_VOXEL_COLLISION_SPEED) {
+            // don't even bother to try to collide against voxles when moving very fast
             _trapDuration = 0.0f;
             return;
         }
-        float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
-        if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
-            // we're colliding against an edge
-            glm::vec3 targetVelocity = _motorVelocity;
-            if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-                // rotate _motorVelocity into world frame
-                glm::quat rotation = getHead()->getCameraOrientation();
-                targetVelocity = rotation * _motorVelocity;
-            }
-            if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
-                // we're puhing into the edge, so we want to lift
-
-                // remove unhelpful horizontal component of the step's penetration
-                totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
-
-                // further adjust penetration to help lift
-                float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
-                float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
-                float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
-                if (extraStep > 0.0f) {
-                    totalPenetration -= extraStep * _worldUpDirection;
+        bool isTrapped = false;
+        myCollisions.clear();
+        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+        if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
+            const float VOXEL_ELASTICITY = 0.0f;
+            const float VOXEL_DAMPING = 0.0f;
+            float capsuleRadius = boundingShape.getRadius();
+            float capsuleHalfHeight = boundingShape.getHalfHeight();
+            const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
+            const float MIN_STEP_HEIGHT = 0.0f;
+            glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
+            float highestStep = 0.0f;
+            float lowestStep = MAX_STEP_HEIGHT;
+            glm::vec3 floorPoint;
+            glm::vec3 stepPenetration(0.0f);
+            glm::vec3 totalPenetration(0.0f);
+    
+            for (int i = 0; i < myCollisions.size(); ++i) {
+                CollisionInfo* collision = myCollisions[i];
+                glm::vec3 cubeCenter = collision->_vecData;
+                float cubeSide = collision->_floatData;
+                float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
+                float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
+                const float MAX_TRAP_PERIOD = 0.125f;
+                if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
+                    isTrapped = true;
+                    if (_trapDuration > MAX_TRAP_PERIOD) {
+                        float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
+                        if (distance < 0.0f) {
+                            distance = fabsf(distance) + 0.5f * cubeSide;
+                        }
+                        distance += capsuleRadius + capsuleHalfHeight;
+                        totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
+                        continue;
+                    }
+                } else if (_trapDuration > MAX_TRAP_PERIOD) {
+                    // we're trapped, ignore this collision
+                    continue;
                 }
-
-                _position -= totalPenetration;
+                totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+                if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
+                    glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
+                    float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
+                    if (stepHeight > highestStep) {
+                        highestStep = stepHeight;
+                        stepPenetration = collision->_penetration;
+                    }
+                    if (stepHeight < lowestStep) {
+                        lowestStep = stepHeight;
+                        floorPoint = collision->_contactPoint - collision->_penetration;
+                    }
+                }
+            }
+            if (lowestStep < MAX_STEP_HEIGHT) {
+                _lastFloorContactPoint = floorPoint;
+            }
+    
+            float penetrationLength = glm::length(totalPenetration);
+            if (penetrationLength < EPSILON) {
+                _trapDuration = 0.0f;
+                return;
+            }
+            float verticalPenetration = glm::dot(totalPenetration, _worldUpDirection);
+            if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
+                // we're colliding against an edge
+                glm::vec3 targetVelocity = _motorVelocity;
+                if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
+                    // rotate _motorVelocity into world frame
+                    glm::quat rotation = getHead()->getCameraOrientation();
+                    targetVelocity = rotation * _motorVelocity;
+                }
+                if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
+                    // we're puhing into the edge, so we want to lift
+    
+                    // remove unhelpful horizontal component of the step's penetration
+                    totalPenetration -= stepPenetration - (glm::dot(stepPenetration, _worldUpDirection) * _worldUpDirection);
+    
+                    // further adjust penetration to help lift
+                    float liftSpeed = glm::max(MAX_WALKING_SPEED, speed);
+                    float thisStep = glm::min(liftSpeed * deltaTime, highestStep);
+                    float extraStep = glm::dot(totalPenetration, _worldUpDirection) + thisStep;
+                    if (extraStep > 0.0f) {
+                        totalPenetration -= extraStep * _worldUpDirection;
+                    }
+    
+                    _position -= totalPenetration;
+                } else {
+                    // we're not pushing into the edge, so let the avatar fall
+                    applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
+                }
             } else {
-                // we're not pushing into the edge, so let the avatar fall
                 applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
             }
-        } else {
-            applyHardCollision(totalPenetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
-        }
-
-        // Don't make a collision sound against voxlels by default -- too annoying when walking
-        //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
-        //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
-    } 
-    _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
+    
+            // Don't make a collision sound against voxlels by default -- too annoying when walking
+            //const float VOXEL_COLLISION_FREQUENCY = 0.5f;
+            //updateCollisionSound(myCollisions[0]->_penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
+        } 
+        _trapDuration = isTrapped ? _trapDuration + deltaTime : 0.0f;
+    }
 }
 
 void MyAvatar::applyHardCollision(const glm::vec3& penetration, float elasticity, float damping) {
@@ -1873,7 +1767,7 @@ void MyAvatar::maybeUpdateBillboard() {
 
 void MyAvatar::goHome() {
     qDebug("Going Home!");
-    setPosition(START_LOCATION);
+    slamPosition(START_LOCATION);
 }
 
 void MyAvatar::increaseSize() {
@@ -1897,7 +1791,12 @@ void MyAvatar::resetSize() {
 
 void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
     QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
-    goToLocationFromAddress(locationObject);
+    bool isOnline = jsonObject["data"].toObject()["online"].toBool();
+    if (isOnline ) {
+        goToLocationFromAddress(locationObject);
+    } else {
+        QMessageBox::warning(Application::getInstance()->getWindow(), "", "The user is not online.");
+    }
 }
 
 void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {
@@ -1928,7 +1827,7 @@ void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {
     const float DISTANCE_TO_USER = 2.0f;
     glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
                                       coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
-    setPosition(newPosition);
+    slamPosition(newPosition);
     emit transformChanged();
 }
 
@@ -1951,6 +1850,9 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
         menu->setIsOptionChecked(MenuOption::CollideWithVoxels, true);
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
+    }
+    if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
+        _voxelShapeManager.clearShapes();
     }
 }
 
