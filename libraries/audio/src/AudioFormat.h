@@ -42,22 +42,23 @@ struct AudioFormat {
     uint32_t _bitsPerChannel;
     float64_t _sampleRate;
     
+    
     AudioFormat() {
-        std::memset(this, 0, sizeof(*this));
+        memset(this, 0, sizeof(*this));
     }
     ~AudioFormat() { }
     
     AudioFormat& operator=(const AudioFormat& fmt) {
-        std::memcpy(this, &fmt, sizeof(*this));
+        memcpy(this, &fmt, sizeof(*this));
         return *this;
     }
     
     bool operator==(const AudioFormat& fmt) {
-        return std::memcmp(this, &fmt, sizeof(*this)) == 0;
+        return memcmp(this, &fmt, sizeof(*this)) == 0;
     }
     
     bool operator!=(const AudioFormat& fmt) {
-        return std::memcmp(this, &fmt, sizeof(*this)) != 0;
+        return memcmp(this, &fmt, sizeof(*this)) != 0;
     }
 
     void setCanonicalFloat32(uint32_t channels) {
