@@ -44,7 +44,7 @@ public:
     }
     
     void initialize() {
-        std::memset(_rows, 0, _randomRows * sizeof(int32_t));
+        memset(_rows, 0, _randomRows * sizeof(int32_t));
         
         _runningSum = 0;
         _index = 0;
