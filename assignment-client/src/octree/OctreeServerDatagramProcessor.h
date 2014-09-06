@@ -2,7 +2,7 @@
 //  OctreeServerDatagramProcessor.h
 //  assignment-client/src
 //
-//  Created by Stephen Birarda on 2014-08-14.
+//  Created by Brad Hefta-Gaub on 2014-09-05
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
