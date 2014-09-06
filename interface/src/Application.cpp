@@ -1166,8 +1166,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _seenMouseMove = true;
     }
 
-    _mouseX = event->x();
-    _mouseY = event->y();
+    setMousePosition(event, deviceID);
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -1181,8 +1180,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
+            setMousePosition(event, deviceID);
             _mouseDragStartedX = _mouseX;
             _mouseDragStartedY = _mouseY;
             _mousePressed = true;
@@ -1213,8 +1211,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
+            setMousePosition(event, deviceID);
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -2326,6 +2323,18 @@ int Application::sendNackPackets() {
         }
     }
     return packetsSent;
+}
+
+void Application::setMousePosition(QMouseEvent* event, unsigned int deviceID) {
+    if (deviceID > 0) {
+        // simulated events are in device coordinates
+        _mouseX = event->x();
+        _mouseY = event->y();
+        
+    } else {
+        _mouseX = _glWidget->getDeviceX(event->x());
+        _mouseY = _glWidget->getDeviceY(event->y());
+    }
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {

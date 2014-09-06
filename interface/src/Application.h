@@ -435,6 +435,8 @@ private:
 
     int sendNackPackets();
 
+    void setMousePosition(QMouseEvent* event, unsigned int deviceID);
+
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
