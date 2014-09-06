@@ -1767,7 +1767,7 @@ void MyAvatar::maybeUpdateBillboard() {
 
 void MyAvatar::goHome() {
     qDebug("Going Home!");
-    setPosition(START_LOCATION);
+    slamPosition(START_LOCATION);
 }
 
 void MyAvatar::increaseSize() {
@@ -1827,7 +1827,7 @@ void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {
     const float DISTANCE_TO_USER = 2.0f;
     glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
                                       coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
-    setPosition(newPosition);
+    slamPosition(newPosition);
     emit transformChanged();
 }
 

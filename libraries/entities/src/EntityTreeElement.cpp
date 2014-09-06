@@ -723,7 +723,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 int bytesForThisEntity = 0;
                 EntityItemID entityItemID;
                 EntityItem* entityItem = NULL;
-                bool newEntity = false;
 
                 // Old model files don't have UUIDs in them. So we don't want to try to read those IDs from the stream.
                 // Since this can only happen on loading an old file, we can safely treat these as new entity cases,
@@ -768,7 +767,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         addEntityItem(entityItem); // add this new entity to this elements entities
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
-                        newEntity = true;
                         EntityItem::SimulationState newState = entityItem->getSimulationState();
                         _myTree->changeEntityState(entityItem, EntityItem::Static, newState);
                     }

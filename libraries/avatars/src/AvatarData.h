@@ -145,7 +145,7 @@ public:
     const QUuid& getSessionUUID() { return _sessionUUID; }
 
     const glm::vec3& getPosition();
-    void setPosition(const glm::vec3 position, bool overideReferential = false);
+    virtual void setPosition(const glm::vec3 position, bool overideReferential = false);
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
