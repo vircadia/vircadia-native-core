@@ -492,7 +492,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
 
 void EntityTree::notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
     _newlyCreatedHooksLock.lockForRead();
-    for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
+    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
         _newlyCreatedHooks[i]->entityCreated(newEntity, senderNode);
     }
     _newlyCreatedHooksLock.unlock();
@@ -506,7 +506,7 @@ void EntityTree::addNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
 
 void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
     _newlyCreatedHooksLock.lockForWrite();
-    for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
+    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
         if (_newlyCreatedHooks[i] == hook) {
             _newlyCreatedHooks.erase(_newlyCreatedHooks.begin() + i);
             break;

@@ -275,7 +275,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
 
                 // If we're switching type, then we send the last one and start over
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) ||
-                    (packetBuffer._currentSize + length >= _maxPacketSize)) {
+                    (packetBuffer._currentSize + length >= (size_t)_maxPacketSize)) {
                     releaseQueuedPacket(packetBuffer);
                     initializePacket(packetBuffer, type);
                 }

@@ -108,7 +108,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
     
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
-    if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
+    if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
         _refScale = item->getRadius();
         model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
@@ -123,7 +123,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
     _type = JOINT;
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
-    if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
+    if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
         qDebug() << "JointReferential::constructor(): Not Valid";
         _isValid = false;
         return;
@@ -142,7 +142,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
 void JointReferential::update() {
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
-    if (!isValid() || model == NULL || _jointIndex >= model->getJointStateCount()) {
+    if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
         return;
     }
     
