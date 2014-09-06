@@ -96,7 +96,7 @@ public:
             return;
         }
         for (uint16_t i = 0; i < _channelCount; ++i) {
-            std::memset(_frameBuffer[i], 0, sizeof(T)*_frameCountMax);
+            memset(_frameBuffer[i], 0, sizeof(T)*_frameCountMax);
         }
     }
      
