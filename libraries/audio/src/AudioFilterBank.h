@@ -149,7 +149,6 @@ public:
                 _filters[i][j].render( samples[j], samples[j], frameBuffer.getFrameCount() );
             }
         }
-
     }
     
     void reset() {
