@@ -23,7 +23,7 @@ typedef double float64_t;
 #endif
 
 //
-// Audio format structure (uncompressed streams only) 
+// Audio format structure (currently for uncompressed streams only)
 //
 
 struct AudioFormat {
@@ -62,7 +62,7 @@ struct AudioFormat {
 
     void setCanonicalFloat32(uint32_t channels) {
         assert(channels > 0 && channels <= 2);
-        _sampleRate = SAMPLE_RATE;
+        _sampleRate = SAMPLE_RATE; // todo:  create audio constants header
         _bitsPerChannel = sizeof(float32_t) * 8;
         _channelsPerFrame = channels;
         _bytesPerFrame = _channelsPerFrame * _bitsPerChannel / 8;
@@ -72,7 +72,7 @@ struct AudioFormat {
     
     void setCanonicalInt16(uint32_t channels) {
         assert(channels > 0 && channels <= 2);
-        _sampleRate = SAMPLE_RATE;
+        _sampleRate = SAMPLE_RATE; // todo:  create audio constants header
         _bitsPerChannel = sizeof(int16_t) * 8;
         _channelsPerFrame = channels;
         _bytesPerFrame = _channelsPerFrame * _bitsPerChannel / 8;
