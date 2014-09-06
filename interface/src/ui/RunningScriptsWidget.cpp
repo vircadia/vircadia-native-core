@@ -69,7 +69,7 @@ void RunningScriptsWidget::updateFileFilter(const QString& filter) {
 
 void RunningScriptsWidget::loadScriptFromList(const QModelIndex& index) {
     QVariant scriptFile = _proxyModel.data(index, ScriptsModel::ScriptPath);
-    Application::getInstance()->loadScript(scriptFile.toString(), false, false);
+    Application::getInstance()->loadScript(scriptFile.toString());
 }
 
 void RunningScriptsWidget::loadSelectedScript() {
