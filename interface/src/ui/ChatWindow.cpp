@@ -18,20 +18,18 @@
 #include <QTimer>
 
 #include "Application.h"
+#include "ChatMessageArea.h"
 #include "FlowLayout.h"
 #include "qtimespan.h"
-#include "ui_chatWindow.h"
+#include "UIUtil.h"
 #include "XmppClient.h"
-#include "ChatMessageArea.h"
 
+#include "ui_chatWindow.h"
 #include "ChatWindow.h"
 
 
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
-
-const float OPACITY_ACTIVE = 1.0f;
-const float OPACITY_INACTIVE = 0.8f;
 
 const QRegularExpression regexLinks("((?:(?:ftp)|(?:https?)|(?:hifi))://\\S+)");
 const QRegularExpression regexHifiLinks("([#@]\\S+)");
@@ -39,7 +37,8 @@ const QString mentionSoundsPath("/mention-sounds/");
 const QString mentionRegex("@(\\b%1\\b)");
 
 ChatWindow::ChatWindow(QWidget* parent) :
-    FramelessDialog(parent, 0, POSITION_RIGHT),
+    QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
+            Qt::WindowCloseButtonHint),
     ui(new Ui::ChatWindow),
     numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
@@ -82,7 +81,6 @@ ChatWindow::ChatWindow(QWidget* parent) :
         startTimerForTimeStamps();
     } else {
         ui->numOnlineLabel->hide();
-        ui->closeButton->hide();
         ui->usersArea->hide();
         ui->messagesScrollArea->hide();
         ui->messagePlainTextEdit->hide();
@@ -112,17 +110,25 @@ ChatWindow::~ChatWindow() {
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
     if (event->key() == Qt::Key_Escape) {
         Application::getInstance()->getWindow()->activateWindow();
+        hide();
     } else {
-        FramelessDialog::keyPressEvent(event);
+        QWidget::keyPressEvent(event);
     }
 }
 
 void ChatWindow::showEvent(QShowEvent* event) {
-    FramelessDialog::showEvent(event);
+    QWidget::showEvent(event);
 
     if (!event->spontaneous()) {
         ui->messagePlainTextEdit->setFocus();
     }
+    const QRect parentGeometry = parentWidget()->geometry();
+    int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
+    int menuBarHeight = Menu::getInstance()->geometry().height();
+    int topMargin = titleBarHeight + menuBarHeight;
+
+    setGeometry(parentGeometry.topRight().x() - size().width() + 1, parentGeometry.topRight().y() + topMargin,
+                size().width(), parentWidget()->height() - topMargin);
 
     Application::processEvents();
 
@@ -167,7 +173,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
             return true;
         }
     }
-    return FramelessDialog::eventFilter(sender, event);
+    return QWidget::eventFilter(sender, event);
 }
 
 void ChatWindow::addTimeStamp() {
@@ -214,7 +220,6 @@ void ChatWindow::startTimerForTimeStamps() {
 void ChatWindow::connected() {
     ui->connectingToXMPPLabel->hide();
     ui->numOnlineLabel->show();
-    ui->closeButton->show();
     ui->usersArea->show();
     ui->messagesScrollArea->show();
     ui->messagePlainTextEdit->show();
@@ -393,9 +398,7 @@ void ChatWindow::scrollToBottom() {
 
 bool ChatWindow::event(QEvent* event) {
     if (event->type() == QEvent::WindowActivate) {
-        setWindowOpacity(OPACITY_ACTIVE);
-    } else if (event->type() == QEvent::WindowDeactivate) {
-        setWindowOpacity(OPACITY_INACTIVE);
+        ui->messagePlainTextEdit->setFocus();
     }
-    return FramelessDialog::event(event);
+    return QWidget::event(event);
 }
