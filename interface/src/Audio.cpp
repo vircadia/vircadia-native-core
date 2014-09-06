@@ -495,10 +495,10 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    int16_t* inputBuffer = (int16_t*)inputByteArray.data();
+    int16_t* inputFrameData = (int16_t*)inputByteArray.data();
     const int inputFrameCount = inputByteArray.size() / sizeof(int16_t);
 
-    _inputFrameBuffer.copyFrames(1, inputFrameCount, inputBuffer, false /*copy in*/);
+    _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
 
     _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
     
@@ -517,7 +517,7 @@ void Audio::handleAudioInput() {
         _peq.render(_inputFrameBuffer); // 3-band parametric eq
     }
 
-    _inputFrameBuffer.copyFrames(1, inputFrameCount, inputBuffer, true /*copy out*/);
+    _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
