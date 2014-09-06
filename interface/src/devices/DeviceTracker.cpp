@@ -38,7 +38,7 @@ DeviceTracker* DeviceTracker::getDevice(const Name& name) {
 }
 
 DeviceTracker* DeviceTracker::getDevice(DeviceTracker::ID deviceID) {
-    if ((deviceID >= 0) && (deviceID < Singleton::get()->_devicesVector.size())) {
+    if ((deviceID >= 0) && (deviceID < (int)(Singleton::get()->_devicesVector.size()))) {
         return Singleton::get()->_devicesVector[ deviceID ];
     } else {
         return NULL;
