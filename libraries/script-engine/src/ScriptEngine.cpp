@@ -88,6 +88,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isRunning(false),
     _isInitialized(false),
     _isAvatar(false),
+    _isUserLoaded(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
     _timerFunctionMap(),
@@ -113,6 +114,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _isRunning(false),
     _isInitialized(false),
     _isAvatar(false),
+    _isUserLoaded(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
     _timerFunctionMap(),
@@ -708,7 +710,7 @@ void ScriptEngine::include(const QString& includeFile) {
 
 void ScriptEngine::load(const QString& loadFile) {
     QUrl url = resolveInclude(loadFile);
-    emit loadScript(url.toString());
+    emit loadScript(url.toString(), false);
 }
 
 void ScriptEngine::nodeKilled(SharedNodePointer node) {

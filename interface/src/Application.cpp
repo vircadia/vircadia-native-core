@@ -382,6 +382,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
     if (firstRunValue.isValid() && firstRunValue.toBool()) {
@@ -393,7 +395,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
     } else {
-        // do this as late as possible so that all required subsystems are inialized
+        // do this as late as possible so that all required subsystems are initialized
         loadScripts();
 
         QMutexLocker locker(&_settingsMutex);
@@ -425,7 +427,6 @@ Application::~Application() {
     
     saveSettings();
     storeSizeAndPosition();
-    saveScripts();
     
     int DELAY_TIME = 1000;
     UserActivityLogger::getInstance().close(DELAY_TIME);
@@ -3683,18 +3684,26 @@ void Application::clearScriptsBeforeRunning() {
 }
 
 void Application::saveScripts() {
-    // saves all current running scripts
+    // Saves all currently running user-loaded scripts
     QMutexLocker locker(&_settingsMutex);
     _settings->beginWriteArray("Settings");
-    for (int i = 0; i < getRunningScripts().size(); ++i){
-        _settings->setArrayIndex(i);
-        _settings->setValue("script", getRunningScripts().at(i));
+
+    QStringList runningScripts = getRunningScripts();
+    int i = 0;
+    for (QStringList::const_iterator it = runningScripts.begin(); it != runningScripts.end(); it += 1) {
+        if (getScriptEngine(*it)->isUserLoaded()) {
+            _settings->setArrayIndex(i);
+            _settings->setValue("script", *it);
+            i += 1;
+        }
     }
+
     _settings->endArray();
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor, bool activateMainWindow) {
-    QUrl scriptUrl(scriptName);
+ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
+    bool loadScriptFromEditor, bool activateMainWindow) {
+    QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
     if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
         && !_scriptEnginesHash[scriptURLString]->isFinished()) {
@@ -3703,7 +3712,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     }
 
     ScriptEngine* scriptEngine;
-    if (scriptName.isNull()) {
+    if (scriptFilename.isNull()) {
         scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     } else {
         // start the script on a new thread...
@@ -3719,6 +3728,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
         UserActivityLogger::getInstance().loadedScript(scriptURLString);
     }
+    scriptEngine->setUserLoaded(isUserLoaded);
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -3751,7 +3761,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
-    connect(scriptEngine, SIGNAL(loadScript(const QString&)), this, SLOT(loadScript(const QString&)));
+    connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
@@ -3821,7 +3831,7 @@ void Application::stopAllScripts(bool restart) {
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
-        if (restart) {
+        if (restart && it.value()->isUserLoaded()) {
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }
         it.value()->stop();
