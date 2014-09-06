@@ -39,6 +39,9 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
+    _movingEntities.clear();
+    _changingEntities.clear();
+    _mortalEntities.clear();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
