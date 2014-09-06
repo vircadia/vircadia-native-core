@@ -88,7 +88,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isRunning(false),
     _isInitialized(false),
     _isAvatar(false),
-    _isUserLoaded(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
     _timerFunctionMap(),
@@ -103,6 +102,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this),
+    _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
 }
@@ -114,7 +114,6 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _isRunning(false),
     _isInitialized(false),
     _isAvatar(false),
-    _isUserLoaded(false),
     _avatarIdentityTimer(NULL),
     _avatarBillboardTimer(NULL),
     _timerFunctionMap(),
@@ -129,6 +128,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this),
+    _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     QString scriptURLString = scriptURL.toString();
