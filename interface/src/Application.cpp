@@ -1151,7 +1151,8 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
 
-    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
+    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
+    _controllerScriptingInterface.emitMouseMoveEvent(&deviceEvent, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1166,11 +1167,13 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _seenMouseMove = true;
     }
 
-    setMousePosition(event, deviceID);
+    _mouseX = deviceEvent.x();
+    _mouseY = deviceEvent.y();
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
+    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
+    _controllerScriptingInterface.emitMousePressEvent(&deviceEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1180,7 +1183,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            setMousePosition(event, deviceID);
+            _mouseX = deviceEvent.x();
+            _mouseY = deviceEvent.y();
             _mouseDragStartedX = _mouseX;
             _mouseDragStartedY = _mouseY;
             _mousePressed = true;
@@ -1202,7 +1206,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
+    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
+    _controllerScriptingInterface.emitMouseReleaseEvent(&deviceEvent); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1211,7 +1216,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            setMousePosition(event, deviceID);
+            _mouseX = deviceEvent.x();
+            _mouseY = deviceEvent.y();
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -2325,16 +2331,12 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-void Application::setMousePosition(QMouseEvent* event, unsigned int deviceID) {
+QMouseEvent Application::getDeviceEvent(QMouseEvent* event, unsigned int deviceID) {
     if (deviceID > 0) {
-        // simulated events are in device coordinates
-        _mouseX = event->x();
-        _mouseY = event->y();
-        
-    } else {
-        _mouseX = _glWidget->getDeviceX(event->x());
-        _mouseY = _glWidget->getDeviceY(event->y());
+        return *event;
     }
+    return QMouseEvent(event->type(), QPointF(_glWidget->getDeviceX(event->x()), _glWidget->getDeviceY(event->y())),
+        event->windowPos(), event->screenPos(), event->button(), event->buttons(), event->modifiers());
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
