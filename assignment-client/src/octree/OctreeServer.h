@@ -123,12 +123,14 @@ public:
 public slots:
     /// runs the voxel server assignment
     void run();
-    void readPendingDatagrams();
     void nodeAdded(SharedNodePointer node);
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
     
     void handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject);
+
+    void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
+    void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
 protected:
     void parsePayload();
@@ -140,6 +142,7 @@ protected:
     QString getStatusLink();
 
     void handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram);
+    void setupDatagramProcessingThread();
     
     int _argc;
     const char** _argv;
