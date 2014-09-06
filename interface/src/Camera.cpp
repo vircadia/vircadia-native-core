@@ -262,8 +262,8 @@ CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* view
 }
 
 PickRay CameraScriptableObject::computePickRay(float x, float y) {
-    float screenWidth = Application::getInstance()->getGLWidget()->width();
-    float screenHeight = Application::getInstance()->getGLWidget()->height();
+    float screenWidth = Application::getInstance()->getGLWidget()->getDeviceWidth();
+    float screenHeight = Application::getInstance()->getGLWidget()->getDeviceHeight();
     PickRay result;
     if (OculusManager::isConnected()) {
         result.origin = _camera->getPosition();

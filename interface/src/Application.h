@@ -186,7 +186,7 @@ public:
 
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
-    QGLWidget* getGLWidget() { return _glWidget; }
+    GLCanvas* getGLWidget() { return _glWidget; }
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
@@ -288,7 +288,7 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
+    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
@@ -434,6 +434,8 @@ private:
     static void* networkReceive(void* args); // network receive thread
 
     int sendNackPackets();
+
+    QMouseEvent getDeviceEvent(QMouseEvent* event, unsigned int deviceID);
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
