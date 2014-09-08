@@ -1152,8 +1152,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
 
-    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
-    _controllerScriptingInterface.emitMouseMoveEvent(&deviceEvent, deviceID); // send events to any registered scripts
+    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1168,13 +1167,12 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _seenMouseMove = true;
     }
 
-    _mouseX = deviceEvent.x();
-    _mouseY = deviceEvent.y();
+    _mouseX = event->x();
+    _mouseY = event->y();
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
-    _controllerScriptingInterface.emitMousePressEvent(&deviceEvent); // send events to any registered scripts
+    _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1184,8 +1182,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = deviceEvent.x();
-            _mouseY = deviceEvent.y();
+            _mouseX = event->x();
+            _mouseY = event->y();
             _mouseDragStartedX = _mouseX;
             _mouseDragStartedY = _mouseY;
             _mousePressed = true;
@@ -1207,8 +1205,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
-    _controllerScriptingInterface.emitMouseReleaseEvent(&deviceEvent); // send events to any registered scripts
+    _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1217,8 +1214,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = deviceEvent.x();
-            _mouseY = deviceEvent.y();
+            _mouseX = event->x();
+            _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -1417,7 +1414,7 @@ void Application::checkBandwidthMeterClick() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
             <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight())) {
+            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1735,8 +1732,8 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
 
-    _mouseX = _glWidget->getDeviceWidth() / 2;
-    _mouseY = _glWidget->getDeviceHeight() / 2;
+    _mouseX = _glWidget->width() / 2;
+    _mouseY = _glWidget->height() / 2;
     QCursor::setPos(_mouseX, _mouseY);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
@@ -1891,8 +1888,8 @@ void Application::updateMouseRay() {
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->getDeviceWidth();
-        y = _mouseY / (float)_glWidget->getDeviceHeight();
+        x = _mouseX / (float)_glWidget->width();
+        y = _mouseY / (float)_glWidget->height();
     }
     _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
 
@@ -2330,14 +2327,6 @@ int Application::sendNackPackets() {
         }
     }
     return packetsSent;
-}
-
-QMouseEvent Application::getDeviceEvent(QMouseEvent* event, unsigned int deviceID) {
-    if (deviceID > 0) {
-        return *event;
-    }
-    return QMouseEvent(event->type(), QPointF(_glWidget->getDeviceX(event->x()), _glWidget->getDeviceY(event->y())),
-        event->windowPos(), event->screenPos(), event->button(), event->buttons(), event->modifiers());
 }
 
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
@@ -3291,8 +3280,8 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 
 
 void Application::resetSensors() {
-    _mouseX = _glWidget->getDeviceWidth() / 2;
-    _mouseY = _glWidget->getDeviceHeight() / 2;
+    _mouseX = _glWidget->width() / 2;
+    _mouseY = _glWidget->height() / 2;
 
     _faceplus.reset();
     _faceshift.reset();
