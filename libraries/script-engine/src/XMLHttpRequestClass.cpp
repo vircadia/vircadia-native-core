@@ -71,6 +71,8 @@ QScriptValue XMLHttpRequestClass::getStatus() const {
                 return QScriptValue(408);
             case QNetworkReply::ContentOperationNotPermittedError:
                 return QScriptValue(501);
+            default:
+                break;
         }
     }
     return QScriptValue(0);
@@ -92,6 +94,8 @@ QString XMLHttpRequestClass::getStatusText() const {
                 return "Timeout";
             case QNetworkReply::ContentOperationNotPermittedError:
                 return "Not Implemented";
+            default:
+                break;
         }
     }
     return "";

@@ -37,8 +37,8 @@ int hifiSockAddrMeta = qRegisterMetaType<HifiSockAddr>("HifiSockAddr");
 
 AssignmentClient::AssignmentClient(int &argc, char **argv) :
     QCoreApplication(argc, argv),
-    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME),
-    _shutdownEventListener(this)
+    _shutdownEventListener(this),
+    _assignmentServerHostname(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME)
 {
     LogUtils::init();
 

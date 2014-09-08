@@ -389,7 +389,7 @@ const QByteArray* OctreeQueryNode::getNextNackedPacket() {
     return NULL;
 }
 
-void OctreeQueryNode::parseNackPacket(QByteArray& packet) {
+void OctreeQueryNode::parseNackPacket(const QByteArray& packet) {
 
     int numBytesPacketHeader = numBytesForPacketHeader(packet);
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data()) + numBytesPacketHeader;

@@ -102,6 +102,7 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this),
+    _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
 }
@@ -127,6 +128,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
     _vec3Library(),
     _uuidLibrary(),
     _animationCache(this),
+    _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
     QString scriptURLString = scriptURL.toString();
@@ -708,7 +710,7 @@ void ScriptEngine::include(const QString& includeFile) {
 
 void ScriptEngine::load(const QString& loadFile) {
     QUrl url = resolveInclude(loadFile);
-    emit loadScript(url.toString());
+    emit loadScript(url.toString(), false);
 }
 
 void ScriptEngine::nodeKilled(SharedNodePointer node) {

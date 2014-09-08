@@ -160,6 +160,9 @@ public:
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+
+    void setPosition(const glm::vec3 position, bool overideReferential = false);
+    void slamPosition(const glm::vec3& newPosition);
     
 public slots:
     void updateCollisionGroups();

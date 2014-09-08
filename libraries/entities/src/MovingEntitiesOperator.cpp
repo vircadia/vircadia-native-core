@@ -38,6 +38,7 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACub
         // check our tree, to determine if this entity is known
         EntityToMoveDetails details;
         details.oldContainingElement = oldContainingElement;
+        details.oldContainingElementCube = oldContainingElement->getAACube();
         details.entity = entity;
         details.oldFound = false;
         details.newFound = false;
@@ -123,8 +124,30 @@ bool MovingEntitiesOperator::postRecursion(OctreeElement* element) {
         element->markWithChangedTime();
     }
     
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-    entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
+
+
+    // It's not OK to prune if we have the potential of deleting the original containig element.
+    // because if we prune the containing element then new might end up reallocating the same memory later 
+    // and that will confuse our logic.
+    // 
+    // it's ok to prune if:
+    // 2) this subtree doesn't contain any old elements
+    // 3) this subtree contains an old element, but this element isn't a direct parent of any old containing element
+
+    bool elementSubTreeContainsOldElements = false;
+    bool elementIsDirectParentOfOldElment = false;
+    foreach(const EntityToMoveDetails& details, _entitiesToMove) {
+        if (element->getAACube().contains(details.oldContainingElementCube)) {
+            elementSubTreeContainsOldElements = true;
+        }
+        if (element->isParentOf(details.oldContainingElement)) {
+            elementIsDirectParentOfOldElment = true;
+        }
+    }
+    if (!elementSubTreeContainsOldElements || !elementIsDirectParentOfOldElment) {
+        EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+        entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
+    }
 
     return keepSearching; // if we haven't yet found it, keep looking
 }
