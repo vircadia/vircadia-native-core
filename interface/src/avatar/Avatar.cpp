@@ -11,6 +11,9 @@
 
 #include <vector>
 
+#include <QDesktopWidget>
+#include <QWindow>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -864,6 +867,13 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
     _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
+    
+    // adjust for device pixel ratio
+    float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+    if (ratio != 1.0f) {
+        _displayNameBoundingRect = QRect(_displayNameBoundingRect.x() * ratio, _displayNameBoundingRect.y() * ratio,
+            _displayNameBoundingRect.width() * ratio, _displayNameBoundingRect.height() * ratio);
+    }
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {
