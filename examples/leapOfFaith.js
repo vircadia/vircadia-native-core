@@ -255,4 +255,8 @@ Script.update.connect(function(deltaTime) {
 });
 
 Script.scriptEnding.connect(function() {
+    var i;
+    for (i = 0; i < jointControllers.length; i += 1) {
+        Controller.releaseInputController(jointControllers[i].c);
+    }
 });

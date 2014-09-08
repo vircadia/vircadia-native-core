@@ -297,6 +297,10 @@ AbstractInputController* ControllerScriptingInterface::createInputController(con
     }
 }
 
+void ControllerScriptingInterface::releaseInputController(AbstractInputController* input) {
+    _inputControllers.erase(input->getKey());
+}
+
 void ControllerScriptingInterface::updateInputControllers() {
     //TODO C++11 for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
     for (InputControllerMap::iterator it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
