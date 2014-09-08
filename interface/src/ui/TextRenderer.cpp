@@ -45,6 +45,8 @@ TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool i
     float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
     if (ratio != 1.0f) {
         _font.setPointSize(_font.pointSize() * ratio);
+        _metrics = QFontMetrics(_font);
+        _effectThickness *= ratio;
     }
 }
 
