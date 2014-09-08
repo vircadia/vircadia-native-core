@@ -30,7 +30,7 @@ Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int wid
 
 TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool italic,
         EffectType effectType, int effectThickness, QColor color) :
-    _font(family, pointSize * QApplication::desktop()->windowHandle()->devicePixelRatio(), weight, italic),
+    _font(family, pointSize, weight, italic),
     _metrics(_font),
     _effectType(effectType),
     _effectThickness(effectThickness),
@@ -40,6 +40,12 @@ TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool i
     _color(color) {
     
     _font.setKerning(false);
+    
+    // double the font size for "Retina" displays
+    float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+    if (ratio != 1.0f) {
+        _font.setPointSize(_font.pointSize() * ratio);
+    }
 }
 
 TextRenderer::~TextRenderer() {
