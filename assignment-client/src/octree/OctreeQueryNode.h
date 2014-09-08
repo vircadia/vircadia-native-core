@@ -109,7 +109,7 @@ public:
 
     OCTREE_PACKET_SEQUENCE getSequenceNumber() const { return _sequenceNumber; }
 
-    void parseNackPacket(QByteArray& packet);
+    void parseNackPacket(const QByteArray& packet);
     bool hasNextNackedPacket() const;
     const QByteArray* getNextNackedPacket();
 
