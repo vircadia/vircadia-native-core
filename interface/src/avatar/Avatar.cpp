@@ -658,7 +658,8 @@ void Avatar::renderDisplayName() {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
+        float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
+            ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
         glScalef(scaleFactor, scaleFactor, 1.0);  
         
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
@@ -867,13 +868,6 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
 void Avatar::setDisplayName(const QString& displayName) {
     AvatarData::setDisplayName(displayName);
     _displayNameBoundingRect = textRenderer(DISPLAYNAME)->metrics().tightBoundingRect(displayName);
-    
-    // adjust for device pixel ratio
-    float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
-    if (ratio != 1.0f) {
-        _displayNameBoundingRect = QRect(_displayNameBoundingRect.x() * ratio, _displayNameBoundingRect.y() * ratio,
-            _displayNameBoundingRect.width() * ratio, _displayNameBoundingRect.height() * ratio);
-    }
 }
 
 void Avatar::setBillboard(const QByteArray& billboard) {
