@@ -49,9 +49,9 @@ public:
     //
     // ctor/dtor
     //
-    AudioFilterBank() 
-    : _sampleRate(0.)
-    , _frameCount(0) {
+    AudioFilterBank() :
+        _sampleRate(0.0f),
+        _frameCount(0) {
         for (int i = 0; i < _channelCount; ++i) {
             _buffer[ i ] = NULL;
         }

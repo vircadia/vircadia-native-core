@@ -563,7 +563,7 @@ Menu::Menu() :
                                                                     0,
                                                                     true,
                                                                     appInstance->getAudio(),
-                                                                    SLOT(selectAudioSourceSine440));
+                                                                    SLOT(selectAudioSourceSine440()));
 
         QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
         audioSourceGroup->addAction(pinkNoise);

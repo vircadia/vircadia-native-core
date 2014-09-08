@@ -44,18 +44,18 @@ class AudioFrameBuffer {
     
 public:
     
-    AudioFrameBuffer() 
-    : _channelCount(0)
-    , _frameCount(0)
-    , _frameCountMax(0)
-    , _frameBuffer(NULL) {
+    AudioFrameBuffer() :
+        _channelCount(0),
+        _frameCount(0),
+        _frameCountMax(0),
+        _frameBuffer(NULL) {
     }
     
-    AudioFrameBuffer(const uint16_t channelCount, const uint16_t frameCount) 
-    : _channelCount(channelCount)
-    , _frameCount(frameCount)
-    , _frameCountMax(frameCount)
-    , _frameBuffer(NULL) {
+    AudioFrameBuffer(const uint16_t channelCount, const uint16_t frameCount) :
+        _channelCount(channelCount),
+        _frameCount(frameCount),
+        _frameCountMax(frameCount),
+        _frameBuffer(NULL) {
         allocateFrames();
     }
     

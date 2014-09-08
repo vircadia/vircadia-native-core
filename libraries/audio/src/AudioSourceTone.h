@@ -16,6 +16,7 @@ class AudioSourceTone
 {
     static uint32_t _frameOffset;
     float32_t _frequency;
+    float32_t _amplitude;
     float32_t _sampleRate;
     float32_t _omega;
     
@@ -30,7 +31,7 @@ public:
     
     void initialize() {
         _frameOffset = 0;
-        setParameters(SAMPLE_RATE, 220.0f);
+        setParameters(SAMPLE_RATE, 220.0f, 0.9f);
     }
     
     void finalize() {
@@ -40,15 +41,17 @@ public:
         _frameOffset = 0;
     }
 
-    void setParameters(const float32_t sampleRate, const float32_t frequency) {
+    void setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude) {
         _sampleRate = std::max(sampleRate, 1.0f);
         _frequency = std::max(frequency, 1.0f);
+        _amplitude = std::max(amplitude, 1.0f);
         _omega = _frequency / _sampleRate * TWO_PI;
     }
     
-    void getParameters(float32_t& sampleRate, float32_t& frequency) {
+    void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& amplitude) {
         sampleRate = _sampleRate;
         frequency = _frequency;
+        amplitude = _amplitude;
     }
 
     void render(AudioBufferFloat32& frameBuffer) {
