@@ -99,7 +99,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     glPushMatrix();
 
     glLoadIdentity();
-    gluOrtho2D(0, glWidget->getDeviceWidth(), glWidget->getDeviceHeight(), 0);
+    gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
 

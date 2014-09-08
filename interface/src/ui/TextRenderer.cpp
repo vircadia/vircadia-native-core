@@ -43,7 +43,7 @@ TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool i
     
     // double the font size for "Retina" displays
     float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
-    if (ratio != 1.0f) {
+    if (ratio != 1.0f && false) {
         _font.setPointSize(_font.pointSize() * ratio);
         _metrics = QFontMetrics(_font);
         _effectThickness *= ratio;
