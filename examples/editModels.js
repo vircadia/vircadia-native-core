@@ -1147,10 +1147,10 @@ var toolBar = (function () {
         }, true, false);
 
         browseModelsButton = toolBar.addTool({
-            imageURL: toolIconUrl + "list-icon.png",
+            imageURL: toolIconUrl + "list-icon.svg",
             width: toolWidth,
             height: toolHeight,
-            alpha: 0.7,
+            alpha: 0.9,
             visible: true
         });
 
