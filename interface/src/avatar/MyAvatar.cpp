@@ -609,6 +609,13 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
     // so it continues to point opposite to the previous gravity setting.
 }
 
+void MyAvatar::slamPosition(const glm::vec3& newPosition) {
+    AvatarData::setPosition(newPosition);
+    _lastPosition = _position;
+    _velocity = glm::vec3(0.0f);
+    _lastVelocity = glm::vec3(0.0f); 
+}
+
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
     AnimationHandlePointer handle = _skeletonModel.createAnimationHandle();
     _animationHandles.append(handle);
@@ -797,9 +804,11 @@ void MyAvatar::loadData(QSettings* settings) {
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
-    _position.x = loadSetting(settings, "position_x", START_LOCATION.x);
-    _position.y = loadSetting(settings, "position_y", START_LOCATION.y);
-    _position.z = loadSetting(settings, "position_z", START_LOCATION.z);
+    glm::vec3 newPosition;
+    newPosition.x = loadSetting(settings, "position_x", START_LOCATION.x);
+    newPosition.y = loadSetting(settings, "position_y", START_LOCATION.y);
+    newPosition.z = loadSetting(settings, "position_z", START_LOCATION.z);
+    slamPosition(newPosition);
 
     getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 

@@ -50,7 +50,7 @@ Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
-    _lastPosition(0.0f),
+    _lastPosition(_position),
     _velocity(0.0f),
     _lastVelocity(0.0f),
     _acceleration(0.0f),
@@ -204,7 +204,9 @@ void Avatar::simulate(float deltaTime) {
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
-    _position += _velocity * deltaTime;
+    // NOTE: we shouldn't extrapolate an Avatar instance forward in time... 
+    // until velocity is in AvatarData update message.
+    //_position += _velocity * deltaTime;
     measureMotionDerivatives(deltaTime);
 }
 
@@ -221,20 +223,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     _angularVelocity = safeEulerAngles(delta) * invDeltaTime;
     _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * invDeltaTime;
     _lastOrientation = getOrientation();
-}
-
-void Avatar::setPosition(const glm::vec3 position, bool overideReferential) {
-    AvatarData::setPosition(position, overideReferential);
-    _lastPosition = position;
-    _velocity = glm::vec3(0.0f);
-    _lastVelocity = glm::vec3(0.0f);
-}
-
-void Avatar::slamPosition(const glm::vec3& newPosition) {
-    _position = newPosition;
-    _lastPosition = newPosition;
-    _velocity = glm::vec3(0.0f);
-    _lastVelocity = glm::vec3(0.0f);
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
