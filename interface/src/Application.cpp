@@ -41,6 +41,7 @@
 #include <QShortcut>
 #include <QTimer>
 #include <QUrl>
+#include <QWindow>
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
@@ -3030,8 +3031,15 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
-    glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
-    glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+    if (billboard) {
+        glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+        glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());    
+    } else {
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
+        glViewport(x, _glWidget->getDeviceHeight() - y - height, width, height);
+        glScissor(x, _glWidget->getDeviceHeight() - y - height, width, height);
+    }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
