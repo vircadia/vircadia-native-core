@@ -403,6 +403,9 @@ void linearResampling(const int16_t* sourceSamples, int16_t* destinationSamples,
     }
 }
 
+// $$$$$$$$$$$$$$ TEMPORARY $craighs$
+float _loopbackOutputToInputRatio;
+
 void Audio::start() {
 
     // set up the desired audio format
@@ -431,7 +434,10 @@ void Audio::start() {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
     }
 
-    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 4 );
+    _loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
+    * (_outputFormat.channelCount() / _inputFormat.channelCount());
+    
+    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
     _peq.initialize( _inputFormat.sampleRate() ); 
     _inputGain.initialize();
     _sourceGain.initialize();
@@ -535,6 +541,8 @@ void Audio::handleAudioInput() {
             float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
                 * (_outputFormat.channelCount() / _inputFormat.channelCount());
 
+            assert(loopbackOutputToInputRatio == _loopbackOutputToInputRatio);
+            
             QByteArray loopBackByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
 
             linearResampling((int16_t*) inputByteArray.data(), (int16_t*) loopBackByteArray.data(),

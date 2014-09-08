@@ -55,40 +55,78 @@ public:
         } 
         
         float32_t** samples = frameBuffer.getFrameData();
-        for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
-            for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 32) {
-                samples[j][i + 0] *= _gain;
-                samples[j][i + 1] *= _gain;
-                samples[j][i + 2] *= _gain;
-                samples[j][i + 3] *= _gain;
-                samples[j][i + 4] *= _gain;
-                samples[j][i + 5] *= _gain;
-                samples[j][i + 6] *= _gain;
-                samples[j][i + 7] *= _gain;
-                samples[j][i + 8] *= _gain;
-                samples[j][i + 9] *= _gain;
-                samples[j][i + 10] *= _gain;
-                samples[j][i + 11] *= _gain;
-                samples[j][i + 12] *= _gain;
-                samples[j][i + 13] *= _gain;
-                samples[j][i + 14] *= _gain;
-                samples[j][i + 15] *= _gain;
-                samples[j][i + 16] *= _gain;
-                samples[j][i + 17] *= _gain;
-                samples[j][i + 18] *= _gain;
-                samples[j][i + 19] *= _gain;
-                samples[j][i + 20] *= _gain;
-                samples[j][i + 21] *= _gain;
-                samples[j][i + 22] *= _gain;
-                samples[j][i + 23] *= _gain;
-                samples[j][i + 24] *= _gain;
-                samples[j][i + 25] *= _gain;
-                samples[j][i + 26] *= _gain;
-                samples[j][i + 27] *= _gain;
-                samples[j][i + 28] *= _gain;
-                samples[j][i + 29] *= _gain;
-                samples[j][i + 30] *= _gain;
-                samples[j][i + 31] *= _gain;
+        
+        bool frameAlignment16 = (frameBuffer.getFrameCount() & 0x0F) == 0;
+        if (frameAlignment16) {
+            
+            if (frameBuffer.getChannelCount() == 1) {
+                
+                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
+                    samples[0][i + 0] *= _gain;
+                    samples[0][i + 1] *= _gain;
+                    samples[0][i + 2] *= _gain;
+                    samples[0][i + 3] *= _gain;
+                    samples[0][i + 4] *= _gain;
+                    samples[0][i + 5] *= _gain;
+                    samples[0][i + 6] *= _gain;
+                    samples[0][i + 7] *= _gain;
+                    samples[0][i + 8] *= _gain;
+                    samples[0][i + 9] *= _gain;
+                    samples[0][i + 10] *= _gain;
+                    samples[0][i + 11] *= _gain;
+                    samples[0][i + 12] *= _gain;
+                    samples[0][i + 13] *= _gain;
+                    samples[0][i + 14] *= _gain;
+                    samples[0][i + 15] *= _gain;
+                }
+            }
+            else if (frameBuffer.getChannelCount() == 2) {
+                
+                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
+                    samples[0][i + 0] *= _gain;
+                    samples[0][i + 1] *= _gain;
+                    samples[0][i + 2] *= _gain;
+                    samples[0][i + 3] *= _gain;
+                    samples[0][i + 4] *= _gain;
+                    samples[0][i + 5] *= _gain;
+                    samples[0][i + 6] *= _gain;
+                    samples[0][i + 7] *= _gain;
+                    samples[0][i + 8] *= _gain;
+                    samples[0][i + 9] *= _gain;
+                    samples[0][i + 10] *= _gain;
+                    samples[0][i + 11] *= _gain;
+                    samples[0][i + 12] *= _gain;
+                    samples[0][i + 13] *= _gain;
+                    samples[0][i + 14] *= _gain;
+                    samples[0][i + 15] *= _gain;
+                    samples[1][i + 0] *= _gain;
+                    samples[1][i + 1] *= _gain;
+                    samples[1][i + 2] *= _gain;
+                    samples[1][i + 3] *= _gain;
+                    samples[1][i + 4] *= _gain;
+                    samples[1][i + 5] *= _gain;
+                    samples[1][i + 6] *= _gain;
+                    samples[1][i + 7] *= _gain;
+                    samples[1][i + 8] *= _gain;
+                    samples[1][i + 9] *= _gain;
+                    samples[1][i + 10] *= _gain;
+                    samples[1][i + 11] *= _gain;
+                    samples[1][i + 12] *= _gain;
+                    samples[1][i + 13] *= _gain;
+                    samples[1][i + 14] *= _gain;
+                    samples[1][i + 15] *= _gain;
+                }
+            }
+            else {
+                assert("unsupported channel format");
+            }
+        }
+        else {
+            
+            for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {
+                    samples[j][i] *= _gain;
+                }
             }
         }
     }
