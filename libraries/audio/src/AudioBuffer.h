@@ -18,15 +18,16 @@ template< typename T >
 class AudioFrameBuffer {
     
     uint16_t _channelCount;
+    uint16_t _channelCountMax;
     uint16_t _frameCount;
     uint16_t _frameCountMax;
     
     T** _frameBuffer;
 
     void allocateFrames() {
-        _frameBuffer = new T*[_channelCount];
+        _frameBuffer = new T*[_channelCountMax];
         if (_frameBuffer) {
-            for (uint16_t i = 0; i < _channelCount; ++i) {
+            for (uint16_t i = 0; i < _channelCountMax; ++i) {
                 _frameBuffer[i] = new T[_frameCountMax];
             }
         }
@@ -34,7 +35,7 @@ class AudioFrameBuffer {
     
     void deallocateFrames() {
         if (_frameBuffer) {
-            for (uint16_t i = 0; i < _channelCount; ++i) {
+            for (uint16_t i = 0; i < _channelCountMax; ++i) {
                 delete _frameBuffer[i];
             }
             delete _frameBuffer;
@@ -53,6 +54,7 @@ public:
     
     AudioFrameBuffer(const uint16_t channelCount, const uint16_t frameCount) :
         _channelCount(channelCount),
+        _channelCountMax(channelCount),
         _frameCount(frameCount),
         _frameCountMax(frameCount),
         _frameBuffer(NULL) {
@@ -68,6 +70,7 @@ public:
             finalize();
         }
         _channelCount = channelCount;
+        _channelCountMax = channelCount;
         _frameCount = frameCount;
         _frameCountMax = frameCount;
         allocateFrames();
@@ -76,7 +79,9 @@ public:
     void finalize() {
         deallocateFrames();
         _channelCount = 0;
+        _channelCountMax = 0;
         _frameCount = 0;
+        _frameCountMax = 0;
     }
                 
     T**& getFrameData() {
@@ -95,7 +100,7 @@ public:
         if (!_frameBuffer) {
             return;
         }
-        for (uint16_t i = 0; i < _channelCount; ++i) {
+        for (uint16_t i = 0; i < _channelCountMax; ++i) {
             memset(_frameBuffer[i], 0, sizeof(T)*_frameCountMax);
         }
     }
@@ -105,10 +110,11 @@ public:
         if ( !_frameBuffer || !frames) {
             return;
         }
-        assert(channelCount == _channelCount);
+        assert(channelCount <= _channelCountMax);
         assert(frameCount <= _frameCountMax);
         
         _frameCount = frameCount;  // we allow copying fewer frames than we've allocated
+        _channelCount = channelCount;  // we allow copying fewer channels that we've allocated
         
         if (copyOut) {
             S* dst = frames;
