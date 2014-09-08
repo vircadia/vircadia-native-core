@@ -16,6 +16,8 @@
 #include <AABox.h>
 
 #include "InboundAudioStream.h"
+#include "AudioFormat.h"
+#include "AudioBuffer.h"
 #include "AudioFilter.h"
 #include "AudioFilterBank.h"
 
