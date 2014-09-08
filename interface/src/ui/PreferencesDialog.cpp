@@ -165,19 +165,29 @@ void PreferencesDialog::savePreferences() {
     }
     
     QUrl faceModelURL(ui.faceURLEdit->text());
-    if (faceModelURL.toString() != _faceURLString) {
-        // change the faceModelURL in the profile, it will also update this user's BlendFace
-        myAvatar->setFaceModelURL(faceModelURL);
-        UserActivityLogger::getInstance().changedModel("head", faceModelURL.toString());
-        shouldDispatchIdentityPacket = true;
+    QString faceModelURLString = faceModelURL.toString();
+    if (faceModelURLString != _faceURLString) {
+        if (faceModelURLString.isEmpty() || faceModelURLString.toLower().endsWith(".fst")) {
+            // change the faceModelURL in the profile, it will also update this user's BlendFace
+            myAvatar->setFaceModelURL(faceModelURL);
+            UserActivityLogger::getInstance().changedModel("head", faceModelURLString);
+            shouldDispatchIdentityPacket = true;
+        } else {
+            qDebug() << "ERROR: Head model not FST or blank - " << faceModelURLString;
+        }
     }
 
     QUrl skeletonModelURL(ui.skeletonURLEdit->text());
-    if (skeletonModelURL.toString() != _skeletonURLString) {
-        // change the skeletonModelURL in the profile, it will also update this user's Body
-        myAvatar->setSkeletonModelURL(skeletonModelURL);
-        UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURL.toString());
-        shouldDispatchIdentityPacket = true;
+    QString skeletonModelURLString = skeletonModelURL.toString();
+    if (skeletonModelURLString != _skeletonURLString) {
+        if (skeletonModelURLString.isEmpty() || skeletonModelURLString.toLower().endsWith(".fst")) {
+            // change the skeletonModelURL in the profile, it will also update this user's Body
+            myAvatar->setSkeletonModelURL(skeletonModelURL);
+            UserActivityLogger::getInstance().changedModel("skeleton", skeletonModelURLString);
+            shouldDispatchIdentityPacket = true;
+        } else {
+            qDebug() << "ERROR: Skeleton model not FST or blank - " << skeletonModelURLString;
+        }
     }
     
     if (shouldDispatchIdentityPacket) {
