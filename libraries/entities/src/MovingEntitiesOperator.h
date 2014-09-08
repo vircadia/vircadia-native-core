@@ -19,6 +19,7 @@ public:
     AACube newCube;
     AABox newBox;
     EntityTreeElement* oldContainingElement;
+    AACube oldContainingElementCube;
     bool oldFound;
     bool newFound;
 };
