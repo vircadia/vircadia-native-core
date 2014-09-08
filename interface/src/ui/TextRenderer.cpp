@@ -9,11 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QFont>
 #include <QPaintEngine>
 #include <QtDebug>
 #include <QString>
 #include <QStringList>
+#include <QWindow>
 
 #include "InterfaceConfig.h"
 #include "TextRenderer.h"
@@ -25,10 +28,17 @@ Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int wid
     _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
 }
 
-TextRenderer::TextRenderer(const char* family, int pointSize, int weight,
-                           bool italic, EffectType effectType, int effectThickness, QColor color)
-        : _font(family, pointSize, weight, italic), _metrics(_font), _effectType(effectType),
-          _effectThickness(effectThickness), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0), _color(color) {
+TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool italic,
+        EffectType effectType, int effectThickness, QColor color) :
+    _font(family, pointSize * QApplication::desktop()->windowHandle()->devicePixelRatio(), weight, italic),
+    _metrics(_font),
+    _effectType(effectType),
+    _effectThickness(effectThickness),
+    _x(IMAGE_SIZE),
+    _y(IMAGE_SIZE),
+    _rowHeight(0),
+    _color(color) {
+    
     _font.setKerning(false);
 }
 
