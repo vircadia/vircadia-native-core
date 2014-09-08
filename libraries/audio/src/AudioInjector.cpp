@@ -64,12 +64,12 @@ void AudioInjector::injectAudio() {
         // pack some placeholder sequence number for now
         int numPreSequenceNumberBytes = injectAudioPacket.size();
         packetStream << (quint16)0;
-
-        // pack the stereo/mono type of the stream
-        packetStream << _options.isStereo();
         
         // pack stream identifier (a generated UUID)
         packetStream << QUuid::createUuid();
+        
+        // pack the stereo/mono type of the stream
+        packetStream << _options.isStereo();
         
         // pack the flag for loopback
         uchar loopbackFlag = (uchar) (!_options.getLoopbackAudioInterface());

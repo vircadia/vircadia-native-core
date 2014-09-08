@@ -33,8 +33,8 @@ bool TV3DManager::isConnected() {
 
 void TV3DManager::connect() {
     Application* app = Application::getInstance();
-    int width = app->getGLWidget()->width();
-    int height = app->getGLWidget()->height();
+    int width = app->getGLWidget()->getDeviceWidth();
+    int height = app->getGLWidget()->getDeviceHeight();
     Camera& camera = *app->getCamera();
 
     configureCamera(camera, width, height);
@@ -90,8 +90,8 @@ void TV3DManager::display(Camera& whichCamera) {
     // left eye portal
     int portalX = 0;
     int portalY = 0;
-    int portalW = Application::getInstance()->getGLWidget()->width() / 2;
-    int portalH = Application::getInstance()->getGLWidget()->height();
+    int portalW = Application::getInstance()->getGLWidget()->getDeviceWidth() / 2;
+    int portalH = Application::getInstance()->getGLWidget()->getDeviceHeight();
 
     const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
 
@@ -137,7 +137,7 @@ void TV3DManager::display(Camera& whichCamera) {
     glDisable(GL_SCISSOR_TEST);
 
     // render right side view
-    portalX = Application::getInstance()->getGLWidget()->width() / 2;
+    portalX = Application::getInstance()->getGLWidget()->getDeviceWidth() / 2;
     glEnable(GL_SCISSOR_TEST);
     // render left side view
     glViewport(portalX, portalY, portalW, portalH);
@@ -165,7 +165,8 @@ void TV3DManager::display(Camera& whichCamera) {
     glDisable(GL_SCISSOR_TEST);
 
     // reset the viewport to how we started
-    glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
+    glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
+        Application::getInstance()->getGLWidget()->getDeviceHeight());
 
     if (glowEnabled) {
         Application::getInstance()->getGlowEffect()->render();

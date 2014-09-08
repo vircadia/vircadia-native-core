@@ -920,7 +920,8 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
     
     Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
 
-    glViewport(0, 0, Application::getInstance()->getGLWidget()->width(), Application::getInstance()->getGLWidget()->height());
+    glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
+        Application::getInstance()->getGLWidget()->getDeviceHeight());
     
     // send the images off to the lab for processing
     QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds,

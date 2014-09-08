@@ -223,6 +223,20 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     _lastOrientation = getOrientation();
 }
 
+void Avatar::setPosition(const glm::vec3 position, bool overideReferential) {
+    AvatarData::setPosition(position, overideReferential);
+    _lastPosition = position;
+    _velocity = glm::vec3(0.0f);
+    _lastVelocity = glm::vec3(0.0f);
+}
+
+void Avatar::slamPosition(const glm::vec3& newPosition) {
+    _position = newPosition;
+    _lastPosition = newPosition;
+    _velocity = glm::vec3(0.0f);
+    _lastVelocity = glm::vec3(0.0f);
+}
+
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayOrigin = origin;
     _mouseRayDirection = direction;

@@ -93,7 +93,7 @@ bool ScriptEditorWidget::setRunning(bool run) {
 
     if (run) {
         const QString& scriptURLString = QUrl(_currentScript).toString();
-        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true);
+        _scriptEngine = Application::getInstance()->loadScript(scriptURLString, true, true);
         connect(_scriptEngine, &ScriptEngine::runningStateChanged, this, &ScriptEditorWidget::runningStateChanged);
         connect(_scriptEngine, &ScriptEngine::errorMessage, this, &ScriptEditorWidget::onScriptError);
         connect(_scriptEngine, &ScriptEngine::printedMessage, this, &ScriptEditorWidget::onScriptPrint);

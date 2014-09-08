@@ -115,7 +115,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -140,7 +140,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytesB[] = { 136, 30 };
+        char expectedBytesB[] = { (char)136, (char)30 };
         QByteArray expectedResultB(expectedBytesB, sizeof(expectedBytesB)/sizeof(expectedBytesB[0]));
         
         if (encoded == expectedResultB) {
@@ -172,7 +172,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             qDebug() << "encoded=";
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -197,7 +197,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
         
-        char expectedBytesB[] = { 136, 30 };
+        char expectedBytesB[] = { (char)136, (char)30 };
         QByteArray expectedResultB(expectedBytesB, sizeof(expectedBytesB)/sizeof(expectedBytesB[0]));
         
         if (encoded == expectedResultB) {
@@ -231,7 +231,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -264,7 +264,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -296,7 +296,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -329,7 +329,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -362,7 +362,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -395,7 +395,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -432,7 +432,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        char expectedBytes[] = { 196, 15, 2 };
+        char expectedBytes[] = { (char)196, (char)15, (char)2 };
         QByteArray expectedResult(expectedBytes, sizeof(expectedBytes)/sizeof(expectedBytes[0]));
         
         if (encoded == expectedResult) {
@@ -642,7 +642,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
                             << "{ expect true }";
         }
-        char expectedBytesD[] = { 136, 16 };
+        char expectedBytesD[] = { (char)136, (char)16 };
         QByteArray expectedResultD(expectedBytesD, sizeof(expectedBytesD)/sizeof(expectedBytesD[0]));
         
         testsTaken++;

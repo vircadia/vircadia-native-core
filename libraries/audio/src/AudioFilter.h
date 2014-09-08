@@ -37,11 +37,11 @@ public:
     //
     // ctor/dtor
     //
-    AudioBiquad() 
-    : _xm1(0.)
-    , _xm2(0.)
-    , _ym1(0.)
-    , _ym2(0.) {
+    AudioBiquad() :
+    _xm1(0.),
+    _xm2(0.),
+    _ym1(0.),
+    _ym2(0.) {
         setParameters(0.,0.,0.,0.,0.);
     }
 

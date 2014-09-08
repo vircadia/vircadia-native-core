@@ -545,11 +545,31 @@ Menu::Menu() :
                                   0,
                                   this,
                                   SLOT(muteEnvironment()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioToneInjection,
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
                                            0,
                                            false,
                                            appInstance->getAudio(),
-                                           SLOT(toggleToneInjection()));
+                                           SLOT(toggleAudioSourceInject()));
+    QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
+    {
+        QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
+                                                               0,
+                                                               false,
+                                                               appInstance->getAudio(),
+                                                               SLOT(selectAudioSourcePinkNoise()));
+        
+        QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
+                                                                    0,
+                                                                    true,
+                                                                    appInstance->getAudio(),
+                                                                    SLOT(selectAudioSourceSine440()));
+
+        QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
+        audioSourceGroup->addAction(pinkNoise);
+        audioSourceGroup->addAction(sine440);
+    }
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
@@ -1085,7 +1105,7 @@ void Menu::showLoginForCurrentDomain() {
 
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
+        _preferencesDialog = new PreferencesDialog();
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
@@ -1468,7 +1488,9 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+        _chatWindow->raise();
         _chatWindow->activateWindow();
+        _chatWindow->setFocus();
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
@@ -1480,6 +1502,9 @@ void Menu::toggleChat() {
     if (!_chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
+            _chatWindow->raise();
+            _chatWindow->activateWindow();
+            _chatWindow->setFocus();
         } else {
             _chatWindow->hide();
         }
