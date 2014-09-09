@@ -54,8 +54,12 @@ public:
     const rgbColor& getColor() const { return _color; }
     xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
     bool hasModel() const { return !_modelURL.isEmpty(); }
+
+    static const QString DEFAULT_MODEL_URL;
     const QString& getModelURL() const { return _modelURL; }
+
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
+    static const QString DEFAULT_ANIMATION_URL;
     const QString& getAnimationURL() const { return _animationURL; }
     QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
@@ -69,8 +73,13 @@ public:
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
     void setAnimationURL(const QString& url) { _animationURL = url; }
+    static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
+
+    static const bool DEFAULT_ANIMATION_IS_PLAYING;
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
+
+    static const float DEFAULT_ANIMATION_FPS;
     void setAnimationFPS(float value) { _animationFPS = value; }
     void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
     

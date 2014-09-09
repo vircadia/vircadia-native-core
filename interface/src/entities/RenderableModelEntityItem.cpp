@@ -65,8 +65,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     bool drawAsModel = hasModel();
 
     glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float radius = getRadius() * (float)TREE_SCALE;
     float size = getSize() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     
     if (drawAsModel) {
         glPushMatrix();
@@ -98,7 +98,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
                 glm::quat rotation = getRotation();
                 if (needsSimulation() && _model->isActive()) {
-                    _model->setScaleToFit(true, radius * 2.0f);
+                    _model->setScaleToFit(true, dimensions);
                     _model->setSnapModelToCenter(true);
                     _model->setRotation(rotation);
                     _model->setTranslation(position);

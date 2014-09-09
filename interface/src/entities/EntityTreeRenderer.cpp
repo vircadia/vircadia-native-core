@@ -216,6 +216,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         EntityItem* entityItem = entityItems[i];
         // render entityItem 
         AACube entityCube = entityItem->getAACube();
+
         entityCube.scale(TREE_SCALE);
         
         // TODO: some entity types (like lights) might want to be rendered even

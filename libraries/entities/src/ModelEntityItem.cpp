@@ -17,6 +17,13 @@
 #include "ModelEntityItem.h"
 
 
+const QString ModelEntityItem::DEFAULT_MODEL_URL = QString("");
+const QString ModelEntityItem::DEFAULT_ANIMATION_URL = QString("");
+const float ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX = 0.0f;
+const bool ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING = false;
+const float ModelEntityItem::DEFAULT_ANIMATION_FPS = 30.0f;
+
+
 EntityItem* ModelEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     return new ModelEntityItem(entityID, properties);
 }
@@ -55,40 +62,13 @@ EntityItemProperties ModelEntityItem::getProperties() const {
 bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     bool somethingChanged = false;
     somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
-    if (properties._colorChanged || forceCopy) {
-        setColor(properties._color);
-        somethingChanged = true;
-    }
 
-    if (properties._modelURLChanged || forceCopy) {
-        setModelURL(properties._modelURL);
-        somethingChanged = true;
-    }
-
-    if (properties._animationURLChanged || forceCopy) {
-        setAnimationURL(properties._animationURL);
-        somethingChanged = true;
-    }
-
-    if (properties._animationIsPlayingChanged || forceCopy) {
-        setAnimationIsPlaying(properties._animationIsPlaying);
-        somethingChanged = true;
-    }
-
-    if (properties._animationFrameIndexChanged || forceCopy) {
-        setAnimationFrameIndex(properties._animationFrameIndex);
-        somethingChanged = true;
-    }
-    
-    if (properties._animationFPSChanged || forceCopy) {
-        setAnimationFPS(properties._animationFPS);
-        somethingChanged = true;
-    }
-    
-    if (properties._glowLevelChanged || forceCopy) {
-        setGlowLevel(properties._glowLevel);
-        somethingChanged = true;
-    }
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(modelURL, setModelURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationURL, setAnimationURL);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -169,9 +149,11 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
                         << "old ID=" << oldID << "new ID=" << _id;
 
         // radius
-        memcpy(&_radius, dataAt, sizeof(_radius));
-        dataAt += sizeof(_radius);
-        bytesRead += sizeof(_radius);
+        float radius;
+        memcpy(&radius, dataAt, sizeof(radius));
+        dataAt += sizeof(radius);
+        bytesRead += sizeof(radius);
+        setRadius(radius);
 
         // position
         memcpy(&_position, dataAt, sizeof(_position));
@@ -393,7 +375,7 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "ModelEntityItem id:" << getEntityItemID();
     qDebug() << "    edited ago:" << getEditedAgo();
     qDebug() << "    position:" << getPosition() * (float)TREE_SCALE;
-    qDebug() << "    radius:" << getRadius() * (float)TREE_SCALE;
+    qDebug() << "    dimensions:" << getDimensions() * (float)TREE_SCALE;
     qDebug() << "    model URL:" << getModelURL();
 }
 

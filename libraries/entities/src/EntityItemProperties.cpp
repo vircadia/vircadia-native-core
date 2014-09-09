@@ -18,6 +18,7 @@
 
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
+#include "ModelEntityItem.h"
 
 EntityItemProperties::EntityItemProperties() :
 
@@ -28,8 +29,8 @@ EntityItemProperties::EntityItemProperties() :
     _type(EntityTypes::Unknown),
 
     _position(0),
-    _radius(ENTITY_DEFAULT_RADIUS),
-    _rotation(ENTITY_DEFAULT_ROTATION),
+    _dimensions(EntityItem::DEFAULT_DIMENSIONS),
+    _rotation(EntityItem::DEFAULT_ROTATION),
     _mass(EntityItem::DEFAULT_MASS),
     _velocity(EntityItem::DEFAULT_VELOCITY),
     _gravity(EntityItem::DEFAULT_GRAVITY),
@@ -38,7 +39,7 @@ EntityItemProperties::EntityItemProperties() :
     _script(EntityItem::DEFAULT_SCRIPT),
 
     _positionChanged(false),
-    _radiusChanged(false),
+    _dimensionsChanged(false),
     _rotationChanged(false),
     _massChanged(false),
     _velocityChanged(false),
@@ -50,9 +51,9 @@ EntityItemProperties::EntityItemProperties() :
     _color(),
     _modelURL(""),
     _animationURL(""),
-    _animationIsPlaying(false),
-    _animationFrameIndex(0.0),
-    _animationFPS(ENTITY_DEFAULT_ANIMATION_FPS),
+    _animationIsPlaying(ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
+    _animationFrameIndex(ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
+    _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
 
     _colorChanged(false),
@@ -73,7 +74,7 @@ void EntityItemProperties::debugDump() const {
     qDebug() << "   _id=" << _id;
     qDebug() << "   _idSet=" << _idSet;
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
-    qDebug() << "   _radius=" << _radius;
+    qDebug() << "   _dimensions=" << getDimensions();
     qDebug() << "   _modelURL=" << _modelURL;
     qDebug() << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -82,8 +83,8 @@ void EntityItemProperties::debugDump() const {
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-    if (_radiusChanged) {
-        changedProperties += PROP_RADIUS;
+    if (_dimensionsChanged) {
+        changedProperties += PROP_DIMENSIONS;
     }
 
     if (_positionChanged) {
@@ -158,7 +159,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 
     QScriptValue position = vec3toScriptValue(engine, _position);
     properties.setProperty("position", position);
-    properties.setProperty("radius", _radius);
+    QScriptValue dimensions = vec3toScriptValue(engine, _dimensions);
+    properties.setProperty("dimensions", dimensions);
     QScriptValue rotation = quatToScriptValue(engine, _rotation);
     properties.setProperty("rotation", rotation);
     properties.setProperty("mass", _mass);
@@ -198,7 +200,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 }
 
 void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
-
     QScriptValue typeScriptValue = object.property("type");
     if (typeScriptValue.isValid()) {
         QString typeName;
@@ -222,13 +223,19 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         }
     }
 
-    QScriptValue radius = object.property("radius");
-    if (radius.isValid()) {
-        float newRadius;
-        newRadius = radius.toVariant().toFloat();
-        if (_defaultSettings || newRadius != _radius) {
-            _radius = newRadius;
-            _radiusChanged = true;
+    QScriptValue dimensions = object.property("dimensions");
+    if (dimensions.isValid()) {
+        QScriptValue x = dimensions.property("x");
+        QScriptValue y = dimensions.property("y");
+        QScriptValue z = dimensions.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newDimensions;
+            newDimensions.x = x.toVariant().toFloat();
+            newDimensions.y = y.toVariant().toFloat();
+            newDimensions.z = z.toVariant().toFloat();
+            if (_defaultSettings || newDimensions != getDimensions()) {
+                setDimensions(newDimensions);
+            }
         }
     }
 
@@ -403,7 +410,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
             _glowLevelChanged = true;
         }
     }
-
     _lastEdited = usecTimestampNow();
 }
 
@@ -432,7 +438,6 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 //
 bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
-
     OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -535,7 +540,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             //      PROP_VISIBLE,
 
             APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_RADIUS, appendValue, properties.getRadius());
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, properties.getRotation());
             APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, properties.getMass());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
@@ -727,7 +732,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += propertyFlags.getEncodedLength();
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS, float, setRadius);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATION, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MASS, float, setMass);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
@@ -741,6 +746,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    // TODO: add PROP_REGISTRATION_POINT,
+    // TODO: add PROP_ROTATIONAL_VELOCITY,
+    // TODO: add PROP_VISIBLE,
 
     return valid;
 }
@@ -777,7 +785,6 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 
 void EntityItemProperties::markAllChanged() {
     _positionChanged = true;
-    _radiusChanged = true;
     _rotationChanged = true;
     _massChanged = true;
     _velocityChanged = true;
@@ -794,4 +801,19 @@ void EntityItemProperties::markAllChanged() {
     _animationFPSChanged = true;
     _glowLevelChanged = true;
 
+}
+
+
+// TODO: Add support for registration point
+glm::vec3 EntityItemProperties::getMinimumPointMeters() const { 
+    // This assumes the registration point is in the center, we need to update this when we really support
+    // registration point
+    return _position - (_dimensions / 2.0f); 
+}
+
+// TODO: Add support for registration point
+glm::vec3 EntityItemProperties::getMaximumPointMeters() const { 
+    // This assumes the registration point is in the center, we need to update this when we really support
+    // registration point
+    return _position + (_dimensions / 2.0f); 
 }

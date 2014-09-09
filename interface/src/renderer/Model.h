@@ -52,7 +52,8 @@ public:
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
-    bool getScaleToFitDimension() const { return _scaleToFitLargestDimension; } /// the dimension model is scaled to
+    const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
+    void setScaleToFit(bool scaleToFit, const glm::vec3& dimensions);
 
     void setSnapModelToCenter(bool snapModelToCenter);
     bool getSnapModelToCenter() { return _snapModelToCenter; }
@@ -181,7 +182,7 @@ protected:
     glm::vec3 _offset;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
-    float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
+    glm::vec3 _scaleToFitDimensions; /// this is the dimensions that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
 
     bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space

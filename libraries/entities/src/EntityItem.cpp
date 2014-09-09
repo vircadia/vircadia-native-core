@@ -35,6 +35,9 @@ const glm::vec3 EntityItem::NO_GRAVITY = glm::vec3(0, 0, 0);
 const glm::vec3 EntityItem::REGULAR_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
 const glm::vec3 EntityItem::DEFAULT_GRAVITY = EntityItem::NO_GRAVITY;
 const QString EntityItem::DEFAULT_SCRIPT = QString("");
+const glm::quat EntityItem::DEFAULT_ROTATION;
+const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
+
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
@@ -50,8 +53,8 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _created = 0; // TODO: when do we actually want to make this "now"
 
     _position = glm::vec3(0,0,0);
-    _radius = 0;
-    _rotation = ENTITY_DEFAULT_ROTATION;
+    _rotation = DEFAULT_ROTATION;
+    _dimensions = DEFAULT_DIMENSIONS;
 
     _glowLevel = DEFAULT_GLOW_LEVEL;
     _mass = DEFAULT_MASS;
@@ -59,6 +62,16 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _gravity = DEFAULT_GRAVITY;
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
+}
+
+EntityItem::EntityItem(const EntityItemID& entityItemID) {
+    _type = EntityTypes::Unknown;
+    _lastEdited = 0;
+    _lastEditedFromRemote = 0;
+    _lastEditedFromRemoteInRemoteTime = 0;
+    _lastUpdated = 0;
+    _created = 0;
+    initFromEntityItemID(entityItemID);
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -76,7 +89,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     EntityPropertyFlags requestedProperties;
 
     requestedProperties += PROP_POSITION;
-    requestedProperties += PROP_RADIUS;
+    requestedProperties += PROP_DIMENSIONS; // NOTE: PROP_RADIUS obsolete
     requestedProperties += PROP_ROTATION;
     requestedProperties += PROP_MASS;
     requestedProperties += PROP_VELOCITY;
@@ -84,6 +97,9 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
+    // TODO: add PROP_REGISTRATION_POINT,
+    // TODO: add PROP_ROTATIONAL_VELOCITY,
+    // TODO: add PROP_VISIBLE,
     
     return requestedProperties;
 }
@@ -178,10 +194,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         // These items would go here once supported....
         //      PROP_PAGED_PROPERTY,
         //      PROP_CUSTOM_PROPERTIES_INCLUDED,
-        //      PROP_VISIBLE,
 
         APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPosition());
-        APPEND_ENTITY_PROPERTY(PROP_RADIUS, appendValue, getRadius());
+        APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensions()); // NOTE: PROP_RADIUS obsolete
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
         APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, getMass());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
@@ -189,6 +204,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
+        // TODO: add PROP_REGISTRATION_POINT,
+        // TODO: add PROP_ROTATIONAL_VELOCITY,
+        // TODO: add PROP_VISIBLE,
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -408,9 +426,23 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         EntityPropertyFlags propertyFlags = encodedPropertyFlags;
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
-
+        
         READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, _position);
-        READ_ENTITY_PROPERTY(PROP_RADIUS, float, _radius);
+
+        // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
+        if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
+            if (propertyFlags.getHasProperty(PROP_RADIUS)) {
+                float fromBuffer;
+                memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));
+                dataAt += sizeof(fromBuffer);
+                bytesRead += sizeof(fromBuffer);
+                if (overwriteLocalData) {
+                    setRadiusInMeters(fromBuffer);
+                }
+            }
+        } else {
+            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, _dimensions);
+        }
         READ_ENTITY_PROPERTY_QUAT(PROP_ROTATION, _rotation);
         READ_ENTITY_PROPERTY(PROP_MASS, float, _mass);
         READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, _velocity);
@@ -418,6 +450,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
+        // TODO: add PROP_REGISTRATION_POINT,
+        // TODO: add PROP_ROTATIONAL_VELOCITY,
+        // TODO: add PROP_VISIBLE,
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -429,7 +464,7 @@ void EntityItem::debugDump() const {
     qDebug() << "EntityItem id:" << getEntityItemID();
     qDebug(" edited ago:%f", getEditedAgo());
     qDebug(" position:%f,%f,%f", _position.x, _position.y, _position.z);
-    qDebug(" radius:%f", getRadius());
+    qDebug() << " dimensions:" << _dimensions;
 }
 
 // adjust any internal timestamps to fix clock skew for this server
@@ -453,8 +488,14 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     }
 }
 
+float EntityItem::getDistanceToBottomOfEntity() const {
+    // TODO: change this to support registration point
+    return _dimensions.y / 2.0f;
+}
+
 bool EntityItem::isRestingOnSurface() const { 
-    return _position.y <= _radius 
+    // TODO: change this to support registration point
+    return _position.y <= getDistanceToBottomOfEntity()
             && _velocity.y >= -EPSILON && _velocity.y <= EPSILON
             && _gravity.y < 0.0f;
 }
@@ -491,8 +532,8 @@ void EntityItem::update(const quint64& updateTime) {
         
         position += velocity * timeElapsed;
 
-        // handle bounces off the ground... We bounce at the height of our radius...
-        if (position.y <= _radius) {
+        // handle bounces off the ground... We bounce at the distance to the bottom of our entity
+        if (position.y <= getDistanceToBottomOfEntity()) {
             velocity = velocity * glm::vec3(1,-1,1);
 
             // if we've slowed considerably, then just stop moving
@@ -500,7 +541,7 @@ void EntityItem::update(const quint64& updateTime) {
                 velocity = NO_VELOCITY;
             }
             
-            position.y = _radius;
+            position.y = getDistanceToBottomOfEntity();
         }
 
         // handle gravity....
@@ -512,7 +553,7 @@ void EntityItem::update(const quint64& updateTime) {
         // "ground" plane of the domain, but for now it
         if (hasGravity() && isRestingOnSurface()) {
             velocity.y = 0.0f;
-            position.y = _radius;
+            position.y = getDistanceToBottomOfEntity();
         }
 
         // handle damping
@@ -574,7 +615,7 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._type = getType();
     
     properties._position = getPosition() * (float) TREE_SCALE;
-    properties._radius = getRadius() * (float) TREE_SCALE;
+    properties.setDimensions(getDimensions() * (float) TREE_SCALE);
     properties._rotation = getRotation();
 
     properties._mass = getMass();
@@ -585,7 +626,6 @@ EntityItemProperties EntityItem::getProperties() const {
     properties._script = getScript();
 
     properties._positionChanged = false;
-    properties._radiusChanged = false;
     properties._rotationChanged = false;
     properties._massChanged = false;
     properties._velocityChanged = false;
@@ -610,55 +650,19 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
             _created = properties.getCreated();
         }
     }
-    
-    if (properties._positionChanged || forceCopy) {
-        // clamp positions to the domain to prevent someone from moving an entity out of the domain
-        setPosition(glm::clamp(properties._position / (float) TREE_SCALE, 0.0f, 1.0f));
-        somethingChanged = true;
-    }
 
-    if (properties._radiusChanged || forceCopy) {
-        setRadius(properties._radius / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (properties._rotationChanged || forceCopy) {
-        setRotation(properties._rotation);
-        somethingChanged = true;
-    }
-
-    if (properties._massChanged || forceCopy) {
-        setMass(properties._mass);
-        somethingChanged = true;
-    }
-
-    if (properties._velocityChanged || forceCopy) {
-        setVelocity(properties._velocity / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (properties._massChanged || forceCopy) {
-        setMass(properties._mass);
-        somethingChanged = true;
-    }
-    if (properties._gravityChanged || forceCopy) {
-        setGravity(properties._gravity / (float) TREE_SCALE);
-        somethingChanged = true;
-    }
-
-    if (properties._dampingChanged || forceCopy) {
-        setDamping(properties._damping);
-        somethingChanged = true;
-    }
-    if (properties._lifetimeChanged || forceCopy) {
-        setLifetime(properties._lifetime);
-        somethingChanged = true;
-    }
-
-    if (properties._scriptChanged || forceCopy) {
-        setScript(properties._script);
-        somethingChanged = true;
-    }
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotationalVelocity, setRotationalVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
@@ -673,5 +677,52 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     }
     
     return somethingChanged;
+}
+
+float EntityItem::getSize() const { 
+    return glm::length(_dimensions);
+}
+
+// TODO: Add support for registration point
+glm::vec3 EntityItem::getMinimumPoint() const { 
+    // This assumes the registration point is in the center, we need to update this when we really support
+    // registration point
+    return _position - (_dimensions / 2.0f); 
+}
+
+// TODO: Add support for registration point
+glm::vec3 EntityItem::getMaximumPoint() const { 
+    // This assumes the registration point is in the center, we need to update this when we really support
+    // registration point
+    return _position + (_dimensions / 2.0f); 
+}
+
+// NOTE: This should only be used in cases of old bitstreams which only contain radius data
+//    0,0,0 --> maxDimension,maxDimension,maxDimension
+//    ... has a corner to corner distance of glm::length(maxDimension,maxDimension,maxDimension)
+//    ... radius = cornerToCornerLength / 2.0f
+//    ... radius * 2.0f = cornerToCornerLength
+//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
+//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
+//    ... radius * 2.0f = sqrt(3 x maxDimension ^ 2)
+//    ... (radius * 2.0f) ^2 = 3 x maxDimension ^ 2
+//    ... ((radius * 2.0f) ^2) / 3 = maxDimension ^ 2
+//    ... sqrt(((radius * 2.0f) ^2) / 3) = maxDimension
+//    ... sqrt((diameter ^2) / 3) = maxDimension
+//    
+void EntityItem::setRadius(float value) { 
+    float diameter = value * 2.0f;
+    float maxDimension = sqrt((diameter * diameter) / 3.0f);
+    _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+}
+
+// TODO: get rid of all users of this function...
+//    ... radius = cornerToCornerLength / 2.0f
+//    ... cornerToCornerLength = sqrt(3 x maxDimension ^ 2)
+//    ... radius = sqrt(3 x maxDimension ^ 2) / 2.0f;
+float EntityItem::getRadius() const { 
+    float length = glm::length(_dimensions);
+    float radius = length / 2.0f;
+    return radius;
 }
 

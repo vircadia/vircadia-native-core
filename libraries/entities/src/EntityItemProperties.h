@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/extented_min_max.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -31,16 +32,6 @@
 #include "EntityTypes.h"
 
 
-// TODO: should these be static members of EntityItem or EntityItemProperties?
-const float ENTITY_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
-const float ENTITY_MINIMUM_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
-const QString ENTITY_DEFAULT_MODEL_URL("");
-const glm::quat ENTITY_DEFAULT_ROTATION;
-const QString ENTITY_DEFAULT_ANIMATION_URL("");
-const float ENTITY_DEFAULT_ANIMATION_FPS = 30.0f;
-
-const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
-const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
 
 // PropertyFlags support
 enum EntityPropertyList {
@@ -50,7 +41,8 @@ enum EntityPropertyList {
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
     PROP_POSITION,
-    PROP_RADIUS,
+    PROP_RADIUS, // NOTE: PROP_RADIUS is obsolete and only included in old format streams
+    PROP_DIMENSIONS = PROP_RADIUS,
     PROP_ROTATION,
     PROP_MASS,
     PROP_VELOCITY,
@@ -67,16 +59,23 @@ enum EntityPropertyList {
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
 
-    PROP_LAST_ITEM = PROP_ANIMATION_PLAYING
+    // these properties are supported by the EntityItem base class
+    PROP_REGISTRATION_POINT,
+    PROP_ROTATIONAL_VELOCITY,
+
+    PROP_LAST_ITEM = PROP_ROTATIONAL_VELOCITY
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
+
+const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
+const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
 
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
-/// all units for position, radius, etc are in meter units
+/// all units for position, dimensions, etc are in meter units
 class EntityItemProperties {
     friend class EntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
@@ -96,8 +95,8 @@ public:
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    glm::vec3 getMinimumPointMeters() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPointMeters() const { return _position + glm::vec3(_radius, _radius, _radius); }
+    glm::vec3 getMinimumPointMeters() const;
+    glm::vec3 getMaximumPointMeters() const;
     AACube getAACubeMeters() const { return AACube(getMinimumPointMeters(), getMaxDimension()); } /// AACube in meter units
 
     glm::vec3 getMinimumPointTreeUnits() const { return getMinimumPointMeters() / (float)TREE_SCALE; }
@@ -109,18 +108,22 @@ public:
 
     void debugDump() const;
 
+
     // properties of all entities
     EntityTypes::EntityType getType() const { return _type; }
-    const glm::vec3& getPosition() const { return _position; }
-    float getRadius() const { return _radius; }
-    float getMaxDimension() const { return _radius * 2.0f; }
-    glm::vec3 getDimensions() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
-    const glm::quat& getRotation() const { return _rotation; }
 
     void setType(EntityTypes::EntityType type) { _type = type; }
+
+    const glm::vec3& getPosition() const { return _position; }
     /// set position in meter units, will be clamped to domain bounds
     void setPosition(const glm::vec3& value) { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
-    void setRadius(float value) { _radius = value; _radiusChanged = true; }
+
+
+    const glm::vec3& getDimensions() const { return _dimensions; }
+    void setDimensions(const glm::vec3& value) { _dimensions = value; _dimensionsChanged = true; }
+    float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
+
+    const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
 
     float getMass() const { return _mass; }
@@ -148,9 +151,9 @@ public:
 
     
     // NOTE: how do we handle _defaultSettings???
-    bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
+    bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
-    bool containsRadiusChange() const { return _radiusChanged; }
+    bool containsDimensionsChange() const { return _dimensionsChanged; }
 
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...
@@ -184,7 +187,6 @@ public:
                         EntityItemID& entityID, EntityItemProperties& properties);
 
     bool positionChanged() const { return _positionChanged; }
-    bool radiusChanged() const { return _radiusChanged; }
     bool rotationChanged() const { return _rotationChanged; }
     bool massChanged() const { return _massChanged; }
     bool velocityChanged() const { return _velocityChanged; }
@@ -192,6 +194,8 @@ public:
     bool dampingChanged() const { return _dampingChanged; }
     bool lifetimeChanged() const { return _lifetimeChanged; }
     bool scriptChanged() const { return _scriptChanged; }
+    bool dimensionsChanged() const { return _dimensionsChanged; }
+    bool registrationPointChanged() const { return _registrationPointChanged; }
     bool colorChanged() const { return _colorChanged; }
     bool modelURLChanged() const { return _modelURLChanged; }
     bool animationURLChanged() const { return _animationURLChanged; }
@@ -213,7 +217,7 @@ private:
 
     EntityTypes::EntityType _type;
     glm::vec3 _position;
-    float _radius;
+    glm::vec3 _dimensions;
     glm::quat _rotation;
     float _mass;
     glm::vec3 _velocity;
@@ -221,9 +225,10 @@ private:
     float _damping;
     float _lifetime;
     QString _script;
+    glm::vec3 _registrationPoint;
 
     bool _positionChanged;
-    bool _radiusChanged;
+    bool _dimensionsChanged;
     bool _rotationChanged;
     bool _massChanged;
     bool _velocityChanged;
@@ -231,6 +236,7 @@ private:
     bool _dampingChanged;
     bool _lifetimeChanged;
     bool _scriptChanged;
+    bool _registrationPointChanged;
     
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...
@@ -358,6 +364,17 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
             properties.O(color);                        \
         }
 
+#define SET_ENTITY_PROPERTY_FROM_PROPERTIES(P,M)    \
+    if (properties._##P##Changed || forceCopy) {    \
+        M(properties._##P);                         \
+        somethingChanged = true;                    \
+    }
+
+#define SET_ENTITY_PROPERTY_FROM_PROPERTIES_GETTER(C,G,S)    \
+    if (properties.C() || forceCopy) {    \
+        S(properties.G());                         \
+        somethingChanged = true;                    \
+    }
 
 
 #endif // hifi_EntityItemProperties_h

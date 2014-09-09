@@ -555,6 +555,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     return somethingIntersected;
 }
 
+// TODO: change this to use better bounding shape for entity than sphere
 bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
@@ -605,6 +606,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     return closestEntity;
 }
 
+// TODO: change this to use better bounding shape for entity than sphere
 void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<const EntityItem*>& foundEntities) const {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
@@ -616,6 +618,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
     }
 }
 
+// TODO: change this to use better bounding shape for entity than sphere
 void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& foundEntities) {
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     QList<EntityItem*>::iterator entityEnd = _entityItems->end();

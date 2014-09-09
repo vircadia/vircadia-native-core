@@ -39,15 +39,14 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     _oldEntityCube = _existingEntity->getAACube();
     _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
     
-    // If the new properties has position OR radius changes, but not both, we need to
+    // If the new properties has position OR dimension changes, but not both, we need to
     // get the old property value and set it in our properties in order for our bounds
     // calculations to work.
-    if (_properties.containsPositionChange() && !_properties.containsRadiusChange()) {
-        float oldRadiusInMeters = _existingEntity->getRadius() * (float)TREE_SCALE;
-        _properties.setRadius(oldRadiusInMeters);
+    if (_properties.containsPositionChange() && !_properties.containsDimensionsChange()) {
+        glm::vec3 oldDimensionsInMeters = _existingEntity->getDimensions() * (float)TREE_SCALE;
+        _properties.setDimensions(oldDimensionsInMeters);
     }
-
-    if (!_properties.containsPositionChange() && _properties.containsRadiusChange()) {
+    if (!_properties.containsPositionChange() && _properties.containsDimensionsChange()) {
         glm::vec3 oldPositionInMeters = _existingEntity->getPosition() * (float)TREE_SCALE;
         _properties.setPosition(oldPositionInMeters);
     }

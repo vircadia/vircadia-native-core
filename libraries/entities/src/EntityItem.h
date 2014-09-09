@@ -25,6 +25,7 @@
 #include "EntityItemProperties.h" 
 #include "EntityTypes.h"
 
+class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
@@ -39,6 +40,7 @@ class EntityItem  {
 public:
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
+    EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~EntityItem() { }
 
@@ -120,10 +122,21 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
     void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
+    void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
+            { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
-    float getRadius() const { return _radius; } /// get radius in domain scale units (0.0 - 1.0)
-    void setRadius(float value) { _radius = value; } /// set radius in domain scale units (0.0 - 1.0)
+    static const glm::vec3 DEFAULT_DIMENSIONS;
+    const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
+    float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
+    float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
+    /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
+    void setDimensions(const glm::vec3& value) { _dimensions = value; }
+
+    /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
+    void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
+
+    static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
@@ -173,9 +186,9 @@ public:
     bool lifetimeHasExpired() const;
 
     // position, size, and bounds related helpers
-    float getSize() const { return _radius * 2.0f; } /// get maximum dimension in domain scale units (0.0 - 1.0)
-    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
+    float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
+    glm::vec3 getMinimumPoint() const;
+    glm::vec3 getMaximumPoint() const;
     AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;
@@ -196,7 +209,7 @@ protected:
     quint64 _created;
 
     glm::vec3 _position;
-    float _radius;
+    glm::vec3 _dimensions;
     glm::quat _rotation;
     float _glowLevel;
     float _mass;
@@ -205,6 +218,24 @@ protected:
     float _damping;
     float _lifetime;
     QString _script;
+    
+    // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
+    //       parse old data streams
+    
+    /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
+    void setRadius(float value); 
+    /// set radius in meter units (0.0 - TREE_SCALE), this will also reset dimensions to be equal for each axis
+    void setRadiusInMeters(float value) { 
+            float valueInTreeUnits = value / (float) TREE_SCALE;
+            setRadius(valueInTreeUnits); 
+    }
+
+private:
+    // TODO: We need to get rid of these users of getRadius()... but for now, we'll make them friends
+    //       so they can be the only ones accessing this method.
+    friend EntityTreeElement;
+    float getRadius() const;
+
 };
 
 

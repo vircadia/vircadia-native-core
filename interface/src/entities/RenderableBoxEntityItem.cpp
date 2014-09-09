@@ -33,7 +33,8 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     assert(getType() == EntityTypes::Box);
     glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float size = getSize() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
 
 
@@ -45,7 +46,8 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glutSolidCube(size);
+            glScalef(dimensions.x, dimensions.y, dimensions.z);
+            glutSolidCube(1.0f);
         glPopMatrix();
     } else {
 
@@ -79,8 +81,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         glNormalPointer(GL_FLOAT, 0, normals);
         glVertexPointer(3, GL_FLOAT, 0, vertices);
 
-        //glEnable(GL_BLEND);
-
         glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
         
         glPushMatrix();
@@ -89,9 +89,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         
             // we need to do half the size because the geometry in the VBOs are from -1,-1,-1 to 1,1,1 
-            float halfSize = size/2.0f;
-        
-            glScalef(halfSize, halfSize, halfSize);
+            glScalef(halfDimensions.x, halfDimensions.y, halfDimensions.z);
             glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, indices);
         glPopMatrix();
 

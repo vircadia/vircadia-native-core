@@ -54,7 +54,7 @@ Model::Model(QObject* parent) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
-    _scaleToFitLargestDimension(0.0f),
+    _scaleToFitDimensions(0.0f),
     _scaledToFit(false),
     _snapModelToCenter(false),
     _snappedToCenter(false),
@@ -882,12 +882,16 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
-    if (_scaleToFit != scaleToFit || _scaleToFitLargestDimension != largestDimension) {
+void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
+    if (_scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
         _scaleToFit = scaleToFit;
-        _scaleToFitLargestDimension = largestDimension;
+        _scaleToFitDimensions = dimensions;
         _scaledToFit = false; // force rescaling
     }
+}
+
+void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    setScaleToFit(scaleToFit, glm::vec3(largestDimension, largestDimension, largestDimension));
 }
 
 void Model::scaleToFit() {
@@ -895,10 +899,9 @@ void Model::scaleToFit() {
 
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
-    float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
-    float maxScale = _scaleToFitLargestDimension / maxDimension;
-    glm::vec3 scale(maxScale, maxScale, maxScale);
-    setScaleInternal(scale);
+    glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
+    setScaleInternal(rescaleDimensions);
     _scaledToFit = true;
 }
 
