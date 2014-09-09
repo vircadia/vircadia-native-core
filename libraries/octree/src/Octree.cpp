@@ -238,19 +238,25 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
 
     int bytesLeftToRead = bytesAvailable;
     int bytesRead = 0;
+    bool wantDebug = false;
 
     // give this destination element the child mask from the packet
     const unsigned char ALL_CHILDREN_ASSUMED_TO_EXIST = 0xFF;
     
     if ((size_t)bytesLeftToRead < sizeof(unsigned char)) {
-        qDebug() << "UNEXPECTED: readElementData() only had " << bytesLeftToRead << " bytes. Not enough for meaningful data.";
+        if (wantDebug) {
+            qDebug() << "UNEXPECTED: readElementData() only had " << bytesLeftToRead << " bytes. "
+                        "Not enough for meaningful data.";
+        }
         return bytesAvailable; // assume we read the entire buffer...
     }
     
     if (destinationElement->getScale() < SCALE_AT_DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
-                << destinationElement->getScale() * (float)TREE_SCALE << " meters] "
-                << " Discarding " << bytesAvailable << " remaining bytes.";
+        if (wantDebug) {
+            qDebug() << "UNEXPECTED: readElementData() destination element is unreasonably small [" 
+                    << destinationElement->getScale() * (float)TREE_SCALE << " meters] "
+                    << " Discarding " << bytesAvailable << " remaining bytes.";
+        }
         return bytesAvailable; // assume we read the entire buffer...
     }
     
@@ -299,8 +305,10 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
                                                 : sizeof(childInBufferMask);
 
     if (bytesLeftToRead < bytesForMasks) {
-        qDebug() << "UNEXPECTED: readElementDataFromBuffer() only had " << bytesLeftToRead << " bytes before masks. "
-                    "Not enough for meaningful data.";
+        if (wantDebug) {
+            qDebug() << "UNEXPECTED: readElementDataFromBuffer() only had " << bytesLeftToRead << " bytes before masks. "
+                        "Not enough for meaningful data.";
+        }
         return bytesAvailable; // assume we read the entire buffer...
     }
     
@@ -360,6 +368,7 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
                                     ReadBitstreamToTreeParams& args) {
     int bytesRead = 0;
     const unsigned char* bitstreamAt = bitstream;
+    bool wantDebug = false;
 
     // If destination element is not included, set it to root
     if (!args.destinationElement) {
@@ -376,7 +385,10 @@ void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long 
         int numberOfThreeBitSectionsInStream = numberOfThreeBitSectionsInCode(bitstreamAt, bufferSizeBytes);
         
         if (numberOfThreeBitSectionsInStream == OVERFLOWED_OCTCODE_BUFFER) {
-            qDebug() << "UNEXPECTED: parsing of the octal code would overflow the buffer. This buffer is corrupt. Returning.";
+            if (wantDebug) {
+                qDebug() << "UNEXPECTED: parsing of the octal code would overflow the buffer. "
+                            "This buffer is corrupt. Returning.";
+            }
             return;
         }
         
