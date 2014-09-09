@@ -291,6 +291,7 @@ private slots:
 
     void selectHeightFile();
     void selectColorFile();
+    void updateHeightImage();
     void updatePreview();
     void renderPreview();
     
@@ -299,8 +300,14 @@ private:
     QSpinBox* _blockSize;
     
     QPushButton* _height;
+    QWidget* _rawOptions;
+    QDoubleSpinBox* _heightScale;
+    QDoubleSpinBox* _heightOffset;
+    bool _loadingImage;
+    
     QPushButton* _color;
     
+    QVector<quint16> _rawHeight;
     QImage _heightImage;
     QImage _colorImage;
     
