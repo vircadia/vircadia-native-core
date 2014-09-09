@@ -545,11 +545,31 @@ Menu::Menu() :
                                   0,
                                   this,
                                   SLOT(muteEnvironment()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioToneInjection,
+
+    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioSourceInject,
                                            0,
                                            false,
                                            appInstance->getAudio(),
-                                           SLOT(toggleToneInjection()));
+                                           SLOT(toggleAudioSourceInject()));
+    QMenu* audioSourceMenu = audioDebugMenu->addMenu("Generated Audio Source"); 
+    {
+        QAction *pinkNoise = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourcePinkNoise,
+                                                               0,
+                                                               false,
+                                                               appInstance->getAudio(),
+                                                               SLOT(selectAudioSourcePinkNoise()));
+        
+        QAction *sine440 = addCheckableActionToQMenuAndActionHash(audioSourceMenu, MenuOption::AudioSourceSine440,
+                                                                    0,
+                                                                    true,
+                                                                    appInstance->getAudio(),
+                                                                    SLOT(selectAudioSourceSine440()));
+
+        QActionGroup* audioSourceGroup = new QActionGroup(audioSourceMenu);
+        audioSourceGroup->addAction(pinkNoise);
+        audioSourceGroup->addAction(sine440);
+    }
+
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),

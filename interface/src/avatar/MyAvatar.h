@@ -57,6 +57,7 @@ public:
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
+    void slamPosition(const glm::vec3& position);
 
     // getters
     float getLeanScale() const { return _leanScale; }

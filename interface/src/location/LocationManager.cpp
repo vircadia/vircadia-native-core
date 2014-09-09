@@ -205,7 +205,7 @@ bool LocationManager::goToDestination(QString destination) {
             MyAvatar::sendKillAvatar();
 
             qDebug("Going To Location: %f, %f, %f...", x, y, z);
-            myAvatar->setPosition(newAvatarPos);
+            myAvatar->slamPosition(newAvatarPos);
             emit myAvatar->transformChanged();
         }
 

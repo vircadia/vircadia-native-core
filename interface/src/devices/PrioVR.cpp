@@ -209,8 +209,8 @@ void PrioVR::renderCalibrationCountdown() {
     }
     static TextRenderer textRenderer(MONO_FONT_FAMILY, 18, QFont::Bold, false, TextRenderer::OUTLINE_EFFECT, 2);
     QByteArray text = "Assume T-Pose in " + QByteArray::number(secondsRemaining) + "...";
-    textRenderer.draw((Application::getInstance()->getGLWidget()->getDeviceWidth() -
-        textRenderer.computeWidth(text.constData())) / 2, Application::getInstance()->getGLWidget()->getDeviceHeight() / 2,
+    textRenderer.draw((Application::getInstance()->getGLWidget()->width() -
+        textRenderer.computeWidth(text.constData())) / 2, Application::getInstance()->getGLWidget()->height() / 2,
             text);
 #endif  
 }

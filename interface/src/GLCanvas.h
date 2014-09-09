@@ -26,9 +26,6 @@ public:
     int getDeviceHeight() const;
     QSize getDeviceSize() const { return QSize(getDeviceWidth(), getDeviceHeight()); }
     
-    int getDeviceX(int x) const;
-    int getDeviceY(int y) const;
-    
 protected:
 
     QTimer _frameTimer;

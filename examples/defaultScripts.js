@@ -13,4 +13,5 @@ Script.load("editVoxels.js");
 Script.load("editModels.js");
 Script.load("selectAudioDevice.js");
 Script.load("hydraMove.js");
+Script.load("headMove.js");
 Script.load("inspect.js");

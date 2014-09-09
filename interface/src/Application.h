@@ -436,8 +436,6 @@ private:
 
     int sendNackPackets();
 
-    QMouseEvent getDeviceEvent(QMouseEvent* event, unsigned int deviceID);
-
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 

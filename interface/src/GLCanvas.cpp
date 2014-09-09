@@ -43,14 +43,6 @@ int GLCanvas::getDeviceHeight() const {
     return height() * (windowHandle() ? windowHandle()->devicePixelRatio() : 1.0f);
 }
 
-int GLCanvas::getDeviceX(int x) const {
-    return x * getDeviceWidth() / width();
-}
-
-int GLCanvas::getDeviceY(int y) const {
-    return y * getDeviceHeight() / height();
-}
-
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);
