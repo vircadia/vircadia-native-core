@@ -1105,7 +1105,7 @@ void Menu::showLoginForCurrentDomain() {
 
 void Menu::editPreferences() {
     if (!_preferencesDialog) {
-        _preferencesDialog = new PreferencesDialog(Application::getInstance()->getWindow());
+        _preferencesDialog = new PreferencesDialog();
         _preferencesDialog->show();
     } else {
         _preferencesDialog->close();
@@ -1488,7 +1488,9 @@ void Menu::showChat() {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
         }
+        _chatWindow->raise();
         _chatWindow->activateWindow();
+        _chatWindow->setFocus();
     } else {
         Application::getInstance()->getTrayIcon()->showMessage("Interface", "You need to login to be able to chat with others on this domain.");
     }
@@ -1500,6 +1502,9 @@ void Menu::toggleChat() {
     if (!_chatAction->isEnabled() && _chatWindow && AccountManager::getInstance().isLoggedIn()) {
         if (_chatWindow->isHidden()) {
             _chatWindow->show();
+            _chatWindow->raise();
+            _chatWindow->activateWindow();
+            _chatWindow->setFocus();
         } else {
             _chatWindow->hide();
         }

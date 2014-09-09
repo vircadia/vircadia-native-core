@@ -52,7 +52,7 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
 
 
     if (_scriptEngine == NULL) {
-        _scriptEngine = Application::getInstance()->loadScript();
+        _scriptEngine = Application::getInstance()->loadScript(QString(), false);
     }
 
     connect(_scriptEngine, SIGNAL(evaluationFinished(QScriptValue, bool)),

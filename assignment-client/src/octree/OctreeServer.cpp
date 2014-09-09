@@ -25,6 +25,7 @@
 
 #include "OctreeServer.h"
 #include "OctreeServerConsts.h"
+#include "OctreeServerDatagramProcessor.h"
 
 OctreeServer* OctreeServer::_instance = NULL;
 int OctreeServer::_clientCount = 0;
@@ -827,53 +828,81 @@ void OctreeServer::parsePayload() {
     }
 }
 
-void OctreeServer::readPendingDatagrams() {
-    QByteArray receivedPacket;
-    HifiSockAddr senderSockAddr;
-    
+void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
     
-    while (readAvailableDatagram(receivedPacket, senderSockAddr)) {
-        if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
-            PacketType packetType = packetTypeForPacket(receivedPacket);
-            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-            if (packetType == getMyQueryMessageType()) {
-                // If we got a query packet, then we're talking to an agent, and we
-                // need to make sure we have it in our nodeList.
-                if (matchingNode) {
-                    nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                    if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
-                        
-                        // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
-                        // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
-                        // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
-                        // same SharedAssignmentPointer that was ref counted by the assignment client.                    
-                        SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
-                        nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
-                    }
+    if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
+        PacketType packetType = packetTypeForPacket(receivedPacket);
+        SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+        if (packetType == getMyQueryMessageType()) {
+            // If we got a query packet, then we're talking to an agent, and we
+            // need to make sure we have it in our nodeList.
+            if (matchingNode) {
+                nodeList->updateNodeWithDataFromPacket(matchingNode, receivedPacket);
+                OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                if (nodeData && !nodeData->isOctreeSendThreadInitalized()) {
+                    
+                    // NOTE: this is an important aspect of the proper ref counting. The send threads/node data need to 
+                    // know that the OctreeServer/Assignment will not get deleted on it while it's still active. The 
+                    // solution is to get the shared pointer for the current assignment. We need to make sure this is the 
+                    // same SharedAssignmentPointer that was ref counted by the assignment client.                    
+                    SharedAssignmentPointer sharedAssignment = AssignmentClient::getCurrentAssignment();
+                    nodeData->initializeOctreeSendThread(sharedAssignment, matchingNode);
                 }
-            } else if (packetType == PacketTypeOctreeDataNack) {
-                // If we got a nack packet, then we're talking to an agent, and we
-                // need to make sure we have it in our nodeList.
-                if (matchingNode) {
-                    OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
-                    if (nodeData) {
-                        nodeData->parseNackPacket(receivedPacket);
-                    }
-                }
-            } else if (packetType == PacketTypeJurisdictionRequest) {
-                _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
-            } else if (packetType == PacketTypeSignedTransactionPayment) {
-                handleSignedTransactionPayment(packetType, receivedPacket);
-            } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
-                _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
-            } else {
-                // let processNodeData handle it.
-                NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
             }
+        } else if (packetType == PacketTypeOctreeDataNack) {
+            // If we got a nack packet, then we're talking to an agent, and we
+            // need to make sure we have it in our nodeList.
+            if (matchingNode) {
+                OctreeQueryNode* nodeData = (OctreeQueryNode*)matchingNode->getLinkedData();
+                if (nodeData) {
+                    nodeData->parseNackPacket(receivedPacket);
+                }
+            }
+        } else if (packetType == PacketTypeJurisdictionRequest) {
+            _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
+        } else if (packetType == PacketTypeSignedTransactionPayment) {
+            handleSignedTransactionPayment(packetType, receivedPacket);
+        } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
+            _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
+        } else {
+            // let processNodeData handle it.
+            NodeList::getInstance()->processNodeData(senderSockAddr, receivedPacket);
         }
     }
+}
+
+void OctreeServer::setupDatagramProcessingThread() {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    // we do not want this event loop to be the handler for UDP datagrams, so disconnect
+    disconnect(&nodeList->getNodeSocket(), 0, this, 0);
+    
+    // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
+    _datagramProcessingThread = new QThread(this);
+    
+    // create an AudioMixerDatagramProcessor and move it to that thread
+    OctreeServerDatagramProcessor* datagramProcessor = new OctreeServerDatagramProcessor(nodeList->getNodeSocket(), thread());
+    datagramProcessor->moveToThread(_datagramProcessingThread);
+    
+    // remove the NodeList as the parent of the node socket
+    nodeList->getNodeSocket().setParent(NULL);
+    nodeList->getNodeSocket().moveToThread(_datagramProcessingThread);
+    
+    // let the datagram processor handle readyRead from node socket
+    connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead,
+            datagramProcessor, &OctreeServerDatagramProcessor::readPendingDatagrams);
+    
+    // connect to the datagram processing thread signal that tells us we have to handle a packet
+    connect(datagramProcessor, &OctreeServerDatagramProcessor::packetRequiresProcessing, this, &OctreeServer::readPendingDatagram);
+    
+    // delete the datagram processor and the associated thread when the QThread quits
+    connect(_datagramProcessingThread, &QThread::finished, datagramProcessor, &QObject::deleteLater);
+    connect(datagramProcessor, &QObject::destroyed, _datagramProcessingThread, &QThread::deleteLater);
+    
+    // start the datagram processing thread
+    _datagramProcessingThread->start();
+
 }
 
 void OctreeServer::run() {
@@ -887,6 +916,8 @@ void OctreeServer::run() {
     // use common init to setup common timers and logging
     commonInit(getMyLoggingServerTargetName(), getMyNodeType());
 
+    setupDatagramProcessingThread();
+    
     // Now would be a good time to parse our arguments, if we got them as assignment
     if (getPayload().size() > 0) {
         parsePayload();

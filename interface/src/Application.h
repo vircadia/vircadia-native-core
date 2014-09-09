@@ -150,7 +150,6 @@ public:
     void setPreviousScriptLocation(const QString& previousScriptLocation);
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
-    void saveScripts();
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
@@ -340,13 +339,15 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    ScriptEngine* loadScript(const QString& fileNameString = QString(), bool loadScriptFromEditor = false, bool activateMainWindow = false);
+    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
+        bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
+    void saveScripts();
 
     void uploadHead();
     void uploadSkeleton();
@@ -434,8 +435,6 @@ private:
     static void* networkReceive(void* args); // network receive thread
 
     int sendNackPackets();
-
-    QMouseEvent getDeviceEvent(QMouseEvent* event, unsigned int deviceID);
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features

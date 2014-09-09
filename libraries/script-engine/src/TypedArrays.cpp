@@ -158,7 +158,7 @@ QScriptClass::QueryFlags TypedArray::queryProperty(const QScriptValue& object,
     quint32 pos = name.toArrayIndex(&ok);
     
     // Check that name is a valid index and arrayBuffer exists
-    if (ok && pos >= 0 && pos < length) {
+    if (ok && pos < length) {
         *id = byteOffset + pos * _bytesPerElement; // save pos to avoid recomputation
         return HandlesReadAccess | HandlesWriteAccess; // Read/Write access
     }
