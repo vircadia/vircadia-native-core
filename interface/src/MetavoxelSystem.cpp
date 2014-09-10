@@ -181,6 +181,15 @@ void MetavoxelSystem::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
     
+    // get the viewport side (left, right, both)
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    QSize widgetSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)widgetSize.width();
+        
     if (Menu::getInstance()->getShadowsEnabled()) {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
@@ -210,10 +219,13 @@ void MetavoxelSystem::render() {
         program->setUniformValue(locations->nearLocation, nearVal);
         program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
         float nearScale = -1.0f / nearVal;
-        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale, bottom * nearScale);
-        program->setUniformValue(locations->depthTexCoordScale, (right - left) * nearScale, (top - bottom) * nearScale);
+        float sScale = 1.0f / sWidth;
+        float depthTexCoordScaleS = (right - left) * nearScale * sScale;
+        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
+            bottom * nearScale);
+        program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, (top - bottom) * nearScale);
         
-        renderFullscreenQuad();
+        renderFullscreenQuad(sMin, sMin + sWidth);
         
         program->release();
         
@@ -226,7 +238,7 @@ void MetavoxelSystem::render() {
     
     } else {
         _directionalLight.bind();
-        renderFullscreenQuad();
+        renderFullscreenQuad(sMin, sMin + sWidth);
         _directionalLight.release();        
     }
     
@@ -245,7 +257,7 @@ void MetavoxelSystem::render() {
     
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
-    renderFullscreenQuad();
+    renderFullscreenQuad(sMin, sMin + sWidth);
     
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
