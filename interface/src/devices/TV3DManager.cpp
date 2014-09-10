@@ -93,8 +93,6 @@ void TV3DManager::display(Camera& whichCamera) {
     int portalW = Application::getInstance()->getGLWidget()->getDeviceWidth() / 2;
     int portalH = Application::getInstance()->getGLWidget()->getDeviceHeight();
 
-    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-
     ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
 
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
@@ -102,9 +100,7 @@ void TV3DManager::display(Camera& whichCamera) {
     applicationOverlay.renderOverlay(true);
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
-    if (glowEnabled) {
-        Application::getInstance()->getGlowEffect()->prepare();
-    }
+    Application::getInstance()->getGlowEffect()->prepare();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -168,7 +164,5 @@ void TV3DManager::display(Camera& whichCamera) {
     glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
         Application::getInstance()->getGLWidget()->getDeviceHeight());
 
-    if (glowEnabled) {
-        Application::getInstance()->getGlowEffect()->render();
-    }
+    Application::getInstance()->getGlowEffect()->render();
 }
