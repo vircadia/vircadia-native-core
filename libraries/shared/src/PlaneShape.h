@@ -21,7 +21,7 @@ public:
     glm::vec3 getNormal() const;
     glm::vec4 getCoefficients() const;
 
-    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
 };
 
 #endif // hifi_PlaneShape_h

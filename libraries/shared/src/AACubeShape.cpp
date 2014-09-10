@@ -11,6 +11,7 @@
 
 #include "AACubeShape.h"
 
-bool AACubeShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
+bool AACubeShape::findRayIntersection(RayIntersectionInfo& intersection) const {
+    // TODO: Andrew to implement this
     return false;
 }

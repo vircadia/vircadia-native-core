@@ -39,17 +39,23 @@ glm::vec4 PlaneShape::getCoefficients() const {
     return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _translation));
 }
 
-bool PlaneShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
+bool PlaneShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     glm::vec3 n = getNormal();
-    float denominator = glm::dot(n, rayDirection);
+    float denominator = glm::dot(n, intersection._rayDirection);
     if (fabsf(denominator) < EPSILON) {
         // line is parallel to plane
-        return glm::dot(_translation - rayStart, n) < EPSILON;
+        if (glm::dot(_translation - intersection._rayStart, n) < EPSILON) {
+            // ray starts on the plane
+            intersection._hitDistance = 0.0f;
+            intersection._hitNormal = n;
+            return true;
+        }
     } else {
-        float d = glm::dot(_translation - rayStart, n) / denominator;
-        if (d > 0.0f) {
+        float d = glm::dot(_translation - intersection._rayStart, n) / denominator;
+        if (d > 0.0f && d < intersection._rayLength && intersection._hitDistance) {
             // ray points toward plane
-            distance = d;
+            intersection._hitDistance = d;
+            intersection._hitNormal = n;
             return true;
         }
     }

@@ -99,7 +99,7 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
 
     /// \param shapes list of shapes to collide against avatar
     /// \param collisions list to store collision results

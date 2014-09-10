@@ -708,20 +708,10 @@ void Avatar::renderDisplayName() {
     glEnable(GL_LIGHTING);
 }
 
-bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
-    float minDistance = FLT_MAX;
-    float modelDistance;
-    if (_skeletonModel.findRayIntersection(origin, direction, modelDistance)) {
-        minDistance = qMin(minDistance, modelDistance);
-    }
-    if (getHead()->getFaceModel().findRayIntersection(origin, direction, modelDistance)) {
-        minDistance = qMin(minDistance, modelDistance);
-    }
-    if (minDistance < FLT_MAX) {
-        distance = minDistance;
-        return true;
-    }
-    return false;
+bool Avatar::findRayIntersection(RayIntersectionInfo& intersection) const {
+    bool hit = _skeletonModel.findRayIntersection(intersection);
+    hit = getHead()->getFaceModel().findRayIntersection(intersection) || hit;
+    return hit;
 }
 
 bool Avatar::findSphereCollisions(const glm::vec3& penetratorCenter, float penetratorRadius, CollisionList& collisions) {

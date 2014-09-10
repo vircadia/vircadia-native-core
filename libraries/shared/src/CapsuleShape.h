@@ -47,7 +47,7 @@ public:
     /// Sets the endpoints and updates center, rotation, and halfHeight to agree.
     virtual void setEndPoints(const glm::vec3& startPoint, const glm::vec3& endPoint);
 
-    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
 
     virtual float getVolume() const { return (PI * _radius * _radius) * (1.3333333333f * _radius + getHalfHeight()); }
 
