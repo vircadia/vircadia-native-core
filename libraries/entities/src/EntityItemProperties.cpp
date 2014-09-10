@@ -148,7 +148,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue registrationPoint = vec3toScriptValue(engine, _registrationPoint);
     properties.setProperty("registrationPoint", registrationPoint);
 
-    QScriptValue rotationalVelocity = quatToScriptValue(engine, _rotationalVelocity);
+    QScriptValue rotationalVelocity = vec3toScriptValue(engine, _rotationalVelocity);
     properties.setProperty("rotationalVelocity", rotationalVelocity);
 
     properties.setProperty("visible", _visible);
@@ -333,13 +333,11 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         QScriptValue x = rotationalVelocity.property("x");
         QScriptValue y = rotationalVelocity.property("y");
         QScriptValue z = rotationalVelocity.property("z");
-        QScriptValue w = rotationalVelocity.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newRotation;
             newRotation.x = x.toVariant().toFloat();
             newRotation.y = y.toVariant().toFloat();
             newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
             if (_defaultSettings || newRotation != _rotationalVelocity) {
                 _rotationalVelocity = newRotation;
                 _rotationalVelocityChanged = true;
@@ -774,7 +772,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATIONAL_VELOCITY, setRotationalVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATIONAL_VELOCITY, glm::vec3, setRotationalVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
 
     return valid;

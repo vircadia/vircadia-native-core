@@ -38,7 +38,8 @@ const QString EntityItem::DEFAULT_SCRIPT = QString("");
 const glm::quat EntityItem::DEFAULT_ROTATION;
 const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
 const glm::vec3 EntityItem::DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
-const glm::quat EntityItem::DEFAULT_ROTATIONAL_VELOCITY;
+const glm::vec3 EntityItem::NO_ROTATIONAL_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
+const glm::vec3 EntityItem::DEFAULT_ROTATIONAL_VELOCITY = NO_ROTATIONAL_VELOCITY;
 const bool EntityItem::DEFAULT_VISIBLE = true;
 
 
@@ -457,9 +458,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
-        READ_ENTITY_PROPERTY_QUAT(PROP_ROTATIONAL_VELOCITY, _rotationalVelocity);
+        READ_ENTITY_PROPERTY(PROP_ROTATIONAL_VELOCITY, glm::vec3, _rotationalVelocity);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
-qDebug() << "EntityItem::readEntityDataFromBuffer() ... _visible=" << _visible;
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -508,7 +508,7 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::update(const quint64& updateTime) {
-    bool wantDebug = false;
+    bool wantDebug = true;
 
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
 
@@ -525,6 +525,15 @@ void EntityItem::update(const quint64& updateTime) {
         qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
     }
 
+    if (hasRotationalVelocity()) {
+        glm::quat rotation = getRotation();
+        glm::vec3 rotationalVelocity = glm::radians(getRotationalVelocity());
+        float angle = timeElapsed * glm::length(rotationalVelocity);
+        glm::quat  dQ = glm::angleAxis(angle, glm::normalize(rotationalVelocity));
+        rotation = dQ * rotation;
+        setRotation(rotation);
+    }
+
     if (hasVelocity() || hasGravity()) {
         glm::vec3 position = getPosition();
         glm::vec3 velocity = getVelocity();
@@ -535,6 +544,7 @@ void EntityItem::update(const quint64& updateTime) {
             qDebug() << "    old AACube:" << getAACube();
             qDebug() << "    old position:" << position;
             qDebug() << "    old velocity:" << velocity;
+            qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity();
         }
         
         position += velocity * timeElapsed;
@@ -563,7 +573,7 @@ void EntityItem::update(const quint64& updateTime) {
             position.y = getDistanceToBottomOfEntity();
         }
 
-        // handle damping
+        // handle damping for velocity
         glm::vec3 dampingResistance = velocity * getDamping();
         if (wantDebug) {        
             qDebug() << "    getDamping():" << getDamping();
@@ -596,6 +606,9 @@ void EntityItem::update(const quint64& updateTime) {
 EntityItem::SimulationState EntityItem::getSimulationState() const {
     if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
         return EntityItem::Moving;
+    }
+    if (hasRotationalVelocity()) {
+        return EntityItem::Changing;
     }
     if (isMortal()) {
         return EntityItem::Mortal;

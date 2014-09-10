@@ -217,8 +217,8 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
     void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; _registrationPointChanged = true; }
 
-    const glm::quat& getRotationalVelocity() const { return _rotationalVelocity; }
-    void setRotationalVelocity(const glm::quat& value) { _rotationalVelocity = value; _rotationalVelocityChanged = true; }
+    const glm::vec3& getRotationalVelocity() const { return _rotationalVelocity; }
+    void setRotationalVelocity(const glm::vec3& value) { _rotationalVelocity = value; _rotationalVelocityChanged = true; }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; _visibleChanged = true; }
@@ -244,7 +244,7 @@ private:
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
-    glm::quat _rotationalVelocity;
+    glm::vec3 _rotationalVelocity;
     bool _visible;
 
     bool _positionChanged;

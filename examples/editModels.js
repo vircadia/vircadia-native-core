@@ -2891,11 +2891,17 @@ function handeMenuEvent(menuItem) {
 
             array.push({ label: "Velocity:", type: "header" });
             index++;
-            array.push({ label: "Velocity X:", value: properties.velocity.x.toFixed(decimals) });
+            array.push({ label: "Linear X:", value: properties.velocity.x.toFixed(decimals) });
             index++;
-            array.push({ label: "Velocity Y:", value: properties.velocity.y.toFixed(decimals) });
+            array.push({ label: "Linear Y:", value: properties.velocity.y.toFixed(decimals) });
             index++;
-            array.push({ label: "Velocity Z:", value: properties.velocity.z.toFixed(decimals) });
+            array.push({ label: "Linear Z:", value: properties.velocity.z.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Pitch:", value: properties.rotationalVelocity.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Yaw:", value: properties.rotationalVelocity.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Roll:", value: properties.rotationalVelocity.z.toFixed(decimals) });
             index++;
             array.push({ label: "Damping:", value: properties.damping.toFixed(decimals) });
             index++;
@@ -3037,6 +3043,11 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.velocity.x = array[index++].value;
         properties.velocity.y = array[index++].value;
         properties.velocity.z = array[index++].value;
+
+        properties.rotationalVelocity.x = array[index++].value;
+        properties.rotationalVelocity.y = array[index++].value;
+        properties.rotationalVelocity.z = array[index++].value;
+
         properties.damping = array[index++].value;
         properties.gravity.x = array[index++].value;
         properties.gravity.y = array[index++].value;
