@@ -803,24 +803,27 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
         float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
 
         // Project our position onto the hemisphere using the UV coordinates
-        float lX = sin((newULeft - 0.5f) * _textureFov);
-        float rX = sin((newURight - 0.5f) * _textureFov);
-        float bY = sin((newVBottom - 0.5f) * _textureFov);
-        float tY = sin((newVTop - 0.5f) * _textureFov);
+        float radius = _oculusuiRadius * application->getAvatar()->getScale();
+        float radius2 = radius * radius;
+    
+        float lX = radius * sin((newULeft - 0.5f) * _textureFov);
+        float rX = radius * sin((newURight - 0.5f) * _textureFov);
+        float bY = radius * sin((newVBottom - 0.5f) * _textureFov);
+        float tY = radius * sin((newVTop - 0.5f) * _textureFov);
 
         float dist;
         //Bottom Left
         dist = sqrt(lX * lX + bY * bY);
-        float blZ = sqrt(1.0f - dist * dist);
+        float blZ = sqrt(radius2 - dist * dist);
         //Top Left
         dist = sqrt(lX * lX + tY * tY);
-        float tlZ = sqrt(1.0f - dist * dist);
+        float tlZ = sqrt(radius2 - dist * dist);
         //Bottom Right
         dist = sqrt(rX * rX + bY * bY);
-        float brZ = sqrt(1.0f - dist * dist);
+        float brZ = sqrt(radius2 - dist * dist);
         //Top Right
         dist = sqrt(rX * rX + tY * tY);
-        float trZ = sqrt(1.0f - dist * dist);
+        float trZ = sqrt(radius2 - dist * dist);
 
         glBegin(GL_QUADS);
 
