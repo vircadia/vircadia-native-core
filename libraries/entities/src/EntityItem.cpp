@@ -37,6 +37,9 @@ const glm::vec3 EntityItem::DEFAULT_GRAVITY = EntityItem::NO_GRAVITY;
 const QString EntityItem::DEFAULT_SCRIPT = QString("");
 const glm::quat EntityItem::DEFAULT_ROTATION;
 const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
+const glm::vec3 EntityItem::DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
+const glm::quat EntityItem::DEFAULT_ROTATIONAL_VELOCITY;
+const bool EntityItem::DEFAULT_VISIBLE = true;
 
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
@@ -97,9 +100,9 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
-    // TODO: add PROP_REGISTRATION_POINT,
-    // TODO: add PROP_ROTATIONAL_VELOCITY,
-    // TODO: add PROP_VISIBLE,
+    requestedProperties += PROP_REGISTRATION_POINT;
+    requestedProperties += PROP_ROTATIONAL_VELOCITY;
+    requestedProperties += PROP_VISIBLE;
     
     return requestedProperties;
 }
@@ -204,9 +207,9 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
-        // TODO: add PROP_REGISTRATION_POINT,
-        // TODO: add PROP_ROTATIONAL_VELOCITY,
-        // TODO: add PROP_VISIBLE,
+        APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
+        APPEND_ENTITY_PROPERTY(PROP_ROTATIONAL_VELOCITY, appendValue, getRotationalVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, getVisible());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -450,9 +453,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
-        // TODO: add PROP_REGISTRATION_POINT,
-        // TODO: add PROP_ROTATIONAL_VELOCITY,
-        // TODO: add PROP_VISIBLE,
+        READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
+        READ_ENTITY_PROPERTY_QUAT(PROP_ROTATIONAL_VELOCITY, _rotationalVelocity);
+        READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -660,8 +663,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotationalVelocity, setRotationalVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotationalVelocity, setRotationalVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
 
     if (somethingChanged) {

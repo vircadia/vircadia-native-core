@@ -194,6 +194,18 @@ public:
     static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
+
+    static const glm::vec3 DEFAULT_REGISTRATION_POINT;
+    const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
+    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; } /// registration point as ratio of entity
+
+    static const glm::quat DEFAULT_ROTATIONAL_VELOCITY;
+    const glm::quat& getRotationalVelocity() const { return _rotationalVelocity; }
+    void setRotationalVelocity(const glm::quat& value) { _rotationalVelocity = value; }
+
+    static const bool DEFAULT_VISIBLE;
+    bool getVisible() const { return _visible; }
+    void setVisible(bool value) { _visible = value; }
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -218,6 +230,9 @@ protected:
     float _damping;
     float _lifetime;
     QString _script;
+    glm::vec3 _registrationPoint;
+    glm::quat _rotationalVelocity;
+    bool _visible;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams

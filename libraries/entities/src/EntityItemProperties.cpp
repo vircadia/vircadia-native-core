@@ -37,6 +37,9 @@ EntityItemProperties::EntityItemProperties() :
     _damping(EntityItem::DEFAULT_DAMPING),
     _lifetime(EntityItem::DEFAULT_LIFETIME),
     _script(EntityItem::DEFAULT_SCRIPT),
+    _registrationPoint(EntityItem::DEFAULT_REGISTRATION_POINT),
+    _rotationalVelocity(EntityItem::DEFAULT_ROTATIONAL_VELOCITY),
+    _visible(EntityItem::DEFAULT_VISIBLE),
 
     _positionChanged(false),
     _dimensionsChanged(false),
@@ -47,6 +50,9 @@ EntityItemProperties::EntityItemProperties() :
     _dampingChanged(false),
     _lifetimeChanged(false),
     _scriptChanged(false),
+    _registrationPointChanged(false),
+    _rotationalVelocityChanged(false),
+    _visibleChanged(false),
 
     _color(),
     _modelURL(""),

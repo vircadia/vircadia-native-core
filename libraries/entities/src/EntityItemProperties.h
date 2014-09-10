@@ -234,6 +234,8 @@ private:
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
+    glm::quat _rotationalVelocity;
+    bool _visible;
 
     bool _positionChanged;
     bool _dimensionsChanged;
@@ -245,6 +247,8 @@ private:
     bool _lifetimeChanged;
     bool _scriptChanged;
     bool _registrationPointChanged;
+    bool _rotationalVelocityChanged;
+    bool _visibleChanged;
     
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...
