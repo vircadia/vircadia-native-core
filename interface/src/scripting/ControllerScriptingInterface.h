@@ -76,8 +76,6 @@ public:
 
     void updateInputControllers();
 
-    void releaseInputController(AbstractInputController* input);
-
 public slots:
     virtual bool isPrimaryButtonPressed() const;
     virtual glm::vec2 getPrimaryJoystickPosition() const;
@@ -115,6 +113,8 @@ public slots:
 
     /// Factory to create an InputController
     virtual AbstractInputController* createInputController(const QString& deviceName, const QString& tracker);
+
+    virtual void releaseInputController(AbstractInputController* input);
 
 private:
     const PalmData* getPrimaryPalm() const;
