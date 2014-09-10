@@ -431,7 +431,7 @@ void Audio::start() {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
     }
 
-    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 4 );
+    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
     _peq.initialize( _inputFormat.sampleRate() ); 
     _inputGain.initialize();
     _sourceGain.initialize();
