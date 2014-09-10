@@ -807,7 +807,6 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     return true;
 }
 
-
 void EntityItemProperties::markAllChanged() {
     _positionChanged = true;
     _rotationChanged = true;
@@ -817,7 +816,10 @@ void EntityItemProperties::markAllChanged() {
     _dampingChanged = true;
     _lifetimeChanged = true;
     _scriptChanged = true;
-
+    _registrationPointChanged = true;
+    _angularVelocityChanged = true;
+    _angularDampingChanged = true;
+    _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;
     _animationURLChanged = true;
@@ -825,7 +827,6 @@ void EntityItemProperties::markAllChanged() {
     _animationFrameIndexChanged = true;
     _animationFPSChanged = true;
     _glowLevelChanged = true;
-
 }
 
 
