@@ -186,9 +186,8 @@ void MetavoxelSystem::render() {
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
     const int VIEWPORT_WIDTH_INDEX = 2;
-    QSize widgetSize = Application::getInstance()->getGLWidget()->getDeviceSize();
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)widgetSize.width();
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
         
     if (Menu::getInstance()->getShadowsEnabled()) {
         glActiveTexture(GL_TEXTURE2);
