@@ -537,11 +537,11 @@ void OculusManager::overrideOffAxisFrustum(float& left, float& right, float& bot
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) {
 #ifdef HAVE_LIBOVR
     if (_activeEyeIndex != -1) {
-        float extent = nearVal * glm::tan(_eyeRenderDesc[_activeEyeIndex].Fov / 2.0f);
-        right = extent;
-        left = -extent;
-        top = extent;
-        bottom = -extent;
+        const ovrFovPort& port = _eyeFov[_activeEyeIndex];
+        right = nearVal * port.RightTan;
+        left = -nearVal * port.LeftTan;
+        top = nearVal * port.TopTan;
+        bottom = -nearVal * port.BottomTan;
     }
 #endif
 }
