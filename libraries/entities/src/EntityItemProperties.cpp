@@ -167,270 +167,34 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 }
 
 void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
+
+
     QScriptValue typeScriptValue = object.property("type");
     if (typeScriptValue.isValid()) {
-        QString typeName;
-        typeName = typeScriptValue.toVariant().toString();
-        _type = EntityTypes::getEntityTypeFromName(typeName);
+        setType(typeScriptValue.toVariant().toString());
     }
 
-    QScriptValue position = object.property("position");
-    if (position.isValid()) {
-        QScriptValue x = position.property("x");
-        QScriptValue y = position.property("y");
-        QScriptValue z = position.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            if (_defaultSettings || newPosition != _position) {
-                setPosition(newPosition); // gives us automatic clamping
-            }
-        }
-    }
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(position, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(dimensions, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(rotation, setRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(mass, setMass);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(velocity, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(gravity, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(damping, setDamping);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifetime, setLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(script, setScript);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(registrationPoint, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(angularVelocity, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(angularDamping, setAngularDamping);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(visible, setVisible);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(color, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(modelURL, setModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationURL, setAnimationURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(animationIsPlaying, setAnimationIsPlaying);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
 
-    QScriptValue dimensions = object.property("dimensions");
-    if (dimensions.isValid()) {
-        QScriptValue x = dimensions.property("x");
-        QScriptValue y = dimensions.property("y");
-        QScriptValue z = dimensions.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newDimensions;
-            newDimensions.x = x.toVariant().toFloat();
-            newDimensions.y = y.toVariant().toFloat();
-            newDimensions.z = z.toVariant().toFloat();
-            if (_defaultSettings || newDimensions != getDimensions()) {
-                setDimensions(newDimensions);
-            }
-        }
-    }
-
-    QScriptValue rotation = object.property("rotation");
-    if (rotation.isValid()) {
-        QScriptValue x = rotation.property("x");
-        QScriptValue y = rotation.property("y");
-        QScriptValue z = rotation.property("z");
-        QScriptValue w = rotation.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            if (_defaultSettings || newRotation != _rotation) {
-                _rotation = newRotation;
-                _rotationChanged = true;
-            }
-        }
-    }
-
-    QScriptValue mass = object.property("mass");
-    if (mass.isValid()) {
-        float newValue;
-        newValue = mass.toVariant().toFloat();
-        if (_defaultSettings || newValue != _mass) {
-            _mass = newValue;
-            _massChanged = true;
-        }
-    }
-    
-    QScriptValue velocity = object.property("velocity");
-    if (velocity.isValid()) {
-        QScriptValue x = velocity.property("x");
-        QScriptValue y = velocity.property("y");
-        QScriptValue z = velocity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newValue;
-            newValue.x = x.toVariant().toFloat();
-            newValue.y = y.toVariant().toFloat();
-            newValue.z = z.toVariant().toFloat();
-            if (_defaultSettings || newValue != _velocity) {
-                _velocity = newValue;
-                _velocityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue gravity = object.property("gravity");
-    if (gravity.isValid()) {
-        QScriptValue x = gravity.property("x");
-        QScriptValue y = gravity.property("y");
-        QScriptValue z = gravity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newValue;
-            newValue.x = x.toVariant().toFloat();
-            newValue.y = y.toVariant().toFloat();
-            newValue.z = z.toVariant().toFloat();
-            if (_defaultSettings || newValue != _gravity) {
-                _gravity = newValue;
-                _gravityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue damping = object.property("damping");
-    if (damping.isValid()) {
-        float newValue;
-        newValue = damping.toVariant().toFloat();
-        if (_defaultSettings || newValue != _damping) {
-            _damping = newValue;
-            _dampingChanged = true;
-        }
-    }
-
-    QScriptValue lifetime = object.property("lifetime");
-    if (lifetime.isValid()) {
-        float newValue;
-        newValue = lifetime.toVariant().toFloat();
-        if (_defaultSettings || newValue != _lifetime) {
-            _lifetime = newValue;
-            _lifetimeChanged = true;
-        }
-    }
-
-    QScriptValue script = object.property("script");
-    if (script.isValid()) {
-        QString newValue;
-        newValue = script.toVariant().toString();
-        if (_defaultSettings || newValue != _script) {
-            _script = newValue;
-            _scriptChanged = true;
-        }
-    }
-
-    QScriptValue registrationPoint = object.property("registrationPoint");
-    if (registrationPoint.isValid()) {
-        QScriptValue x = registrationPoint.property("x");
-        QScriptValue y = registrationPoint.property("y");
-        QScriptValue z = registrationPoint.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newValue;
-            newValue.x = x.toVariant().toFloat();
-            newValue.y = y.toVariant().toFloat();
-            newValue.z = z.toVariant().toFloat();
-            if (_defaultSettings || newValue != _registrationPoint) {
-                _registrationPoint = newValue;
-                _registrationPointChanged = true;
-            }
-        }
-    }
-
-    QScriptValue angularVelocity = object.property("angularVelocity");
-    if (angularVelocity.isValid()) {
-        QScriptValue x = angularVelocity.property("x");
-        QScriptValue y = angularVelocity.property("y");
-        QScriptValue z = angularVelocity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            if (_defaultSettings || newRotation != _angularVelocity) {
-                _angularVelocity = newRotation;
-                _angularVelocityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue angularDamping = object.property("angularDamping");
-    if (angularDamping.isValid()) {
-        float newValue;
-        newValue = angularDamping.toVariant().toFloat();
-        if (_defaultSettings || newValue != _angularDamping) {
-            _angularDamping = newValue;
-            _angularDampingChanged = true;
-        }
-    }
-
-    QScriptValue visible = object.property("visible");
-    if (visible.isValid()) {
-        bool newValue;
-        newValue = visible.toVariant().toBool();
-        if (_defaultSettings || newValue != _visible) {
-            _visible = newValue;
-            _visibleChanged = true;
-        }
-    }
-
-    QScriptValue color = object.property("color");
-    if (color.isValid()) {
-        QScriptValue red = color.property("red");
-        QScriptValue green = color.property("green");
-        QScriptValue blue = color.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            xColor newColor;
-            newColor.red = red.toVariant().toInt();
-            newColor.green = green.toVariant().toInt();
-            newColor.blue = blue.toVariant().toInt();
-            if (_defaultSettings || (newColor.red != _color.red ||
-                newColor.green != _color.green ||
-                newColor.blue != _color.blue)) {
-                _color = newColor;
-                _colorChanged = true;
-            }
-        }
-    }
-
-    QScriptValue modelURL = object.property("modelURL");
-    if (modelURL.isValid()) {
-        QString newModelURL;
-        newModelURL = modelURL.toVariant().toString();
-        if (_defaultSettings || newModelURL != _modelURL) {
-            _modelURL = newModelURL;
-            _modelURLChanged = true;
-        }
-    }
-    
-    QScriptValue animationURL = object.property("animationURL");
-    if (animationURL.isValid()) {
-        QString newAnimationURL;
-        newAnimationURL = animationURL.toVariant().toString();
-        if (_defaultSettings || newAnimationURL != _animationURL) {
-            _animationURL = newAnimationURL;
-            _animationURLChanged = true;
-        }
-    }
-
-    QScriptValue animationIsPlaying = object.property("animationIsPlaying");
-    if (animationIsPlaying.isValid()) {
-        bool newIsAnimationPlaying;
-        newIsAnimationPlaying = animationIsPlaying.toVariant().toBool();
-        if (_defaultSettings || newIsAnimationPlaying != _animationIsPlaying) {
-            _animationIsPlaying = newIsAnimationPlaying;
-            _animationIsPlayingChanged = true;
-        }
-    }
-    
-    QScriptValue animationFrameIndex = object.property("animationFrameIndex");
-    if (animationFrameIndex.isValid()) {
-        float newFrameIndex;
-        newFrameIndex = animationFrameIndex.toVariant().toFloat();
-        if (_defaultSettings || newFrameIndex != _animationFrameIndex) {
-            _animationFrameIndex = newFrameIndex;
-            _animationFrameIndexChanged = true;
-        }
-    }
-    
-    QScriptValue animationFPS = object.property("animationFPS");
-    if (animationFPS.isValid()) {
-        float newFPS;
-        newFPS = animationFPS.toVariant().toFloat();
-        if (_defaultSettings || newFPS != _animationFPS) {
-            _animationFPS = newFPS;
-            _animationFPSChanged = true;
-        }
-    }
-    
-    QScriptValue glowLevel = object.property("glowLevel");
-    if (glowLevel.isValid()) {
-        float newGlowLevel;
-        newGlowLevel = glowLevel.toVariant().toFloat();
-        if (_defaultSettings || newGlowLevel != _glowLevel) {
-            _glowLevel = newGlowLevel;
-            _glowLevelChanged = true;
-        }
-    }
     _lastEdited = usecTimestampNow();
 }
 

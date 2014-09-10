@@ -150,9 +150,92 @@
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
     properties.setProperty(#P, G);
 
-
 #define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
     properties.setProperty(#P, _##P);
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(P, S) \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        float newValue = P.toVariant().toFloat();   \
+        if (_defaultSettings || newValue != _##P) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(P, S)  \
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        bool newValue = P.toVariant().toBool();     \
+        if (_defaultSettings || newValue != _##P) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(P, S)\
+    QScriptValue P = object.property(#P);           \
+    if (P.isValid()) {                              \
+        QString newValue = P.toVariant().toString();\
+        if (_defaultSettings || newValue != _##P) { \
+            S(newValue);                            \
+        }                                           \
+    }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)      \
+    QScriptValue P = object.property(#P);               \
+    if (P.isValid()) {                                  \
+        QScriptValue x = P.property("x");               \
+        QScriptValue y = P.property("y");               \
+        QScriptValue z = P.property("z");               \
+        if (x.isValid() && y.isValid() && z.isValid()) {\
+            glm::vec3 newValue;                         \
+            newValue.x = x.toVariant().toFloat();       \
+            newValue.y = y.toVariant().toFloat();       \
+            newValue.z = z.toVariant().toFloat();       \
+            if (_defaultSettings || newValue != _##P) { \
+                S(newValue);                            \
+            }                                           \
+        }                                               \
+    }
+    
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(P, S)                      \
+    QScriptValue P = object.property(#P);                               \
+    if (P.isValid()) {                                                  \
+        QScriptValue x = P.property("x");                               \
+        QScriptValue y = P.property("y");                               \
+        QScriptValue z = P.property("z");                               \
+        QScriptValue w = P.property("w");                               \
+        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) { \
+            glm::quat newValue;                                         \
+            newValue.x = x.toVariant().toFloat();                       \
+            newValue.y = y.toVariant().toFloat();                       \
+            newValue.z = z.toVariant().toFloat();                       \
+            newValue.w = w.toVariant().toFloat();                       \
+            if (_defaultSettings || newValue != _##P) {                 \
+                S(newValue);                                            \
+            }                                                           \
+        }                                                               \
+    }
+
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(P, S)     \
+    QScriptValue P = object.property(#P);               \
+    if (P.isValid()) {                                  \
+        QScriptValue r = P.property("red");             \
+        QScriptValue g = P.property("green");           \
+        QScriptValue b = P.property("blue");            \
+        if (r.isValid() && g.isValid() && b.isValid()) {\
+            xColor newColor;                            \
+            newColor.red = r.toVariant().toInt();       \
+            newColor.green = g.toVariant().toInt();     \
+            newColor.blue = b.toVariant().toInt();      \
+            if (_defaultSettings ||                     \
+                (newColor.red != _color.red ||          \
+                newColor.green != _color.green ||       \
+                newColor.blue != _color.blue)) {        \
+                S(newColor);                            \
+            }                                           \
+        }                                               \
+    }
+
 
 
 #endif // hifi_EntityItemPropertiesMacros_h

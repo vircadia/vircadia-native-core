@@ -236,6 +236,9 @@ private:
     quint64 _created;
 
     EntityTypes::EntityType _type;
+ 
+    void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
+    
     glm::vec3 _position;
     glm::vec3 _dimensions;
     glm::quat _rotation;
