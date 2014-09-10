@@ -3000,7 +3000,6 @@ Controller.keyReleaseEvent.connect(function (event) {
 Window.inlineButtonClicked.connect(function (name) {
     if (name == "resetDimensions") {
         var decimals = 3;
-        
         Window.reloadNonBlockingForm([
             { value: propertiesForEditedEntity.naturalDimensions.x.toFixed(decimals), oldIndex: dimensionX },
             { value: propertiesForEditedEntity.naturalDimensions.y.toFixed(decimals), oldIndex: dimensionY },
@@ -3009,11 +3008,8 @@ Window.inlineButtonClicked.connect(function (name) {
     }
 });
 Window.nonBlockingFormClosed.connect(function() {
-    print("JAVASCRIPT.... nonBlockingFormClosed....");
     array = editEntityFormArray;
     if (Window.getNonBlockingFormResult(array)) {
-        print("getNonBlockingFormResult()....");
-
         var properties = propertiesForEditedEntity;
         var index = 0;
         if (properties.type == "Model") {
