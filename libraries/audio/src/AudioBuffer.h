@@ -110,8 +110,16 @@ public:
         if ( !_frameBuffer || !frames) {
             return;
         }
-        assert(channelCount <= _channelCountMax);
-        assert(frameCount <= _frameCountMax);
+
+        if (channelCount >_channelCountMax || frameCount >_frameCountMax) {
+            qDebug() << "Audio framing error:  _channelCount=" << _channelCount << "channelCountMax=" << _channelCountMax;
+            qDebug() << "Audio framing error:  _frameCount=" << _frameCount << "frameCountMax=" << _frameCountMax;
+
+            // This condition should never happen; however, we do our best to recover here copying as many frames
+            // as we have allocated
+            _channelCount = std::min(_channelCount,_channelCountMax);
+            _frameCount = std::min(_frameCount,_frameCountMax);
+        }
         
         _frameCount = frameCount;  // we allow copying fewer frames than we've allocated
         _channelCount = channelCount;  // we allow copying fewer channels that we've allocated
