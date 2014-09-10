@@ -2724,6 +2724,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
+    // load the view frustum
+    loadViewFrustum(whichCamera, _displayViewFrustum);
+
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
