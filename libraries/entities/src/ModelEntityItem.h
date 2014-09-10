@@ -61,7 +61,6 @@ public:
     bool hasAnimation() const { return !_animationURL.isEmpty(); }
     static const QString DEFAULT_ANIMATION_URL;
     const QString& getAnimationURL() const { return _animationURL; }
-    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
 
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
@@ -81,7 +80,6 @@ public:
 
     static const float DEFAULT_ANIMATION_FPS;
     void setAnimationFPS(float value) { _animationFPS = value; }
-    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
     
     void mapJoints(const QStringList& modelJointNames);
     QVector<glm::quat> getAnimationFrame();
@@ -101,7 +99,6 @@ protected:
 
     rgbColor _color;
     QString _modelURL;
-    QVector<SittingPoint> _sittingPoints;
 
     quint64 _lastAnimated;
     QString _animationURL;

@@ -122,6 +122,9 @@ public:
     const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem) {
         return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
     }
+    const Model* getModelForEntityItem(const EntityItem* entityItem) {
+        return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
+    }
     
     EntityTreeElement* getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);

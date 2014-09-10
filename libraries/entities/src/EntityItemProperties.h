@@ -207,6 +207,12 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
+    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
+    
+    const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
+    void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
+
 private:
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -248,6 +254,7 @@ private:
     float _animationFPS;
     float _glowLevel;
     QVector<SittingPoint> _sittingPoints;
+    glm::vec3 _naturalDimensions;
 
     bool _colorChanged;
     bool _modelURLChanged;

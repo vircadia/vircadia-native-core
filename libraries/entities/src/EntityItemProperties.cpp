@@ -56,6 +56,7 @@ EntityItemProperties::EntityItemProperties() :
     _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
 
+    _naturalDimensions(1.0f, 1.0f, 1.0f),
     _colorChanged(false),
     _modelURLChanged(false),
     _animationURLChanged(false),
@@ -161,6 +162,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     properties.setProperty("position", position);
     QScriptValue dimensions = vec3toScriptValue(engine, _dimensions);
     properties.setProperty("dimensions", dimensions);
+
+    QScriptValue naturalDimensions = vec3toScriptValue(engine, _naturalDimensions);
+    properties.setProperty("naturalDimensions", naturalDimensions);
+
     QScriptValue rotation = quatToScriptValue(engine, _rotation);
     properties.setProperty("rotation", rotation);
     properties.setProperty("mass", _mass);

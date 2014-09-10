@@ -47,7 +47,6 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     properties._animationIsPlaying = getAnimationIsPlaying();
     properties._animationFrameIndex = getAnimationFrameIndex();
     properties._animationFPS = getAnimationFPS();
-    properties._sittingPoints = getSittingPoints(); // sitting support
     properties._colorChanged = false;
     properties._modelURLChanged = false;
     properties._animationURLChanged = false;

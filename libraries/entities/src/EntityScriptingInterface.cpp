@@ -68,18 +68,20 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
         EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(identity));
         
         if (entity) {
-        
-            // TODO: improve sitting points in the future, for now we've included the old model behavior for entity
-            //       types that are models
+            results = entity->getProperties();
+
+            // TODO: improve sitting points and naturalDimensions in the future, 
+            //       for now we've included the old sitting points model behavior for entity types that are models
+            //        we've also added this hack for setting natural dimensions of models
             if (entity->getType() == EntityTypes::Model) {
-                ModelEntityItem* model = dynamic_cast<ModelEntityItem*>(entity);
                 const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
                 if (geometry) {
-                    model->setSittingPoints(geometry->sittingPoints);
+                    results.setSittingPoints(geometry->sittingPoints);
+                    Extents meshExtents = geometry->getUnscaledMeshExtents();
+                    results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
                 }
             }
-            
-            results = entity->getProperties();
+
         } else {
             results.setIsUnknownID();
         }
