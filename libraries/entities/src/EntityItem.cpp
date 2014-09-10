@@ -508,7 +508,7 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::update(const quint64& updateTime) {
-    bool wantDebug = true;
+    bool wantDebug = false;
 
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
 
@@ -537,6 +537,7 @@ void EntityItem::update(const quint64& updateTime) {
     if (hasVelocity() || hasGravity()) {
         glm::vec3 position = getPosition();
         glm::vec3 velocity = getVelocity();
+        glm::vec3 newPosition = position + (velocity * timeElapsed);
 
         if (wantDebug) {        
             qDebug() << "EntityItem::update()....";
@@ -545,9 +546,11 @@ void EntityItem::update(const quint64& updateTime) {
             qDebug() << "    old position:" << position;
             qDebug() << "    old velocity:" << velocity;
             qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity();
+            qDebug() << "    newPosition:" << newPosition;
+            qDebug() << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
         }
         
-        position += velocity * timeElapsed;
+        position = newPosition;
 
         // handle bounces off the ground... We bounce at the distance to the bottom of our entity
         if (position.y <= getDistanceToBottomOfEntity()) {
@@ -669,8 +672,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocity);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);

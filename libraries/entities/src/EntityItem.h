@@ -156,6 +156,7 @@ public:
     const glm::vec3 getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
     bool hasVelocity() const { return _velocity != NO_VELOCITY; }
 
     static const glm::vec3 DEFAULT_GRAVITY;
@@ -164,6 +165,7 @@ public:
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
     glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
     bool hasGravity() const { return _gravity != NO_GRAVITY; }
     
     // TODO: this should eventually be updated to support resting on collisions with other surfaces
