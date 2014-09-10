@@ -25,6 +25,7 @@ int TV3DManager::_screenHeight = 1;
 double TV3DManager::_aspect = 1.0;
 eyeFrustum TV3DManager::_leftEye;
 eyeFrustum TV3DManager::_rightEye;
+eyeFrustum* TV3DManager::_activeEye = NULL;
 
 
 bool TV3DManager::isConnected() {
@@ -111,7 +112,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
     glPushMatrix();
     {
-        
+        _activeEye = &_leftEye;
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
         glFrustum(_leftEye.left, _leftEye.right, _leftEye.bottom, _leftEye.top, nearZ, farZ); // set left view frustum
@@ -128,6 +129,7 @@ void TV3DManager::display(Camera& whichCamera) {
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
         }
+        _activeEye = NULL;
     }
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
@@ -140,6 +142,7 @@ void TV3DManager::display(Camera& whichCamera) {
     glScissor(portalX, portalY, portalW, portalH);
     glPushMatrix();
     {
+        _activeEye = &_rightEye;
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
         glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set left view frustum
@@ -156,6 +159,7 @@ void TV3DManager::display(Camera& whichCamera) {
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
         }
+        _activeEye = NULL;
     }
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
@@ -165,4 +169,14 @@ void TV3DManager::display(Camera& whichCamera) {
         Application::getInstance()->getGLWidget()->getDeviceHeight());
 
     Application::getInstance()->getGlowEffect()->render();
+}
+
+void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) {
+    if (_activeEye) {
+        left = _activeEye->left;
+        right = _activeEye->right;
+        bottom = _activeEye->bottom;
+        top = _activeEye->top;
+    }
 }
