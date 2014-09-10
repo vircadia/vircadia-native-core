@@ -644,6 +644,8 @@ void Audio::handleAudioInput() {
                     _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
                 }
                 
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                
                 //  If Noise Gate is enabled, check and turn the gate on and off
                 if (!_audioSourceInjectEnabled && _noiseGateEnabled) {
                     float averageOfAllSampleFrames = 0.0f;
