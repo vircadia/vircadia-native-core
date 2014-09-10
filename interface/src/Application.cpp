@@ -3357,7 +3357,10 @@ void Application::updateWindowTitle(){
         title += " - ₵" + creditBalanceString;
     }
 
+#ifndef WIN32
+    // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());
+#endif !WIN32
     _window->setWindowTitle(title);
 }
 
