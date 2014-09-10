@@ -121,12 +121,14 @@ public:
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
+    glm::vec3 getPositionInMeters() const { return _position * (float) TREE_SCALE; } /// get position in meters
     void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
     void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
             { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
     static const glm::vec3 DEFAULT_DIMENSIONS;
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
+    glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
     float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
@@ -151,7 +153,8 @@ public:
     static const glm::vec3 DEFAULT_VELOCITY;
     static const glm::vec3 NO_VELOCITY;
     static const float EPSILON_VELOCITY_LENGTH;
-    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3 getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     bool hasVelocity() const { return _velocity != NO_VELOCITY; }
 
@@ -159,6 +162,7 @@ public:
     static const glm::vec3 REGULAR_GRAVITY;
     static const glm::vec3 NO_GRAVITY;
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
+    glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
     bool hasGravity() const { return _gravity != NO_GRAVITY; }
     
@@ -206,6 +210,8 @@ public:
     static const bool DEFAULT_VISIBLE;
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; }
+    bool isVisible() const { return _visible; }
+    bool isInvisible() const { return !_visible; }
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init

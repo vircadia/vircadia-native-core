@@ -65,6 +65,9 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _gravity = DEFAULT_GRAVITY;
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
+    _registrationPoint = DEFAULT_REGISTRATION_POINT;
+    _rotationalVelocity = DEFAULT_ROTATIONAL_VELOCITY;
+    _visible = DEFAULT_VISIBLE;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -456,6 +459,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
         READ_ENTITY_PROPERTY_QUAT(PROP_ROTATIONAL_VELOCITY, _rotationalVelocity);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
+qDebug() << "EntityItem::readEntityDataFromBuffer() ... _visible=" << _visible;
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -617,25 +621,19 @@ EntityItemProperties EntityItem::getProperties() const {
 
     properties._type = getType();
     
-    properties._position = getPosition() * (float) TREE_SCALE;
-    properties.setDimensions(getDimensions() * (float) TREE_SCALE);
-    properties._rotation = getRotation();
-
-    properties._mass = getMass();
-    properties._velocity = getVelocity() * (float) TREE_SCALE;
-    properties._gravity = getGravity() * (float) TREE_SCALE;
-    properties._damping = getDamping();
-    properties._lifetime = getLifetime();
-    properties._script = getScript();
-
-    properties._positionChanged = false;
-    properties._rotationChanged = false;
-    properties._massChanged = false;
-    properties._velocityChanged = false;
-    properties._gravityChanged = false;
-    properties._dampingChanged = false;
-    properties._lifetimeChanged = false;
-    properties._scriptChanged = false;
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(position, getPositionInMeters);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(dimensions, getDimensionsInMeters); // NOTE: radius is obsolete
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotation, getRotation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(mass, getMass);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(velocity, getVelocityInMeters);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(gravity, getGravityInMeters);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(damping, getDamping);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotationalVelocity, getRotationalVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
 
     properties._defaultSettings = false;
     
@@ -666,6 +664,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotationalVelocity, setRotationalVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed

@@ -2909,6 +2909,9 @@ function handeMenuEvent(menuItem) {
 
             array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
             index++;
+
+            array.push({ label: "Visible:", value: properties.visible });
+            index++;
             
             if (properties.type == "Box" || properties.type == "Sphere") {
                 array.push({ label: "Color:", type: "header" });
@@ -3038,7 +3041,8 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.gravity.x = array[index++].value;
         properties.gravity.y = array[index++].value;
         properties.gravity.z = array[index++].value;
-        properties.lifetime = array[index++].value; // give ourselves that many more seconds
+        properties.lifetime = array[index++].value;
+        properties.visible = array[index++].value;
 
         if (properties.type == "Box" || properties.type == "Sphere") {
             index++; // skip header

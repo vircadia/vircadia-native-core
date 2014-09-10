@@ -214,27 +214,30 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
     
     for (uint16_t i = 0; i < numberOfEntities; i++) {
         EntityItem* entityItem = entityItems[i];
-        // render entityItem 
-        AACube entityCube = entityItem->getAACube();
-
-        entityCube.scale(TREE_SCALE);
         
-        // TODO: some entity types (like lights) might want to be rendered even
-        // when they are outside of the view frustum...
-        float distance = distanceToCamera(entityCube.calcCenter(), *args->_viewFrustum);
-        if (shouldRenderEntity(entityCube.getLargestDimension(), distance) &&
-                args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
+        if (entityItem->isVisible()) {
+            // render entityItem 
+            AACube entityCube = entityItem->getAACube();
 
-            Glower* glower = NULL;
-            if (entityItem->getGlowLevel() > 0.0f) {
-                glower = new Glower(entityItem->getGlowLevel());
+            entityCube.scale(TREE_SCALE);
+        
+            // TODO: some entity types (like lights) might want to be rendered even
+            // when they are outside of the view frustum...
+            float distance = distanceToCamera(entityCube.calcCenter(), *args->_viewFrustum);
+            if (shouldRenderEntity(entityCube.getLargestDimension(), distance) &&
+                    args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
+
+                Glower* glower = NULL;
+                if (entityItem->getGlowLevel() > 0.0f) {
+                    glower = new Glower(entityItem->getGlowLevel());
+                }
+                entityItem->render(args);
+                if (glower) {
+                    delete glower;
+                }
+            } else {
+                args->_itemsOutOfView++;
             }
-            entityItem->render(args);
-            if (glower) {
-                delete glower;
-            }
-        } else {
-            args->_itemsOutOfView++;
         }
     }
 }

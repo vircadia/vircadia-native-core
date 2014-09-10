@@ -90,65 +90,25 @@ void EntityItemProperties::debugDump() const {
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-    if (_dimensionsChanged) {
-        changedProperties += PROP_DIMENSIONS;
-    }
-
-    if (_positionChanged) {
-        changedProperties += PROP_POSITION;
-    }
-
-    if (_rotationChanged) {
-        changedProperties += PROP_ROTATION;
-    }
-
-    if (_massChanged) {
-        changedProperties += PROP_MASS;
-    }
-
-    if (_velocityChanged) {
-        changedProperties += PROP_VELOCITY;
-    }
-
-    if (_gravityChanged) {
-        changedProperties += PROP_GRAVITY;
-    }
-
-    if (_dampingChanged) {
-        changedProperties += PROP_DAMPING;
-    }
-
-    if (_lifetimeChanged) {
-        changedProperties += PROP_LIFETIME;
-    }
-
-    if (_scriptChanged) {
-        changedProperties += PROP_SCRIPT;
-    }
-
-    if (_colorChanged) {
-        changedProperties += PROP_COLOR;
-    }
-
-    if (_modelURLChanged) {
-        changedProperties += PROP_MODEL_URL;
-    }
-
-    if (_animationURLChanged) {
-        changedProperties += PROP_ANIMATION_URL;
-    }
-
-    if (_animationIsPlayingChanged) {
-        changedProperties += PROP_ANIMATION_PLAYING;
-    }
-
-    if (_animationFrameIndexChanged) {
-        changedProperties += PROP_ANIMATION_FRAME_INDEX;
-    }
-
-    if (_animationFPSChanged) {
-        changedProperties += PROP_ANIMATION_FPS;
-    }
+    
+    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
+    CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
+    CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
+    CHECK_PROPERTY_CHANGE(PROP_MASS, mass);
+    CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
+    CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
+    CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
+    CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
+    CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
+    CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
+    CHECK_PROPERTY_CHANGE(PROP_ROTATIONAL_VELOCITY, rotationalVelocity);
 
     return changedProperties;
 }
@@ -184,6 +144,14 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     properties.setProperty("age", getAge()); // gettable, but not settable
     properties.setProperty("ageAsText", formatSecondsElapsed(getAge())); // gettable, but not settable
     properties.setProperty("script", _script);
+
+    QScriptValue registrationPoint = vec3toScriptValue(engine, _registrationPoint);
+    properties.setProperty("registrationPoint", registrationPoint);
+
+    QScriptValue rotationalVelocity = quatToScriptValue(engine, _rotationalVelocity);
+    properties.setProperty("rotationalVelocity", rotationalVelocity);
+
+    properties.setProperty("visible", _visible);
 
     QScriptValue color = xColorToScriptValue(engine, _color);
     properties.setProperty("color", color);
@@ -340,6 +308,52 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         if (_defaultSettings || newValue != _script) {
             _script = newValue;
             _scriptChanged = true;
+        }
+    }
+
+    QScriptValue registrationPoint = object.property("registrationPoint");
+    if (registrationPoint.isValid()) {
+        QScriptValue x = registrationPoint.property("x");
+        QScriptValue y = registrationPoint.property("y");
+        QScriptValue z = registrationPoint.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 newValue;
+            newValue.x = x.toVariant().toFloat();
+            newValue.y = y.toVariant().toFloat();
+            newValue.z = z.toVariant().toFloat();
+            if (_defaultSettings || newValue != _registrationPoint) {
+                _registrationPoint = newValue;
+                _registrationPointChanged = true;
+            }
+        }
+    }
+
+    QScriptValue rotationalVelocity = object.property("rotationalVelocity");
+    if (rotationalVelocity.isValid()) {
+        QScriptValue x = rotationalVelocity.property("x");
+        QScriptValue y = rotationalVelocity.property("y");
+        QScriptValue z = rotationalVelocity.property("z");
+        QScriptValue w = rotationalVelocity.property("w");
+        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+            glm::quat newRotation;
+            newRotation.x = x.toVariant().toFloat();
+            newRotation.y = y.toVariant().toFloat();
+            newRotation.z = z.toVariant().toFloat();
+            newRotation.w = w.toVariant().toFloat();
+            if (_defaultSettings || newRotation != _rotationalVelocity) {
+                _rotationalVelocity = newRotation;
+                _rotationalVelocityChanged = true;
+            }
+        }
+    }
+
+    QScriptValue visible = object.property("visible");
+    if (visible.isValid()) {
+        bool newValue;
+        newValue = visible.toVariant().toBool();
+        if (_defaultSettings || newValue != _visible) {
+            _visible = newValue;
+            _visibleChanged = true;
         }
     }
 
@@ -548,7 +562,6 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             // These items would go here once supported....
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
-            //      PROP_VISIBLE,
 
             APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
             APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
@@ -565,6 +578,9 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
+            APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
+            APPEND_ENTITY_PROPERTY(PROP_ROTATIONAL_VELOCITY, appendValue, properties.getRotationalVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -757,9 +773,9 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
-    // TODO: add PROP_REGISTRATION_POINT,
-    // TODO: add PROP_ROTATIONAL_VELOCITY,
-    // TODO: add PROP_VISIBLE,
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATIONAL_VELOCITY, setRotationalVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
 
     return valid;
 }

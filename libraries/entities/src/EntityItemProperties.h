@@ -215,6 +215,17 @@ public:
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
 
+    const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
+    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; _registrationPointChanged = true; }
+
+    const glm::quat& getRotationalVelocity() const { return _rotationalVelocity; }
+    void setRotationalVelocity(const glm::quat& value) { _rotationalVelocity = value; _rotationalVelocityChanged = true; }
+
+    bool getVisible() const { return _visible; }
+    void setVisible(bool value) { _visible = value; _visibleChanged = true; }
+
+
+
 private:
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -389,5 +400,13 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
         somethingChanged = true;                    \
     }
 
+#define COPY_ENTITY_PROPERTY_TO_PROPERTIES(M,G) \
+    properties._##M = G();                      \
+    properties._##M##Changed = false;
+
+#define CHECK_PROPERTY_CHANGE(P,M) \
+    if (_##M##Changed) {           \
+        changedProperties += P;    \
+    }
 
 #endif // hifi_EntityItemProperties_h
