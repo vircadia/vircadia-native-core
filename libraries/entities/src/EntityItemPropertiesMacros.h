@@ -134,4 +134,25 @@
         changedProperties += P;    \
     }
 
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(P) \
+    QScriptValue P = vec3toScriptValue(engine, _##P); \
+    properties.setProperty(#P, P);
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(P) \
+    QScriptValue P = quatToScriptValue(engine, _##P); \
+    properties.setProperty(#P, P);
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(P) \
+    QScriptValue P = xColorToScriptValue(engine, _##P); \
+    properties.setProperty(#P, P);
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
+    properties.setProperty(#P, G);
+
+
+#define COPY_PROPERTY_TO_QSCRIPTVALUE(P) \
+    properties.setProperty(#P, _##P);
+
+
 #endif // hifi_EntityItemPropertiesMacros_h

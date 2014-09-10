@@ -60,9 +60,10 @@ enum EntityPropertyList {
 
     // these properties are supported by the EntityItem base class
     PROP_REGISTRATION_POINT,
-    PROP_ROTATIONAL_VELOCITY,
+    PROP_ANGULAR_VELOCITY,
+    PROP_ANGULAR_DAMPING,
 
-    PROP_LAST_ITEM = PROP_ROTATIONAL_VELOCITY
+    PROP_LAST_ITEM = PROP_ANGULAR_DAMPING
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -217,13 +218,14 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
     void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; _registrationPointChanged = true; }
 
-    const glm::vec3& getRotationalVelocity() const { return _rotationalVelocity; }
-    void setRotationalVelocity(const glm::vec3& value) { _rotationalVelocity = value; _rotationalVelocityChanged = true; }
+    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; _angularVelocityChanged = true; }
+
+    float getAngularDamping() const { return _angularDamping; }
+    void setAngularDamping(float value) { _angularDamping = value; _angularDampingChanged = true; }
 
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; _visibleChanged = true; }
-
-
 
 private:
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
@@ -244,7 +246,8 @@ private:
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
-    glm::vec3 _rotationalVelocity;
+    glm::vec3 _angularVelocity;
+    float _angularDamping;
     bool _visible;
 
     bool _positionChanged;
@@ -257,7 +260,8 @@ private:
     bool _lifetimeChanged;
     bool _scriptChanged;
     bool _registrationPointChanged;
-    bool _rotationalVelocityChanged;
+    bool _angularVelocityChanged;
+    bool _angularDampingChanged;
     bool _visibleChanged;
     
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as

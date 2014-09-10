@@ -38,7 +38,8 @@ EntityItemProperties::EntityItemProperties() :
     _lifetime(EntityItem::DEFAULT_LIFETIME),
     _script(EntityItem::DEFAULT_SCRIPT),
     _registrationPoint(EntityItem::DEFAULT_REGISTRATION_POINT),
-    _rotationalVelocity(EntityItem::DEFAULT_ROTATIONAL_VELOCITY),
+    _angularVelocity(EntityItem::DEFAULT_ANGULAR_VELOCITY),
+    _angularDamping(EntityItem::DEFAULT_ANGULAR_DAMPING),
     _visible(EntityItem::DEFAULT_VISIBLE),
 
     _positionChanged(false),
@@ -51,7 +52,8 @@ EntityItemProperties::EntityItemProperties() :
     _lifetimeChanged(false),
     _scriptChanged(false),
     _registrationPointChanged(false),
-    _rotationalVelocityChanged(false),
+    _angularVelocityChanged(false),
+    _angularDampingChanged(false),
     _visibleChanged(false),
 
     _color(),
@@ -108,7 +110,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
-    CHECK_PROPERTY_CHANGE(PROP_ROTATIONAL_VELOCITY, rotationalVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
 
     return changedProperties;
 }
@@ -117,51 +120,36 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue properties = engine->newObject();
 
     if (_idSet) {
-        properties.setProperty("id", _id.toString());
-        bool isKnownID = (_id != UNKNOWN_ENTITY_ID);
-        properties.setProperty("isKnownID", isKnownID);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(id, _id.toString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, (_id != UNKNOWN_ENTITY_ID));
+    } else {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, false);
     }
 
-    properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
-
-    QScriptValue position = vec3toScriptValue(engine, _position);
-    properties.setProperty("position", position);
-    QScriptValue dimensions = vec3toScriptValue(engine, _dimensions);
-    properties.setProperty("dimensions", dimensions);
-
-    QScriptValue naturalDimensions = vec3toScriptValue(engine, _naturalDimensions);
-    properties.setProperty("naturalDimensions", naturalDimensions);
-
-    QScriptValue rotation = quatToScriptValue(engine, _rotation);
-    properties.setProperty("rotation", rotation);
-    properties.setProperty("mass", _mass);
-    QScriptValue velocity = vec3toScriptValue(engine, _velocity);
-    properties.setProperty("velocity", velocity);
-    QScriptValue gravity = vec3toScriptValue(engine, _gravity);
-    properties.setProperty("gravity", gravity);
-    properties.setProperty("damping", _damping);
-    properties.setProperty("lifetime", _lifetime);
-    properties.setProperty("age", getAge()); // gettable, but not settable
-    properties.setProperty("ageAsText", formatSecondsElapsed(getAge())); // gettable, but not settable
-    properties.setProperty("script", _script);
-
-    QScriptValue registrationPoint = vec3toScriptValue(engine, _registrationPoint);
-    properties.setProperty("registrationPoint", registrationPoint);
-
-    QScriptValue rotationalVelocity = vec3toScriptValue(engine, _rotationalVelocity);
-    properties.setProperty("rotationalVelocity", rotationalVelocity);
-
-    properties.setProperty("visible", _visible);
-
-    QScriptValue color = xColorToScriptValue(engine, _color);
-    properties.setProperty("color", color);
-    properties.setProperty("modelURL", _modelURL);
-    
-    properties.setProperty("animationURL", _animationURL);
-    properties.setProperty("animationIsPlaying", _animationIsPlaying);
-    properties.setProperty("animationFrameIndex", _animationFrameIndex);
-    properties.setProperty("animationFPS", _animationFPS);
-    properties.setProperty("glowLevel", _glowLevel);
+    //properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(position);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(dimensions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(naturalDimensions); // gettable, but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(rotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE(script);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(registrationPoint);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(angularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(color);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -173,7 +161,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
         sittingPoints.setProperty(i, sittingPoint);
     }
     sittingPoints.setProperty("length", _sittingPoints.size());
-    properties.setProperty("sittingPoints", sittingPoints);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
     return properties;
 }
@@ -328,20 +316,30 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
         }
     }
 
-    QScriptValue rotationalVelocity = object.property("rotationalVelocity");
-    if (rotationalVelocity.isValid()) {
-        QScriptValue x = rotationalVelocity.property("x");
-        QScriptValue y = rotationalVelocity.property("y");
-        QScriptValue z = rotationalVelocity.property("z");
+    QScriptValue angularVelocity = object.property("angularVelocity");
+    if (angularVelocity.isValid()) {
+        QScriptValue x = angularVelocity.property("x");
+        QScriptValue y = angularVelocity.property("y");
+        QScriptValue z = angularVelocity.property("z");
         if (x.isValid() && y.isValid() && z.isValid()) {
             glm::vec3 newRotation;
             newRotation.x = x.toVariant().toFloat();
             newRotation.y = y.toVariant().toFloat();
             newRotation.z = z.toVariant().toFloat();
-            if (_defaultSettings || newRotation != _rotationalVelocity) {
-                _rotationalVelocity = newRotation;
-                _rotationalVelocityChanged = true;
+            if (_defaultSettings || newRotation != _angularVelocity) {
+                _angularVelocity = newRotation;
+                _angularVelocityChanged = true;
             }
+        }
+    }
+
+    QScriptValue angularDamping = object.property("angularDamping");
+    if (angularDamping.isValid()) {
+        float newValue;
+        newValue = angularDamping.toVariant().toFloat();
+        if (_defaultSettings || newValue != _angularDamping) {
+            _angularDamping = newValue;
+            _angularDampingChanged = true;
         }
     }
 
@@ -577,7 +575,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
-            APPEND_ENTITY_PROPERTY(PROP_ROTATIONAL_VELOCITY, appendValue, properties.getRotationalVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
         }
         if (propertyCount > 0) {
@@ -772,7 +771,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ROTATIONAL_VELOCITY, glm::vec3, setRotationalVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
 
     return valid;

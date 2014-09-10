@@ -27,7 +27,7 @@ const float EntityItem::IMMORTAL = -1.0f; /// special lifetime which means the e
 const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
-const float EntityItem::DEFAULT_DAMPING = 0.99f;
+const float EntityItem::DEFAULT_DAMPING = 0.5f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 10000.0f) / (float)TREE_SCALE; // really small
 const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
@@ -38,10 +38,10 @@ const QString EntityItem::DEFAULT_SCRIPT = QString("");
 const glm::quat EntityItem::DEFAULT_ROTATION;
 const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
 const glm::vec3 EntityItem::DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
-const glm::vec3 EntityItem::NO_ROTATIONAL_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
-const glm::vec3 EntityItem::DEFAULT_ROTATIONAL_VELOCITY = NO_ROTATIONAL_VELOCITY;
+const glm::vec3 EntityItem::NO_ANGULAR_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
+const glm::vec3 EntityItem::DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
+const float EntityItem::DEFAULT_ANGULAR_DAMPING = 0.5f;
 const bool EntityItem::DEFAULT_VISIBLE = true;
-
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
@@ -67,7 +67,8 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
     _registrationPoint = DEFAULT_REGISTRATION_POINT;
-    _rotationalVelocity = DEFAULT_ROTATIONAL_VELOCITY;
+    _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
+    _angularDamping = DEFAULT_ANGULAR_DAMPING;
     _visible = DEFAULT_VISIBLE;
 }
 
@@ -105,7 +106,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_LIFETIME;
     requestedProperties += PROP_SCRIPT;
     requestedProperties += PROP_REGISTRATION_POINT;
-    requestedProperties += PROP_ROTATIONAL_VELOCITY;
+    requestedProperties += PROP_ANGULAR_VELOCITY;
+    requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
     
     return requestedProperties;
@@ -212,7 +214,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
-        APPEND_ENTITY_PROPERTY(PROP_ROTATIONAL_VELOCITY, appendValue, getRotationalVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
+        APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, getVisible());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
@@ -458,7 +461,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
-        READ_ENTITY_PROPERTY(PROP_ROTATIONAL_VELOCITY, glm::vec3, _rotationalVelocity);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, _angularVelocity);
+        READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
@@ -497,6 +501,9 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
 
 float EntityItem::getDistanceToBottomOfEntity() const {
     // TODO: change this to support registration point
+    // TODO: fix this to correctly handle rotation... since _dimensions is in entity space, 
+    //       if the entity has been rotated, then the distance to world.y=0 is not the same
+    //       as the dimensions.y
     return _dimensions.y / 2.0f;
 }
 
@@ -525,13 +532,25 @@ void EntityItem::update(const quint64& updateTime) {
         qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
     }
 
-    if (hasRotationalVelocity()) {
+    if (hasAngularVelocity()) {
         glm::quat rotation = getRotation();
-        glm::vec3 rotationalVelocity = glm::radians(getRotationalVelocity());
-        float angle = timeElapsed * glm::length(rotationalVelocity);
-        glm::quat  dQ = glm::angleAxis(angle, glm::normalize(rotationalVelocity));
+        glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
+        float angle = timeElapsed * glm::length(angularVelocity);
+        glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
         rotation = dQ * rotation;
         setRotation(rotation);
+
+        // handle damping for angular velocity
+        if (getAngularDamping() > 0.0f) {
+            glm::vec3 dampingResistance = getAngularVelocity() * getAngularDamping();
+            if (wantDebug) {        
+                qDebug() << "    getDamping():" << getDamping();
+                qDebug() << "    dampingResistance:" << dampingResistance;
+                qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
+            }
+            glm::vec3 newAngularVelocity = getAngularVelocity() - (dampingResistance * timeElapsed);
+            setAngularVelocity(newAngularVelocity);
+        }
     }
 
     if (hasVelocity() || hasGravity()) {
@@ -610,7 +629,7 @@ EntityItem::SimulationState EntityItem::getSimulationState() const {
     if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
         return EntityItem::Moving;
     }
-    if (hasRotationalVelocity()) {
+    if (hasAngularVelocity()) {
         return EntityItem::Changing;
     }
     if (isMortal()) {
@@ -647,7 +666,8 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lifetime, getLifetime);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(script, getScript);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(registrationPoint, getRegistrationPoint);
-    COPY_ENTITY_PROPERTY_TO_PROPERTIES(rotationalVelocity, getRotationalVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularVelocity, getAngularVelocity);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
 
@@ -678,7 +698,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotationalVelocity, setRotationalVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
 

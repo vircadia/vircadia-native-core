@@ -205,11 +205,15 @@ public:
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
     void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; } /// registration point as ratio of entity
 
-    static const glm::vec3 NO_ROTATIONAL_VELOCITY;
-    static const glm::vec3 DEFAULT_ROTATIONAL_VELOCITY;
-    const glm::vec3& getRotationalVelocity() const { return _rotationalVelocity; }
-    void setRotationalVelocity(const glm::vec3& value) { _rotationalVelocity = value; }
-    bool hasRotationalVelocity() const { return _rotationalVelocity != NO_ROTATIONAL_VELOCITY; }
+    static const glm::vec3 NO_ANGULAR_VELOCITY;
+    static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;
+    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
+    bool hasAngularVelocity() const { return _angularVelocity != NO_ANGULAR_VELOCITY; }
+
+    static const float DEFAULT_ANGULAR_DAMPING;
+    float getAngularDamping() const { return _angularDamping; }
+    void setAngularDamping(float value) { _angularDamping = value; }
 
     static const bool DEFAULT_VISIBLE;
     bool getVisible() const { return _visible; }
@@ -241,7 +245,8 @@ protected:
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
-    glm::vec3 _rotationalVelocity;
+    glm::vec3 _angularVelocity;
+    float _angularDamping;
     bool _visible;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
