@@ -540,8 +540,8 @@ void OculusManager::overrideOffAxisFrustum(float& left, float& right, float& bot
         const ovrFovPort& port = _eyeFov[_activeEyeIndex];
         right = nearVal * port.RightTan;
         left = -nearVal * port.LeftTan;
-        top = nearVal * port.TopTan;
-        bottom = -nearVal * port.BottomTan;
+        top = nearVal * port.UpTan;
+        bottom = -nearVal * port.DownTan;
     }
 #endif
 }
