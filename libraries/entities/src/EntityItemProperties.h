@@ -165,6 +165,7 @@ public:
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
     float getGlowLevel() const { return _glowLevel; }
+    const QString& getScript() const { return _script; }
 
     // model related properties
     void setColor(const xColor& value) { _color = value; _colorChanged = true; }
@@ -174,6 +175,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
+    void setScript(const QString& value) { _script = value; _scriptChanged = true; }
 
 
     static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,

@@ -552,7 +552,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
-            //APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());  // not supported by edit messages
+            APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
@@ -744,7 +744,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
-    //READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript); // not yet supported by edit messages...
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SCRIPT,setScript);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);

@@ -1313,6 +1313,7 @@ var toolBar = (function () {
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
                                 color: { red: 255, green: 0, blue: 0 }
+
                                 });
             } else {
                 print("Can't create box: Box would be out of bounds.");
@@ -2394,7 +2395,7 @@ function Tooltip() {
     this.x = 285;
     this.y = 115;
     this.width = 500;
-    this.height = 145;
+    this.height = 180; // 145;
     this.margin = 5;
     this.decimals = 3;
 
@@ -2448,6 +2449,7 @@ function Tooltip() {
             text += "Lifetime: " + properties.lifetime + "\n"
         }
         text += "Age: " + properties.ageAsText + "\n"
+        text += "Script: " + properties.script + "\n"
 
 
         Overlays.editOverlay(this.textOverlay, { text: text });
