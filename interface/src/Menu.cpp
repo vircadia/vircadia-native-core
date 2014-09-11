@@ -30,6 +30,7 @@
 #include <QDesktopServices>
 
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
@@ -159,16 +160,6 @@ Menu::Menu() :
                                   appInstance->getAvatar(),
                                   SLOT(goHome()));
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoToDomain,
-                                  Qt::CTRL | Qt::Key_D,
-                                  this,
-                                  SLOT(goToDomainDialog()));
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoToLocation,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-                                  this,
-                                  SLOT(goToLocation()));
-    addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
                                   this,
@@ -179,10 +170,10 @@ Menu::Menu() :
                                   this,
                                   SLOT(toggleLocationList()));
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoTo,
-                                  Qt::Key_At,
+                                  MenuOption::AddressBar,
+                                  Qt::CTRL | Qt::Key_Enter,
                                   this,
-                                  SLOT(goTo()));
+                                  SLOT(toggleAddressBar()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
@@ -1149,62 +1140,22 @@ void Menu::changePrivateKey() {
     sendFakeEnterEvent();
 }
 
-void Menu::goToDomain(const QString newDomain) {
-    if (NodeList::getInstance()->getDomainHandler().getHostname() != newDomain) {
-        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        Application::getInstance()->getAvatar()->sendKillAvatar();
-
-        // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->getDomainHandler().setHostname(newDomain);
-    }
-}
-
-void Menu::goToDomainDialog() {
-
-    QString currentDomainHostname = NodeList::getInstance()->getDomainHandler().getHostname();
-
-    if (NodeList::getInstance()->getDomainHandler().getPort() != DEFAULT_DOMAIN_SERVER_PORT) {
-        // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainHandler().getPort()));
-    }
-
-    QInputDialog domainDialog(Application::getInstance()->getWindow());
-    domainDialog.setWindowTitle("Go to Domain");
-    domainDialog.setLabelText("Domain server:");
-    domainDialog.setTextValue(currentDomainHostname);
-    domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
-
-    int dialogReturn = domainDialog.exec();
-    if (dialogReturn == QDialog::Accepted) {
-        QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
-
-        if (domainDialog.textValue().size() > 0) {
-            // the user input a new hostname, use that
-            newHostname = domainDialog.textValue();
-        }
-
-        goToDomain(newHostname);
-    }
-
-    sendFakeEnterEvent();
-}
-
-void Menu::addressBarDialog() {
+void Menu::toggleAddressBar() {
 
     QInputDialog addressBarDialog(Application::getInstance()->getWindow());
     addressBarDialog.setWindowTitle("Address Bar");
-    addressBarDialog.setLabelText("place, @user, hifi://domain/path, position/orientation");
-    QString destination = QString();
+    addressBarDialog.setWindowFlags(Qt::Sheet);
+    addressBarDialog.setLabelText("place, domain, @user, example.com, position/orientation");
 
-    addressBarDialog.setTextValue(destination);
     addressBarDialog.resize(addressBarDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
                             addressBarDialog.size().height());
 
     int dialogReturn = addressBarDialog.exec();
     if (dialogReturn == QDialog::Accepted && !addressBarDialog.textValue().isEmpty()) {
-        // let the location manager parse this out and decide what to do with it
-//        LocationManager::getInstance().handleAddressBarEntry(addressBarDialog.textValue());
+        // let the AddressManger figure out what to do with this
+        AddressManager::getInstance().handleLookupString(addressBarDialog.textValue());
     }
+    
     sendFakeEnterEvent();
 }
 

@@ -422,8 +422,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
-    
-    AddressManager::getInstance().handleLookupString("1.5,2.5,0.0/0.0,-161.98,0.02");
 }
 
 Application::~Application() {
@@ -913,7 +911,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                Menu::getInstance()->triggerOption(MenuOption::Chat);
+                if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                } else {
+                    Menu::getInstance()->triggerOption(MenuOption::Chat);
+                }
+                
                 break;
 
             case Qt::Key_Up:
@@ -1317,7 +1320,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+//            Menu::getInstance()->goToDomain(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -4101,7 +4104,7 @@ void Application::urlGoTo(int argc, const char * constArgv[]) {
         if (urlParts.count() == 1) {
             // location coordinates or place name
              QString domain = urlParts[0];
-             Menu::goToDomain(domain);
+//             Menu::goToDomain(domain);
         } else if (urlParts.count() > 1) {
             // if url has 2 or more parts, the first one is domain name
             QString domain = urlParts[0];
@@ -4113,7 +4116,7 @@ void Application::urlGoTo(int argc, const char * constArgv[]) {
             // any third part is an avatar orientation.
             QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
 
-            Menu::goToDomain(domain);
+//            Menu::goToDomain(domain);
 
             // goto either @user, #place, or x-xx,y-yy,z-zz
             // style co-ordinate.

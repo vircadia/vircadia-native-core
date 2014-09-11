@@ -163,8 +163,6 @@ public:
 
     void removeAction(QMenu* menu, const QString& actionName);
     
-    void static goToDomain(const QString newDomain);
-    
     const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
 signals:
@@ -182,7 +180,7 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
-    void addressBarDialog();
+    void toggleAddressBar();
     void pasteToVoxel();
 
     void toggleLoginMenuItem();
@@ -205,7 +203,6 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void goToDomainDialog();
     void nameLocation();
     void toggleLocationList();
     void bandwidthDetailsClosed();
@@ -307,6 +304,7 @@ private:
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
@@ -393,9 +391,6 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString GoHome = "Go Home";
-    const QString GoToDomain = "Go To Domain...";
-    const QString GoTo = "Go To...";
-    const QString GoToLocation = "Go To Location...";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
