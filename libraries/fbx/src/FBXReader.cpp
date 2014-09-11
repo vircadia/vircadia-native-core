@@ -33,27 +33,6 @@
 
 using namespace std;
 
-void Extents::reset() {
-    minimum = glm::vec3(FLT_MAX);
-    maximum = glm::vec3(-FLT_MAX);
-}
-
-bool Extents::containsPoint(const glm::vec3& point) const {
-    return (point.x >= minimum.x && point.x <= maximum.x
-        && point.y >= minimum.y && point.y <= maximum.y
-        && point.z >= minimum.z && point.z <= maximum.z);
-}
-
-void Extents::addExtents(const Extents& extents) {
-     minimum = glm::min(minimum, extents.minimum);
-     maximum = glm::max(maximum, extents.maximum);
-}
-
-void Extents::addPoint(const glm::vec3& point) {
-    minimum = glm::min(minimum, point);
-    maximum = glm::max(maximum, point);
-}
-
 bool FBXMesh::hasSpecularTexture() const {
     foreach (const FBXMeshPart& part, parts) {
         if (!part.specularTexture.filename.isEmpty()) {
