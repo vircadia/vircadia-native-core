@@ -48,6 +48,7 @@ static const QString TRANSLATION_Y_FIELD = "ty";
 static const QString TRANSLATION_Z_FIELD = "tz";
 static const QString JOINT_FIELD = "joint";
 static const QString FREE_JOINT_FIELD = "freeJoint";
+static const QString BLENDSHAPE_FIELD = "bs";
 
 static const QString S3_URL = "http://public.highfidelity.io";
 static const QString MODEL_URL = "/api/v1/models";
@@ -190,6 +191,45 @@ bool ModelUploader::zip() {
         mapping.insertMulti(FREE_JOINT_FIELD, "LeftForeArm");
         mapping.insertMulti(FREE_JOINT_FIELD, "RightArm");
         mapping.insertMulti(FREE_JOINT_FIELD, "RightForeArm");
+    }
+    
+    // mixamo blendshapes
+    if (!mapping.contains(BLENDSHAPE_FIELD) && geometry.applicationName == "mixamo.com") {
+        QVariantHash blendshapes;
+        blendshapes.insert("EyeBlink_L", QVariantList() << "Blink_Left" << 1.0);
+        blendshapes.insert("EyeBlink_R", QVariantList() << "Blink_Right" << 1.0);
+        blendshapes.insert("EyeSquint_L", QVariantList() << "Squint_Left" << 1.0);
+        blendshapes.insert("EyeSquint_R", QVariantList() << "Squint_Right" << 1.0);
+        blendshapes.insert("EyeOpen_L", QVariantList() << "EyesWide_Left" << 1.0);
+        blendshapes.insert("EyeOpen_R", QVariantList() << "EyesWide_Right" << 1.0);
+        blendshapes.insert("BrowsD_L", QVariantList() << "BrowsDown_Left" << 1.0);
+        blendshapes.insert("BrowsD_R", QVariantList() << "BrowsDown_Right" << 1.0);
+        blendshapes.insert("BrowsU_L", QVariantList() << "BrowsUp_Left" << 1.0);
+        blendshapes.insert("BrowsU_R", QVariantList() << "BrowsUp_Right" << 1.0);
+        blendshapes.insert("JawFwd", QVariantList() << "JawForeward" << 1.0);
+        blendshapes.insert("JawOpen", QVariantList() << "Jaw_Down" << 1.0);
+        blendshapes.insert("JawLeft", QVariantList() << "Jaw_Left" << 1.0);
+        blendshapes.insert("JawRight", QVariantList() << "Jaw_Right" << 1.0);
+        blendshapes.insert("JawChew", QVariantList() << "Jaw_Up" << 1.0);
+        blendshapes.insert("MouthLeft", QVariantList() << "Midmouth_Left" << 1.0);
+        blendshapes.insert("MouthRight", QVariantList() << "Midmouth_Right" << 1.0);
+        blendshapes.insert("MouthFrown_L", QVariantList() << "Frown_Left" << 1.0);
+        blendshapes.insert("MouthFrown_R", QVariantList() << "Frown_Right" << 1.0);
+        blendshapes.insert("MouthSmile_L", QVariantList() << "Smile_Left" << 1.0);
+        blendshapes.insert("MouthSmile_R", QVariantList() << "Smile_Right" << 1.0);
+        blendshapes.insert("LipsUpperUp", QVariantList() << "UpperLipUp_Left" << 0.5);
+        blendshapes.insertMulti("LipsUpperUp", QVariantList() << "UpperLipUp_Right" << 0.5);
+        blendshapes.insert("Puff", QVariantList() << "CheekPuff_Left" << 0.5);
+        blendshapes.insertMulti("Puff", QVariantList() << "CheekPuff_Right" << 0.5);
+        blendshapes.insert("Sneer", QVariantList() << "NoseScrunch_Left" << 0.5);
+        blendshapes.insertMulti("Sneer", QVariantList() << "NoseScrunch_Right" << 0.5);
+        blendshapes.insert("CheekSquint_L", QVariantList() << "Squint_Left" << 1.0);
+        blendshapes.insert("CheekSquint_R", QVariantList() << "Squint_Right" << 1.0);
+        blendshapes.insert("LipsPucker", QVariantList() << "MouthNarrow_Left" << 0.5);
+        blendshapes.insertMulti("LipsPucker", QVariantList() << "MouthNarrow_Right" << 0.5);
+        blendshapes.insert("LipsLowerDown", QVariantList() << "LowerLipDown_Left" << 0.5);
+        blendshapes.insertMulti("LipsLowerDown", QVariantList() << "LowerLipDown_Right" << 0.5);
+        mapping.insert(BLENDSHAPE_FIELD, blendshapes);
     }
     
     // open the dialog to configure the rest
