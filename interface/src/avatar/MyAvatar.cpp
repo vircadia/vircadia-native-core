@@ -227,7 +227,7 @@ void MyAvatar::simulate(float deltaTime) {
             const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
             float length2 = glm::length2(ragdollDisplacement);
             if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
-                setPosition(getPosition() + ragdollDisplacement);
+                applyPositionDelta(ragdollDisplacement);
             }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
@@ -607,13 +607,6 @@ void MyAvatar::setGravity(const glm::vec3& gravity) {
     }
     // NOTE: the else case here it to leave _worldUpDirection unchanged
     // so it continues to point opposite to the previous gravity setting.
-}
-
-void MyAvatar::slamPosition(const glm::vec3& newPosition) {
-    AvatarData::setPosition(newPosition);
-    _lastPosition = _position;
-    _velocity = glm::vec3(0.0f);
-    _lastVelocity = glm::vec3(0.0f); 
 }
 
 AnimationHandlePointer MyAvatar::addAnimationHandle() {
@@ -1275,15 +1268,11 @@ void MyAvatar::updatePosition(float deltaTime) {
         if (_motionBehaviors & AVATAR_MOTION_MOTOR_ENABLED) {
             glm::vec3 targetVelocity = _motorVelocity;
             if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-                // rotate _motorVelocity into world frame
+                // rotate targetVelocity into world frame
                 glm::quat rotation = getHead()->getCameraOrientation();
                 targetVelocity = rotation * _motorVelocity;
             }
     
-            glm::vec3 targetDirection(0.0f);
-            if (glm::length2(targetVelocity) > EPSILON) {
-                targetDirection = glm::normalize(targetVelocity);
-            }
             glm::vec3 deltaVelocity = targetVelocity - velocity;
         
             if (_motionBehaviors & AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY && glm::length2(_gravity) > EPSILON) {
@@ -1315,7 +1304,7 @@ void MyAvatar::updatePosition(float deltaTime) {
         // update position
         const float MIN_AVATAR_SPEED = 0.075f;
         if (speed > MIN_AVATAR_SPEED) {
-            _position += velocity * deltaTime;
+            applyPositionDelta(deltaTime * velocity);
         }
     }
 
