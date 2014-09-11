@@ -126,6 +126,9 @@ public:
     void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
             { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
+    glm::vec3 getCenter() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
+    glm::vec3 getCenterInMeters() const { return getCenter() * (float) TREE_SCALE; }
+
     static const glm::vec3 DEFAULT_DIMENSIONS;
     const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
     glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
@@ -203,7 +206,7 @@ public:
 
     static const glm::vec3 DEFAULT_REGISTRATION_POINT;
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; } /// registration point as ratio of entity
+    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); } /// registration point as ratio of entity
 
     static const glm::vec3 NO_ANGULAR_VELOCITY;
     static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;

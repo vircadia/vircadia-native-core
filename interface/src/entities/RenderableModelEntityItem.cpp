@@ -99,7 +99,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 glm::quat rotation = getRotation();
                 if (needsSimulation() && _model->isActive()) {
                     _model->setScaleToFit(true, dimensions);
-                    _model->setSnapModelToCenter(true);
+                    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
                     _model->setRotation(rotation);
                     _model->setTranslation(position);
                     

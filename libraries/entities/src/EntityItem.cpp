@@ -499,14 +499,6 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     }
 }
 
-float EntityItem::getDistanceToBottomOfEntity() const {
-    // TODO: change this to support registration point
-    // TODO: fix this to correctly handle rotation... since _dimensions is in entity space, 
-    //       if the entity has been rotated, then the distance to world.y=0 is not the same
-    //       as the dimensions.y
-    return _dimensions.y / 2.0f;
-}
-
 bool EntityItem::isRestingOnSurface() const { 
     // TODO: change this to support registration point
     return _position.y <= getDistanceToBottomOfEntity()
@@ -727,19 +719,29 @@ float EntityItem::getSize() const {
     return glm::length(_dimensions);
 }
 
-// TODO: Add support for registration point
-glm::vec3 EntityItem::getMinimumPoint() const { 
-    // This assumes the registration point is in the center, we need to update this when we really support
-    // registration point
-    return _position - (_dimensions / 2.0f); 
+// TODO: fix this to correctly handle rotation... since _dimensions is in entity space, 
+//       if the entity has been rotated, then the distance to world.y=0 is not the same
+//       as the dimensions.y
+float EntityItem::getDistanceToBottomOfEntity() const {
+    glm::vec3 minimumPoint = getMinimumPoint();
+    return minimumPoint.y;
 }
 
-// TODO: Add support for registration point
-glm::vec3 EntityItem::getMaximumPoint() const { 
-    // This assumes the registration point is in the center, we need to update this when we really support
-    // registration point
-    return _position + (_dimensions / 2.0f); 
+// TODO: doesn't this need to handle rotation?
+glm::vec3 EntityItem::getMinimumPoint() const { 
+    return _position - (_dimensions * _registrationPoint); 
 }
+
+// TODO: doesn't this need to handle rotation?
+glm::vec3 EntityItem::getMaximumPoint() const { 
+    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+    return _position + (_dimensions * registrationRemainder);
+}
+
+glm::vec3 EntityItem::getCenter() const {
+    return _position + (_dimensions * (glm::vec3(0.5f,0.5f,0.5f) - _registrationPoint));
+}
+
 
 // NOTE: This should only be used in cases of old bitstreams which only contain radius data
 //    0,0,0 --> maxDimension,maxDimension,maxDimension

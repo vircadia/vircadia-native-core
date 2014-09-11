@@ -56,8 +56,8 @@ Model::Model(QObject* parent) :
     _scaleToFit(false),
     _scaleToFitDimensions(0.0f),
     _scaledToFit(false),
-    _snapModelToCenter(false),
-    _snappedToCenter(false),
+    _snapModelToRegistrationPoint(false),
+    _snappedToRegistrationPoint(false),
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
@@ -157,8 +157,8 @@ void Model::setOffset(const glm::vec3& offset) {
     _offset = offset; 
     
     // if someone manually sets our offset, then we are no longer snapped to center
-    _snapModelToCenter = false; 
-    _snappedToCenter = false; 
+    _snapModelToRegistrationPoint = false; 
+    _snappedToRegistrationPoint = false; 
 }
 
 void Model::initProgram(ProgramObject& program, Model::Locations& locations,
@@ -905,30 +905,34 @@ void Model::scaleToFit() {
     _scaledToFit = true;
 }
 
-void Model::setSnapModelToCenter(bool snapModelToCenter) {
-    if (_snapModelToCenter != snapModelToCenter) {
-        _snapModelToCenter = snapModelToCenter;
-        _snappedToCenter = false; // force re-centering
+void Model::setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint) {
+    glm::vec3 clampedRegistrationPoint = glm::clamp(registrationPoint, 0.0f, 1.0f);
+    if (_snapModelToRegistrationPoint != snapModelToRegistrationPoint || _registrationPoint != clampedRegistrationPoint) {
+        _snapModelToRegistrationPoint = snapModelToRegistrationPoint;
+        _registrationPoint = clampedRegistrationPoint;
+        _snappedToRegistrationPoint = false; // force re-centering
     }
 }
 
-void Model::snapToCenter() {
+void Model::snapToRegistrationPoint() {
     Extents modelMeshExtents = getUnscaledMeshExtents();
-    glm::vec3 halfDimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum) * 0.5f;
-    glm::vec3 offset = -modelMeshExtents.minimum - halfDimensions;
+    glm::vec3 dimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum);
+    glm::vec3 offset = -modelMeshExtents.minimum - (dimensions * _registrationPoint);
     _offset = offset;
-    _snappedToCenter = true;
+    _snappedToRegistrationPoint = true;
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit) || (_snapModelToCenter && !_snappedToCenter);
+    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
+                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
+                    
     if (isActive() && fullUpdate) {
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
             scaleToFit();
         }
-        if (_snapModelToCenter && !_snappedToCenter) {
-            snapToCenter();
+        if (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) {
+            snapToRegistrationPoint();
         }
         simulateInternal(deltaTime);
     }

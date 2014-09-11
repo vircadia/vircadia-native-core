@@ -2865,6 +2865,13 @@ function handeMenuEvent(menuItem) {
             array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
             index++;
 
+            array.push({ label: "Registration X:", value: properties.registrationPoint.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Registration Y:", value: properties.registrationPoint.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Registration Z:", value: properties.registrationPoint.z.toFixed(decimals) });
+            index++;
+
             array.push({ label: "Rotation:", type: "header" });
             index++;
             var angles = Quat.safeEulerAngles(properties.rotation);
@@ -3023,6 +3030,9 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.position.x = array[index++].value;
         properties.position.y = array[index++].value;
         properties.position.z = array[index++].value;
+        properties.registrationPoint.x = array[index++].value;
+        properties.registrationPoint.y = array[index++].value;
+        properties.registrationPoint.z = array[index++].value;
 
         index++; // skip header
         var angles = Quat.safeEulerAngles(properties.rotation);
