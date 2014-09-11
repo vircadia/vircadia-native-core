@@ -239,8 +239,9 @@ enum TextRendererType {
 };
 
 static TextRenderer* textRenderer(TextRendererType type) {
-    static TextRenderer* chatRenderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* displayNameRenderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::NO_EFFECT);
+    static TextRenderer* chatRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, 24, -1,
+        false, TextRenderer::SHADOW_EFFECT);
+    static TextRenderer* displayNameRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, 12);
 
     switch(type) {
     case CHAT:
