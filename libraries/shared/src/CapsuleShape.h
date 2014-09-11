@@ -52,6 +52,7 @@ public:
     virtual float getVolume() const { return (PI * _radius * _radius) * (1.3333333333f * _radius + getHalfHeight()); }
 
 protected:
+    bool findRayIntersectionWithCaps(const glm::vec3& capsuleCenter, RayIntersectionInfo& intersection) const;
     virtual void updateBoundingRadius() { _boundingRadius = _radius + getHalfHeight(); }
     static glm::quat computeNewRotation(const glm::vec3& newAxis);
 

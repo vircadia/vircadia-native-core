@@ -2150,6 +2150,7 @@ void ShapeColliderTests::rayHitsPlane() {
 }
 
 void ShapeColliderTests::rayMissesPlane() {
+    // TODO: Andrew to test RayIntersectionInfo::_hitShape
     // make a simple plane
     float planeDistanceFromOrigin = 3.579f;
     glm::vec3 planePosition(0.0f, planeDistanceFromOrigin, 0.0f);
@@ -2229,6 +2230,14 @@ void ShapeColliderTests::rayMissesPlane() {
     }
 }
 
+void ShapeColliderTests::rayHitsAACube() {
+    // TODO: Andrew to implement this
+}
+
+void ShapeColliderTests::rayMissesAACube() {
+    // TODO: Andrew to implement this
+}
+
 void ShapeColliderTests::measureTimeOfCollisionDispatch() {
     /* KEEP for future manual testing
     // create two non-colliding spheres
@@ -2288,4 +2297,7 @@ void ShapeColliderTests::runAllTests() {
     rayMissesCapsule();
     rayHitsPlane();
     rayMissesPlane();
+
+    rayHitsAACube();
+    rayMissesAACube();
 }

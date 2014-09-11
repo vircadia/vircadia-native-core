@@ -48,6 +48,7 @@ bool PlaneShape::findRayIntersection(RayIntersectionInfo& intersection) const {
             // ray starts on the plane
             intersection._hitDistance = 0.0f;
             intersection._hitNormal = n;
+            intersection._hitShape = const_cast<PlaneShape*>(this);
             return true;
         }
     } else {
@@ -56,6 +57,7 @@ bool PlaneShape::findRayIntersection(RayIntersectionInfo& intersection) const {
             // ray points toward plane
             intersection._hitDistance = d;
             intersection._hitNormal = n;
+            intersection._hitShape = const_cast<PlaneShape*>(this);
             return true;
         }
     }

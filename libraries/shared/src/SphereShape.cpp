@@ -44,6 +44,7 @@ bool SphereShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     if (distance > 0.0f && distance < intersection._rayLength && distance < intersection._hitDistance) {
         intersection._hitDistance = distance;
         intersection._hitNormal = glm::normalize(intersection._rayStart + distance * intersection._rayDirection - _translation);
+        intersection._hitShape = const_cast<SphereShape*>(this);
         return true;
     }
     return false;
