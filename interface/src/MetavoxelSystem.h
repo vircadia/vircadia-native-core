@@ -52,8 +52,6 @@ public:
 
     Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
 
-    void noteNeedToLight() { _needToLight = true; }
-
 signals:
 
     void rendering();
@@ -66,18 +64,6 @@ private:
     
     void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
-    class LightLocations {
-    public:
-        int shadowDistances;
-        int shadowScale;
-        int nearLocation;
-        int depthScale;
-        int depthTexCoordOffset;
-        int depthTexCoordScale;
-    };
-    
-    static void loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations);
-    
     AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
     AttributePointer _voxelBufferAttribute;
@@ -85,14 +71,6 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
-    bool _needToLight;
-    
-    ProgramObject _directionalLight;
-    LightLocations _directionalLightLocations;
-    ProgramObject _directionalLightShadowMap;
-    LightLocations _directionalLightShadowMapLocations;
-    ProgramObject _directionalLightCascadedShadowMap;
-    LightLocations _directionalLightCascadedShadowMapLocations;
 };
 
 /// Describes contents of a point in a point buffer.

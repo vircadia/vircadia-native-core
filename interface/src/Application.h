@@ -68,6 +68,7 @@
 #include "entities/EntityTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
+#include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "renderer/PointShader.h"
@@ -556,6 +557,7 @@ private:
     AnimationCache _animationCache;
     TextureCache _textureCache;
 
+    DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
     VoxelShader _voxelShader;

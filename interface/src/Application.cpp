@@ -1735,6 +1735,7 @@ void Application::init() {
 
     _environment.init();
 
+    _deferredLightingEffect.init();
     _glowEffect.init();
     _ambientOcclusionEffect.init();
     _voxelShader.init();
@@ -2842,11 +2843,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
         
         //  Draw voxels
+        bool deferredLightingRequired = false;
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             _voxels.render();
+            deferredLightingRequired = true;
         }
 
         // also, metavoxels
@@ -2855,6 +2858,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
+            deferredLightingRequired = true;
+        }
+
+        if (deferredLightingRequired) {
+            _deferredLightingEffect.render();
         }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
