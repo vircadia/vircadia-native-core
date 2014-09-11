@@ -37,7 +37,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
 
 
-    const bool useGlutCube = false;
+    const bool useGlutCube = true;
     
     if (useGlutCube) {
         glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
