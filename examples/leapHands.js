@@ -208,6 +208,12 @@ var leapHands = (function () {
             leftHandInactiveCount = 0;
         } else {
             leftHandInactiveCount += 1;
+
+            if (leftHandInactiveCount === MAX_HAND_INACTIVE_COUNT) {
+                MyAvatar.clearJointData("LeftHand");
+                MyAvatar.clearJointData("LeftForeArm");
+                MyAvatar.clearJointData("LeftArm");
+            }
         }
 
         if (rightHand.isActive()) {
@@ -237,10 +243,12 @@ var leapHands = (function () {
             rightHandInactiveCount = 0;
         } else {
             rightHandInactiveCount += 1;
-        }
 
-        if (leftHandInactiveCount >= MAX_HAND_INACTIVE_COUNT && rightHandInactiveCount >= MAX_HAND_INACTIVE_COUNT) {
-            MyAvatar.clearJointsData();
+            if (rightHandInactiveCount === MAX_HAND_INACTIVE_COUNT) {
+                MyAvatar.clearJointData("RightHand");
+                MyAvatar.clearJointData("RightForeArm");
+                MyAvatar.clearJointData("RightArm");
+            }
         }
     }
 
