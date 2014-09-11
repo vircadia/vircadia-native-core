@@ -101,7 +101,6 @@ function moveWithHead(deltaTime) {
 
     }
     if (isInRoom(position)) {
-        //print("In room!");
         // Impose constraints to keep you in the space 
         if (position.x < roomLimits.xMin) {
             thrust.x += (roomLimits.xMin - position.x) * WALL_BOUNCE * deltaTime;
