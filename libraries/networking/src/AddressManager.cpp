@@ -34,9 +34,6 @@ void AddressManager::handleLookupString(const QString& lookupString) {
         !lookupHandledAsLocationString(lookupString)) {
         
     }
-
-    
-   
 }
 
 bool AddressManager::lookupHandledAsNetworkAddress(const QString& lookupString) {
