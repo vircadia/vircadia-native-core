@@ -1,6 +1,6 @@
 //
 //  AACube.h
-//  libraries/octree/src
+//  libraries/shared/src
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -22,10 +22,13 @@
 #include "BoxBase.h"
 
 class AABox;
+class Extents;
 
 class AACube {
 
 public:
+    AACube(const AABox& other);
+    AACube(const Extents& other);
     AACube(const glm::vec3& corner, float size);
     AACube();
     ~AACube() {};
