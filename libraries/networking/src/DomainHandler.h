@@ -40,7 +40,6 @@ public:
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
     const QString& getHostname() const { return _hostname; }
-    void setHostname(const QString& hostname);
     
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
     void setIPToLocalhost() { _sockAddr.setAddress(QHostAddress(QHostAddress::LocalHost)); }
@@ -63,6 +62,8 @@ public:
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
     
     void softReset();
+public slots:
+    void setHostname(const QString& hostname);
     
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);

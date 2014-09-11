@@ -313,6 +313,7 @@ signals:
     void importDone();
 
 public slots:
+    void changeDomainHostname(const QString& newDomainHostname);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void updateLocationInServer();

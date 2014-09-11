@@ -23,6 +23,7 @@ public:
     
     void handleLookupString(const QString& lookupString);
 signals:
+    void domainChangeRequired(const QString& newHostname);
     void locationChangeRequired(const glm::vec3& newPosition, bool hasOrientationChange, const glm::vec3& newOrientation);
 private:
     bool lookupHandledAsNetworkAddress(const QString& lookupString);

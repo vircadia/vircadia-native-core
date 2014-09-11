@@ -1802,10 +1802,7 @@ void MyAvatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
-void MyAvatar::goToLocation(const glm::vec3& newPosition, bool hasOrientation, const glm::vec3& newOrientation) {
-    // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-    sendKillAvatar();
-    
+void MyAvatar::goToLocation(const glm::vec3& newPosition, bool hasOrientation, const glm::vec3& newOrientation) {    
     glm::quat quatOrientation = getOrientation();
     
     qDebug().nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "

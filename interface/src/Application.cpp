@@ -407,6 +407,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
 
+    // connect to the domainChangeRequired signal on AddressManager
+    connect(&AddressManager::getInstance(), &AddressManager::domainChangeRequired, this, &Application::changeDomainHostname);
+    
     //When -url in command line, teleport to location
     urlGoTo(argc, constArgv);
 
@@ -3389,6 +3392,15 @@ void Application::updateLocationInServer() {
         accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
      }
+}
+
+void Application::changeDomainHostname(const QString &newDomainHostname) {
+    // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
+    _myAvatar->sendKillAvatar();
+    
+    // call the domain hostname change as a queued connection on the nodelist
+    QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
+                              Q_ARG(const QString&, newDomainHostname));
 }
 
 void Application::domainChanged(const QString& domainHostname) {

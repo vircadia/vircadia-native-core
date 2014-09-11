@@ -42,10 +42,23 @@ void AddressManager::handleLookupString(const QString& lookupString) {
 bool AddressManager::lookupHandledAsNetworkAddress(const QString& lookupString) {
     const QString IP_ADDRESS_REGEX_STRING = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
     "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$";
+    
     const QString HOSTNAME_REGEX_STRING = "^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
     "([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\\-]*[A-Za-z0-9])$";
     
+    QRegExp hostnameRegex(HOSTNAME_REGEX_STRING);
     
+    if (hostnameRegex.indexIn(lookupString) != -1) {
+        emit domainChangeRequired(hostnameRegex.cap(0));
+        return true;
+    }
+    
+    QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
+    
+    if (ipAddressRegex.indexIn(lookupString) != -1) {
+        emit domainChangeRequired(ipAddressRegex.cap(0));
+        return true;
+    }
     
     return false;
 }
