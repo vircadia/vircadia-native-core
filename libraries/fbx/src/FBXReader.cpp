@@ -80,6 +80,19 @@ bool FBXGeometry::hasBlendedMeshes() const {
     return false;
 }
 
+Extents FBXGeometry::getUnscaledMeshExtents() const {
+    const Extents& extents = meshExtents;
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(offset * glm::vec4(extents.maximum, 1.0f));
+    Extents scaledExtents = { minimum, maximum };
+        
+    return scaledExtents;
+}
+
+
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
 static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
