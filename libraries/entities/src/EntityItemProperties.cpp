@@ -126,7 +126,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
         COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, false);
     }
 
-    //properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(position);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(dimensions);
