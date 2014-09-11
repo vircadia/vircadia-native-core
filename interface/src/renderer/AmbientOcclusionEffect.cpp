@@ -116,9 +116,9 @@ void AmbientOcclusionEffect::render() {
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
     const int VIEWPORT_WIDTH_INDEX = 2;
-    QSize widgetSize = Application::getInstance()->getGLWidget()->size();
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)widgetSize.width();
+    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
     
     _occlusionProgram->bind();
     _occlusionProgram->setUniformValue(_nearLocation, nearVal);
@@ -126,7 +126,7 @@ void AmbientOcclusionEffect::render() {
     _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
     _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
     _occlusionProgram->setUniformValue(_noiseScaleLocation, viewport[VIEWPORT_WIDTH_INDEX] / (float)ROTATION_WIDTH,
-        widgetSize.height() / (float)ROTATION_HEIGHT);
+        primaryFBO->height() / (float)ROTATION_HEIGHT);
     _occlusionProgram->setUniformValue(_texCoordOffsetLocation, sMin, 0.0f);
     _occlusionProgram->setUniformValue(_texCoordScaleLocation, sWidth, 1.0f);
     
@@ -148,7 +148,7 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     
     _blurProgram->bind();
-    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / widgetSize.width(), 1.0f / widgetSize.height());
+    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / primaryFBO->width(), 1.0f / primaryFBO->height());
     
     renderFullscreenQuad(sMin, sMin + sWidth);
     

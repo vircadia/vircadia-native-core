@@ -150,7 +150,6 @@ public:
     void setPreviousScriptLocation(const QString& previousScriptLocation);
     void storeSizeAndPosition();
     void clearScriptsBeforeRunning();
-    void saveScripts();
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
@@ -186,13 +185,14 @@ public:
 
     glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel);
 
-    QGLWidget* getGLWidget() { return _glWidget; }
+    GLCanvas* getGLWidget() { return _glWidget; }
     bool isThrottleRendering() const { return _glWidget->isThrottleRendering(); }
     MyAvatar* getAvatar() { return _myAvatar; }
     Audio* getAudio() { return &_audio; }
     const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -288,7 +288,7 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
+    glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
@@ -342,13 +342,15 @@ public slots:
     void loadScriptURLDialog();
     void toggleLogDialog();
     void initAvatarAndViewFrustum();
-    ScriptEngine* loadScript(const QString& fileNameString = QString(), bool loadScriptFromEditor = false, bool activateMainWindow = false);
+    ScriptEngine* loadScript(const QString& scriptFilename = QString(), bool isUserLoaded = true, 
+        bool loadScriptFromEditor = false, bool activateMainWindow = false);
     void scriptFinished(const QString& scriptName);
     void stopAllScripts(bool restart = false);
     void stopScript(const QString& scriptName);
     void reloadAllScripts();
     void loadDefaultScripts();
     void toggleRunningScriptsWidget();
+    void saveScripts();
 
     void uploadHead();
     void uploadSkeleton();
@@ -487,6 +489,7 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 

@@ -256,7 +256,7 @@ void ControllerScriptingInterface::releaseJoystick(int joystickIndex) {
 }
 
 glm::vec2 ControllerScriptingInterface::getViewportDimensions() const { 
-    QGLWidget* widget = Application::getInstance()->getGLWidget();
+    GLCanvas* widget = Application::getInstance()->getGLWidget();
     return glm::vec2(widget->width(), widget->height()); 
 }
 
@@ -295,6 +295,10 @@ AbstractInputController* ControllerScriptingInterface::createInputController(con
 
         return 0;
     }
+}
+
+void ControllerScriptingInterface::releaseInputController(AbstractInputController* input) {
+    _inputControllers.erase(input->getKey());
 }
 
 void ControllerScriptingInterface::updateInputControllers() {

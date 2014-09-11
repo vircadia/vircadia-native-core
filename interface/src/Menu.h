@@ -104,6 +104,8 @@ public:
 
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; bumpSettings(); }
+    const QString& getFaceshiftHostname() const { return _faceshiftHostname; }
+    void setFaceshiftHostname(const QString& hostname) { _faceshiftHostname = hostname; bumpSettings(); }
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
 
@@ -271,6 +273,7 @@ private:
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
+    QString _faceshiftHostname;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
@@ -347,7 +350,9 @@ namespace MenuOption {
     const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
     const QString AudioSpatialProcessingStereoSource = "Stereo Source";
     const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
-    const QString AudioToneInjection = "Inject Test Tone";
+    const QString AudioSourceInject = "Generated Audio";
+    const QString AudioSourcePinkNoise = "Pink Noise";
+    const QString AudioSourceSine440 = "Sine 440hz";
     const QString Avatars = "Avatars";
     const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
@@ -471,6 +476,7 @@ namespace MenuOption {
     const QString Voxels = "Voxels";
     const QString VoxelTextures = "Voxel Textures";
     const QString WalletPrivateKey = "Wallet Private Key...";
+    const QString Wireframe = "Wireframe";
 }
 
 void sendFakeEnterEvent();

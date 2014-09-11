@@ -56,7 +56,7 @@ Stats::Stats():
         _metavoxelReceiveProgress(0),
         _metavoxelReceiveTotal(0)
 {
-    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
     resetWidth(glWidget->width(), 0);
 }
 
@@ -67,7 +67,7 @@ void Stats::toggleExpanded() {
 // called on mouse click release
 // check for clicks over stats  in order to expand or contract them
 void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseDragStartedY, int horizontalOffset) {
-    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
 
     if (0 != glm::compMax(glm::abs(glm::ivec2(mouseX - mouseDragStartedX, mouseY - mouseDragStartedY)))) {
         // not worried about dragging on stats
@@ -122,7 +122,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 }
 
 void Stats::resetWidth(int width, int horizontalOffset) {
-    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
     int extraSpace = glWidget->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
@@ -198,7 +198,7 @@ void Stats::display(
         int bytesPerSecond, 
         int voxelPacketsToProcess) 
 {
-    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
+    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
 
     unsigned int backgroundColor = 0x33333399;
     int verticalOffset = 0, lines = 0;
@@ -410,7 +410,8 @@ void Stats::display(
         }
     }
     
-    drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset, lines * STATS_PELS_PER_LINE + 10);
+    drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
+        lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
     if (_expanded) {

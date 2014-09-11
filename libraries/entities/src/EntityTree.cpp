@@ -39,6 +39,9 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
+    _movingEntities.clear();
+    _changingEntities.clear();
+    _mortalEntities.clear();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -467,7 +470,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
                     } else {
-                        qDebug() << "User attempted to edit an unknown entity.";
+                        qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
                 } else {
                     // this is a new entity... assign a new entityID
@@ -492,7 +495,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
 
 void EntityTree::notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode) {
     _newlyCreatedHooksLock.lockForRead();
-    for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
+    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
         _newlyCreatedHooks[i]->entityCreated(newEntity, senderNode);
     }
     _newlyCreatedHooksLock.unlock();
@@ -506,7 +509,7 @@ void EntityTree::addNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
 
 void EntityTree::removeNewlyCreatedHook(NewlyCreatedEntityHook* hook) {
     _newlyCreatedHooksLock.lockForWrite();
-    for (size_t i = 0; i < _newlyCreatedHooks.size(); i++) {
+    for (int i = 0; i < _newlyCreatedHooks.size(); i++) {
         if (_newlyCreatedHooks[i] == hook) {
             _newlyCreatedHooks.erase(_newlyCreatedHooks.begin() + i);
             break;
@@ -859,6 +862,7 @@ void EntityTree::forgetEntitiesDeletedBefore(quint64 sinceTime) {
 
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
+    lockForWrite();
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
     const unsigned char* dataAt = packetData;
     size_t packetLength = dataByteArray.size();
@@ -901,10 +905,13 @@ int EntityTree::processEraseMessage(const QByteArray& dataByteArray, const Share
         }
         deleteEntities(entityItemIDsToDelete);
     }
+    unlock();
+    
     return processedBytes;
 }
 
 // This version skips over the header
+// NOTE: Caller must lock the tree before calling this.
 // TODO: consider consolidating processEraseMessageDetails() and processEraseMessage()
 int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode) {
     const unsigned char* packetData = (const unsigned char*)dataByteArray.constData();
@@ -938,7 +945,6 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
         }
         deleteEntities(entityItemIDsToDelete);
     }
-    
     return processedBytes;
 }
 

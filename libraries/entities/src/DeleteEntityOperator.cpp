@@ -125,6 +125,12 @@ bool DeleteEntityOperator::postRecursion(OctreeElement* element) {
     if ((subTreeContainsSomeEntitiesToDelete(element))) {
         element->markWithChangedTime();
     }
+    
+    // It should always be ok to prune children. Because we are only in this PostRecursion function if
+    // we've already finished processing all of the children of this current element. If any of those
+    // children are the containing element for any entity in our lists of entities to delete, then they
+    // must have already deleted the entity, and they are safe to prune. Since this operation doesn't
+    // ever add any elements we don't have to worry about memory being reused within this recursion pass.
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     entityTreeElement->pruneChildren(); // take this opportunity to prune any empty leaves
     return keepSearching; // if we haven't yet found it, keep looking

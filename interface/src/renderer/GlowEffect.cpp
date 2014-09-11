@@ -140,7 +140,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     
     QOpenGLFramebufferObject* destFBO = toTexture ?
         Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
-    if (_isEmpty && _renderMode != DIFFUSE_ADD_MODE) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || (_isEmpty && _renderMode != DIFFUSE_ADD_MODE)) {
         // copy the primary to the screen
         if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          

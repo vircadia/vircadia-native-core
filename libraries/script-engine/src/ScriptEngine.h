@@ -93,6 +93,9 @@ public:
     bool isFinished() const { return _isFinished; }
     bool isRunning() const { return _isRunning; }
 
+    void setUserLoaded(bool isUserLoaded) { _isUserLoaded = isUserLoaded;  }
+    bool isUserLoaded() const { return _isUserLoaded; }
+
 public slots:
     void stop();
 
@@ -116,7 +119,7 @@ signals:
     void errorMessage(const QString& message);
     void runningStateChanged();
     void evaluationFinished(QScriptValue result, bool isException);
-    void loadScript(const QString& scriptName);
+    void loadScript(const QString& scriptName, bool isUserLoaded);
 
 protected:
     QString _scriptContents;
@@ -152,7 +155,8 @@ private:
     Vec3 _vec3Library;
     ScriptUUID _uuidLibrary;
     AnimationCache _animationCache;
-    
+    bool _isUserLoaded;
+
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;

@@ -234,6 +234,9 @@ public:
     QStringList getJointNames() const;
     
     bool hasBlendedMeshes() const;
+
+    /// Returns the unscaled extents of the model's mesh
+    Extents getUnscaledMeshExtents() const;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

@@ -369,7 +369,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
 void SixenseManager::emulateMouse(PalmData* palm, int index) {
     Application* application = Application::getInstance();
     MyAvatar* avatar = application->getAvatar();
-    QGLWidget* widget = application->getGLWidget();
+    GLCanvas* widget = application->getGLWidget();
     QPoint pos;
     
     Qt::MouseButton bumperButton;

@@ -80,6 +80,19 @@ bool FBXGeometry::hasBlendedMeshes() const {
     return false;
 }
 
+Extents FBXGeometry::getUnscaledMeshExtents() const {
+    const Extents& extents = meshExtents;
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(offset * glm::vec4(extents.maximum, 1.0f));
+    Extents scaledExtents = { minimum, maximum };
+        
+    return scaledExtents;
+}
+
+
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
 static int fbxAnimationFrameVectorMetaTypeId = qRegisterMetaType<QVector<FBXAnimationFrame> >();
@@ -2053,19 +2066,64 @@ FBXGeometry readSVO(const QByteArray& model) {
     mesh.parts.append(part);
 
     VoxelTree tree;
-    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
 
     unsigned char* dataAt = (unsigned char*)model.data();
     size_t dataSize = model.size();
 
-    if (tree.getWantSVOfileVersions()) {
+    PacketVersion gotVersion = 0;
+
+    // NOTE: SPECIAL CASE for old voxel svo files. The old voxel SVO files didn't have header
+    // details. They started with the the octalcode for the root. Which was always 00 which matches PacketTypeUnknown
+    unsigned char* firstByteAt = (unsigned char*)model.data();
+    unsigned char firstByteValue = *firstByteAt;
+    if (tree.expectedDataPacketType() == PacketTypeVoxelData && firstByteValue == 0) {
+        qDebug() << "Detected OLD Voxels format.";
+        gotVersion = 0;
+    } else if (tree.getWantSVOfileVersions()) {
         // skip the type/version
         dataAt += sizeof(PacketType);
         dataSize -= sizeof(PacketType);
+
+        gotVersion = *dataAt;
         dataAt += sizeof(PacketVersion);
         dataSize -= sizeof(PacketVersion);
-    }   
-    tree.readBitstreamToTree(dataAt, dataSize, args);
+    }
+    bool hasBufferBreaks = tree.versionHasSVOfileBreaks(gotVersion);
+
+    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
+                                        SharedNodePointer(), false, gotVersion);
+    
+    if (!hasBufferBreaks) {
+        tree.readBitstreamToTree(dataAt, dataSize, args);
+    } else {
+        const unsigned long MAX_CHUNK_LENGTH = MAX_OCTREE_PACKET_SIZE * 2;
+        while (dataSize > 0) {
+            quint16 chunkLength = 0;
+
+            chunkLength = *dataAt;
+            dataAt += sizeof(chunkLength);
+            dataSize -= sizeof(chunkLength);
+            
+            if (chunkLength > dataSize) {
+                qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
+                            << "greater than remaining length:" << dataSize;
+                break;
+            }
+
+            if (chunkLength > MAX_CHUNK_LENGTH) {
+                qDebug() << "UNEXPECTED chunk size of:" << chunkLength 
+                            << "greater than MAX_CHUNK_LENGTH:" << MAX_CHUNK_LENGTH;
+                break;
+            }
+            
+            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, 
+                                                SharedNodePointer(), false, gotVersion);
+
+            tree.readBitstreamToTree(dataAt, chunkLength, args);
+            dataAt += chunkLength;
+            dataSize -= chunkLength;
+        }
+    }
     tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
 
     geometry.meshes.append(mesh);

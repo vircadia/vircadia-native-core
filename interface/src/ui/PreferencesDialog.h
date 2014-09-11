@@ -12,20 +12,20 @@
 #ifndef hifi_PreferencesDialog_h
 #define hifi_PreferencesDialog_h
 
-#include "FramelessDialog.h"
 #include "ui_preferencesDialog.h"
 
+#include <QDialog>
 #include <QString>
 
-class PreferencesDialog : public FramelessDialog {
+class PreferencesDialog : public QDialog {
     Q_OBJECT
     
 public:
-    PreferencesDialog(QWidget* parent = 0, Qt::WindowFlags flags = 0);
+    PreferencesDialog();
 
 protected:
     void resizeEvent(QResizeEvent* resizeEvent);
-    
+
 private:
     void loadPreferences();
     void savePreferences();

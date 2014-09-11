@@ -37,6 +37,8 @@ const float VIEW_FRUSTUM_FOV_OVERSEND = 60.0f;
 // These are guards to prevent our voxel tree recursive routines from spinning out of control
 const int UNREASONABLY_DEEP_RECURSION = 20; // use this for something that you want to be shallow, but not spin out
 const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs to go deeper
+const float SCALE_AT_UNREASONABLY_DEEP_RECURSION = (1.0f / powf(2.0f, UNREASONABLY_DEEP_RECURSION));
+const float SCALE_AT_DANGEROUSLY_DEEP_RECURSION = (1.0f / powf(2.0f, DANGEROUSLY_DEEP_RECURSION));
 
 const int DEFAULT_MAX_OCTREE_PPS = 600; // the default maximum PPS we think any octree based server should send to a client
 

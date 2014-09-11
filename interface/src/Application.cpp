@@ -41,6 +41,7 @@
 #include <QShortcut>
 #include <QTimer>
 #include <QUrl>
+#include <QWindow>
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
@@ -382,6 +383,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
     if (firstRunValue.isValid() && firstRunValue.toBool()) {
@@ -393,7 +396,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _settings->setValue("firstRun",QVariant(false));
     } else {
-        // do this as late as possible so that all required subsystems are inialized
+        // do this as late as possible so that all required subsystems are initialized
         loadScripts();
 
         QMutexLocker locker(&_settingsMutex);
@@ -425,7 +428,6 @@ Application::~Application() {
     
     saveSettings();
     storeSizeAndPosition();
-    saveScripts();
     
     int DELAY_TIME = 1000;
     UserActivityLogger::getInstance().close(DELAY_TIME);
@@ -589,14 +591,12 @@ void Application::paintGL() {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::paintGL()");
 
-    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-
     // Set the desired FBO texture size. If it hasn't changed, this does nothing.
     // Otherwise, it must rebuild the FBOs
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        _textureCache.setFrameBufferSize(_glWidget->size());
+        _textureCache.setFrameBufferSize(_glWidget->getDeviceSize());
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -665,16 +665,11 @@ void Application::paintGL() {
         updateShadowMap();
     }
 
-    //If we aren't using the glow shader, we have to clear the color and depth buffer
-    if (!glowEnabled) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         //Clear the color buffer to ensure that there isnt any residual color
         //Left over from when OR was not connected.
         glClear(GL_COLOR_BUFFER_BIT);
-    }
-
-    if (OculusManager::isConnected()) {
+        
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
         if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
@@ -687,9 +682,7 @@ void Application::paintGL() {
         TV3DManager::display(whichCamera);
 
     } else {
-        if (glowEnabled) {
-            _glowEffect.prepare();
-        }
+        _glowEffect.prepare();
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -697,9 +690,7 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        if (glowEnabled) {
-            _glowEffect.render();
-        }
+        _glowEffect.render();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
@@ -986,7 +977,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
@@ -998,7 +989,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
                     if (TV3DManager::isConnected()) {
-                        TV3DManager::configureCamera(_myCamera, _glWidget->width(),_glWidget->height());
+                        TV3DManager::configureCamera(_myCamera, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
                     }
 
                 } else {
@@ -1438,7 +1429,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
-    resizeGL(_glWidget->width(),_glWidget->height());
+    resizeGL(_glWidget->getDeviceWidth(),_glWidget->getDeviceHeight());
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
@@ -1451,7 +1442,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
         }
     }
     
-    resizeGL(_glWidget->width(), _glWidget->height());
+    resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -2686,7 +2677,7 @@ void Application::updateShadowMap() {
     
     fbo->release();
 
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
 }
 
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
@@ -2716,7 +2707,7 @@ QImage Application::renderAvatarBillboard() {
     glDisable(GL_BLEND);
 
     const int BILLBOARD_SIZE = 64;
-    renderRearViewMirror(QRect(0, _glWidget->height() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
+    renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
@@ -2732,6 +2723,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
+
+    // load the view frustum
+    loadViewFrustum(whichCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2807,6 +2801,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
         // finally render the starfield
         _stars.render(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(), whichCamera.getNearClip(), alpha);
+    }
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     }
 
     // draw the sky dome
@@ -2947,6 +2945,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _overlays.render3D();
         }
     }
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
@@ -2972,12 +2974,19 @@ void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
+    // allow 3DTV/Oculus to override parameters from camera
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    if (OculusManager::isConnected()) {
+        OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    } else if (TV3DManager::isConnected()) {
+        TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
+    }
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
-    float horizontalScale = _glWidget->width() / 2.0f;
-    float verticalScale   = _glWidget->height() / 2.0f;
+    float horizontalScale = _glWidget->getDeviceWidth() / 2.0f;
+    float verticalScale   = _glWidget->getDeviceHeight() / 2.0f;
 
     // -1,-1 is 0,windowHeight
     // 1,1 is windowWidth,0
@@ -2996,7 +3005,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
     // -1,-1                   1,-1
 
     glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale,
-        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
+        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->getDeviceHeight());
 
     return screenPoint;
 }
@@ -3032,8 +3041,16 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
-    glViewport(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
-    glScissor(region.x(), _glWidget->height() - region.y() - region.height(), region.width(), region.height());
+    if (billboard) {
+        glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+        glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());    
+    } else {
+        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
+        glViewport(x, _glWidget->getDeviceHeight() - y - height, width, height);
+        glScissor(x, _glWidget->getDeviceHeight() - y - height, width, height);
+    }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
@@ -3100,7 +3117,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     }
 
     // reset Viewport and projection matrix
-    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
@@ -3350,7 +3367,10 @@ void Application::updateWindowTitle(){
         title += " - ₵" + creditBalanceString;
     }
 
+#ifndef WIN32
+    // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());
+#endif !WIN32
     _window->setWindowTitle(title);
 }
 
@@ -3675,18 +3695,26 @@ void Application::clearScriptsBeforeRunning() {
 }
 
 void Application::saveScripts() {
-    // saves all current running scripts
+    // Saves all currently running user-loaded scripts
     QMutexLocker locker(&_settingsMutex);
     _settings->beginWriteArray("Settings");
-    for (int i = 0; i < getRunningScripts().size(); ++i){
-        _settings->setArrayIndex(i);
-        _settings->setValue("script", getRunningScripts().at(i));
+
+    QStringList runningScripts = getRunningScripts();
+    int i = 0;
+    for (QStringList::const_iterator it = runningScripts.begin(); it != runningScripts.end(); it += 1) {
+        if (getScriptEngine(*it)->isUserLoaded()) {
+            _settings->setArrayIndex(i);
+            _settings->setValue("script", *it);
+            i += 1;
+        }
     }
+
     _settings->endArray();
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScriptFromEditor, bool activateMainWindow) {
-    QUrl scriptUrl(scriptName);
+ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
+    bool loadScriptFromEditor, bool activateMainWindow) {
+    QUrl scriptUrl(scriptFilename);
     const QString& scriptURLString = scriptUrl.toString();
     if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
         && !_scriptEnginesHash[scriptURLString]->isFinished()) {
@@ -3695,7 +3723,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
     }
 
     ScriptEngine* scriptEngine;
-    if (scriptName.isNull()) {
+    if (scriptFilename.isNull()) {
         scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     } else {
         // start the script on a new thread...
@@ -3711,6 +3739,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
         _runningScriptsWidget->setRunningScripts(getRunningScripts());
         UserActivityLogger::getInstance().loadedScript(scriptURLString);
     }
+    scriptEngine->setUserLoaded(isUserLoaded);
 
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
@@ -3743,7 +3772,7 @@ ScriptEngine* Application::loadScript(const QString& scriptName, bool loadScript
 
     connect(scriptEngine, SIGNAL(finished(const QString&)), this, SLOT(scriptFinished(const QString&)));
 
-    connect(scriptEngine, SIGNAL(loadScript(const QString&)), this, SLOT(loadScript(const QString&)));
+    connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
@@ -3813,7 +3842,7 @@ void Application::stopAllScripts(bool restart) {
     // stops all current running scripts
     for (QHash<QString, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
             it != _scriptEnginesHash.constEnd(); it++) {
-        if (restart) {
+        if (restart && it.value()->isUserLoaded()) {
             connect(it.value(), SIGNAL(finished(const QString&)), SLOT(loadScript(const QString&)));
         }
         it.value()->stop();

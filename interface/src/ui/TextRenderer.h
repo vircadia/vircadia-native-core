@@ -33,7 +33,6 @@ const char SOLID_BLOCK_CHAR = 127;
 // the Inconsolata font family
 #define INCONSOLATA_FONT_FAMILY "Inconsolata"
 
-
 class Glyph;
 
 class TextRenderer {
@@ -41,9 +40,17 @@ public:
 
     enum EffectType { NO_EFFECT, SHADOW_EFFECT, OUTLINE_EFFECT };
 
-    TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
-                 EffectType effect = NO_EFFECT, int effectThickness = 1,
-                 QColor color = QColor(255, 255, 255));
+    class Properties {
+    public:
+        QFont font;
+        EffectType effect;
+        int effectThickness;
+        QColor color;
+    };
+
+    static TextRenderer* getInstance(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
+        EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
+
     ~TextRenderer();
 
     const QFontMetrics& metrics() const { return _metrics; }
@@ -59,7 +66,9 @@ public:
     
 private:
 
-    const Glyph& getGlyph (char c);
+    TextRenderer(const Properties& properties);
+
+    const Glyph& getGlyph(char c);
 
     // the font to render
     QFont _font;
@@ -90,6 +99,8 @@ private:
     
     // text color
     QColor _color;
+    
+    static QHash<Properties, TextRenderer*> _instances;
 };
 
 class Glyph {

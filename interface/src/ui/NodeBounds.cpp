@@ -40,7 +40,7 @@ void NodeBounds::draw() {
     // Compute ray to find selected nodes later on.  We can't use the pre-computed ray in Application because it centers
     // itself after the cursor disappears.
     Application* application = Application::getInstance();
-    QGLWidget* glWidget = application->getGLWidget();
+    GLCanvas* glWidget = application->getGLWidget();
     float mouseX = application->getMouseX() / (float)glWidget->width();
     float mouseY = application->getMouseY() / (float)glWidget->height();
     glm::vec3 mouseRayOrigin;
