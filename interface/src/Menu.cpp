@@ -183,8 +183,6 @@ Menu::Menu() :
                                   Qt::Key_At,
                                   this,
                                   SLOT(goTo()));
-    connect(&LocationManager::getInstance(), &LocationManager::multipleDestinationsFound,
-            this, &Menu::multipleDestinationsDecision);
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
@@ -1191,105 +1189,23 @@ void Menu::goToDomainDialog() {
     sendFakeEnterEvent();
 }
 
-void Menu::goToOrientation(QString orientation) {
-    LocationManager::getInstance().goToOrientation(orientation);
-}
+void Menu::addressBarDialog() {
 
-bool Menu::goToDestination(QString destination) {
-    return LocationManager::getInstance().goToDestination(destination);
-}
-
-void Menu::goTo(QString destination) {
-    LocationManager::getInstance().goTo(destination);
-}
-
-void Menu::goTo() {
-
-    QInputDialog gotoDialog(Application::getInstance()->getWindow());
-    gotoDialog.setWindowTitle("Go to");
-    gotoDialog.setLabelText("Destination or URL:\n @user, #place, hifi://domain/location/orientation");
+    QInputDialog addressBarDialog(Application::getInstance()->getWindow());
+    addressBarDialog.setWindowTitle("Address Bar");
+    addressBarDialog.setLabelText("place, @user, hifi://domain/path, position/orientation");
     QString destination = QString();
 
-    gotoDialog.setTextValue(destination);
-    gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
+    addressBarDialog.setTextValue(destination);
+    addressBarDialog.resize(addressBarDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
+                            addressBarDialog.size().height());
 
-    int dialogReturn = gotoDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        QString desiredDestination = gotoDialog.textValue();
-        if (!goToURL(desiredDestination)) {;
-            goTo(desiredDestination);
-        }
+    int dialogReturn = addressBarDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !addressBarDialog.textValue().isEmpty()) {
+        // let the location manager parse this out and decide what to do with it
+//        LocationManager::getInstance().handleAddressBarEntry(addressBarDialog.textValue());
     }
     sendFakeEnterEvent();
-}
-
-bool Menu::goToURL(QString location) {
-    if (location.startsWith(CUSTOM_URL_SCHEME + "/")) {
-        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length()).split('/', QString::SkipEmptyParts);
-
-        if (urlParts.count() > 1) {
-            // if url has 2 or more parts, the first one is domain name
-            QString domain = urlParts[0];
-
-            // second part is either a destination coordinate or
-            // a place name
-            QString destination = urlParts[1];
-
-            // any third part is an avatar orientation.
-            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-            goToDomain(domain);
-
-            // goto either @user, #place, or x-xx,y-yy,z-zz
-            // style co-ordinate.
-            goTo(destination);
-
-            if (!orientation.isEmpty()) {
-                // location orientation
-                goToOrientation(orientation);
-            }
-        } else if (urlParts.count() == 1) {
-            QString destination = urlParts[0];
-
-            // If this starts with # or @, treat it as a user/location, otherwise treat it as a domain
-            if (destination[0] == '#' || destination[0] == '@') {
-                goTo(destination);
-            } else {
-                goToDomain(destination);
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-void Menu::goToUser(const QString& user) {
-    LocationManager::getInstance().goTo(user);
-}
-
-/// Open a url, shortcutting any "hifi" scheme URLs to the local application.
-void Menu::openUrl(const QUrl& url) {
-    if (url.scheme() == "hifi") {
-        goToURL(url.toString());
-    } else {
-        QDesktopServices::openUrl(url);
-    }
-}
-
-void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
-    QMessageBox msgBox;
-    msgBox.setText("Both user and location exists with same name");
-    msgBox.setInformativeText("Where you wanna go?");
-    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Open);
-    msgBox.button(QMessageBox::Ok)->setText("User");
-    msgBox.button(QMessageBox::Open)->setText("Place");
-    int userResponse = msgBox.exec();
-
-    if (userResponse == QMessageBox::Ok) {
-        Application::getInstance()->getAvatar()->goToLocationFromAddress(userData["address"].toObject());
-    } else if (userResponse == QMessageBox::Open) {
-        Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
-    }
 }
 
 void Menu::muteEnvironment() {
@@ -1314,26 +1230,6 @@ void Menu::muteEnvironment() {
     }
 
     free(packet);
-}
-
-void Menu::goToLocation() {
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    glm::vec3 avatarPos = myAvatar->getPosition();
-    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x),
-                                                        QString::number(avatarPos.y), QString::number(avatarPos.z));
-
-    QInputDialog coordinateDialog(Application::getInstance()->getWindow());
-    coordinateDialog.setWindowTitle("Go to Location");
-    coordinateDialog.setLabelText("Coordinate as x,y,z:");
-    coordinateDialog.setTextValue(currentLocation);
-    coordinateDialog.resize(coordinateDialog.parentWidget()->size().width() * 0.30, coordinateDialog.size().height());
-
-    int dialogReturn = coordinateDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !coordinateDialog.textValue().isEmpty()) {
-        goToDestination(coordinateDialog.textValue());
-    }
-
-    sendFakeEnterEvent();
 }
 
 void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response) {

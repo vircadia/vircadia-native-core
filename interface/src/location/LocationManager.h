@@ -29,12 +29,12 @@ public:
         SystemError
     };
 
-    LocationManager();
     void createNamedLocation(NamedLocation* namedLocation);
-
+    
     void goTo(QString destination);
     void goToUser(QString userName);
     void goToPlace(QString placeName);
+    void goToUrl(const QUrl& url);
     void goToOrientation(QString orientation);
     bool goToDestination(QString destination);
     
@@ -46,12 +46,11 @@ private:
 
 signals:
     void creationCompleted(LocationManager::NamedLocationCreateResponse response);
-    void multipleDestinationsFound(const QJsonObject& userData, const QJsonObject& placeData);
     
 private slots:
     void namedLocationDataReceived(const QJsonObject& data);
     void errorDataReceived(QNetworkReply::NetworkError error, const QString& message);
-    void goToAddressFromResponse(const QJsonObject& jsonObject);
+    void goToPlaceFromResponse(const QJsonObject& jsonObject);
 
 };
 

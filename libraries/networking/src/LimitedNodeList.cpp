@@ -33,7 +33,7 @@ const char SOLO_NODE_TYPES[2] = {
     NodeType::AudioMixer
 };
 
-const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
+const QUrl DEFAULT_NODE_AUTH_URL = QUrl("http://localhost:3000");
 
 LimitedNodeList* LimitedNodeList::_sharedInstance = NULL;
 

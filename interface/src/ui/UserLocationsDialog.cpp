@@ -52,7 +52,7 @@ void UserLocationsDialog::updateEnabled() {
 
 void UserLocationsDialog::goToModelIndex(const QModelIndex& index) {
     QVariant location = _proxyModel.data(index.sibling(index.row(), UserLocationsModel::LocationColumn));
-    Menu::getInstance()->goToURL(location.toString());
+//    Menu::getInstance()->goToURL(location.toString());
 }
 
 void UserLocationsDialog::deleteSelection() {

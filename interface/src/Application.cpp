@@ -51,6 +51,7 @@
 #include <QMimeData>
 #include <QMessageBox>
 
+#include <AddressManager.h>
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
@@ -421,6 +422,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
+    
+    AddressManager::getInstance().handleLookupString("1.5,2.5,0.0/0.0,-161.98,0.02");
 }
 
 Application::~Application() {
@@ -809,7 +812,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
         if (isHifiSchemeURL) {
-            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
+//            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
         }
         return false;
     }
@@ -1059,7 +1062,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_At:
-                Menu::getInstance()->goTo();
+//                Menu::getInstance()->goTo();
                 break;
             default:
                 event->ignore();
@@ -3360,7 +3363,7 @@ void Application::updateWindowTitle(){
 #ifndef WIN32
     // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());
-#endif !WIN32
+#endif
     _window->setWindowTitle(title);
 }
 
@@ -4114,11 +4117,11 @@ void Application::urlGoTo(int argc, const char * constArgv[]) {
 
             // goto either @user, #place, or x-xx,y-yy,z-zz
             // style co-ordinate.
-            Menu::goTo(destination);
+//            Menu::goTo(destination);
 
             if (!orientation.isEmpty()) {
                 // location orientation
-                Menu::goToOrientation(orientation);
+//                Menu::goToOrientation(orientation);
             }
         }
     }

@@ -162,11 +162,8 @@ public:
                                            int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(QMenu* menu, const QString& actionName);
-
-    bool static goToDestination(QString destination);
-    void static goToOrientation(QString orientation);
+    
     void static goToDomain(const QString newDomain);
-    void static goTo(QString destination);
     
     const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
@@ -185,11 +182,8 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
-    void goTo();
-    bool goToURL(QString location);
-    void goToUser(const QString& user);
+    void addressBarDialog();
     void pasteToVoxel();
-    void openUrl(const QUrl& url);
 
     void toggleLoginMenuItem();
 
@@ -212,7 +206,6 @@ private slots:
     void editAnimations();
     void changePrivateKey();
     void goToDomainDialog();
-    void goToLocation();
     void nameLocation();
     void toggleLocationList();
     void bandwidthDetailsClosed();
@@ -227,7 +220,6 @@ private slots:
     void toggleChat();
     void audioMuteToggled();
     void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
-    void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
     void muteEnvironment();
 
 private:
