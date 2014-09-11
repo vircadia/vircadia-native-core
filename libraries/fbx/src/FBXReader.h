@@ -231,6 +231,4 @@ FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping);
 /// Reads SVO geometry from the supplied model data.
 FBXGeometry readSVO(const QByteArray& model);
 
-void calculateRotatedExtents(Extents& extents, const glm::quat& rotation);
-
 #endif // hifi_FBXReader_h
