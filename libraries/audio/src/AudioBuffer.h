@@ -119,19 +119,21 @@ public:
         else {
             //
             // However we do not attempt to copy more frames than we've allocated ;-) This is a framing error caused by either
-            // a/ the platform audio driver not queuing and smoothing out device IO capture frames -or-
+            // a/ the platform audio driver not correctly queuing and regularly smoothing device IO capture frames -or-
             // b/ our IO processing thread (currently running on a Qt GUI thread) has been delayed/scheduled too late.
             // 
-            // The fix is not to make the problem worse by allocating more on this thread, rather, it is to handle dynamic
-            // re-sizing off the IO processing thread.   While a/ is not iin our control, we will address the off thread
-            // re-sizing and Qt GUI IO thread issue in later releases.
+            // The fix is not to make the problem worse by allocating additional frames on this thread, rather, it is to handle
+            // dynamic re-sizing off the IO processing thread.   While a/ is not in our control, we will address the off thread
+            // re-sizing,, as well as b/, in later releases.
             //
             // For now, we log this condition, and do our best to recover by copying as many frames as we have allocated.  
-            // Unfortunately, this will result (temporarily), in a discontinuity.
+            // Unfortunately, this will result (temporarily), in an audible discontinuity.
             // 
             // If you repeatedly receive this error, contact craig@highfidelity.io and send me what audio device you are using,
             // what audio-stack you are using (pulse/alsa, core audio, ...),  what OS, and what the reported frame/channel 
-            // counts are.
+            // counts are.  In addition, any information about what you were doing at the time of the discontinuity, would be
+            // useful (e.g., accessing any client features/menus)
+            //
             qDebug() << "Audio framing error:  _channelCount=" 
                      << _channelCount 
                      << "channelCountMax=" 
