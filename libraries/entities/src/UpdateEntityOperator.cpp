@@ -36,7 +36,11 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
 
-    _oldEntityCube = _existingEntity->getAACube();
+    // Here we have a choice to make, do we want to "tight fit" the actual minimum for the
+    // entity into the the element, or do we want to use the entities "relaxed" bounds
+    // which can handle all potential rotations?
+    // the getMaximumAACube is the relaxed form.
+    _oldEntityCube = _existingEntity->getMaximumAACube();
     _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
     
     // If the new properties has position OR dimension changes, but not both, we need to
@@ -71,7 +75,7 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         _newEntityCube = _oldEntityCube;
         _dontMove = true;
     } else {
-        _newEntityCube = _properties.getAACubeTreeUnits();
+        _newEntityCube = _properties.getMaximumAACubeInTreeUnits();
         _removeOld = true; // our properties are going to move us, so remember this for later processing
     }
 

@@ -200,7 +200,6 @@ public:
     glm::vec3 getMaximumPoint() const;
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
-    AACube getAACube() const { return getMaximumAACube(); } /// axis aligned bounding cube in domain scale units (0.0 - 1.0)
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;

@@ -95,16 +95,8 @@ public:
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    glm::vec3 getMinimumPointMeters() const;
-    glm::vec3 getMaximumPointMeters() const;
-    AACube getAACubeMeters() const { return AACube(getMinimumPointMeters(), getMaxDimension()); } /// AACube in meter units
-
-    glm::vec3 getMinimumPointTreeUnits() const { return getMinimumPointMeters() / (float)TREE_SCALE; }
-    glm::vec3 getMaximumPointTreeUnits() const { return getMaximumPointMeters() / (float)TREE_SCALE; }
-    /// AACube in domain scale units (0.0 - 1.0)
-    AACube getAACubeTreeUnits() const { 
-        return AACube(getMinimumPointMeters() / (float)TREE_SCALE, getMaxDimension() / (float)TREE_SCALE); 
-    }
+    AACube getMaximumAACubeInTreeUnits() const;
+    AACube getMaximumAACubeInMeters() const;
 
     void debugDump() const;
 

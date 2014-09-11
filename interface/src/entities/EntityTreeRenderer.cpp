@@ -294,15 +294,15 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         
         if (entityItem->isVisible()) {
             // render entityItem 
-            AACube entityCube = entityItem->getAACube();
+            AABox entityBox = entityItem->getAABox();
 
-            entityCube.scale(TREE_SCALE);
+            entityBox.scale(TREE_SCALE);
         
             // TODO: some entity types (like lights) might want to be rendered even
             // when they are outside of the view frustum...
-            float distance = distanceToCamera(entityCube.calcCenter(), *args->_viewFrustum);
-            if (shouldRenderEntity(entityCube.getLargestDimension(), distance) &&
-                    args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
+            float distance = distanceToCamera(entityBox.calcCenter(), *args->_viewFrustum);
+            if (shouldRenderEntity(entityBox.getLargestDimension(), distance) &&
+                    args->_viewFrustum->boxInFrustum(entityBox) != ViewFrustum::OUTSIDE) {
                     
                     
                 renderProxies(entityItem, args);

@@ -559,7 +559,7 @@ void EntityItem::update(const quint64& updateTime) {
         if (wantDebug) {        
             qDebug() << "EntityItem::update()....";
             qDebug() << "    timeElapsed:" << timeElapsed;
-            qDebug() << "    old AACube:" << getAACube();
+            qDebug() << "    old AACube:" << getMaximumAACube();
             qDebug() << "    old position:" << position;
             qDebug() << "    old velocity:" << velocity;
             qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity();
@@ -618,7 +618,7 @@ void EntityItem::update(const quint64& updateTime) {
         setPosition(position);
         setVelocity(velocity);
         if (wantDebug) {        
-            qDebug() << "    new AACube:" << getAACube();
+            qDebug() << "    new AACube:" << getMaximumAACube();
         }
     }
 }
@@ -721,11 +721,10 @@ float EntityItem::getSize() const {
     return glm::length(_dimensions);
 }
 
-// TODO: fix this to correctly handle rotation... since _dimensions is in entity space, 
-//       if the entity has been rotated, then the distance to world.y=0 is not the same
-//       as the dimensions.y
 float EntityItem::getDistanceToBottomOfEntity() const {
-    glm::vec3 minimumPoint = getMinimumPoint();
+    // the AABox from getAABox() is the true minimum bounding box for the entity
+    // so it's minimum y is indeed the distance to the bottom of the entity
+    glm::vec3 minimumPoint = getAABox().getMinimumPoint();
     return minimumPoint.y;
 }
 

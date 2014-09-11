@@ -652,9 +652,9 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                     entitiesToDelete << thisEntity->getEntityItemID();
                     entitiesBecomingStatic << thisEntity;
                 } else {
-                    AACube oldCube = thisEntity->getAACube();
+                    AACube oldCube = thisEntity->getMaximumAACube();
                     thisEntity->update(now);
-                    AACube newCube = thisEntity->getAACube();
+                    AACube newCube = thisEntity->getMaximumAACube();
                     
                     // check to see if this movement has sent the entity outside of the domain.
                     AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
