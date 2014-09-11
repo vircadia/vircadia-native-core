@@ -144,7 +144,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     float depth = unRotatedExtents.z;
 
                     Extents rotatedExtents = _model->getUnscaledMeshExtents();
-                    calculateRotatedExtents(rotatedExtents, rotation);
+                    rotatedExtents.rotate(rotation);
 
                     glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
 
