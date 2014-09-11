@@ -121,6 +121,8 @@ void PreferencesDialog::loadPreferences() {
     ui.faceshiftEyeDeflectionSider->setValue(menuInstance->getFaceshiftEyeDeflection() *
                                              ui.faceshiftEyeDeflectionSider->maximum());
     
+    ui.faceshiftHostnameEdit->setText(menuInstance->getFaceshiftHostname());
+    
     const InboundAudioStream::Settings& streamSettings = menuInstance->getReceivedAudioStreamSettings();
 
     ui.dynamicJitterBuffersCheckBox->setChecked(streamSettings._dynamicJitterBuffers);
@@ -211,6 +213,9 @@ void PreferencesDialog::savePreferences() {
 
     Menu::getInstance()->setFaceshiftEyeDeflection(ui.faceshiftEyeDeflectionSider->value() /
                                                      (float)ui.faceshiftEyeDeflectionSider->maximum());
+    
+    Menu::getInstance()->setFaceshiftHostname(ui.faceshiftHostnameEdit->text());    
+    
     Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
 
     Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
