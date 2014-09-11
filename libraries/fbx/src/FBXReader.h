@@ -18,7 +18,9 @@
 #include <QVariant>
 #include <QVector>
 
+#include <Extents.h>
 #include <Shape.h>
+
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -34,31 +36,6 @@ extern const int NUM_FACESHIFT_BLENDSHAPES;
 
 /// The names of the joints in the Maya HumanIK rig, terminated with an empty string.
 extern const char* HUMANIK_JOINTS[];
-
-class Extents {
-public:
-    /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
-    void reset();
-
-    /// \param extents another intance of extents
-    /// expand current limits to contain other extents
-    void addExtents(const Extents& extents);
-
-    /// \param point new point to compare against existing limits
-    /// compare point to current limits and expand them if necessary to contain point
-    void addPoint(const glm::vec3& point);
-
-    /// \param point
-    /// \return true if point is within current limits
-    bool containsPoint(const glm::vec3& point) const;
-
-    /// \return whether or not the extents are empty
-    bool isEmpty() const { return minimum == maximum; }
-    bool isValid() const { return !((minimum == glm::vec3(FLT_MAX)) && (maximum == glm::vec3(-FLT_MAX))); }
-
-    glm::vec3 minimum;
-    glm::vec3 maximum;
-};
 
 /// A node within an FBX document.
 class FBXNode {
