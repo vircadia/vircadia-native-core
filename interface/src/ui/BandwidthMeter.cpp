@@ -50,7 +50,7 @@ BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
 };
 
 BandwidthMeter::BandwidthMeter() :
-    _textRenderer(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false),
+    _textRenderer(TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false)),
     _scaleMaxIndex(INITIAL_SCALE_MAXIMUM_INDEX) {
 
     _channels = static_cast<ChannelInfo*>( malloc(sizeof(_CHANNELS)) );
@@ -140,7 +140,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     float totalMax = glm::max(totalIn, totalOut);
 
     // Get font / caption metrics
-    QFontMetrics const& fontMetrics = _textRenderer.metrics();
+    QFontMetrics const& fontMetrics = _textRenderer->metrics();
     int fontDescent = fontMetrics.descent(); 
     int labelWidthIn = fontMetrics.width(CAPTION_IN);
     int labelWidthOut = fontMetrics.width(CAPTION_OUT);
@@ -163,9 +163,9 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Render captions
     setColorRGBA(COLOR_TEXT);
-    _textRenderer.draw(barWidth + SPACING_LEFT_CAPTION_UNIT, textYcenteredLine, CAPTION_UNIT);
-    _textRenderer.draw(-labelWidthIn - SPACING_RIGHT_CAPTION_IN_OUT, textYupperLine, CAPTION_IN);
-    _textRenderer.draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
+    _textRenderer->draw(barWidth + SPACING_LEFT_CAPTION_UNIT, textYcenteredLine, CAPTION_UNIT);
+    _textRenderer->draw(-labelWidthIn - SPACING_RIGHT_CAPTION_IN_OUT, textYupperLine, CAPTION_IN);
+    _textRenderer->draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
 
     // Render vertical lines for the frame
     setColorRGBA(COLOR_FRAME);
@@ -229,11 +229,11 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     char fmtBuf[8];
     setColorRGBA(COLOR_TEXT);
     sprintf(fmtBuf, "%0.1f", totalIn);
-    _textRenderer.draw(glm::max(xIn - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
+    _textRenderer->draw(glm::max(xIn - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
                                 PADDING_HORIZ_VALUE),
                        textYupperLine, fmtBuf);
     sprintf(fmtBuf, "%0.1f", totalOut);
-    _textRenderer.draw(glm::max(xOut - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
+    _textRenderer->draw(glm::max(xOut - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
                                 PADDING_HORIZ_VALUE),
                        textYlowerLine, fmtBuf);
 
