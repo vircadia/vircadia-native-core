@@ -1811,8 +1811,8 @@ void ShapeColliderTests::rayHitsSphere() {
     // very simple ray along xAxis
     {
         RayIntersectionInfo intersection;
-        intersection._rayStart = glm::vec3(-startDistance, 0.0f, 0.0f);
-        intersection._rayDirection = glm::vec3(1.0f, 0.0f, 0.0f);
+        intersection._rayStart = -startDistance * xAxis;
+        intersection._rayDirection = xAxis;
 
         if (!sphere.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should intersect sphere" << std::endl;
@@ -1851,8 +1851,8 @@ void ShapeColliderTests::rayHitsSphere() {
         glm::quat rotation = glm::angleAxis(0.987654321f, axis);
         glm::vec3 translation(35.7f, 2.46f, -1.97f);
 
-        glm::vec3 unrotatedRayDirection(-1.0f, 0.0f, 0.0f);
-        glm::vec3 untransformedRayStart(startDistance, 0.0f, 0.0f);
+        glm::vec3 unrotatedRayDirection = -xAxis;
+        glm::vec3 untransformedRayStart = startDistance * xAxis;
 
         RayIntersectionInfo intersection;
         intersection._rayStart = rotation * (untransformedRayStart + translation);
@@ -1885,7 +1885,7 @@ void ShapeColliderTests::rayBarelyHitsSphere() {
     {
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(-startDistance, radius - delta, 0.0f);
-        intersection._rayDirection = glm::vec3(1.0f, 0.0f, 0.0f);
+        intersection._rayDirection = xAxis;
     
         // very simple ray along xAxis
         if (!sphere.findRayIntersection(intersection)) {
@@ -1897,7 +1897,7 @@ void ShapeColliderTests::rayBarelyHitsSphere() {
         // translate and rotate the whole system... 
         glm::vec3 axis = glm::normalize(glm::vec3(1.0f, 2.0f, 3.0f));
         glm::quat rotation = glm::angleAxis(0.987654321f, axis);
-        glm::vec3 translation(1.7f, 0.46f, -1.97f);
+        glm::vec3 translation(35.7f, 0.46f, -1.97f);
     
         RayIntersectionInfo intersection;
         intersection._rayStart = rotation * (intersection._rayStart + translation);
@@ -1919,39 +1919,47 @@ void ShapeColliderTests::rayBarelyMissesSphere() {
     glm::vec3 center(0.0f);
     float delta = 2.0f * EPSILON;
 
-    float startDistance = 3.0f;
-    RayIntersectionInfo intersection;
-    intersection._rayStart = glm::vec3(-startDistance, radius + delta, 0.0f);
-    intersection._rayDirection = glm::vec3(1.0f, 0.0f, 0.0f);
-
     SphereShape sphere(radius, center);
+    float startDistance = 3.0f;
 
-    // very simple ray along xAxis
-    if (sphere.findRayIntersection(intersection)) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
+    {
+        RayIntersectionInfo intersection;
+        intersection._rayStart = glm::vec3(-startDistance, radius + delta, 0.0f);
+        intersection._rayDirection = xAxis;
+    
+        // very simple ray along xAxis
+        if (sphere.findRayIntersection(intersection)) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
+        }
+        if (intersection._hitDistance != FLT_MAX) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
+        }
     }
-    if (intersection._hitDistance != FLT_MAX) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
-            << std::endl;
-    }
 
-    // translate and rotate the whole system... 
-    glm::vec3 axis = glm::normalize(glm::vec3(1.0f, 2.0f, 3.0f));
-    glm::quat rotation = glm::angleAxis(0.987654321f, axis);
-    glm::vec3 translation(35.7f, 2.46f, -1.97f);
+    {
+        // translate and rotate the whole system... 
+        float angle = 0.987654321f;
+        glm::vec3 axis = glm::normalize(glm::vec3(1.0f, 2.0f, 3.0f));
+        glm::quat rotation = glm::angleAxis(angle, axis);
+        glm::vec3 translation(35.7f, 2.46f, -1.97f);
 
-    intersection._hitDistance = FLT_MAX;
-    intersection._rayStart = rotation * (intersection._rayStart + translation);
-    intersection._rayDirection = rotation * intersection._rayDirection;
-    sphere.setTranslation(rotation * translation);
-
-    // ...and test again
-    if (sphere.findRayIntersection(intersection)) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
-    }
-    if (intersection._hitDistance != FLT_MAX) {
-        std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
-            << std::endl;
+        RayIntersectionInfo intersection;
+        intersection._rayStart = rotation * (glm::vec3(-startDistance, radius + delta, 0.0f) + translation);
+        intersection._rayDirection = rotation * xAxis;
+        sphere.setTranslation(rotation * translation);
+    
+        // ...and test again
+        if (sphere.findRayIntersection(intersection)) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should just barely miss sphere" << std::endl;
+        }
+        if (intersection._hitDistance != FLT_MAX) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
+                << std::endl;
+        }
+        if (intersection._hitShape != NULL) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should be NULL" << std::endl;
+        }
     }
 }
 
@@ -1962,11 +1970,11 @@ void ShapeColliderTests::rayHitsCapsule() {
     glm::vec3 center(0.0f);
     CapsuleShape capsule(radius, halfHeight);
 
-    { // simple test along xAxis 
-        // toward capsule center
+    // simple tests along xAxis 
+    { // toward capsule center
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, 0.0f, 0.0f);
-        intersection._rayDirection = glm::vec3(-1.0f, 0.0f, 0.0f);
+        intersection._rayDirection = - xAxis;
         if (!capsule.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
         }
@@ -1976,71 +1984,81 @@ void ShapeColliderTests::rayHitsCapsule() {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
                 << relativeError << std::endl;
         }
+    }
 
-        // toward top of cylindrical wall
-        intersection._rayStart.y = halfHeight;
-        intersection._hitDistance = FLT_MAX;
+    { // toward top of cylindrical wall
+        RayIntersectionInfo intersection;
+        intersection._rayStart = glm::vec3(startDistance, halfHeight, 0.0f);
+        intersection._rayDirection = - xAxis;
         if (!capsule.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
         }
-        relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+        float expectedDistance = startDistance - radius;
+        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         if (relativeError > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
                 << relativeError << std::endl;
         }
+    }
 
-        // toward top cap
-        float delta = 2.0f * EPSILON;
-        intersection._rayStart.y = halfHeight + delta;
-        intersection._hitDistance = FLT_MAX;
+    float delta = 2.0f * EPSILON;
+    { // toward top cap
+        RayIntersectionInfo intersection;
+        intersection._rayStart = glm::vec3(startDistance, halfHeight + delta, 0.0f);
+        intersection._rayDirection = - xAxis;
         if (!capsule.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
         }
-        relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+        float expectedDistance = startDistance - radius;
+        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         if (relativeError > EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
                 << relativeError << std::endl;
         }
+    }
 
-        const float EDGE_CASE_SLOP_FACTOR = 20.0f;
-
-        // toward tip of top cap
-        intersection._rayStart.y = halfHeight + radius - delta;
-        intersection._hitDistance = FLT_MAX;
+    const float EDGE_CASE_SLOP_FACTOR = 20.0f;
+    { // toward tip of top cap
+        RayIntersectionInfo intersection;
+        intersection._rayStart = glm::vec3(startDistance, halfHeight + radius - delta, 0.0f);
+        intersection._rayDirection = - xAxis;
         if (!capsule.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
         }
-        expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-        relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+        float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
+        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
         if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
                 << relativeError << std::endl;
         }
+    }
 
-        // toward tip of bottom cap
-        intersection._rayStart.y = - halfHeight - radius + delta;
-        intersection._hitDistance = FLT_MAX;
+    { // toward tip of bottom cap
+        RayIntersectionInfo intersection;
+        intersection._rayStart = glm::vec3(startDistance, - halfHeight - radius + delta, 0.0f);
+        intersection._rayDirection = - xAxis;
         if (!capsule.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
         }
-        expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-        relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+        float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
+        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
         if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
                 << relativeError << std::endl;
         }
+    }
 
-        // toward edge of capsule cylindrical face
-        intersection._rayStart.y = 0.0f;
-        intersection._rayStart.z = radius - delta;
-        intersection._hitDistance = FLT_MAX;
+    { // toward edge of capsule cylindrical face
+        RayIntersectionInfo intersection;
+        intersection._rayStart = glm::vec3(startDistance, 0.0f, radius - delta);
+        intersection._rayDirection = - xAxis;
         if (!capsule.findRayIntersection(intersection)) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray should hit capsule" << std::endl;
         }
-        expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
-        relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
+        float expectedDistance = startDistance - radius * sqrtf(2.0f * delta);    // using small angle approximation of cosine
+        float relativeError = fabsf(intersection._hitDistance - expectedDistance) / startDistance;
         // for edge cases we allow a LOT of error
         if (relativeError > EDGE_CASE_SLOP_FACTOR * EPSILON) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray capsule intersection distance error = " 
@@ -2062,7 +2080,7 @@ void ShapeColliderTests::rayMissesCapsule() {
         // toward capsule center
         RayIntersectionInfo intersection;
         intersection._rayStart = glm::vec3(startDistance, 0.0f, 0.0f);
-        intersection._rayDirection = glm::vec3(-1.0f, 0.0f, 0.0f);
+        intersection._rayDirection = -xAxis;
         float delta = 2.0f * EPSILON;
 
         // over top cap
@@ -2097,6 +2115,9 @@ void ShapeColliderTests::rayMissesCapsule() {
         if (intersection._hitDistance != FLT_MAX) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
                 << std::endl;
+        }
+        if (intersection._hitShape != NULL) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should be NULL" << std::endl;
         }
     }
     // TODO: test at steep angles near edge
@@ -2189,6 +2210,9 @@ void ShapeColliderTests::rayMissesPlane() {
         if (intersection._hitDistance != FLT_MAX) {
             std::cout << __FILE__ << ":" << __LINE__ << " ERROR: distance should be unchanged after intersection miss" 
                 << std::endl;
+        }
+        if (intersection._hitShape != NULL) {
+            std::cout << __FILE__ << ":" << __LINE__ << " ERROR: ray intersection._hitShape should be NULL" << std::endl;
         }
     }
 
