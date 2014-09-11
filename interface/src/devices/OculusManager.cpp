@@ -53,6 +53,7 @@ unsigned int OculusManager::_frameIndex = 0;
 bool OculusManager::_frameTimingActive = false;
 bool OculusManager::_programInitialized = false;
 Camera* OculusManager::_camera = NULL;
+int OculusManager::_activeEyeIndex = -1;
 
 #endif
 
@@ -330,6 +331,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     
     //Render each eye into an fbo
     for (int eyeIndex = 0; eyeIndex < ovrEye_Count; eyeIndex++) {
+        _activeEyeIndex = eyeIndex;
+        
 #if defined(__APPLE__) || defined(_WIN32)
         ovrEyeType eye = _ovrHmd->EyeRenderOrder[eyeIndex];
 #else
@@ -363,6 +366,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         Application::getInstance()->displaySide(*_camera);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);
+        _activeEyeIndex = -1;
     }
 
     //Wait till time-warp to reduce latency
@@ -526,5 +530,18 @@ QSize OculusManager::getRenderTargetSize() {
     return rv;
 #else
     return QSize(100, 100);
+#endif
+}
+
+void OculusManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) {
+#ifdef HAVE_LIBOVR
+    if (_activeEyeIndex != -1) {
+        const ovrFovPort& port = _eyeFov[_activeEyeIndex];
+        right = nearVal * port.RightTan;
+        left = -nearVal * port.LeftTan;
+        top = nearVal * port.UpTan;
+        bottom = -nearVal * port.DownTan;
+    }
 #endif
 }

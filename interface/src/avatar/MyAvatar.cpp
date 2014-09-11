@@ -1972,3 +1972,9 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
 
     return palm->getPosition();
 }
+
+void MyAvatar::clearDriveKeys() {
+    for (int i = 0; i < sizeof(_driveKeys); i++) {
+        _driveKeys[i] = 0.0f;
+    }
+}
