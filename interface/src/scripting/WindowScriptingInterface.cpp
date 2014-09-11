@@ -47,13 +47,11 @@ void WindowScriptingInterface::setCursorPosition(int x, int y) {
 }
 
 QScriptValue WindowScriptingInterface::getCursorPositionX() {
-    QPoint pos = QCursor::pos();
-    return pos.x();
+    return QCursor::pos().x();
 }
 
 QScriptValue WindowScriptingInterface::getCursorPositionY() {
-    QPoint pos = QCursor::pos();
-    return pos.y();
+    return QCursor::pos().y();
 }
 
 QScriptValue WindowScriptingInterface::alert(const QString& message) {
