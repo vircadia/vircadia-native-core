@@ -1,42 +1,28 @@
 // Coefficient to use for linear drag.  Higher numbers will cause motion to
 // slow down more quickly.
-/*
-var DRAG_COEFFICIENT = 0.9;
-var MAX_SPEED = 50.0;
-var MAX_LOOK_SPEED = Math.PI * 2;
-var ACCELERATION = 15;
-
-var MOUSE_YAW_SCALE = -0.125;
-var MOUSE_PITCH_SCALE = -0.125;
-var MOUSE_SENSITIVITY = 0.5;
-
-var W = 4.2;
-*/
 
 var DEFAULT_PARAMETERS = {
     DRAG_COEFFICIENT: 0.9,
     MAX_SPEED: 50.0,
-    MAX_LOOK_SPEED: Math.PI * 2,
     ACCELERATION: 15,
 
     MOUSE_YAW_SCALE: -0.125,
     MOUSE_PITCH_SCALE: -0.125,
     MOUSE_SENSITIVITY: 0.5,
 
+    // Damping frequency, adjust to change mouse look behavior
     W: 4.2,
 }
 
 var BRAKE_PARAMETERS = {
     DRAG_COEFFICIENT: 4.9,
     MAX_SPEED: DEFAULT_PARAMETERS.MAX_SPEED,
-    MAX_LOOK_SPEED: Math.PI * 2,
     ACCELERATION: 0,
 
+    W: 1.0,
     MOUSE_YAW_SCALE: -0.125,
     MOUSE_PITCH_SCALE: -0.125,
     MOUSE_SENSITIVITY: 0.5,
-
-    W: 1.0,
 }
 
 var movementParameters = DEFAULT_PARAMETERS;
@@ -156,7 +142,7 @@ function update(dt) {
     velocity.z = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.z));
     var v = Quat.rotate(MyAvatar.headOrientation, velocity);
 
-    if (velocityVertical == 0) {
+    if (targetVelocityVertical == 0) {
         targetVelocityVertical -= (velocityVertical * movementParameters.DRAG_COEFFICIENT * dt);
     }
     velocityVertical += targetVelocityVertical;
@@ -193,6 +179,7 @@ function enable() {
         pitchFromMouse = 0;
         yawSpeed = 0;
         pitchSpeed = 0;
+        velocityVertical = 0;
 
         for (var i = 0; i < CAPTURED_KEYS.length; i++) {
             Controller.captureKeyEvents({ text: CAPTURED_KEYS[i] });
