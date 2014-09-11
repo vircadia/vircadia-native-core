@@ -414,7 +414,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     renderTexturedHemisphere();
 
-    renderPointersOculus(whichCamera.getPosition());
+    renderPointersOculus(myAvatar->getHead()->getEyePosition());
 
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -803,27 +803,24 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
         float newVTop = 1.0 - (mouseY - reticleSize) / widgetHeight;
 
         // Project our position onto the hemisphere using the UV coordinates
-        float radius = _oculusuiRadius * application->getAvatar()->getScale();
-        float radius2 = radius * radius;
-    
-        float lX = radius * sin((newULeft - 0.5f) * _textureFov);
-        float rX = radius * sin((newURight - 0.5f) * _textureFov);
-        float bY = radius * sin((newVBottom - 0.5f) * _textureFov);
-        float tY = radius * sin((newVTop - 0.5f) * _textureFov);
+        float lX = sin((newULeft - 0.5f) * _textureFov);
+        float rX = sin((newURight - 0.5f) * _textureFov);
+        float bY = sin((newVBottom - 0.5f) * _textureFov);
+        float tY = sin((newVTop - 0.5f) * _textureFov);
 
         float dist;
         //Bottom Left
         dist = sqrt(lX * lX + bY * bY);
-        float blZ = sqrt(radius2 - dist * dist);
+        float blZ = sqrt(1.0f - dist * dist);
         //Top Left
         dist = sqrt(lX * lX + tY * tY);
-        float tlZ = sqrt(radius2 - dist * dist);
+        float tlZ = sqrt(1.0f - dist * dist);
         //Bottom Right
         dist = sqrt(rX * rX + bY * bY);
-        float brZ = sqrt(radius2 - dist * dist);
+        float brZ = sqrt(1.0f - dist * dist);
         //Top Right
         dist = sqrt(rX * rX + tY * tY);
-        float trZ = sqrt(radius2 - dist * dist);
+        float trZ = sqrt(1.0f - dist * dist);
 
         glBegin(GL_QUADS);
 
