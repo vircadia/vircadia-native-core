@@ -198,7 +198,10 @@ public:
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
     glm::vec3 getMinimumPoint() const;
     glm::vec3 getMaximumPoint() const;
-    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
+    AACube getMaximumAACube() const;
+    AACube getMinimumAACube() const;
+    AACube getAACube() const { return getMaximumAACube(); } /// axis aligned bounding cube in domain scale units (0.0 - 1.0)
+    AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }

@@ -715,6 +715,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     return somethingChanged;
 }
 
+
+// TODO: is this really correct? how do we use size, does it need to handle rotation?
 float EntityItem::getSize() const { 
     return glm::length(_dimensions);
 }
@@ -738,8 +740,78 @@ glm::vec3 EntityItem::getMaximumPoint() const {
     return _position + (_dimensions * registrationRemainder);
 }
 
+// TODO: doesn't this need to handle rotation?
 glm::vec3 EntityItem::getCenter() const {
     return _position + (_dimensions * (glm::vec3(0.5f,0.5f,0.5f) - _registrationPoint));
+}
+
+/// The maximum bounding cube for the entity, independent of it's rotation.
+/// This accounts for the registration point (upon which rotation occurs around).
+/// 
+AACube EntityItem::getMaximumAACube() const { 
+    // * we know that the position is the center of rotation
+    glm::vec3 centerOfRotation = _position; // also where _registration point is
+
+    // * we know that the registration point is the center of rotation
+    // * we can calculate the length of the furthest extent from the registration point
+    //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
+    glm::vec3 registrationPoint = (_dimensions * _registrationPoint);
+    glm::vec3 registrationRemainder = (_dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
+    glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
+    
+    // * we know that if you rotate in any direction you would create a sphere
+    //   that has a radius of the length of furthest extent from registration point
+    float radius = glm::length(furthestExtentFromRegistration);
+
+    // * we know that the minimum bounding cube of this maximum possible sphere is
+    //   (center - radius) to (center + radius)
+    glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
+
+    AACube boundingCube(minimumCorner, radius * 2.0f);
+    return boundingCube;
+}
+
+/// The minimum bounding cube for the entity accounting for it's rotation.
+/// This accounts for the registration point (upon which rotation occurs around).
+/// 
+AACube EntityItem::getMinimumAACube() const { 
+    // _position represents the position of the registration point.
+    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+
+    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
+    Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+
+    // shift the extents to be relative to the position/registration point
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    
+    // the cube that best encompasses extents is...
+    AABox box(rotatedExtentsRelativeToRegistrationPoint);
+    glm::vec3 centerOfBox = box.calcCenter();
+    float longestSide = box.getLargestDimension();
+    float halfLongestSide = longestSide / 2.0f;
+    glm::vec3 cornerOfCube = centerOfBox - glm::vec3(halfLongestSide, halfLongestSide, halfLongestSide);
+    
+    
+    // old implementation... not correct!!!
+    return AACube(cornerOfCube, longestSide);
+}
+
+AABox EntityItem::getAABox() const { 
+
+    // _position represents the position of the registration point.
+    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+    
+    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
+    Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+    
+    // shift the extents to be relative to the position/registration point
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    
+    return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }
 
 

@@ -192,6 +192,83 @@ bool EntityTreeRenderer::shouldRenderEntity(float largestDimension, float distan
     return (distanceToCamera <= visibleDistanceAtScale);
 }
 
+void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* args) {
+    bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
+    bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
+    if (!isShadowMode && displayModelBounds) {
+        PerformanceTimer perfTimer("renderProxies");
+
+        AACube maxCube = entity->getMaximumAACube();
+        AACube minCube = entity->getMinimumAACube();
+        AABox entityBox = entity->getAABox();
+
+        maxCube.scale((float)TREE_SCALE);
+        minCube.scale((float)TREE_SCALE);
+        entityBox.scale((float)TREE_SCALE);
+
+        glm::vec3 maxCenter = maxCube.calcCenter();
+        glm::vec3 minCenter = minCube.calcCenter();
+        glm::vec3 entityBoxCenter = entityBox.calcCenter();
+        glm::vec3 entityBoxScale = entityBox.getScale();
+
+        // draw the max bounding cube
+        glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(maxCenter.x, maxCenter.y, maxCenter.z);
+            glutWireCube(maxCube.getScale());
+        glPopMatrix();
+
+        // draw the min bounding cube
+        glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(minCenter.x, minCenter.y, minCenter.z);
+            glutWireCube(minCube.getScale());
+        glPopMatrix();
+        
+        // draw the entityBox bounding box
+        glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(entityBoxCenter.x, entityBoxCenter.y, entityBoxCenter.z);
+            glScalef(entityBoxScale.x, entityBoxScale.y, entityBoxScale.z);
+            glutWireCube(1.0f);
+        glPopMatrix();
+
+
+        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
+        glm::vec3 center = entity->getCenter() * (float)TREE_SCALE;
+        glm::vec3 dimensions = entity->getDimensions() * (float)TREE_SCALE;
+        glm::quat rotation = entity->getRotation();
+
+        glColor4f(1.0f, 0.0f, 1.0f, 1.0f);
+        glPushMatrix();
+            glTranslatef(position.x, position.y, position.z);
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+            
+            
+            glPushMatrix();
+                glm::vec3 positionToCenter = center - position;
+                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+                glScalef(dimensions.x, dimensions.y, dimensions.z);
+                glutWireCube(1.0f);
+            glPopMatrix();
+        glPopMatrix();
+
+        /*
+        glPushMatrix();
+            // draw the model relative bounding box
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+            glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
+            glColor3f(0.0f, 1.0f, 0.0f);
+            glutWireCube(1.0);
+
+        glPopMatrix();
+        */
+
+    }
+}
+
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
     args->_elementsTouched++;
     // actually render it here...
@@ -226,6 +303,9 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             float distance = distanceToCamera(entityCube.calcCenter(), *args->_viewFrustum);
             if (shouldRenderEntity(entityCube.getLargestDimension(), distance) &&
                     args->_viewFrustum->cubeInFrustum(entityCube) != ViewFrustum::OUTSIDE) {
+                    
+                    
+                renderProxies(entityItem, args);
 
                 Glower* glower = NULL;
                 if (entityItem->getGlowLevel() > 0.0f) {
