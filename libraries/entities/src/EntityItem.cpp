@@ -535,21 +535,27 @@ void EntityItem::update(const quint64& updateTime) {
     if (hasAngularVelocity()) {
         glm::quat rotation = getRotation();
         glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
-        float angle = timeElapsed * glm::length(angularVelocity);
-        glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
-        rotation = dQ * rotation;
-        setRotation(rotation);
+        float angularSpeed = glm::length(angularVelocity);
+        
+        if (angularSpeed < EPSILON_VELOCITY_LENGTH) {
+            setAngularVelocity(NO_ANGULAR_VELOCITY);
+        } else {
+            float angle = timeElapsed * angularSpeed;
+            glm::quat  dQ = glm::angleAxis(angle, glm::normalize(angularVelocity));
+            rotation = dQ * rotation;
+            setRotation(rotation);
 
-        // handle damping for angular velocity
-        if (getAngularDamping() > 0.0f) {
-            glm::vec3 dampingResistance = getAngularVelocity() * getAngularDamping();
-            if (wantDebug) {        
-                qDebug() << "    getDamping():" << getDamping();
-                qDebug() << "    dampingResistance:" << dampingResistance;
-                qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
+            // handle damping for angular velocity
+            if (getAngularDamping() > 0.0f) {
+                glm::vec3 dampingResistance = getAngularVelocity() * getAngularDamping();
+                glm::vec3 newAngularVelocity = getAngularVelocity() - (dampingResistance * timeElapsed);
+                setAngularVelocity(newAngularVelocity);
+                if (wantDebug) {        
+                    qDebug() << "    getDamping():" << getDamping();
+                    qDebug() << "    dampingResistance:" << dampingResistance;
+                    qDebug() << "    newAngularVelocity:" << newAngularVelocity;
+                }
             }
-            glm::vec3 newAngularVelocity = getAngularVelocity() - (dampingResistance * timeElapsed);
-            setAngularVelocity(newAngularVelocity);
         }
     }
 
@@ -649,7 +655,6 @@ void EntityItem::copyChangedProperties(const EntityItem& other) {
 
 EntityItemProperties EntityItem::getProperties() const {
     EntityItemProperties properties;
-    
     properties._id = getID();
     properties._idSet = true;
     properties._created = _created;
