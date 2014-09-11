@@ -111,19 +111,41 @@ public:
             return;
         }
 
-        if (channelCount >_channelCountMax || frameCount >_frameCountMax) {
-            qDebug() << "Audio framing error:  _channelCount=" << _channelCount << "channelCountMax=" << _channelCountMax;
-            qDebug() << "Audio framing error:  _frameCount=" << _frameCount << "frameCountMax=" << _frameCountMax;
+        if (channelCount <=_channelCountMax && frameCount <=_frameCountMax) {
+            // We always allow copying fewer frames than we have allocated
+            _frameCount = frameCount;
+            _channelCount = channelCount; 
+        }
+        else {
+            //
+            // However we do not attempt to copy more frames than we've allocated ;-) This is a framing error caused by either
+            // a/ the platform audio driver not queuing and smoothing out device IO capture frames -or-
+            // b/ our IO processing thread (currently running on a Qt GUI thread) has been delayed/scheduled too late.
+            // 
+            // The fix is not to make the problem worse by allocating more on this thread, rather, it is to handle dynamic
+            // re-sizing off the IO processing thread.   While a/ is not iin our control, we will address the off thread
+            // re-sizing and Qt GUI IO thread issue in later releases.
+            //
+            // For now, we log this condition, and do our best to recover by copying as many frames as we have allocated.  
+            // Unfortunately, this will result (temporarily), in a discontinuity.
+            // 
+            // If you repeatedly receive this error, contact craig@highfidelity.io and send me what audio device you are using,
+            // what audio-stack you are using (pulse/alsa, core audio, ...),  what OS, and what the reported frame/channel 
+            // counts are.
+            qDebug() << "Audio framing error:  _channelCount=" 
+                     << _channelCount 
+                     << "channelCountMax=" 
+                     << _channelCountMax
+                     << "_frameCount=" 
+                     << _frameCount 
+                     << "frameCountMax=" 
+                     << _frameCountMax;
 
-            // This condition should never happen; however, we do our best to recover here copying as many frames
-            // as we have allocated
+
             _channelCount = std::min(_channelCount,_channelCountMax);
             _frameCount = std::min(_frameCount,_frameCountMax);
         }
-        
-        _frameCount = frameCount;  // we allow copying fewer frames than we've allocated
-        _channelCount = channelCount;  // we allow copying fewer channels that we've allocated
-        
+
         if (copyOut) {
             S* dst = frames;
             
