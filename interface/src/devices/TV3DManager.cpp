@@ -25,6 +25,7 @@ int TV3DManager::_screenHeight = 1;
 double TV3DManager::_aspect = 1.0;
 eyeFrustum TV3DManager::_leftEye;
 eyeFrustum TV3DManager::_rightEye;
+eyeFrustum* TV3DManager::_activeEye = NULL;
 
 
 bool TV3DManager::isConnected() {
@@ -93,8 +94,6 @@ void TV3DManager::display(Camera& whichCamera) {
     int portalW = Application::getInstance()->getGLWidget()->getDeviceWidth() / 2;
     int portalH = Application::getInstance()->getGLWidget()->getDeviceHeight();
 
-    const bool glowEnabled = Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect);
-
     ApplicationOverlay& applicationOverlay = Application::getInstance()->getApplicationOverlay();
 
     // We only need to render the overlays to a texture once, then we just render the texture as a quad
@@ -102,9 +101,7 @@ void TV3DManager::display(Camera& whichCamera) {
     applicationOverlay.renderOverlay(true);
     const bool displayOverlays = Menu::getInstance()->isOptionChecked(MenuOption::UserInterface);
 
-    if (glowEnabled) {
-        Application::getInstance()->getGlowEffect()->prepare();
-    }
+    Application::getInstance()->getGlowEffect()->prepare();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -115,7 +112,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
     glPushMatrix();
     {
-        
+        _activeEye = &_leftEye;
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
         glFrustum(_leftEye.left, _leftEye.right, _leftEye.bottom, _leftEye.top, nearZ, farZ); // set left view frustum
@@ -132,6 +129,7 @@ void TV3DManager::display(Camera& whichCamera) {
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
         }
+        _activeEye = NULL;
     }
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
@@ -144,6 +142,7 @@ void TV3DManager::display(Camera& whichCamera) {
     glScissor(portalX, portalY, portalW, portalH);
     glPushMatrix();
     {
+        _activeEye = &_rightEye;
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity(); // reset projection matrix
         glFrustum(_rightEye.left, _rightEye.right, _rightEye.bottom, _rightEye.top, nearZ, farZ); // set left view frustum
@@ -160,6 +159,7 @@ void TV3DManager::display(Camera& whichCamera) {
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
         }
+        _activeEye = NULL;
     }
     glPopMatrix();
     glDisable(GL_SCISSOR_TEST);
@@ -168,7 +168,15 @@ void TV3DManager::display(Camera& whichCamera) {
     glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
         Application::getInstance()->getGLWidget()->getDeviceHeight());
 
-    if (glowEnabled) {
-        Application::getInstance()->getGlowEffect()->render();
+    Application::getInstance()->getGlowEffect()->render();
+}
+
+void TV3DManager::overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) {
+    if (_activeEye) {
+        left = _activeEye->left;
+        right = _activeEye->right;
+        bottom = _activeEye->bottom;
+        top = _activeEye->top;
     }
 }

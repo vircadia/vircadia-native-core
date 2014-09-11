@@ -24,22 +24,23 @@
 // the width/height of the cached glyph textures
 const int IMAGE_SIZE = 256;
 
-Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
-    _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
+static uint qHash(const TextRenderer::Properties& key, uint seed = 0) {
+    // can be switched to qHash(key.font, seed) when we require Qt 5.3+
+    return qHash(key.font.family(), qHash(key.font.pointSize(), seed));
 }
 
-TextRenderer::TextRenderer(const char* family, int pointSize, int weight, bool italic,
-        EffectType effectType, int effectThickness, QColor color) :
-    _font(family, pointSize, weight, italic),
-    _metrics(_font),
-    _effectType(effectType),
-    _effectThickness(effectThickness),
-    _x(IMAGE_SIZE),
-    _y(IMAGE_SIZE),
-    _rowHeight(0),
-    _color(color) {
-    
-    _font.setKerning(false);
+static bool operator==(const TextRenderer::Properties& p1, const TextRenderer::Properties& p2) {
+    return p1.font == p2.font && p1.effect == p2.effect && p1.effectThickness == p2.effectThickness && p1.color == p2.color;
+}
+
+TextRenderer* TextRenderer::getInstance(const char* family, int pointSize, int weight, bool italic,
+        EffectType effect, int effectThickness, const QColor& color) {
+    Properties properties = { QFont(family, pointSize, weight, italic), effect, effectThickness, color };
+    TextRenderer*& instance = _instances[properties];
+    if (!instance) {
+        instance = new TextRenderer(properties);
+    }
+    return instance;
 }
 
 TextRenderer::~TextRenderer() {
@@ -120,6 +121,19 @@ int TextRenderer::computeWidth(const char* str)
         width += computeWidth(*ch);
     }
     return width;
+}
+
+TextRenderer::TextRenderer(const Properties& properties) :
+    _font(properties.font),
+    _metrics(_font),
+    _effectType(properties.effect),
+    _effectThickness(properties.effectThickness),
+    _x(IMAGE_SIZE),
+    _y(IMAGE_SIZE),
+    _rowHeight(0),
+    _color(properties.color) {
+    
+    _font.setKerning(false);
 }
 
 const Glyph& TextRenderer::getGlyph(char c) {
@@ -213,3 +227,10 @@ const Glyph& TextRenderer::getGlyph(char c) {
     glBindTexture(GL_TEXTURE_2D, 0);
     return glyph;
 }
+
+QHash<TextRenderer::Properties, TextRenderer*> TextRenderer::_instances;
+
+Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
+    _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
+}
+
