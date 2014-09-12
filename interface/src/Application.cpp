@@ -358,9 +358,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
 
-    // when -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
-
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
@@ -405,13 +402,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
+    
+    AddressManager& addressManager = AddressManager::getInstance();
 
     // connect to the domainChangeRequired signal on AddressManager
-    connect(&AddressManager::getInstance(), &AddressManager::possibleDomainChangeRequired,
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
             this, &Application::changeDomainHostname);
     
-    //When -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
+    // when -url in command line, teleport to location
+    addressManager.handleUrl(QUrl(getCmdOption(argc, constArgv, "-url")));
 
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
     OAuthWebViewHandler::getInstance();
@@ -1066,10 +1065,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
-
-            case Qt::Key_At:
-//                Menu::getInstance()->goTo();
-                break;
             default:
                 event->ignore();
                 break;
@@ -1323,7 +1318,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-//            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+            changeDomainHostname(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -3797,14 +3792,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
-    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
-//    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-//                                      LocationScriptingInterface::locationSetter, windowValue);
-//
-//    // register `location` on the global object.
-//    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-//                                      LocationScriptingInterface::locationSetter);
-
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
@@ -3930,6 +3917,13 @@ void Application::uploadSkeleton() {
 
 void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
+}
+
+void Application::openUrl(const QUrl& url) {
+    if (!AddressManager::getInstance().handleUrl(url)) {
+        // address manager did not handle - ask QDesktopServices to handle
+        QDesktopServices::openUrl(url);
+    }
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
@@ -4119,38 +4113,4 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
-}
-
-void Application::urlGoTo(int argc, const char * constArgv[]) {
-    //Gets the url (hifi://domain/destination/orientation)
-    QString customUrl = getCmdOption(argc, constArgv, "-url");
-    if(customUrl.startsWith(HIFI_URL_SCHEME + "//")) {
-        QStringList urlParts = customUrl.remove(0, HIFI_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-        if (urlParts.count() == 1) {
-            // location coordinates or place name
-             QString domain = urlParts[0];
-//             Menu::goToDomain(domain);
-        } else if (urlParts.count() > 1) {
-            // if url has 2 or more parts, the first one is domain name
-            QString domain = urlParts[0];
-
-            // second part is either a destination coordinate or
-            // a place name
-            QString destination = urlParts[1];
-
-            // any third part is an avatar orientation.
-            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-//            Menu::goToDomain(domain);
-
-            // goto either @user, #place, or x-xx,y-yy,z-zz
-            // style co-ordinate.
-//            Menu::goTo(destination);
-
-            if (!orientation.isEmpty()) {
-                // location orientation
-//                Menu::goToOrientation(orientation);
-            }
-        }
-    }
 }

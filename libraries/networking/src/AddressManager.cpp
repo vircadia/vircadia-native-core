@@ -49,6 +49,16 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     return callbackParams;
 }
 
+bool AddressManager::handleUrl(const QUrl& lookupUrl) {
+    if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
+        // we've verified that this is a valid hifi URL - hand it off to handleLookupString
+        handleLookupString(lookupUrl.toString());
+        return true;
+    }
+    
+    return false;
+}
+
 void AddressManager::handleLookupString(const QString& lookupString) {
     // there are 4 possible lookup strings
     
@@ -113,8 +123,8 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
     }
 }
 
-void AddressManager::handleAPIError(QNetworkReply::NetworkError error, const QString& message) {
-    qDebug() << "AddressManager API error -" << error << "-" << message;
+void AddressManager::handleAPIError(QNetworkReply& errorReply) {
+    qDebug() << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
 }
 
 const QString GET_PLACE = "/api/v1/places/%1";

@@ -381,11 +381,11 @@ void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
     checkS3();
 }
 
-void ModelUploader::uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString) {
+void ModelUploader::uploadFailed(QNetworkReply& errorReply) {
     if (_progressDialog) {
         _progressDialog->reject();
     }
-    qDebug() << "Model upload failed (" << errorCode << "): " << errorString;
+    qDebug() << "Model upload failed (" << errorReply.error() << "): " << errorReply.errorString();
     QMessageBox::warning(NULL,
                          QString("ModelUploader::uploadFailed()"),
                          QString("There was a problem with your upload, please try again later."),

@@ -31,11 +31,12 @@ public:
     static QString pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation = false,
                                                  const glm::quat& orientation = EMPTY_QUAT);
     
+    bool handleUrl(const QUrl& lookupUrl);
     void handleLookupString(const QString& lookupString);
     void attemptPlaceNameLookup(const QString& lookupString);
 public slots:
     void handleAPIResponse(const QJsonObject& jsonObject);
-    void handleAPIError(QNetworkReply::NetworkError error, const QString& message);
+    void handleAPIError(QNetworkReply& errorReply);
 signals:
     void lookupResultIsOffline();
     void possibleDomainChangeRequired(const QString& newHostname);

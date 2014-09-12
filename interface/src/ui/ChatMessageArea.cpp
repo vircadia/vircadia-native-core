@@ -19,8 +19,8 @@ ChatMessageArea::ChatMessageArea(bool useFixedHeight) : QTextBrowser(), _useFixe
 
     connect(document()->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
             this, &ChatMessageArea::updateLayout);
-//    connect(this, &QTextBrowser::anchorClicked,
-//            Menu::getInstance(), &Menu::openUrl);
+    
+    connect(this, &QTextBrowser::anchorClicked, Application::getInstance(), &Application::openUrl);
 }
 
 void ChatMessageArea::setHtml(const QString& html) {
