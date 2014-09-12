@@ -52,14 +52,14 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
 bool AddressManager::handleUrl(const QUrl& lookupUrl) {
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
         
+        qDebug() << "Trying to go to URL" << lookupUrl.toString();
+        
         // there are 4 possible lookup strings
         
         // 1. global place name (name of domain or place) - example: sanfrancisco
         // 2. user name (prepended with @) - example: @philip
         // 3. location string (posX,posY,posZ/eulerX,eulerY,eulerZ)
         // 4. domain network address (IP or dns resolvable hostname)
-        
-        qDebug() << lookupUrl;
         
         if (lookupUrl.isRelative()) {
             // if this is a relative path then handle it as a relative viewpoint
@@ -86,12 +86,14 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
 }
 
 void AddressManager::handleLookupString(const QString& lookupString) {
-    // we've verified that this is a valid hifi URL - hand it off to handleLookupString
-    QString sanitizedString = lookupString;
-    const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
-    sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
-    
-    handleUrl(QUrl(HIFI_URL_SCHEME + "://" + sanitizedString));
+    if (!lookupString.isEmpty()) {
+        // make this a valid hifi URL and handle it off to handleUrl
+        QString sanitizedString = lookupString;
+        const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
+        sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
+        
+        handleUrl(QUrl(HIFI_URL_SCHEME + "://" + sanitizedString));
+    }
 }
 
 void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
@@ -141,6 +143,10 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
 
 void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     qDebug() << "AddressManager API error -" << errorReply.error() << "-" << errorReply.errorString();
+    
+    if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
+        emit lookupResultIsNotFound();
+    }
 }
 
 const QString GET_PLACE = "/api/v1/places/%1";

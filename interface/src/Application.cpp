@@ -290,6 +290,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
+    
+    AddressManager& addressManager = AddressManager::getInstance();
+    
+    // connect to the domainChangeRequired signal on AddressManager
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+            this, &Application::changeDomainHostname);
+    
+    // when -url in command line, teleport to location
+    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -403,15 +412,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-    
-    AddressManager& addressManager = AddressManager::getInstance();
-
-    // connect to the domainChangeRequired signal on AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
-            this, &Application::changeDomainHostname);
-    
-    // when -url in command line, teleport to location
-    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
     OAuthWebViewHandler::getInstance();
@@ -810,6 +810,7 @@ bool Application::event(QEvent* event) {
 
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
+        
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
@@ -3947,11 +3948,13 @@ void Application::uploadAttachment() {
 }
 
 void Application::openUrl(const QUrl& url) {
-    if (url.scheme() == HIFI_URL_SCHEME) {
-        AddressManager::getInstance().handleLookupString(url.toString());
-    } else {
-        // address manager did not handle - ask QDesktopServices to handle
-        QDesktopServices::openUrl(url);
+    if (!url.isEmpty()) {
+        if (url.scheme() == HIFI_URL_SCHEME) {
+            AddressManager::getInstance().handleLookupString(url.toString());
+        } else {
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+        }
     }
 }
 
