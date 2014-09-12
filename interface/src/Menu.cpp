@@ -1217,23 +1217,34 @@ void Menu::nameLocation() {
     // check if user is logged in or show login dialog if not
 
     AccountManager& accountManager = AccountManager::getInstance();
+    
     if (!accountManager.isLoggedIn()) {
         QMessageBox msgBox;
         msgBox.setText("We need to tie this location to your username.");
         msgBox.setInformativeText("Please login first, then try naming the location again.");
         msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
         msgBox.button(QMessageBox::Ok)->setText("Login");
+        
         if (msgBox.exec() == QMessageBox::Ok) {
             loginForCurrentDomain();
         }
 
         return;
     }
+    
+    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    if (domainHandler.getUUID().isNull()) {
+        const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
+            "\n\nYou cannot create a global location in an unregistered domain.";
+        QMessageBox::critical(this, "Unregistered Domain", UNREGISTERED_DOMAIN_MESSAGE);
+        
+        return;
+    }
 
     QInputDialog nameDialog(Application::getInstance()->getWindow());
     nameDialog.setWindowTitle("Name this location");
     nameDialog.setLabelText("Name this location, then share that name with others.\n"
-                            "When they come here, they'll be in the same location and orientation\n"
+                            "When they come here, they'll have the same viewpoint\n"
                             "(wherever you are standing and looking now) as you.\n\n"
                             "Location name:");
 
@@ -1251,7 +1262,7 @@ void Menu::nameLocation() {
         connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
         NamedLocation* location = new NamedLocation(locationName,
                                                     myAvatar->getPosition(), myAvatar->getOrientation(),
-                                                    NodeList::getInstance()->getDomainHandler().getHostname());
+                                                    domainHandler.getUUID());
         manager->createNamedLocation(location);
     }
 }
