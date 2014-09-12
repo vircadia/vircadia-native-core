@@ -905,7 +905,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                if (!isMeta) {
+                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                }
                 break;
 
             case Qt::Key_Return:
@@ -1073,7 +1075,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
     _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
-
+    
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
@@ -1125,7 +1127,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             _myAvatar->setDriveKeys(RIGHT, 0.f);
             _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
             break;
-
+        case Qt::Key_Control:
+        case Qt::Key_Shift:
+        case Qt::Key_Meta:
+        case Qt::Key_Alt:
+            _myAvatar->clearDriveKeys();
+            break;
         default:
             event->ignore();
             break;
@@ -3370,7 +3377,7 @@ void Application::updateWindowTitle(){
 #ifndef WIN32
     // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());
-#endif // !WIN32
+#endif //!WIN32
     _window->setWindowTitle(title);
 }
 

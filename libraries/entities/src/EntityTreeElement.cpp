@@ -509,7 +509,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 
                 Extents rotatedExtents = extents;
 
-                calculateRotatedExtents(rotatedExtents, entity->getRotation());
+                rotatedExtents.rotate(entity->getRotation());
 
                 rotatedExtents.minimum += entity->getPosition();
                 rotatedExtents.maximum += entity->getPosition();
