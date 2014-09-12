@@ -1392,8 +1392,11 @@ void VoxelSystem::render() {
 
             applyScaleAndBindProgram(texture);
 
-            // for performance, enable backface culling
+            // for performance, enable backface culling and disable blending
             glEnable(GL_CULL_FACE);
+            glDisable(GL_BLEND);
+
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         }
 
         // draw voxels in 6 passes
@@ -1435,6 +1438,7 @@ void VoxelSystem::render() {
             PerformanceWarning warn(showWarnings, "render().. cleanup after glDrawRangeElementsEXT()...");
 
             glDisable(GL_CULL_FACE);
+            glEnable(GL_BLEND);
 
             removeScaleAndReleaseProgram(texture);
 

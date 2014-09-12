@@ -22,5 +22,5 @@ void main(void) {
     gl_Position = ftransform();
     
     // store the color directly
-    gl_FrontColor = gl_Color;
+    gl_FrontColor = vec4(gl_Color.rgb, 0.0);
 }

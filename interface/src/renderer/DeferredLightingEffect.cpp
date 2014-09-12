@@ -67,7 +67,7 @@ void DeferredLightingEffect::render() {
     const int VIEWPORT_WIDTH_INDEX = 2;
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
-        
+   
     if (Menu::getInstance()->getShadowsEnabled()) {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
