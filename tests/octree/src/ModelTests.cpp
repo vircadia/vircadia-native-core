@@ -45,7 +45,7 @@ void EntityTests::entityTreeTests(bool verbose) {
     entityID.isKnownID = false; // this is a temporary workaround to allow local tree entities to be added with known IDs
     EntityItemProperties properties;
     float oneMeter = 1.0f;
-    float halfMeter = oneMeter / 2.0f;
+    //float halfMeter = oneMeter / 2.0f;
     float halfOfDomain = TREE_SCALE * 0.5f;
     glm::vec3 positionNearOriginInMeters(oneMeter, oneMeter, oneMeter); // when using properties, these are in meter not tree units
     glm::vec3 positionAtCenterInMeters(halfOfDomain, halfOfDomain, halfOfDomain);
@@ -60,7 +60,8 @@ void EntityTests::entityTreeTests(bool verbose) {
         }
         
         properties.setPosition(positionAtCenterInMeters);
-        properties.setRadius(halfMeter);
+        // TODO: Fix these unit tests.
+        //properties.setRadius(halfMeter);
         //properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
         tree.addEntity(entityID, properties);
@@ -265,8 +266,10 @@ void EntityTests::entityTreeTests(bool verbose) {
             glm::vec3 randomPositionInTreeUnits = randomPositionInMeters / (float)TREE_SCALE;
 
             properties.setPosition(randomPositionInMeters);
-            properties.setRadius(halfMeter);
-//properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
+            
+            // TODO: fix these unit tests
+            //properties.setRadius(halfMeter);
+            //properties.setModelURL("https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/theater.fbx");
 
             if (extraVerbose) {
                 qDebug() << "iteration:" << i

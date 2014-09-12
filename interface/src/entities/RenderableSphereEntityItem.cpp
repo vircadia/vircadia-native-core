@@ -31,12 +31,24 @@ EntityItem* RenderableSphereEntityItem::factory(const EntityItemID& entityID, co
 void RenderableSphereEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableSphereEntityItem::render");
     assert(getType() == EntityTypes::Sphere);
-    glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float radius = getRadius() * (float)TREE_SCALE;
+    glm::vec3 position = getPositionInMeters();
+    glm::vec3 center = getCenterInMeters();
+    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::quat rotation = getRotation();
 
     glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glutSolidSphere(radius, 15, 15);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        
+        
+        glPushMatrix();
+            glm::vec3 positionToCenter = center - position;
+            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+
+            glScalef(dimensions.x, dimensions.y, dimensions.z);
+            glutSolidSphere(0.5f, 15, 15);
+        glPopMatrix();
     glPopMatrix();
 };
