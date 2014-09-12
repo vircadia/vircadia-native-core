@@ -292,8 +292,7 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
     if (callbackParams.errorCallbackReceiver) {
         // invoke the right method on the callback receiver
         QMetaObject::invokeMethod(callbackParams.errorCallbackReceiver, qPrintable(callbackParams.errorCallbackMethod),
-                                  Q_ARG(QNetworkReply::NetworkError, requestReply->error()),
-                                  Q_ARG(const QString&, requestReply->errorString()));
+                                  Q_ARG(QNetworkReply&, *requestReply));
 
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);

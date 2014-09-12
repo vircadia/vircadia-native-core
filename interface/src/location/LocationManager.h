@@ -13,6 +13,7 @@
 #define hifi_LocationManager_h
 
 #include <QtCore>
+#include <QtNetwork/QNetworkReply>
 
 #include "NamedLocation.h"
 
@@ -31,10 +32,11 @@ public:
     void createNamedLocation(NamedLocation* namedLocation);
 
 signals:
-    void creationCompleted(LocationManager::NamedLocationCreateResponse response);
+    void creationCompleted(const QString& errorMessage);
     
 private slots:
     void namedLocationDataReceived(const QJsonObject& data);
+    void errorDataReceived(QNetworkReply& errorReply);
 
 };
 

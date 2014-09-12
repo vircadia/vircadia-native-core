@@ -155,11 +155,6 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(fileMenu, "Go");
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoHome,
-                                  Qt::CTRL | Qt::Key_G,
-                                  appInstance->getAvatar(),
-                                  SLOT(goHome()));
-    addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
                                   this,
@@ -1183,23 +1178,13 @@ void Menu::muteEnvironment() {
     free(packet);
 }
 
-void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response) {
+void Menu::displayNameLocationResponse(const QString& errorString) {
 
-    if (response == LocationManager::Created) {
-        return;
-    }
-
-    QMessageBox msgBox;
-    switch (response) {
-        case LocationManager::AlreadyExists:
-            msgBox.setText("That name has been already claimed, try something else.");
-            break;
-        default:
-            msgBox.setText("An unexpected error has occurred, please try again later.");
-            break;
-    }
-
-    msgBox.exec();
+    if (!errorString.isEmpty()) {
+        QMessageBox msgBox;
+        msgBox.setText(errorString);
+        msgBox.exec();
+    }    
 }
 
 void Menu::toggleLocationList() {
@@ -1259,7 +1244,7 @@ void Menu::nameLocation() {
 
         MyAvatar* myAvatar = Application::getInstance()->getAvatar();
         LocationManager* manager = new LocationManager();
-        connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
+        connect(manager, &LocationManager::creationCompleted, this, &Menu::displayNameLocationResponse);
         NamedLocation* location = new NamedLocation(locationName,
                                                     myAvatar->getPosition(), myAvatar->getOrientation(),
                                                     domainHandler.getUUID());

@@ -150,7 +150,6 @@ public:
     const PlayerPointer getPlayer() const { return _player; }
     
 public slots:
-    void goHome();
     void increaseSize();
     void decreaseSize();
     void resetSize();

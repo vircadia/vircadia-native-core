@@ -25,7 +25,7 @@ NamedLocation::NamedLocation(const QString& name,
     
 }
 
-const QString JSON_FORMAT = "{\"location\":{\"path\":\"%1\",\"domain_id\":\"%2\"},\"name\":\"%3\"}";
+const QString JSON_FORMAT = "{\"location\":{\"path\":\"%1\",\"domain_id\":\"%2\",\"name\":\"%3\"}}";
 
 QString NamedLocation::toJsonString() {
     return JSON_FORMAT.arg(AddressManager::pathForPositionAndOrientation(_position, true, _orientation),

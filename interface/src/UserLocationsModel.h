@@ -31,9 +31,9 @@ public:
 
 public slots:
     void handleRenameResponse(const QJsonObject& responseData);
-    void handleRenameError(QNetworkReply::NetworkError error, const QString& errorString);
+    void handleRenameError(QNetworkReply& errorReply);
     void handleDeleteResponse(const QJsonObject& responseData);
-    void handleDeleteError(QNetworkReply::NetworkError error, const QString& errorString);
+    void handleDeleteError(QNetworkReply& errorReply);
 
 signals:
     void updated(const QString& name);

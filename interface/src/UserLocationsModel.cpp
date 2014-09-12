@@ -75,10 +75,10 @@ void UserLocation::handleRenameResponse(const QJsonObject& responseData) {
     emit updated(_name);
 }
 
-void UserLocation::handleRenameError(QNetworkReply::NetworkError error, const QString& errorString) {
+void UserLocation::handleRenameError(QNetworkReply& errorReply) {
     _updating = false;
 
-    QString msg = "There was an error renaming location '" + _name + "': " + errorString;
+    QString msg = "There was an error renaming location '" + _name + "': " + errorReply.errorString();
     qDebug() << msg;
     QMessageBox::warning(Application::getInstance()->getWindow(), "Error", msg);
 
@@ -109,10 +109,10 @@ void UserLocation::handleDeleteResponse(const QJsonObject& responseData) {
     }
 }
 
-void UserLocation::handleDeleteError(QNetworkReply::NetworkError error, const QString& errorString) {
+void UserLocation::handleDeleteError(QNetworkReply& errorReply) {
     _updating = false;
 
-    QString msg = "There was an error deleting location '" + _name + "': " + errorString;
+    QString msg = "There was an error deleting location '" + _name + "': " + errorReply.errorString();
     qDebug() << msg;
     QMessageBox::warning(Application::getInstance()->getWindow(), "Error", msg);
 }

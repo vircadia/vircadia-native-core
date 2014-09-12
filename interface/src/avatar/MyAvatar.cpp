@@ -1778,11 +1778,6 @@ void MyAvatar::maybeUpdateBillboard() {
     sendBillboardPacket();
 }
 
-void MyAvatar::goHome() {
-    qDebug("Going Home!");
-    slamPosition(START_LOCATION);
-}
-
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);

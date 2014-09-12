@@ -216,7 +216,7 @@ private slots:
     void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
-    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
+    void displayNameLocationResponse(const QString& errorString);
     void muteEnvironment();
 
 private:
@@ -390,7 +390,6 @@ namespace MenuOption {
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString GoHome = "Go Home";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
