@@ -228,14 +228,14 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     QRegExp usernameRegex(USERNAME_REGEX_STRING);
     
     if (usernameRegex.indexIn(lookupString) != -1) {
-        lookupUserViaAPI(usernameRegex.cap(1));
+        goToUser(usernameRegex.cap(1));
         return true;
     }
     
     return false;
 }
 
-void AddressManager::lookupUserViaAPI(const QString& username) {
+void AddressManager::goToUser(const QString& username) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
     // this is a username - pull the captured name and lookup that user's location
     AccountManager::getInstance().authenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),

@@ -34,7 +34,7 @@ public:
 public slots:
     void handleAPIResponse(const QJsonObject& jsonObject);
     void handleAPIError(QNetworkReply& errorReply);
-    void lookupUserViaAPI(const QString& username);
+    void goToUser(const QString& username);
 signals:
     void lookupResultIsOffline();
     void possibleDomainChangeRequired(const QString& newHostname);
