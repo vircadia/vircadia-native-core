@@ -60,6 +60,12 @@ void DeferredLightingEffect::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
     
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimarySpecularTextureID());
+    
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
+        
     // get the viewport side (left, right, both)
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
@@ -68,15 +74,15 @@ void DeferredLightingEffect::render() {
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
    
-    if (Menu::getInstance()->getShadowsEnabled()) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
-        
-        glActiveTexture(GL_TEXTURE3);
+    ProgramObject* program = &_directionalLight;
+    const LightLocations* locations = &_directionalLightLocations;
+    bool shadowsEnabled = Menu::getInstance()->getShadowsEnabled();
+    if (shadowsEnabled) {    
+        glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
         
-        ProgramObject* program = &_directionalLightShadowMap;
-        const LightLocations* locations = &_directionalLightShadowMapLocations;
+        program = &_directionalLightShadowMap;
+        locations = &_directionalLightShadowMapLocations;
         if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
             program = &_directionalLightCascadedShadowMap;
             locations = &_directionalLightCascadedShadowMapLocations;
@@ -90,38 +96,42 @@ void DeferredLightingEffect::render() {
         program->setUniformValue(locations->shadowScale,
             1.0f / Application::getInstance()->getTextureCache()->getShadowFramebufferObject()->width());
         
-        float left, right, bottom, top, nearVal, farVal;
-        glm::vec4 nearClipPlane, farClipPlane;
-        Application::getInstance()->computeOffAxisFrustum(
-            left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-        program->setUniformValue(locations->nearLocation, nearVal);
-        program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
-        float nearScale = -1.0f / nearVal;
-        float sScale = 1.0f / sWidth;
-        float depthTexCoordScaleS = (right - left) * nearScale * sScale;
-        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
-            bottom * nearScale);
-        program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, (top - bottom) * nearScale);
-        
-        renderFullscreenQuad(sMin, sMin + sWidth);
-        
-        program->release();
-        
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glActiveTexture(GL_TEXTURE1);
-    
     } else {
-        _directionalLight.bind();
-        renderFullscreenQuad(sMin, sMin + sWidth);
-        _directionalLight.release();        
+        program->bind();
+    }
+    
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec4 nearClipPlane, farClipPlane;
+    Application::getInstance()->computeOffAxisFrustum(
+        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    program->setUniformValue(locations->nearLocation, nearVal);
+    program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
+    float nearScale = -1.0f / nearVal;
+    float sScale = 1.0f / sWidth;
+    float depthTexCoordScaleS = (right - left) * nearScale * sScale;
+    program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
+        bottom * nearScale);
+    program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, (top - bottom) * nearScale);
+    
+    renderFullscreenQuad(sMin, sMin + sWidth);
+    
+    program->release();
+    
+    if (shadowsEnabled) {
+        glBindTexture(GL_TEXTURE_2D, 0);        
+        glActiveTexture(GL_TEXTURE3);
     }
     
     glBindTexture(GL_TEXTURE_2D, 0);
+        
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, 0);
     
     freeFBO->release();
     
@@ -145,8 +155,6 @@ void DeferredLightingEffect::render() {
     glEnable(GL_DEPTH_TEST);
     glDepthMask(true);
     
-    glDisable(GL_ALPHA_TEST);
-    
     glPopMatrix();
     
     glMatrixMode(GL_MODELVIEW);
@@ -160,8 +168,9 @@ void DeferredLightingEffect::loadLightProgram(const char* name, ProgramObject& p
     program.bind();
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
-    program.setUniformValue("depthMap", 2);
-    program.setUniformValue("shadowMap", 3);
+    program.setUniformValue("specularMap", 2);
+    program.setUniformValue("depthMap", 3);
+    program.setUniformValue("shadowMap", 4);
     locations.shadowDistances = program.uniformLocation("shadowDistances");
     locations.shadowScale = program.uniformLocation("shadowScale");
     locations.nearLocation = program.uniformLocation("near");
