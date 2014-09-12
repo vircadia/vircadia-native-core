@@ -46,8 +46,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            
-            
             glPushMatrix();
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
@@ -92,8 +90,6 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            
-            
             glPushMatrix();
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
