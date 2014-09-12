@@ -34,6 +34,26 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
 }
 
+QScriptValue WindowScriptingInterface::hasFocus() {
+    return Application::getInstance()->getGLWidget()->hasFocus();
+}
+
+void WindowScriptingInterface::setCursorVisible(bool visible) {
+    Application::getInstance()->setCursorVisible(visible);
+}
+
+void WindowScriptingInterface::setCursorPosition(int x, int y) {
+    QCursor::setPos(x, y);
+}
+
+QScriptValue WindowScriptingInterface::getCursorPositionX() {
+    return QCursor::pos().x();
+}
+
+QScriptValue WindowScriptingInterface::getCursorPositionY() {
+    return QCursor::pos().y();
+}
+
 QScriptValue WindowScriptingInterface::alert(const QString& message) {
     QScriptValue retVal;
     QMetaObject::invokeMethod(this, "showAlert", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QScriptValue, retVal), Q_ARG(const QString&, message));
@@ -496,4 +516,12 @@ int WindowScriptingInterface::getInnerWidth() {
 
 int WindowScriptingInterface::getInnerHeight() {
     return Application::getInstance()->getWindow()->geometry().height();
+}
+
+int WindowScriptingInterface::getX() {
+    return Application::getInstance()->getWindow()->x();
+}
+
+int WindowScriptingInterface::getY() {
+    return Application::getInstance()->getWindow()->y();
 }

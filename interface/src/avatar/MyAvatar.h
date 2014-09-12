@@ -163,6 +163,8 @@ public slots:
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
+    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
+
     void updateMotionBehaviorsFromMenu();
     
     glm::vec3 getLeftPalmPosition();

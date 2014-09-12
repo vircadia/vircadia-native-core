@@ -4088,6 +4088,14 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.write(latestVersion.toStdString().c_str());
 }
 
+void Application::setCursorVisible(bool visible) {
+    if (visible) {
+        restoreOverrideCursor();
+    } else {
+        setOverrideCursor(Qt::BlankCursor);
+    }
+}
+
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
