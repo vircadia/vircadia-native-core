@@ -32,6 +32,7 @@ class GlobalServicesScriptingInterface : public QObject {
     Q_PROPERTY(QString myUsername READ getMyUsername)
     Q_PROPERTY(QStringList onlineUsers READ getOnlineUsers)
     GlobalServicesScriptingInterface();
+    ~GlobalServicesScriptingInterface();
 public:
     static GlobalServicesScriptingInterface* getInstance();
 
@@ -41,6 +42,12 @@ public:
 
 public slots:
     QScriptValue chat(const QString& message);
+
+private slots:
+    void loggedOut();
+    void onConnected();
+    void participantsChanged();
+    void messageReceived(const QXmppMessage& message);
 
 signals:
     void connected();

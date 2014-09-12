@@ -16,9 +16,43 @@
 
 GlobalServicesScriptingInterface::GlobalServicesScriptingInterface() {
     AccountManager& accountManager = AccountManager::getInstance();
-    connect(&accountManager, &AccountManager::usernameChanged, this,
-        &GlobalServicesScriptingInterface::myUsernameChanged);
+    connect(&accountManager, &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
+    connect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+#ifdef HAVE_QXMPP
+    const XmppClient& xmppClient = XmppClient::getInstance();
+    connect(&xmppClient, &XmppClient::joinedPublicChatRoom, this, &GlobalServicesScriptingInterface::connected);
+    connect(&xmppClient, &XmppClient::joinedPublicChatRoom, this, &GlobalServicesScriptingInterface::onConnected);
+    const QXmppClient& qxmppClient = XmppClient::getInstance().getXMPPClient();
+    connect(&qxmppClient, &QXmppClient::messageReceived, this, &GlobalServicesScriptingInterface::messageReceived);
+#endif // HAVE_QXMPP
+}
 
+GlobalServicesScriptingInterface::~GlobalServicesScriptingInterface() {
+    AccountManager& accountManager = AccountManager::getInstance();
+    disconnect(&accountManager, &AccountManager::usernameChanged, this, &GlobalServicesScriptingInterface::myUsernameChanged);
+    disconnect(&accountManager, &AccountManager::logoutComplete, this, &GlobalServicesScriptingInterface::loggedOut);
+#ifdef HAVE_QXMPP
+    const XmppClient& xmppClient = XmppClient::getInstance();
+    disconnect(&xmppClient, &XmppClient::joinedPublicChatRoom, this, &GlobalServicesScriptingInterface::connected);
+    disconnect(&xmppClient, &XmppClient::joinedPublicChatRoom, this, &GlobalServicesScriptingInterface::onConnected);
+    const QXmppClient& qxmppClient = XmppClient::getInstance().getXMPPClient();
+    disconnect(&qxmppClient, &QXmppClient::messageReceived, this, &GlobalServicesScriptingInterface::messageReceived);
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    disconnect(publicChatRoom, &QXmppMucRoom::participantsChanged, this, &GlobalServicesScriptingInterface::participantsChanged);
+#endif // HAVE_QXMPP
+}
+
+void GlobalServicesScriptingInterface::onConnected() {
+#ifdef HAVE_QXMPP
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    connect(publicChatRoom, &QXmppMucRoom::participantsChanged, this, &GlobalServicesScriptingInterface::participantsChanged, Qt::UniqueConnection);
+#endif // HAVE_QXMPP
+}
+
+void GlobalServicesScriptingInterface::participantsChanged() {
+#ifdef HAVE_QXMPP
+    emit GlobalServicesScriptingInterface::onlineUsersChanged(this->getOnlineUsers());
+#endif // HAVE_QXMPP
 }
 
 GlobalServicesScriptingInterface* GlobalServicesScriptingInterface::getInstance() {
@@ -64,4 +98,16 @@ QStringList GlobalServicesScriptingInterface::getOnlineUsers() {
     }
 #endif // HAVE_QXMPP
     return QStringList();
+}
+
+void GlobalServicesScriptingInterface::loggedOut() {
+    emit GlobalServicesScriptingInterface::disconnected(QString("logout"));
+}
+
+void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& message) {
+    if (message.type() != QXmppMessage::GroupChat) {
+        return;
+    }
+    const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
+    emit GlobalServicesScriptingInterface::incomingMessage(message.from().right(message.from().count() - 1 - publicChatRoom->jid().count()), message.body());
 }
