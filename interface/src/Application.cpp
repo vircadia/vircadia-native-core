@@ -813,7 +813,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(HIFI_URL_SCHEME);
         if (isHifiSchemeURL) {
-//            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
         }
         return false;
     }

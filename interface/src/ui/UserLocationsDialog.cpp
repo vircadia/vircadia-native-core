@@ -13,6 +13,8 @@
 #include <QInputDialog>
 #include <QPushButton>
 
+#include <AddressManager.h>
+
 #include "Menu.h"
 #include "UserLocationsDialog.h"
 
@@ -51,8 +53,8 @@ void UserLocationsDialog::updateEnabled() {
 }
 
 void UserLocationsDialog::goToModelIndex(const QModelIndex& index) {
-    QVariant location = _proxyModel.data(index.sibling(index.row(), UserLocationsModel::AddressColumn));
-//    Menu::getInstance()->goToURL(location.toString());
+    QVariant address = _proxyModel.data(index.sibling(index.row(), UserLocationsModel::AddressColumn));
+    AddressManager::getInstance().handleLookupString(address.toString());
 }
 
 void UserLocationsDialog::deleteSelection() {
