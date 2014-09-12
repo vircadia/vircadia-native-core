@@ -501,7 +501,6 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         // if the ray doesn't intersect with our cube, we can stop searching!
         if (entityBox.findRayIntersection(origin, direction, localDistance, localFace)) {
 
-
             // extents is the entity relative, scaled, centered extents of the entity
             glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
             glm::mat4 translation = glm::translate(entity->getPosition());
@@ -509,8 +508,10 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
             glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
 
             glm::vec3 dimensions = entity->getDimensions();
+            glm::vec3 registrationPoint = entity->getRegistrationPoint();
+            glm::vec3 corner = -(dimensions * registrationPoint);
 
-            AABox entityFrameBox(glm::vec3(0.0f,0.0f,0.0f), dimensions);
+            AABox entityFrameBox(corner, dimensions);
 
             glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
             glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
