@@ -511,7 +511,7 @@ bool EntityItem::isRestingOnSurface() const {
 }
 
 void EntityItem::update(const quint64& updateTime) {
-    bool wantDebug = true;
+    bool wantDebug = false;
 
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
 
