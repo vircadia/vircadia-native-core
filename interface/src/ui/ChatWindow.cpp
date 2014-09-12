@@ -17,6 +17,8 @@
 #include <QSizePolicy>
 #include <QTimer>
 
+#include <AccountManager.h>
+
 #include "Application.h"
 #include "ChatMessageArea.h"
 #include "FlowLayout.h"
@@ -26,7 +28,6 @@
 
 #include "ui_chatWindow.h"
 #include "ChatWindow.h"
-
 
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;

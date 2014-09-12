@@ -9,19 +9,25 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AddressManager.h>
+#include <UUID.h>
+
 #include "NamedLocation.h"
 
-const QString JSON_FORMAT = "{\"address\":{\"position\":\"%1,%2,%3\","
-                            "\"orientation\":\"%4,%5,%6,%7\",\"domain\":\"%8\"},\"name\":\"%9\"}";
+NamedLocation::NamedLocation(const QString& name,
+                             const glm::vec3& position, const glm::quat& orientation,
+                             const QUuid& domainID) :
+    _name(name),
+    _position(position),
+    _orientation(orientation),
+    _domainID(domainID)
+{
+    
+}
+
+const QString JSON_FORMAT = "{\"location\":{\"path\":\"%1\",\"domain_id\":\"%2\"},\"name\":\"%3\"}";
 
 QString NamedLocation::toJsonString() {
-    return JSON_FORMAT.arg(QString::number(_location.x),
-                                        QString::number(_location.y),
-                                        QString::number(_location.z),
-                                        QString::number(_orientation.w),
-                                        QString::number(_orientation.x),
-                                        QString::number(_orientation.y),
-                                        QString::number(_orientation.z),
-                                        _domain,
-                                        _locationName);
+    return JSON_FORMAT.arg(AddressManager::pathForPositionAndOrientation(_position, true, _orientation),
+                           uuidStringWithoutCurlyBraces(_domainID), _name);
 }

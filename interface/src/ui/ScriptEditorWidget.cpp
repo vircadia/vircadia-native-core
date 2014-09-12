@@ -23,6 +23,8 @@
 #include <QTimer>
 #include <QWidget>
 
+#include <NetworkAccessManager.h>
+
 #include "Application.h"
 #include "ScriptHighlighting.h"
 

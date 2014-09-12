@@ -11,6 +11,8 @@
 
 #include <QtWebKitWidgets/QWebView>
 
+#include <AccountManager.h>
+
 #include "Application.h"
 
 #include "OAuthWebViewHandler.h"

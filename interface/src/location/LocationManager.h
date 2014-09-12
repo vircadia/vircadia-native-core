@@ -14,7 +14,6 @@
 
 #include <QtCore>
 
-#include "AccountManager.h"
 #include "NamedLocation.h"
 
 class LocationManager : public QObject {
@@ -30,19 +29,6 @@ public:
     };
 
     void createNamedLocation(NamedLocation* namedLocation);
-    
-    void goTo(QString destination);
-    void goToUser(QString userName);
-    void goToPlace(QString placeName);
-    void goToUrl(const QUrl& url);
-    void goToOrientation(QString orientation);
-    bool goToDestination(QString destination);
-    
-public slots:
-    void handleAddressLookupError(QNetworkReply::NetworkError networkError, const QString& errorString);
-
-private:
-    void replaceLastOccurrence(const QChar search, const QChar replace, QString& string);
 
 signals:
     void creationCompleted(LocationManager::NamedLocationCreateResponse response);
