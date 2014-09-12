@@ -26,6 +26,13 @@ void DeferredLightingEffect::init() {
         _directionalLightCascadedShadowMapLocations);
 }
 
+void DeferredLightingEffect::prepare() {
+    // clear the normal buffer
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true);
+    glClear(GL_COLOR_BUFFER_BIT);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+}
+
 void DeferredLightingEffect::render() {
     // perform deferred lighting, rendering to free fbo
     glPushMatrix();
@@ -38,6 +45,7 @@ void DeferredLightingEffect::render() {
     glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
+    glDisable(GL_COLOR_MATERIAL);
     glDepthMask(false);
     
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
@@ -133,6 +141,7 @@ void DeferredLightingEffect::render() {
     glDisable(GL_TEXTURE_2D);
     
     glEnable(GL_LIGHTING);
+    glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(true);
     

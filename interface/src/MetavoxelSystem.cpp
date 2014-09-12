@@ -121,23 +121,13 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-const GLenum COLOR_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0 };
-const GLenum NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT1 };
-const GLenum COLOR_NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-
 void MetavoxelSystem::render() {
     // update the frustum
     ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
         viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
-    
-    // clear the normal buffer
-    glDrawBuffers(sizeof(NORMAL_DRAW_BUFFERS) / sizeof(NORMAL_DRAW_BUFFERS[0]), NORMAL_DRAW_BUFFERS);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
-    
+   
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor, true);
     
@@ -834,7 +824,7 @@ void HeightfieldBuffer::render(bool cursor) {
         
         glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
         
-        glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
         glDepthMask(false);
@@ -907,7 +897,7 @@ void HeightfieldBuffer::render(bool cursor) {
         glDepthMask(true);
         glDepthFunc(GL_LESS);
         
-        glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
         
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
         
@@ -936,7 +926,7 @@ void HeightfieldBuffer::render(bool cursor) {
 QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
-    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
@@ -969,7 +959,7 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
@@ -1017,7 +1007,7 @@ void VoxelBuffer::render(bool cursor) {
     glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
     
     if (!_materials.isEmpty()) {
-        glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
         glDepthMask(false);
@@ -1087,7 +1077,7 @@ void VoxelBuffer::render(bool cursor) {
         glDepthMask(true);
         glDepthFunc(GL_LESS);
         
-        glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
         
         DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materials);
         DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materialWeights);
@@ -2132,7 +2122,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     _pointProgram.release();
     
-    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
     glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
@@ -2175,7 +2165,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 void DefaultMetavoxelRendererImplementation::loadSplatProgram(const char* type,

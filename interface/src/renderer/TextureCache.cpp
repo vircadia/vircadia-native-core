@@ -242,6 +242,18 @@ GLuint TextureCache::getPrimaryNormalTextureID() {
     return _primaryNormalTextureID;
 }
 
+void TextureCache::setPrimaryDrawBuffers(bool color, bool normal) {
+    GLenum buffers[2];
+    int bufferCount = 0;
+    if (color) {
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+    }
+    if (normal) {
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+    }
+    glDrawBuffers(bufferCount, buffers);
+}
+
 QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
     if (!_secondaryFramebufferObject) {
         _secondaryFramebufferObject = createFramebufferObject();

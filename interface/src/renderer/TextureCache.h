@@ -64,6 +64,9 @@ public:
     /// Returns the ID of the primary framebuffer object's normal texture.
     GLuint getPrimaryNormalTextureID();
     
+    /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
+    void setPrimaryDrawBuffers(bool color, bool normal);
+    
     /// Returns a pointer to the secondary framebuffer object, used as an additional render target when performing full
     /// screen effects.
     QOpenGLFramebufferObject* getSecondaryFramebufferObject();

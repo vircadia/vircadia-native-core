@@ -19,6 +19,8 @@ class DeferredLightingEffect {
 public:
     
     void init();
+    
+    void prepare();
     void render();
 
 private:
