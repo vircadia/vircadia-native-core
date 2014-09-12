@@ -52,6 +52,8 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
 bool AddressManager::handleUrl(const QUrl& lookupUrl) {
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
         
+        qDebug() << "Trying to go to URL" << lookupUrl.toString();
+        
         // there are 4 possible lookup strings
         
         // 1. global place name (name of domain or place) - example: sanfrancisco
