@@ -21,6 +21,8 @@ public:
     RayIntersectionInfo() : _rayStart(0.0f), _rayDirection(1.0f, 0.0f, 0.0f), _rayLength(FLT_MAX), 
             _hitDistance(FLT_MAX), _hitNormal(1.0f, 0.0f, 0.0f), _hitShape(NULL) { }
 
+    glm::vec3 getIntersectionPoint() const { return _rayStart + _hitDistance * _rayDirection; }
+
     // input
     glm::vec3 _rayStart;
     glm::vec3 _rayDirection;
