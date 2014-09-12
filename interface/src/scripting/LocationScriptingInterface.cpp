@@ -29,10 +29,9 @@ QString LocationScriptingInterface::getHref() {
 }
 
 QString LocationScriptingInterface::getPathname() {
-    const glm::vec3& position = Application::getInstance()->getAvatar()->getPosition();
-    QString path;
-    path.sprintf("/%.4f,%.4f,%.4f", position.x, position.y, position.z);
-    return path;
+    MyAvatar* applicationAvatar = Application::getInstance()->getAvatar();
+    return AddressManager::pathForPositionAndOrientation(applicationAvatar->getPosition(),
+                                                         true, applicationAvatar->getOrientation());
 }
 
 QString LocationScriptingInterface::getHostname() {
@@ -40,7 +39,7 @@ QString LocationScriptingInterface::getHostname() {
 }
 
 void LocationScriptingInterface::assign(const QString& url) {
-    QMetaObject::invokeMethod(Menu::getInstance(), "goToURL", Q_ARG(const QString&, url));
+    QMetaObject::invokeMethod(&AddressManager::getInstance(), "handleLookupString", Q_ARG(const QString&, url));
 }
 
 QScriptValue LocationScriptingInterface::locationGetter(QScriptContext* context, QScriptEngine* engine) {

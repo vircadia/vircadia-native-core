@@ -20,13 +20,15 @@
 
 
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return new  BoxEntityItem(entityID, properties);
+    EntityItem* result = new BoxEntityItem(entityID, properties);
+    return result;
 }
 
 BoxEntityItem::BoxEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) :
-        EntityItem(entityItemID, properties) 
-{ 
+        EntityItem(entityItemID) 
+{
     _type = EntityTypes::Box;
+    _created = properties.getCreated();
     setProperties(properties, true);
 }
 
@@ -44,18 +46,9 @@ EntityItemProperties BoxEntityItem::getProperties() const {
 
 bool BoxEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     bool somethingChanged = false;
-    
     somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
 
-    if (properties._colorChanged || forceCopy) {
-        setColor(properties._color);
-        somethingChanged = true;
-    }
-
-    if (properties._glowLevelChanged || forceCopy) {
-        setGlowLevel(properties._glowLevel);
-        somethingChanged = true;
-    }
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
 
     if (somethingChanged) {
         bool wantDebug = false;
