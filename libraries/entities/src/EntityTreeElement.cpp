@@ -410,30 +410,18 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 }
 
 bool EntityTreeElement::containsEntityBounds(const EntityItem* entity) const {
-    // Here we have a choice to make, do we want to "tight fit" the actual minimum for the
-    // entity into the the element, or do we want to use the entities "relaxed" bounds
-    // which can handle all potential rotations?
-    // the getMaximumAACube is the relaxed form.
     return containsBounds(entity->getMaximumAACube());
 }
 
 bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
-    // Here we have a choice to make, do we want to "tight fit" the actual minimum for the
-    // entity into the the element, or do we want to use the entities "relaxed" bounds
-    // which can handle all potential rotations?
-    // the getMaximumAACube is the relaxed form.
     return bestFitBounds(entity->getMaximumAACube());
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    // TODO: this needs to be updated to have the similar behavior support for registration point and rotation
-    // as EntityItem does
     return containsBounds(properties.getMaximumAACubeInTreeUnits());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    // TODO: this needs to be updated to have the similar behavior support for registration point and rotation
-    // as EntityItem does
     return bestFitBounds(properties.getMaximumAACubeInTreeUnits());
 }
 

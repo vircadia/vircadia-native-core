@@ -196,8 +196,6 @@ public:
 
     // position, size, and bounds related helpers
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
-    glm::vec3 getMinimumPoint() const;
-    glm::vec3 getMaximumPoint() const;
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)

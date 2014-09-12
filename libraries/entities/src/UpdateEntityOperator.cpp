@@ -31,7 +31,8 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     _dontMove(false), // assume we'll be moving
     _changeTime(usecTimestampNow()),
     _oldEntityCube(),
-    _newEntityCube()
+    _newEntityCube(),
+    _wantDebug(false)
 {
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
@@ -80,6 +81,19 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     }
 
     _newEntityBox = _newEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
+
+
+    if (_wantDebug) {
+        qDebug() << "UpdateEntityOperator::UpdateEntityOperator() -----------------------------";
+        qDebug() << "    _entityItemID:" << _entityItemID;
+        qDebug() << "    _containingElementCube:" << _containingElementCube;
+        qDebug() << "    _oldEntityCube:" << _oldEntityCube;
+        qDebug() << "    _oldEntityBox:" << _oldEntityBox;
+        qDebug() << "    _newEntityCube:" << _newEntityCube;
+        qDebug() << "    _newEntityBox:" << _newEntityBox;
+        qDebug() << "--------------------------------------------------------------------------";
+    }
+
 }
 
 

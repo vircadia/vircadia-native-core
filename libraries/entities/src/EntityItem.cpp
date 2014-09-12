@@ -29,7 +29,7 @@ const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
 const float EntityItem::DEFAULT_DAMPING = 0.5f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
-const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 10000.0f) / (float)TREE_SCALE; // really small
+const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
 const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
 const glm::vec3 EntityItem::NO_GRAVITY = glm::vec3(0, 0, 0);
 const glm::vec3 EntityItem::REGULAR_GRAVITY = glm::vec3(0, (-9.8f / TREE_SCALE), 0);
@@ -499,23 +499,57 @@ void EntityItem::adjustEditPacketForClockSkew(unsigned char* editPacketBuffer, s
     }
 }
 
+// TODO: we probably want to change this to make "down" be the direction of the entity's gravity vector
+//       for now, this is always true DOWN even if entity has non-down gravity.
+// TODO: the old code had "&& _velocity.y >= -EPSILON && _velocity.y <= EPSILON" --- what was I thinking?
 bool EntityItem::isRestingOnSurface() const { 
-    // TODO: change this to support registration point
+    glm::vec3 downwardVelocity = glm::vec3(0.0f, _velocity.y, 0.0f);
+
     return _position.y <= getDistanceToBottomOfEntity()
-            && _velocity.y >= -EPSILON && _velocity.y <= EPSILON
+            && (glm::length(downwardVelocity) <= EPSILON_VELOCITY_LENGTH)
             && _gravity.y < 0.0f;
 }
 
 void EntityItem::update(const quint64& updateTime) {
-    bool wantDebug = false;
+    bool wantDebug = true;
 
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
 
     if (wantDebug) {
         qDebug() << "********** EntityItem::update()";
+        qDebug() << "    entity ID=" << getEntityItemID();
         qDebug() << "    updateTime=" << updateTime;
         qDebug() << "    _lastUpdated=" << _lastUpdated;
         qDebug() << "    timeElapsed=" << timeElapsed;
+        qDebug() << "    hasVelocity=" << hasVelocity();
+        qDebug() << "    hasGravity=" << hasGravity();
+        qDebug() << "    isRestingOnSurface=" << isRestingOnSurface();
+        qDebug() << "    hasAngularVelocity=" << hasAngularVelocity();
+        qDebug() << "    getAngularVelocity=" << getAngularVelocity();
+        qDebug() << "    isMortal=" << isMortal();
+        qDebug() << "    getAge()=" << getAge();
+        qDebug() << "    getLifetime()=" << getLifetime();
+
+
+        if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
+            qDebug() << "    MOVING...=";
+            qDebug() << "        hasVelocity=" << hasVelocity();
+            qDebug() << "        hasGravity=" << hasGravity();
+            qDebug() << "        isRestingOnSurface=" << isRestingOnSurface();
+            qDebug() << "        hasAngularVelocity=" << hasAngularVelocity();
+            qDebug() << "        getAngularVelocity=" << getAngularVelocity();
+        }
+        if (hasAngularVelocity()) {
+            qDebug() << "    CHANGING...=";
+            qDebug() << "        hasAngularVelocity=" << hasAngularVelocity();
+            qDebug() << "        getAngularVelocity=" << getAngularVelocity();
+        }
+        if (isMortal()) {
+            qDebug() << "    MORTAL...=";
+            qDebug() << "        isMortal=" << isMortal();
+            qDebug() << "        getAge()=" << getAge();
+            qDebug() << "        getLifetime()=" << getLifetime();
+        }
     }
 
     _lastUpdated = updateTime;
@@ -562,7 +596,8 @@ void EntityItem::update(const quint64& updateTime) {
             qDebug() << "    old AACube:" << getMaximumAACube();
             qDebug() << "    old position:" << position;
             qDebug() << "    old velocity:" << velocity;
-            qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity();
+            qDebug() << "    old getAABox:" << getAABox();
+            qDebug() << "    getDistanceToBottomOfEntity():" << getDistanceToBottomOfEntity() * (float)TREE_SCALE << " in meters";
             qDebug() << "    newPosition:" << newPosition;
             qDebug() << "    glm::distance(newPosition, position):" << glm::distance(newPosition, position);
         }
@@ -604,21 +639,23 @@ void EntityItem::update(const quint64& updateTime) {
 
         if (wantDebug) {        
             qDebug() << "    velocity AFTER dampingResistance:" << velocity;
+            qDebug() << "    glm::length(velocity):" << glm::length(velocity);
+            qDebug() << "    EPSILON_VELOCITY_LENGTH:" << EPSILON_VELOCITY_LENGTH;
         }
         
         // round velocity to zero if it's close enough...
         if (glm::length(velocity) <= EPSILON_VELOCITY_LENGTH) {
             velocity = NO_VELOCITY;
         }
+
+        setPosition(position);
+        setVelocity(velocity);
         
         if (wantDebug) {        
             qDebug() << "    new position:" << position;
             qDebug() << "    new velocity:" << velocity;
-        }
-        setPosition(position);
-        setVelocity(velocity);
-        if (wantDebug) {        
             qDebug() << "    new AACube:" << getMaximumAACube();
+            qDebug() << "    old getAABox:" << getAABox();
         }
     }
 }
@@ -722,21 +759,8 @@ float EntityItem::getSize() const {
 }
 
 float EntityItem::getDistanceToBottomOfEntity() const {
-    // the AABox from getAABox() is the true minimum bounding box for the entity
-    // so it's minimum y is indeed the distance to the bottom of the entity
     glm::vec3 minimumPoint = getAABox().getMinimumPoint();
-    return minimumPoint.y;
-}
-
-// TODO: doesn't this need to handle rotation?
-glm::vec3 EntityItem::getMinimumPoint() const { 
-    return _position - (_dimensions * _registrationPoint); 
-}
-
-// TODO: doesn't this need to handle rotation?
-glm::vec3 EntityItem::getMaximumPoint() const { 
-    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
-    return _position + (_dimensions * registrationRemainder);
+    return getPosition().y - minimumPoint.y;
 }
 
 // TODO: doesn't this need to handle rotation?

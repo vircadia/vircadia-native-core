@@ -20,21 +20,53 @@ MovingEntitiesOperator::MovingEntitiesOperator(EntityTree* tree) :
     _changeTime(usecTimestampNow()),
     _foundOldCount(0),
     _foundNewCount(0),
-    _lookingCount(0)
+    _lookingCount(0),
+    _wantDebug(false)
 {
 }
 
 MovingEntitiesOperator::~MovingEntitiesOperator() {
+    if (_wantDebug) {
+        bool stopExecution = false;
+        qDebug() << "MovingEntitiesOperator::~MovingEntitiesOperator() -----------------------------";
+        qDebug() << "    _lookingCount:" << _lookingCount;
+        qDebug() << "    _foundOldCount:" << _foundOldCount;
+        qDebug() << "    _foundNewCount:" << _foundNewCount;
+        if (_foundOldCount < _lookingCount) {
+            qDebug() << "    FAILURE: **** _foundOldCount < _lookingCount ******";
+            stopExecution = true;
+        }
+        if (_foundNewCount < _lookingCount) {
+            qDebug() << "    FAILURE: **** _foundNewCount < _lookingCount ******";
+            stopExecution = true;
+        }
+        qDebug() << "--------------------------------------------------------------------------";
+        if(stopExecution) {
+            debug();
+            assert(false);
+        }
+    }
 }
 
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube) {
     EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
-    AABox newBox = newCube.clamp(0.0f, 1.0f);
+    AABox newCubeClamped = newCube.clamp(0.0f, 1.0f);
+    AABox oldCubeClamped = oldCube.clamp(0.0f, 1.0f);
+
+    if (_wantDebug) {
+        qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
+        qDebug() << "    oldCube:" << oldCube;
+        qDebug() << "    newCube:" << newCube;
+        qDebug() << "    oldCubeClamped:" << oldCubeClamped;
+        qDebug() << "    newCubeClamped:" << newCubeClamped;
+        qDebug() << "    oldContainingElement:" << oldContainingElement->getAACube();
+        qDebug() << "    oldContainingElement->bestFitBounds(newCubeClamped):" << oldContainingElement->bestFitBounds(newCubeClamped);
+    }
 
     // If the original containing element is the best fit for the requested newCube locations then
     // we don't actually need to add the entity for moving and we can short circuit all this work
-    if (!oldContainingElement->bestFitBounds(newBox)) {
+    if (!oldContainingElement->bestFitBounds(newCubeClamped)) {
         // check our tree, to determine if this entity is known
         EntityToMoveDetails details;
         details.oldContainingElement = oldContainingElement;
@@ -44,9 +76,29 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACub
         details.newFound = false;
         details.oldCube = oldCube;
         details.newCube = newCube;
-        details.newBox = newBox;
+        details.oldCubeClamped = oldCubeClamped;
+        details.newCubeClamped = newCubeClamped;
         _entitiesToMove << details;
         _lookingCount++;
+
+        if (_wantDebug) {
+            qDebug() << "MovingEntitiesOperator::addEntityToMoveList() -----------------------------";
+            qDebug() << "    details.entity:" << details.entity->getEntityItemID();
+            qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
+            qDebug() << "    details.oldCube:" << details.oldCube;
+            qDebug() << "    details.newCube:" << details.newCube;
+            qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
+            qDebug() << "    _lookingCount:" << _lookingCount;
+            qDebug() << "--------------------------------------------------------------------------";
+        }
+    } else {
+        if (_wantDebug) {
+            qDebug() << "    oldContainingElement->bestFitBounds(newCubeClamped) IS BEST FIT... NOTHING TO DO";
+        }
+    }
+
+    if (_wantDebug) {
+        qDebug() << "--------------------------------------------------------------------------";
     }
 }
 
@@ -58,11 +110,29 @@ bool MovingEntitiesOperator::shouldRecurseSubTree(OctreeElement* element) {
     // check the bounds
     if (_entitiesToMove.size() > 0) {
         AACube elementCube = element->getAACube();
+        int detailIndex = 0;
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
-            if (elementCube.contains(details.oldCube) || elementCube.contains(details.newCube)) {
+
+            if (_wantDebug) {
+                qDebug() << "MovingEntitiesOperator::shouldRecurseSubTree() details["<< detailIndex <<"]-----------------------------";
+                qDebug() << "    element:" << element->getAACube();
+                qDebug() << "    details.entity:" << details.entity->getEntityItemID();
+                qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
+                qDebug() << "    details.oldCube:" << details.oldCube;
+                qDebug() << "    details.newCube:" << details.newCube;
+                qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
+                qDebug() << "    elementCube.contains(details.oldCube)" << elementCube.contains(details.oldCube);
+                qDebug() << "    elementCube.contains(details.newCube)" << elementCube.contains(details.newCube);
+                qDebug() << "    elementCube.contains(details.oldCubeClamped)" << elementCube.contains(details.oldCubeClamped);
+                qDebug() << "    elementCube.contains(details.newCubeClamped)" << elementCube.contains(details.newCubeClamped);
+                qDebug() << "--------------------------------------------------------------------------";
+            }
+
+            if (elementCube.contains(details.oldCubeClamped) || elementCube.contains(details.newCubeClamped)) {
                 containsEntity = true;
                 break; // if it contains at least one, we're good to go
             }
+            detailIndex++;
         }
     }
     return containsEntity;
@@ -87,13 +157,36 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
     if (keepSearching && shouldRecurseSubTree(element)) {
 
         // check against each of our search entities
+        int detailIndex = 0;
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
+        
+            if (_wantDebug) {
+                qDebug() << "MovingEntitiesOperator::preRecursion() details["<< detailIndex <<"]-----------------------------";
+                qDebug() << "    entityTreeElement:" << entityTreeElement->getAACube();
+                qDebug() << "    entityTreeElement->bestFitBounds(details.newCube):" << entityTreeElement->bestFitBounds(details.newCube);
+                qDebug() << "    details.entity:" << details.entity->getEntityItemID();
+                qDebug() << "    details.oldContainingElementCube:" << details.oldContainingElementCube;
+                qDebug() << "    entityTreeElement:" << entityTreeElement;
+                qDebug() << "    details.oldCube:" << details.oldCube;
+                qDebug() << "    details.newCube:" << details.newCube;
+                qDebug() << "    details.newCubeClamped:" << details.newCubeClamped;
+                qDebug() << "    _lookingCount:" << _lookingCount;
+                qDebug() << "    _foundOldCount:" << _foundOldCount;
+                qDebug() << "--------------------------------------------------------------------------";
+            }
+        
 
             // If this is one of the old elements we're looking for, then ask it to remove the old entity
             if (!details.oldFound && entityTreeElement == details.oldContainingElement) {
                 entityTreeElement->removeEntityItem(details.entity);
                 _foundOldCount++;
                 //details.oldFound = true; // TODO: would be nice to add this optimization
+                if (_wantDebug) {
+                    qDebug() << "MovingEntitiesOperator::preRecursion() -----------------------------";
+                    qDebug() << "    FOUND OLD - REMOVING";
+                    qDebug() << "    entityTreeElement == details.oldContainingElement";
+                    qDebug() << "--------------------------------------------------------------------------";
+                }
             }
 
             // If this element is the best fit for the new bounds of this entity then add the entity to the element
@@ -103,7 +196,14 @@ bool MovingEntitiesOperator::preRecursion(OctreeElement* element) {
                 _tree->setContainingElement(entityItemID, entityTreeElement);
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization
+                if (_wantDebug) {
+                    qDebug() << "MovingEntitiesOperator::preRecursion() -----------------------------";
+                    qDebug() << "    FOUND NEW - ADDING";
+                    qDebug() << "    entityTreeElement->bestFitBounds(details.newCube)";
+                    qDebug() << "--------------------------------------------------------------------------";
+                }
             }
+            detailIndex++;
         }
         // if we haven't found all of our search for entities, then keep looking
         keepSearching = (_foundOldCount < _lookingCount) || (_foundNewCount < _lookingCount);
@@ -163,9 +263,9 @@ OctreeElement* MovingEntitiesOperator::possiblyCreateChildAt(OctreeElement* elem
         foreach(const EntityToMoveDetails& details, _entitiesToMove) {
 
             // if the scale of our desired cube is smaller than our children, then consider making a child
-            if (details.newBox.getLargestDimension() <= childElementScale) {
+            if (details.newCubeClamped.getLargestDimension() <= childElementScale) {
 
-                int indexOfChildContainingNewEntity = element->getMyChildContaining(details.newBox);
+                int indexOfChildContainingNewEntity = element->getMyChildContaining(details.newCubeClamped);
             
                 // If the childIndex we were asked if we wanted to create contains this newCube,
                 // then we will create this branch and continue. We can exit this loop immediately
