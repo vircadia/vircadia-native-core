@@ -21,15 +21,13 @@
 
 static const QString HIFI_URL_SCHEME = "hifi";
 
-const glm::quat EMPTY_QUAT = glm::quat();
-
 class AddressManager : public QObject {
     Q_OBJECT
 public:
     static AddressManager& getInstance();
     
     static QString pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation = false,
-                                                 const glm::quat& orientation = EMPTY_QUAT);
+                                                 const glm::quat& orientation = glm::quat());
     
     void handleLookupString(const QString& lookupString);
     void attemptPlaceNameLookup(const QString& lookupString);
