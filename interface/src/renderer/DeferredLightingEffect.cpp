@@ -27,8 +27,8 @@ void DeferredLightingEffect::init() {
 }
 
 void DeferredLightingEffect::prepare() {
-    // clear the normal buffer
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true);
+    // clear the normal and specular buffers
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
     glClear(GL_COLOR_BUFFER_BIT);
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
