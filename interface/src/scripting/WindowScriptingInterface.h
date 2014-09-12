@@ -80,6 +80,7 @@ private:
     QScriptValue _form;
     bool _nonBlockingFormActive;
     int _formResult;
+    QVector<QComboBox*> _combos;
     QVector<QLineEdit*> _edits;
     QVector<QPushButton*> _directories;
 };

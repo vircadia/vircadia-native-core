@@ -284,6 +284,9 @@ private:
     glm::vec4 _localLightColors[MAX_LOCAL_LIGHTS];
     glm::vec4 _localLightDirections[MAX_LOCAL_LIGHTS];
 
+    bool _blenderPending;
+    bool _blendRequired;
+
     static ProgramObject _program;
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;

@@ -38,6 +38,7 @@ public slots:
     void goToUser(const QString& username);
 signals:
     void lookupResultIsOffline();
+    void lookupResultIsNotFound();
     void possibleDomainChangeRequired(const QString& newHostname);
     void locationChangeRequired(const glm::vec3& newPosition, bool hasOrientationChange, const glm::vec3& newOrientation);
 private:
