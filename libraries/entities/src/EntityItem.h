@@ -224,6 +224,11 @@ public:
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
     
+    // TODO: We need to get rid of these users of getRadius()... but for now, we'll make them friends
+    //       so they can be the only ones accessing this method.
+    float getRadius() const;
+    
+    
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
 
@@ -257,12 +262,6 @@ protected:
     
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
-
-private:
-    // TODO: We need to get rid of these users of getRadius()... but for now, we'll make them friends
-    //       so they can be the only ones accessing this method.
-    friend EntityTreeElement;
-    float getRadius() const;
 
 };
 
