@@ -20,20 +20,20 @@
 class UserLocation : public QObject {
     Q_OBJECT
 public:
-    UserLocation(QString id, QString name, QString location);
+    UserLocation(const QString& id, const QString& name, const QString& address);
     bool isUpdating() { return _updating; }
     void requestRename(const QString& newName);
     void requestDelete();
 
-    QString id() { return _id; }
-    QString name() { return _name; }
-    QString location() { return _location; }
+    const QString& id() { return _id; }
+    const QString& name() { return _name; }
+    const QString& address() { return _address; }
 
 public slots:
     void handleRenameResponse(const QJsonObject& responseData);
-    void handleRenameError(QNetworkReply::NetworkError error, const QString& errorString);
+    void handleRenameError(QNetworkReply& errorReply);
     void handleDeleteResponse(const QJsonObject& responseData);
-    void handleDeleteError(QNetworkReply::NetworkError error, const QString& errorString);
+    void handleDeleteError(QNetworkReply& errorReply);
 
 signals:
     void updated(const QString& name);
@@ -42,7 +42,7 @@ signals:
 private:
     QString _id;
     QString _name;
-    QString _location;
+    QString _address;
     QString _previousName;
     bool _updating;
 
@@ -65,7 +65,7 @@ public:
 
     enum Columns {
         NameColumn = 0,
-        LocationColumn
+        AddressColumn
     };
 
 public slots:

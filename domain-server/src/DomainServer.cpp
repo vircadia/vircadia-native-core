@@ -189,6 +189,12 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
 
     LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
+    
+    const QString DOMAIN_CONFIG_ID_KEY = "id";
+    
+    // set our LimitedNodeList UUID to match the UUID from our config
+    // nodes will currently use this to add resources to data-web that relate to our domain
+    nodeList->setSessionUUID(_argumentVariantMap.value(DOMAIN_CONFIG_ID_KEY).toString());
 
     connect(nodeList, &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList, &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
