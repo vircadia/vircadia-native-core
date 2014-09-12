@@ -17,6 +17,9 @@
 #include <QSizePolicy>
 #include <QTimer>
 
+#include <AddressManager.h>
+#include <AccountManager.h>
+
 #include "Application.h"
 #include "ChatMessageArea.h"
 #include "FlowLayout.h"
@@ -26,7 +29,6 @@
 
 #include "ui_chatWindow.h"
 #include "ChatWindow.h"
-
 
 
 const int NUM_MESSAGES_TO_TIME_STAMP = 20;
@@ -169,7 +171,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
     } else if (event->type() == QEvent::MouseButtonRelease) {
         QVariant userVar = sender->property("user");
         if (userVar.isValid()) {
-            Menu::getInstance()->goToUser("@" + userVar.toString());
+            AddressManager::getInstance().goToUser(userVar.toString());
             return true;
         }
     }

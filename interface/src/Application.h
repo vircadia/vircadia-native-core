@@ -114,7 +114,6 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString CUSTOM_URL_SCHEME = "hifi:";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.0f;       // meters
@@ -153,7 +152,6 @@ public:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
-    void urlGoTo(int argc, const char * constArgv[]);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -299,6 +297,8 @@ public:
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
+    void setCursorVisible(bool visible);
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -314,6 +314,7 @@ signals:
     void importDone();
 
 public slots:
+    void changeDomainHostname(const QString& newDomainHostname);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void updateLocationInServer();
@@ -353,6 +354,8 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
     void uploadAttachment();
+    
+    void openUrl(const QUrl& url);
 
     void bumpSettings() { ++_numChangedSettings; }
     

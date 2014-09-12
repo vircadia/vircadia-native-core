@@ -22,39 +22,33 @@ class NamedLocation : public QObject {
     Q_OBJECT
     
 public:
-    NamedLocation(QString locationName, glm::vec3 location, glm::quat orientation, QString domain) {
-        _locationName = locationName;
-        _location = location;
-        _orientation = orientation;
-        _domain = domain;
-    }
+    NamedLocation(const QString& name, const glm::vec3& position, const glm::quat& orientation, const QUuid& domainID);
 
     QString toJsonString();
 
-    bool isEmpty() { return _locationName.isNull() || _locationName.isEmpty(); }
+    bool isEmpty() { return _name.isNull() || _name.isEmpty(); }
 
-    void setLocationName(QString locationName) { _locationName = locationName; }
-    QString locationName() { return _locationName; }
+    void setName(QString name) { _name = name; }
+    const QString& getName() const { return _name; }
 
-    void setLocation(glm::vec3 location) { _location = location; }
-    glm::vec3 location() { return _location; }
+    void setLocation(glm::vec3 position) { _position = position; }
+    const glm::vec3& getPosition() const { return _position; }
     
-    void setOrientation(glm::quat orentation) { _orientation = orentation; }
-    glm::quat orientation() { return _orientation; }
+    void setOrientation(const glm::quat& orentation) { _orientation = orentation; }
+    const glm::quat& getOrientation() const { return _orientation; }
 
-    void setDomain(QString domain) { _domain = domain; }
-    QString domain() { return _domain; }
+    void setDomainID(const QUuid& domainID) { _domainID = domainID; }
+    const QUuid& getDomainID() const { return _domainID; }
 
 signals:
     void dataReceived(bool locationExists);
 
 private:
-    
-    QString _locationName;
+    QString _name;
     QString _createdBy;
-    glm::vec3 _location;
+    glm::vec3 _position;
     glm::quat _orientation;
-    QString _domain;
+    QUuid _domainID;
 
 };
 

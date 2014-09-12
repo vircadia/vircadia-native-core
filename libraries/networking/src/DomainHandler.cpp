@@ -73,6 +73,22 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
     _hostname = hostname;
 }
 
+void DomainHandler::setUUID(const QUuid& uuid) {
+    if (uuid != _uuid) {
+        _uuid = uuid;
+        qDebug() << "Domain uuid changed to" << uuidStringWithoutCurlyBraces(_uuid);
+    }
+}
+
+QString DomainHandler::hostnameWithoutPort(const QString& hostname) {
+    int colonIndex = hostname.indexOf(':');
+    return colonIndex > 0 ? hostname.left(colonIndex) : hostname;
+}
+
+bool DomainHandler::isCurrentHostname(const QString& hostname) {
+    return hostnameWithoutPort(hostname) == _hostname;
+}
+
 void DomainHandler::setHostname(const QString& hostname) {
     
     if (hostname != _hostname) {
