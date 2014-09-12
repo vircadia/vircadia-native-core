@@ -114,7 +114,6 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString CUSTOM_URL_SCHEME = "hifi:";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.0f;       // meters

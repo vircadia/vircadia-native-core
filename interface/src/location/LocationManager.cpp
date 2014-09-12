@@ -15,8 +15,7 @@
 #include "LocationManager.h"
 #include <UserActivityLogger.h>
 
-const QString GET_USER_ADDRESS = "/api/v1/users/%1/address";
-const QString GET_PLACE_ADDRESS = "/api/v1/metaverse/search/%1";
+
 const QString POST_PLACE_CREATE = "/api/v1/places/";
 
 LocationManager& LocationManager::getInstance() {
@@ -36,10 +35,6 @@ void LocationManager::namedLocationDataReceived(const QJsonObject& data) {
     }
 }
 
-void LocationManager::errorDataReceived(QNetworkReply::NetworkError error, const QString& message) {
-    emit creationCompleted(LocationManager::SystemError);
-}
-
 void LocationManager::createNamedLocation(NamedLocation* namedLocation) {
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.isLoggedIn()) {
@@ -52,78 +47,6 @@ void LocationManager::createNamedLocation(NamedLocation* namedLocation) {
         accountManager.authenticatedRequest(POST_PLACE_CREATE, QNetworkAccessManager::PostOperation,
                                             callbackParams, namedLocation->toJsonString().toUtf8());
     }
-}
-
-void LocationManager::goTo(QString destination) {
-    const QString USER_DESTINATION_TYPE = "user";
-    const QString PLACE_DESTINATION_TYPE = "place";
-    const QString COORDINATE_DESTINATION_TYPE = "coordinate";
-    
-    if (destination.startsWith("@")) {
-        // remove '@' and go to user
-        QString destinationUser = destination.remove(0, 1);
-        UserActivityLogger::getInstance().wentTo(USER_DESTINATION_TYPE, destinationUser);
-        goToUser(destinationUser);
-        return;
-    }
-
-    // go to coordinate destination or to Username
-    if (!goToDestination(destination)) {
-        destination = QString(QUrl::toPercentEncoding(destination));
-        UserActivityLogger::getInstance().wentTo(PLACE_DESTINATION_TYPE, destination);
-        
-        JSONCallbackParameters callbackParams;
-        callbackParams.jsonCallbackReceiver = this;
-        callbackParams.jsonCallbackMethod = "goToPlaceFromResponse";
-        callbackParams.errorCallbackReceiver = this;
-        callbackParams.errorCallbackMethod = "handleAddressLookupError";
-        
-        AccountManager::getInstance().authenticatedRequest(GET_PLACE_ADDRESS.arg(destination),
-                                                           QNetworkAccessManager::GetOperation,
-                                                           callbackParams);
-    } else {
-        UserActivityLogger::getInstance().wentTo(COORDINATE_DESTINATION_TYPE, destination);
-    }
-}
-
-void LocationManager::goToPlaceFromResponse(const QJsonObject& responseData) {
-    QJsonValue status = responseData["status"];
-    
-    QJsonObject data = responseData["data"].toObject();
-    QJsonObject domainObject = data["domain"].toObject();
-    
-    const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
-    
-    // get the network address for the domain we need to switch to
-    NodeList::getInstance()->getDomainHandler().setHostname(domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString());
-    
-    // check if there is a path inside the domain we need to jump to
-}
-
-void LocationManager::goToUser(QString userName) {
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
-    callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
-    callbackParams.errorCallbackReceiver = this;
-    callbackParams.errorCallbackMethod = "handleAddressLookupError";
-
-    userName = QString(QUrl::toPercentEncoding(userName));
-    AccountManager::getInstance().authenticatedRequest(GET_USER_ADDRESS.arg(userName),
-                                                       QNetworkAccessManager::GetOperation,
-                                                       callbackParams);
-}
-
-void LocationManager::goToPlace(QString placeName) {
-    JSONCallbackParameters callbackParams;
-    callbackParams.jsonCallbackReceiver = Application::getInstance()->getAvatar();
-    callbackParams.jsonCallbackMethod = "goToLocationFromResponse";
-    callbackParams.errorCallbackReceiver = this;
-    callbackParams.errorCallbackMethod = "handleAddressLookupError";
-
-    placeName = QString(QUrl::toPercentEncoding(placeName));
-    AccountManager::getInstance().authenticatedRequest(GET_PLACE_ADDRESS.arg(placeName),
-                                                       QNetworkAccessManager::GetOperation,
-                                                       callbackParams);
 }
 
 void LocationManager::goToUrl(const QUrl& url) {

@@ -15,20 +15,37 @@
 #include <qobject.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
+#include "AccountManager.h"
+
+static const QString HIFI_URL_SCHEME = "hifi:";
+
+const glm::quat EMPTY_QUAT = glm::quat();
 
 class AddressManager : public QObject {
     Q_OBJECT
 public:
     static AddressManager& getInstance();
     
+    static QString pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation = false,
+                                                 const glm::quat& orientation = EMPTY_QUAT);
+    
     void handleLookupString(const QString& lookupString);
+    void attemptPlaceNameLookup(const QString& lookupString);
+public slots:
+    void handleAPIResponse(const QJsonObject& jsonObject);
+    void handleAPIError(QNetworkReply::NetworkError error, const QString& message);
 signals:
-    void domainChangeRequired(const QString& newHostname);
+    void lookupResultIsOffline();
+    void possibleDomainChangeRequired(const QString& newHostname);
     void locationChangeRequired(const glm::vec3& newPosition, bool hasOrientationChange, const glm::vec3& newOrientation);
 private:
-    bool lookupHandledAsNetworkAddress(const QString& lookupString);
-    bool lookupHandledAsLocationString(const QString& lookupString);
-    bool lookupHandledAsUsername(const QString& lookupString);
+    const JSONCallbackParameters& apiCallbackParameters();
+    
+    bool isLookupHandledAsNetworkAddress(const QString& lookupString);
+    bool isLookupHandledAsViewpoint(const QString& lookupString);
+    bool isLookupHandledAsUsername(const QString& lookupString);
 };
 
 #endif // hifi_AddressManager_h

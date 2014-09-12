@@ -49,8 +49,6 @@ signals:
     
 private slots:
     void namedLocationDataReceived(const QJsonObject& data);
-    void errorDataReceived(QNetworkReply::NetworkError error, const QString& message);
-    void goToPlaceFromResponse(const QJsonObject& jsonObject);
 
 };
 

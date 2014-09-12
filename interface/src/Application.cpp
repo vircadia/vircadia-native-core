@@ -84,7 +84,6 @@
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
-#include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
 #include "ui/OAuthWebViewHandler.h"
@@ -408,7 +407,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
 
     // connect to the domainChangeRequired signal on AddressManager
-    connect(&AddressManager::getInstance(), &AddressManager::domainChangeRequired, this, &Application::changeDomainHostname);
+    connect(&AddressManager::getInstance(), &AddressManager::possibleDomainChangeRequired,
+            this, &Application::changeDomainHostname);
     
     //When -url in command line, teleport to location
     urlGoTo(argc, constArgv);
@@ -811,7 +811,7 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
+        bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(HIFI_URL_SCHEME);
         if (isHifiSchemeURL) {
 //            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
         }
@@ -3376,31 +3376,44 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-
-    if (accountManager.isLoggedIn()) {
+    const QUuid& domainUUID = NodeList::getInstance()->getDomainHandler().getUUID();
+    
+    if (accountManager.isLoggedIn() && !domainUUID.isNull()) {
 
         // construct a QJsonObject given the user's current address information
-        QJsonObject updatedLocationObject;
+        QJsonObject rootObject;
 
-        QJsonObject addressObject;
-        addressObject.insert("position", QString(createByteArray(_myAvatar->getPosition())));
-        addressObject.insert("orientation", QString(createByteArray(glm::degrees(safeEulerAngles(_myAvatar->getOrientation())))));
-        addressObject.insert("domain", NodeList::getInstance()->getDomainHandler().getHostname());
+        QJsonObject locationObject;
+        
+        QString pathString = AddressManager::pathForPositionAndOrientation(_myAvatar->getPosition(),
+                                                                           true,
+                                                                           _myAvatar->getOrientation());
+       
+        const QString LOCATION_KEY_IN_ROOT = "location";
+        const QString PATH_KEY_IN_LOCATION = "path";
+        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+        
+        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
+        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainUUID.toString());
 
-        updatedLocationObject.insert("address", addressObject);
+        rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
 }
 
 void Application::changeDomainHostname(const QString &newDomainHostname) {
-    // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
-    _myAvatar->sendKillAvatar();
+    NodeList* nodeList = NodeList::getInstance();
     
-    // call the domain hostname change as a queued connection on the nodelist
-    QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
-                              Q_ARG(const QString&, newDomainHostname));
+    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
+        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
+        _myAvatar->sendKillAvatar();
+        
+        // call the domain hostname change as a queued connection on the nodelist
+        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
+                                  Q_ARG(const QString&, newDomainHostname));
+    }
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3785,12 +3798,12 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
-    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                      LocationScriptingInterface::locationSetter, windowValue);
-
-    // register `location` on the global object.
-    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                      LocationScriptingInterface::locationSetter);
+//    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+//                                      LocationScriptingInterface::locationSetter, windowValue);
+//
+//    // register `location` on the global object.
+//    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+//                                      LocationScriptingInterface::locationSetter);
 
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
@@ -4111,8 +4124,8 @@ void Application::takeSnapshot() {
 void Application::urlGoTo(int argc, const char * constArgv[]) {
     //Gets the url (hifi://domain/destination/orientation)
     QString customUrl = getCmdOption(argc, constArgv, "-url");
-    if(customUrl.startsWith(CUSTOM_URL_SCHEME + "//")) {
-        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
+    if(customUrl.startsWith(HIFI_URL_SCHEME + "//")) {
+        QStringList urlParts = customUrl.remove(0, HIFI_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
         if (urlParts.count() == 1) {
             // location coordinates or place name
              QString domain = urlParts[0];

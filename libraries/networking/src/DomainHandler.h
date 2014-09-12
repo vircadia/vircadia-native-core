@@ -37,8 +37,10 @@ public:
     void clearSettings();
     
     const QUuid& getUUID() const { return _uuid; }
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
+    void setUUID(const QUuid& uuid);
 
+    static QString hostnameWithoutPort(const QString& hostname);
+    bool isCurrentHostname(const QString& hostname);
     const QString& getHostname() const { return _hostname; }
     
     const QHostAddress& getIP() const { return _sockAddr.getAddress(); }
