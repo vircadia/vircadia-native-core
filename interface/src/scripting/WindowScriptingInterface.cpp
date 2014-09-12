@@ -165,6 +165,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
         area->setWidget(container);
         
         QVector<QLineEdit*> edits;
+        QVector<QComboBox*> combos;
         QVector<QPushButton*> directories;
         for (int i = 0; i < form.property("length").toInt32(); ++i) {
             QScriptValue item = form.property(i);
@@ -201,7 +202,15 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
 
                 formLayout->addRow(new QLabel(item.property("label").toString()), directory);
                 connect(directory, SIGNAL(clicked(bool)), SLOT(chooseDirectory()));
-
+            } else if (item.property("options").isArray()) {
+                QComboBox* combo = new QComboBox();
+                combo->setMinimumWidth(200);
+                QStringList options = item.property("options").toVariant().toStringList();
+                for (QStringList::const_iterator it = options.begin(); it != options.end(); it += 1) {
+                    combo->addItem(*it);
+                }
+                combos.push_back(combo);
+                formLayout->addRow(new QLabel(item.property("label").toString()), combo);
             } else {
                 QLineEdit* edit = new QLineEdit(item.property("value").toString());
                 edit->setMinimumWidth(200);
@@ -222,6 +231,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
         if (result == QDialog::Accepted) {
             int e = -1;
             int d = -1;
+            int c = -1;
             for (int i = 0; i < form.property("length").toInt32(); ++i) {
                 QScriptValue item = form.property(i);
                 QScriptValue value = item.property("value");
@@ -232,6 +242,10 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
                     d += 1;
                     value = directories.at(d)->property("path").toString();
                     item.setProperty("directory", value);
+                    form.setProperty(i, item);
+                } else if (item.property("options").isArray()) {
+                    c += 1;
+                    item.setProperty("value", combos.at(c)->currentText());
                     form.setProperty(i, item);
                 } else {
                     e += 1;
