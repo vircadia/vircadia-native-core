@@ -224,8 +224,7 @@ public:
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
     
-    // TODO: We need to get rid of these users of getRadius()... but for now, we'll make them friends
-    //       so they can be the only ones accessing this method.
+    // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
     
