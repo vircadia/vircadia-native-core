@@ -21,6 +21,9 @@ public:
     glm::vec3 getNormal() const;
     glm::vec4 getCoefficients() const;
 
+    void setNormal(const glm::vec3& normal);
+    void setPoint(const glm::vec3& point);
+
     bool findRayIntersection(RayIntersectionInfo& intersection) const;
 };
 
