@@ -32,7 +32,7 @@ void LocationManager::namedLocationDataReceived(const QJsonObject& data) {
     if (data.contains("status") && data["status"].toString() == "success") {
         emit creationCompleted(QString());
     } else {
-        emit  creationCompleted(UNKNOWN_ERROR_MESSAGE);
+        emit creationCompleted(UNKNOWN_ERROR_MESSAGE);
     }
 }
 
