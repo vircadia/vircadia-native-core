@@ -190,7 +190,7 @@ bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
                               tripleFloatRegex.cap(2).toFloat(),
                               tripleFloatRegex.cap(3).toFloat());
         
-        if (newPosition.x != NAN && newPosition.y != NAN &&  newPosition.z != NAN) {
+        if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
             glm::vec3 newOrientation;
             // we may also have an orientation
             if (lookupString[tripleFloatRegex.matchedLength() - 1] == QChar('/')
@@ -200,7 +200,7 @@ bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
                                          tripleFloatRegex.cap(2).toFloat(),
                                          tripleFloatRegex.cap(3).toFloat());
                 
-                if (newOrientation.x != NAN && newOrientation.y != NAN && newOrientation.z != NAN) {
+                if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)) {
                     emit locationChangeRequired(newPosition, true, newOrientation);
                     return true;
                 } else {
