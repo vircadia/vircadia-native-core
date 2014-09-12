@@ -31,15 +31,15 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 
     EntityItemID id(NEW_ENTITY, creatorTokenID, false );
 
-    // queue the packet
-    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
-
     // If we have a local entity tree set, then also update it.
     if (_entityTree) {
         _entityTree->lockForWrite();
         _entityTree->addEntity(id, properties);
         _entityTree->unlock();
     }
+
+    // queue the packet
+    queueEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
 
     return id;
 }
@@ -97,13 +97,10 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
     // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
         actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
-    }
-
-    // if at this point, we know the id, send the update to the entity server
-    if (actualID.id != UNKNOWN_ENTITY_ID) {
-        entityID.id = actualID.id;
-        entityID.isKnownID = true;
-        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+        if (actualID.id != UNKNOWN_ENTITY_ID) {
+            entityID.id = actualID.id;
+            entityID.isKnownID = true;
+        }
     }
     
     // If we have a local entity tree set, then also update it. We can do this even if we don't know
@@ -113,6 +110,12 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
         _entityTree->updateEntity(entityID, properties);
         _entityTree->unlock();
     }
+
+    // if at this point, we know the id, send the update to the entity server
+    if (entityID.isKnownID) {
+        queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
+    }
+    
     return entityID;
 }
 
@@ -123,13 +126,10 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
     // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
         actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
-    }
-
-    // if at this point, we know the id, send the update to the entity server
-    if (actualID.id != UNKNOWN_ENTITY_ID) {
-        entityID.id = actualID.id;
-        entityID.isKnownID = true;
-        getEntityPacketSender()->queueEraseEntityMessage(entityID);
+        if (actualID.id != UNKNOWN_ENTITY_ID) {
+            entityID.id = actualID.id;
+            entityID.isKnownID = true;
+        }
     }
 
     // If we have a local entity tree set, then also update it.
@@ -137,6 +137,11 @@ void EntityScriptingInterface::deleteEntity(EntityItemID entityID) {
         _entityTree->lockForWrite();
         _entityTree->deleteEntity(entityID);
         _entityTree->unlock();
+    }
+
+    // if at this point, we know the id, send the update to the entity server
+    if (entityID.isKnownID) {
+        getEntityPacketSender()->queueEraseEntityMessage(entityID);
     }
 }
 
