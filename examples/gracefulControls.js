@@ -150,7 +150,7 @@ function update(dt) {
     var maxSpeed = movementParameters.MAX_SPEED;
     velocity.x = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.x));
     velocity.z = Math.max(-maxSpeed, Math.min(maxSpeed, velocity.z));
-    var v = Quat.rotate(MyAvatar.headOrientation, velocity);
+    var v = Vec3.multiplyQbyV(MyAvatar.headOrientation, velocity);
 
     if (targetVelocityVertical == 0) {
         targetVelocityVertical -= (velocityVertical * movementParameters.DRAG_COEFFICIENT * dt);

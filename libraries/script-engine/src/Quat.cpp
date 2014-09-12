@@ -42,10 +42,6 @@ glm::quat Quat::inverse(const glm::quat& q) {
     return glm::inverse(q);
 }
 
-glm::vec3 Quat::rotate(const glm::quat& q, const glm::vec3& v) {
-    return glm::rotate(q, v);
-}
-
 glm::vec3 Quat::getFront(const glm::quat& orientation) {
     return orientation * IDENTITY_FRONT;
 }
