@@ -51,7 +51,7 @@ void UserLocationsDialog::updateEnabled() {
 }
 
 void UserLocationsDialog::goToModelIndex(const QModelIndex& index) {
-    QVariant location = _proxyModel.data(index.sibling(index.row(), UserLocationsModel::LocationColumn));
+    QVariant location = _proxyModel.data(index.sibling(index.row(), UserLocationsModel::AddressColumn));
 //    Menu::getInstance()->goToURL(location.toString());
 }
 

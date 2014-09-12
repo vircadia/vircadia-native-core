@@ -18,14 +18,13 @@
 #include "Application.h"
 #include "UserLocationsModel.h"
 
-static const QString PLACES_GET = "/api/v1/places";
-static const QString PLACES_UPDATE = "/api/v1/places/%1";
-static const QString PLACES_DELETE= "/api/v1/places/%1";
+static const QString LOCATIONS_GET = "/api/v1/locations";
+static const QString LOCATION_UPDATE_OR_DELETE = "/api/v1/locations/%1";
 
-UserLocation::UserLocation(QString id, QString name, QString location) :
+UserLocation::UserLocation(const QString& id, const QString& name, const QString& address) :
     _id(id),
     _name(name),
-    _location(location),
+    _address(address),
     _previousName(name),
     _updating(false) {
 }
@@ -35,10 +34,15 @@ void UserLocation::requestRename(const QString& newName) {
         _updating = true;
 
         JSONCallbackParameters callbackParams(this, "handleRenameResponse", this, "handleRenameError");
+        
         QJsonObject jsonNameObject;
-        jsonNameObject.insert("name", QJsonValue(newName));
+        jsonNameObject.insert("name", newName);
+        
+        QJsonObject locationObject;
+        locationObject.insert("location", jsonNameObject);
+        
         QJsonDocument jsonDocument(jsonNameObject);
-        AccountManager::getInstance().authenticatedRequest(PLACES_UPDATE.arg(_id),
+        AccountManager::getInstance().authenticatedRequest(LOCATION_UPDATE_OR_DELETE.arg(_id),
                                                            QNetworkAccessManager::PutOperation,
                                                            callbackParams,
                                                            jsonDocument.toJson());
@@ -54,7 +58,9 @@ void UserLocation::handleRenameResponse(const QJsonObject& responseData) {
 
     QJsonValue status = responseData["status"];
     if (!status.isUndefined() && status.toString() == "success") {
-        QString updatedName = responseData["data"].toObject()["name"].toString();
+        qDebug() << responseData;
+        QString updatedName = responseData["data"].toObject()["location"].toObject()["name"].toString();
+        qDebug() << "The updated name is" << updatedName;
         _name = updatedName;
     } else {
         _name = _previousName;
@@ -90,7 +96,7 @@ void UserLocation::requestDelete() {
         _updating = true;
 
         JSONCallbackParameters callbackParams(this, "handleDeleteResponse", this, "handleDeleteError");
-        AccountManager::getInstance().authenticatedRequest(PLACES_DELETE.arg(_id),
+        AccountManager::getInstance().authenticatedRequest(LOCATION_UPDATE_OR_DELETE.arg(_id),
                                                            QNetworkAccessManager::DeleteOperation,
                                                            callbackParams);
     }
@@ -153,7 +159,7 @@ void UserLocationsModel::refresh() {
         endResetModel();
 
         JSONCallbackParameters callbackParams(this, "handleLocationsResponse");
-        AccountManager::getInstance().authenticatedRequest(PLACES_GET,
+        AccountManager::getInstance().authenticatedRequest(LOCATIONS_GET,
                                                            QNetworkAccessManager::GetOperation,
                                                            callbackParams);
     }
@@ -165,14 +171,13 @@ void UserLocationsModel::handleLocationsResponse(const QJsonObject& responseData
     QJsonValue status = responseData["status"];
     if (!status.isUndefined() && status.toString() == "success") {
         beginResetModel();
-        QJsonArray locations = responseData["data"].toObject()["places"].toArray();
+        QJsonArray locations = responseData["data"].toObject()["locations"].toArray();
         for (QJsonArray::const_iterator it = locations.constBegin(); it != locations.constEnd(); it++) {
             QJsonObject location = (*it).toObject();
-            QJsonObject address = location["address"].toObject();
+            QString locationAddress = "hifi://" + location["domain"].toObject()["name"].toString()
+                + location["path"].toString();
             UserLocation* userLocation = new UserLocation(location["id"].toString(), location["name"].toString(),
-                              "hifi://" + address["domain"].toString()
-                              + "/" + address["position"].toString()
-                              + "/" + address["orientation"].toString());
+                                                          locationAddress);
             _locations.append(userLocation);
             connect(userLocation, &UserLocation::deleted, this, &UserLocationsModel::removeLocation);
             connect(userLocation, &UserLocation::updated, this, &UserLocationsModel::update);
@@ -214,8 +219,8 @@ QVariant UserLocationsModel::data(const QModelIndex& index, int role) const {
             return QVariant();
         } else if (index.column() == NameColumn) {
             return _locations[index.row()]->name();
-        } else if (index.column() == LocationColumn) {
-            return QVariant(_locations[index.row()]->location());
+        } else if (index.column() == AddressColumn) {
+            return QVariant(_locations[index.row()]->address());
         }
     }
 
@@ -226,7 +231,7 @@ QVariant UserLocationsModel::headerData(int section, Qt::Orientation orientation
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
         switch (section) {
             case NameColumn: return "Name";
-            case LocationColumn: return "Location";
+            case AddressColumn: return "Address";
             default: return QVariant();
         }
     }
