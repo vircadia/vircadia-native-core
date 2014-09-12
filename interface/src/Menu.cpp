@@ -1140,7 +1140,7 @@ void Menu::toggleAddressBar() {
     QInputDialog addressBarDialog(Application::getInstance()->getWindow());
     addressBarDialog.setWindowTitle("Address Bar");
     addressBarDialog.setWindowFlags(Qt::Sheet);
-    addressBarDialog.setLabelText("place, domain, @user, example.com, position/orientation");
+    addressBarDialog.setLabelText("place, domain, @user, example.com, /position/orientation");
 
     addressBarDialog.resize(addressBarDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
                             addressBarDialog.size().height());

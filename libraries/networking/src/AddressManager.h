@@ -19,7 +19,7 @@
 
 #include "AccountManager.h"
 
-static const QString HIFI_URL_SCHEME = "hifi:";
+static const QString HIFI_URL_SCHEME = "hifi";
 
 const glm::quat EMPTY_QUAT = glm::quat();
 
@@ -37,6 +37,7 @@ public:
 public slots:
     void handleAPIResponse(const QJsonObject& jsonObject);
     void handleAPIError(QNetworkReply& errorReply);
+    void lookupUserViaAPI(const QString& username);
 signals:
     void lookupResultIsOffline();
     void possibleDomainChangeRequired(const QString& newHostname);
@@ -44,9 +45,9 @@ signals:
 private:
     const JSONCallbackParameters& apiCallbackParameters();
     
-    bool isLookupHandledAsNetworkAddress(const QString& lookupString);
-    bool isLookupHandledAsViewpoint(const QString& lookupString);
-    bool isLookupHandledAsUsername(const QString& lookupString);
+    bool handleNetworkAddress(const QString& lookupString);
+    bool handleRelativeViewpoint(const QString& pathSubsection);
+    bool handleUsername(const QString& lookupString);
 };
 
 #endif // hifi_AddressManager_h

@@ -410,6 +410,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             this, &Application::changeDomainHostname);
     
     // when -url in command line, teleport to location
+    qDebug() << getCmdOption(argc, constArgv, "-url");
     addressManager.handleUrl(QUrl(getCmdOption(argc, constArgv, "-url")));
 
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
@@ -810,9 +811,14 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+        
+        if (!fileEvent->url().isEmpty()) {
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+        }
+        
         return false;
     }
+    
     return QApplication::event(event);
 }
 

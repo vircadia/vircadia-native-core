@@ -51,8 +51,34 @@ const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
 
 bool AddressManager::handleUrl(const QUrl& lookupUrl) {
     if (lookupUrl.scheme() == HIFI_URL_SCHEME) {
-        // we've verified that this is a valid hifi URL - hand it off to handleLookupString
-        handleLookupString(lookupUrl.toString());
+        
+        // there are 4 possible lookup strings
+        
+        // 1. global place name (name of domain or place) - example: sanfrancisco
+        // 2. user name (prepended with @) - example: @philip
+        // 3. location string (posX,posY,posZ/eulerX,eulerY,eulerZ)
+        // 4. domain network address (IP or dns resolvable hostname)
+        
+        qDebug() << lookupUrl;
+        
+        if (lookupUrl.isRelative()) {
+            // if this is a relative path then handle it as a relative viewpoint
+            handleRelativeViewpoint(lookupUrl.path());
+        } else {
+            // use our regex'ed helpers to figure out what we're supposed to do with this
+            if (!handleUsername(lookupUrl.authority())) {
+                // we're assuming this is either a network address or global place name
+                // check if it is a network address first
+                if (!handleNetworkAddress(lookupUrl.host())) {
+                    // wasn't an address - lookup the place name
+                    attemptPlaceNameLookup(lookupUrl.host());
+                }
+                
+                // we may have a path that defines a relative viewpoint - if so we should jump to that now
+                handleRelativeViewpoint(lookupUrl.path());
+            }
+        }
+        
         return true;
     }
     
@@ -60,22 +86,12 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
 }
 
 void AddressManager::handleLookupString(const QString& lookupString) {
-    // there are 4 possible lookup strings
+    // we've verified that this is a valid hifi URL - hand it off to handleLookupString
+    QString sanitizedString = lookupString;
+    const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
+    sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
     
-    // 1. global place name (name of domain or place) - example: sanfrancisco
-    // 2. user name (prepended with @) - example: @philip
-    // 3. location string (posX,posY,posZ/eulerX,eulerY,eulerZ)
-    // 4. domain network address (IP or dns resolvable hostname)
-    
-    QString sanitizedLookupString = lookupString.trimmed().remove(HIFI_URL_SCHEME + "//");
-    
-    
-    // use our regex'ed helpers to figure out what we're supposed to do with this
-    if (!isLookupHandledAsUsername(sanitizedLookupString) &&
-        !isLookupHandledAsNetworkAddress(sanitizedLookupString) &&
-        !isLookupHandledAsViewpoint(sanitizedLookupString)) {
-        attemptPlaceNameLookup(sanitizedLookupString);
-    }
+    handleUrl(QUrl(HIFI_URL_SCHEME + "://" + sanitizedString));
 }
 
 void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
@@ -108,7 +124,7 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
             
             if (!returnedPath.isEmpty()) {
                 // try to parse this returned path as a viewpoint, that's the only thing it could be for now
-                if (!isLookupHandledAsViewpoint(returnedPath)) {
+                if (!handleRelativeViewpoint(returnedPath)) {
                     qDebug() << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
                 }
             }
@@ -137,7 +153,7 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString) {
                                                        apiCallbackParameters());
 }
 
-bool AddressManager::isLookupHandledAsNetworkAddress(const QString& lookupString) {
+bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     const QString IP_ADDRESS_REGEX_STRING = "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}"
         "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(:\\d{1,5})?$";
     
@@ -161,7 +177,7 @@ bool AddressManager::isLookupHandledAsNetworkAddress(const QString& lookupString
     return false;
 }
 
-bool AddressManager::isLookupHandledAsViewpoint(const QString& lookupString) {
+bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
     const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
     const QString TRIPLE_FLOAT_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + "\\s*,\\s*" +
     FLOAT_REGEX_STRING + "\\s*,\\s*" + FLOAT_REGEX_STRING + "\\s*(?:$|\\/)";
@@ -206,20 +222,23 @@ bool AddressManager::isLookupHandledAsViewpoint(const QString& lookupString) {
 
 const QString GET_USER_LOCATION = "/api/v1/users/%1/location";
 
-bool AddressManager::isLookupHandledAsUsername(const QString& lookupString) {
-    const QString USERNAME_REGEX_STRING = "^@(\\S+)$";
+bool AddressManager::handleUsername(const QString& lookupString) {
+    const QString USERNAME_REGEX_STRING = "^@(\\S+)";
     
     QRegExp usernameRegex(USERNAME_REGEX_STRING);
     
     if (usernameRegex.indexIn(lookupString) != -1) {
-        QString username = QUrl::toPercentEncoding(usernameRegex.cap(1));
-        // this is a username - pull the captured name and lookup that user's location
-        AccountManager::getInstance().authenticatedRequest(GET_USER_LOCATION.arg(username),
-                                                           QNetworkAccessManager::GetOperation,
-                                                           apiCallbackParameters());
-        
+        lookupUserViaAPI(usernameRegex.cap(1));
         return true;
     }
     
     return false;
+}
+
+void AddressManager::lookupUserViaAPI(const QString& username) {
+    QString formattedUsername = QUrl::toPercentEncoding(username);
+    // this is a username - pull the captured name and lookup that user's location
+    AccountManager::getInstance().authenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
+                                                       QNetworkAccessManager::GetOperation,
+                                                       apiCallbackParameters());
 }
