@@ -219,6 +219,8 @@ private slots:
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
+    void displayAddressOfflineMessage();
+    void displayAddressNotFoundMessage();
     void muteEnvironment();
 
 private:

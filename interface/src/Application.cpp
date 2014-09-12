@@ -3947,11 +3947,13 @@ void Application::uploadAttachment() {
 }
 
 void Application::openUrl(const QUrl& url) {
-    if (url.scheme() == HIFI_URL_SCHEME) {
-        AddressManager::getInstance().handleLookupString(url.toString());
-    } else {
-        // address manager did not handle - ask QDesktopServices to handle
-        QDesktopServices::openUrl(url);
+    if (!url.isEmpty()) {
+        if (url.scheme() == HIFI_URL_SCHEME) {
+            AddressManager::getInstance().handleLookupString(url.toString());
+        } else {
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+        }
     }
 }
 
