@@ -33,7 +33,7 @@ ModelReferential::ModelReferential(Referential* referential, EntityTree* tree, A
     
     const EntityItem* item = _tree->findEntityByID(_entityID);
     if (item != NULL) {
-        _refScale = item->getRadius();
+        _refScale = item->getLargestDimension();
         _refRotation = item->getRotation();
         _refPosition = item->getPosition() * (float)TREE_SCALE;
         update();
@@ -52,7 +52,7 @@ ModelReferential::ModelReferential(const QUuid& entityID, EntityTree* tree, Avat
         return;
     }
     
-    _refScale = item->getRadius();
+    _refScale = item->getLargestDimension();
     _refRotation = item->getRotation();
     _refPosition = item->getPosition() * (float)TREE_SCALE;
     
@@ -69,8 +69,8 @@ void ModelReferential::update() {
     }
     
     bool somethingChanged = false;
-    if (item->getRadius() != _refScale) {
-        _refScale = item->getRadius();
+    if (item->getLargestDimension() != _refScale) {
+        _refScale = item->getLargestDimension();
         _avatar->setTargetScale(_refScale * _scale, true);
         somethingChanged = true;
     }
@@ -109,7 +109,7 @@ JointReferential::JointReferential(Referential* referential, EntityTree* tree, A
     const EntityItem* item = _tree->findEntityByID(_entityID);
     const Model* model = getModel(item);
     if (!isValid() || model == NULL || _jointIndex >= (uint32_t)(model->getJointStateCount())) {
-        _refScale = item->getRadius();
+        _refScale = item->getLargestDimension();
         model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
         model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
     }
@@ -129,7 +129,7 @@ JointReferential::JointReferential(uint32_t jointIndex, const QUuid& entityID, E
         return;
     }
     
-    _refScale = item->getRadius();
+    _refScale = item->getLargestDimension();
     model->getJointRotationInWorldFrame(_jointIndex, _refRotation);
     model->getJointPositionInWorldFrame(_jointIndex, _refPosition);
     
@@ -147,8 +147,8 @@ void JointReferential::update() {
     }
     
     bool somethingChanged = false;
-    if (item->getRadius() != _refScale) {
-        _refScale = item->getRadius();
+    if (item->getLargestDimension() != _refScale) {
+        _refScale = item->getLargestDimension();
         _avatar->setTargetScale(_refScale * _scale, true);
         somethingChanged = true;
     }

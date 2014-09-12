@@ -35,6 +35,10 @@ public:
     /// \return whether or not the extents are empty
     bool isEmpty() const { return minimum == maximum; }
     bool isValid() const { return !((minimum == glm::vec3(FLT_MAX)) && (maximum == glm::vec3(-FLT_MAX))); }
+
+    /// \param vec3 for delta amount to shift the extents by
+    /// \return true if point is within current limits
+    void shiftBy(const glm::vec3& delta) { minimum += delta; maximum += delta; }
     
     /// rotate the extents around orign by rotation
     void rotate(const glm::quat& rotation);

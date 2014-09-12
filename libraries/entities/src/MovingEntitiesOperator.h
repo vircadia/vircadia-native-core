@@ -17,7 +17,8 @@ public:
     EntityItem* entity;
     AACube oldCube;
     AACube newCube;
-    AABox newBox;
+    AABox oldCubeClamped;
+    AABox newCubeClamped;
     EntityTreeElement* oldContainingElement;
     AACube oldContainingElementCube;
     bool oldFound;
@@ -50,6 +51,8 @@ private:
     int _foundNewCount;
     int _lookingCount;
     bool shouldRecurseSubTree(OctreeElement* element);
+    
+    bool _wantDebug;
 };
 
 #endif // hifi_MovingEntitiesOperator_h

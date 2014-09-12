@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/extented_min_max.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -28,19 +29,8 @@
 
 
 #include "EntityItemID.h"
+#include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
-
-
-// TODO: should these be static members of EntityItem or EntityItemProperties?
-const float ENTITY_DEFAULT_RADIUS = 0.1f / TREE_SCALE;
-const float ENTITY_MINIMUM_ELEMENT_SIZE = (1.0f / 100000.0f) / TREE_SCALE; // smallest size container
-const QString ENTITY_DEFAULT_MODEL_URL("");
-const glm::quat ENTITY_DEFAULT_ROTATION;
-const QString ENTITY_DEFAULT_ANIMATION_URL("");
-const float ENTITY_DEFAULT_ANIMATION_FPS = 30.0f;
-
-const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
-const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
 
 // PropertyFlags support
 enum EntityPropertyList {
@@ -50,7 +40,8 @@ enum EntityPropertyList {
     // these properties are supported by the EntityItem base class
     PROP_VISIBLE,
     PROP_POSITION,
-    PROP_RADIUS,
+    PROP_RADIUS, // NOTE: PROP_RADIUS is obsolete and only included in old format streams
+    PROP_DIMENSIONS = PROP_RADIUS,
     PROP_ROTATION,
     PROP_MASS,
     PROP_VELOCITY,
@@ -67,16 +58,24 @@ enum EntityPropertyList {
     PROP_ANIMATION_FRAME_INDEX,
     PROP_ANIMATION_PLAYING,
 
-    PROP_LAST_ITEM = PROP_ANIMATION_PLAYING
+    // these properties are supported by the EntityItem base class
+    PROP_REGISTRATION_POINT,
+    PROP_ANGULAR_VELOCITY,
+    PROP_ANGULAR_DAMPING,
+
+    PROP_LAST_ITEM = PROP_ANGULAR_DAMPING
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
+
+const quint64 UNKNOWN_CREATED_TIME = (quint64)(-1);
+const quint64 USE_EXISTING_CREATED_TIME = (quint64)(-2);
 
 
 /// A collection of properties of an entity item used in the scripting API. Translates between the actual properties of an
 /// entity and a JavaScript style hash/QScriptValue storing a set of properties. Used in scripting to set/get the complete
 /// set of entity item properties via JavaScript hashes/QScriptValues
-/// all units for position, radius, etc are in meter units
+/// all units for position, dimensions, etc are in meter units
 class EntityItemProperties {
     friend class EntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
@@ -96,31 +95,27 @@ public:
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
     void setIsUnknownID() { _id = UNKNOWN_ENTITY_ID; _idSet = true; }
     
-    glm::vec3 getMinimumPointMeters() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPointMeters() const { return _position + glm::vec3(_radius, _radius, _radius); }
-    AACube getAACubeMeters() const { return AACube(getMinimumPointMeters(), getMaxDimension()); } /// AACube in meter units
-
-    glm::vec3 getMinimumPointTreeUnits() const { return getMinimumPointMeters() / (float)TREE_SCALE; }
-    glm::vec3 getMaximumPointTreeUnits() const { return getMaximumPointMeters() / (float)TREE_SCALE; }
-    /// AACube in domain scale units (0.0 - 1.0)
-    AACube getAACubeTreeUnits() const { 
-        return AACube(getMinimumPointMeters() / (float)TREE_SCALE, getMaxDimension() / (float)TREE_SCALE); 
-    }
+    AACube getMaximumAACubeInTreeUnits() const;
+    AACube getMaximumAACubeInMeters() const;
 
     void debugDump() const;
 
+
     // properties of all entities
     EntityTypes::EntityType getType() const { return _type; }
-    const glm::vec3& getPosition() const { return _position; }
-    float getRadius() const { return _radius; }
-    float getMaxDimension() const { return _radius * 2.0f; }
-    glm::vec3 getDimensions() const { return glm::vec3(_radius, _radius, _radius) * 2.0f; }
-    const glm::quat& getRotation() const { return _rotation; }
 
     void setType(EntityTypes::EntityType type) { _type = type; }
+
+    const glm::vec3& getPosition() const { return _position; }
     /// set position in meter units, will be clamped to domain bounds
     void setPosition(const glm::vec3& value) { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
-    void setRadius(float value) { _radius = value; _radiusChanged = true; }
+
+
+    const glm::vec3& getDimensions() const { return _dimensions; }
+    void setDimensions(const glm::vec3& value) { _dimensions = value; _dimensionsChanged = true; }
+    float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
+
+    const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
 
     float getMass() const { return _mass; }
@@ -148,9 +143,9 @@ public:
 
     
     // NOTE: how do we handle _defaultSettings???
-    bool containsBoundsProperties() const { return (_positionChanged || _radiusChanged); }
+    bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
-    bool containsRadiusChange() const { return _radiusChanged; }
+    bool containsDimensionsChange() const { return _dimensionsChanged; }
 
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...
@@ -162,6 +157,7 @@ public:
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
     float getGlowLevel() const { return _glowLevel; }
+    const QString& getScript() const { return _script; }
 
     // model related properties
     void setColor(const xColor& value) { _color = value; _colorChanged = true; }
@@ -171,6 +167,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
+    void setScript(const QString& value) { _script = value; _scriptChanged = true; }
 
 
     static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
@@ -184,7 +181,6 @@ public:
                         EntityItemID& entityID, EntityItemProperties& properties);
 
     bool positionChanged() const { return _positionChanged; }
-    bool radiusChanged() const { return _radiusChanged; }
     bool rotationChanged() const { return _rotationChanged; }
     bool massChanged() const { return _massChanged; }
     bool velocityChanged() const { return _velocityChanged; }
@@ -192,6 +188,8 @@ public:
     bool dampingChanged() const { return _dampingChanged; }
     bool lifetimeChanged() const { return _lifetimeChanged; }
     bool scriptChanged() const { return _scriptChanged; }
+    bool dimensionsChanged() const { return _dimensionsChanged; }
+    bool registrationPointChanged() const { return _registrationPointChanged; }
     bool colorChanged() const { return _colorChanged; }
     bool modelURLChanged() const { return _modelURLChanged; }
     bool animationURLChanged() const { return _animationURLChanged; }
@@ -203,6 +201,24 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
+    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
+    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
+    
+    const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
+    void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
+
+    const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
+    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; _registrationPointChanged = true; }
+
+    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; _angularVelocityChanged = true; }
+
+    float getAngularDamping() const { return _angularDamping; }
+    void setAngularDamping(float value) { _angularDamping = value; _angularDampingChanged = true; }
+
+    bool getVisible() const { return _visible; }
+    void setVisible(bool value) { _visible = value; _visibleChanged = true; }
+
 private:
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -212,8 +228,11 @@ private:
     quint64 _created;
 
     EntityTypes::EntityType _type;
+ 
+    void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
+    
     glm::vec3 _position;
-    float _radius;
+    glm::vec3 _dimensions;
     glm::quat _rotation;
     float _mass;
     glm::vec3 _velocity;
@@ -221,9 +240,13 @@ private:
     float _damping;
     float _lifetime;
     QString _script;
+    glm::vec3 _registrationPoint;
+    glm::vec3 _angularVelocity;
+    float _angularDamping;
+    bool _visible;
 
     bool _positionChanged;
-    bool _radiusChanged;
+    bool _dimensionsChanged;
     bool _rotationChanged;
     bool _massChanged;
     bool _velocityChanged;
@@ -231,6 +254,10 @@ private:
     bool _dampingChanged;
     bool _lifetimeChanged;
     bool _scriptChanged;
+    bool _registrationPointChanged;
+    bool _angularVelocityChanged;
+    bool _angularDampingChanged;
+    bool _visibleChanged;
     
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...
@@ -242,6 +269,7 @@ private:
     float _animationFPS;
     float _glowLevel;
     QVector<SittingPoint> _sittingPoints;
+    glm::vec3 _naturalDimensions;
 
     bool _colorChanged;
     bool _modelURLChanged;
@@ -256,108 +284,5 @@ private:
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
-
-#define APPEND_ENTITY_PROPERTY(P,O,V) \
-        if (requestedProperties.getHasProperty(P)) {                \
-            LevelDetails propertyLevel = packetData->startLevel();  \
-            successPropertyFits = packetData->O(V);                 \
-            if (successPropertyFits) {                              \
-                propertyFlags |= P;                                 \
-                propertiesDidntFit -= P;                            \
-                propertyCount++;                                    \
-                packetData->endLevel(propertyLevel);                \
-            } else {                                                \
-                packetData->discardLevel(propertyLevel);            \
-                appendState = OctreeElement::PARTIAL;               \
-            }                                                       \
-        } else {                                                    \
-            propertiesDidntFit -= P;                                \
-        }
-
-#define READ_ENTITY_PROPERTY(P,T,M)                             \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            bytesRead += sizeof(fromBuffer);                    \
-            if (overwriteLocalData) {                           \
-                M = fromBuffer;                                 \
-            }                                                   \
-        }
-
-#define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            bytesRead += bytes;                                             \
-            if (overwriteLocalData) {                                       \
-                M = fromBuffer;                                             \
-            }                                                               \
-        }
-
-#define READ_ENTITY_PROPERTY_STRING(P,O)                \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            bytesRead += sizeof(length);                \
-            QString value((const char*)dataAt);         \
-            dataAt += length;                           \
-            bytesRead += length;                        \
-            if (overwriteLocalData) {                   \
-                O(value);                               \
-            }                                           \
-        }
-
-#define READ_ENTITY_PROPERTY_COLOR(P,M)         \
-        if (propertyFlags.getHasProperty(P)) {  \
-            if (overwriteLocalData) {           \
-                memcpy(M, dataAt, sizeof(M));   \
-            }                                   \
-            dataAt += sizeof(rgbColor);         \
-            bytesRead += sizeof(rgbColor);      \
-        }
-
-#define READ_ENTITY_PROPERTY_TO_PROPERTIES(P,T,O)               \
-        if (propertyFlags.getHasProperty(P)) {                  \
-            T fromBuffer;                                       \
-            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
-            dataAt += sizeof(fromBuffer);                       \
-            processedBytes += sizeof(fromBuffer);               \
-            properties.O(fromBuffer);                           \
-        }
-
-#define READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(P,O)                        \
-        if (propertyFlags.getHasProperty(P)) {                              \
-            glm::quat fromBuffer;                                           \
-            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
-            dataAt += bytes;                                                \
-            processedBytes += bytes;                                        \
-            properties.O(fromBuffer);                                       \
-        }
-
-#define READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(P,O)  \
-        if (propertyFlags.getHasProperty(P)) {          \
-            uint16_t length;                            \
-            memcpy(&length, dataAt, sizeof(length));    \
-            dataAt += sizeof(length);                   \
-            processedBytes += sizeof(length);           \
-            QString value((const char*)dataAt);         \
-            dataAt += length;                           \
-            processedBytes += length;                   \
-            properties.O(value);                        \
-        }
-
-#define READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(P,O)   \
-        if (propertyFlags.getHasProperty(P)) {          \
-            xColor color;                               \
-            memcpy(&color, dataAt, sizeof(color));      \
-            dataAt += sizeof(color);                    \
-            processedBytes += sizeof(color);            \
-            properties.O(color);                        \
-        }
-
-
 
 #endif // hifi_EntityItemProperties_h

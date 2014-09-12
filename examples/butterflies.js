@@ -37,6 +37,7 @@ function vInterpolate(a, b, fraction) {
 
 var startTimeInSeconds = new Date().getTime() / 1000;
 
+var NATURAL_SIZE_OF_BUTTERFLY = { x: 9.512, y: 4.427, z: 1.169 };
 var lifeTime = 600; // lifetime of the butterflies in seconds
 var range = 1.0; // Over what distance in meters do you want the flock to fly around
 var frame = 0;
@@ -78,7 +79,13 @@ function addButterfly() {
     var color = { red: 100, green: 100, blue: 100 };
     var size = 0;
 
+    var minSize = 0.06;
+    var randomSize = 0.2;
+    var maxSize = minSize + randomSize;
+    
     size = 0.06 + Math.random() * 0.2;
+    
+    var dimensions = Vec3.multiply(NATURAL_SIZE_OF_BUTTERFLY, (size / maxSize));
 	
     flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
@@ -91,7 +98,7 @@ function addButterfly() {
         velocity: { x: 0, y: 0.0, z: 0 },
         gravity: { x: 0, y: 1.0, z: 0 },
 		damping: 0.1,
-        radius : size,
+		dimensions: dimensions,
         color: color,
 		rotation: rotation,
 		animationURL: "http://business.ozblog.me/objects/butterfly/newButterfly2.fbx",
@@ -203,7 +210,8 @@ function updateButterflies(deltaTime) {
 			
 			
                 // If we are near the target, we should get a new target
-                if (Vec3.length(Vec3.subtract(properties.position, butterflies[i].targetPosition)) < (properties.radius / 1.0)) {
+                var halfLargestDimension = Vec3.length(properties.dimensions) / 2.0;
+                if (Vec3.length(Vec3.subtract(properties.position, butterflies[i].targetPosition)) < (halfLargestDimension)) {
                     butterflies[i].moving = false;
                 }
 				
@@ -214,7 +222,7 @@ function updateButterflies(deltaTime) {
 			}
 
             // Use a cosine wave offset to make it look like its flapping.
-            var offset = Math.cos(nowTimeInSeconds * BUTTERFLY_FLAP_SPEED) * (properties.radius);
+            var offset = Math.cos(nowTimeInSeconds * BUTTERFLY_FLAP_SPEED) * (halfLargestDimension);
             properties.position.y = properties.position.y + (offset - butterflies[i].previousFlapOffset);
             // Change position relative to previous offset.
             butterflies[i].previousFlapOffset = offset;
