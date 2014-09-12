@@ -81,6 +81,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
@@ -3811,6 +3812,13 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
 
+    QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
+    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+                                       LocationScriptingInterface::locationSetter, windowValue);
+    // register `location` on the global object.
+    scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+                                       LocationScriptingInterface::locationSetter);
+    
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());

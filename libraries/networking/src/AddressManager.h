@@ -29,9 +29,10 @@ public:
     static QString pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation = false,
                                                  const glm::quat& orientation = glm::quat());
     
-    void handleLookupString(const QString& lookupString);
     void attemptPlaceNameLookup(const QString& lookupString);
 public slots:
+    void handleLookupString(const QString& lookupString);
+    
     void handleAPIResponse(const QJsonObject& jsonObject);
     void handleAPIError(QNetworkReply& errorReply);
     void goToUser(const QString& username);
