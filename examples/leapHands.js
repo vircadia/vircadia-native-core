@@ -14,12 +14,14 @@
 var leapHands = (function () {
 
     var hands,
+        wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right
         fingers,
         NUM_FINGERS = 5,  // 0 = thumb; ...; 4 = pinky
         THUMB = 0,
         NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal(tip) joint
-        MAX_HAND_INACTIVE_COUNT = 20;
+        MAX_HAND_INACTIVE_COUNT = 20,
+        PI = 3.141593;
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -116,7 +118,12 @@ var leapHands = (function () {
             { controller: Controller.createInputController("Spatial", "joint_R_hand"), inactiveCount: 0 }
         ];
 
-        fingers = [ {}, {} ];
+        wrists = [
+            { controller: Controller.createInputController("Spatial", "joint_L_wrist") },
+            { controller: Controller.createInputController("Spatial", "joint_R_wrist") }
+        ]
+
+        fingers = [{}, {}];
         fingers[0] = [
             [
                 { jointName: "LeftHandThumb1", controller: Controller.createInputController("Spatial", "joint_L_thumb2") },
@@ -178,22 +185,30 @@ var leapHands = (function () {
             i,
             j,
             side,
-            locRotation;
+            locRotation,
+            handRoll,
+            handPitch,
+            handYaw;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
             side = h === 0 ? -1.0 : 1.0;
 
             if (hands[h].controller.isActive()) {
 
+                // TODO: 2.0* scale factor should not be necessary; Leap Motion controller code needs investigating.
+                handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
+                handPitch = 2.0 * -wrists[h].controller.getAbsRotation().x;
+                handYaw = 2.0 * -wrists[h].controller.getAbsRotation().y;
+
                 // Fixed hand location for starters ...
                 if (h === 0) {
                     MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
                     MyAvatar.setJointData("LeftForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-                    MyAvatar.setJointData("LeftHand", Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0));
+                    MyAvatar.setJointData("LeftHand", Quat.fromPitchYawRollRadians(handPitch, handRoll, handYaw));
                 } else {
                     MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 90.0));
                     MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-                    MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollDegrees(0.0, 0.0, 0.0));
+                    MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(handPitch, PI / 2.0 + handRoll, handYaw));
                 }
 
                 // Finger joints ...
@@ -242,6 +257,7 @@ var leapHands = (function () {
 
         for (h = 0; h < NUM_HANDS; h += 1) {
             Controller.releaseInputController(hands[h].controller);
+            Controller.releaseInputController(wrists[h].controller);
             for (i = 0; i < NUM_FINGERS; i += 1) {
                 for (j = 0; j < NUM_FINGER_JOINTS; j += 1) {
                     if (fingers[h][i][j].controller !== null) {
