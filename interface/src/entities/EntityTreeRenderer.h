@@ -79,6 +79,7 @@ private:
 
     float distanceToCamera(const glm::vec3& center, const ViewFrustum& viewFrustum) const;
     bool shouldRenderEntity(float largestDimension, float distanceToCamera) const;
+    void renderProxies(const EntityItem* entity, RenderArgs* args);
 
 };
 

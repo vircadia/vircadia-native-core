@@ -25,6 +25,7 @@
 #include "EntityItemProperties.h" 
 #include "EntityTypes.h"
 
+class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
@@ -39,6 +40,7 @@ class EntityItem  {
 public:
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
+    EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     virtual ~EntityItem() { }
 
@@ -119,11 +121,27 @@ public:
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
+    glm::vec3 getPositionInMeters() const { return _position * (float) TREE_SCALE; } /// get position in meters
     void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
+    void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
+            { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
-    float getRadius() const { return _radius; } /// get radius in domain scale units (0.0 - 1.0)
-    void setRadius(float value) { _radius = value; } /// set radius in domain scale units (0.0 - 1.0)
+    glm::vec3 getCenter() const; /// calculates center of the entity in domain scale units (0.0 - 1.0)
+    glm::vec3 getCenterInMeters() const { return getCenter() * (float) TREE_SCALE; }
 
+    static const glm::vec3 DEFAULT_DIMENSIONS;
+    const glm::vec3& getDimensions() const { return _dimensions; } /// get dimensions in domain scale units (0.0 - 1.0)
+    glm::vec3 getDimensionsInMeters() const { return _dimensions * (float) TREE_SCALE; } /// get dimensions in meters
+    float getDistanceToBottomOfEntity() const; /// get the distance from the position of the entity to its "bottom" in y axis
+    float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
+
+    /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
+    void setDimensions(const glm::vec3& value) { _dimensions = value; }
+
+    /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
+    void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
+
+    static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; }
 
@@ -138,15 +156,19 @@ public:
     static const glm::vec3 DEFAULT_VELOCITY;
     static const glm::vec3 NO_VELOCITY;
     static const float EPSILON_VELOCITY_LENGTH;
-    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3 getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
+    void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
     bool hasVelocity() const { return _velocity != NO_VELOCITY; }
 
     static const glm::vec3 DEFAULT_GRAVITY;
     static const glm::vec3 REGULAR_GRAVITY;
     static const glm::vec3 NO_GRAVITY;
     const glm::vec3& getGravity() const { return _gravity; } /// gravity in domain scale units (0.0-1.0) per second squared
+    glm::vec3 getGravityInMeters() const { return _gravity * (float) TREE_SCALE; } /// get gravity in meters
     void setGravity(const glm::vec3& value) { _gravity = value; } /// gravity in domain scale units (0.0-1.0) per second squared
+    void setGravityInMeters(const glm::vec3& value) { _gravity = value / (float) TREE_SCALE; } /// gravity in meters
     bool hasGravity() const { return _gravity != NO_GRAVITY; }
     
     // TODO: this should eventually be updated to support resting on collisions with other surfaces
@@ -173,14 +195,38 @@ public:
     bool lifetimeHasExpired() const;
 
     // position, size, and bounds related helpers
-    float getSize() const { return _radius * 2.0f; } /// get maximum dimension in domain scale units (0.0 - 1.0)
-    glm::vec3 getMinimumPoint() const { return _position - glm::vec3(_radius, _radius, _radius); }
-    glm::vec3 getMaximumPoint() const { return _position + glm::vec3(_radius, _radius, _radius); }
-    AACube getAACube() const { return AACube(getMinimumPoint(), getSize()); } /// AACube in domain scale units (0.0 - 1.0)
+    float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
+    AACube getMaximumAACube() const;
+    AACube getMinimumAACube() const;
+    AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;
     const QString& getScript() const { return _script; }
     void setScript(const QString& value) { _script = value; }
+
+    static const glm::vec3 DEFAULT_REGISTRATION_POINT;
+    const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
+    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); } /// registration point as ratio of entity
+
+    static const glm::vec3 NO_ANGULAR_VELOCITY;
+    static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;
+    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; }
+    bool hasAngularVelocity() const { return _angularVelocity != NO_ANGULAR_VELOCITY; }
+
+    static const float DEFAULT_ANGULAR_DAMPING;
+    float getAngularDamping() const { return _angularDamping; }
+    void setAngularDamping(float value) { _angularDamping = value; }
+
+    static const bool DEFAULT_VISIBLE;
+    bool getVisible() const { return _visible; }
+    void setVisible(bool value) { _visible = value; }
+    bool isVisible() const { return _visible; }
+    bool isInvisible() const { return !_visible; }
+    
+    // TODO: We need to get rid of these users of getRadius()... 
+    float getRadius() const;
+    
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -196,7 +242,7 @@ protected:
     quint64 _created;
 
     glm::vec3 _position;
-    float _radius;
+    glm::vec3 _dimensions;
     glm::quat _rotation;
     float _glowLevel;
     float _mass;
@@ -205,6 +251,17 @@ protected:
     float _damping;
     float _lifetime;
     QString _script;
+    glm::vec3 _registrationPoint;
+    glm::vec3 _angularVelocity;
+    float _angularDamping;
+    bool _visible;
+    
+    // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
+    //       parse old data streams
+    
+    /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
+    void setRadius(float value); 
+
 };
 
 

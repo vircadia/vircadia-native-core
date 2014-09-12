@@ -392,6 +392,41 @@ ViewFrustum::location ViewFrustum::cubeInFrustum(const AACube& cube) const {
     return regularResult;
 }
 
+ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+
+    ViewFrustum::location regularResult = INSIDE;
+    ViewFrustum::location keyholeResult = OUTSIDE;
+
+    // If we have a keyholeRadius, check that first, since it's cheaper
+    if (_keyholeRadius >= 0.0f) {
+        keyholeResult = boxInKeyhole(box);
+    }
+    if (keyholeResult == INSIDE) {
+        return keyholeResult;
+    }
+
+    // TODO: These calculations are expensive, taking up 80% of our time in this function.
+    // This appears to be expensive because we have to test the distance to each plane.
+    // One suggested optimization is to first check against the approximated cone. We might
+    // also be able to test against the cone to the bounding sphere of the box.
+    for(int i=0; i < 6; i++) {
+        const glm::vec3& normal = _planes[i].getNormal();
+        const glm::vec3& boxVertexP = box.getVertexP(normal);
+        float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
+
+        const glm::vec3& boxVertexN = box.getVertexN(normal);
+        float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
+
+        if (planeToBoxVertexPDistance < 0) {
+            // This is outside the regular frustum, so just return the value from checking the keyhole
+            return keyholeResult;
+        } else if (planeToBoxVertexNDistance < 0) {
+            regularResult =  INTERSECT;
+        }
+    }
+    return regularResult;
+}
+
 bool testMatches(glm::quat lhs, glm::quat rhs, float epsilon = EPSILON) {
     return (fabs(lhs.x - rhs.x) <= epsilon && fabs(lhs.y - rhs.y) <= epsilon && fabs(lhs.z - rhs.z) <= epsilon
             && fabs(lhs.w - rhs.w) <= epsilon);

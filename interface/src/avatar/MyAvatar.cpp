@@ -21,6 +21,7 @@
 #include <QtCore/QTimer>
 
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -91,6 +92,9 @@ MyAvatar::MyAvatar() :
     Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
     _physicsSimulation.setRagdoll(ragdoll);
     _physicsSimulation.addEntity(&_voxelShapeManager);
+    
+    // connect to AddressManager signal for location jumps
+    connect(&AddressManager::getInstance(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {
@@ -1763,11 +1767,6 @@ void MyAvatar::maybeUpdateBillboard() {
     sendBillboardPacket();
 }
 
-void MyAvatar::goHome() {
-    qDebug("Going Home!");
-    slamPosition(START_LOCATION);
-}
-
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
@@ -1787,45 +1786,26 @@ void MyAvatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
-void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
-    QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
-    bool isOnline = jsonObject["data"].toObject()["online"].toBool();
-    if (isOnline ) {
-        goToLocationFromAddress(locationObject);
-    } else {
-        QMessageBox::warning(Application::getInstance()->getWindow(), "", "The user is not online.");
+void MyAvatar::goToLocation(const glm::vec3& newPosition, bool hasOrientation, const glm::vec3& newOrientation) {    
+    glm::quat quatOrientation = getOrientation();
+    
+    qDebug().nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
+        << newPosition.y << ", " << newPosition.z;
+    
+    if (hasOrientation) {
+        qDebug().nospace() << "MyAvatar goToLocation - new orientation is "
+            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z;
+        
+        // orient the user to face the target
+        glm::quat quatOrientation = glm::quat(glm::radians(newOrientation))
+            * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        setOrientation(quatOrientation);
     }
-}
-
-void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {
-    // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-    sendKillAvatar();
-
-    QString positionString = locationObject["position"].toString();
-    QString orientationString = locationObject["orientation"].toString();
-    QString domainHostnameString = locationObject["domain"].toString();
-
-    qDebug() << "Changing domain to" << domainHostnameString <<
-        ", position to" << positionString <<
-        ", and orientation to" << orientationString;
-
-    QStringList coordinateItems = positionString.split(',');
-    QStringList orientationItems = orientationString.split(',');
-
-    NodeList::getInstance()->getDomainHandler().setHostname(domainHostnameString);
-
-    // orient the user to face the target
-    glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
-                                                                orientationItems[1].toFloat(),
-                                                                orientationItems[2].toFloat())))
-        * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    setOrientation(newOrientation);
 
     // move the user a couple units away
     const float DISTANCE_TO_USER = 2.0f;
-    glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
-                                      coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
-    slamPosition(newPosition);
+    glm::vec3 shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+    slamPosition(shiftedPosition);
     emit transformChanged();
 }
 

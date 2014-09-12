@@ -52,10 +52,18 @@ public:
     void setScaleToFit(bool scaleToFit, float largestDimension = 0.0f);
     bool getScaleToFit() const { return _scaleToFit; } /// is scale to fit enabled
     bool getIsScaledToFit() const { return _scaledToFit; } /// is model scaled to fit
-    bool getScaleToFitDimension() const { return _scaleToFitLargestDimension; } /// the dimension model is scaled to
+    const glm::vec3& getScaleToFitDimensions() const { return _scaleToFitDimensions; } /// the dimensions model is scaled to
+    void setScaleToFit(bool scaleToFit, const glm::vec3& dimensions);
 
-    void setSnapModelToCenter(bool snapModelToCenter);
-    bool getSnapModelToCenter() { return _snapModelToCenter; }
+    void setSnapModelToCenter(bool snapModelToCenter) { 
+        setSnapModelToRegistrationPoint(snapModelToCenter, glm::vec3(0.5f,0.5f,0.5f));
+    };
+    bool getSnapModelToCenter() { 
+        return _snapModelToRegistrationPoint && _registrationPoint == glm::vec3(0.5f,0.5f,0.5f); 
+    }
+
+    void setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint);
+    bool getSnapModelToRegistrationPoint() { return _snapModelToRegistrationPoint; }
     
     void setScale(const glm::vec3& scale);
     const glm::vec3& getScale() const { return _scale; }
@@ -181,11 +189,13 @@ protected:
     glm::vec3 _offset;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
-    float _scaleToFitLargestDimension; /// this is the dimension that scale to fit will use
+    glm::vec3 _scaleToFitDimensions; /// this is the dimensions that scale to fit will use
     bool _scaledToFit; /// have we scaled to fit
 
-    bool _snapModelToCenter; /// is the model's offset automatically adjusted to center around 0,0,0 in model space
-    bool _snappedToCenter; /// are we currently snapped to center
+    bool _snapModelToRegistrationPoint; /// is the model's offset automatically adjusted to a registration point in model space
+    bool _snappedToRegistrationPoint; /// are we currently snapped to a registration point
+    glm::vec3 _registrationPoint; /// the point in model space our center is snapped to
+    
     bool _showTrueJointTransforms;
     
     QVector<LocalLight> _localLights;
@@ -206,7 +216,7 @@ protected:
     
     void setScaleInternal(const glm::vec3& scale);
     void scaleToFit();
-    void snapToCenter();
+    void snapToRegistrationPoint();
 
     void simulateInternal(float deltaTime);
 
