@@ -61,7 +61,10 @@ Model::Model(QObject* parent) :
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _url("http://invalid.com") {
+    _url("http://invalid.com"),
+    _blenderPending(false),
+    _blendRequired(false) {
+    
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -998,9 +1001,15 @@ void Model::simulateInternal(float deltaTime) {
         }
     }
     
-    // post the blender
+    // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+        if (_blenderPending) {
+            _blendRequired = true;
+        } else {
+            _blendRequired = false;
+            _blenderPending = true;
+            QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+        }
     }
 }
 
@@ -1264,10 +1273,20 @@ void Model::renderJointCollisionShapes(float alpha) {
 }
 
 void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    _blenderPending = false;
+    
+    // start the next blender if required
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (_blendRequired) {
+        _blendRequired = false;
+        if (geometry.hasBlendedMeshes()) {
+            _blenderPending = true;
+            QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+        }
+    }
     if (_blendedVertexBuffers.isEmpty()) {
         return;
     }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     int index = 0;
     for (int i = 0; i < geometry.meshes.size(); i++) {
         const FBXMesh& mesh = geometry.meshes.at(i);
