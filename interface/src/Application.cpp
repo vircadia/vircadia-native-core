@@ -810,10 +810,7 @@ bool Application::event(QEvent* event) {
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(HIFI_URL_SCHEME);
-        if (isHifiSchemeURL) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
-        }
+        AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
         return false;
     }
     return QApplication::event(event);
