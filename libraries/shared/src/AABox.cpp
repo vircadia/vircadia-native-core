@@ -11,12 +11,18 @@
 
 #include "AABox.h"
 #include "AACube.h"
+#include "Extents.h"
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
 
 
 AABox::AABox(const AACube& other) : 
     _corner(other.getCorner()), _scale(other.getScale(), other.getScale(), other.getScale()) {
+}
+
+AABox::AABox(const Extents& other) : 
+    _corner(other.minimum),
+    _scale(other.maximum - other.minimum) {
 }
 
 AABox::AABox(const glm::vec3& corner, float size) : 

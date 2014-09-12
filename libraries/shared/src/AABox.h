@@ -23,11 +23,13 @@
 #include "StreamUtils.h"
 
 class AACube;
+class Extents;
 
 class AABox {
 
 public:
     AABox(const AACube& other);
+    AABox(const Extents& other);
     AABox(const glm::vec3& corner, float size);
     AABox(const glm::vec3& corner, const glm::vec3& dimensions);
     AABox();
