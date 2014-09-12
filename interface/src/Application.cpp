@@ -410,8 +410,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
             this, &Application::changeDomainHostname);
     
     // when -url in command line, teleport to location
-    qDebug() << getCmdOption(argc, constArgv, "-url");
-    addressManager.handleUrl(QUrl(getCmdOption(argc, constArgv, "-url")));
+    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
     OAuthWebViewHandler::getInstance();
@@ -3923,7 +3922,9 @@ void Application::uploadAttachment() {
 }
 
 void Application::openUrl(const QUrl& url) {
-    if (!AddressManager::getInstance().handleUrl(url)) {
+    if (url.scheme() == HIFI_URL_SCHEME) {
+        AddressManager::getInstance().handleLookupString(url.toString());
+    } else {
         // address manager did not handle - ask QDesktopServices to handle
         QDesktopServices::openUrl(url);
     }

@@ -31,7 +31,6 @@ public:
     static QString pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation = false,
                                                  const glm::quat& orientation = EMPTY_QUAT);
     
-    bool handleUrl(const QUrl& lookupUrl);
     void handleLookupString(const QString& lookupString);
     void attemptPlaceNameLookup(const QString& lookupString);
 public slots:
@@ -44,6 +43,8 @@ signals:
     void locationChangeRequired(const glm::vec3& newPosition, bool hasOrientationChange, const glm::vec3& newOrientation);
 private:
     const JSONCallbackParameters& apiCallbackParameters();
+    
+    bool handleUrl(const QUrl& lookupUrl);
     
     bool handleNetworkAddress(const QString& lookupString);
     bool handleRelativeViewpoint(const QString& pathSubsection);
