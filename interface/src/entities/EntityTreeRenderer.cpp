@@ -244,8 +244,6 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            
-            
             glPushMatrix();
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
@@ -257,6 +255,8 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
 }
 
 void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args) {
+    bool wantDebug = false;
+
     args->_elementsTouched++;
     // actually render it here...
     // we need to iterate the actual entityItems of the element
@@ -288,6 +288,21 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
             // TODO: some entity types (like lights) might want to be rendered even
             // when they are outside of the view frustum...
             float distance = distanceToCamera(entityBox.calcCenter(), *args->_viewFrustum);
+            
+            if (wantDebug) {
+                qDebug() << "------- renderElement() ----------";
+                qDebug() << "                 type:" << EntityTypes::getEntityTypeName(entityItem->getType());
+                if (entityItem->getType() == EntityTypes::Model) {
+                    ModelEntityItem* modelEntity = static_cast<ModelEntityItem*>(entityItem);
+                    qDebug() << "                  url:" << modelEntity->getModelURL();
+                }
+                qDebug() << "            entityBox:" << entityBox;
+                qDebug() << "           dimensions:" << entityItem->getDimensionsInMeters() << "in meters";
+                qDebug() << "     largestDimension:" << entityBox.getLargestDimension() << "in meters";
+                qDebug() << "         shouldRender:" << shouldRenderEntity(entityBox.getLargestDimension(), distance);
+                qDebug() << "           in frustum:" << (args->_viewFrustum->boxInFrustum(entityBox) != ViewFrustum::OUTSIDE);
+            }
+            
             if (shouldRenderEntity(entityBox.getLargestDimension(), distance) &&
                     args->_viewFrustum->boxInFrustum(entityBox) != ViewFrustum::OUTSIDE) {
                     

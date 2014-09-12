@@ -257,11 +257,6 @@ protected:
     
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
-    /// set radius in meter units (0.0 - TREE_SCALE), this will also reset dimensions to be equal for each axis
-    void setRadiusInMeters(float value) { 
-            float valueInTreeUnits = value / (float) TREE_SCALE;
-            setRadius(valueInTreeUnits); 
-    }
 
 private:
     // TODO: We need to get rid of these users of getRadius()... but for now, we'll make them friends

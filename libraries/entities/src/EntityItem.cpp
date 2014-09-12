@@ -206,6 +206,11 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
         APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, getPosition());
         APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, getDimensions()); // NOTE: PROP_RADIUS obsolete
+
+        if (wantDebug) {
+            qDebug() << "    APPEND_ENTITY_PROPERTY() PROP_DIMENSIONS:" << getDimensions();
+        }
+
         APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, getRotation());
         APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, getMass());
         APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, getVelocity());
@@ -447,12 +452,25 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 dataAt += sizeof(fromBuffer);
                 bytesRead += sizeof(fromBuffer);
                 if (overwriteLocalData) {
-                    setRadiusInMeters(fromBuffer);
+                    setRadius(fromBuffer);
                 }
+
+                if (wantDebug) {
+                    qDebug() << "    readEntityDataFromBuffer() OLD FORMAT... found PROP_RADIUS";
+                }
+
             }
         } else {
             READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, _dimensions);
+            if (wantDebug) {
+                qDebug() << "    readEntityDataFromBuffer() NEW FORMAT... look for PROP_DIMENSIONS";
+            }
         }
+        
+        if (wantDebug) {
+            qDebug() << "    readEntityDataFromBuffer() _dimensions:" << getDimensionsInMeters() << " in meters";
+        }
+                
         READ_ENTITY_PROPERTY_QUAT(PROP_ROTATION, _rotation);
         READ_ENTITY_PROPERTY(PROP_MASS, float, _mass);
         READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, _velocity);
@@ -464,6 +482,11 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, _angularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
+
+        if (wantDebug) {
+            qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
+            qDebug() << "    readEntityDataFromBuffer() _visible:" << _visible;
+        }
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
@@ -855,6 +878,15 @@ void EntityItem::setRadius(float value) {
     float diameter = value * 2.0f;
     float maxDimension = sqrt((diameter * diameter) / 3.0f);
     _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension);
+
+    bool wantDebug = false;    
+    if (wantDebug) {
+        qDebug() << "EntityItem::setRadius()...";
+        qDebug() << "    radius:" << value;
+        qDebug() << "    diameter:" << diameter;
+        qDebug() << "    maxDimension:" << maxDimension;
+        qDebug() << "    _dimensions:" << _dimensions;
+    }
 }
 
 // TODO: get rid of all users of this function...
