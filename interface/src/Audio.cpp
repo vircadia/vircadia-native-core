@@ -102,9 +102,9 @@ Audio::Audio(QObject* parent) :
     _scopeOutputOffset(0),
     _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
-    _peqEnabled(false),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
+    _peqEnabled(false),
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
@@ -643,6 +643,8 @@ void Audio::handleAudioInput() {
                 } else {
                     _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
                 }
+                
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
                 //  If Noise Gate is enabled, check and turn the gate on and off
                 if (!_audioSourceInjectEnabled && _noiseGateEnabled) {

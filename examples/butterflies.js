@@ -1,5 +1,5 @@
 //
-// butterflyFlockTest1.js
+// butterflies.js
 // 
 //
 // Created by Adrian McCarlie on August 2, 2014
@@ -23,9 +23,6 @@ function vScalarMult(v, s) {
     return rval;
 }
 
-function printVector(v) {
-    print(v.x + ", " + v.y + ", " + v.z + "\n");
-}
 // Create a random vector with individual lengths between a,b
 function randVector(a, b) {
     var rval = { x: a + Math.random() * (b - a), y: a + Math.random() * (b - a), z: a + Math.random() * (b - a) };
@@ -40,7 +37,7 @@ function vInterpolate(a, b, fraction) {
 
 var startTimeInSeconds = new Date().getTime() / 1000;
 
-var lifeTime = 60; // lifetime of the butterflies in seconds!
+var lifeTime = 600; // lifetime of the butterflies in seconds
 var range = 1.0; // Over what distance in meters do you want the flock to fly around
 var frame = 0;
 
@@ -49,7 +46,7 @@ var BUTTERFLY_GRAVITY = 0;//-0.06;
 var BUTTERFLY_FLAP_SPEED = 1.0;
 var BUTTERFLY_VELOCITY = 0.55;
 var DISTANCE_IN_FRONT_OF_ME = 1.5;
-var DISTANCE_ABOVE_ME = 1.5;
+var DISTANCE_ABOVE_ME = 1.0;
 var flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
@@ -81,18 +78,7 @@ function addButterfly() {
     var color = { red: 100, green: 100, blue: 100 };
     var size = 0;
 
-    var which = Math.random();
-    if (which < 0.2) {
-        size = 0.08;
-    } else if (which < 0.4) {
-        size = 0.09;
-    } else if (which < 0.6) {
-        size = 0.8;
-    } else if (which < 0.8) {
-        size = 0.8;
-    } else {
-        size = 0.8;
-    }
+    size = 0.06 + Math.random() * 0.2;
 	
     flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
@@ -212,7 +198,7 @@ function updateButterflies(deltaTime) {
                 var desiredVelocity = Vec3.subtract(butterflies[i].targetPosition, properties.position);
                 desiredVelocity = vScalarMult(Vec3.normalize(desiredVelocity), BUTTERFLY_VELOCITY);
 		   
-				properties.velocity = vInterpolate(properties.velocity, desiredVelocity, 0.2);
+				properties.velocity = vInterpolate(properties.velocity, desiredVelocity, 0.5);
 				properties.velocity.y = holding ;
 			
 			
@@ -239,3 +225,10 @@ function updateButterflies(deltaTime) {
 
 // register the call back so it fires before each data send
 Script.update.connect(updateButterflies);
+
+//  Delete our little friends if script is stopped
+Script.scriptEnding.connect(function() {
+    for (var i = 0; i < numButterflies; i++) {
+        Entities.deleteEntity(butterflies[i].entityID);
+    }
+});
