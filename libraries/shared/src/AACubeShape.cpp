@@ -36,11 +36,12 @@ bool AACubeShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     }
 
     // check for tuncated/short ray
-    const float maxBA = glm::min(intersection._rayLength, intersection._hitDistance) + halfSide;
-    if (maxBA * maxBA > a * a + b2) {
+    // maxLength = maximum possible distance between rayStart and center of cube
+    const float maxLength = glm::min(intersection._rayLength, intersection._hitDistance) + r;
+    float maxBA2 = maxLength * maxLength;
+    if (a * a + b2 > maxLength * maxLength) {
         // ray is not long enough to reach cube's bounding sphere
-        // NOTE: we don't fall in here when ray's length if FLT_MAX because maxBA^2 will be NaN
-        // and all NaN comparisons are false
+        // NOTE: we don't fall in here when ray's length if FLT_MAX because maxLength^2 will be inf or nan
         return false;
     }
 
