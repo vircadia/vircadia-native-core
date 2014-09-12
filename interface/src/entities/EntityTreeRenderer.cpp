@@ -253,19 +253,6 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
                 glutWireCube(1.0f);
             glPopMatrix();
         glPopMatrix();
-
-        /*
-        glPushMatrix();
-            // draw the model relative bounding box
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
-            glColor3f(0.0f, 1.0f, 0.0f);
-            glutWireCube(1.0);
-
-        glPopMatrix();
-        */
-
     }
 }
 
