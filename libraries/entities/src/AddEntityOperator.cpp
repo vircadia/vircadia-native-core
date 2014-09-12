@@ -25,12 +25,6 @@ AddEntityOperator::AddEntityOperator(EntityTree* tree,
 {
     // caller must have verified existence of newEntity
     assert(_newEntity);
-
-
-    // Here we have a choice to make, do we want to "tight fit" the actual minimum for the
-    // entity into the the element, or do we want to use the entities "relaxed" bounds
-    // which can handle all potential rotations?
-    // the getMaximumAACube is the relaxed form.
     _newEntityBox = _newEntity->getMaximumAACube().clamp(0.0f, 1.0f);
 }
 
