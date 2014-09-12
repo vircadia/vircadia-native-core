@@ -110,12 +110,44 @@ public:
         if ( !_frameBuffer || !frames) {
             return;
         }
-        assert(channelCount <= _channelCountMax);
-        assert(frameCount <= _frameCountMax);
-        
-        _frameCount = frameCount;  // we allow copying fewer frames than we've allocated
-        _channelCount = channelCount;  // we allow copying fewer channels that we've allocated
-        
+
+        if (channelCount <=_channelCountMax && frameCount <=_frameCountMax) {
+            // We always allow copying fewer frames than we have allocated
+            _frameCount = frameCount;
+            _channelCount = channelCount; 
+        }
+        else {
+            //
+            // However we do not attempt to copy more frames than we've allocated ;-) This is a framing error caused by either
+            // a/ the platform audio driver not correctly queuing and regularly smoothing device IO capture frames -or-
+            // b/ our IO processing thread (currently running on a Qt GUI thread) has been delayed/scheduled too late.
+            // 
+            // The fix is not to make the problem worse by allocating additional frames on this thread, rather, it is to handle
+            // dynamic re-sizing off the IO processing thread.   While a/ is not in our control, we will address the off thread
+            // re-sizing,, as well as b/, in later releases.
+            //
+            // For now, we log this condition, and do our best to recover by copying as many frames as we have allocated.  
+            // Unfortunately, this will result (temporarily), in an audible discontinuity.
+            // 
+            // If you repeatedly receive this error, contact craig@highfidelity.io and send me what audio device you are using,
+            // what audio-stack you are using (pulse/alsa, core audio, ...),  what OS, and what the reported frame/channel 
+            // counts are.  In addition, any information about what you were doing at the time of the discontinuity, would be
+            // useful (e.g., accessing any client features/menus)
+            //
+            qDebug() << "Audio framing error:  _channelCount=" 
+                     << _channelCount 
+                     << "channelCountMax=" 
+                     << _channelCountMax
+                     << "_frameCount=" 
+                     << _frameCount 
+                     << "frameCountMax=" 
+                     << _frameCountMax;
+
+
+            _channelCount = std::min(_channelCount,_channelCountMax);
+            _frameCount = std::min(_frameCount,_frameCountMax);
+        }
+
         if (copyOut) {
             S* dst = frames;
             

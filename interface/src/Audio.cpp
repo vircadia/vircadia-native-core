@@ -102,9 +102,9 @@ Audio::Audio(QObject* parent) :
     _scopeOutputOffset(0),
     _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
-    _peqEnabled(false),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
+    _peqEnabled(false),
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
@@ -164,14 +164,24 @@ void Audio::audioMixerKilled() {
     resetStats();
 }
 
+
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
+#ifdef WIN32
+    // NOTE
+    // this is a workaround for a windows only QtBug https://bugreports.qt-project.org/browse/QTBUG-16117
+    // static QAudioDeviceInfo objects get deallocated when QList<QAudioDevieInfo> objects go out of scope
+    result = (mode == QAudio::AudioInput) ? 
+        QAudioDeviceInfo::defaultInputDevice() : 
+        QAudioDeviceInfo::defaultOutputDevice();
+#else
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
         qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
         }
     }
+#endif
     return result;
 }
 
@@ -277,6 +287,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         pMMDeviceEnumerator = NULL;
         CoUninitialize();
     }
+
     qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
     
     return getNamedAudioDeviceForMode(mode, deviceName);
@@ -431,7 +442,7 @@ void Audio::start() {
         qDebug() << "Unable to set up audio output because of a problem with output format.";
     }
 
-    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 4 );
+    _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
     _peq.initialize( _inputFormat.sampleRate() ); 
     _inputGain.initialize();
     _sourceGain.initialize();
@@ -632,6 +643,8 @@ void Audio::handleAudioInput() {
                 } else {
                     _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
                 }
+                
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
                 //  If Noise Gate is enabled, check and turn the gate on and off
                 if (!_audioSourceInjectEnabled && _noiseGateEnabled) {

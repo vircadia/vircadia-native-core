@@ -57,7 +57,6 @@ public:
     void setLeanScale(float scale) { _leanScale = scale; }
     void setLocalGravity(glm::vec3 gravity);
     void setShouldRenderLocally(bool shouldRender) { _shouldRender = shouldRender; }
-    void slamPosition(const glm::vec3& position);
 
     // getters
     float getLeanScale() const { return _leanScale; }
@@ -98,6 +97,7 @@ public:
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
 
     //  Set what driving keys are being pressed to control thrust levels
+    void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
     void jump() { _shouldJump = true; };

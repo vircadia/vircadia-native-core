@@ -497,13 +497,9 @@ void NetworkTexture::setImage(const QImage& image, bool translucent, const QColo
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.width(), image.height(), 0,
             GL_RGB, GL_UNSIGNED_BYTE, image.constBits());
     }
-    if (_type == SPLAT_TEXTURE) {
-        // generate mipmaps for splat textures
-        glGenerateMipmap(GL_TEXTURE_2D);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    } else {
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    }
+    // generate mipmaps
+    glGenerateMipmap(GL_TEXTURE_2D);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -541,7 +537,8 @@ QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilatio
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, dilatedImage.width(), dilatedImage.height(), 0,
                     GL_RGB, GL_UNSIGNED_BYTE, dilatedImage.constBits());
             }
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glGenerateMipmap(GL_TEXTURE_2D);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
         

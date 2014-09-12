@@ -58,7 +58,7 @@ void ModelOverlay::render() {
             float depth = unRotatedExtents.z;
             
             Extents rotatedExtents = _model.getUnscaledMeshExtents();
-            calculateRotatedExtents(rotatedExtents, _rotation);
+            rotatedExtents.rotate(_rotation);
             
             glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
             

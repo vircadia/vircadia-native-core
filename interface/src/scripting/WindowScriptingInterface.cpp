@@ -27,7 +27,11 @@ WindowScriptingInterface* WindowScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
-WindowScriptingInterface::WindowScriptingInterface() {
+WindowScriptingInterface::WindowScriptingInterface() :
+    _editDialog(NULL),
+    _nonBlockingFormActive(false),
+    _formResult(QDialog::Rejected) 
+{
 }
 
 QScriptValue WindowScriptingInterface::alert(const QString& message) {
@@ -84,6 +88,26 @@ QScriptValue WindowScriptingInterface::s3Browse(const QString& nameFilter) {
     return retVal;
 }
 
+void WindowScriptingInterface::nonBlockingForm(const QString& title, QScriptValue form) {
+    QMetaObject::invokeMethod(this, "showNonBlockingForm", Qt::BlockingQueuedConnection,
+                              Q_ARG(const QString&, title), Q_ARG(QScriptValue, form));
+}
+
+void WindowScriptingInterface::reloadNonBlockingForm(QScriptValue newValues) {
+    QMetaObject::invokeMethod(this, "doReloadNonBlockingForm", Qt::BlockingQueuedConnection,
+                              Q_ARG(QScriptValue, newValues));
+}
+
+
+QScriptValue WindowScriptingInterface::getNonBlockingFormResult(QScriptValue form) {
+    QScriptValue retVal;
+    QMetaObject::invokeMethod(this, "doGetNonBlockingFormResult", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(QScriptValue, retVal),
+                              Q_ARG(QScriptValue, form));
+    return retVal;
+}
+
+
 /// Display an alert box
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
@@ -126,11 +150,125 @@ void WindowScriptingInterface::chooseDirectory() {
     button->setText(buttonText);
 }
 
+void WindowScriptingInterface::inlineButtonClicked() {
+    QPushButton* button = reinterpret_cast<QPushButton*>(sender());
+    QString name = button->property("name").toString();
+    emit inlineButtonClicked(name);
+}
+
 QString WindowScriptingInterface::jsRegExp2QtRegExp(QString string) {
     // Converts string representation of RegExp from JavaScript format to Qt format.
     return string.mid(1, string.length() - 2)  // No enclosing slashes.
         .replace("\\/", "/");                  // No escaping of forward slash.
 }
+
+void WindowScriptingInterface::showNonBlockingForm(const QString& title, QScriptValue form) {
+    if (!form.isArray() || (form.isArray() && form.property("length").toInt32() <= 0)) {
+        return;
+    }
+    
+    // what should we do if someone calls us while we still think we have a dialog showing???
+    if (_editDialog) {
+        qDebug() << "Show Non-Blocking Form called when form already active.";
+        return;
+    }
+    
+    _form = form;
+    _editDialog = createForm(title, _form);
+    _nonBlockingFormActive = true;
+    
+    connect(_editDialog, SIGNAL(accepted()), this, SLOT(nonBlockingFormAccepted()));
+    connect(_editDialog, SIGNAL(rejected()), this, SLOT(nonBlockingFormRejected()));
+    
+    _editDialog->setModal(true);
+    _editDialog->show();
+}
+
+void WindowScriptingInterface::doReloadNonBlockingForm(QScriptValue newValues) {
+    if (!newValues.isArray() || (newValues.isArray() && newValues.property("length").toInt32() <= 0)) {
+        return;
+    }
+    
+    // what should we do if someone calls us while we still think we have a dialog showing???
+    if (!_editDialog) {
+        qDebug() << "Reload Non-Blocking Form called when no form is active.";
+        return;
+    }
+
+    for (int i = 0; i < newValues.property("length").toInt32(); ++i) {
+        QScriptValue item = newValues.property(i);
+        
+        if (item.property("oldIndex").isValid()) {
+            int oldIndex = item.property("oldIndex").toInt32();
+            QScriptValue oldItem = _form.property(oldIndex);
+            if (oldItem.isValid()) {
+                QLineEdit* originalEdit = _edits[oldItem.property("editIndex").toInt32()];
+                originalEdit->setText(item.property("value").toString());
+            }
+        }
+    }
+}
+
+
+bool WindowScriptingInterface::nonBlockingFormActive() {
+    return _nonBlockingFormActive;
+}
+
+QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue array) {
+    QScriptValue retVal;
+    
+    if (_formResult == QDialog::Accepted) {
+        int e = -1;
+        int d = -1;
+        for (int i = 0; i < _form.property("length").toInt32(); ++i) {
+            QScriptValue item = _form.property(i);
+            QScriptValue value = item.property("value");
+
+            if (item.property("button").toString() != "") {
+                // Nothing to do
+            } else if (item.property("type").toString() == "inlineButton") {
+                // Nothing to do
+            } else if (item.property("type").toString() == "header") {
+                // Nothing to do
+            } else if (item.property("directory").toString() != "") {
+                d += 1;
+                value = _directories.at(d)->property("path").toString();
+                item.setProperty("directory", value);
+                _form.setProperty(i, item);
+            } else {
+                e += 1;
+                bool ok = true;
+                if (value.isNumber()) {
+                    value = _edits.at(e)->text().toDouble(&ok);
+                } else if (value.isString()) {
+                    value = _edits.at(e)->text();
+                } else if (value.isBool()) {
+                    if (_edits.at(e)->text() == "true") {
+                        value = true;
+                    } else if (_edits.at(e)->text() == "false") {
+                        value = false;
+                    } else {
+                        ok = false;
+                    }
+                }
+                if (ok) {
+                    item.setProperty("value", value);
+                    _form.setProperty(i, item);
+                }
+            }
+        }
+    }
+    
+    delete _editDialog;
+    _editDialog = NULL;
+    _form = QScriptValue();
+    _edits.clear();
+    _directories.clear();
+    
+    array = _form;
+    return (_formResult == QDialog::Accepted);    
+}
+
 
 /// Display a form layout with an edit box
 /// \param const QString& title title to display
@@ -140,143 +278,152 @@ QString WindowScriptingInterface::jsRegExp2QtRegExp(QString string) {
 /// - button ("Cancel")
 /// \return QScriptValue `true` if 'OK' was clicked, `false` otherwise
 QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptValue form) {
+    if (form.isArray() && form.property("length").toInt32() <= 0) {
+        return false;
+    }
+    QDialog* editDialog = createForm(title, form);
 
-    if (form.isArray() && form.property("length").toInt32() > 0) {
-        QDialog* editDialog = new QDialog(Application::getInstance()->getWindow());
-        editDialog->setWindowTitle(title);
-
-        bool cancelButton = false;
-        
-        QVBoxLayout* layout = new QVBoxLayout();
-        editDialog->setLayout(layout);
-        
-        QScrollArea* area = new QScrollArea();
-        layout->addWidget(area);
-        area->setWidgetResizable(true);
-        QWidget* container = new QWidget();
-        QFormLayout* formLayout = new QFormLayout();
-        container->setLayout(formLayout);
-        container->sizePolicy().setHorizontalStretch(1);
-        formLayout->setRowWrapPolicy(QFormLayout::DontWrapRows);
-        formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
-        formLayout->setFormAlignment(Qt::AlignHCenter | Qt::AlignTop);
-        formLayout->setLabelAlignment(Qt::AlignLeft);
-        
-        area->setWidget(container);
-        
-        QVector<QLineEdit*> edits;
-        QVector<QComboBox*> combos;
-        QVector<QPushButton*> directories;
+    int result = editDialog->exec();
+    
+    if (result == QDialog::Accepted) {
+        int e = -1;
+        int d = -1;
         for (int i = 0; i < form.property("length").toInt32(); ++i) {
             QScriptValue item = form.property(i);
+            QScriptValue value = item.property("value");
 
             if (item.property("button").toString() != "") {
-                cancelButton = cancelButton || item.property("button").toString().toLower() == "cancel";
-
+                // Nothing to do
+            } else if (item.property("type").toString() == "inlineButton") {
+                // Nothing to do
+            } else if (item.property("type").toString() == "header") {
+                // Nothing to do
             } else if (item.property("directory").toString() != "") {
-                QString path = item.property("directory").toString();
-                QString title = item.property("title").toString();
-                if (title == "") {
-                    title = "Choose Directory";
-                }
-                QString displayAsString = item.property("displayAs").toString();
-                QRegExp displayAs = QRegExp(displayAsString != "" ? jsRegExp2QtRegExp(displayAsString) : "^(.*)$");
-                QString validateAsString = item.property("validateAs").toString();
-                QRegExp validateAs = QRegExp(validateAsString != "" ? jsRegExp2QtRegExp(validateAsString) : ".*"); 
-                QString errorMessage = item.property("errorMessage").toString();
-                if (errorMessage == "") {
-                    errorMessage = "Invalid directory";
-                }
-
-                QPushButton* directory = new QPushButton(displayAs.cap(1));
-                directory->setProperty("title", title);
-                directory->setProperty("path", path);
-                directory->setProperty("displayAs", displayAs);
-                directory->setProperty("validateAs", validateAs);
-                directory->setProperty("errorMessage", errorMessage);
-                displayAs.indexIn(path);
-                directory->setText(displayAs.cap(1) != "" ? displayAs.cap(1) : ".");
-
-                directory->setMinimumWidth(200);
-                directories.push_back(directory);
-
-                formLayout->addRow(new QLabel(item.property("label").toString()), directory);
-                connect(directory, SIGNAL(clicked(bool)), SLOT(chooseDirectory()));
-            } else if (item.property("options").isArray()) {
-                QComboBox* combo = new QComboBox();
-                combo->setMinimumWidth(200);
-                QStringList options = item.property("options").toVariant().toStringList();
-                for (QStringList::const_iterator it = options.begin(); it != options.end(); it += 1) {
-                    combo->addItem(*it);
-                }
-                combos.push_back(combo);
-                formLayout->addRow(new QLabel(item.property("label").toString()), combo);
+                d += 1;
+                value = _directories.at(d)->property("path").toString();
+                item.setProperty("directory", value);
+                form.setProperty(i, item);
             } else {
-                QLineEdit* edit = new QLineEdit(item.property("value").toString());
-                edit->setMinimumWidth(200);
-                edits.push_back(edit);
-                formLayout->addRow(new QLabel(item.property("label").toString()), edit);
-            }
-        }
-
-        QDialogButtonBox* buttons = new QDialogButtonBox(
-            QDialogButtonBox::Ok 
-            | (cancelButton ? QDialogButtonBox::Cancel : QDialogButtonBox::NoButton)
-            );
-        connect(buttons, SIGNAL(accepted()), editDialog, SLOT(accept()));
-        connect(buttons, SIGNAL(rejected()), editDialog, SLOT(reject()));
-        layout->addWidget(buttons);
-        
-        int result = editDialog->exec();
-        if (result == QDialog::Accepted) {
-            int e = -1;
-            int d = -1;
-            int c = -1;
-            for (int i = 0; i < form.property("length").toInt32(); ++i) {
-                QScriptValue item = form.property(i);
-                QScriptValue value = item.property("value");
-
-                if (item.property("button").toString() != "") {
-                    // Nothing to do
-                } else if (item.property("directory").toString() != "") {
-                    d += 1;
-                    value = directories.at(d)->property("path").toString();
-                    item.setProperty("directory", value);
-                    form.setProperty(i, item);
-                } else if (item.property("options").isArray()) {
-                    c += 1;
-                    item.setProperty("value", combos.at(c)->currentText());
-                    form.setProperty(i, item);
-                } else {
-                    e += 1;
-                    bool ok = true;
-                    if (value.isNumber()) {
-                        value = edits.at(e)->text().toDouble(&ok);
-                    } else if (value.isString()) {
-                        value = edits.at(e)->text();
-                    } else if (value.isBool()) {
-                        if (edits.at(e)->text() == "true") {
-                            value = true;
-                        } else if (edits.at(e)->text() == "false") {
-                            value = false;
-                        } else {
-                            ok = false;
-                        }
+                e += 1;
+                bool ok = true;
+                if (value.isNumber()) {
+                    value = _edits.at(e)->text().toDouble(&ok);
+                } else if (value.isString()) {
+                    value = _edits.at(e)->text();
+                } else if (value.isBool()) {
+                    if (_edits.at(e)->text() == "true") {
+                        value = true;
+                    } else if (_edits.at(e)->text() == "false") {
+                        value = false;
+                    } else {
+                        ok = false;
                     }
-                    if (ok) {
-                        item.setProperty("value", value);
-                        form.setProperty(i, item);
-                    }
+                }
+                if (ok) {
+                    item.setProperty("value", value);
+                    form.setProperty(i, item);
                 }
             }
         }
-        
-        delete editDialog;
-
-        return (result == QDialog::Accepted);
     }
     
-    return false;
+    delete editDialog;
+    _edits.clear();
+    _directories.clear();
+    return (result == QDialog::Accepted);
+}
+
+
+
+QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue form) {
+    QDialog* editDialog = new QDialog(Application::getInstance()->getWindow());
+    editDialog->setWindowTitle(title);
+
+    bool cancelButton = false;
+    
+    QVBoxLayout* layout = new QVBoxLayout();
+    editDialog->setLayout(layout);
+    
+    QScrollArea* area = new QScrollArea();
+    layout->addWidget(area);
+    area->setWidgetResizable(true);
+    QWidget* container = new QWidget();
+    QFormLayout* formLayout = new QFormLayout();
+    container->setLayout(formLayout);
+    container->sizePolicy().setHorizontalStretch(1);
+    formLayout->setRowWrapPolicy(QFormLayout::DontWrapRows);
+    formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
+    formLayout->setFormAlignment(Qt::AlignHCenter | Qt::AlignTop);
+    formLayout->setLabelAlignment(Qt::AlignLeft);
+    
+    area->setWidget(container);
+    
+    for (int i = 0; i < form.property("length").toInt32(); ++i) {
+        QScriptValue item = form.property(i);
+
+        if (item.property("button").toString() != "") {
+            cancelButton = cancelButton || item.property("button").toString().toLower() == "cancel";
+
+        } else if (item.property("directory").toString() != "") {
+            QString path = item.property("directory").toString();
+            QString title = item.property("title").toString();
+            if (title == "") {
+                title = "Choose Directory";
+            }
+            QString displayAsString = item.property("displayAs").toString();
+            QRegExp displayAs = QRegExp(displayAsString != "" ? jsRegExp2QtRegExp(displayAsString) : "^(.*)$");
+            QString validateAsString = item.property("validateAs").toString();
+            QRegExp validateAs = QRegExp(validateAsString != "" ? jsRegExp2QtRegExp(validateAsString) : ".*"); 
+            QString errorMessage = item.property("errorMessage").toString();
+            if (errorMessage == "") {
+                errorMessage = "Invalid directory";
+            }
+
+            QPushButton* directory = new QPushButton(displayAs.cap(1));
+            directory->setProperty("title", title);
+            directory->setProperty("path", path);
+            directory->setProperty("displayAs", displayAs);
+            directory->setProperty("validateAs", validateAs);
+            directory->setProperty("errorMessage", errorMessage);
+            displayAs.indexIn(path);
+            directory->setText(displayAs.cap(1) != "" ? displayAs.cap(1) : ".");
+
+            directory->setMinimumWidth(200);
+            _directories.push_back(directory);
+
+            formLayout->addRow(new QLabel(item.property("label").toString()), directory);
+            connect(directory, SIGNAL(clicked(bool)), SLOT(chooseDirectory()));
+
+        } else if (item.property("type").toString() == "inlineButton") {
+            QString buttonLabel = item.property("buttonLabel").toString();
+
+            QPushButton* inlineButton = new QPushButton(buttonLabel);
+            inlineButton->setMinimumWidth(200);
+            inlineButton->setProperty("name", item.property("name").toString());
+            formLayout->addRow(new QLabel(item.property("label").toString()), inlineButton);
+            connect(inlineButton, SIGNAL(clicked(bool)), SLOT(inlineButtonClicked()));
+
+        } else if (item.property("type").toString() == "header") {
+            formLayout->addRow(new QLabel(item.property("label").toString()));
+        } else {
+            QLineEdit* edit = new QLineEdit(item.property("value").toString());
+            edit->setMinimumWidth(200);
+            int editIndex = _edits.size();
+            _edits.push_back(edit);
+            item.setProperty("editIndex", editIndex);
+            formLayout->addRow(new QLabel(item.property("label").toString()), edit);
+        }
+    }
+
+    QDialogButtonBox* buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok 
+        | (cancelButton ? QDialogButtonBox::Cancel : QDialogButtonBox::NoButton)
+        );
+    connect(buttons, SIGNAL(accepted()), editDialog, SLOT(accept()));
+    connect(buttons, SIGNAL(rejected()), editDialog, SLOT(reject()));
+    layout->addWidget(buttons);
+
+    return editDialog;    
 }
 
 /// Display a prompt with a text box

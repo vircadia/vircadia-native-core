@@ -45,22 +45,21 @@ void TextOverlay::render() {
 
     //TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
     //             EffectType effect = NO_EFFECT, int effectThickness = 1);
-    TextRenderer textRenderer(SANS_FONT_FAMILY, _fontSize, 50, false, TextRenderer::NO_EFFECT, 1,
-                              QColor(_color.red, _color.green, _color.blue));
+    TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, 50);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
     const int topAdjust = -2; // required to make text render relative to top edge of bounds
     int x = _bounds.left() + _leftMargin + leftAdjust;
     int y = _bounds.top() + _topMargin + topAdjust;
     
-    glColor3f(1.0f, 1.0f, 1.0f);
+    glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
     QStringList lines = _text.split("\n");
     int lineOffset = 0;
     foreach(QString thisLine, lines) {
         if (lineOffset == 0) {
-            lineOffset = textRenderer.calculateHeight(qPrintable(thisLine));
+            lineOffset = textRenderer->calculateHeight(qPrintable(thisLine));
         }
-        lineOffset += textRenderer.draw(x, y + lineOffset, qPrintable(thisLine));
+        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine));
 
         const int lineGap = 2;
         lineOffset += lineGap;

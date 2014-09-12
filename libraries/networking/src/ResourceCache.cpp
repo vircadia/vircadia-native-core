@@ -215,7 +215,11 @@ void Resource::allReferencesCleared() {
         _cache->addUnusedResource(self);
         
     } else {
+#ifndef WIN32
+        // Note to Andrzej this causes a consistent crash on windows/vs2013
+        // patching here as a very temporary workaround.  --craig
         delete this;
+#endif // !WIN32
     }
 }
 
