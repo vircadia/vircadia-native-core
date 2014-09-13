@@ -340,30 +340,26 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
             // gainR(-pi/2,-3db)->(-pi,-1db)
             penumbraFilterGainR = TWO_OVER_PI * 
                 (NEGATIVE_THREE_DB - NEGATIVE_ONE_DB) * (bearingAngleToSource + PI_OVER_TWO) + NEGATIVE_THREE_DB;
-        }
-        else if (bearingAngleToSource <= PI && bearingAngleToSource > PI_OVER_TWO) {
+        } else if (bearingAngleToSource <= PI && bearingAngleToSource > PI_OVER_TWO) {
             // gainL(+pi,-1db)->(pi/2,-3db)
             penumbraFilterGainL = TWO_OVER_PI * 
                 (NEGATIVE_ONE_DB - NEGATIVE_THREE_DB) * (bearingAngleToSource - PI) + NEGATIVE_ONE_DB;
             // gainR(+pi,-1db)->(pi/2,0db)
             penumbraFilterGainR = TWO_OVER_PI * 
                 (NEGATIVE_ONE_DB - ZERO_DB) * (bearingAngleToSource - PI) + NEGATIVE_ONE_DB;
-        }
-        else if (bearingAngleToSource <= PI_OVER_TWO && bearingAngleToSource > 0) {
+        } else if (bearingAngleToSource <= PI_OVER_TWO && bearingAngleToSource > 0) {
             // gainL(+pi/2,-3db)->(0,0db)
             penumbraFilterGainL = TWO_OVER_PI *
                 (NEGATIVE_THREE_DB - ZERO_DB) * (bearingAngleToSource - PI_OVER_TWO) + NEGATIVE_THREE_DB;
             // gainR(+p1/2,0db)->(0,0db)
             penumbraFilterGainR = ZERO_DB;            
-        }
-        else {
+        } else {
             // gainL(0,0db)->(-pi/2,0db)
             penumbraFilterGainL = ZERO_DB;
             // gainR(0,0db)->(-pi/2,-3db)
             penumbraFilterGainR =  TWO_OVER_PI * 
                 (ZERO_DB - NEGATIVE_THREE_DB) * (bearingAngleToSource) + ZERO_DB;
         }
-
 #if 0
             qDebug() << "avatar="
                      << listeningNodeStream
