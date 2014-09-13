@@ -40,7 +40,7 @@ var LEFT = 0;
 var RIGHT = 1;
 
 var SPAWN_DISTANCE = 1;
-var DEFAULT_RADIUS = 0.10;
+var DEFAULT_DIMENSION = 0.20;
 
 var modelURLs = [
         "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
@@ -1220,7 +1220,7 @@ var toolBar = (function () {
             Entities.addEntity({
                 type: "Model",
                 position: position,
-                radius: DEFAULT_RADIUS,
+                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
                 modelURL: url
             });
             print("Model added: " + url);
@@ -1311,8 +1311,9 @@ var toolBar = (function () {
                 Entities.addEntity({ 
                                 type: "Box",
                                 position: position,
-                                radius: DEFAULT_RADIUS,
+                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
                                 color: { red: 255, green: 0, blue: 0 }
+
                                 });
             } else {
                 print("Can't create box: Box would be out of bounds.");
@@ -1327,7 +1328,7 @@ var toolBar = (function () {
                 Entities.addEntity({ 
                                 type: "Sphere",
                                 position: position,
-                                radius: DEFAULT_RADIUS,
+                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
                                 color: { red: 255, green: 0, blue: 0 }
                                 });
             } else {
@@ -1804,7 +1805,7 @@ function controller(wichSide) {
     this.modelURL = "";
     this.oldModelRotation;
     this.oldModelPosition;
-    this.oldModelRadius;
+    this.oldModelHalfDiagonal;
 
     this.positionAtGrab;
     this.rotationAtGrab;
@@ -1864,7 +1865,7 @@ function controller(wichSide) {
 
             this.oldModelPosition = properties.position;
             this.oldModelRotation = properties.rotation;
-            this.oldModelRadius = properties.radius;
+            this.oldModelHalfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
             this.positionAtGrab = this.palmPosition;
             this.rotationAtGrab = this.rotation;
@@ -1873,7 +1874,7 @@ function controller(wichSide) {
             this.jointsIntersectingFromStart = [];
             for (var i = 0; i < jointList.length; i++) {
                 var distance = Vec3.distance(MyAvatar.getJointPosition(jointList[i]), this.oldModelPosition);
-                if (distance < this.oldModelRadius) {
+                if (distance < this.oldModelHalfDiagonal) {
                     this.jointsIntersectingFromStart.push(i);
                 }
             }
@@ -1897,10 +1898,10 @@ function controller(wichSide) {
 
             if (closestJointIndex != -1) {
                 print("closestJoint: " + jointList[closestJointIndex]);
-                print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelRadius + ")");
+                print("closestJointDistance (attach max distance): " + closestJointDistance + " (" + this.oldModelHalfDiagonal + ")");
             }
 
-            if (closestJointDistance < this.oldModelRadius) {
+            if (closestJointDistance < this.oldModelHalfDiagonal) {
 
                 if (this.jointsIntersectingFromStart.indexOf(closestJointIndex) != -1 ||
                     (leftController.grabbing && rightController.grabbing &&
@@ -1916,7 +1917,7 @@ function controller(wichSide) {
                     var attachmentRotation = Quat.multiply(Quat.inverse(jointRotation), this.oldModelRotation);
 
                     MyAvatar.attach(this.modelURL, jointList[closestJointIndex],
-                                    attachmentOffset, attachmentRotation, 2.0 * this.oldModelRadius,
+                                    attachmentOffset, attachmentRotation, 2.0 * this.oldModelHalfDiagonal,
                                     true, false);
                     Entities.deleteEntity(this.entityID);
                 }
@@ -1970,11 +1971,12 @@ function controller(wichSide) {
         var z = Vec3.dot(Vec3.subtract(P, A), this.right);
         var X = Vec3.sum(A, Vec3.multiply(B, x));
         var d = Vec3.length(Vec3.subtract(P, X));
+        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-        var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
         if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
             if (angularSize > MAX_ANGULAR_SIZE) {
-                print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
+                print("Angular size too big: " + angularSize);
                 return { valid: false };
             }
 
@@ -2021,7 +2023,10 @@ function controller(wichSide) {
                                                           origin: this.palmPosition,
                                                           direction: this.front
                                                           });
-            var angularSize = 2 * Math.atan(intersection.properties.radius / Vec3.distance(Camera.getPosition(), intersection.properties.position)) * 180 / 3.14;
+                                                          
+            var halfDiagonal = Vec3.length(intersection.properties.dimensions) / 2.0;
+                                                          
+            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), intersection.properties.position)) * 180 / 3.14;
             if (intersection.accurate && intersection.entityID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
                 this.glowedIntersectingModel = intersection.entityID;
                 Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.25 });
@@ -2099,7 +2104,7 @@ function controller(wichSide) {
             var indicesToRemove = [];
             for (var i = 0; i < this.jointsIntersectingFromStart.length; ++i) {
                 var distance = Vec3.distance(MyAvatar.getJointPosition(this.jointsIntersectingFromStart[i]), this.oldModelPosition);
-                if (distance >= this.oldModelRadius) {
+                if (distance >= this.oldModelHalfDiagonal) {
                     indicesToRemove.push(this.jointsIntersectingFromStart[i]);
                 }
 
@@ -2192,7 +2197,12 @@ function controller(wichSide) {
                                        Vec3.multiplyQbyV(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName), attachments[attachmentIndex].translation)),
                     rotation: Quat.multiply(MyAvatar.getJointCombinedRotation(attachments[attachmentIndex].jointName),
                                                  attachments[attachmentIndex].rotation),
-                    radius: attachments[attachmentIndex].scale / 2.0,
+                                                 
+                    // TODO: how do we know the correct dimensions for detachment???
+                    dimensions: { x: attachments[attachmentIndex].scale / 2.0,
+                                  y: attachments[attachmentIndex].scale / 2.0,
+                                  z: attachments[attachmentIndex].scale / 2.0 },
+                                  
                     modelURL: attachments[attachmentIndex].modelURL
                 };
 
@@ -2310,15 +2320,21 @@ function moveEntities() {
         Entities.editEntity(leftController.entityID, {
                          position: newPosition,
                          rotation: rotation,
-                         radius: leftController.oldModelRadius * ratio
+                         // TODO: how do we know the correct dimensions for detachment???
+                         //radius: leftController.oldModelHalfDiagonal * ratio
+                         dimensions: { x: leftController.oldModelHalfDiagonal * ratio,
+                                       y: leftController.oldModelHalfDiagonal * ratio,
+                                       z: leftController.oldModelHalfDiagonal * ratio }
+
+
                          });
         leftController.oldModelPosition = newPosition;
         leftController.oldModelRotation = rotation;
-        leftController.oldModelRadius *= ratio;
+        leftController.oldModelHalfDiagonal *= ratio;
 
         rightController.oldModelPosition = newPosition;
         rightController.oldModelRotation = rotation;
-        rightController.oldModelRadius *= ratio;
+        rightController.oldModelHalfDiagonal *= ratio;
         return;
     }
     leftController.moveEntity();
@@ -2379,7 +2395,7 @@ function Tooltip() {
     this.x = 285;
     this.y = 115;
     this.width = 500;
-    this.height = 145;
+    this.height = 180; // 145;
     this.margin = 5;
     this.decimals = 3;
 
@@ -2407,7 +2423,14 @@ function Tooltip() {
         text += "Pitch: " + angles.x.toFixed(this.decimals) + "\n"
         text += "Yaw:  " + angles.y.toFixed(this.decimals) + "\n"
         text += "Roll:    " + angles.z.toFixed(this.decimals) + "\n"
-        text += "Scale: " + 2 * properties.radius.toFixed(this.decimals) + "\n"
+        text += "Dimensions: " + properties.dimensions.x.toFixed(this.decimals) + ", "
+                               + properties.dimensions.y.toFixed(this.decimals) + ", "
+                               + properties.dimensions.z.toFixed(this.decimals) + "\n";
+
+        text += "Natural Dimensions: " + properties.naturalDimensions.x.toFixed(this.decimals) + ", "
+                                       + properties.naturalDimensions.y.toFixed(this.decimals) + ", "
+                                       + properties.naturalDimensions.z.toFixed(this.decimals) + "\n";
+
         text += "ID: " + properties.id + "\n"
         if (properties.type == "Model") {
             text += "Model URL: " + properties.modelURL + "\n"
@@ -2426,6 +2449,7 @@ function Tooltip() {
             text += "Lifetime: " + properties.lifetime + "\n"
         }
         text += "Age: " + properties.ageAsText + "\n"
+        text += "Script: " + properties.script + "\n"
 
 
         Overlays.editOverlay(this.textOverlay, { text: text });
@@ -2477,7 +2501,9 @@ function mousePressEvent(event) {
         if (isLocked(properties)) {
             print("Model locked " + properties.id);
         } else {
-            print("Checking properties: " + properties.id + " " + properties.isKnownID);
+            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
             //                P         P - Model
             //               /|         A - Palm
             //              / | d       B - unit vector toward tip
@@ -2496,8 +2522,9 @@ function mousePressEvent(event) {
             var x = Vec3.dot(Vec3.subtract(P, A), B);
             var X = Vec3.sum(A, Vec3.multiply(B, x));
             var d = Vec3.length(Vec3.subtract(P, X));
+            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            var angularSize = 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
             if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
                 if (angularSize < MAX_ANGULAR_SIZE) {
                     entitySelected = true;
@@ -2506,13 +2533,13 @@ function mousePressEvent(event) {
                     orientation = MyAvatar.orientation;
                     intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
                 } else {
-                    print("Angular size too big: " + 2 * Math.atan(properties.radius / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14);
+                    print("Angular size too big: " + angularSize);
                 }
             }
         }
     }
     if (entitySelected) {
-        selectedEntityProperties.oldRadius = selectedEntityProperties.radius;
+        selectedEntityProperties.oldDimensions = selectedEntityProperties.dimensions;
         selectedEntityProperties.oldPosition = {
             x: selectedEntityProperties.position.x,
             y: selectedEntityProperties.position.y,
@@ -2550,8 +2577,12 @@ function mouseMoveEvent(event) {
                 glowedEntityID.id = -1;
                 glowedEntityID.isKnownID = false;
             }
+
+            var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
             
-            var angularSize = 2 * Math.atan(entityIntersection.properties.radius / Vec3.distance(Camera.getPosition(), entityIntersection.properties.position)) * 180 / 3.14;
+            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
+                                            entityIntersection.properties.position)) * 180 / 3.14;
+                                            
             if (entityIntersection.entityID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
                 Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
                 glowedEntityID = entityIntersection.entityID;
@@ -2573,7 +2604,7 @@ function mouseMoveEvent(event) {
     }
     pickRay = Camera.computePickRay(event.x, event.y);
     if (wasShifted != event.isShifted || modifier != oldModifier) {
-        selectedEntityProperties.oldRadius = selectedEntityProperties.radius;
+        selectedEntityProperties.oldDimensions = selectedEntityProperties.dimensions;
         
         selectedEntityProperties.oldPosition = {
             x: selectedEntityProperties.position.x,
@@ -2603,9 +2634,12 @@ function mouseMoveEvent(event) {
             return;
         case 1:
             // Let's Scale
-            selectedEntityProperties.radius = (selectedEntityProperties.oldRadius *
+            selectedEntityProperties.dimensions = Vec3.multiply(selectedEntityProperties.dimensions,
                                               (1.0 + (mouseLastPosition.y - event.y) / SCALE_FACTOR));
-            if (selectedEntityProperties.radius < 0.01) {
+
+            var halfDiagonal = Vec3.length(selectedEntityProperties.dimensions) / 2.0;
+
+            if (halfDiagonal < 0.01) {
                 print("Scale too small ... bailling.");
                 return;
             }
@@ -2753,6 +2787,13 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 
 setupModelMenus();
 
+var propertiesForEditedEntity;
+var editEntityFormArray;
+var editModelID = -1;
+var dimensionX;
+var dimensionY;
+var dimensionZ;
+
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Delete") {
@@ -2781,7 +2822,7 @@ function handeMenuEvent(menuItem) {
             print("  Delete Entity.... not holding...");
         }
     } else if (menuItem == "Edit Properties...") {
-        var editModelID = -1;
+        editModelID = -1;
         if (leftController.grabbing) {
             print("  Edit Properties.... leftController.entityID="+ leftController.entityID);
             editModelID = leftController.entityID;
@@ -2797,79 +2838,111 @@ function handeMenuEvent(menuItem) {
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
 
-            var properties = Entities.getEntityProperties(editModelID);
+            propertiesForEditedEntity = Entities.getEntityProperties(editModelID);
+            var properties = propertiesForEditedEntity;
 
             var array = new Array();
+            var index = 0;
             var decimals = 3;
             if (properties.type == "Model") {
                 array.push({ label: "Model URL:", value: properties.modelURL });
+                index++;
                 array.push({ label: "Animation URL:", value: properties.animationURL });
+                index++;
                 array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
+                index++;
                 array.push({ label: "Animation FPS:", value: properties.animationFPS });
+                index++;
                 array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
+                index++;
             }
+            array.push({ label: "Position:", type: "header" });
+            index++;
             array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
+            index++;
             array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
+            index++;
             array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
+            index++;
+
+            array.push({ label: "Registration X:", value: properties.registrationPoint.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Registration Y:", value: properties.registrationPoint.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Registration Z:", value: properties.registrationPoint.z.toFixed(decimals) });
+            index++;
+
+            array.push({ label: "Rotation:", type: "header" });
+            index++;
             var angles = Quat.safeEulerAngles(properties.rotation);
             array.push({ label: "Pitch:", value: angles.x.toFixed(decimals) });
+            index++;
             array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
+            index++;
             array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
-            array.push({ label: "Scale:", value: 2 * properties.radius.toFixed(decimals) });
+            index++;
 
-            array.push({ label: "Velocity X:", value: properties.velocity.x.toFixed(decimals) });
-            array.push({ label: "Velocity Y:", value: properties.velocity.y.toFixed(decimals) });
-            array.push({ label: "Velocity Z:", value: properties.velocity.z.toFixed(decimals) });
-            array.push({ label: "Damping:", value: properties.damping.toFixed(decimals) });
+            array.push({ label: "Dimensions:", type: "header" });
+            index++;
+            array.push({ label: "Width:", value: properties.dimensions.x.toFixed(decimals) });
+            dimensionX = index;
+            index++;
+            array.push({ label: "Height:", value: properties.dimensions.y.toFixed(decimals) });
+            dimensionY = index;
+            index++;
+            array.push({ label: "Depth:", value: properties.dimensions.z.toFixed(decimals) });
+            dimensionZ = index;
+            index++;
+            array.push({ label: "", type: "inlineButton", buttonLabel: "Reset to Natural Dimensions", name: "resetDimensions" });
+            index++;
+
+            array.push({ label: "Velocity:", type: "header" });
+            index++;
+            array.push({ label: "Linear X:", value: properties.velocity.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Linear Y:", value: properties.velocity.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Linear Z:", value: properties.velocity.z.toFixed(decimals) });
+            index++;
+            array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Roll:", value: properties.angularVelocity.z.toFixed(decimals) });
+            index++;
+            array.push({ label: "Angular Damping:", value: properties.angularDamping.toFixed(decimals) });
+            index++;
 
             array.push({ label: "Gravity X:", value: properties.gravity.x.toFixed(decimals) });
+            index++;
             array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
+            index++;
             array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
+            index++;
 
             array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
+            index++;
+
+            array.push({ label: "Visible:", value: properties.visible });
+            index++;
             
             if (properties.type == "Box" || properties.type == "Sphere") {
+                array.push({ label: "Color:", type: "header" });
+                index++;
                 array.push({ label: "Red:", value: properties.color.red });
+                index++;
                 array.push({ label: "Green:", value: properties.color.green });
+                index++;
                 array.push({ label: "Blue:", value: properties.color.blue });
+                index++;
             }
             array.push({ button: "Cancel" });
-        
-            if (Window.form("Edit Properties", array)) {
-                var index = 0;
-                if (properties.type == "Model") {
-                    properties.modelURL = array[index++].value;
-                    properties.animationURL = array[index++].value;
-                    properties.animationIsPlaying = array[index++].value;
-                    properties.animationFPS = array[index++].value;
-                    properties.animationFrameIndex = array[index++].value;
-                }
-                properties.position.x = array[index++].value;
-                properties.position.y = array[index++].value;
-                properties.position.z = array[index++].value;
-                angles.x = array[index++].value;
-                angles.y = array[index++].value;
-                angles.z = array[index++].value;
-                properties.rotation = Quat.fromVec3Degrees(angles);
-                properties.radius = array[index++].value / 2;
+            index++;
 
-                properties.velocity.x = array[index++].value;
-                properties.velocity.y = array[index++].value;
-                properties.velocity.z = array[index++].value;
-                properties.damping = array[index++].value;
-                properties.gravity.x = array[index++].value;
-                properties.gravity.y = array[index++].value;
-                properties.gravity.z = array[index++].value;
-                properties.lifetime = array[index++].value; // give ourselves that many more seconds
-
-                if (properties.type == "Box" || properties.type == "Sphere") {
-                    properties.color.red = array[index++].value;
-                    properties.color.green = array[index++].value;
-                    properties.color.blue = array[index++].value;
-                }
-                Entities.editEntity(editModelID, properties);
-            }
-            modelSelected = false;
+            editEntityFormArray = array;
+            Window.nonBlockingForm("Edit Properties", array);
         }
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
@@ -2930,3 +3003,76 @@ Controller.keyReleaseEvent.connect(function (event) {
         handeMenuEvent("Delete");
     }
 });
+
+Window.inlineButtonClicked.connect(function (name) {
+    if (name == "resetDimensions") {
+        var decimals = 3;
+        Window.reloadNonBlockingForm([
+            { value: propertiesForEditedEntity.naturalDimensions.x.toFixed(decimals), oldIndex: dimensionX },
+            { value: propertiesForEditedEntity.naturalDimensions.y.toFixed(decimals), oldIndex: dimensionY },
+            { value: propertiesForEditedEntity.naturalDimensions.z.toFixed(decimals), oldIndex: dimensionZ }
+        ]);
+    }
+});
+Window.nonBlockingFormClosed.connect(function() {
+    array = editEntityFormArray;
+    if (Window.getNonBlockingFormResult(array)) {
+        var properties = propertiesForEditedEntity;
+        var index = 0;
+        if (properties.type == "Model") {
+            properties.modelURL = array[index++].value;
+            properties.animationURL = array[index++].value;
+            properties.animationIsPlaying = array[index++].value;
+            properties.animationFPS = array[index++].value;
+            properties.animationFrameIndex = array[index++].value;
+        }
+        index++; // skip header
+        properties.position.x = array[index++].value;
+        properties.position.y = array[index++].value;
+        properties.position.z = array[index++].value;
+        properties.registrationPoint.x = array[index++].value;
+        properties.registrationPoint.y = array[index++].value;
+        properties.registrationPoint.z = array[index++].value;
+
+        index++; // skip header
+        var angles = Quat.safeEulerAngles(properties.rotation);
+        angles.x = array[index++].value;
+        angles.y = array[index++].value;
+        angles.z = array[index++].value;
+        properties.rotation = Quat.fromVec3Degrees(angles);
+
+        index++; // skip header
+        properties.dimensions.x = array[index++].value;
+        properties.dimensions.y = array[index++].value;
+        properties.dimensions.z = array[index++].value;
+        index++; // skip reset button
+
+        index++; // skip header
+        properties.velocity.x = array[index++].value;
+        properties.velocity.y = array[index++].value;
+        properties.velocity.z = array[index++].value;
+        properties.damping = array[index++].value;
+
+        properties.angularVelocity.x = array[index++].value;
+        properties.angularVelocity.y = array[index++].value;
+        properties.angularVelocity.z = array[index++].value;
+        properties.angularDamping = array[index++].value;
+
+        properties.gravity.x = array[index++].value;
+        properties.gravity.y = array[index++].value;
+        properties.gravity.z = array[index++].value;
+        properties.lifetime = array[index++].value;
+        properties.visible = array[index++].value;
+
+        if (properties.type == "Box" || properties.type == "Sphere") {
+            index++; // skip header
+            properties.color.red = array[index++].value;
+            properties.color.green = array[index++].value;
+            properties.color.blue = array[index++].value;
+        }
+        Entities.editEntity(editModelID, properties);
+    }
+    modelSelected = false;
+});
+
+

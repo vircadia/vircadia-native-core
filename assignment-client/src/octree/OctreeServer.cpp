@@ -878,10 +878,10 @@ void OctreeServer::setupDatagramProcessingThread() {
     // we do not want this event loop to be the handler for UDP datagrams, so disconnect
     disconnect(&nodeList->getNodeSocket(), 0, this, 0);
     
-    // setup a QThread with us as parent that will house the AudioMixerDatagramProcessor
+    // setup a QThread with us as parent that will house the OctreeServerDatagramProcessor
     _datagramProcessingThread = new QThread(this);
     
-    // create an AudioMixerDatagramProcessor and move it to that thread
+    // create an OctreeServerDatagramProcessor and move it to that thread
     OctreeServerDatagramProcessor* datagramProcessor = new OctreeServerDatagramProcessor(nodeList->getNodeSocket(), thread());
     datagramProcessor->moveToThread(_datagramProcessingThread);
     

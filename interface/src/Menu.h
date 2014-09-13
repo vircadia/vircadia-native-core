@@ -164,11 +164,6 @@ public:
                                            int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(QMenu* menu, const QString& actionName);
-
-    bool static goToDestination(QString destination);
-    void static goToOrientation(QString orientation);
-    void static goToDomain(const QString newDomain);
-    void static goTo(QString destination);
     
     const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
@@ -187,11 +182,8 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
-    void goTo();
-    bool goToURL(QString location);
-    void goToUser(const QString& user);
+    void toggleAddressBar();
     void pasteToVoxel();
-    void openUrl(const QUrl& url);
 
     void toggleLoginMenuItem();
 
@@ -213,8 +205,6 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void goToDomainDialog();
-    void goToLocation();
     void nameLocation();
     void toggleLocationList();
     void bandwidthDetailsClosed();
@@ -228,8 +218,9 @@ private slots:
     void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
-    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
-    void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
+    void displayNameLocationResponse(const QString& errorString);
+    void displayAddressOfflineMessage();
+    void displayAddressNotFoundMessage();
     void muteEnvironment();
 
 private:
@@ -318,6 +309,7 @@ private:
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
@@ -403,10 +395,7 @@ namespace MenuOption {
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString GoHome = "Go Home";
-    const QString GoToDomain = "Go To Domain...";
-    const QString GoTo = "Go To...";
-    const QString GoToLocation = "Go To Location...";
+    const QString GoToUser = "Go To User";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";

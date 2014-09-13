@@ -20,12 +20,21 @@ class WindowScriptingInterface : public QObject {
     Q_OBJECT
     Q_PROPERTY(int innerWidth READ getInnerWidth)
     Q_PROPERTY(int innerHeight READ getInnerHeight)
+    Q_PROPERTY(int x READ getX)
+    Q_PROPERTY(int y READ getY)
 public:
     static WindowScriptingInterface* getInstance();
     int getInnerWidth();
     int getInnerHeight();
+    int getX();
+    int getY();
 
 public slots:
+    QScriptValue getCursorPositionX();
+    QScriptValue getCursorPositionY();
+    void setCursorPosition(int x, int y);
+    void setCursorVisible(bool visible);
+    QScriptValue hasFocus();
     QScriptValue alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
     QScriptValue form(const QString& title, QScriptValue array);
@@ -71,6 +80,7 @@ private:
     QScriptValue _form;
     bool _nonBlockingFormActive;
     int _formResult;
+    QVector<QComboBox*> _combos;
     QVector<QLineEdit*> _edits;
     QVector<QPushButton*> _directories;
 };

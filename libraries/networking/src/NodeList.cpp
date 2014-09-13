@@ -397,7 +397,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     _numNoReplyDomainCheckIns = 0;
     
     // if this was the first domain-server list from this domain, we've now connected
-    _domainHandler.setIsConnected(true);
+    if (!_domainHandler.isConnected()) {
+        _domainHandler.setUUID(uuidFromPacketHeader(packet));
+        _domainHandler.setIsConnected(true);
+    }
 
     int readNodes = 0;
     

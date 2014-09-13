@@ -296,7 +296,12 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             }
         
             if (includeThisEntity && params.viewFrustum) {
-                AACube entityCube = entity->getAACube();
+            
+                // we want to use the maximum possible box for this, so that we don't have to worry about the nuance of
+                // simulation changing what's visible. consider the case where the entity contains an angular velocity
+                // the entity may not be in view and then in view a frame later, let the client side handle it's view
+                // frustum culling on rendering.
+                AACube entityCube = entity->getMaximumAACube();
                 entityCube.scale(TREE_SCALE);
                 if (params.viewFrustum->cubeInFrustum(entityCube) == ViewFrustum::OUTSIDE) {
                     includeThisEntity = false; // out of view, don't include it
@@ -405,19 +410,19 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
 }
 
 bool EntityTreeElement::containsEntityBounds(const EntityItem* entity) const {
-    return containsBounds(entity->getMinimumPoint(), entity->getMaximumPoint());
+    return containsBounds(entity->getMaximumAACube());
 }
 
 bool EntityTreeElement::bestFitEntityBounds(const EntityItem* entity) const {
-    return bestFitBounds(entity->getMinimumPoint(), entity->getMaximumPoint());
+    return bestFitBounds(entity->getMaximumAACube());
 }
 
 bool EntityTreeElement::containsBounds(const EntityItemProperties& properties) const {
-    return containsBounds(properties.getMinimumPointTreeUnits(), properties.getMaximumPointTreeUnits());
+    return containsBounds(properties.getMaximumAACubeInTreeUnits());
 }
 
 bool EntityTreeElement::bestFitBounds(const EntityItemProperties& properties) const {
-    return bestFitBounds(properties.getMinimumPointTreeUnits(), properties.getMaximumPointTreeUnits());
+    return bestFitBounds(properties.getMaximumAACubeInTreeUnits());
 }
 
 bool EntityTreeElement::containsBounds(const AACube& bounds) const {
@@ -477,76 +482,37 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
         
-        AACube entityCube = entity->getAACube();
+        AABox entityBox = entity->getAABox();
         float localDistance;
         BoxFace localFace;
 
         // if the ray doesn't intersect with our cube, we can stop searching!
-        if (entityCube.findRayIntersection(origin, direction, localDistance, localFace)) {
-            const FBXGeometry* fbxGeometry = _myTree->getGeometryForEntity(entity);
-            if (fbxGeometry && fbxGeometry->meshExtents.isValid()) {
-                Extents extents = fbxGeometry->meshExtents;
+        if (entityBox.findRayIntersection(origin, direction, localDistance, localFace)) {
 
-                // NOTE: If the entity has a bad mesh, then extents will be 0,0,0 & 0,0,0
-                if (extents.minimum == extents.maximum && extents.minimum == glm::vec3(0,0,0)) {
-                    extents.maximum = glm::vec3(1.0f,1.0f,1.0f); // in this case we will simulate the unit cube
+            // extents is the entity relative, scaled, centered extents of the entity
+            glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
+            glm::mat4 translation = glm::translate(entity->getPosition());
+            glm::mat4 entityToWorldMatrix = translation * rotation;
+            glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+
+            glm::vec3 dimensions = entity->getDimensions();
+            glm::vec3 registrationPoint = entity->getRegistrationPoint();
+            glm::vec3 corner = -(dimensions * registrationPoint);
+
+            AABox entityFrameBox(corner, dimensions);
+
+            glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+            glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
+
+            // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
+            // and testing intersection there.
+            if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance, localFace)) {
+                if (localDistance < distance) {
+                    distance = localDistance;
+                    face = localFace;
+                    *intersectedObject = (void*)entity;
+                    somethingIntersected = true;
                 }
-
-                // NOTE: these extents are entity space, so we need to scale and center them accordingly
-                // size is our "target size in world space"
-                // we need to set our entity scale so that the extents of the mesh, fit in a cube that size...
-                float maxDimension = glm::distance(extents.maximum, extents.minimum);
-                float scale = entity->getSize() / maxDimension;
-
-                glm::vec3 halfDimensions = (extents.maximum - extents.minimum) * 0.5f;
-                glm::vec3 offset = -extents.minimum - halfDimensions;
-                
-                extents.minimum += offset;
-                extents.maximum += offset;
-
-                extents.minimum *= scale;
-                extents.maximum *= scale;
-                
-                Extents rotatedExtents = extents;
-
-                rotatedExtents.rotate(entity->getRotation());
-
-                rotatedExtents.minimum += entity->getPosition();
-                rotatedExtents.maximum += entity->getPosition();
-
-
-                AABox rotatedExtentsBox(rotatedExtents.minimum, (rotatedExtents.maximum - rotatedExtents.minimum));
-                
-                // if it's in our AABOX for our rotated extents, then check to see if it's in our non-AABox
-                if (rotatedExtentsBox.findRayIntersection(origin, direction, localDistance, localFace)) {
-                
-                    // extents is the entity relative, scaled, centered extents of the entity
-                    glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-                    glm::mat4 translation = glm::translate(entity->getPosition());
-                    glm::mat4 entityToWorldMatrix = translation * rotation;
-                    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
-
-                    AABox entityFrameBox(extents.minimum, (extents.maximum - extents.minimum));
-
-                    glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
-                    glm::vec3 entityFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
-
-                    // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
-                    // and testing intersection there.
-                    if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance, localFace)) {
-                        if (localDistance < distance) {
-                            distance = localDistance;
-                            face = localFace;
-                            *intersectedObject = (void*)entity;
-                            somethingIntersected = true;
-                        }
-                    }
-                }
-            } else if (localDistance < distance) {
-                distance = localDistance;
-                face = localFace;
-                *intersectedObject = (void*)entity;
-                somethingIntersected = true;
             }
         }
         
@@ -555,6 +521,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
     return somethingIntersected;
 }
 
+// TODO: change this to use better bounding shape for entity than sphere
 bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float radius,
                                     glm::vec3& penetration, void** penetratedObject) const {
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
@@ -605,6 +572,7 @@ const EntityItem* EntityTreeElement::getClosestEntity(glm::vec3 position) const 
     return closestEntity;
 }
 
+// TODO: change this to use better bounding shape for entity than sphere
 void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searchRadius, QVector<const EntityItem*>& foundEntities) const {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
@@ -616,6 +584,7 @@ void EntityTreeElement::getEntities(const glm::vec3& searchPosition, float searc
     }
 }
 
+// TODO: change this to use better bounding shape for entity than sphere
 void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& foundEntities) {
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     QList<EntityItem*>::iterator entityEnd = _entityItems->end();

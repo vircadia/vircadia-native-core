@@ -65,8 +65,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     bool drawAsModel = hasModel();
 
     glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float radius = getRadius() * (float)TREE_SCALE;
     float size = getSize() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     
     if (drawAsModel) {
         glPushMatrix();
@@ -98,8 +98,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
                 glm::quat rotation = getRotation();
                 if (needsSimulation() && _model->isActive()) {
-                    _model->setScaleToFit(true, radius * 2.0f);
-                    _model->setSnapModelToCenter(true);
+                    _model->setScaleToFit(true, dimensions);
+                    _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
                     _model->setRotation(rotation);
                     _model->setTranslation(position);
                     
@@ -127,52 +127,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                         glTranslatef(position.x, position.y, position.z);
                         glutWireCube(size);
                     glPopMatrix();
-                }
-                
-                bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
-                bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
-
-                if (!isShadowMode && displayModelBounds) {
-                    PerformanceTimer perfTimer("displayModelBounds");
-
-                    glm::vec3 unRotatedMinimum = _model->getUnscaledMeshExtents().minimum;
-                    glm::vec3 unRotatedMaximum = _model->getUnscaledMeshExtents().maximum;
-                    glm::vec3 unRotatedExtents = unRotatedMaximum - unRotatedMinimum;
- 
-                    float width = unRotatedExtents.x;
-                    float height = unRotatedExtents.y;
-                    float depth = unRotatedExtents.z;
-
-                    Extents rotatedExtents = _model->getUnscaledMeshExtents();
-                    rotatedExtents.rotate(rotation);
-
-                    glm::vec3 rotatedSize = rotatedExtents.maximum - rotatedExtents.minimum;
-
-                    const glm::vec3& modelScale = _model->getScale();
-
-                    glPushMatrix();
-                        glTranslatef(position.x, position.y, position.z);
-                    
-                        // draw the orignal bounding cube
-                        glColor4f(1.0f, 1.0f, 0.0f, 1.0f);
-                        glutWireCube(size);
-
-                        // draw the rotated bounding cube
-                        glColor4f(0.0f, 0.0f, 1.0f, 1.0f);
-                        glPushMatrix();
-                            glScalef(rotatedSize.x * modelScale.x, rotatedSize.y * modelScale.y, rotatedSize.z * modelScale.z);
-                            glutWireCube(1.0);
-                        glPopMatrix();
-                    
-                        // draw the model relative bounding box
-                        glm::vec3 axis = glm::axis(rotation);
-                        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-                        glScalef(width * modelScale.x, height * modelScale.y, depth * modelScale.z);
-                        glColor3f(0.0f, 1.0f, 0.0f);
-                        glutWireCube(1.0);
-
-                    glPopMatrix();
-                
                 }
             } else {
                 // if we couldn't get a model, then just draw a cube
