@@ -76,5 +76,5 @@ void main(void) {
     
     // add specular contribution
     vec4 specularColor = texture2D(specularMap, gl_TexCoord[0].st);
-    gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 255.0) * specularColor.rgb, normal.a);
+    gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normal.a);
 }

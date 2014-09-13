@@ -33,7 +33,8 @@ void main(void) {
         normalizedBitangent * localNormal.y + normalizedNormal * localNormal.z, 0.0);
     
     // set the diffuse, normal, specular data
-    gl_FragData[0] = gl_Color * texture2D(diffuseMap, gl_TexCoord[0].st);
+    vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
+    gl_FragData[0] = vec4(gl_Color.rgb * diffuse.rgb, step(diffuse.a, 0.5));
     gl_FragData[1] = viewNormal + vec4(0.5, 0.5, 0.5, 1.0);
-    gl_FragData[2] = vec4(gl_FrontMaterial.specular.rgb, gl_FrontMaterial.shininess / 255.0);
+    gl_FragData[2] = vec4(gl_FrontMaterial.specular.rgb, gl_FrontMaterial.shininess / 128.0);
 }
