@@ -104,6 +104,7 @@ void GlobalServicesScriptingInterface::loggedOut() {
     emit GlobalServicesScriptingInterface::disconnected(QString("logout"));
 }
 
+#ifdef HAVE_QXMPP
 void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& message) {
     if (message.type() != QXmppMessage::GroupChat) {
         return;
@@ -111,3 +112,4 @@ void GlobalServicesScriptingInterface::messageReceived(const QXmppMessage& messa
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     emit GlobalServicesScriptingInterface::incomingMessage(message.from().right(message.from().count() - 1 - publicChatRoom->jid().count()), message.body());
 }
+#endif // HAVE_QXMPP
