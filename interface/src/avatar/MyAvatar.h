@@ -97,6 +97,7 @@ public:
     AttachmentData loadAttachmentData(const QUrl& modelURL, const QString& jointName = QString()) const;
 
     //  Set what driving keys are being pressed to control thrust levels
+    void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
     void jump() { _shouldJump = true; };
@@ -149,18 +150,18 @@ public:
     const PlayerPointer getPlayer() const { return _player; }
     
 public slots:
-    void goHome();
     void increaseSize();
     void decreaseSize();
     void resetSize();
     
-    void goToLocationFromResponse(const QJsonObject& jsonObject);
-    void goToLocationFromAddress(const QJsonObject& jsonObject);
+    void goToLocation(const glm::vec3& newPosition, bool hasOrientation = false, const glm::vec3& newOrientation = glm::vec3());
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
+
+    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
 
     void updateMotionBehaviorsFromMenu();
     void onToggleRagdoll();

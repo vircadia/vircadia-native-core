@@ -57,7 +57,7 @@ Stats::Stats():
         _metavoxelReceiveTotal(0)
 {
     GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    resetWidth(glWidget->getDeviceWidth(), 0);
+    resetWidth(glWidget->width(), 0);
 }
 
 void Stats::toggleExpanded() {
@@ -114,7 +114,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
     // top-right stats click
     lines = _expanded ? 11 : 3;
     statsHeight = lines * STATS_PELS_PER_LINE + 10;
-    statsWidth = glWidget->getDeviceWidth() - statsX;
+    statsWidth = glWidget->width() - statsX;
     if (mouseX > statsX && mouseX < statsX + statsWidth  && mouseY > statsY && mouseY < statsY + statsHeight) {
         toggleExpanded();
         return;
@@ -123,7 +123,7 @@ void Stats::checkClick(int mouseX, int mouseY, int mouseDragStartedX, int mouseD
 
 void Stats::resetWidth(int width, int horizontalOffset) {
     GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    int extraSpace = glWidget->getDeviceWidth() - horizontalOffset -2
+    int extraSpace = glWidget->width() - horizontalOffset -2
                    - STATS_GENERAL_MIN_WIDTH
                    - (Menu::getInstance()->isOptionChecked(MenuOption::TestPing) ? STATS_PING_MIN_WIDTH -1 : 0)
                    - STATS_GEO_MIN_WIDTH
@@ -147,7 +147,7 @@ void Stats::resetWidth(int width, int horizontalOffset) {
             _pingStatsWidth += (int) extraSpace / panels;
         }
         _geoStatsWidth += (int) extraSpace / panels;
-        _voxelStatsWidth += glWidget->getDeviceWidth() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
+        _voxelStatsWidth += glWidget->width() - (_generalStatsWidth + _pingStatsWidth + _geoStatsWidth + 3);
     }
 }
 
@@ -210,7 +210,7 @@ void Stats::display(
     std::stringstream voxelStats;
 
     if (_lastHorizontalOffset != horizontalOffset) {
-        resetWidth(glWidget->getDeviceWidth(), horizontalOffset);
+        resetWidth(glWidget->width(), horizontalOffset);
         _lastHorizontalOffset = horizontalOffset;
     }
 
@@ -410,7 +410,7 @@ void Stats::display(
         }
     }
     
-    drawBackground(backgroundColor, horizontalOffset, 0, glWidget->getDeviceWidth() - horizontalOffset,
+    drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
         lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 

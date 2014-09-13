@@ -42,6 +42,8 @@ private:
 
     bool subTreeContainsOldEntity(OctreeElement* element);
     bool subTreeContainsNewEntity(OctreeElement* element);
+
+    bool _wantDebug;
 };
 
 #endif // hifi_UpdateEntityOperator_h

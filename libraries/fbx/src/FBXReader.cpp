@@ -33,27 +33,6 @@
 
 using namespace std;
 
-void Extents::reset() {
-    minimum = glm::vec3(FLT_MAX);
-    maximum = glm::vec3(-FLT_MAX);
-}
-
-bool Extents::containsPoint(const glm::vec3& point) const {
-    return (point.x >= minimum.x && point.x <= maximum.x
-        && point.y >= minimum.y && point.y <= maximum.y
-        && point.z >= minimum.z && point.z <= maximum.z);
-}
-
-void Extents::addExtents(const Extents& extents) {
-     minimum = glm::min(minimum, extents.minimum);
-     maximum = glm::max(maximum, extents.maximum);
-}
-
-void Extents::addPoint(const glm::vec3& point) {
-    minimum = glm::min(minimum, point);
-    maximum = glm::max(maximum, point);
-}
-
 bool FBXMesh::hasSpecularTexture() const {
     foreach (const FBXMeshPart& part, parts) {
         if (!part.specularTexture.filename.isEmpty()) {
@@ -79,6 +58,19 @@ bool FBXGeometry::hasBlendedMeshes() const {
     }
     return false;
 }
+
+Extents FBXGeometry::getUnscaledMeshExtents() const {
+    const Extents& extents = meshExtents;
+
+    // even though our caller asked for "unscaled" we need to include any fst scaling, translation, and rotation, which
+    // is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(offset * glm::vec4(extents.maximum, 1.0f));
+    Extents scaledExtents = { minimum, maximum };
+        
+    return scaledExtents;
+}
+
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
@@ -2119,40 +2111,3 @@ FBXGeometry readSVO(const QByteArray& model) {
 
     return geometry;
 }
-
-void calculateRotatedExtents(Extents& extents, const glm::quat& rotation) {
-    glm::vec3 bottomLeftNear(extents.minimum.x, extents.minimum.y, extents.minimum.z);
-    glm::vec3 bottomRightNear(extents.maximum.x, extents.minimum.y, extents.minimum.z);
-    glm::vec3 bottomLeftFar(extents.minimum.x, extents.minimum.y, extents.maximum.z);
-    glm::vec3 bottomRightFar(extents.maximum.x, extents.minimum.y, extents.maximum.z);
-    glm::vec3 topLeftNear(extents.minimum.x, extents.maximum.y, extents.minimum.z);
-    glm::vec3 topRightNear(extents.maximum.x, extents.maximum.y, extents.minimum.z);
-    glm::vec3 topLeftFar(extents.minimum.x, extents.maximum.y, extents.maximum.z);
-    glm::vec3 topRightFar(extents.maximum.x, extents.maximum.y, extents.maximum.z);
-
-    glm::vec3 bottomLeftNearRotated =  rotation * bottomLeftNear;
-    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
-    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
-    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
-    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
-    glm::vec3 topRightNearRotated = rotation * topRightNear;
-    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
-    glm::vec3 topRightFarRotated = rotation * topRightFar;
-    
-    extents.minimum = glm::min(bottomLeftNearRotated,
-                        glm::min(bottomRightNearRotated,
-                        glm::min(bottomLeftFarRotated,
-                        glm::min(bottomRightFarRotated,
-                        glm::min(topLeftNearRotated,
-                        glm::min(topRightNearRotated,
-                        glm::min(topLeftFarRotated,topRightFarRotated)))))));
-
-    extents.maximum = glm::max(bottomLeftNearRotated,
-                        glm::max(bottomRightNearRotated,
-                        glm::max(bottomLeftFarRotated,
-                        glm::max(bottomRightFarRotated,
-                        glm::max(topLeftNearRotated,
-                        glm::max(topRightNearRotated,
-                        glm::max(topLeftFarRotated,topRightFarRotated)))))));
-}
-

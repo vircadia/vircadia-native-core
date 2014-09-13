@@ -21,6 +21,7 @@
 #include <QtCore/QTimer>
 
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <GeometryUtil.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -90,6 +91,9 @@ MyAvatar::MyAvatar() :
 
     _skeletonModel.setEnableShapes(true);
     _skeletonModel.buildRagdoll();
+    
+    // connect to AddressManager signal for location jumps
+    connect(&AddressManager::getInstance(), &AddressManager::locationChangeRequired, this, &MyAvatar::goToLocation);
 }
 
 MyAvatar::~MyAvatar() {
@@ -226,7 +230,7 @@ void MyAvatar::simulate(float deltaTime) {
             const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
             float length2 = glm::length2(ragdollDisplacement);
             if (length2 > EPSILON && length2 < MAX_RAGDOLL_DISPLACEMENT_2) {
-                setPosition(getPosition() + ragdollDisplacement);
+                applyPositionDelta(ragdollDisplacement);
             }
         } else {
             _skeletonModel.moveShapesTowardJoints(1.0f);
@@ -796,9 +800,11 @@ void MyAvatar::loadData(QSettings* settings) {
 
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
-    _position.x = loadSetting(settings, "position_x", START_LOCATION.x);
-    _position.y = loadSetting(settings, "position_y", START_LOCATION.y);
-    _position.z = loadSetting(settings, "position_z", START_LOCATION.z);
+    glm::vec3 newPosition;
+    newPosition.x = loadSetting(settings, "position_x", START_LOCATION.x);
+    newPosition.y = loadSetting(settings, "position_y", START_LOCATION.y);
+    newPosition.z = loadSetting(settings, "position_z", START_LOCATION.z);
+    slamPosition(newPosition);
 
     getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 
@@ -1265,15 +1271,11 @@ void MyAvatar::updatePosition(float deltaTime) {
         if (_motionBehaviors & AVATAR_MOTION_MOTOR_ENABLED) {
             glm::vec3 targetVelocity = _motorVelocity;
             if (_motionBehaviors & AVATAR_MOTION_MOTOR_USE_LOCAL_FRAME) {
-                // rotate _motorVelocity into world frame
+                // rotate targetVelocity into world frame
                 glm::quat rotation = getHead()->getCameraOrientation();
                 targetVelocity = rotation * _motorVelocity;
             }
     
-            glm::vec3 targetDirection(0.0f);
-            if (glm::length2(targetVelocity) > EPSILON) {
-                targetDirection = glm::normalize(targetVelocity);
-            }
             glm::vec3 deltaVelocity = targetVelocity - velocity;
         
             if (_motionBehaviors & AVATAR_MOTION_MOTOR_COLLISION_SURFACE_ONLY && glm::length2(_gravity) > EPSILON) {
@@ -1305,7 +1307,7 @@ void MyAvatar::updatePosition(float deltaTime) {
         // update position
         const float MIN_AVATAR_SPEED = 0.075f;
         if (speed > MIN_AVATAR_SPEED) {
-            _position += velocity * deltaTime;
+            applyPositionDelta(deltaTime * velocity);
         }
     }
 
@@ -1783,11 +1785,6 @@ void MyAvatar::maybeUpdateBillboard() {
     sendBillboardPacket();
 }
 
-void MyAvatar::goHome() {
-    qDebug("Going Home!");
-    slamPosition(START_LOCATION);
-}
-
 void MyAvatar::increaseSize() {
     if ((1.0f + SCALING_RATIO) * _targetScale < MAX_AVATAR_SCALE) {
         _targetScale *= (1.0f + SCALING_RATIO);
@@ -1807,45 +1804,26 @@ void MyAvatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
-void MyAvatar::goToLocationFromResponse(const QJsonObject& jsonObject) {
-    QJsonObject locationObject = jsonObject["data"].toObject()["address"].toObject();
-    bool isOnline = jsonObject["data"].toObject()["online"].toBool();
-    if (isOnline ) {
-        goToLocationFromAddress(locationObject);
-    } else {
-        QMessageBox::warning(Application::getInstance()->getWindow(), "", "The user is not online.");
+void MyAvatar::goToLocation(const glm::vec3& newPosition, bool hasOrientation, const glm::vec3& newOrientation) {    
+    glm::quat quatOrientation = getOrientation();
+    
+    qDebug().nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
+        << newPosition.y << ", " << newPosition.z;
+    
+    if (hasOrientation) {
+        qDebug().nospace() << "MyAvatar goToLocation - new orientation is "
+            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z;
+        
+        // orient the user to face the target
+        glm::quat quatOrientation = glm::quat(glm::radians(newOrientation))
+            * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        setOrientation(quatOrientation);
     }
-}
-
-void MyAvatar::goToLocationFromAddress(const QJsonObject& locationObject) {
-    // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-    sendKillAvatar();
-
-    QString positionString = locationObject["position"].toString();
-    QString orientationString = locationObject["orientation"].toString();
-    QString domainHostnameString = locationObject["domain"].toString();
-
-    qDebug() << "Changing domain to" << domainHostnameString <<
-        ", position to" << positionString <<
-        ", and orientation to" << orientationString;
-
-    QStringList coordinateItems = positionString.split(',');
-    QStringList orientationItems = orientationString.split(',');
-
-    NodeList::getInstance()->getDomainHandler().setHostname(domainHostnameString);
-
-    // orient the user to face the target
-    glm::quat newOrientation = glm::quat(glm::radians(glm::vec3(orientationItems[0].toFloat(),
-                                                                orientationItems[1].toFloat(),
-                                                                orientationItems[2].toFloat())))
-        * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
-    setOrientation(newOrientation);
 
     // move the user a couple units away
     const float DISTANCE_TO_USER = 2.0f;
-    glm::vec3 newPosition = glm::vec3(coordinateItems[0].toFloat(), coordinateItems[1].toFloat(),
-                                      coordinateItems[2].toFloat()) - newOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
-    slamPosition(newPosition);
+    glm::vec3 shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+    slamPosition(shiftedPosition);
     emit transformChanged();
 }
 
@@ -1991,4 +1969,10 @@ glm::vec3 MyAvatar::getLaserPointerTipPosition(const PalmData* palm) {
     }
 
     return palm->getPosition();
+}
+
+void MyAvatar::clearDriveKeys() {
+    for (int i = 0; i < MAX_DRIVE_KEYS; ++i) {
+        _driveKeys[i] = 0.0f;
+    }
 }

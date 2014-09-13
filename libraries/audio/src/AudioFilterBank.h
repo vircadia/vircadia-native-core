@@ -49,9 +49,9 @@ public:
     //
     // ctor/dtor
     //
-    AudioFilterBank() 
-    : _sampleRate(0.)
-    , _frameCount(0) {
+    AudioFilterBank() :
+        _sampleRate(0.0f),
+        _frameCount(0) {
         for (int i = 0; i < _channelCount; ++i) {
             _buffer[ i ] = NULL;
         }
@@ -64,7 +64,7 @@ public:
     //
     // public interface
     //
-    void initialize(const float sampleRate, const int frameCount) {
+    void initialize(const float sampleRate, const int frameCount = 0) {
         finalize();
 
         for (int i = 0; i < _channelCount; ++i) {
@@ -141,6 +141,16 @@ public:
         }
     }
 
+    void render(AudioBufferFloat32& frameBuffer) {
+        
+        float32_t** samples = frameBuffer.getFrameData();
+        for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+            for (int i = 0; i < _filterCount; ++i) {
+                _filters[i][j].render( samples[j], samples[j], frameBuffer.getFrameCount() );
+            }
+        }
+    }
+    
     void reset() {
         for (int i = 0; i < _filterCount; ++i) {
             for (int j = 0; j < _channelCount; ++j) {

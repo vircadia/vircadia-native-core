@@ -11,6 +11,9 @@
 
 #include <vector>
 
+#include <QDesktopWidget>
+#include <QWindow>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
@@ -50,8 +53,8 @@ Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
     _bodyYawDelta(0.0f),
-    _lastPosition(0.0f),
     _velocity(0.0f),
+    _positionDeltaAccumulator(0.0f),
     _lastVelocity(0.0f),
     _acceleration(0.0f),
     _angularVelocity(0.0f),
@@ -204,15 +207,31 @@ void Avatar::simulate(float deltaTime) {
         _displayNameAlpha = abs(_displayNameAlpha - _displayNameTargetAlpha) < 0.01f ? _displayNameTargetAlpha : _displayNameAlpha;
     }
 
-    _position += _velocity * deltaTime;
+    // NOTE: we shouldn't extrapolate an Avatar instance forward in time... 
+    // until velocity is included in AvatarData update message.
+    //_position += _velocity * deltaTime;
     measureMotionDerivatives(deltaTime);
+}
+
+void Avatar::slamPosition(const glm::vec3& newPosition) { 
+    AvatarData::setPosition(newPosition);
+    _positionDeltaAccumulator = glm::vec3(0.0f);
+    _velocity = glm::vec3(0.0f);
+    _lastVelocity = glm::vec3(0.0f); 
+}
+
+void Avatar::applyPositionDelta(const glm::vec3& delta) {
+    _position += delta;
+    _positionDeltaAccumulator += delta;
 }
 
 void Avatar::measureMotionDerivatives(float deltaTime) {
     // linear
     float invDeltaTime = 1.0f / deltaTime;
-    _velocity = (_position - _lastPosition) * invDeltaTime;
-    _lastPosition = _position;
+    // Floating point error prevents us from computing velocity in a naive way
+    // (e.g. vel = (pos - oldPos) / dt) so instead we use _positionOffsetAccumulator.
+    _velocity = _positionDeltaAccumulator * invDeltaTime;
+    _positionDeltaAccumulator = glm::vec3(0.0f);
     _acceleration = (_velocity - _lastVelocity) * invDeltaTime;
     _lastVelocity = _velocity;
     // angular
@@ -221,20 +240,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     _angularVelocity = safeEulerAngles(delta) * invDeltaTime;
     _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * invDeltaTime;
     _lastOrientation = getOrientation();
-}
-
-void Avatar::setPosition(const glm::vec3 position, bool overideReferential) {
-    AvatarData::setPosition(position, overideReferential);
-    _lastPosition = position;
-    _velocity = glm::vec3(0.0f);
-    _lastVelocity = glm::vec3(0.0f);
-}
-
-void Avatar::slamPosition(const glm::vec3& newPosition) {
-    _position = newPosition;
-    _lastPosition = newPosition;
-    _velocity = glm::vec3(0.0f);
-    _lastVelocity = glm::vec3(0.0f);
 }
 
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
@@ -248,8 +253,9 @@ enum TextRendererType {
 };
 
 static TextRenderer* textRenderer(TextRendererType type) {
-    static TextRenderer* chatRenderer = new TextRenderer(SANS_FONT_FAMILY, 24, -1, false, TextRenderer::SHADOW_EFFECT);
-    static TextRenderer* displayNameRenderer = new TextRenderer(SANS_FONT_FAMILY, 12, -1, false, TextRenderer::NO_EFFECT);
+    static TextRenderer* chatRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, 24, -1,
+        false, TextRenderer::SHADOW_EFFECT);
+    static TextRenderer* displayNameRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, 12);
 
     switch(type) {
     case CHAT:
@@ -667,7 +673,8 @@ void Avatar::renderDisplayName() {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        float scaleFactor = (textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f;
+        float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
+            ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
         glScalef(scaleFactor, scaleFactor, 1.0);  
         
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis

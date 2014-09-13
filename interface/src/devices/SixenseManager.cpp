@@ -396,10 +396,10 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         float yAngle = 0.5f - ((atan2(direction.z, direction.y) + M_PI_2));
 
         // Get the pixel range over which the xAngle and yAngle are scaled
-        float cursorRange = widget->getDeviceWidth() * getCursorPixelRangeMult();
+        float cursorRange = widget->width() * getCursorPixelRangeMult();
 
-        pos.setX(widget->getDeviceWidth() / 2.0f + cursorRange * xAngle);
-        pos.setY(widget->getDeviceHeight() / 2.0f + cursorRange * yAngle);
+        pos.setX(widget->width() / 2.0f + cursorRange * xAngle);
+        pos.setY(widget->height() / 2.0f + cursorRange * yAngle);
 
     }
 

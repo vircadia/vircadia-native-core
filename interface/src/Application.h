@@ -114,7 +114,6 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString CUSTOM_URL_SCHEME = "hifi:";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.0f;       // meters
@@ -153,7 +152,6 @@ public:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
-    void urlGoTo(int argc, const char * constArgv[]);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -192,6 +190,7 @@ public:
     const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -298,6 +297,8 @@ public:
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
+    void setCursorVisible(bool visible);
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -313,6 +314,7 @@ signals:
     void importDone();
 
 public slots:
+    void changeDomainHostname(const QString& newDomainHostname);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void updateLocationInServer();
@@ -352,6 +354,8 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
     void uploadAttachment();
+    
+    void openUrl(const QUrl& url);
 
     void bumpSettings() { ++_numChangedSettings; }
     
@@ -436,8 +440,6 @@ private:
 
     int sendNackPackets();
 
-    QMouseEvent getDeviceEvent(QMouseEvent* event, unsigned int deviceID);
-
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
@@ -488,6 +490,7 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 

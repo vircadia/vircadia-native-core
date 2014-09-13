@@ -41,6 +41,7 @@
 #include <QShortcut>
 #include <QTimer>
 #include <QUrl>
+#include <QWindow>
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
@@ -50,6 +51,7 @@
 #include <QMimeData>
 #include <QMessageBox>
 
+#include <AddressManager.h>
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
@@ -79,10 +81,11 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
-#include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
 #include "ui/OAuthWebViewHandler.h"
@@ -288,6 +291,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
+    
+    AddressManager& addressManager = AddressManager::getInstance();
+    
+    // connect to the domainChangeRequired signal on AddressManager
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+            this, &Application::changeDomainHostname);
+    
+    // when -url in command line, teleport to location
+    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -357,9 +369,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
 
-    // when -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
-
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
@@ -404,9 +413,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-
-    //When -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
 
     // call the OAuthWebviewHandler static getter so that its instance lives in our thread
     OAuthWebViewHandler::getInstance();
@@ -805,13 +811,16 @@ bool Application::event(QEvent* event) {
 
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
+        
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
-        if (isHifiSchemeURL) {
-            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
+        
+        if (!fileEvent->url().isEmpty()) {
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
         }
+        
         return false;
     }
+    
     return QApplication::event(event);
 }
 
@@ -904,12 +913,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                if (!isMeta) {
+                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                }
                 break;
 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                Menu::getInstance()->triggerOption(MenuOption::Chat);
+                if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                } else {
+                    Menu::getInstance()->triggerOption(MenuOption::Chat);
+                }
+                
                 break;
 
             case Qt::Key_Up:
@@ -1056,10 +1072,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
-
-            case Qt::Key_At:
-                Menu::getInstance()->goTo();
-                break;
             default:
                 event->ignore();
                 break;
@@ -1072,7 +1084,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
     _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
-
+    
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
@@ -1124,7 +1136,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             _myAvatar->setDriveKeys(RIGHT, 0.f);
             _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
             break;
-
+        case Qt::Key_Control:
+        case Qt::Key_Shift:
+        case Qt::Key_Meta:
+        case Qt::Key_Alt:
+            _myAvatar->clearDriveKeys();
+            break;
         default:
             event->ignore();
             break;
@@ -1152,8 +1169,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
 
-    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
-    _controllerScriptingInterface.emitMouseMoveEvent(&deviceEvent, deviceID); // send events to any registered scripts
+    _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1168,13 +1184,12 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _seenMouseMove = true;
     }
 
-    _mouseX = deviceEvent.x();
-    _mouseY = deviceEvent.y();
+    _mouseX = event->x();
+    _mouseY = event->y();
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
-    _controllerScriptingInterface.emitMousePressEvent(&deviceEvent); // send events to any registered scripts
+    _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1184,8 +1199,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = deviceEvent.x();
-            _mouseY = deviceEvent.y();
+            _mouseX = event->x();
+            _mouseY = event->y();
             _mouseDragStartedX = _mouseX;
             _mouseDragStartedY = _mouseY;
             _mousePressed = true;
@@ -1207,8 +1222,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
-    QMouseEvent deviceEvent = getDeviceEvent(event, deviceID);
-    _controllerScriptingInterface.emitMouseReleaseEvent(&deviceEvent); // send events to any registered scripts
+    _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
@@ -1217,8 +1231,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = deviceEvent.x();
-            _mouseY = deviceEvent.y();
+            _mouseX = event->x();
+            _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -1316,7 +1330,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+            changeDomainHostname(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -1417,7 +1431,7 @@ void Application::checkBandwidthMeterClick() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
             <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight())) {
+            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1735,8 +1749,8 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
 
-    _mouseX = _glWidget->getDeviceWidth() / 2;
-    _mouseY = _glWidget->getDeviceHeight() / 2;
+    _mouseX = _glWidget->width() / 2;
+    _mouseY = _glWidget->height() / 2;
     QCursor::setPos(_mouseX, _mouseY);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
@@ -1891,8 +1905,8 @@ void Application::updateMouseRay() {
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->getDeviceWidth();
-        y = _mouseY / (float)_glWidget->getDeviceHeight();
+        x = _mouseX / (float)_glWidget->width();
+        y = _mouseY / (float)_glWidget->height();
     }
     _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
 
@@ -2332,14 +2346,6 @@ int Application::sendNackPackets() {
     return packetsSent;
 }
 
-QMouseEvent Application::getDeviceEvent(QMouseEvent* event, unsigned int deviceID) {
-    if (deviceID > 0) {
-        return *event;
-    }
-    return QMouseEvent(event->type(), QPointF(_glWidget->getDeviceX(event->x()), _glWidget->getDeviceY(event->y())),
-        event->windowPos(), event->screenPos(), event->button(), event->buttons(), event->modifiers());
-}
-
 void Application::queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions) {
 
     //qDebug() << ">>> inside... queryOctree()... _viewFrustum.getFieldOfView()=" << _viewFrustum.getFieldOfView();
@@ -2734,6 +2740,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
+    // load the view frustum
+    loadViewFrustum(whichCamera, _displayViewFrustum);
+
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
@@ -2981,7 +2990,14 @@ void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
+    // allow 3DTV/Oculus to override parameters from camera
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    if (OculusManager::isConnected()) {
+        OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    } else if (TV3DManager::isConnected()) {
+        TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
+    }
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
@@ -3041,8 +3057,16 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
-    glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
-    glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+    if (billboard) {
+        glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
+        glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());    
+    } else {
+        // if not rendering the billboard, the region is in device independent coordinates; must convert to device
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
+        glViewport(x, _glWidget->getDeviceHeight() - y - height, width, height);
+        glScissor(x, _glWidget->getDeviceHeight() - y - height, width, height);
+    }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
     glEnable(GL_SCISSOR_TEST);
@@ -3291,8 +3315,8 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 
 
 void Application::resetSensors() {
-    _mouseX = _glWidget->getDeviceWidth() / 2;
-    _mouseY = _glWidget->getDeviceHeight() / 2;
+    _mouseX = _glWidget->width() / 2;
+    _mouseY = _glWidget->height() / 2;
 
     _faceplus.reset();
     _faceshift.reset();
@@ -3359,29 +3383,54 @@ void Application::updateWindowTitle(){
         title += " - ₵" + creditBalanceString;
     }
 
+#ifndef WIN32
+    // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());
+#endif
     _window->setWindowTitle(title);
 }
 
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-
-    if (accountManager.isLoggedIn()) {
+    const QUuid& domainUUID = NodeList::getInstance()->getDomainHandler().getUUID();
+    
+    if (accountManager.isLoggedIn() && !domainUUID.isNull()) {
 
         // construct a QJsonObject given the user's current address information
-        QJsonObject updatedLocationObject;
+        QJsonObject rootObject;
 
-        QJsonObject addressObject;
-        addressObject.insert("position", QString(createByteArray(_myAvatar->getPosition())));
-        addressObject.insert("orientation", QString(createByteArray(glm::degrees(safeEulerAngles(_myAvatar->getOrientation())))));
-        addressObject.insert("domain", NodeList::getInstance()->getDomainHandler().getHostname());
+        QJsonObject locationObject;
+        
+        QString pathString = AddressManager::pathForPositionAndOrientation(_myAvatar->getPosition(),
+                                                                           true,
+                                                                           _myAvatar->getOrientation());
+       
+        const QString LOCATION_KEY_IN_ROOT = "location";
+        const QString PATH_KEY_IN_LOCATION = "path";
+        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+        
+        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
+        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainUUID.toString());
 
-        updatedLocationObject.insert("address", addressObject);
+        rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
+}
+
+void Application::changeDomainHostname(const QString &newDomainHostname) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
+        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
+        _myAvatar->sendKillAvatar();
+        
+        // call the domain hostname change as a queued connection on the nodelist
+        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
+                                  Q_ARG(const QString&, newDomainHostname));
+    }
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3767,12 +3816,11 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                      LocationScriptingInterface::locationSetter, windowValue);
-
+                                       LocationScriptingInterface::locationSetter, windowValue);
     // register `location` on the global object.
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                      LocationScriptingInterface::locationSetter);
-
+                                       LocationScriptingInterface::locationSetter);
+    
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
@@ -3780,9 +3828,11 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
-    
+
+    scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
-    
+
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
@@ -3898,6 +3948,17 @@ void Application::uploadSkeleton() {
 
 void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
+}
+
+void Application::openUrl(const QUrl& url) {
+    if (!url.isEmpty()) {
+        if (url.scheme() == HIFI_URL_SCHEME) {
+            AddressManager::getInstance().handleLookupString(url.toString());
+        } else {
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+        }
+    }
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
@@ -4070,6 +4131,14 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.write(latestVersion.toStdString().c_str());
 }
 
+void Application::setCursorVisible(bool visible) {
+    if (visible) {
+        restoreOverrideCursor();
+    } else {
+        setOverrideCursor(Qt::BlankCursor);
+    }
+}
+
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
@@ -4087,38 +4156,4 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
-}
-
-void Application::urlGoTo(int argc, const char * constArgv[]) {
-    //Gets the url (hifi://domain/destination/orientation)
-    QString customUrl = getCmdOption(argc, constArgv, "-url");
-    if(customUrl.startsWith(CUSTOM_URL_SCHEME + "//")) {
-        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-        if (urlParts.count() == 1) {
-            // location coordinates or place name
-             QString domain = urlParts[0];
-             Menu::goToDomain(domain);
-        } else if (urlParts.count() > 1) {
-            // if url has 2 or more parts, the first one is domain name
-            QString domain = urlParts[0];
-
-            // second part is either a destination coordinate or
-            // a place name
-            QString destination = urlParts[1];
-
-            // any third part is an avatar orientation.
-            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-            Menu::goToDomain(domain);
-
-            // goto either @user, #place, or x-xx,y-yy,z-zz
-            // style co-ordinate.
-            Menu::goTo(destination);
-
-            if (!orientation.isEmpty()) {
-                // location orientation
-                Menu::goToOrientation(orientation);
-            }
-        }
-    }
 }

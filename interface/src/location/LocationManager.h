@@ -13,8 +13,8 @@
 #define hifi_LocationManager_h
 
 #include <QtCore>
+#include <QtNetwork/QNetworkReply>
 
-#include "AccountManager.h"
 #include "NamedLocation.h"
 
 class LocationManager : public QObject {
@@ -29,29 +29,14 @@ public:
         SystemError
     };
 
-    LocationManager();
     void createNamedLocation(NamedLocation* namedLocation);
 
-    void goTo(QString destination);
-    void goToUser(QString userName);
-    void goToPlace(QString placeName);
-    void goToOrientation(QString orientation);
-    bool goToDestination(QString destination);
-    
-public slots:
-    void handleAddressLookupError(QNetworkReply::NetworkError networkError, const QString& errorString);
-
-private:
-    void replaceLastOccurrence(const QChar search, const QChar replace, QString& string);
-
 signals:
-    void creationCompleted(LocationManager::NamedLocationCreateResponse response);
-    void multipleDestinationsFound(const QJsonObject& userData, const QJsonObject& placeData);
+    void creationCompleted(const QString& errorMessage);
     
 private slots:
     void namedLocationDataReceived(const QJsonObject& data);
-    void errorDataReceived(QNetworkReply::NetworkError error, const QString& message);
-    void goToAddressFromResponse(const QJsonObject& jsonObject);
+    void errorDataReceived(QNetworkReply& errorReply);
 
 };
 

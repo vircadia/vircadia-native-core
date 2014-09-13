@@ -161,9 +161,13 @@ public:
     /// \param vector position to be scaled. Will store the result
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
-    void setPosition(const glm::vec3 position, bool overideReferential = false);
-    void slamPosition(const glm::vec3& newPosition);
-    
+    void slamPosition(const glm::vec3& position);
+
+    // Call this when updating Avatar position with a delta.  This will allow us to 
+    // _accurately_ measure position changes and compute the resulting velocity 
+    // (otherwise floating point error will cause problems at large positions).
+    void applyPositionDelta(const glm::vec3& delta);
+
 public slots:
     void updateCollisionGroups();
     
@@ -176,12 +180,15 @@ protected:
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
 
+    glm::vec3 _velocity;
+
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
     // and are therefor READ-ONLY --> motion control of the Avatar is NOT obtained 
     // by setting these values.
-    glm::vec3 _lastPosition;
-    glm::vec3 _velocity;
+    // Floating point error prevents us from accurately measuring velocity using a naive approach 
+    // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.
+    glm::vec3 _positionDeltaAccumulator;
     glm::vec3 _lastVelocity;
     glm::vec3 _acceleration;
     glm::vec3 _angularVelocity;

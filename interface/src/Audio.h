@@ -20,6 +20,13 @@
 #include "Recorder.h"
 #include "RingBufferHistory.h"
 #include "MovingMinMaxAvg.h"
+#include "AudioRingBuffer.h"
+#include "AudioFormat.h"
+#include "AudioBuffer.h"
+#include "AudioSourceTone.h"
+#include "AudioSourceNoise.h"
+#include "AudioGain.h"
+#include "AudioPan.h"
 #include "AudioFilter.h"
 #include "AudioFilterBank.h"
 
@@ -116,7 +123,9 @@ public slots:
     void audioMixerKilled();
     void toggleMute();
     void toggleAudioNoiseReduction();
-    void toggleToneInjection();
+    void toggleAudioSourceInject();
+    void selectAudioSourcePinkNoise();
+    void selectAudioSourceSine440();
     void toggleScope();
     void toggleScopePause();
     void toggleStats();
@@ -199,7 +208,8 @@ private:
     int _noiseGateSampleCounter;
     bool _noiseGateOpen;
     bool _noiseGateEnabled;
-    bool _toneInjectionEnabled;
+    bool _audioSourceInjectEnabled;
+    
     int _noiseGateFramesToClose;
     int _totalInputAudioSamples;
     
@@ -282,10 +292,27 @@ private:
     int _framesPerScope;
     int _samplesPerScope;
 
-    // Multi-band parametric EQ
-    bool                _peqEnabled;
-    AudioFilterPEQ3m    _peq;
+    // Input framebuffer
+    AudioBufferFloat32 _inputFrameBuffer;
+    
+    // Input gain
+    AudioGain _inputGain;
+    
+    // Post tone/pink noise generator gain
+    AudioGain _sourceGain;
 
+    // Pink noise source
+    bool _noiseSourceEnabled;
+    AudioSourcePinkNoise _noiseSource;
+    
+    // Tone source
+    bool _toneSourceEnabled;
+    AudioSourceTone _toneSource;
+    
+    // Multi-band parametric EQ
+    bool _peqEnabled;
+    AudioFilterPEQ3m _peq;
+    
     QMutex _guard;
     QByteArray* _scopeInput;
     QByteArray* _scopeOutputLeft;

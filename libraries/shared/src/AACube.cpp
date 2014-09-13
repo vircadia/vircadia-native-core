@@ -9,10 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/extented_min_max.hpp>
+
 #include "AABox.h"
 #include "AACube.h"
+#include "Extents.h"
 #include "GeometryUtil.h"
 #include "SharedUtil.h"
+
+AACube::AACube(const AABox& other) :
+    _corner(other.getCorner()), _scale(other.getLargestDimension()) {
+}
+
+AACube::AACube(const Extents& other) : 
+    _corner(other.minimum) 
+{
+    glm::vec3 dimensions = other.maximum - other.minimum;
+    _scale = glm::max(dimensions.x, dimensions.y, dimensions.z);
+}
 
 AACube::AACube(const glm::vec3& corner, float size) : 
     _corner(corner), _scale(size) {

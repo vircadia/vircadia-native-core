@@ -298,8 +298,8 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
 
 void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (!model.isNull() && model->getGeometry() == geometry) {
-        model->setBlendedVertices(vertices, normals);
+    if (!model.isNull()) {
+        model->setBlendedVertices(geometry, vertices, normals);
     }
 }
 

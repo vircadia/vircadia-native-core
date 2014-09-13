@@ -35,7 +35,8 @@ using namespace std;
 
 AvatarData::AvatarData() :
     _sessionUUID(),
-    _handPosition(0,0,0),
+    _position(0.0f),
+    _handPosition(0.0f),
     _referential(NULL),
     _bodyYaw(-90.f),
     _bodyPitch(0.0f),
@@ -326,7 +327,7 @@ int AvatarData::parseDataAtOffset(const QByteArray& packet, int offset) {
             }
             return maxAvailableSize;
         }
-        _position = position;
+        setPosition(position);
         
         // rotation (NOTE: This needs to become a quaternion to save two bytes)
         float yaw, pitch, roll;
