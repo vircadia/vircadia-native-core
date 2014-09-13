@@ -15,7 +15,7 @@
 #include "AACubeShape.h"
 #include "SharedUtil.h" // for SQUARE_ROOT_OF_3 
 
-glm::vec3 planeNormals[3] = { glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) };
+glm::vec3 faceNormals[3] = { glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) };
 
 bool AACubeShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     // A = ray point
@@ -48,23 +48,23 @@ bool AACubeShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     bool hit = false;
     for (int i = 0; i < 3; ++i) {
         for (float sign = -1.0f; sign < 2.0f; sign += 2.0f) {
-            glm::vec3 planeNormal = sign * planeNormals[i];
-            float rayDotPlane = glm::dot(intersection._rayDirection, planeNormal);
+            glm::vec3 faceNormal = sign * faceNormals[i];
+            float rayDotPlane = glm::dot(intersection._rayDirection, faceNormal);
             if (glm::abs(rayDotPlane) > EPSILON) {
-                float distanceToPlane = (halfSide + glm::dot(BA, planeNormal)) / rayDotPlane;
-                if (distanceToPlane >= 0.0f) {
-                    glm::vec3 point = distanceToPlane * intersection._rayDirection - BA;
+                float distanceToFace = (halfSide + glm::dot(BA, faceNormal)) / rayDotPlane;
+                if (distanceToFace >= 0.0f) {
+                    glm::vec3 point = distanceToFace * intersection._rayDirection - BA;
                     int j = (i + 1) % 3;
                     int k = (i + 2) % 3;
-                    glm::vec3 secondNormal = planeNormals[j];
-                    glm::vec3 thirdNormal = planeNormals[k];
+                    glm::vec3 secondNormal = faceNormals[j];
+                    glm::vec3 thirdNormal = faceNormals[k];
                     if (glm::abs(glm::dot(point, secondNormal)) > halfSide ||
                             glm::abs(glm::dot(point, thirdNormal)) > halfSide) {
                         continue;
                     }
-                    if (distanceToPlane < intersection._hitDistance && distanceToPlane < intersection._rayLength) {
-                        intersection._hitDistance = distanceToPlane;
-                        intersection._hitNormal = planeNormal;
+                    if (distanceToFace < intersection._hitDistance && distanceToFace < intersection._rayLength) {
+                        intersection._hitDistance = distanceToFace;
+                        intersection._hitNormal = faceNormal;
                         intersection._hitShape = const_cast<AACubeShape*>(this);
                         hit = true;
                     }
