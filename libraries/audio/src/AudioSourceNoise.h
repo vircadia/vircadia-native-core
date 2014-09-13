@@ -48,7 +48,7 @@ public:
         
         _runningSum = 0;
         _index = 0;
-        _indexMask = ((uint16_t)1 << _randomRows) - (uint16_t)1;
+        _indexMask = (uint16_t)((1 << _randomRows) - 1);
         _scale = 1.0f / ((_randomRows + 1) * (1 << (_randomBits - 1)));
     }
     
