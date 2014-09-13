@@ -89,7 +89,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, bool receiveShadows = true);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -255,7 +255,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
+    void renderMeshes(float alpha, RenderMode mode, bool translucent);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -292,16 +292,6 @@ private:
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
     
-    static ProgramObject _shadowMapProgram;
-    static ProgramObject _shadowNormalMapProgram;
-    static ProgramObject _shadowSpecularMapProgram;
-    static ProgramObject _shadowNormalSpecularMapProgram;
-    
-    static ProgramObject _cascadedShadowMapProgram;
-    static ProgramObject _cascadedShadowNormalMapProgram;
-    static ProgramObject _cascadedShadowSpecularMapProgram;
-    static ProgramObject _cascadedShadowNormalSpecularMapProgram;
-    
     static ProgramObject _shadowProgram;
     
     static ProgramObject _skinProgram;
@@ -309,53 +299,22 @@ private:
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
     
-    static ProgramObject _skinShadowMapProgram;
-    static ProgramObject _skinShadowNormalMapProgram;
-    static ProgramObject _skinShadowSpecularMapProgram;
-    static ProgramObject _skinShadowNormalSpecularMapProgram;
-    
-    static ProgramObject _skinCascadedShadowMapProgram;
-    static ProgramObject _skinCascadedShadowNormalMapProgram;
-    static ProgramObject _skinCascadedShadowSpecularMapProgram;
-    static ProgramObject _skinCascadedShadowNormalSpecularMapProgram;
-    
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
-    static int _shadowNormalMapTangentLocation;
-    static int _shadowNormalSpecularMapTangentLocation;
-    static int _cascadedShadowNormalMapTangentLocation;
-    static int _cascadedShadowNormalSpecularMapTangentLocation;
-    
-    static int _cascadedShadowMapDistancesLocation;
-    static int _cascadedShadowNormalMapDistancesLocation;
-    static int _cascadedShadowSpecularMapDistancesLocation;
-    static int _cascadedShadowNormalSpecularMapDistancesLocation;
     
     class Locations {
     public:
-        int localLightColors;
-        int localLightDirections; 
         int tangent;
-        int shadowDistances;
     };
     
     static Locations _locations;
     static Locations _normalMapLocations;
     static Locations _specularMapLocations;
     static Locations _normalSpecularMapLocations;
-    static Locations _shadowMapLocations;
-    static Locations _shadowNormalMapLocations;
-    static Locations _shadowSpecularMapLocations;
-    static Locations _shadowNormalSpecularMapLocations;
-    static Locations _cascadedShadowMapLocations;
-    static Locations _cascadedShadowNormalMapLocations;
-    static Locations _cascadedShadowSpecularMapLocations;
-    static Locations _cascadedShadowNormalSpecularMapLocations;
     
-    static void initProgram(ProgramObject& program, Locations& locations,
-        int specularTextureUnit = 1, int shadowTextureUnit = 1);
+    static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
         
     class SkinLocations : public Locations {
     public:
@@ -368,18 +327,9 @@ private:
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
     static SkinLocations _skinNormalSpecularMapLocations;
-    static SkinLocations _skinShadowMapLocations;
-    static SkinLocations _skinShadowNormalMapLocations;
-    static SkinLocations _skinShadowSpecularMapLocations;
-    static SkinLocations _skinShadowNormalSpecularMapLocations;
-    static SkinLocations _skinCascadedShadowMapLocations;
-    static SkinLocations _skinCascadedShadowNormalMapLocations;
-    static SkinLocations _skinCascadedShadowSpecularMapLocations;
-    static SkinLocations _skinCascadedShadowNormalSpecularMapLocations;
     static SkinLocations _skinShadowLocations;
     
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
-        int specularTextureUnit = 1, int shadowTextureUnit = 1);
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

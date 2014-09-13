@@ -495,7 +495,7 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         
-        _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
+        _skeletonModel.render(1.0f, modelRenderMode);
         renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
     }
@@ -541,9 +541,8 @@ void Avatar::simulateAttachments(float deltaTime) {
 void Avatar::renderAttachments(RenderMode renderMode) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    bool receiveShadows = Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows);
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode, receiveShadows);
+        model->render(1.0f, modelRenderMode);
     }
 }
 

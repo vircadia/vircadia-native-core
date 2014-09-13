@@ -184,8 +184,7 @@ void Head::relaxLean(float deltaTime) {
 }
 
 void Head::render(float alpha, Model::RenderMode mode) {
-    if (_faceModel.render(alpha, mode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows)) &&
-            _renderLookatVectors && mode != Model::SHADOW_RENDER_MODE) {
+    if (_faceModel.render(alpha, mode) && _renderLookatVectors && mode != Model::SHADOW_RENDER_MODE) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }

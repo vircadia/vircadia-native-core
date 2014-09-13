@@ -2834,6 +2834,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
+    _deferredLightingEffect.prepare();
+
     if (!selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
@@ -2851,16 +2853,12 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _audioReflector.render();
         }
         
-        _deferredLightingEffect.prepare();
-        bool deferredLightingRequired = false;
-        
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... voxels...");
             _voxels.render();
-            deferredLightingRequired = true;
         }
 
         // also, metavoxels
@@ -2869,11 +2867,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
-            deferredLightingRequired = true;
-        }
-
-        if (deferredLightingRequired) {
-            _deferredLightingEffect.render();
         }
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
@@ -2924,6 +2917,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
             _myAvatar->renderLaserPointers();
         }
+    }
+
+    {
+        PerformanceTimer perfTimer("lighting");
+        _deferredLightingEffect.render();
     }
 
     if (!selfAvatarOnly) {

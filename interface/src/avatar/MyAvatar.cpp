@@ -1054,7 +1054,7 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     //  Render the body's voxels and head
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
+    _skeletonModel.render(1.0f, modelRenderMode);
     renderAttachments(renderMode);
     
     //  Render head so long as the camera isn't inside it
@@ -1843,11 +1843,10 @@ void MyAvatar::renderAttachments(RenderMode renderMode) {
     QString headJointName = (geometry.headJointIndex == -1) ? QString() : geometry.joints.at(geometry.headJointIndex).name;
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    bool receiveShadows = Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows);
     for (int i = 0; i < _attachmentData.size(); i++) {
         const QString& jointName = _attachmentData.at(i).jointName;
         if (jointName != headJointName && jointName != "Head") {
-            _attachmentModels.at(i)->render(1.0f, modelRenderMode, receiveShadows);        
+            _attachmentModels.at(i)->render(1.0f, modelRenderMode);        
         }
     }
 }
