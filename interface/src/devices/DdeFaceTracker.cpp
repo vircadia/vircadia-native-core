@@ -172,8 +172,8 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 
-static const float DDE_MIN_RANGE = -0.2;
-static const float DDE_MAX_RANGE = 1.5;
+static const float DDE_MIN_RANGE = -0.2f;
+static const float DDE_MAX_RANGE = 1.5f;
 float rescaleCoef(float ddeCoef) {
     return (ddeCoef - DDE_MIN_RANGE) / (DDE_MAX_RANGE - DDE_MIN_RANGE);
 }
