@@ -42,6 +42,8 @@ void DeferredLightingEffect::render() {
     glPushMatrix();
     glLoadIdentity();
     
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);    
+    
     glDisable(GL_BLEND);
     glDisable(GL_LIGHTING);
     glDisable(GL_DEPTH_TEST);
@@ -142,8 +144,6 @@ void DeferredLightingEffect::render() {
     
     glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     glEnable(GL_TEXTURE_2D);
-    
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
     renderFullscreenQuad(sMin, sMin + sWidth);
     
