@@ -163,6 +163,7 @@ public slots:
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
 
     void updateMotionBehaviorsFromMenu();
+    void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();

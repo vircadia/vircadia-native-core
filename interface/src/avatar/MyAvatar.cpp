@@ -86,11 +86,10 @@ MyAvatar::MyAvatar() :
         _driveKeys[i] = 0.0f;
     }
     _physicsSimulation.setEntity(&_skeletonModel);
+    _physicsSimulation.addEntity(&_voxelShapeManager);
 
     _skeletonModel.setEnableShapes(true);
-    Ragdoll* ragdoll = _skeletonModel.buildRagdoll();
-    _physicsSimulation.setRagdoll(ragdoll);
-    _physicsSimulation.addEntity(&_voxelShapeManager);
+    _skeletonModel.buildRagdoll();
 }
 
 MyAvatar::~MyAvatar() {
@@ -213,15 +212,15 @@ void MyAvatar::simulate(float deltaTime) {
     }
 
     {
-        PerformanceTimer perfTimer("ragdoll");
+        PerformanceTimer perfTimer("physics");
+        const float minError = 0.00001f;
+        const float maxIterations = 3;
+        const quint64 maxUsec = 4000;
+        _physicsSimulation.setTranslation(_position);
+        _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
+
         Ragdoll* ragdoll = _skeletonModel.getRagdoll();
         if (ragdoll && Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
-            const float minError = 0.00001f;
-            const float maxIterations = 3;
-            const quint64 maxUsec = 4000;
-            _physicsSimulation.setTranslation(_position);
-            _physicsSimulation.stepForward(deltaTime, minError, maxIterations, maxUsec);
-
             // harvest any displacement of the Ragdoll that is a result of collisions
             glm::vec3 ragdollDisplacement = ragdoll->getAndClearAccumulatedMovement();
             const float MAX_RAGDOLL_DISPLACEMENT_2 = 1.0f;
@@ -1367,7 +1366,9 @@ void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
 static CollisionList myCollisions(64);
 
 void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+
+    quint64 now = usecTimestampNow();
+    if (_voxelShapeManager.needsUpdate(now)) {
         // We use a multiple of the avatar's boundingRadius as the size of the cube of interest.
         float cubeScale = 4.0f * getBoundingRadius();
         glm::vec3 corner = getPosition() - glm::vec3(0.5f * cubeScale);
@@ -1376,9 +1377,12 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         // query the VoxelTree for cubes that touch avatar's boundingCube
         CubeList cubes;
         if (Application::getInstance()->getVoxelTree()->findContentInCube(boundingCube, cubes)) {
-            _voxelShapeManager.updateVoxels(cubes);
+            _voxelShapeManager.updateVoxels(now, cubes);
         }
-    } else {
+    }
+
+    // TODO: Andrew to do ground/walking detection in ragdoll mode
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
         const float MAX_VOXEL_COLLISION_SPEED = 100.0f;
         float speed = glm::length(_velocity);
         if (speed > MAX_VOXEL_COLLISION_SPEED) {
@@ -1388,15 +1392,18 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
         }
         bool isTrapped = false;
         myCollisions.clear();
-        const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
-        if (Application::getInstance()->getVoxelTree()->findShapeCollisions(&boundingShape, myCollisions, Octree::TryLock)) {
+        // copy the boundingShape and tranform into physicsSimulation frame
+        CapsuleShape boundingShape = _skeletonModel.getBoundingShape();
+        boundingShape.setTranslation(boundingShape.getTranslation() - _position);
+
+        if (_physicsSimulation.getShapeCollisions(&boundingShape, myCollisions)) {
+            // we temporarily move b
             const float VOXEL_ELASTICITY = 0.0f;
             const float VOXEL_DAMPING = 0.0f;
-            float capsuleRadius = boundingShape.getRadius();
-            float capsuleHalfHeight = boundingShape.getHalfHeight();
+            const float capsuleRadius = boundingShape.getRadius();
+            const float capsuleHalfHeight = boundingShape.getHalfHeight();
             const float MAX_STEP_HEIGHT = capsuleRadius + capsuleHalfHeight;
             const float MIN_STEP_HEIGHT = 0.0f;
-            glm::vec3 footBase = boundingShape.getTranslation() - (capsuleRadius + capsuleHalfHeight) * _worldUpDirection;
             float highestStep = 0.0f;
             float lowestStep = MAX_STEP_HEIGHT;
             glm::vec3 floorPoint;
@@ -1405,37 +1412,48 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
     
             for (int i = 0; i < myCollisions.size(); ++i) {
                 CollisionInfo* collision = myCollisions[i];
-                glm::vec3 cubeCenter = collision->_vecData;
-                float cubeSide = collision->_floatData;
+
                 float verticalDepth = glm::dot(collision->_penetration, _worldUpDirection);
                 float horizontalDepth = glm::length(collision->_penetration - verticalDepth * _worldUpDirection);
                 const float MAX_TRAP_PERIOD = 0.125f;
                 if (horizontalDepth > capsuleRadius || fabsf(verticalDepth) > MAX_STEP_HEIGHT) {
                     isTrapped = true;
                     if (_trapDuration > MAX_TRAP_PERIOD) {
-                        float distance = glm::dot(boundingShape.getTranslation() - cubeCenter, _worldUpDirection);
-                        if (distance < 0.0f) {
-                            distance = fabsf(distance) + 0.5f * cubeSide;
+                        RayIntersectionInfo intersection;
+                        // we pick a rayStart that we expect to be inside the boundingShape (aka shapeA)
+                        intersection._rayStart = collision->_contactPoint - MAX_STEP_HEIGHT * glm::normalize(collision->_penetration);
+                        intersection._rayDirection = -_worldUpDirection;
+                        // cast the ray down against shapeA
+                        if (collision->_shapeA->findRayIntersection(intersection)) {
+                            float firstDepth = - intersection._hitDistance;
+                            // recycle intersection and cast again in up against shapeB
+                            intersection._rayDirection = _worldUpDirection;
+                            intersection._hitDistance = FLT_MAX;
+                            if (collision->_shapeB->findRayIntersection(intersection)) {
+                                // now we know how much we need to move UP to get out
+                                totalPenetration = addPenetrations(totalPenetration, 
+                                        (firstDepth + intersection._hitDistance) * _worldUpDirection);
+                            }
                         }
-                        distance += capsuleRadius + capsuleHalfHeight;
-                        totalPenetration = addPenetrations(totalPenetration, - distance * _worldUpDirection);
                         continue;
                     }
                 } else if (_trapDuration > MAX_TRAP_PERIOD) {
-                    // we're trapped, ignore this collision
+                    // we're trapped, ignore this shallow collision
                     continue;
                 }
                 totalPenetration = addPenetrations(totalPenetration, collision->_penetration);
+                
+                // some logic to help us walk up steps
                 if (glm::dot(collision->_penetration, _velocity) >= 0.0f) {
-                    glm::vec3 cubeTop = cubeCenter + (0.5f * cubeSide) * _worldUpDirection;
-                    float stepHeight = glm::dot(_worldUpDirection, cubeTop - footBase);
+                    float stepHeight = - glm::dot(_worldUpDirection, collision->_penetration);
                     if (stepHeight > highestStep) {
                         highestStep = stepHeight;
                         stepPenetration = collision->_penetration;
                     }
                     if (stepHeight < lowestStep) {
                         lowestStep = stepHeight;
-                        floorPoint = collision->_contactPoint - collision->_penetration;
+                        // remember that collision is in _physicsSimulation frame so we must add _position
+                        floorPoint = _position + collision->_contactPoint - collision->_penetration;
                     }
                 }
             }
@@ -1853,6 +1871,17 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
     }
     if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
         _voxelShapeManager.clearShapes();
+    }
+}
+
+void MyAvatar::onToggleRagdoll() {
+    Ragdoll* ragdoll = _skeletonModel.getRagdoll();
+    if (ragdoll) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::CollideAsRagdoll)) {
+            _physicsSimulation.setRagdoll(ragdoll);
+        } else {
+            _physicsSimulation.setRagdoll(NULL);
+        }
     }
 }
 

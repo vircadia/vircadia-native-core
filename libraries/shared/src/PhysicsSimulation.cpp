@@ -207,9 +207,6 @@ void PhysicsSimulation::removeRagdoll(Ragdoll* doll) {
 
 void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec) {
     ++_frameCount;
-    if (!_ragdoll) {
-        return;
-    }
     quint64 now = usecTimestampNow();
     quint64 startTime = now;
     quint64 expiry = startTime + maxUsec;
@@ -219,7 +216,9 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     int numDolls = _otherRagdolls.size();
     {
         PerformanceTimer perfTimer("enforce");
-        _ragdoll->enforceConstraints();
+        if (_ragdoll) {
+            _ragdoll->enforceConstraints();
+        }
         for (int i = 0; i < numDolls; ++i) {
             _otherRagdolls[i]->enforceConstraints();
         }
@@ -235,7 +234,9 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
 
         { // enforce constraints
             PerformanceTimer perfTimer("enforce");
-            error = _ragdoll->enforceConstraints();
+            if (_ragdoll) {
+                error = _ragdoll->enforceConstraints();
+            }
             for (int i = 0; i < numDolls; ++i) {
                 error = glm::max(error, _otherRagdolls[i]->enforceConstraints());
             }
@@ -246,9 +247,12 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
         now = usecTimestampNow();
     } while (_collisions.size() != 0 && (iterations < maxIterations) && (error > minError) && (now < expiry));
 
-    // the collisions may have moved the main ragdoll from the simulation center
-    // so we remove this offset (potentially storing it as movement of the Ragdoll owner)
-    _ragdoll->removeRootOffset(collidedWithOtherRagdoll);
+    if (_ragdoll) {
+        // This is why _ragdoll is special and is not in the list of other ragdolls:
+        // The collisions may have moved the main ragdoll from the simulation center
+        // so we remove this offset (potentially storing it as movement of the Ragdoll owner)
+        _ragdoll->removeRootOffset(collidedWithOtherRagdoll);
+    }
 
     // also remove any offsets from the other ragdolls
     for (int i = 0; i < numDolls; ++i) {
@@ -257,13 +261,41 @@ void PhysicsSimulation::stepForward(float deltaTime, float minError, int maxIter
     pruneContacts();
 }
 
+bool PhysicsSimulation::findFloorRayIntersection(RayIntersectionInfo& intersection) const {
+    // only casts against otherEntities
+    bool hit = false;
+    int numEntities = _otherEntities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        const QVector<Shape*> otherShapes = _otherEntities.at(i)->getShapes();
+        if (ShapeCollider::findRayIntersection(otherShapes, intersection)) {
+            hit = true;
+        }
+    }
+    return hit;
+}
+
+
+bool PhysicsSimulation::getShapeCollisions(const Shape* shape, CollisionList& collisions) const {
+    bool hit = false;
+    int numEntities = _otherEntities.size();
+    for (int i = 0; i < numEntities; ++i) {
+        const QVector<Shape*> otherShapes = _otherEntities.at(i)->getShapes();
+        if (ShapeCollider::collideShapeWithShapes(shape, otherShapes, 0, collisions)) {
+            hit = true;
+        }
+    }
+    return hit;
+}
+
 void PhysicsSimulation::integrate(float deltaTime) {
     PerformanceTimer perfTimer("integrate");
     int numEntities = _otherEntities.size();
     for (int i = 0; i < numEntities; ++i) {
         _otherEntities[i]->stepForward(deltaTime);
     }
-    _ragdoll->stepForward(deltaTime);
+    if (_ragdoll) {
+        _ragdoll->stepForward(deltaTime);
+    }
     int numDolls = _otherRagdolls.size();
     for (int i = 0; i < numDolls; ++i) {
         _otherRagdolls[i]->stepForward(deltaTime);
