@@ -315,53 +315,69 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         rotatedSourcePosition.y = 0.0f;
         
         // produce an oriented angle about the y-axis
-        bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                          glm::normalize(rotatedSourcePosition),
-                                                          glm::vec3(0.0f, 1.0f, 0.0f));
+        float bearingAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                        glm::normalize(rotatedSourcePosition),
+                                                        glm::vec3(0.0f, -1.0f, 0.0f));
+        const float TWO_OVER_PI = 2.0f / PI;
         
-        // if the source is in the range (-pi/2,+pi/2) (e.g, -Z from the listener's perspective
-        if (bearingRelativeAngleToSource < -PI_OVER_TWO || bearingRelativeAngleToSource > PI_OVER_TWO)
-        {
-            AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
+        const float ZERO_DB = 1.0f;
+        const float NEGATIVE_ONE_DB = 0.891f;
+        const float NEGATIVE_THREE_DB = 0.708f;
 
-            const float FULL_POWER = 1.0f;
-            const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;
-            const float HALF_POWER = SQUARE_ROOT_OF_TWO_OVER_TWO;
-            
-            const float ONE_OVER_TWO_PI = 1.0f / TWO_PI;
-            const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
-            
-            // calculate the updated gain, frequency and slope. 
-            const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
-            const float penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
+        const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
+        
+        const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
+        const float penumbraFilterSlope = NEGATIVE_THREE_DB; // constant slope
+        
+        float penumbraFilterGainL;
+        float penumbraFilterGainR;
 
-            const float penumbraFilterGainL = (bearingRelativeAngleToSource <= -PI_OVER_TWO) ?
-                ((+1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource + PI_OVER_TWO)) + FULL_POWER) :
-                ((+1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource - PI)) + HALF_POWER);
-                
-            const float penumbraFilterGainR = (bearingRelativeAngleToSource <= -PI_OVER_TWO) ?
-                ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource + PI_OVER_TWO)) + HALF_POWER) :
-                ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource - PI)) + HALF_POWER);
-            
+        // variable gain calculation broken down by quadrent
+        if (bearingAngleToSource < -PI_OVER_TWO && bearingAngleToSource > -PI) {
+            // gainL(-pi/2,0b)->(-pi,-1db)
+            penumbraFilterGainL = TWO_OVER_PI * 
+                (ZERO_DB - NEGATIVE_ONE_DB) * (bearingAngleToSource + PI_OVER_TWO) + ZERO_DB;
+            // gainR(-pi/2,-3db)->(-pi,-1db)
+            penumbraFilterGainR = TWO_OVER_PI * 
+                (NEGATIVE_THREE_DB - NEGATIVE_ONE_DB) * (bearingAngleToSource + PI_OVER_TWO) + NEGATIVE_THREE_DB;
+        } else if (bearingAngleToSource <= PI && bearingAngleToSource > PI_OVER_TWO) {
+            // gainL(+pi,-1db)->(pi/2,-3db)
+            penumbraFilterGainL = TWO_OVER_PI * 
+                (NEGATIVE_ONE_DB - NEGATIVE_THREE_DB) * (bearingAngleToSource - PI) + NEGATIVE_ONE_DB;
+            // gainR(+pi,-1db)->(pi/2,0db)
+            penumbraFilterGainR = TWO_OVER_PI * 
+                (NEGATIVE_ONE_DB - ZERO_DB) * (bearingAngleToSource - PI) + NEGATIVE_ONE_DB;
+        } else if (bearingAngleToSource <= PI_OVER_TWO && bearingAngleToSource > 0) {
+            // gainL(+pi/2,-3db)->(0,0db)
+            penumbraFilterGainL = TWO_OVER_PI *
+                (NEGATIVE_THREE_DB - ZERO_DB) * (bearingAngleToSource - PI_OVER_TWO) + NEGATIVE_THREE_DB;
+            // gainR(+p1/2,0db)->(0,0db)
+            penumbraFilterGainR = ZERO_DB;            
+        } else {
+            // gainL(0,0db)->(-pi/2,0db)
+            penumbraFilterGainL = ZERO_DB;
+            // gainR(0,0db)->(-pi/2,-3db)
+            penumbraFilterGainR =  TWO_OVER_PI * 
+                (ZERO_DB - NEGATIVE_THREE_DB) * (bearingAngleToSource) + ZERO_DB;
+        }
 #if 0
-            float distanceBetween = glm::length(relativePosition);
-            qDebug() << "avatar=" 
-                     << listeningNodeStream 
+            qDebug() << "avatar="
+                     << listeningNodeStream
                      << "gainL=" 
                      << penumbraFilterGainL
                      << "gainR="
                      << penumbraFilterGainR
                      << "angle="
-                     << bearingRelativeAngleToSource
-                     << "dist="
-                     << distanceBetween;
+                     << bearingAngleToSource;
 #endif
-            // set the gain on both filter channels
-            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+        
+        // set the gain on both filter channels
+        AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
+        
+        penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+        penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
           
-            penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
-        }
+        penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
     }
 
     return 1;
