@@ -428,8 +428,9 @@ bool Model::render(float alpha, RenderMode mode) {
     
     // render opaque meshes with alpha testing
     
+    glDisable(GL_BLEND);
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f * alpha);
+    glAlphaFunc(GL_EQUAL, 0.0f);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
@@ -451,6 +452,8 @@ bool Model::render(float alpha, RenderMode mode) {
     if (mode == SHADOW_RENDER_MODE) {
         glCullFace(GL_BACK);
     }
+    
+    glEnable(GL_BLEND);
     
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_NORMAL_ARRAY);

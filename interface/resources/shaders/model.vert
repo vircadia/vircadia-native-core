@@ -19,7 +19,7 @@ void main(void) {
     normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
     
     // pass along the vertex color
-    gl_FrontColor = gl_Color;
+    gl_FrontColor = vec4(gl_Color.rgb, 0.0);
     
     // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
