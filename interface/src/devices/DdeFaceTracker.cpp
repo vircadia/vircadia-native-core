@@ -122,7 +122,7 @@ void DdeFaceTracker::bindTo(const QHostAddress& host, quint16 port) {
 }
 
 bool DdeFaceTracker::isActive() const {
-    static const int ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
+    static const quint64 ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
     return (usecTimestampNow() - _lastReceiveTimestamp < ACTIVE_TIMEOUT_USECS);
 }
 
