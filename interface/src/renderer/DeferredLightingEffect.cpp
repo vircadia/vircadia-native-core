@@ -72,9 +72,13 @@ void DeferredLightingEffect::render() {
     int viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_Y_INDEX = 1;
     const int VIEWPORT_WIDTH_INDEX = 2;
+    const int VIEWPORT_HEIGHT_INDEX = 3;
     float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
     float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
+    float tMin = viewport[VIEWPORT_Y_INDEX] / (float)primaryFBO->height();
+    float tHeight = viewport[VIEWPORT_HEIGHT_INDEX] / (float)primaryFBO->height();
    
     ProgramObject* program = &_directionalLight;
     const LightLocations* locations = &_directionalLightLocations;
@@ -109,13 +113,13 @@ void DeferredLightingEffect::render() {
     program->setUniformValue(locations->nearLocation, nearVal);
     program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
     float nearScale = -1.0f / nearVal;
-    float sScale = 1.0f / sWidth;
-    float depthTexCoordScaleS = (right - left) * nearScale * sScale;
+    float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
+    float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
     program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
-        bottom * nearScale);
-    program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, (top - bottom) * nearScale);
+        bottom * nearScale - tMin * depthTexCoordScaleT);
+    program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
     
-    renderFullscreenQuad(sMin, sMin + sWidth);
+    renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     program->release();
     
@@ -145,7 +149,7 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     glEnable(GL_TEXTURE_2D);
     
-    renderFullscreenQuad(sMin, sMin + sWidth);
+    renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);

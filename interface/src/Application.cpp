@@ -695,14 +695,14 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        _glowEffect.render();
-
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
 
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
+
+        _glowEffect.render();
 
         {
             PerformanceTimer perfTimer("renderOverlay");
