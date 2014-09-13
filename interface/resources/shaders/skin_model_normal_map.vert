@@ -43,7 +43,7 @@ void main(void) {
     interpolatedTangent = gl_ModelViewMatrix * interpolatedTangent;
     
     // pass along the vertex color
-    gl_FrontColor = vec4(gl_Color.rgb, 0.0);
+    gl_FrontColor = vec4(1.0, 1.0, 1.0, 0.0);
     
     // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
