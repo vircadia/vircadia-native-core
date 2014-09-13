@@ -166,7 +166,8 @@ public:
     virtual void renderJointCollisionShapes(float alpha);
     
     /// Sets blended vertices computed in a separate thread.
-    void setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
+    void setBlendedVertices(const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices,
+        const QVector<glm::vec3>& normals);
 
     class LocalLight {
     public:

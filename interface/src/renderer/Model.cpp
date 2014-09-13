@@ -678,8 +678,8 @@ Blender::Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
 }
 
 void Blender::run() {
-    // make sure the model/geometry still exists
-    if (_model.isNull() || _geometry.isNull()) {
+    // make sure the model still exists
+    if (_model.isNull()) {
         return;
     }
     QVector<glm::vec3> vertices, normals;
@@ -1102,24 +1102,25 @@ void Model::renderJointCollisionShapes(float alpha) {
     // implement this when we have shapes for regular models
 }
 
-void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+void Model::setBlendedVertices(const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices,
+        const QVector<glm::vec3>& normals) {
     _blenderPending = false;
     
     // start the next blender if required
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
     if (_blendRequired) {
         _blendRequired = false;
-        if (geometry.hasBlendedMeshes()) {
+        if (fbxGeometry.hasBlendedMeshes()) {
             _blenderPending = true;
-            QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+            QThreadPool::globalInstance()->start(new Blender(this, _geometry, fbxGeometry.meshes, _blendshapeCoefficients));
         }
     }
-    if (_blendedVertexBuffers.isEmpty()) {
+    if (_geometry != geometry || _blendedVertexBuffers.isEmpty()) {
         return;
     }
     int index = 0;
-    for (int i = 0; i < geometry.meshes.size(); i++) {
-        const FBXMesh& mesh = geometry.meshes.at(i);
+    for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
+        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         if (mesh.blendshapes.isEmpty()) {
             continue;
         }
