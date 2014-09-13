@@ -66,7 +66,7 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
     T lastBitMask = (T)(1) << (totalBits - 1);
 
     // determine the number of bits that the value takes
-    for (size_t bitAt = 0; bitAt < totalBits; bitAt++) {
+    for (int bitAt = 0; bitAt < totalBits; bitAt++) {
         T bitValue = (temp & lastBitMask) == lastBitMask;
         if (!firstValueFound) {
             if (bitValue == 0) {
@@ -81,7 +81,7 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
     // calculate the number of total bytes, including our header
     // BITS_IN_BYTE-1 because we need to code the number of bytes in the header
     // + 1 because we always take at least 1 byte, even if number of bits is less than a bytes worth
-    size_t numberOfBytes = (valueBits / (BITS_IN_BYTE - 1)) + 1; 
+    int numberOfBytes = (valueBits / (BITS_IN_BYTE - 1)) + 1; 
 
     output.fill(0, numberOfBytes);
 
