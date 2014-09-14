@@ -22,7 +22,7 @@
 #include "DomainServerSettingsManager.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/web/settings/describe.json";
-const QString SETTINGS_CONFIG_FILE_RELATIVE_PATH = "/resources/config.json";
+const QString SETTINGS_JSON_FILE_RELATIVE_PATH = "/resources/settings.json";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionObject(),
@@ -35,7 +35,7 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionObject = QJsonDocument::fromJson(descriptionFile.readAll()).object();
     
     // load the existing config file to get the current values
-    QFile configFile(QCoreApplication::applicationDirPath() + SETTINGS_CONFIG_FILE_RELATIVE_PATH);
+    QFile configFile(QCoreApplication::applicationDirPath() + SETTINGS_JSON_FILE_RELATIVE_PATH);
     
     if (configFile.exists()) {
         configFile.open(QIODevice::ReadOnly);
@@ -61,7 +61,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
         if (typeValue.isEmpty()) {
             // combine the description object and our current settings map
             responseObject["descriptions"] = _descriptionObject;
-            // responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
+            responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
         } else {
             // convert the string type value to a QJsonValue
             QJsonValue queryType = QJsonValue(typeValue.toInt());
@@ -197,7 +197,7 @@ QByteArray DomainServerSettingsManager::getJSONSettingsMap() const {
 }
 
 void DomainServerSettingsManager::persistToFile() {
-    QFile settingsFile(QCoreApplication::applicationDirPath() + SETTINGS_CONFIG_FILE_RELATIVE_PATH);
+    QFile settingsFile(QCoreApplication::applicationDirPath() + SETTINGS_JSON_FILE_RELATIVE_PATH);
     
     if (settingsFile.open(QIODevice::WriteOnly)) {
         settingsFile.write(getJSONSettingsMap());
