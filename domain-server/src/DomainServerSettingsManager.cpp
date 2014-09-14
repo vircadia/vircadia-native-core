@@ -22,7 +22,7 @@
 #include "DomainServerSettingsManager.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/web/settings/describe.json";
-const QString SETTINGS_CONFIG_FILE_RELATIVE_PATH = "/resources/settings.json";
+const QString SETTINGS_CONFIG_FILE_RELATIVE_PATH = "/resources/config.json";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionObject(),
@@ -61,7 +61,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
         if (typeValue.isEmpty()) {
             // combine the description object and our current settings map
             responseObject["descriptions"] = _descriptionObject;
-            // responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
+            responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
         } else {
             // convert the string type value to a QJsonValue
             QJsonValue queryType = QJsonValue(typeValue.toInt());
