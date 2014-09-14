@@ -511,7 +511,7 @@ void Audio::handleAudioInput() {
 
     _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
 
-    _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
+ //   _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
     
     //  Add audio source injection if enabled
     if (_audioSourceInjectEnabled && !_muted) {
