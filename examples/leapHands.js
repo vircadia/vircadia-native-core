@@ -200,6 +200,11 @@ var leapHands = (function () {
                 handPitch = 2.0 * -wrists[h].controller.getAbsRotation().x;
                 handYaw = 2.0 * -wrists[h].controller.getAbsRotation().y;
 
+                // TODO: Leap Motion controller's right-hand roll calculation is off by 90 degrees.
+                if (h === 1) {
+                    handRoll = handRoll + PI / 2.0;
+                }
+
                 // Fixed hand location for starters ...
                 if (h === 0) {
                     MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
@@ -208,7 +213,7 @@ var leapHands = (function () {
                 } else {
                     MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 90.0));
                     MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-                    MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(handPitch, PI / 2.0 + handRoll, handYaw));
+                    MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(handPitch, handRoll, handYaw));
                 }
 
                 // Finger joints ...
