@@ -12,6 +12,7 @@
 #ifndef hifi_AudioSourceTone_h
 #define hifi_AudioSourceTone_h
 
+// Implemenbts a Gordon-Smith oscillator
 class AudioSourceTone
 {
     static uint32_t _frameOffset;
@@ -19,6 +20,16 @@ class AudioSourceTone
     float32_t _amplitude;
     float32_t _sampleRate;
     float32_t _omega;
+    float32_t _epsilon;
+    float32_t _yq1;  
+    float32_t _y1;
+    
+    void updateCoefficients() {
+        _omega = _frequency / _sampleRate * TWO_PI;
+        _epsilon = 2.0f * sinf(_omega / 2.0f);
+        _yq1 = cosf(-1.0f * _omega);
+        _y1 = sinf(+1.04 * _omega);
+    }
     
 public:
     AudioSourceTone() {
@@ -30,22 +41,20 @@ public:
     }
     
     void initialize() {
-        _frameOffset = 0;
-        setParameters(SAMPLE_RATE, 220.0f, 0.9f);
+        setParameters(SAMPLE_RATE, 220.0f, 0.708f);
     }
     
     void finalize() {
     }
     
     void reset() {
-        _frameOffset = 0;
     }
 
     void setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude) {
         _sampleRate = std::max(sampleRate, 1.0f);
         _frequency = std::max(frequency, 1.0f);
         _amplitude = std::max(amplitude, 1.0f);
-        _omega = _frequency / _sampleRate * TWO_PI;
+        updateCoefficients();
     }
     
     void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& amplitude) {
@@ -56,15 +65,22 @@ public:
 
     void render(AudioBufferFloat32& frameBuffer) {
         
-        // note: this is a placeholder implementation. final version will not include any transcendental ops in our render loop
-        
         float32_t** samples = frameBuffer.getFrameData();
+        float32_t yq;
+        float32_t y;
         for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
+            
+            yq = _yq1 - (_epsilon * _y1);
+            y = _y1 + (_epsilon * yq);
+            
+            // update delays
+            _yq1 = yq;
+            _y1 = y;
+            
             for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
-                samples[j][i] = sinf((i + _frameOffset) * _omega);
+                samples[j][i] = _amplitude * y;
             }
         }
-        _frameOffset += frameBuffer.getFrameCount();
     }
 };
 
