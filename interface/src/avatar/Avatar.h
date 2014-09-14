@@ -151,6 +151,11 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
+    Q_INVOKABLE bool setJointModelPositionAndOrientation(int index, const glm::vec3 position,
+        const glm::quat& rotation = glm::quat(), bool useRotation = false);
+    Q_INVOKABLE bool setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position,
+        const glm::quat& rotation = glm::quat(), bool useRotation = false);
+
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }

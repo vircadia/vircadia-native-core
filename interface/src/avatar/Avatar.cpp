@@ -840,6 +840,38 @@ glm::quat Avatar::getJointCombinedRotation(const QString& name) const {
     return rotation;
 }
 
+bool Avatar::setJointModelPositionAndOrientation(int index, glm::vec3 position, const glm::quat& rotation, 
+                                                 bool useRotation) {
+    bool success;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "setJointModelPositionAndOrientation", 
+            Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, success), Q_ARG(const int, index), 
+            Q_ARG(const glm::vec3, position),
+            Q_ARG(const glm::quat&, rotation), Q_ARG(bool, useRotation));
+    } else {
+        qDebug() << "setJointModelPositionAndOrientation()";
+        success = _skeletonModel.setJointPosition(index, position, rotation, useRotation, -1, true, 
+                                                  glm::vec3(0.0, -1.0, 0.0), DEFAULT_PRIORITY + 2.0f);
+    }
+    return success;
+}
+
+bool Avatar::setJointModelPositionAndOrientation(const QString& name, glm::vec3 position, const glm::quat& rotation, 
+                                                 bool useRotation) {
+    bool success;
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "setJointModelPositionAndOrientation", 
+            Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, success), Q_ARG(const QString&, name), 
+            Q_ARG(const glm::vec3, position),
+            Q_ARG(const glm::quat&, rotation), Q_ARG(bool, useRotation));
+    } else {
+        qDebug() << "setJointModelPositionAndOrientation()";
+        success = _skeletonModel.setJointPosition(getJointIndex(name), position, rotation, useRotation, -1, true, 
+                                                  glm::vec3(0.0, -1.0, 0.0), DEFAULT_PRIORITY + 2.0f);
+    }
+    return success;
+}
+
 void Avatar::scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const {
     //Scale a world space vector as if it was relative to the position
     positionToScale = _position + _scale * (positionToScale - _position);

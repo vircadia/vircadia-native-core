@@ -21,6 +21,7 @@ var leapHands = (function () {
         THUMB = 0,
         NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal(tip) joint
         MAX_HAND_INACTIVE_COUNT = 20,
+        LEAP_HEIGHT_OFFSET = 0.15,
         PI = 3.141593;
 
     function printSkeletonJointNames() {
@@ -114,14 +115,22 @@ var leapHands = (function () {
         // TODO: Leap Motion controller joint naming doesn't match up with skeleton joint naming; numbers are out by 1.
 
         hands = [
-            { controller: Controller.createInputController("Spatial", "joint_L_hand"), inactiveCount: 0 },
-            { controller: Controller.createInputController("Spatial", "joint_R_hand"), inactiveCount: 0 }
+            {
+                jointName: "LeftHand",
+                controller: Controller.createInputController("Spatial", "joint_L_hand"),
+                inactiveCount: 0
+            },
+            {
+                jointName: "RightHand",
+                controller: Controller.createInputController("Spatial", "joint_R_hand"),
+                inactiveCount: 0
+            }
         ];
 
         wrists = [
             { controller: Controller.createInputController("Spatial", "joint_L_wrist") },
             { controller: Controller.createInputController("Spatial", "joint_R_wrist") }
-        ]
+        ];
 
         fingers = [{}, {}];
         fingers[0] = [
@@ -178,6 +187,19 @@ var leapHands = (function () {
                 { jointName: "RightHandPinky3", controller: Controller.createInputController("Spatial", "joint_R_pinky4") }
             ]
         ];
+
+        // TODO: Add automatic calibration of avatar's hands.
+        // Calibration values for Ron.
+        hands[0].zeroPosition = {
+            x: -0.157,
+            y: 0.204,
+            z: 0.336
+        };
+        hands[1].zeroPosition = {
+            x: 0.234,
+            y: 0.204,
+            z: 0.339
+        };
     }
 
     function moveHands() {
@@ -185,15 +207,24 @@ var leapHands = (function () {
             i,
             j,
             side,
-            locRotation,
+            handOffset,
             handRoll,
             handPitch,
-            handYaw;
+            handYaw,
+            locRotation;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
             side = h === 0 ? -1.0 : 1.0;
 
             if (hands[h].controller.isActive()) {
+
+                // Hand position ...
+                handOffset = hands[h].controller.getAbsTranslation();
+                handOffset = {
+                    x: -handOffset.x,
+                    y: hands[h].zeroPosition.y + handOffset.y - LEAP_HEIGHT_OFFSET,
+                    z: hands[h].zeroPosition.z - handOffset.z
+                };
 
                 // TODO: 2.0* scale factor should not be necessary; Leap Motion controller code needs investigating.
                 handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
@@ -205,16 +236,8 @@ var leapHands = (function () {
                     handRoll = handRoll + PI / 2.0;
                 }
 
-                // Fixed hand location for starters ...
-                if (h === 0) {
-                    MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
-                    MyAvatar.setJointData("LeftForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-                    MyAvatar.setJointData("LeftHand", Quat.fromPitchYawRollRadians(handPitch, handRoll, handYaw));
-                } else {
-                    MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 90.0));
-                    MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
-                    MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(handPitch, handRoll, handYaw));
-                }
+                // Hand position ...
+                MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset);
 
                 // Finger joints ...
                 // TODO: 2.0 * scale factors should not be necessary; Leap Motion controller code needs investigating.
