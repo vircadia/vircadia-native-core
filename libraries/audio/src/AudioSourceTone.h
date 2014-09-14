@@ -12,10 +12,9 @@
 #ifndef hifi_AudioSourceTone_h
 #define hifi_AudioSourceTone_h
 
-// Implemenbts a Gordon-Smith oscillator
+// Implements a two-pole Gordon-Smith oscillator
 class AudioSourceTone
 {
-    static uint32_t _frameOffset;
     float32_t _frequency;
     float32_t _amplitude;
     float32_t _sampleRate;
