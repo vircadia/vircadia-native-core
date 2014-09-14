@@ -61,7 +61,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
         if (typeValue.isEmpty()) {
             // combine the description object and our current settings map
             responseObject["descriptions"] = _descriptionObject;
-            responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
+            // responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
         } else {
             // convert the string type value to a QJsonValue
             QJsonValue queryType = QJsonValue(typeValue.toInt());
