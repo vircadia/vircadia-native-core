@@ -236,8 +236,18 @@ var leapHands = (function () {
                     handRoll = handRoll + PI / 2.0;
                 }
 
-                // Hand position ...
-                MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset);
+                // Hand position and orientation ...
+                if (h === 0) {
+                    MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, Quat.fromPitchYawRollRadians(
+                        handPitch,
+                        -PI / 2.0 - handYaw,
+                        handRoll), true);
+                } else {
+                    MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, Quat.fromPitchYawRollRadians(
+                        handPitch,
+                        PI / 2.0 - handYaw,
+                        handRoll), true);
+                }
 
                 // Finger joints ...
                 // TODO: 2.0 * scale factors should not be necessary; Leap Motion controller code needs investigating.
