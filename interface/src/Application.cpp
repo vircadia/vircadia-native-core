@@ -2895,6 +2895,14 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
 
+        // render the ambient occlusion effect if enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+            PerformanceTimer perfTimer("ambientOcclusion");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... AmbientOcclusion...");
+            _ambientOcclusionEffect.render();
+        }
+
         _nodeBoundsDisplay.draw();
 
     }
@@ -2908,16 +2916,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         //Render the sixense lasers
         if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
             _myAvatar->renderLaserPointers();
-        }
-    }
-
-    if (!selfAvatarOnly) {
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceTimer perfTimer("ambientOcclusion");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
         }
     }
     

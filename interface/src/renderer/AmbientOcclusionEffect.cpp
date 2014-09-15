@@ -42,7 +42,6 @@ void AmbientOcclusionEffect::init() {
     for (int i = 0; i < SAMPLE_KERNEL_SIZE; i++) {
         // square the length in order to increase density towards the center
         glm::vec3 vector = glm::sphericalRand(1.0f);
-        vector.z = glm::abs(vector.z);
         float scale = randFloat();
         const float MIN_VECTOR_LENGTH = 0.01f;
         const float MAX_VECTOR_LENGTH = 1.0f;
@@ -73,10 +72,10 @@ void AmbientOcclusionEffect::init() {
     unsigned char rotationData[ROTATION_WIDTH * ROTATION_HEIGHT * ELEMENTS_PER_PIXEL];
     unsigned char* rotation = rotationData;
     for (int i = 0; i < ROTATION_WIDTH * ROTATION_HEIGHT; i++) {
-        float angle = randFloatInRange(0.0f, TWO_PI);
-        *rotation++ = ((glm::cos(angle) + 1.0f) / 2.0f) * 255.0f;
-        *rotation++ = ((glm::sin(angle) + 1.0f) / 2.0f) * 255.0f;
-        *rotation++ = 0.0f;
+        glm::vec3 vector = glm::sphericalRand(1.0f);
+        *rotation++ = ((vector.x + 1.0f) / 2.0f) * 255.0f;
+        *rotation++ = ((vector.y + 1.0f) / 2.0f) * 255.0f;
+        *rotation++ = ((vector.z + 1.0f) / 2.0f) * 255.0f;
     }
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ROTATION_WIDTH, ROTATION_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, rotationData);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

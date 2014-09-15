@@ -248,6 +248,7 @@ public:
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
+    DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
