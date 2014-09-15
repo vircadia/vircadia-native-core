@@ -27,7 +27,7 @@ class AudioSourceTone
         _omega = _frequency / _sampleRate * TWO_PI;
         _epsilon = 2.0f * sinf(_omega / 2.0f);
         _yq1 = cosf(-1.0f * _omega);
-        _y1 = sinf(+1.04 * _omega);
+        _y1 = sinf(+1.0f * _omega);
     }
     
 public:
@@ -40,7 +40,9 @@ public:
     }
     
     void initialize() {
-        setParameters(SAMPLE_RATE, 220.0f, 0.708f);
+        const float32_t FREQUENCY_220_HZ = 220.0f;
+        const float32_t GAIN_MINUS_3DB = 0.708f;
+        setParameters(SAMPLE_RATE, FREQUENCY_220_HZ, GAIN_MINUS_3DB);
     }
     
     void finalize() {
