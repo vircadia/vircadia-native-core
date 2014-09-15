@@ -1743,7 +1743,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         for (int z = 0; z < expanded; z++) {
             const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
-                int lastIndex;
+                int lastIndex = 0;
                 const QRgb* colorX = colorY;
                 for (int x = 0; x < expanded; x++) {
                     int alpha0 = colorX[0] >> ALPHA_OFFSET;
@@ -2479,9 +2479,9 @@ void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
     _model->render(alpha);
 }
 
-bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
-    return _model->findRayIntersection(origin, direction, distance);
+bool StaticModelRenderer::findRayIntersection(RayIntersectionInfo& intersection,
+        const glm::vec3& clipMinimum, float clipSize) const {
+    return _model->findRayIntersection(intersection);
 }
 
 void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {

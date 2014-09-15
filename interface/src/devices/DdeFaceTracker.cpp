@@ -122,7 +122,7 @@ void DdeFaceTracker::bindTo(const QHostAddress& host, quint16 port) {
 }
 
 bool DdeFaceTracker::isActive() const {
-    static const int ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
+    static const quint64 ACTIVE_TIMEOUT_USECS = 3000000; //3 secs
     return (usecTimestampNow() - _lastReceiveTimestamp < ACTIVE_TIMEOUT_USECS);
 }
 
@@ -172,8 +172,8 @@ float DdeFaceTracker::getBlendshapeCoefficient(int index) const {
     return (index >= 0 && index < (int)_blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
 }
 
-static const float DDE_MIN_RANGE = -0.2;
-static const float DDE_MAX_RANGE = 1.5;
+static const float DDE_MIN_RANGE = -0.2f;
+static const float DDE_MAX_RANGE = 1.5f;
 float rescaleCoef(float ddeCoef) {
     return (ddeCoef - DDE_MIN_RANGE) / (DDE_MAX_RANGE - DDE_MIN_RANGE);
 }

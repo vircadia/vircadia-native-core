@@ -1087,24 +1087,18 @@ bool capsuleVsAACubeLegacy(const CapsuleShape* capsuleA, const glm::vec3& cubeCe
     return sphereVsAACubeLegacy(nearestApproach, capsuleA->getRadius(), cubeCenter, cubeSide, collisions);
 }
 
-bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3& rayStart, const glm::vec3& rayDirection, float& minDistance) {
-    float hitDistance = FLT_MAX;
+bool findRayIntersection(const QVector<Shape*>& shapes, RayIntersectionInfo& intersection) {
     int numShapes = shapes.size();
+    bool hit = false;
     for (int i = 0; i < numShapes; ++i) {
         Shape* shape = shapes.at(i);
         if (shape) {
-            float distance;
-            if (shape->findRayIntersection(rayStart, rayDirection, distance)) {
-                if (distance < hitDistance) {
-                    hitDistance = distance;
-                }
+            if (shape->findRayIntersection(intersection)) {
+                hit = true;
             }
         }
     }
-    if (hitDistance < FLT_MAX) {
-        minDistance = hitDistance;
-    }
-    return false;
+    return hit;
 }
 
 }   // namespace ShapeCollider

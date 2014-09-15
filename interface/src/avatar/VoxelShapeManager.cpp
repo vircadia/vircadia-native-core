@@ -17,7 +17,7 @@
 
 #include "VoxelShapeManager.h"
 
-VoxelShapeManager::VoxelShapeManager() : PhysicsEntity(), _lastSimulationTranslation(0.0f) {
+VoxelShapeManager::VoxelShapeManager() : PhysicsEntity(), _updateExpiry(0), _lastSimulationTranslation(0.0f) {
 }
 
 VoxelShapeManager::~VoxelShapeManager() {
@@ -57,7 +57,9 @@ void VoxelShapeManager::clearShapes() {
     _voxels.clear();
 }
 
-void VoxelShapeManager::updateVoxels(CubeList& cubes) {
+void VoxelShapeManager::updateVoxels(const quint64& now, CubeList& cubes) {
+    const quint64 VOXEL_UPDATE_PERIOD = 100000; // usec
+    _updateExpiry = now + VOXEL_UPDATE_PERIOD;
     PhysicsSimulation* simulation = getSimulation();
     if (!simulation) {
         return;
