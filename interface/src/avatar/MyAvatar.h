@@ -207,7 +207,6 @@ private:
     float _maxMotorSpeed;
     quint32 _motionBehaviors;
 
-    glm::vec3 _lastFloorContactPoint;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -221,7 +220,6 @@ private:
     RecorderPointer _recorder;
     
 	// private methods
-    float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);
     void updatePosition(float deltaTime);
     float computeMotorTimescale(const glm::vec3& velocity);
