@@ -419,7 +419,7 @@ template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator
 }
 
 template<typename Enum> inline void PropertyFlags<Enum>::shinkIfNeeded() {
-    bool maxFlagWas = _maxFlag;
+    int maxFlagWas = _maxFlag;
     while (_maxFlag >= 0) {
         if (_flags.testBit(_maxFlag)) {
             break;

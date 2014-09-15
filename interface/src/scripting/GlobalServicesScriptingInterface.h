@@ -24,7 +24,7 @@
 #include <QXmppClient.h>
 #include <QXmppMessage.h>
 
-#endif
+#endif // HAVE_QXMPP
 
 class GlobalServicesScriptingInterface : public QObject {
     Q_OBJECT
@@ -47,7 +47,9 @@ private slots:
     void loggedOut();
     void onConnected();
     void participantsChanged();
+#ifdef HAVE_QXMPP
     void messageReceived(const QXmppMessage& message);
+#endif // HAVE_QXMPP
 
 signals:
     void connected();

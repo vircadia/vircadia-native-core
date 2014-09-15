@@ -730,7 +730,21 @@ void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
 }
 
 void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
-    setScaleToFit(scaleToFit, glm::vec3(largestDimension, largestDimension, largestDimension));
+    if (_scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
+        _scaleToFit = scaleToFit;
+        
+        // we only need to do this work if we're "turning on" scale to fit.
+        if (scaleToFit) {
+            Extents modelMeshExtents = getUnscaledMeshExtents();
+            float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
+            float maxScale = largestDimension / maxDimension;
+            glm::vec3 modelMeshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+            glm::vec3 dimensions = modelMeshDimensions * maxScale;
+        
+            _scaleToFitDimensions = dimensions;
+            _scaledToFit = false; // force rescaling
+        }
+    }
 }
 
 void Model::scaleToFit() {
