@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var position = { x:1, y: 1, z: 20 };
+var position = { x:1, y: 1, z: 10 };
 var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
 var scale = 1.0;
 
@@ -20,8 +20,8 @@ var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = new AudioInjectionOptions();
 audioOptions.volume = 0.7;
 audioOptions.position = position;
-//audioOptions.orientation = Quat.multiply(AudioRotationOffset, rotation);
-//audioOptions.loop = true;
+audioOptions.orientation = Quat.multiply(AudioRotationOffset, rotation);
+audioOptions.loop = true;
 audioOptions.isStereo = true;
 var injector = null;
 
@@ -49,13 +49,13 @@ function update() {
         var newProperties = Entities.getEntityProperties(entity);
         if (newProperties.type === "Model") {
             if (newProperties.position != properties.position) {
-                
+                audioOptions.position = newProperties.position;
+            }
+            if (newProperties.orientation != properties.orientation) {
+                audioOptions.orientation = newProperties.orientation;
             }
             
-            
-            
-            
-            
+            properties = newProperties;
         } else {
             entity = null;
             Script.update.disconnect(update);
