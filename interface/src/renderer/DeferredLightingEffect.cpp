@@ -28,9 +28,15 @@ void DeferredLightingEffect::init() {
 
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, false);
     glClear(GL_COLOR_BUFFER_BIT);
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, false, true);
+    // clearing to zero alpha for specular causes problems on my Nvidia card; clear to lowest non-zero value instead
+    const float MAX_SPECULAR_EXPONENT = 128.0f;
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f / MAX_SPECULAR_EXPONENT);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false, false);
 }
 
 void DeferredLightingEffect::render() {

@@ -25,8 +25,8 @@ void main(void) {
     interpolatedNormal = gl_ModelViewMatrix * vec4(gl_Normal, 0.0);
     interpolatedTangent = gl_ModelViewMatrix * vec4(tangent, 0.0);
     
-    // pass along the vertex color
-    gl_FrontColor = vec4(gl_Color.rgb, 0.0);
+    // pass along the diffuse color
+    gl_FrontColor = gl_FrontMaterial.diffuse;
     
     // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
