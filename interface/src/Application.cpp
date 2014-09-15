@@ -2844,15 +2844,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             glutSolidSphere(originSphereRadius, 15, 15);
         glPopMatrix();
 
-        // disable specular lighting for ground and voxels
-        glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-
         // draw the audio reflector overlay
         {
             PerformanceTimer perfTimer("audio");
             _audioReflector.render();
         }
         
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceTimer perfTimer("buckyBalls");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... bucky balls...");
+            _buckyBalls.render();
+        }
+
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -2867,13 +2871,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
-        }
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
         }
 
         // render particles...
@@ -2891,9 +2888,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... entities...");
             _entities.render();
         }
-
-        // restore default, white specular
-        glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
 
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {

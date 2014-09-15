@@ -42,7 +42,7 @@ void main(void) {
     
     // get the normal from the map
     vec4 normal = texture2D(normalMap, gl_TexCoord[0].st);
-    vec4 normalizedNormal = normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0);
+    vec4 normalizedNormal = normalize(normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0));
     
     // compute the base color based on OpenGL lighting model
     float diffuse = dot(normalizedNormal, gl_LightSource[0].position);

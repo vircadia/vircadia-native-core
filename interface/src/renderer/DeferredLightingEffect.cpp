@@ -19,11 +19,51 @@
 #include "RenderUtil.h"
 
 void DeferredLightingEffect::init() {
+    _simpleProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/simple.vert");
+    _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/simple.frag");
+    _simpleProgram.link();
+    
     loadLightProgram("shaders/directional_light.frag", _directionalLight, _directionalLightLocations);
     loadLightProgram("shaders/directional_light_shadow_map.frag", _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
     loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", _directionalLightCascadedShadowMap,
         _directionalLightCascadedShadowMapLocations);
+}
+
+void DeferredLightingEffect::bindSimpleProgram() {
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true, true);
+    _simpleProgram.bind();
+    glDisable(GL_BLEND);
+}
+
+void DeferredLightingEffect::releaseSimpleProgram() {
+    glEnable(GL_BLEND);
+    _simpleProgram.release();
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false, false);
+}
+
+void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks) {
+    bindSimpleProgram();
+    glutSolidSphere(radius, slices, stacks);
+    releaseSimpleProgram();
+}
+
+void DeferredLightingEffect::renderWireSphere(float radius, int slices, int stacks) {
+    bindSimpleProgram();
+    glutWireSphere(radius, slices, stacks);
+    releaseSimpleProgram();
+}
+
+void DeferredLightingEffect::renderSolidCube(float size) {
+    bindSimpleProgram();
+    glutSolidCube(size);
+    releaseSimpleProgram();
+}
+
+void DeferredLightingEffect::renderWireCube(float size) {
+    bindSimpleProgram();
+    glutWireCube(size);
+    releaseSimpleProgram();
 }
 
 void DeferredLightingEffect::prepare() {
