@@ -45,16 +45,29 @@ void DatagramProcessor::processDatagrams() {
         _byteCount += incomingPacket.size();
         
         if (nodeList->packetVersionAndHashMatch(incomingPacket)) {
+            
+            PacketType incomingType = packetTypeForPacket(incomingPacket);
             // only process this packet if we have a match on the packet version
-            switch (packetTypeForPacket(incomingPacket)) {
+            switch (incomingType) {
                 case PacketTypeMixedAudio:
                 case PacketTypeSilentAudioFrame:
-                    QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
-                                              Q_ARG(QByteArray, incomingPacket));
-                    break;
                 case PacketTypeAudioStreamStats:
-                    QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
-                        Q_ARG(QByteArray, incomingPacket));
+                    if (incomingType != PacketTypeAudioStreamStats) {
+                        QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
+                                                  Q_ARG(QByteArray, incomingPacket));
+                    } else {
+                        QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                                                  Q_ARG(QByteArray, incomingPacket));
+                    }
+                    
+                    // update having heard from the audio-mixer and record the bytes received
+                    SharedNodePointer audioMixer = nodeList->sendingNodeForPacket(incomingPacket);
+                    
+                    if (audioMixer) {
+                        audioMixer->setLastHeardMicrostamp(usecTimestampNow());
+                        audioMixer->recordBytesReceived(incomingPacket.size());
+                    }
+                    
                     break;
                 case PacketTypeParticleAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
