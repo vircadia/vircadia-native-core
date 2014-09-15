@@ -38,6 +38,8 @@ namespace ShapeColliderTests {
     void rayMissesCapsule();
     void rayHitsPlane();
     void rayMissesPlane();
+    void rayHitsAACube();
+    void rayMissesAACube();
 
     void measureTimeOfCollisionDispatch();
 

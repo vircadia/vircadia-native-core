@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_PhysicsSimulation
-#define hifi_PhysicsSimulation
+#ifndef hifi_PhysicsSimulation_h
+#define hifi_PhysicsSimulation_h
 
 #include <QtGlobal>
 #include <QMap>
@@ -18,6 +18,7 @@
 
 #include "CollisionInfo.h"
 #include "ContactPoint.h"
+#include "RayIntersectionInfo.h"
 
 class PhysicsEntity;
 class Ragdoll;
@@ -54,6 +55,12 @@ public:
     /// \return distance of largest movement
     void stepForward(float deltaTime, float minError, int maxIterations, quint64 maxUsec);
 
+    /// \param intersection collision info about ray hit
+    /// \return true if ray hits any shape that doesn't belong to the main ragdoll/entity
+    bool findFloorRayIntersection(RayIntersectionInfo& hit) const;
+
+    bool getShapeCollisions(const Shape* shape, CollisionList& collisions) const;
+
 protected:
     void integrate(float deltaTime);
 
@@ -80,4 +87,4 @@ private:
     QMap<quint64, ContactPoint> _contacts;
 };
 
-#endif // hifi_PhysicsSimulation
+#endif // hifi_PhysicsSimulation_h
