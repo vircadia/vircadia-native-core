@@ -86,12 +86,13 @@ int unpackFloatAngleFromTwoByte(const uint16_t* byteAnglePointer, float* destina
 }
 
 int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput) {
+    glm::quat quatNormalized = glm::normalize(quatInput);
     const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.f);
     uint16_t quatParts[4];
-    quatParts[0] = floorf((quatInput.x + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[1] = floorf((quatInput.y + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[2] = floorf((quatInput.z + 1.f) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[3] = floorf((quatInput.w + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[0] = floorf((quatNormalized.x + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[1] = floorf((quatNormalized.y + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[2] = floorf((quatNormalized.z + 1.f) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[3] = floorf((quatNormalized.w + 1.f) * QUAT_PART_CONVERSION_RATIO);
     
     memcpy(buffer, &quatParts, sizeof(quatParts));
     return sizeof(quatParts);
