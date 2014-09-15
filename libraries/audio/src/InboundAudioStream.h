@@ -33,7 +33,7 @@ const int STATS_FOR_STATS_PACKET_WINDOW_SECONDS = 30;
 
 // this controls the window size of the time-weighted avg of frames available.  Every time the window fills up,
 // _currentJitterBufferFrames is updated with the time-weighted avg and the running time-weighted avg is reset.
-const int FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
+const quint64 FRAMES_AVAILABLE_STAT_WINDOW_USECS = 10 * USECS_PER_SECOND;
 
 // default values for members of the Settings struct
 const int DEFAULT_MAX_FRAMES_OVER_DESIRED = 10;

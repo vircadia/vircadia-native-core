@@ -394,8 +394,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         int extraPackingAttempts = 0;
         bool completedScene = false;
         
-        OctreeElement* lastAttemptedSubTree = NULL;
-        
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval && !nodeData->isShuttingDown()) {
             float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
             float encodeElapsedUsec = OctreeServer::SKIP_TIME;
@@ -407,9 +405,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->elementBag.isEmpty()) {
                 OctreeElement* subTree = nodeData->elementBag.extract();
-
-                // TODO: look into breaking early if the same subtree keeps repeating for inclusion...
-                lastAttemptedSubTree = subTree;
 
                 /* TODO: Looking for a way to prevent locking and encoding a tree that is not
                 // going to result in any packets being sent...
@@ -515,8 +510,6 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                     if (writtenSize > nodeData->getAvailable()) {
                         packetsSentThisInterval += handlePacketSend(nodeData, trueBytesSent, truePacketsSent);
                     }
-
-                    lastAttemptedSubTree = NULL; // reset this
 
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
                     extraPackingAttempts = 0;

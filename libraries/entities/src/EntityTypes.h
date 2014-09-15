@@ -64,7 +64,9 @@ private:
 //        static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 #define REGISTER_ENTITY_TYPE_WITH_FACTORY(x,y) static bool x##Registration = \
             EntityTypes::registerEntityType(EntityTypes::x, #x, y); \
-            assert(x##Registration);
+            if (!x##Registration) { \
+                qDebug() << "UNEXPECTED: REGISTER_ENTITY_TYPE_WITH_FACTORY(" #x "," #y ") FAILED.!"; \
+            }
 
 
 #endif // hifi_EntityTypes_h
