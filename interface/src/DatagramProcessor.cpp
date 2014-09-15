@@ -51,7 +51,7 @@ void DatagramProcessor::processDatagrams() {
             switch (incomingType) {
                 case PacketTypeMixedAudio:
                 case PacketTypeSilentAudioFrame:
-                case PacketTypeAudioStreamStats:
+                case PacketTypeAudioStreamStats: {
                     if (incomingType != PacketTypeAudioStreamStats) {
                         QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
@@ -69,6 +69,7 @@ void DatagramProcessor::processDatagrams() {
                     }
                     
                     break;
+                }
                 case PacketTypeParticleAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     Particle::handleAddParticleResponse(incomingPacket);
