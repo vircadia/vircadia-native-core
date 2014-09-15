@@ -1022,7 +1022,7 @@ void ImportHeightfieldTool::apply() {
         
         QByteArray color;
         if (buffer->getColor().isEmpty()) {
-            const int WHITE_VALUE = 0xFF;
+            const unsigned char WHITE_VALUE = 0xFF;
             color = QByteArray(height.size() * DataBlock::COLOR_BYTES, WHITE_VALUE);
         } else {
             color = buffer->getUnextendedColor();

@@ -1743,7 +1743,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         for (int z = 0; z < expanded; z++) {
             const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
-                int lastIndex;
+                int lastIndex = 0;
                 const QRgb* colorX = colorY;
                 for (int x = 0; x < expanded; x++) {
                     int alpha0 = colorX[0] >> ALPHA_OFFSET;
