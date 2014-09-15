@@ -54,14 +54,17 @@ Model::Model(QObject* parent) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
-    _scaleToFitLargestDimension(0.0f),
+    _scaleToFitDimensions(0.0f),
     _scaledToFit(false),
-    _snapModelToCenter(false),
-    _snappedToCenter(false),
+    _snapModelToRegistrationPoint(false),
+    _snappedToRegistrationPoint(false),
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _url("http://invalid.com") {
+    _url("http://invalid.com"),
+    _blenderPending(false),
+    _blendRequired(false) {
+    
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -157,8 +160,8 @@ void Model::setOffset(const glm::vec3& offset) {
     _offset = offset; 
     
     // if someone manually sets our offset, then we are no longer snapped to center
-    _snapModelToCenter = false; 
-    _snappedToCenter = false; 
+    _snapModelToRegistrationPoint = false; 
+    _snappedToRegistrationPoint = false; 
 }
 
 void Model::initProgram(ProgramObject& program, Model::Locations& locations,
@@ -845,8 +848,8 @@ Blender::Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
 }
 
 void Blender::run() {
-    // make sure the model/geometry still exists
-    if (_model.isNull() || _geometry.isNull()) {
+    // make sure the model still exists
+    if (_model.isNull()) {
         return;
     }
     QVector<glm::vec3> vertices, normals;
@@ -882,11 +885,29 @@ void Blender::run() {
         Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
-void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
-    if (_scaleToFit != scaleToFit || _scaleToFitLargestDimension != largestDimension) {
+void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
+    if (_scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
         _scaleToFit = scaleToFit;
-        _scaleToFitLargestDimension = largestDimension;
+        _scaleToFitDimensions = dimensions;
         _scaledToFit = false; // force rescaling
+    }
+}
+
+void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    if (_scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
+        _scaleToFit = scaleToFit;
+        
+        // we only need to do this work if we're "turning on" scale to fit.
+        if (scaleToFit) {
+            Extents modelMeshExtents = getUnscaledMeshExtents();
+            float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
+            float maxScale = largestDimension / maxDimension;
+            glm::vec3 modelMeshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+            glm::vec3 dimensions = modelMeshDimensions * maxScale;
+        
+            _scaleToFitDimensions = dimensions;
+            _scaledToFit = false; // force rescaling
+        }
     }
 }
 
@@ -895,37 +916,40 @@ void Model::scaleToFit() {
 
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
-    float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
-    float maxScale = _scaleToFitLargestDimension / maxDimension;
-    glm::vec3 scale(maxScale, maxScale, maxScale);
-    setScaleInternal(scale);
+    glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
+    setScaleInternal(rescaleDimensions);
     _scaledToFit = true;
 }
 
-void Model::setSnapModelToCenter(bool snapModelToCenter) {
-    if (_snapModelToCenter != snapModelToCenter) {
-        _snapModelToCenter = snapModelToCenter;
-        _snappedToCenter = false; // force re-centering
+void Model::setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint) {
+    glm::vec3 clampedRegistrationPoint = glm::clamp(registrationPoint, 0.0f, 1.0f);
+    if (_snapModelToRegistrationPoint != snapModelToRegistrationPoint || _registrationPoint != clampedRegistrationPoint) {
+        _snapModelToRegistrationPoint = snapModelToRegistrationPoint;
+        _registrationPoint = clampedRegistrationPoint;
+        _snappedToRegistrationPoint = false; // force re-centering
     }
 }
 
-void Model::snapToCenter() {
+void Model::snapToRegistrationPoint() {
     Extents modelMeshExtents = getUnscaledMeshExtents();
-    glm::vec3 halfDimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum) * 0.5f;
-    glm::vec3 offset = -modelMeshExtents.minimum - halfDimensions;
+    glm::vec3 dimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum);
+    glm::vec3 offset = -modelMeshExtents.minimum - (dimensions * _registrationPoint);
     _offset = offset;
-    _snappedToCenter = true;
+    _snappedToRegistrationPoint = true;
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit) || (_snapModelToCenter && !_snappedToCenter);
+    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
+                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
+                    
     if (isActive() && fullUpdate) {
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
             scaleToFit();
         }
-        if (_snapModelToCenter && !_snappedToCenter) {
-            snapToCenter();
+        if (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) {
+            snapToRegistrationPoint();
         }
         simulateInternal(deltaTime);
     }
@@ -991,9 +1015,15 @@ void Model::simulateInternal(float deltaTime) {
         }
     }
     
-    // post the blender
+    // post the blender if we're not currently waiting for one to finish
     if (geometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+        if (_blenderPending) {
+            _blendRequired = true;
+        } else {
+            _blendRequired = false;
+            _blenderPending = true;
+            QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+        }
     }
 }
 
@@ -1256,14 +1286,25 @@ void Model::renderJointCollisionShapes(float alpha) {
     // implement this when we have shapes for regular models
 }
 
-void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (_blendedVertexBuffers.isEmpty()) {
+void Model::setBlendedVertices(const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices,
+        const QVector<glm::vec3>& normals) {
+    _blenderPending = false;
+    
+    // start the next blender if required
+    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
+    if (_blendRequired) {
+        _blendRequired = false;
+        if (fbxGeometry.hasBlendedMeshes()) {
+            _blenderPending = true;
+            QThreadPool::globalInstance()->start(new Blender(this, _geometry, fbxGeometry.meshes, _blendshapeCoefficients));
+        }
+    }
+    if (_geometry != geometry || _blendedVertexBuffers.isEmpty()) {
         return;
     }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     int index = 0;
-    for (int i = 0; i < geometry.meshes.size(); i++) {
-        const FBXMesh& mesh = geometry.meshes.at(i);
+    for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
+        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         if (mesh.blendshapes.isEmpty()) {
             continue;
         }

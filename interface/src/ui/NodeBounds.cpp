@@ -41,8 +41,8 @@ void NodeBounds::draw() {
     // itself after the cursor disappears.
     Application* application = Application::getInstance();
     GLCanvas* glWidget = application->getGLWidget();
-    float mouseX = application->getMouseX() / (float)glWidget->getDeviceWidth();
-    float mouseY = application->getMouseY() / (float)glWidget->getDeviceHeight();
+    float mouseX = application->getMouseX() / (float)glWidget->width();
+    float mouseY = application->getMouseY() / (float)glWidget->height();
     glm::vec3 mouseRayOrigin;
     glm::vec3 mouseRayDirection;
     application->getViewFrustum()->computePickRay(mouseX, mouseY, mouseRayOrigin, mouseRayDirection);

@@ -43,15 +43,7 @@ EntityItemProperties SphereEntityItem::getProperties() const {
 bool SphereEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
 
-    if (properties.colorChanged() || forceCopy) {
-        setColor(properties.getColor());
-        somethingChanged = true;
-    }
-
-    if (properties.glowLevelChanged() || forceCopy) {
-        setGlowLevel(properties.getGlowLevel());
-        somethingChanged = true;
-    }
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setColor);
 
     if (somethingChanged) {
         bool wantDebug = false;

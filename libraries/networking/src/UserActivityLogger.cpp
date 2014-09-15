@@ -73,8 +73,8 @@ void UserActivityLogger::requestFinished(const QJsonObject& object) {
     // qDebug() << object;
 }
 
-void UserActivityLogger::requestError(QNetworkReply::NetworkError error,const QString& string) {
-    qDebug() << error << ": " << string;
+void UserActivityLogger::requestError(QNetworkReply& errorReply) {
+    qDebug() << errorReply.error() << "-" << errorReply.errorString();
 }
 
 void UserActivityLogger::launch(QString applicationVersion) {

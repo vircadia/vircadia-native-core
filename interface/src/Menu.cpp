@@ -30,6 +30,7 @@
 #include <QDesktopServices>
 
 #include <AccountManager.h>
+#include <AddressManager.h>
 #include <XmppClient.h>
 #include <UUID.h>
 #include <UserActivityLogger.h>
@@ -70,6 +71,7 @@ Menu* Menu::getInstance() {
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
+const QString DEFAULT_FACESHIFT_HOSTNAME = "localhost";
 const float DEFAULT_AVATAR_LOD_DISTANCE_MULTIPLIER = 1.0f;
 const int ONE_SECOND_OF_FRAMES = 60;
 const int FIVE_SECONDS_OF_FRAMES = 5 * ONE_SECOND_OF_FRAMES;
@@ -87,6 +89,7 @@ Menu::Menu() :
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _realWorldFieldOfView(DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES),
     _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
+    _faceshiftHostname(DEFAULT_FACESHIFT_HOSTNAME),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _jsConsole(NULL),
@@ -139,9 +142,14 @@ Menu::Menu() :
     // call our toggle login function now so the menu option is setup properly
     toggleLoginMenuItem();
 
-    // connect to the appropriate slots of the AccountManager so that we can change the Login/Logout menu item
+    // connect to the appropriate signal of the AccountManager so that we can change the Login/Logout menu item
     connect(&accountManager, &AccountManager::profileChanged, this, &Menu::toggleLoginMenuItem);
     connect(&accountManager, &AccountManager::logoutComplete, this, &Menu::toggleLoginMenuItem);
+    
+    // connect to signal of account manager so we can tell user when the user/place they looked at is offline
+    AddressManager& addressManager = AddressManager::getInstance();
+    connect(&addressManager, &AddressManager::lookupResultIsOffline, this, &Menu::displayAddressOfflineMessage);
+    connect(&addressManager, &AddressManager::lookupResultIsNotFound, this, &Menu::displayAddressNotFoundMessage);
 
     addDisabledActionAndSeparator(fileMenu, "Scripts");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O, appInstance, SLOT(loadDialog()));
@@ -154,21 +162,6 @@ Menu::Menu() :
 
     addDisabledActionAndSeparator(fileMenu, "Go");
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoHome,
-                                  Qt::CTRL | Qt::Key_G,
-                                  appInstance->getAvatar(),
-                                  SLOT(goHome()));
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoToDomain,
-                                  Qt::CTRL | Qt::Key_D,
-                                  this,
-                                  SLOT(goToDomainDialog()));
-    addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoToLocation,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_L,
-                                  this,
-                                  SLOT(goToLocation()));
-    addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::NameLocation,
                                   Qt::CTRL | Qt::Key_N,
                                   this,
@@ -179,12 +172,10 @@ Menu::Menu() :
                                   this,
                                   SLOT(toggleLocationList()));
     addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::GoTo,
-                                  Qt::Key_At,
+                                  MenuOption::AddressBar,
+                                  Qt::CTRL | Qt::Key_Enter,
                                   this,
-                                  SLOT(goTo()));
-    connect(&LocationManager::getInstance(), &LocationManager::multipleDestinationsFound,
-            this, &Menu::multipleDestinationsDecision);
+                                  SLOT(toggleAddressBar()));
 
     addDisabledActionAndSeparator(fileMenu, "Upload Avatar Model");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::UploadHead, 0, Application::getInstance(), SLOT(uploadHead()));
@@ -713,6 +704,7 @@ void Menu::loadSettings(QSettings* settings) {
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _realWorldFieldOfView = loadSetting(settings, "realWorldFieldOfView", DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
+    _faceshiftHostname = settings->value("faceshiftHostname", DEFAULT_FACESHIFT_HOSTNAME).toString();
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_OCTREE_SIZE_SCALE);
@@ -777,6 +769,7 @@ void Menu::saveSettings(QSettings* settings) {
 
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
+    settings->setValue("faceshiftHostname", _faceshiftHostname);
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
@@ -1151,145 +1144,33 @@ void Menu::changePrivateKey() {
     sendFakeEnterEvent();
 }
 
-void Menu::goToDomain(const QString newDomain) {
-    if (NodeList::getInstance()->getDomainHandler().getHostname() != newDomain) {
-        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
-        Application::getInstance()->getAvatar()->sendKillAvatar();
+void Menu::toggleAddressBar() {
 
-        // give our nodeList the new domain-server hostname
-        NodeList::getInstance()->getDomainHandler().setHostname(newDomain);
+    QInputDialog addressBarDialog(Application::getInstance()->getWindow());
+    addressBarDialog.setWindowTitle("Address Bar");
+    addressBarDialog.setWindowFlags(Qt::Sheet);
+    addressBarDialog.setLabelText("place, domain, @user, example.com, /position/orientation");
+
+    addressBarDialog.resize(addressBarDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
+                            addressBarDialog.size().height());
+
+    int dialogReturn = addressBarDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !addressBarDialog.textValue().isEmpty()) {
+        // let the AddressManger figure out what to do with this
+        AddressManager::getInstance().handleLookupString(addressBarDialog.textValue());
     }
-}
-
-void Menu::goToDomainDialog() {
-
-    QString currentDomainHostname = NodeList::getInstance()->getDomainHandler().getHostname();
-
-    if (NodeList::getInstance()->getDomainHandler().getPort() != DEFAULT_DOMAIN_SERVER_PORT) {
-        // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainHandler().getPort()));
-    }
-
-    QInputDialog domainDialog(Application::getInstance()->getWindow());
-    domainDialog.setWindowTitle("Go to Domain");
-    domainDialog.setLabelText("Domain server:");
-    domainDialog.setTextValue(currentDomainHostname);
-    domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
-
-    int dialogReturn = domainDialog.exec();
-    if (dialogReturn == QDialog::Accepted) {
-        QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
-
-        if (domainDialog.textValue().size() > 0) {
-            // the user input a new hostname, use that
-            newHostname = domainDialog.textValue();
-        }
-
-        goToDomain(newHostname);
-    }
-
+    
     sendFakeEnterEvent();
 }
 
-void Menu::goToOrientation(QString orientation) {
-    LocationManager::getInstance().goToOrientation(orientation);
+void Menu::displayAddressOfflineMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address offline",
+                             "That user or place is currently offline.");
 }
 
-bool Menu::goToDestination(QString destination) {
-    return LocationManager::getInstance().goToDestination(destination);
-}
-
-void Menu::goTo(QString destination) {
-    LocationManager::getInstance().goTo(destination);
-}
-
-void Menu::goTo() {
-
-    QInputDialog gotoDialog(Application::getInstance()->getWindow());
-    gotoDialog.setWindowTitle("Go to");
-    gotoDialog.setLabelText("Destination or URL:\n @user, #place, hifi://domain/location/orientation");
-    QString destination = QString();
-
-    gotoDialog.setTextValue(destination);
-    gotoDialog.resize(gotoDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, gotoDialog.size().height());
-
-    int dialogReturn = gotoDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !gotoDialog.textValue().isEmpty()) {
-        QString desiredDestination = gotoDialog.textValue();
-        if (!goToURL(desiredDestination)) {;
-            goTo(desiredDestination);
-        }
-    }
-    sendFakeEnterEvent();
-}
-
-bool Menu::goToURL(QString location) {
-    if (location.startsWith(CUSTOM_URL_SCHEME + "/")) {
-        QStringList urlParts = location.remove(0, CUSTOM_URL_SCHEME.length()).split('/', QString::SkipEmptyParts);
-
-        if (urlParts.count() > 1) {
-            // if url has 2 or more parts, the first one is domain name
-            QString domain = urlParts[0];
-
-            // second part is either a destination coordinate or
-            // a place name
-            QString destination = urlParts[1];
-
-            // any third part is an avatar orientation.
-            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-            goToDomain(domain);
-
-            // goto either @user, #place, or x-xx,y-yy,z-zz
-            // style co-ordinate.
-            goTo(destination);
-
-            if (!orientation.isEmpty()) {
-                // location orientation
-                goToOrientation(orientation);
-            }
-        } else if (urlParts.count() == 1) {
-            QString destination = urlParts[0];
-
-            // If this starts with # or @, treat it as a user/location, otherwise treat it as a domain
-            if (destination[0] == '#' || destination[0] == '@') {
-                goTo(destination);
-            } else {
-                goToDomain(destination);
-            }
-        }
-        return true;
-    }
-    return false;
-}
-
-void Menu::goToUser(const QString& user) {
-    LocationManager::getInstance().goTo(user);
-}
-
-/// Open a url, shortcutting any "hifi" scheme URLs to the local application.
-void Menu::openUrl(const QUrl& url) {
-    if (url.scheme() == "hifi") {
-        goToURL(url.toString());
-    } else {
-        QDesktopServices::openUrl(url);
-    }
-}
-
-void Menu::multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData) {
-    QMessageBox msgBox;
-    msgBox.setText("Both user and location exists with same name");
-    msgBox.setInformativeText("Where you wanna go?");
-    msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Open);
-    msgBox.button(QMessageBox::Ok)->setText("User");
-    msgBox.button(QMessageBox::Open)->setText("Place");
-    int userResponse = msgBox.exec();
-
-    if (userResponse == QMessageBox::Ok) {
-        Application::getInstance()->getAvatar()->goToLocationFromAddress(userData["address"].toObject());
-    } else if (userResponse == QMessageBox::Open) {
-        Application::getInstance()->getAvatar()->goToLocationFromAddress(placeData["address"].toObject());
-    }
+void Menu::displayAddressNotFoundMessage() {
+    QMessageBox::information(Application::getInstance()->getWindow(), "Address not found",
+                             "There is no address information for that user or place.");
 }
 
 void Menu::muteEnvironment() {
@@ -1316,43 +1197,13 @@ void Menu::muteEnvironment() {
     free(packet);
 }
 
-void Menu::goToLocation() {
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    glm::vec3 avatarPos = myAvatar->getPosition();
-    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x),
-                                                        QString::number(avatarPos.y), QString::number(avatarPos.z));
+void Menu::displayNameLocationResponse(const QString& errorString) {
 
-    QInputDialog coordinateDialog(Application::getInstance()->getWindow());
-    coordinateDialog.setWindowTitle("Go to Location");
-    coordinateDialog.setLabelText("Coordinate as x,y,z:");
-    coordinateDialog.setTextValue(currentLocation);
-    coordinateDialog.resize(coordinateDialog.parentWidget()->size().width() * 0.30, coordinateDialog.size().height());
-
-    int dialogReturn = coordinateDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !coordinateDialog.textValue().isEmpty()) {
-        goToDestination(coordinateDialog.textValue());
-    }
-
-    sendFakeEnterEvent();
-}
-
-void Menu::namedLocationCreated(LocationManager::NamedLocationCreateResponse response) {
-
-    if (response == LocationManager::Created) {
-        return;
-    }
-
-    QMessageBox msgBox;
-    switch (response) {
-        case LocationManager::AlreadyExists:
-            msgBox.setText("That name has been already claimed, try something else.");
-            break;
-        default:
-            msgBox.setText("An unexpected error has occurred, please try again later.");
-            break;
-    }
-
-    msgBox.exec();
+    if (!errorString.isEmpty()) {
+        QMessageBox msgBox;
+        msgBox.setText(errorString);
+        msgBox.exec();
+    }    
 }
 
 void Menu::toggleLocationList() {
@@ -1370,23 +1221,34 @@ void Menu::nameLocation() {
     // check if user is logged in or show login dialog if not
 
     AccountManager& accountManager = AccountManager::getInstance();
+    
     if (!accountManager.isLoggedIn()) {
         QMessageBox msgBox;
         msgBox.setText("We need to tie this location to your username.");
         msgBox.setInformativeText("Please login first, then try naming the location again.");
         msgBox.setStandardButtons(QMessageBox::Ok | QMessageBox::Cancel);
         msgBox.button(QMessageBox::Ok)->setText("Login");
+        
         if (msgBox.exec() == QMessageBox::Ok) {
             loginForCurrentDomain();
         }
 
         return;
     }
+    
+    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
+    if (domainHandler.getUUID().isNull()) {
+        const QString UNREGISTERED_DOMAIN_MESSAGE = "This domain is not registered with High Fidelity."
+            "\n\nYou cannot create a global location in an unregistered domain.";
+        QMessageBox::critical(this, "Unregistered Domain", UNREGISTERED_DOMAIN_MESSAGE);
+        
+        return;
+    }
 
     QInputDialog nameDialog(Application::getInstance()->getWindow());
     nameDialog.setWindowTitle("Name this location");
     nameDialog.setLabelText("Name this location, then share that name with others.\n"
-                            "When they come here, they'll be in the same location and orientation\n"
+                            "When they come here, they'll have the same viewpoint\n"
                             "(wherever you are standing and looking now) as you.\n\n"
                             "Location name:");
 
@@ -1401,10 +1263,10 @@ void Menu::nameLocation() {
 
         MyAvatar* myAvatar = Application::getInstance()->getAvatar();
         LocationManager* manager = new LocationManager();
-        connect(manager, &LocationManager::creationCompleted, this, &Menu::namedLocationCreated);
+        connect(manager, &LocationManager::creationCompleted, this, &Menu::displayNameLocationResponse);
         NamedLocation* location = new NamedLocation(locationName,
                                                     myAvatar->getPosition(), myAvatar->getOrientation(),
-                                                    NodeList::getInstance()->getDomainHandler().getHostname());
+                                                    domainHandler.getUUID());
         manager->createNamedLocation(location);
     }
 }

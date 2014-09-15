@@ -40,7 +40,7 @@ public slots:
     
 private slots:
     void requestFinished(const QJsonObject& object);
-    void requestError(QNetworkReply::NetworkError error,const QString& string);
+    void requestError(QNetworkReply& errorReply);
     
 private:
     UserActivityLogger();

@@ -14,6 +14,8 @@
 
 #include <iostream>
 
+#include <glm/glm.hpp>
+
 class Camera;
 
 struct eyeFrustum {
@@ -32,6 +34,8 @@ public:
     static bool isConnected();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
     static void display(Camera& whichCamera);
+    static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
 private:    
     static void setFrustum(Camera& whichCamera);
     static int _screenWidth;
@@ -39,6 +43,7 @@ private:
     static double _aspect;
     static eyeFrustum _leftEye;
     static eyeFrustum _rightEye;
+    static eyeFrustum* _activeEye;
 };
 
 #endif // hifi_TV3DManager_h

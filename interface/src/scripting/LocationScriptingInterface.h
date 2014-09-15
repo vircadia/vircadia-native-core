@@ -18,6 +18,8 @@
 #include <QScriptValue>
 #include <QString>
 
+#include <AddressManager.h>
+
 #include "Application.h"
 
 class LocationScriptingInterface : public QObject {
@@ -33,7 +35,7 @@ public:
 
     bool isConnected();
     QString getHref();
-    QString getProtocol() { return CUSTOM_URL_SCHEME; };
+    QString getProtocol() { return HIFI_URL_SCHEME; };
     QString getPathname();
     QString getHostname();
 

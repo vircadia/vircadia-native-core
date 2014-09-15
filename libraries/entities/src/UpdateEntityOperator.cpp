@@ -31,23 +31,27 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     _dontMove(false), // assume we'll be moving
     _changeTime(usecTimestampNow()),
     _oldEntityCube(),
-    _newEntityCube()
+    _newEntityCube(),
+    _wantDebug(false)
 {
     // caller must have verified existence of containingElement and oldEntity
     assert(_containingElement && _existingEntity);
 
-    _oldEntityCube = _existingEntity->getAACube();
+    // Here we have a choice to make, do we want to "tight fit" the actual minimum for the
+    // entity into the the element, or do we want to use the entities "relaxed" bounds
+    // which can handle all potential rotations?
+    // the getMaximumAACube is the relaxed form.
+    _oldEntityCube = _existingEntity->getMaximumAACube();
     _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
     
-    // If the new properties has position OR radius changes, but not both, we need to
+    // If the new properties has position OR dimension changes, but not both, we need to
     // get the old property value and set it in our properties in order for our bounds
     // calculations to work.
-    if (_properties.containsPositionChange() && !_properties.containsRadiusChange()) {
-        float oldRadiusInMeters = _existingEntity->getRadius() * (float)TREE_SCALE;
-        _properties.setRadius(oldRadiusInMeters);
+    if (_properties.containsPositionChange() && !_properties.containsDimensionsChange()) {
+        glm::vec3 oldDimensionsInMeters = _existingEntity->getDimensions() * (float)TREE_SCALE;
+        _properties.setDimensions(oldDimensionsInMeters);
     }
-
-    if (!_properties.containsPositionChange() && _properties.containsRadiusChange()) {
+    if (!_properties.containsPositionChange() && _properties.containsDimensionsChange()) {
         glm::vec3 oldPositionInMeters = _existingEntity->getPosition() * (float)TREE_SCALE;
         _properties.setPosition(oldPositionInMeters);
     }
@@ -72,11 +76,24 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
         _newEntityCube = _oldEntityCube;
         _dontMove = true;
     } else {
-        _newEntityCube = _properties.getAACubeTreeUnits();
+        _newEntityCube = _properties.getMaximumAACubeInTreeUnits();
         _removeOld = true; // our properties are going to move us, so remember this for later processing
     }
 
     _newEntityBox = _newEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
+
+
+    if (_wantDebug) {
+        qDebug() << "UpdateEntityOperator::UpdateEntityOperator() -----------------------------";
+        qDebug() << "    _entityItemID:" << _entityItemID;
+        qDebug() << "    _containingElementCube:" << _containingElementCube;
+        qDebug() << "    _oldEntityCube:" << _oldEntityCube;
+        qDebug() << "    _oldEntityBox:" << _oldEntityBox;
+        qDebug() << "    _newEntityCube:" << _newEntityCube;
+        qDebug() << "    _newEntityBox:" << _newEntityBox;
+        qDebug() << "--------------------------------------------------------------------------";
+    }
+
 }
 
 

@@ -43,7 +43,7 @@ private slots:
     void checkJSON(const QJsonObject& jsonResponse);
     void uploadUpdate(qint64 bytesSent, qint64 bytesTotal);
     void uploadSuccess(const QJsonObject& jsonResponse);
-    void uploadFailed(QNetworkReply::NetworkError errorCode, const QString& errorString);
+    void uploadFailed(QNetworkReply& errorReply);
     void checkS3();
     void processCheck();
     

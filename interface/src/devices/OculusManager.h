@@ -43,6 +43,9 @@ public:
     static glm::vec3 getRelativePosition();
     static QSize getRenderTargetSize();
     
+    static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
+        float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
+        
 private:
 #ifdef HAVE_LIBOVR
     static void generateDistortionMesh();
@@ -92,6 +95,7 @@ private:
     static bool _frameTimingActive;
     static bool _programInitialized;
     static Camera* _camera;
+    static int _activeEyeIndex;
 #endif
 };
 

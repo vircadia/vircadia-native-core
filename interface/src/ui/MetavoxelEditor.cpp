@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
+
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
@@ -36,6 +38,8 @@
 
 #include "Application.h"
 #include "MetavoxelEditor.h"
+
+using namespace std;
 
 enum GridPlane {
     GRID_PLANE_XY, GRID_PLANE_XZ, GRID_PLANE_YZ
@@ -959,7 +963,8 @@ void HeightfieldTool::render() {
 }
 
 ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
-    HeightfieldTool(editor, "Import Heightfield") {
+    HeightfieldTool(editor, "Import Heightfield"),
+    _loadingImage(false) {
     
     _form->addRow("Block Size:", _blockSize = new QSpinBox());
     _blockSize->setPrefix("2^");
@@ -970,6 +975,32 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
         &ImportHeightfieldTool::updatePreview);
     _form->addRow("Height:", _height = new QPushButton());
     connect(_height, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectHeightFile);
+    
+    _form->addRow(_rawOptions = new QWidget());
+    QHBoxLayout* rawLayout = new QHBoxLayout();
+    _rawOptions->setLayout(rawLayout);
+    _rawOptions->setVisible(false);
+    
+    rawLayout->addStretch(1);
+    rawLayout->addWidget(new QLabel("Scale:"));
+    rawLayout->addWidget(_heightScale = new QDoubleSpinBox());
+    const double MAX_OFFSET_SCALE = 100000.0;
+    _heightScale->setMaximum(MAX_OFFSET_SCALE);
+    _heightScale->setSingleStep(0.0001);
+    _heightScale->setDecimals(4);
+    _heightScale->setValue(1.0);
+    connect(_heightScale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
+        &ImportHeightfieldTool::updateHeightImage);
+    
+    rawLayout->addSpacing(15);    
+    rawLayout->addWidget(new QLabel("Offset:"));
+    rawLayout->addWidget(_heightOffset = new QDoubleSpinBox());
+    _heightOffset->setMinimum(-MAX_OFFSET_SCALE);
+    _heightOffset->setMaximum(MAX_OFFSET_SCALE);
+    _heightOffset->setDecimals(4);
+    connect(_heightOffset, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
+        &ImportHeightfieldTool::updateHeightImage);
+    
     _form->addRow("Color:", _color = new QPushButton());
     connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
     
@@ -991,7 +1022,7 @@ void ImportHeightfieldTool::apply() {
         
         QByteArray color;
         if (buffer->getColor().isEmpty()) {
-            const int WHITE_VALUE = 0xFF;
+            const unsigned char WHITE_VALUE = 0xFF;
             color = QByteArray(height.size() * DataBlock::COLOR_BYTES, WHITE_VALUE);
         } else {
             color = buffer->getUnextendedColor();
@@ -1012,22 +1043,50 @@ void ImportHeightfieldTool::apply() {
     }
 }
 
+const float EIGHT_BIT_MAXIMUM = 255.0f;
+
 void ImportHeightfieldTool::selectHeightFile() {
-    QString filename = QFileDialog::getOpenFileName(this, "Select Height Image", QString(), "Images (*.png *.jpg)");
+    QString filename = QFileDialog::getOpenFileName(this, "Select Height Image", QString(),
+        "Images (*.png *.jpg *.bmp *.raw)");
     if (filename.isNull()) {
+        return;
+    }
+    if (filename.toLower().endsWith(".raw")) {
+        QFile input(filename);
+        input.open(QIODevice::ReadOnly);
+        QDataStream in(&input);
+        in.setByteOrder(QDataStream::LittleEndian);
+        _rawHeight.clear();
+        int minHeight = numeric_limits<quint16>::max();
+        int maxHeight = numeric_limits<quint16>::min();
+        while (!in.atEnd()) {
+            quint16 height;
+            in >> height;
+            _rawHeight.append(height);
+            minHeight = qMin(minHeight, (int)height);
+            maxHeight = qMax(maxHeight, (int)height);
+        }
+        _height->setText(filename);
+        _rawOptions->setVisible(true);
+        _loadingImage = true;
+        _heightScale->setValue((EIGHT_BIT_MAXIMUM - 1.0f) / (maxHeight - minHeight));
+        _heightOffset->setValue(-minHeight * _heightScale->value() + 1.0);
+        _loadingImage = false;
+        updateHeightImage();
         return;
     }
     if (!_heightImage.load(filename)) {
         QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
         return;
     }
+    _rawOptions->setVisible(false);
     _heightImage = _heightImage.convertToFormat(QImage::Format_RGB888);
     _height->setText(filename);
     updatePreview();
 }
 
 void ImportHeightfieldTool::selectColorFile() {
-    QString filename = QFileDialog::getOpenFileName(this, "Select Color Image", QString(), "Images (*.png *.jpg)");
+    QString filename = QFileDialog::getOpenFileName(this, "Select Color Image", QString(), "Images (*.png *.jpg *.bmp)");
     if (filename.isNull()) {
         return;
     }
@@ -1037,6 +1096,26 @@ void ImportHeightfieldTool::selectColorFile() {
     }
     _colorImage = _colorImage.convertToFormat(QImage::Format_RGB888);
     _color->setText(filename);
+    updatePreview();
+}
+
+void ImportHeightfieldTool::updateHeightImage() {
+    if (_loadingImage) {
+        return;
+    }
+    int size = glm::sqrt(_rawHeight.size());
+    _heightImage = QImage(size, size, QImage::Format_RGB888);
+    const quint16* src = _rawHeight.constData();
+    float scale = _heightScale->value(), offset = _heightOffset->value();
+    for (int y = 0; y < size; y++) {
+        uchar* dest = _heightImage.scanLine(y);
+        for (const quint16* end = src + size; src != end; src++) {
+            uchar height = glm::clamp(*src * scale + offset, 1.0f, EIGHT_BIT_MAXIMUM);
+            *dest++ = height;
+            *dest++ = height;
+            *dest++ = height;
+        }
+    }
     updatePreview();
 }
 
@@ -1061,7 +1140,7 @@ void ImportHeightfieldTool::updatePreview() {
                     uchar* src = _heightImage.scanLine(extendedI + y) + extendedJ * DataBlock::COLOR_BYTES;
                     char* dest = height.data() + (y + offsetY) * heightSize + offsetX;
                     for (int x = 0; x < columns; x++) {
-                        *dest++ = *src;
+                        *dest++ = qMax((uchar)1, *src);
                         src += DataBlock::COLOR_BYTES;
                     }
                 }

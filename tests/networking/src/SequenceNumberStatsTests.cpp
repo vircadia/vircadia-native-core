@@ -254,6 +254,9 @@ void SequenceNumberStatsTests::pruneTest() {
 
             const QSet<quint16>& missingSet = stats.getMissingSet();
             assert(missingSet.size() <= 1000);
+            if (missingSet.size() > 1000) {
+                qDebug() << "FAIL: missingSet larger than 1000.";
+            }
 
             for (int i = 0; i < 10; i++) {
                 assert(missingSet.contains(highestSkipped2));

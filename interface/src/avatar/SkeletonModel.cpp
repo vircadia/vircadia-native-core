@@ -60,6 +60,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
+    setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
     
     Model::simulate(deltaTime, fullUpdate);
     

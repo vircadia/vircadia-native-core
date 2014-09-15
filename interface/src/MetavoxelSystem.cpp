@@ -133,7 +133,7 @@ const GLenum COLOR_NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTA
 
 void MetavoxelSystem::render() {
     // update the frustum
-    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
         viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
@@ -181,6 +181,14 @@ void MetavoxelSystem::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
     
+    // get the viewport side (left, right, both)
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
+    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
+        
     if (Menu::getInstance()->getShadowsEnabled()) {
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
@@ -210,10 +218,13 @@ void MetavoxelSystem::render() {
         program->setUniformValue(locations->nearLocation, nearVal);
         program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
         float nearScale = -1.0f / nearVal;
-        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale, bottom * nearScale);
-        program->setUniformValue(locations->depthTexCoordScale, (right - left) * nearScale, (top - bottom) * nearScale);
+        float sScale = 1.0f / sWidth;
+        float depthTexCoordScaleS = (right - left) * nearScale * sScale;
+        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
+            bottom * nearScale);
+        program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, (top - bottom) * nearScale);
         
-        renderFullscreenQuad();
+        renderFullscreenQuad(sMin, sMin + sWidth);
         
         program->release();
         
@@ -226,7 +237,7 @@ void MetavoxelSystem::render() {
     
     } else {
         _directionalLight.bind();
-        renderFullscreenQuad();
+        renderFullscreenQuad(sMin, sMin + sWidth);
         _directionalLight.release();        
     }
     
@@ -245,7 +256,7 @@ void MetavoxelSystem::render() {
     
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
-    renderFullscreenQuad();
+    renderFullscreenQuad(sMin, sMin + sWidth);
     
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
@@ -1732,7 +1743,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         for (int z = 0; z < expanded; z++) {
             const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
-                int lastIndex;
+                int lastIndex = 0;
                 const QRgb* colorX = colorY;
                 for (int x = 0; x < expanded; x++) {
                     int alpha0 = colorX[0] >> ALPHA_OFFSET;
@@ -2176,7 +2187,7 @@ private:
 SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
         QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+        lod, encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
@@ -2212,7 +2223,7 @@ private:
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
@@ -2246,12 +2257,12 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     float viewportWidth = viewport[VIEWPORT_WIDTH_INDEX];
     float viewportHeight = viewport[VIEWPORT_HEIGHT_INDEX];
     float viewportDiagonal = sqrtf(viewportWidth * viewportWidth + viewportHeight * viewportHeight);
-    float worldDiagonal = glm::distance(Application::getInstance()->getViewFrustum()->getNearBottomLeft(),
-        Application::getInstance()->getViewFrustum()->getNearTopRight());
+    float worldDiagonal = glm::distance(Application::getInstance()->getDisplayViewFrustum()->getNearBottomLeft(),
+        Application::getInstance()->getDisplayViewFrustum()->getNearTopRight());
 
     _pointProgram.bind();
     _pointProgram.setUniformValue(_pointScaleLocation, viewportDiagonal *
-        Application::getInstance()->getViewFrustum()->getNearClip() / worldDiagonal);
+        Application::getInstance()->getDisplayViewFrustum()->getNearClip() / worldDiagonal);
         
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);

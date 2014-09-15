@@ -9,11 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QApplication>
+#include <QDesktopWidget>
 #include <QFont>
 #include <QPaintEngine>
 #include <QtDebug>
 #include <QString>
 #include <QStringList>
+#include <QWindow>
 
 #include "InterfaceConfig.h"
 #include "TextRenderer.h"
@@ -21,15 +24,23 @@
 // the width/height of the cached glyph textures
 const int IMAGE_SIZE = 256;
 
-Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
-    _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
+static uint qHash(const TextRenderer::Properties& key, uint seed = 0) {
+    // can be switched to qHash(key.font, seed) when we require Qt 5.3+
+    return qHash(key.font.family(), qHash(key.font.pointSize(), seed));
 }
 
-TextRenderer::TextRenderer(const char* family, int pointSize, int weight,
-                           bool italic, EffectType effectType, int effectThickness, QColor color)
-        : _font(family, pointSize, weight, italic), _metrics(_font), _effectType(effectType),
-          _effectThickness(effectThickness), _x(IMAGE_SIZE), _y(IMAGE_SIZE), _rowHeight(0), _color(color) {
-    _font.setKerning(false);
+static bool operator==(const TextRenderer::Properties& p1, const TextRenderer::Properties& p2) {
+    return p1.font == p2.font && p1.effect == p2.effect && p1.effectThickness == p2.effectThickness && p1.color == p2.color;
+}
+
+TextRenderer* TextRenderer::getInstance(const char* family, int pointSize, int weight, bool italic,
+        EffectType effect, int effectThickness, const QColor& color) {
+    Properties properties = { QFont(family, pointSize, weight, italic), effect, effectThickness, color };
+    TextRenderer*& instance = _instances[properties];
+    if (!instance) {
+        instance = new TextRenderer(properties);
+    }
+    return instance;
 }
 
 TextRenderer::~TextRenderer() {
@@ -73,7 +84,7 @@ int TextRenderer::draw(int x, int y, const char* str) {
         int bottom = y + glyph.bounds().y();
         int top = y + glyph.bounds().y() + glyph.bounds().height();
     
-        float scale = 1.0 / IMAGE_SIZE;
+        float scale = QApplication::desktop()->windowHandle()->devicePixelRatio() / IMAGE_SIZE;
         float ls = glyph.location().x() * scale;
         float rs = (glyph.location().x() + glyph.bounds().width()) * scale;
         float bt = glyph.location().y() * scale;
@@ -112,6 +123,19 @@ int TextRenderer::computeWidth(const char* str)
     return width;
 }
 
+TextRenderer::TextRenderer(const Properties& properties) :
+    _font(properties.font),
+    _metrics(_font),
+    _effectType(properties.effect),
+    _effectThickness(properties.effectThickness),
+    _x(IMAGE_SIZE),
+    _y(IMAGE_SIZE),
+    _rowHeight(0),
+    _color(properties.color) {
+    
+    _font.setKerning(false);
+}
+
 const Glyph& TextRenderer::getGlyph(char c) {
     Glyph& glyph = _glyphs[c];
     if (glyph.isValid()) {
@@ -119,21 +143,25 @@ const Glyph& TextRenderer::getGlyph(char c) {
     }
     // we use 'J' as a representative size for the solid block character
     QChar ch = (c == SOLID_BLOCK_CHAR) ? QChar('J') : QChar(c);
-    QRect bounds = _metrics.boundingRect(ch);
-    if (bounds.isEmpty()) {
+    QRect baseBounds = _metrics.boundingRect(ch);
+    if (baseBounds.isEmpty()) {
         glyph = Glyph(0, QPoint(), QRect(), _metrics.width(ch));
         return glyph;
     }
     // grow the bounds to account for effect, if any
     if (_effectType == SHADOW_EFFECT) {
-        bounds.adjust(-_effectThickness, 0, 0, _effectThickness);
+        baseBounds.adjust(-_effectThickness, 0, 0, _effectThickness);
     
     } else if (_effectType == OUTLINE_EFFECT) {
-        bounds.adjust(-_effectThickness, -_effectThickness, _effectThickness, _effectThickness);
+        baseBounds.adjust(-_effectThickness, -_effectThickness, _effectThickness, _effectThickness);
     }
     
     // grow the bounds to account for antialiasing
-    bounds.adjust(-1, -1, 1, 1);
+    baseBounds.adjust(-1, -1, 1, 1);
+    
+    // adjust bounds for device pixel scaling
+    float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+    QRect bounds(baseBounds.x() * ratio, baseBounds.y() * ratio, baseBounds.width() * ratio, baseBounds.height() * ratio);
     
     if (_x + bounds.width() > IMAGE_SIZE) {
         // we can't fit it on the current row; move to next
@@ -162,9 +190,16 @@ const Glyph& TextRenderer::getGlyph(char c) {
     } else {
         image.fill(0);
         QPainter painter(&image);
-        painter.setFont(_font);
+        QFont font = _font;
+        if (ratio == 1.0f) {
+            painter.setFont(_font);
+        } else {
+            QFont enlargedFont = _font;
+            enlargedFont.setPointSize(_font.pointSize() * ratio);
+            painter.setFont(enlargedFont);
+        }
         if (_effectType == SHADOW_EFFECT) {
-            for (int i = 0; i < _effectThickness; i++) {
+            for (int i = 0; i < _effectThickness * ratio; i++) {
                 painter.drawText(-bounds.x() - 1 - i, -bounds.y() + 1 + i, ch);
             }
         } else if (_effectType == OUTLINE_EFFECT) {
@@ -173,7 +208,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
             font.setStyleStrategy(QFont::ForceOutline);
             path.addText(-bounds.x() - 0.5, -bounds.y() + 0.5, font, ch);
             QPen pen;
-            pen.setWidth(_effectThickness);
+            pen.setWidth(_effectThickness * ratio);
             pen.setJoinStyle(Qt::RoundJoin);
             pen.setCapStyle(Qt::RoundCap);
             painter.setPen(pen);
@@ -185,10 +220,17 @@ const Glyph& TextRenderer::getGlyph(char c) {
     }    
     glTexSubImage2D(GL_TEXTURE_2D, 0, _x, _y, bounds.width(), bounds.height(), GL_RGBA, GL_UNSIGNED_BYTE, image.constBits());
        
-    glyph = Glyph(_currentTextureID, QPoint(_x, _y), bounds, _metrics.width(ch));
+    glyph = Glyph(_currentTextureID, QPoint(_x / ratio, _y / ratio), baseBounds, _metrics.width(ch));
     _x += bounds.width();
     _rowHeight = qMax(_rowHeight, bounds.height());
     
     glBindTexture(GL_TEXTURE_2D, 0);
     return glyph;
 }
+
+QHash<TextRenderer::Properties, TextRenderer*> TextRenderer::_instances;
+
+Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
+    _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
+}
+
