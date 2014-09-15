@@ -2892,14 +2892,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _entities.render();
         }
 
-        // render the ambient occlusion effect if enabled
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-            PerformanceTimer perfTimer("ambientOcclusion");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... AmbientOcclusion...");
-            _ambientOcclusionEffect.render();
-        }
-
         // restore default, white specular
         glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
 
@@ -2919,6 +2911,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
+    if (!selfAvatarOnly) {
+        // render the ambient occlusion effect if enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+            PerformanceTimer perfTimer("ambientOcclusion");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... AmbientOcclusion...");
+            _ambientOcclusionEffect.render();
+        }
+    }
+    
     {
         PerformanceTimer perfTimer("lighting");
         _deferredLightingEffect.render();
