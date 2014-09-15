@@ -12,13 +12,20 @@
 #ifndef hifi_DeferredLightingEffect_h
 #define hifi_DeferredLightingEffect_h
 
+#include <QVector>
+
 #include "ProgramObject.h"
+
+class PostLightingRenderable;
 
 /// Handles deferred lighting for the bits that require it (voxels, metavoxels...)
 class DeferredLightingEffect {
 public:
     
     void init();
+
+    /// Adds an object to render after performing the deferred lighting for the current frame (e.g., a translucent object).
+    void addPostLightingRenderable(PostLightingRenderable* renderable) { _postLightingRenderables.append(renderable); }
     
     void prepare();
     void render();
@@ -43,6 +50,14 @@ private:
     LightLocations _directionalLightShadowMapLocations;
     ProgramObject _directionalLightCascadedShadowMap;
     LightLocations _directionalLightCascadedShadowMapLocations;
+    
+    QVector<PostLightingRenderable*> _postLightingRenderables;
+};
+
+/// Simple interface for objects that require something to be rendered after deferred lighting.
+class PostLightingRenderable {
+public:
+    virtual void renderPostLighting() = 0;
 };
 
 #endif // hifi_DeferredLightingEffect_h

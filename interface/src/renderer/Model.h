@@ -20,6 +20,7 @@
 
 #include <AnimationCache.h>
 
+#include "DeferredLightingEffect.h"
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "JointState.h"
@@ -37,7 +38,7 @@ typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 const int MAX_LOCAL_LIGHTS = 2;
 
 /// A generic 3D model displaying geometry loaded from a URL.
-class Model : public QObject, public PhysicsEntity {
+class Model : public QObject, public PhysicsEntity, public PostLightingRenderable {
     Q_OBJECT
     
 public:
@@ -90,6 +91,8 @@ public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+
+    virtual void renderPostLighting();
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load

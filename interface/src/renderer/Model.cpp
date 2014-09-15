@@ -471,6 +471,9 @@ bool Model::render(float alpha, RenderMode mode) {
     return true;
 }
 
+void Model::renderPostLighting() {
+}
+
 Extents Model::getBindExtents() const {
     if (!isActive()) {
         return Extents();

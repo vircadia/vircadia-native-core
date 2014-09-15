@@ -163,6 +163,12 @@ void DeferredLightingEffect::render() {
     
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
+    
+    // now render the objects we held back until after deferred lighting
+    foreach (PostLightingRenderable* renderable, _postLightingRenderables) {
+        renderable->renderPostLighting();
+    }
+    _postLightingRenderables.clear();
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations) {
