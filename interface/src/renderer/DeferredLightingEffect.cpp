@@ -23,6 +23,10 @@ void DeferredLightingEffect::init() {
     _simpleProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/simple.frag");
     _simpleProgram.link();
     
+    _simpleProgram.bind();
+    _glowIntensityLocation = _simpleProgram.uniformLocation("glowIntensity");
+    _simpleProgram.release();
+    
     loadLightProgram("shaders/directional_light.frag", _directionalLight, _directionalLightLocations);
     loadLightProgram("shaders/directional_light_shadow_map.frag", _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
@@ -33,6 +37,7 @@ void DeferredLightingEffect::init() {
 void DeferredLightingEffect::bindSimpleProgram() {
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true, true);
     _simpleProgram.bind();
+    _simpleProgram.setUniformValue(_glowIntensityLocation, Application::getInstance()->getGlowEffect()->getIntensity());
     glDisable(GL_BLEND);
 }
 

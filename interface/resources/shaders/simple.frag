@@ -14,9 +14,12 @@
 // the interpolated normal
 varying vec4 normal;
 
+// the glow intensity
+uniform float glowIntensity;
+
 void main(void) {
     // set the diffuse, normal, specular data
-    gl_FragData[0] = vec4(gl_Color.rgb, 0.0);
+    gl_FragData[0] = vec4(gl_Color.rgb, glowIntensity);
     gl_FragData[1] = normalize(normal) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
     gl_FragData[2] = vec4(gl_FrontMaterial.specular.rgb, gl_FrontMaterial.shininess / 128.0);
 }

@@ -67,6 +67,7 @@ private:
     static void loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations);
    
     ProgramObject _simpleProgram;
+    int _glowIntensityLocation;
     
     ProgramObject _directionalLight;
     LightLocations _directionalLightLocations;
