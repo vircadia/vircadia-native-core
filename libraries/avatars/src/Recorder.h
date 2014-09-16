@@ -80,6 +80,7 @@ private:
 
 class RecordingContext {
 public:
+    quint64 globalTimestamp;
     QString domain;
     glm::vec3 position;
     glm::quat orientation;

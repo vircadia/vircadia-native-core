@@ -33,7 +33,6 @@ static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE] = {17, 72, 70, 82, 13, 10, 26,
 // Version (Major, Minor)
 static const QPair<quint8, quint8> VERSION(0, 1);
 
-// TODO: remove operators
 void operator<<(QDebug& stream, glm::vec3 vector) {
     stream << vector.x << vector.y << vector.z;
 }
@@ -114,6 +113,7 @@ void Recorder::startRecording() {
     _recording->clear();
     
     RecordingContext& context = _recording->getContext();
+    context.globalTimestamp = usecTimestampNow();
     context.domain = NodeList::getInstance()->getDomainHandler().getHostname();
     context.position = _avatar->getPosition();
     context.orientation = _avatar->getOrientation();
@@ -481,6 +481,8 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     // CONTEXT
     RecordingContext& context = recording->getContext();
+    // Global Timestamp
+    fileStream << context.globalTimestamp;
     // Domain
     fileStream << context.domain;
     // Position
@@ -710,7 +712,8 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     
     // CONTEXT
     RecordingContext& context = recording->getContext();
-
+    // Global Timestamp
+    fileStream >> context.globalTimestamp;
     // Domain
     fileStream >> context.domain;
     // Position
