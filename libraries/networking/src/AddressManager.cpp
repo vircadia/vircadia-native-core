@@ -132,9 +132,11 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
                 returnedPath = domainObject[LOCATION_KEY].toObject()[LOCATION_PATH_KEY].toString();
             }
             
+            bool shouldFaceViewpoint = dataObject.contains(ADDRESS_API_ONLINE_KEY);
+            
             if (!returnedPath.isEmpty()) {
                 // try to parse this returned path as a viewpoint, that's the only thing it could be for now
-                if (!handleRelativeViewpoint(returnedPath)) {
+                if (!handleRelativeViewpoint(returnedPath, shouldFaceViewpoint)) {
                     qDebug() << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
                 }
             }
@@ -191,7 +193,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     return false;
 }
 
-bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
+bool AddressManager::handleRelativeViewpoint(const QString& lookupString, bool shouldFace) {
     const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
     const QString SPACED_COMMA_REGEX_STRING = "\\s*,\\s*";
     const QString POSITION_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
@@ -224,14 +226,14 @@ bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
                 
                 if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)
                     && !isNaN(newOrientation.w)) {
-                    emit locationChangeRequired(newPosition, true, newOrientation, false);
+                    emit locationChangeRequired(newPosition, true, newOrientation, shouldFace);
                     return true;
                 } else {
                     qDebug() << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
             
-            emit locationChangeRequired(newPosition, false, newOrientation, false);
+            emit locationChangeRequired(newPosition, false, newOrientation, shouldFace);
             
         } else {
             qDebug() << "Could not jump to position from lookup string because it has an invalid value.";

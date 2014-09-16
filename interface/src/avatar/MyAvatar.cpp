@@ -1783,6 +1783,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
         glm::quat quatOrientation = newOrientation;
         
         if (shouldFaceLocation) {
+            
             quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
             
             // move the user a couple units away

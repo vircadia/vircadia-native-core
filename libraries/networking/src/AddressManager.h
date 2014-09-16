@@ -49,7 +49,7 @@ private:
     bool handleUrl(const QUrl& lookupUrl);
     
     bool handleNetworkAddress(const QString& lookupString);
-    bool handleRelativeViewpoint(const QString& pathSubsection);
+    bool handleRelativeViewpoint(const QString& pathSubsection, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
 };
 
