@@ -20,36 +20,14 @@
 #include "AvatarData.h"
 #include "Recorder.h"
 
+
+
+
+}
+}
+
 void RecordingFrame::setBlendshapeCoefficients(QVector<float> blendshapeCoefficients) {
     _blendshapeCoefficients = blendshapeCoefficients;
-}
-
-void RecordingFrame::setJointRotations(QVector<glm::quat> jointRotations) {
-    _jointRotations = jointRotations;
-}
-
-void RecordingFrame::setTranslation(glm::vec3 translation) {
-    _translation = translation;
-}
-
-void RecordingFrame::setRotation(glm::quat rotation) {
-    _rotation = rotation;
-}
-
-void RecordingFrame::setScale(float scale) {
-    _scale = scale;
-}
-
-void RecordingFrame::setHeadRotation(glm::quat headRotation) {
-    _headRotation = headRotation;
-}
-
-void RecordingFrame::setLeanSideways(float leanSideways) {
-    _leanSideways = leanSideways;
-}
-
-void RecordingFrame::setLeanForward(float leanForward) {
-    _leanForward = leanForward;
 }
 
 Recording::Recording() : _audio(NULL) {

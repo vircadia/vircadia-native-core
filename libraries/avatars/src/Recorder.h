@@ -48,16 +48,18 @@ public:
     glm::quat getHeadRotation() const { return _headRotation; }
     float getLeanSideways() const { return _leanSideways; }
     float getLeanForward() const { return _leanForward; }
+    glm::vec3 getLookAtPosition() const { return _lookAtPosition; }
     
 protected:
     void setBlendshapeCoefficients(QVector<float> blendshapeCoefficients);
-    void setJointRotations(QVector<glm::quat> jointRotations);
-    void setTranslation(glm::vec3 translation);
-    void setRotation(glm::quat rotation);
-    void setScale(float scale);
-    void setHeadRotation(glm::quat headRotation);
-    void setLeanSideways(float leanSideways);
-    void setLeanForward(float leanForward);
+    void setJointRotations(QVector<glm::quat> jointRotations) { _jointRotations = jointRotations; }
+    void setTranslation(glm::vec3 translation) { _translation = translation; }
+    void setRotation(glm::quat rotation) { _rotation = rotation; }
+    void setScale(float scale) { _scale = scale; }
+    void setHeadRotation(glm::quat headRotation) { _headRotation = headRotation; }
+    void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
+    void setLeanForward(float leanForward) { _leanForward = leanForward; }
+    void setLookAtPosition(glm::vec3 lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
 private:
     QVector<float> _blendshapeCoefficients;
@@ -68,6 +70,7 @@ private:
     glm::quat _headRotation;
     float _leanSideways;
     float _leanForward;
+    glm::vec3 _lookAtPosition;
     
     friend class Recorder;
     friend void writeRecordingToFile(RecordingPointer recording, QString file);
