@@ -144,9 +144,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     
     bool shouldDistanceAttenuate = true;
     
+    //  Is the source that I am mixing my own?
     bool sourceIsSelf = (streamToAdd == listeningNodeStream);
     
-    // if the two stream pointers do not match then these are different streams
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
     
     float distanceBetween = glm::length(relativePosition);
@@ -169,7 +169,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     
     if (streamToAdd->getType() == PositionalAudioStream::Injector) {
         attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
-        if (showDebug) qDebug() << "AttenuationRatio: " << reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
+        if (showDebug) {
+            qDebug() << "AttenuationRatio: " << reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
+        }
     }
     
     if (showDebug) {
@@ -178,7 +180,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     
     glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
     
-    if (!sourceIsSelf && (streamToAdd->getType() != PositionalAudioStream::Injector)) {
+    if (!sourceIsSelf && (streamToAdd->getType() == PositionalAudioStream::Microphone)) {
         //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
         
@@ -189,7 +191,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
         
         float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
+                                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
         
         if (showDebug) {
             qDebug() << "angleOfDelivery" << angleOfDelivery << "offAxisCoefficient: " << offAxisCoefficient;
@@ -211,7 +213,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         
         // multiply the current attenuation coefficient by the distance coefficient
         attenuationCoefficient *= distanceCoefficient;
-        if (showDebug) qDebug() << "distanceCoefficient: " << distanceCoefficient;
+        if (showDebug) {
+            qDebug() << "distanceCoefficient: " << distanceCoefficient;
+        }
     }
     
     if (!sourceIsSelf) {
