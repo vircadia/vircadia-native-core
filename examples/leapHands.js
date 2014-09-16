@@ -211,6 +211,7 @@ var leapHands = (function () {
             handRoll,
             handPitch,
             handYaw,
+            handRotation,
             locRotation;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
@@ -229,25 +230,25 @@ var leapHands = (function () {
                 // TODO: 2.0* scale factor should not be necessary; Leap Motion controller code needs investigating.
                 handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
                 handPitch = 2.0 * -wrists[h].controller.getAbsRotation().x;
-                handYaw = 2.0 * -wrists[h].controller.getAbsRotation().y;
+                handYaw = 2.0 * wrists[h].controller.getAbsRotation().y;
 
-                // TODO: Leap Motion controller's right-hand roll calculation is off by 90 degrees.
+                // TODO: Leap Motion controller's right-hand roll calculation only works if physical hand is upside down.
+                // Approximate fix is to add a fudge factor.
                 if (h === 1) {
-                    handRoll = handRoll + PI / 2.0;
+                    handRoll = handRoll + 0.6 * PI;
                 }
 
                 // Hand position and orientation ...
                 if (h === 0) {
-                    MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, Quat.fromPitchYawRollRadians(
-                        handPitch,
-                        -PI / 2.0 - handYaw,
-                        handRoll), true);
+                    handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
+                        Quat.fromVec3Radians({ x: handRoll, y: handYaw, z: -handPitch }));
+
+
                 } else {
-                    MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, Quat.fromPitchYawRollRadians(
-                        handPitch,
-                        PI / 2.0 - handYaw,
-                        handRoll), true);
+                    handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
+                        Quat.fromVec3Radians({ x: -handRoll, y: handYaw, z: handPitch }));
                 }
+                MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, handRotation, true);
 
                 // Finger joints ...
                 // TODO: 2.0 * scale factors should not be necessary; Leap Motion controller code needs investigating.
