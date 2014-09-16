@@ -23,67 +23,41 @@ class AudioSourceTone
     float32_t _yq1;  
     float32_t _y1;
     
-    void updateCoefficients() {
-        _omega = _frequency / _sampleRate * TWO_PI;
-        _epsilon = 2.0f * sinf(_omega / 2.0f);
-        _yq1 = cosf(-1.0f * _omega);
-        _y1 = sinf(+1.0f * _omega);
-    }
+    void updateCoefficients();
     
 public:
-    AudioSourceTone() {
-        initialize();
-    }
+    AudioSourceTone();
+    ~AudioSourceTone();
     
-    ~AudioSourceTone() {
-        finalize();
-    }
-    
-    void initialize() {
-        const float32_t FREQUENCY_220_HZ = 220.0f;
-        const float32_t GAIN_MINUS_3DB = 0.708f;
-        setParameters(SAMPLE_RATE, FREQUENCY_220_HZ, GAIN_MINUS_3DB);
-    }
-    
-    void finalize() {
-    }
-    
-    void reset() {
-    }
+    void initialize();
+    void finalize();
+    void reset();
 
-    void setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude) {
-        _sampleRate = std::max(sampleRate, 1.0f);
-        _frequency = std::max(frequency, 1.0f);
-        _amplitude = std::max(amplitude, 1.0f);
-        updateCoefficients();
-    }
+    void setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude);    
+    void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& amplitude);
     
-    void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& amplitude) {
-        sampleRate = _sampleRate;
-        frequency = _frequency;
-        amplitude = _amplitude;
-    }
+    void render(AudioBufferFloat32& frameBuffer);
+};
 
-    void render(AudioBufferFloat32& frameBuffer) {
+
+inline void AudioSourceTone::render(AudioBufferFloat32& frameBuffer) {
+    float32_t** samples = frameBuffer.getFrameData();
+    float32_t yq;
+    float32_t y;
+    for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
         
-        float32_t** samples = frameBuffer.getFrameData();
-        float32_t yq;
-        float32_t y;
-        for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
-            
-            yq = _yq1 - (_epsilon * _y1);
-            y = _y1 + (_epsilon * yq);
-            
-            // update delays
-            _yq1 = yq;
-            _y1 = y;
-            
-            for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
-                samples[j][i] = _amplitude * y;
-            }
+        yq = _yq1 - (_epsilon * _y1);
+        y = _y1 + (_epsilon * yq);
+        
+        // update delays
+        _yq1 = yq;
+        _y1 = y;
+        
+        for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+            samples[j][i] = _amplitude * y;
         }
     }
-};
+}
 
 #endif 
 
