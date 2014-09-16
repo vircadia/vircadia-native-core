@@ -189,6 +189,7 @@ void DeferredLightingEffect::render() {
     
     // now transfer the lit region to the primary fbo
     glEnable(GL_BLEND);
+    glColorMask(true, true, true, false);
     
     primaryFBO->bind();
     
@@ -200,6 +201,7 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
     
+    glColorMask(true, true, true, true);
     glEnable(GL_LIGHTING);
     glEnable(GL_COLOR_MATERIAL);
     glEnable(GL_DEPTH_TEST);
