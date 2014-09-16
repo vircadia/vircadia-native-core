@@ -58,7 +58,9 @@ private slots:
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
+    
     void requestCurrentIPAddressViaSTUN();
+    void sendNewPublicSocketToDataServer(const HifiSockAddr& newPublicSockAddr);
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();

@@ -246,6 +246,8 @@ bool DomainServer::hasOAuthProviderAndAuthInformation() {
             
             hasAttemptedAuthWithOAuthProvider = true;
         }
+        
+        return true;
 
     } else {
         qDebug() << "Missing OAuth provider URL, but a domain-server feature was required that requires authentication." <<
@@ -290,7 +292,8 @@ void DomainServer::setupDynamicIPAddressUpdating() {
         _argumentVariantMap.value(ENABLE_DYNAMIC_IP_UPDATING_OPTION).toBool() &&
         hasOAuthProviderAndAuthInformation()) {
         
-        const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
+        LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+        const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
             qDebug() << "domain-server IP address will be updated for domain with ID"
@@ -302,6 +305,9 @@ void DomainServer::setupDynamicIPAddressUpdating() {
             QTimer* dynamicIPTimer = new QTimer(this);
             connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentIPAddressViaSTUN);
             dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+            
+            // send public socket changes to the data server so nodes can find us at our new IP
+            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewPublicSocketToDataServer);
             
             // check our IP address right away
             requestCurrentIPAddressViaSTUN();
@@ -887,7 +893,22 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
 }
 
 void DomainServer::requestCurrentIPAddressViaSTUN() {
+    LimitedNodeList::getInstance()->sendSTUNRequest();
+}
+
+void DomainServer::sendNewPublicSocketToDataServer(const HifiSockAddr& newPublicSockAddr) {
+    const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
+    const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
+    // setup the domain object to send to the data server
+    const QString DOMAIN_JSON_OBJECT = "{\"domain\":{\"network_address\":\"%1\"}}";
+    
+    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(newPublicSockAddr.getAddress().toString());
+    
+    AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
+                                                       QNetworkAccessManager::PutOperation,
+                                                       JSONCallbackParameters(),
+                                                       domainUpdateJSON.toUtf8());
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
@@ -895,32 +916,44 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
 
     if (nodeList->packetVersionAndHashMatch(receivedPacket)) {
         PacketType requestType = packetTypeForPacket(receivedPacket);
-
-        if (requestType == PacketTypeDomainConnectRequest) {
-            handleConnectRequest(receivedPacket, senderSockAddr);
-        } else if (requestType == PacketTypeDomainListRequest) {
-            QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
-
-            if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
-                NodeType_t throwawayNodeType;
-                HifiSockAddr nodePublicAddress, nodeLocalAddress;
-
-                int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
-                                                                  receivedPacket, senderSockAddr);
-
-                SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
-
-                // update last receive to now
-                quint64 timeNow = usecTimestampNow();
-                checkInNode->setLastHeardMicrostamp(timeNow);
-
-                sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+        switch (requestType) {
+            case PacketTypeDomainConnectRequest:
+                handleConnectRequest(receivedPacket, senderSockAddr);
+                break;
+            case PacketTypeDomainListRequest: {
+                QUuid nodeUUID = uuidFromPacketHeader(receivedPacket);
+                
+                if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
+                    NodeType_t throwawayNodeType;
+                    HifiSockAddr nodePublicAddress, nodeLocalAddress;
+                    
+                    int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
+                                                                      receivedPacket, senderSockAddr);
+                    
+                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
+                    
+                    // update last receive to now
+                    quint64 timeNow = usecTimestampNow();
+                    checkInNode->setLastHeardMicrostamp(timeNow);
+                    
+                    sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+                }
+                
+                break;
             }
-        } else if (requestType == PacketTypeNodeJsonStats) {
-            SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
-            if (matchingNode) {
-                reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
+            case PacketTypeNodeJsonStats: {
+                SharedNodePointer matchingNode = nodeList->sendingNodeForPacket(receivedPacket);
+                if (matchingNode) {
+                    reinterpret_cast<DomainServerNodeData*>(matchingNode->getLinkedData())->parseJSONStatsPacket(receivedPacket);
+                }
+                
+                break;
             }
+            case PacketTypeStunResponse:
+                nodeList->processSTUNResponse(receivedPacket);
+                break;
+            default:
+                break;
         }
     }
 }

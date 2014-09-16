@@ -89,8 +89,9 @@ private:
     NodeList(char ownerType, unsigned short socketListenPort, unsigned short dtlsListenPort);
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
+    
     void sendSTUNRequest();
-    void processSTUNResponse(const QByteArray& packet);
+    bool processSTUNResponse(const QByteArray& packet);
     
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
@@ -102,7 +103,6 @@ private:
     DomainHandler _domainHandler;
     int _numNoReplyDomainCheckIns;
     HifiSockAddr _assignmentServerSocket;
-    HifiSockAddr _publicSockAddr;
     bool _hasCompletedInitialSTUNFailure;
     unsigned int _stunRequestsSinceSuccess;
 };
