@@ -13,6 +13,9 @@
 //
 
 
+var numButterflies = 20;
+
+
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
@@ -73,7 +76,6 @@ function defineButterfly(entityID, targetPosition) {
 
 // Array of butterflies
 var butterflies = [];
-var numButterflies = 20;
 function addButterfly() {
     // Decide the size of butterfly 
     var color = { red: 100, green: 100, blue: 100 };
@@ -133,7 +135,8 @@ function updateButterflies(deltaTime) {
         
         // Update all the butterflies
         for (var i = 0; i < numButterflies; i++) {
-            entityID = butterflies[i].entityID;
+            entityID = Entities.identifyEntity(butterflies[i].entityID);
+            butterflies[i].entityID = entityID;
             var properties = Entities.getEntityProperties(entityID);
 			
     		if (properties.position.y > flockPosition.y + getRandomFloat(0.0,0.3)){ //0.3  //ceiling

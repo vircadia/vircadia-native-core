@@ -17,6 +17,8 @@
 #include <QtGlobal>
 #include <QVector>
 
+#include "RayIntersectionInfo.h"
+
 class PhysicsEntity;
 class VerletPoint;
 
@@ -59,7 +61,7 @@ public:
     virtual void setMass(float mass) { _mass = mass; }
     virtual float getMass() const { return _mass; }
 
-    virtual bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const = 0;
+    virtual bool findRayIntersection(RayIntersectionInfo& intersection) const = 0;
 
     /// \param penetration of collision
     /// \param contactPoint of collision

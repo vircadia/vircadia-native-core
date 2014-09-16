@@ -12,61 +12,52 @@
 #ifndef hifi_AudioSourceTone_h
 #define hifi_AudioSourceTone_h
 
+// Implements a two-pole Gordon-Smith oscillator
 class AudioSourceTone
 {
-    static uint32_t _frameOffset;
     float32_t _frequency;
     float32_t _amplitude;
     float32_t _sampleRate;
     float32_t _omega;
+    float32_t _epsilon;
+    float32_t _yq1;  
+    float32_t _y1;
+    
+    void updateCoefficients();
     
 public:
-    AudioSourceTone() {
-        initialize();
-    }
+    AudioSourceTone();
+    ~AudioSourceTone();
     
-    ~AudioSourceTone() {
-        finalize();
-    }
-    
-    void initialize() {
-        _frameOffset = 0;
-        setParameters(SAMPLE_RATE, 220.0f, 0.9f);
-    }
-    
-    void finalize() {
-    }
-    
-    void reset() {
-        _frameOffset = 0;
-    }
+    void initialize();
+    void finalize();
+    void reset();
 
-    void setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude) {
-        _sampleRate = std::max(sampleRate, 1.0f);
-        _frequency = std::max(frequency, 1.0f);
-        _amplitude = std::max(amplitude, 1.0f);
-        _omega = _frequency / _sampleRate * TWO_PI;
-    }
+    void setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude);    
+    void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& amplitude);
     
-    void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& amplitude) {
-        sampleRate = _sampleRate;
-        frequency = _frequency;
-        amplitude = _amplitude;
-    }
-
-    void render(AudioBufferFloat32& frameBuffer) {
-        
-        // note: this is a placeholder implementation. final version will not include any transcendental ops in our render loop
-        
-        float32_t** samples = frameBuffer.getFrameData();
-        for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
-            for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
-                samples[j][i] = sinf((i + _frameOffset) * _omega);
-            }
-        }
-        _frameOffset += frameBuffer.getFrameCount();
-    }
+    void render(AudioBufferFloat32& frameBuffer);
 };
+
+
+inline void AudioSourceTone::render(AudioBufferFloat32& frameBuffer) {
+    float32_t** samples = frameBuffer.getFrameData();
+    float32_t yq;
+    float32_t y;
+    for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
+        
+        yq = _yq1 - (_epsilon * _y1);
+        y = _y1 + (_epsilon * yq);
+        
+        // update delays
+        _yq1 = yq;
+        _y1 = y;
+        
+        for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+            samples[j][i] = _amplitude * y;
+        }
+    }
+}
 
 #endif 
 

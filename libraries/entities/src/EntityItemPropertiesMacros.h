@@ -180,21 +180,25 @@
         }                                           \
     }
 
-#define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)      \
-    QScriptValue P = object.property(#P);               \
-    if (P.isValid()) {                                  \
-        QScriptValue x = P.property("x");               \
-        QScriptValue y = P.property("y");               \
-        QScriptValue z = P.property("z");               \
-        if (x.isValid() && y.isValid() && z.isValid()) {\
-            glm::vec3 newValue;                         \
-            newValue.x = x.toVariant().toFloat();       \
-            newValue.y = y.toVariant().toFloat();       \
-            newValue.z = z.toVariant().toFloat();       \
-            if (_defaultSettings || newValue != _##P) { \
-                S(newValue);                            \
-            }                                           \
-        }                                               \
+#define COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(P, S)        \
+    QScriptValue P = object.property(#P);                 \
+    if (P.isValid()) {                                    \
+        QScriptValue x = P.property("x");                 \
+        QScriptValue y = P.property("y");                 \
+        QScriptValue z = P.property("z");                 \
+        if (x.isValid() && y.isValid() && z.isValid()) {  \
+            glm::vec3 newValue;                           \
+            newValue.x = x.toVariant().toFloat();         \
+            newValue.y = y.toVariant().toFloat();         \
+            newValue.z = z.toVariant().toFloat();         \
+            bool isValid = !glm::isnan(newValue.x) &&     \
+                         !glm::isnan(newValue.y) &&       \
+                         !glm::isnan(newValue.z);         \
+            if (isValid &&                                \
+                (_defaultSettings || newValue != _##P)) { \
+                S(newValue);                              \
+            }                                             \
+        }                                                 \
     }
     
 #define COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(P, S)                      \
@@ -210,7 +214,12 @@
             newValue.y = y.toVariant().toFloat();                       \
             newValue.z = z.toVariant().toFloat();                       \
             newValue.w = w.toVariant().toFloat();                       \
-            if (_defaultSettings || newValue != _##P) {                 \
+            bool isValid = !glm::isnan(newValue.x) &&                   \
+                           !glm::isnan(newValue.y) &&                   \
+                           !glm::isnan(newValue.z) &&                   \
+                           !glm::isnan(newValue.w);                     \
+            if (isValid &&                                              \
+                (_defaultSettings || newValue != _##P)) {               \
                 S(newValue);                                            \
             }                                                           \
         }                                                               \
