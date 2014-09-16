@@ -33,7 +33,7 @@ function maybePlaySound(deltaTime) {
                 position: options.position, 
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
-                radius: 0.10,
+                dimensions: { x: 0.2, y: 0.2, z: 0.2 },
                 damping: 0.999,
                 color: { red: 200, green: 0, blue: 0 }    
             };
