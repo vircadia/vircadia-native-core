@@ -470,8 +470,8 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     fileStream << (quint16)0; // Save two empty bytes for the data offset
     const qint64 dataLengthPos = file.pos();
     fileStream << (quint32)0; // Save four empty bytes for the data offset
-    const quint64 crc32Pos = file.pos();
-    fileStream << (quint32)0; // Save four empty bytes for the CRC-32
+    const quint64 crc16Pos = file.pos();
+    fileStream << (quint32)0; // Save four empty bytes for the CRC-16
     
     
     // METADATA
@@ -637,13 +637,19 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     fileStream << recording->_audio->getByteArray();
     
-    // Write data length
+    qint64 writtingTime = timer.restart();
+    // Write data length and CRC-16
     quint16 dataLength = file.pos() - dataOffset;
+    quint16 crc16= qChecksum(file.readAll().constData() + dataOffset,
+                             dataLength);
     file.seek(dataLengthPos);
     fileStream << dataLength;
+    file.seek(crc16Pos);
+    fileStream << crc16;
     file.seek(dataOffset + dataLength);
     
-    qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed() << " ms.";
+    qint64 checksumTime = timer.elapsed();
+    qDebug() << "Wrote" << file.size() << "bytes in" << writtingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
@@ -709,8 +715,8 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     fileStream >> dataLength;
     quint32 dataOffset = 0;
     fileStream >> dataOffset;
-    quint32 crc32 = 0;
-    fileStream >> crc32;
+    quint32 crc16 = 0;
+    fileStream >> crc16;
     
     // METADATA
     // TODO
@@ -782,7 +788,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         qDebug() << "File Format version:" << VERSION;
         qDebug() << "Data length:" << dataLength;
         qDebug() << "Data offset:" << dataOffset;
-        qDebug() << "CRC-32:" << crc32;
+        qDebug() << "CRC-16:" << crc16;
         
         qDebug() << "Context block:";
         qDebug() << "Domain:" << context.domain;
@@ -871,7 +877,6 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     QByteArray audioArray;
     fileStream >> audioArray;
     recording->addAudioPacket(audioArray);
-    
     
     qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     return recording;
