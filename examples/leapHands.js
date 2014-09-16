@@ -212,6 +212,7 @@ var leapHands = (function () {
             handPitch,
             handYaw,
             handRotation,
+            wristAbsRotation,
             locRotation;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
@@ -229,8 +230,9 @@ var leapHands = (function () {
 
                 // TODO: 2.0* scale factor should not be necessary; Leap Motion controller code needs investigating.
                 handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
-                handPitch = 2.0 * -wrists[h].controller.getAbsRotation().x;
-                handYaw = 2.0 * wrists[h].controller.getAbsRotation().y;
+                wristAbsRotation = wrists[h].controller.getAbsRotation();
+                handPitch = 2.0 * -wristAbsRotation.x;
+                handYaw = 2.0 * wristAbsRotation.y;
 
                 // TODO: Leap Motion controller's right-hand roll calculation only works if physical hand is upside down.
                 // Approximate fix is to add a fudge factor.
