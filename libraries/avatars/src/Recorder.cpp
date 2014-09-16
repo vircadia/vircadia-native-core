@@ -78,6 +78,7 @@ void Recording::addFrame(int timestamp, RecordingFrame &frame) {
 void Recording::addAudioPacket(QByteArray byteArray) {
     if (!_audio) {
         _audio = new Sound(byteArray);
+        return;
     }
     _audio->append(byteArray);
 }
