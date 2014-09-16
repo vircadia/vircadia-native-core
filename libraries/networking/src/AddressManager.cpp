@@ -28,7 +28,7 @@ QString AddressManager::pathForPositionAndOrientation(const glm::vec3& position,
     QString pathString = "/" + createByteArray(position);
     
     if (hasOrientation) {
-        QString orientationString = createByteArray(glm::degrees(safeEulerAngles(orientation)));
+        QString orientationString = createByteArray(orientation);
         pathString += "/" + orientationString;
     }
     
@@ -193,36 +193,45 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
 
 bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
     const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
-    const QString TRIPLE_FLOAT_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + "\\s*,\\s*" +
-    FLOAT_REGEX_STRING + "\\s*,\\s*" + FLOAT_REGEX_STRING + "\\s*(?:$|\\/)";
+    const QString SPACED_COMMA_REGEX_STRING = "\\s*,\\s*";
+    const QString POSITION_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
+        FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + "\\s*(?:$|\\/)";
+    const QString QUAT_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
+        FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
+        FLOAT_REGEX_STRING + "\\s*$";
     
-    QRegExp tripleFloatRegex(TRIPLE_FLOAT_REGEX_STRING);
+    QRegExp positionRegex(POSITION_REGEX_STRING);
     
-    if (tripleFloatRegex.indexIn(lookupString) != -1) {
+    if (positionRegex.indexIn(lookupString) != -1) {
         // we have at least a position, so emit our signal to say we need to change position
-        glm::vec3 newPosition(tripleFloatRegex.cap(1).toFloat(),
-                              tripleFloatRegex.cap(2).toFloat(),
-                              tripleFloatRegex.cap(3).toFloat());
+        glm::vec3 newPosition(positionRegex.cap(1).toFloat(),
+                              positionRegex.cap(2).toFloat(),
+                              positionRegex.cap(3).toFloat());
         
         if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
-            glm::vec3 newOrientation;
+            glm::quat newOrientation;
+            
+            QRegExp orientationRegex(QUAT_REGEX_STRING);
+            
             // we may also have an orientation
-            if (lookupString[tripleFloatRegex.matchedLength() - 1] == QChar('/')
-                && tripleFloatRegex.indexIn(lookupString, tripleFloatRegex.matchedLength() - 1) != -1) {
+            if (lookupString[positionRegex.matchedLength() - 1] == QChar('/')
+                && orientationRegex.indexIn(lookupString, positionRegex.matchedLength() - 1) != -1) {
                 
-                glm::vec3 newOrientation(tripleFloatRegex.cap(1).toFloat(),
-                                         tripleFloatRegex.cap(2).toFloat(),
-                                         tripleFloatRegex.cap(3).toFloat());
+                glm::quat newOrientation = glm::normalize(glm::quat(orientationRegex.cap(4).toFloat(),
+                                                                    orientationRegex.cap(1).toFloat(),
+                                                                    orientationRegex.cap(2).toFloat(),
+                                                                    orientationRegex.cap(3).toFloat()));
                 
-                if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)) {
-                    emit locationChangeRequired(newPosition, true, newOrientation);
+                if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)
+                    && !isNaN(newOrientation.w)) {
+                    emit locationChangeRequired(newPosition, true, newOrientation, false);
                     return true;
                 } else {
                     qDebug() << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
             
-            emit locationChangeRequired(newPosition, false, newOrientation);
+            emit locationChangeRequired(newPosition, false, newOrientation, false);
             
         } else {
             qDebug() << "Could not jump to position from lookup string because it has an invalid value.";

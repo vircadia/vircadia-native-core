@@ -40,7 +40,9 @@ signals:
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
     void possibleDomainChangeRequired(const QString& newHostname);
-    void locationChangeRequired(const glm::vec3& newPosition, bool hasOrientationChange, const glm::vec3& newOrientation);
+    void locationChangeRequired(const glm::vec3& newPosition,
+                                bool hasOrientationChange, const glm::quat& newOrientation,
+                                bool shouldFaceLocation);
 private:
     const JSONCallbackParameters& apiCallbackParameters();
     

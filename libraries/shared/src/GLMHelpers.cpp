@@ -284,6 +284,11 @@ QByteArray createByteArray(const glm::vec3& vector) {
     return QByteArray::number(vector.x) + ',' + QByteArray::number(vector.y) + ',' + QByteArray::number(vector.z);
 }
 
+QByteArray createByteArray(const glm::quat& quat) {
+    return QByteArray::number(quat.x) + ',' + QByteArray::number(quat.y) + "," + QByteArray::number(quat.z) + ","
+        + QByteArray::number(quat.w);
+}
+
 bool isSimilarOrientation(const glm::quat& orientionA, const glm::quat& orientionB, float similarEnough) {
     // Compute the angular distance between the two orientations
     float angleOrientation = orientionA == orientionB ? 0.0f : glm::degrees(glm::angle(orientionA * glm::inverse(orientionB)));
