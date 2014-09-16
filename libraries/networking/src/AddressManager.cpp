@@ -28,7 +28,7 @@ QString AddressManager::pathForPositionAndOrientation(const glm::vec3& position,
     QString pathString = "/" + createByteArray(position);
     
     if (hasOrientation) {
-        QString orientationString = createByteArray(glm::degrees(safeEulerAngles(orientation)));
+        QString orientationString = createByteArray(orientation);
         pathString += "/" + orientationString;
     }
     
@@ -61,25 +61,25 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         // 3. location string (posX,posY,posZ/eulerX,eulerY,eulerZ)
         // 4. domain network address (IP or dns resolvable hostname)
         
-        if (lookupUrl.isRelative()) {
-            // if this is a relative path then handle it as a relative viewpoint
-            handleRelativeViewpoint(lookupUrl.path());
-        } else {
-            // use our regex'ed helpers to figure out what we're supposed to do with this
-            if (!handleUsername(lookupUrl.authority())) {
-                // we're assuming this is either a network address or global place name
-                // check if it is a network address first
-                if (!handleNetworkAddress(lookupUrl.host())) {
-                    // wasn't an address - lookup the place name
-                    attemptPlaceNameLookup(lookupUrl.host());
-                }
-                
-                // we may have a path that defines a relative viewpoint - if so we should jump to that now
-                handleRelativeViewpoint(lookupUrl.path());
+        // use our regex'ed helpers to figure out what we're supposed to do with this
+        if (!handleUsername(lookupUrl.authority())) {
+            // we're assuming this is either a network address or global place name
+            // check if it is a network address first
+            if (!handleNetworkAddress(lookupUrl.host())) {
+                // wasn't an address - lookup the place name
+                attemptPlaceNameLookup(lookupUrl.host());
             }
+            
+            // we may have a path that defines a relative viewpoint - if so we should jump to that now
+            handleRelativeViewpoint(lookupUrl.path());
         }
         
         return true;
+    } else if (lookupUrl.toString().startsWith('/')) {
+        qDebug() << "Going to relative path" << lookupUrl.path();
+        
+        // if this is a relative path then handle it as a relative viewpoint
+        handleRelativeViewpoint(lookupUrl.path());
     }
     
     return false;
@@ -89,10 +89,18 @@ void AddressManager::handleLookupString(const QString& lookupString) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
         QString sanitizedString = lookupString;
-        const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
-        sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
+        QUrl lookupURL;
         
-        handleUrl(QUrl(HIFI_URL_SCHEME + "://" + sanitizedString));
+        if (!lookupString.startsWith('/')) {
+            const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
+            sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
+            
+            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString);
+        } else {
+            lookupURL = QUrl(lookupString);
+        }
+        
+        handleUrl(lookupURL);
     }
 }
 
@@ -124,9 +132,11 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
                 returnedPath = domainObject[LOCATION_KEY].toObject()[LOCATION_PATH_KEY].toString();
             }
             
+            bool shouldFaceViewpoint = dataObject.contains(ADDRESS_API_ONLINE_KEY);
+            
             if (!returnedPath.isEmpty()) {
                 // try to parse this returned path as a viewpoint, that's the only thing it could be for now
-                if (!handleRelativeViewpoint(returnedPath)) {
+                if (!handleRelativeViewpoint(returnedPath, shouldFaceViewpoint)) {
                     qDebug() << "Received a location path that was could not be handled as a viewpoint -" << returnedPath;
                 }
             }
@@ -183,38 +193,47 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     return false;
 }
 
-bool AddressManager::handleRelativeViewpoint(const QString& lookupString) {
+bool AddressManager::handleRelativeViewpoint(const QString& lookupString, bool shouldFace) {
     const QString FLOAT_REGEX_STRING = "([-+]?[0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
-    const QString TRIPLE_FLOAT_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + "\\s*,\\s*" +
-    FLOAT_REGEX_STRING + "\\s*,\\s*" + FLOAT_REGEX_STRING + "\\s*(?:$|\\/)";
+    const QString SPACED_COMMA_REGEX_STRING = "\\s*,\\s*";
+    const QString POSITION_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
+        FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + "\\s*(?:$|\\/)";
+    const QString QUAT_REGEX_STRING = QString("\\/") + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
+        FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING + FLOAT_REGEX_STRING + SPACED_COMMA_REGEX_STRING +
+        FLOAT_REGEX_STRING + "\\s*$";
     
-    QRegExp tripleFloatRegex(TRIPLE_FLOAT_REGEX_STRING);
+    QRegExp positionRegex(POSITION_REGEX_STRING);
     
-    if (tripleFloatRegex.indexIn(lookupString) != -1) {
+    if (positionRegex.indexIn(lookupString) != -1) {
         // we have at least a position, so emit our signal to say we need to change position
-        glm::vec3 newPosition(tripleFloatRegex.cap(1).toFloat(),
-                              tripleFloatRegex.cap(2).toFloat(),
-                              tripleFloatRegex.cap(3).toFloat());
+        glm::vec3 newPosition(positionRegex.cap(1).toFloat(),
+                              positionRegex.cap(2).toFloat(),
+                              positionRegex.cap(3).toFloat());
         
         if (!isNaN(newPosition.x) && !isNaN(newPosition.y) && !isNaN(newPosition.z)) {
-            glm::vec3 newOrientation;
+            glm::quat newOrientation;
+            
+            QRegExp orientationRegex(QUAT_REGEX_STRING);
+            
             // we may also have an orientation
-            if (lookupString[tripleFloatRegex.matchedLength() - 1] == QChar('/')
-                && tripleFloatRegex.indexIn(lookupString, tripleFloatRegex.matchedLength() - 1) != -1) {
+            if (lookupString[positionRegex.matchedLength() - 1] == QChar('/')
+                && orientationRegex.indexIn(lookupString, positionRegex.matchedLength() - 1) != -1) {
                 
-                glm::vec3 newOrientation(tripleFloatRegex.cap(1).toFloat(),
-                                         tripleFloatRegex.cap(2).toFloat(),
-                                         tripleFloatRegex.cap(3).toFloat());
+                glm::quat newOrientation = glm::normalize(glm::quat(orientationRegex.cap(4).toFloat(),
+                                                                    orientationRegex.cap(1).toFloat(),
+                                                                    orientationRegex.cap(2).toFloat(),
+                                                                    orientationRegex.cap(3).toFloat()));
                 
-                if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)) {
-                    emit locationChangeRequired(newPosition, true, newOrientation);
+                if (!isNaN(newOrientation.x) && !isNaN(newOrientation.y) && !isNaN(newOrientation.z)
+                    && !isNaN(newOrientation.w)) {
+                    emit locationChangeRequired(newPosition, true, newOrientation, shouldFace);
                     return true;
                 } else {
                     qDebug() << "Orientation parsed from lookup string is invalid. Will not use for location change.";
                 }
             }
             
-            emit locationChangeRequired(newPosition, false, newOrientation);
+            emit locationChangeRequired(newPosition, false, newOrientation, shouldFace);
             
         } else {
             qDebug() << "Could not jump to position from lookup string because it has an invalid value.";
