@@ -24,6 +24,14 @@
 
 #include <GLMHelpers.h>
 
+// HFR file format magic number
+// (decimal)               17  72  70  82  13  10  26  10
+// (hexadecimal)           11  48  46  52  0d  0a  1a  0a
+// (ASCII C notation)    \021   H   F   R  \r  \n \032 \n
+static const int MAGIC_NUMBER_SIZE = 8;
+static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE] = {17, 72, 70, 82, 13, 10, 26, 10};
+// Version (Major, Minor)
+static const QPair<quint8, quint8> VERSION(0, 1);
 
 // TODO: remove operators
 void operator<<(QDebug& stream, glm::vec3 vector) {
@@ -444,122 +452,173 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
         return;
     }
     
-    qDebug() << "Writing recording to " << filename << ".";
     QElapsedTimer timer;
     QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly)){
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)){
+        qDebug() << "Couldn't open " << filename;
         return;
     }
     timer.start();
-    
+    qDebug() << "Writing recording to " << filename << ".";
     
     QDataStream fileStream(&file);
     
+    // HEADER
+    file.write(MAGIC_NUMBER, MAGIC_NUMBER_SIZE); // Magic number
+    fileStream << VERSION; // File format version
+    const qint64 dataOffsetPos = file.pos();
+    fileStream << (quint16)17; // Save two empty bytes for the data offset
+    const qint64 dataLengthPos = file.pos();
+    fileStream << (quint32)42; // Save four empty bytes for the data offset
+    const quint64 crc32Pos = file.pos();
+    fileStream << (quint32)121; // Save four empty bytes for the CRC-32
+    
+    
+    // METADATA
+    // TODO
+    
+    
+    
+    // CONTEXT
+    RecordingContext& context = recording->getContext();
+    // Domain
+    fileStream << context.domain;
+    // Position
+    writeVec3(fileStream, context.position);
+    // Orientation
+    writeQuat(fileStream, context.orientation);
+    // Scale
+    writeFloat(fileStream, context.scale);
+    // Head model
+    fileStream << context.headModel;
+    // Skeleton model
+    fileStream << context.skeletonModel;
+    // Display name
+    fileStream << context.displayName;
+    // Attachements
+    fileStream << (quint8)context.attachments.size();
+    foreach (AttachmentData data, context.attachments) {
+        // Model
+        fileStream << data.modelURL.toString();
+        // Joint name
+        fileStream << data.jointName;
+        // Position
+        writeVec3(fileStream, data.translation);
+        // Orientation
+        writeQuat(fileStream, data.rotation);
+        // Scale
+        writeFloat(fileStream, data.scale);
+    }
+    
+    // RECORDING
     fileStream << recording->_timestamps;
     
-    RecordingFrame& baseFrame = recording->_frames[0];
-    int totalLength = 0;
+    QBitArray mask;
     
-    // Blendshape coefficients
-    fileStream << baseFrame._blendshapeCoefficients;
-    totalLength += baseFrame._blendshapeCoefficients.size();
-    
-    // Joint Rotations
-    int jointRotationSize = baseFrame._jointRotations.size();
-    fileStream << jointRotationSize;
-    for (int i = 0; i < jointRotationSize; ++i) {
-        fileStream << baseFrame._jointRotations[i].x << baseFrame._jointRotations[i].y << baseFrame._jointRotations[i].z << baseFrame._jointRotations[i].w;
-    }
-    totalLength += jointRotationSize;
-    
-    // Translation
-    fileStream << baseFrame._translation.x << baseFrame._translation.y << baseFrame._translation.z;
-    totalLength += 1;
-    
-    // Rotation
-    fileStream << baseFrame._rotation.x << baseFrame._rotation.y << baseFrame._rotation.z << baseFrame._rotation.w;
-    totalLength += 1;
-    
-    // Scale
-    fileStream << baseFrame._scale;
-    totalLength += 1;
-    
-    // Head Rotation
-    fileStream << baseFrame._headRotation.x << baseFrame._headRotation.y << baseFrame._headRotation.z << baseFrame._headRotation.w;
-    totalLength += 1;
-    
-    // Lean Sideways
-    fileStream << baseFrame._leanSideways;
-    totalLength += 1;
-    
-    // Lean Forward
-    fileStream << baseFrame._leanForward;
-    totalLength += 1;
-    
-    for (int i = 1; i < recording->_timestamps.size(); ++i) {
-        QBitArray mask(totalLength);
+    for (int i = 0; i < recording->_timestamps.size(); ++i) {
+        mask.fill(false);
         int maskIndex = 0;
         QByteArray buffer;
         QDataStream stream(&buffer, QIODevice::WriteOnly);
-        RecordingFrame& previousFrame = recording->_frames[i - 1];
+        RecordingFrame& previousFrame = recording->_frames[(i != 0) ? i - 1 : i];
         RecordingFrame& frame = recording->_frames[i];
         
-        // Blendshape coefficients
-        for (int i = 0; i < frame._blendshapeCoefficients.size(); ++i) {
-            if (frame._blendshapeCoefficients[i] != previousFrame._blendshapeCoefficients[i]) {
-                stream << frame._blendshapeCoefficients[i];
+        // Blendshape Coefficients
+        quint32 numBlenshapes = frame.getBlendshapeCoefficients().size();
+        stream << numBlenshapes;
+        if (i == 0) {
+            mask.resize(mask.size() + numBlenshapes);
+        }
+        for (int j = 0; j < numBlenshapes; ++j) {
+            if (i == 0 ||
+                frame._blendshapeCoefficients[j] != previousFrame._blendshapeCoefficients[j]) {
+                writeFloat(stream, frame.getBlendshapeCoefficients()[j]);
                 mask.setBit(maskIndex);
             }
-            maskIndex++;
+            ++maskIndex;
         }
         
         // Joint Rotations
-        for (int i = 0; i < frame._jointRotations.size(); ++i) {
-            if (frame._jointRotations[i] != previousFrame._jointRotations[i]) {
-                stream << frame._jointRotations[i].x << frame._jointRotations[i].y << frame._jointRotations[i].z << frame._jointRotations[i].w;
+        quint32 numJoints = frame.getJointRotations().size();
+        stream << numJoints;
+        if (i == 0) {
+            mask.resize(mask.size() + numJoints);
+        }
+        for (int j = 0; j < numJoints; ++j) {
+            if (i == 0 ||
+                frame._jointRotations[j] != previousFrame._jointRotations[j]) {
+                writeQuat(stream, frame._jointRotations[j]);
                 mask.setBit(maskIndex);
             }
             maskIndex++;
         }
         
         // Translation
-        if (frame._translation != previousFrame._translation) {
-            stream << frame._translation.x << frame._translation.y << frame._translation.z;
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._translation != previousFrame._translation) {
+            writeVec3(stream, frame._translation);
             mask.setBit(maskIndex);
         }
         maskIndex++;
         
         // Rotation
-        if (frame._rotation != previousFrame._rotation) {
-            stream << frame._rotation.x << frame._rotation.y << frame._rotation.z << frame._rotation.w;
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._rotation != previousFrame._rotation) {
+            writeQuat(stream, frame._rotation);
             mask.setBit(maskIndex);
         }
         maskIndex++;
         
         // Scale
-        if (frame._scale != previousFrame._scale) {
-            stream << frame._scale;
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._scale != previousFrame._scale) {
+            writeFloat(stream, frame._scale);
             mask.setBit(maskIndex);
         }
         maskIndex++;
         
         // Head Rotation
-        if (frame._headRotation != previousFrame._headRotation) {
-            stream << frame._headRotation.x << frame._headRotation.y << frame._headRotation.z << frame._headRotation.w;
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._headRotation != previousFrame._headRotation) {
+            writeQuat(stream, frame._headRotation);
             mask.setBit(maskIndex);
         }
         maskIndex++;
         
         // Lean Sideways
-        if (frame._leanSideways != previousFrame._leanSideways) {
-            stream << frame._leanSideways;
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._leanSideways != previousFrame._leanSideways) {
+            writeFloat(stream, frame._leanSideways);
             mask.setBit(maskIndex);
         }
         maskIndex++;
         
         // Lean Forward
-        if (frame._leanForward != previousFrame._leanForward) {
-            stream << frame._leanForward;
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._leanForward != previousFrame._leanForward) {
+            writeFloat(stream, frame._leanForward);
+            mask.setBit(maskIndex);
+        }
+        maskIndex++;
+        
+        // LookAt Position
+        if (i == 0) {
+            mask.resize(mask.size() + 1);
+        }
+        if (i == 0 || frame._lookAtPosition != previousFrame._lookAtPosition) {
+            writeVec3(stream, frame._lookAtPosition);
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -570,22 +629,30 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     fileStream << recording->_audio->getByteArray();
     
+    // TODO: Complete empty bytes
+    file.seek(dataOffsetPos);
+    file.seek(dataLengthPos);
+    file.seek(crc32Pos);
+    
     qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed() << " ms.";
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
-    QElapsedTimer timer;
-    timer.start();
-    
     QByteArray byteArray;
     QUrl url(filename);
+    QElapsedTimer timer;
+    timer.start(); // timer used for debug informations (download/parsing time)
+    
+    // Aquire the data and place it in byteArray
+    // Return if data unavailable
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
+        // Download file if necessary
         qDebug() << "Downloading recording at" << url;
         NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-        loop.exec();
+        loop.exec(); // wait for file
         if (reply->error() != QNetworkReply::NoError) {
             qDebug() << "Error while downloading recording: " << reply->error();
             reply->deleteLater();
@@ -593,110 +660,199 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         }
         byteArray = reply->readAll();
         reply->deleteLater();
+        // print debug + restart timer
+        qDebug() << "Downloaded " << byteArray.size() << " bytes in " << timer.restart() << " ms.";
     } else {
+        // If local file, just read it.
         qDebug() << "Reading recording from " << filename << ".";
         QFile file(filename);
         if (!file.open(QIODevice::ReadOnly)){
+            qDebug() << "Could not open local file: " << url;
             return recording;
         }
         byteArray = file.readAll();
         file.close();
     }
     
+    // Reset the recording passed in the arguments
     if (!recording) {
         recording.reset(new Recording());
     }
     
     QDataStream fileStream(byteArray);
     
-    fileStream >> recording->_timestamps;
-    RecordingFrame baseFrame;
+    // HEADER
+    QByteArray magicNumber(MAGIC_NUMBER, MAGIC_NUMBER_SIZE);
+    if (!byteArray.startsWith(magicNumber)) {
+        qDebug() << "ERROR: This is not a .HFR file. (Magic Number incorrect)";
+        return recording;
+    }
+    fileStream.skipRawData(MAGIC_NUMBER_SIZE);
     
-    // Blendshape coefficients
-    fileStream >> baseFrame._blendshapeCoefficients;
-    
-    // Joint Rotations
-    int jointRotationSize;
-    fileStream >> jointRotationSize;
-    baseFrame._jointRotations.resize(jointRotationSize);
-    for (int i = 0; i < jointRotationSize; ++i) {
-        fileStream >> baseFrame._jointRotations[i].x >> baseFrame._jointRotations[i].y >> baseFrame._jointRotations[i].z >> baseFrame._jointRotations[i].w;
+    QPair<quint8, quint8> version;
+    fileStream >> version; // File format version
+    if (version != VERSION) {
+        qDebug() << "ERROR: This file format version is not supported.";
+        return recording;
     }
     
-    fileStream >> baseFrame._translation.x >> baseFrame._translation.y >> baseFrame._translation.z;
-    fileStream >> baseFrame._rotation.x >> baseFrame._rotation.y >> baseFrame._rotation.z >> baseFrame._rotation.w;
-    fileStream >> baseFrame._scale;
-    fileStream >> baseFrame._headRotation.x >> baseFrame._headRotation.y >> baseFrame._headRotation.z >> baseFrame._headRotation.w;
-    fileStream >> baseFrame._leanSideways;
-    fileStream >> baseFrame._leanForward;
+    quint16 dataLength = 0;
+    fileStream >> dataLength;
+    quint32 dataOffset = 0;
+    fileStream >> dataOffset;
+    quint32 crc32 = 0;
+    fileStream >> crc32;
     
-    recording->_frames << baseFrame;
+    // METADATA
+    // TODO
     
-    for (int i = 1; i < recording->_timestamps.size(); ++i) {
+    
+    
+    // CONTEXT
+    RecordingContext& context = recording->getContext();
+
+    // Domain
+    fileStream >> context.domain;
+    // Position
+    if (!readVec3(fileStream, context.position)) {
+        qDebug() << "Couldn't read file correctly. (Invalid vec3)";
+        recording.clear();
+        return recording;
+    }
+    // Orientation
+    if (!readQuat(fileStream, context.orientation)) {
+        qDebug() << "Couldn't read file correctly. (Invalid quat)";
+        recording.clear();
+        return recording;
+    }
+
+    // Scale
+    if (!readFloat(fileStream, context.scale)) {
+        qDebug() << "Couldn't read file correctly. (Invalid float)";
+        recording.clear();
+        return recording;
+    }
+    // Head model
+    fileStream >> context.headModel;
+    // Skeleton model
+    fileStream >> context.skeletonModel;
+    // Display Name
+    fileStream >> context.displayName;
+    
+    // Attachements
+    quint8 numAttachments = 0;
+    fileStream >> numAttachments;
+    for (int i = 0; i < numAttachments; ++i) {
+        AttachmentData data;
+        // Model
+        fileStream >> data.modelURL;
+        // Joint name
+        fileStream >> data.jointName;
+        // Translation
+        if (!readVec3(fileStream, data.translation)) {
+            qDebug() << "Couldn't read attachment correctly. (Invalid vec3)";
+            continue;
+        }
+        // Rotation
+        if (!readQuat(fileStream, data.rotation)) {
+            qDebug() << "Couldn't read attachment correctly. (Invalid quat)";
+            continue;
+        }
+        
+        // Scale
+        if (!readFloat(fileStream, data.scale)) {
+            qDebug() << "Couldn't read attachment correctly. (Invalid float)";
+            continue;
+        }
+        context.attachments << data;
+    }
+    
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "File Format version:" << VERSION;
+        qDebug() << "Data length:" << dataLength;
+        qDebug() << "Data offset:" << dataOffset;
+        qDebug() << "CRC-32:" << crc32;
+        
+        qDebug() << "Context block:";
+        qDebug() << "Domain:" << context.domain;
+        qDebug() << "Position:" << context.position;
+        qDebug() << "Orientation:" << context.orientation;
+        qDebug() << "Scale:" << context.scale;
+        qDebug() << "Head Model:" << context.headModel;
+        qDebug() << "Skeleton Model:" << context.skeletonModel;
+        qDebug() << "Display Name:" << context.displayName;
+        qDebug() << "Num Attachments:" << numAttachments;
+        
+        for (int i = 0; i < numAttachments; ++i) {
+            qDebug() << "Model URL:" << context.attachments[i].modelURL;
+            qDebug() << "Joint Name:" << context.attachments[i].jointName;
+            qDebug() << "Translation:" << context.attachments[i].translation;
+            qDebug() << "Rotation:" << context.attachments[i].rotation;
+            qDebug() << "Scale:" << context.attachments[i].scale;
+        }
+    }
+    
+    // RECORDING
+    fileStream >> recording->_timestamps;
+    
+    for (int i = 0; i < recording->_timestamps.size(); ++i) {
         QBitArray mask;
         QByteArray buffer;
         QDataStream stream(&buffer, QIODevice::ReadOnly);
         RecordingFrame frame;
-        RecordingFrame& previousFrame = recording->_frames.last();
+        RecordingFrame& previousFrame = (i == 0) ? frame : recording->_frames.last();
         
         fileStream >> mask;
         fileStream >> buffer;
         int maskIndex = 0;
         
         // Blendshape Coefficients
-        frame._blendshapeCoefficients.resize(baseFrame._blendshapeCoefficients.size());
-        for (int i = 0; i < baseFrame._blendshapeCoefficients.size(); ++i) {
-            if (mask[maskIndex++]) {
-                stream >> frame._blendshapeCoefficients[i];
-            } else {
-                frame._blendshapeCoefficients[i] = previousFrame._blendshapeCoefficients[i];
+        quint32 numBlendshapes = 0;
+        stream >> numBlendshapes;
+        frame._blendshapeCoefficients.resize(numBlendshapes);
+        for (int j = 0; j < numBlendshapes; ++j) {
+            if (!mask[maskIndex++] || !readFloat(stream, frame._blendshapeCoefficients[j])) {
+                frame._blendshapeCoefficients[j] = previousFrame._blendshapeCoefficients[j];
             }
         }
         
         // Joint Rotations
-        frame._jointRotations.resize(baseFrame._jointRotations.size());
-        for (int i = 0; i < baseFrame._jointRotations.size(); ++i) {
-            if (mask[maskIndex++]) {
-                stream >> frame._jointRotations[i].x >> frame._jointRotations[i].y >> frame._jointRotations[i].z >> frame._jointRotations[i].w;
-            } else {
-                frame._jointRotations[i] = previousFrame._jointRotations[i];
+        quint32 numJoints = 0;
+        stream >> numJoints;
+        frame._jointRotations.resize(numJoints);
+        for (int j = 0; j < numJoints; ++j) {
+            if (!mask[maskIndex++] || !readQuat(stream, frame._jointRotations[j])) {
+                frame._jointRotations[j] = previousFrame._jointRotations[j];
             }
         }
         
-        if (mask[maskIndex++]) {
-            stream >> frame._translation.x >> frame._translation.y >> frame._translation.z;
-        } else {
+        if (!mask[maskIndex++] || !readVec3(stream, frame._translation)) {
             frame._translation = previousFrame._translation;
         }
         
-        if (mask[maskIndex++]) {
-            stream >> frame._rotation.x >> frame._rotation.y >> frame._rotation.z >> frame._rotation.w;
-        } else {
+        if (!mask[maskIndex++] || !readQuat(stream, frame._rotation)) {
             frame._rotation = previousFrame._rotation;
         }
         
-        if (mask[maskIndex++]) {
-            stream >> frame._scale;
-        } else {
+        if (!mask[maskIndex++] || !readFloat(stream, frame._scale)) {
             frame._scale = previousFrame._scale;
         }
         
-        if (mask[maskIndex++]) {
-            stream >> frame._headRotation.x >> frame._headRotation.y >> frame._headRotation.z >> frame._headRotation.w;
-        } else {
+        if (!mask[maskIndex++] || !readQuat(stream, frame._headRotation)) {
             frame._headRotation = previousFrame._headRotation;
         }
         
-        if (mask[maskIndex++]) {
-            stream >> frame._leanSideways;
-        } else {
+        if (!mask[maskIndex++] || !readFloat(stream, frame._leanSideways)) {
             frame._leanSideways = previousFrame._leanSideways;
         }
         
-        if (mask[maskIndex++]) {
-            stream >> frame._leanForward;
-        } else {
+        if (!mask[maskIndex++] || !readFloat(stream, frame._leanForward)) {
             frame._leanForward = previousFrame._leanForward;
+        }
+        
+        if (!mask[maskIndex++] || !readVec3(stream, frame._lookAtPosition)) {
+            frame._lookAtPosition = previousFrame._lookAtPosition;
         }
         
         recording->_frames << frame;
