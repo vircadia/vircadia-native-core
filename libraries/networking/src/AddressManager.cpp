@@ -61,25 +61,25 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         // 3. location string (posX,posY,posZ/eulerX,eulerY,eulerZ)
         // 4. domain network address (IP or dns resolvable hostname)
         
-        if (lookupUrl.isRelative()) {
-            // if this is a relative path then handle it as a relative viewpoint
-            handleRelativeViewpoint(lookupUrl.path());
-        } else {
-            // use our regex'ed helpers to figure out what we're supposed to do with this
-            if (!handleUsername(lookupUrl.authority())) {
-                // we're assuming this is either a network address or global place name
-                // check if it is a network address first
-                if (!handleNetworkAddress(lookupUrl.host())) {
-                    // wasn't an address - lookup the place name
-                    attemptPlaceNameLookup(lookupUrl.host());
-                }
-                
-                // we may have a path that defines a relative viewpoint - if so we should jump to that now
-                handleRelativeViewpoint(lookupUrl.path());
+        // use our regex'ed helpers to figure out what we're supposed to do with this
+        if (!handleUsername(lookupUrl.authority())) {
+            // we're assuming this is either a network address or global place name
+            // check if it is a network address first
+            if (!handleNetworkAddress(lookupUrl.host())) {
+                // wasn't an address - lookup the place name
+                attemptPlaceNameLookup(lookupUrl.host());
             }
+            
+            // we may have a path that defines a relative viewpoint - if so we should jump to that now
+            handleRelativeViewpoint(lookupUrl.path());
         }
         
         return true;
+    } else if (lookupUrl.toString().startsWith('/')) {
+        qDebug() << "Going to relative path" << lookupUrl.path();
+        
+        // if this is a relative path then handle it as a relative viewpoint
+        handleRelativeViewpoint(lookupUrl.path());
     }
     
     return false;
@@ -89,10 +89,18 @@ void AddressManager::handleLookupString(const QString& lookupString) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
         QString sanitizedString = lookupString;
-        const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
-        sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
+        QUrl lookupURL;
         
-        handleUrl(QUrl(HIFI_URL_SCHEME + "://" + sanitizedString));
+        if (!lookupString.startsWith('/')) {
+            const QRegExp HIFI_SCHEME_REGEX = QRegExp(HIFI_URL_SCHEME + ":\\/{1,2}", Qt::CaseInsensitive);
+            sanitizedString = sanitizedString.remove(HIFI_SCHEME_REGEX);
+            
+            lookupURL = QUrl(HIFI_URL_SCHEME + "://" + sanitizedString);
+        } else {
+            lookupURL = QUrl(lookupString);
+        }
+        
+        handleUrl(lookupURL);
     }
 }
 
