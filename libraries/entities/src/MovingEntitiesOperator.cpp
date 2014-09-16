@@ -60,8 +60,19 @@ void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACub
         qDebug() << "    newCube:" << newCube;
         qDebug() << "    oldCubeClamped:" << oldCubeClamped;
         qDebug() << "    newCubeClamped:" << newCubeClamped;
-        qDebug() << "    oldContainingElement:" << oldContainingElement->getAACube();
-        qDebug() << "    oldContainingElement->bestFitBounds(newCubeClamped):" << oldContainingElement->bestFitBounds(newCubeClamped);
+        if (oldContainingElement) {
+            qDebug() << "    oldContainingElement:" << oldContainingElement->getAACube();
+            qDebug() << "    oldContainingElement->bestFitBounds(newCubeClamped):" 
+                            << oldContainingElement->bestFitBounds(newCubeClamped);
+        } else {
+            qDebug() << "    WARNING NO OLD CONTAINING ELEMENT!!!";
+        }
+    }
+    
+    if (!oldContainingElement) {
+            qDebug() << "UNEXPECTED!!!! attempting to move entity "<< entity->getEntityItemID() 
+                            << "that has no containing element. ";
+        return; // bail without adding.
     }
 
     // If the original containing element is the best fit for the requested newCube locations then
