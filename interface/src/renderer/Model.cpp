@@ -430,20 +430,20 @@ bool Model::render(float alpha, RenderMode mode) {
     
     glDisable(GL_BLEND);
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_EQUAL, 0.0f);
+    glAlphaFunc(GL_EQUAL, Application::getInstance()->getGlowEffect()->getIntensity());
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
     
-    renderMeshes(alpha, mode, false);
+    renderMeshes(mode, false);
     
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards
     
-    renderMeshes(alpha, mode, true);
+    renderMeshes(mode, true);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
@@ -1192,7 +1192,7 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
+void Model::renderMeshes(RenderMode mode, bool translucent) {
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -1298,7 +1298,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
         if (!mesh.colors.isEmpty()) {
             glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            glColor4f(1.0f, 1.0f, 1.0f, alpha);
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         }
         if (!mesh.texCoords.isEmpty()) {
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1317,8 +1317,8 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent) {
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
-                glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
-                glm::vec4 specular = glm::vec4(part.specularColor, alpha);
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, Application::getInstance()->getGlowEffect()->getIntensity());
+                glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                 glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
