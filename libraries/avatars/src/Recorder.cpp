@@ -129,6 +129,7 @@ void Recorder::startRecording() {
     bool wantDebug = false;
     if (wantDebug) {
         qDebug() << "Recorder::startRecording(): Recording Context";
+        qDebug() << "Global timestamp:" << context.globalTimestamp;
         qDebug() << "Domain:" << context.domain;
         qDebug() << "Position:" << context.position;
         qDebug() << "Orientation:" << context.orientation;
@@ -240,18 +241,7 @@ qint64 Player::elapsed() const {
 
 void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
-        // Setup audio thread
-        _audioThread = new QThread();
-        _options.setPosition(_avatar->getPosition());
-        _options.setOrientation(_avatar->getOrientation());
-        _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
-        _injector->moveToThread(_audioThread);
-        _audioThread->start();
-        QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
-        
-        // Fake faceshift connection
-        _avatar->setForceFaceshiftConnected(true);
-        
+        _currentContext.globalTimestamp = usecTimestampNow();
         _currentContext.domain = NodeList::getInstance()->getDomainHandler().getHostname();
         _currentContext.position = _avatar->getPosition();
         _currentContext.orientation = _avatar->getOrientation();
@@ -284,8 +274,12 @@ void Player::startPlaying() {
             }
         }
         
+        // Fake faceshift connection
+        _avatar->setForceFaceshiftConnected(true);
+        
         qDebug() << "Recorder::startPlaying()";
         _currentFrame = 0;
+        setupAudioThread();
         _timer.start();
     }
 }
@@ -294,12 +288,27 @@ void Player::stopPlaying() {
     if (!isPlaying()) {
         return;
     }
-    
     _timer.invalidate();
-    
+    cleanupAudioThread();
     _avatar->clearJointsData();
     
-    // Cleanup audio thread
+    // Turn off fake faceshift connection
+    _avatar->setForceFaceshiftConnected(false);
+    
+    qDebug() << "Recorder::stopPlaying()";
+}
+
+void Player::setupAudioThread() {
+    _audioThread = new QThread();
+    _options.setPosition(_avatar->getPosition());
+    _options.setOrientation(_avatar->getOrientation());
+    _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
+    _injector->moveToThread(_audioThread);
+    _audioThread->start();
+    QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);
+}
+
+void Player::cleanupAudioThread() {
     _injector->stop();
     QObject::connect(_injector.data(), &AudioInjector::finished,
                      _injector.data(), &AudioInjector::deleteLater);
@@ -309,11 +318,14 @@ void Player::stopPlaying() {
                      _audioThread, &QThread::deleteLater);
     _injector.clear();
     _audioThread = NULL;
+}
+
+void Player::loopRecording() {
+    cleanupAudioThread();
+    setupAudioThread();
+    _currentFrame = 0;
+    _timer.restart();
     
-    // Turn off fake faceshift connection
-    _avatar->setForceFaceshiftConnected(false);
-    
-    qDebug() << "Recorder::stopPlaying()";
 }
 
 void Player::loadFromFile(QString file) {
@@ -332,24 +344,23 @@ void Player::loadRecording(RecordingPointer recording) {
 void Player::play() {
     computeCurrentFrame();
     if (_currentFrame < 0 || (_currentFrame >= _recording->getFrameNumber() - 1)) {
-        // If it's the end of the recording, stop playing
-        stopPlaying();
-        
         if (_loop) {
-            startPlaying();
+            loopRecording();
+        } else {
+            stopPlaying();
         }
         return;
     }
     
-    RecordingContext& context = _recording->getContext();
+    const RecordingContext* context = &_recording->getContext();
     if (_playFromCurrentPosition) {
-        context = _currentContext;
+        context = &_currentContext;
     }
     const RecordingFrame& currentFrame = _recording->getFrame(_currentFrame);
     
-    _avatar->setPosition(context.position + context.orientation * currentFrame.getTranslation());
-    _avatar->setOrientation(context.orientation * currentFrame.getRotation());
-    _avatar->setTargetScale(context.scale * currentFrame.getScale());
+    _avatar->setPosition(context->position + context->orientation * currentFrame.getTranslation());
+    _avatar->setOrientation(context->orientation * currentFrame.getRotation());
+    _avatar->setTargetScale(context->scale * currentFrame.getScale());
     _avatar->setJointRotations(currentFrame.getJointRotations());
     
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());

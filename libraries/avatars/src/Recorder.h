@@ -172,6 +172,9 @@ public slots:
     void setLoop(bool loop);
     
 private:
+    void setupAudioThread();
+    void cleanupAudioThread();
+    void loopRecording();
     bool computeCurrentFrame();
     
     QElapsedTimer _timer;
