@@ -467,11 +467,11 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     file.write(MAGIC_NUMBER, MAGIC_NUMBER_SIZE); // Magic number
     fileStream << VERSION; // File format version
     const qint64 dataOffsetPos = file.pos();
-    fileStream << (quint16)17; // Save two empty bytes for the data offset
+    fileStream << (quint16)0; // Save two empty bytes for the data offset
     const qint64 dataLengthPos = file.pos();
-    fileStream << (quint32)42; // Save four empty bytes for the data offset
+    fileStream << (quint32)0; // Save four empty bytes for the data offset
     const quint64 crc32Pos = file.pos();
-    fileStream << (quint32)121; // Save four empty bytes for the CRC-32
+    fileStream << (quint32)0; // Save four empty bytes for the CRC-32
     
     
     // METADATA
@@ -479,6 +479,12 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     
     
+    // Write data offset
+    quint16 dataOffset = file.pos();
+    file.seek(dataOffsetPos);
+    fileStream << dataOffset;
+    file.seek(dataOffset);
+
     // CONTEXT
     RecordingContext& context = recording->getContext();
     // Global Timestamp
@@ -631,10 +637,11 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     fileStream << recording->_audio->getByteArray();
     
-    // TODO: Complete empty bytes
-    file.seek(dataOffsetPos);
+    // Write data length
+    quint16 dataLength = file.pos() - dataOffset;
     file.seek(dataLengthPos);
-    file.seek(crc32Pos);
+    fileStream << dataLength;
+    file.seek(dataOffset + dataLength);
     
     qDebug() << "Wrote " << file.size() << " bytes in " << timer.elapsed() << " ms.";
 }
