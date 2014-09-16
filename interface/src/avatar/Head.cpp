@@ -185,8 +185,12 @@ void Head::relaxLean(float deltaTime) {
 
 void Head::render(float alpha, Model::RenderMode mode) {
     if (_faceModel.render(alpha, mode) && _renderLookatVectors && mode != Model::SHADOW_RENDER_MODE) {
-        renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+        Application::getInstance()->getDeferredLightingEffect()->addPostLightingRenderable(this);
     }
+}
+
+void Head::renderPostLighting() {
+    renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
 }
 
 void Head::setScale (float scale) {
