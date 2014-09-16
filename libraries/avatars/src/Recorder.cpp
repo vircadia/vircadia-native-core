@@ -220,7 +220,11 @@ Player::Player(AvatarData* avatar) :
     _avatar(avatar),
     _audioThread(NULL),
     _playFromCurrentPosition(true),
-    _loop(false)
+    _loop(false),
+    _useAttachments(true),
+    _useDisplayName(true),
+    _useHeadURL(true),
+    _useSkeletonURL(true)
 {
     _timer.invalidate();
     _options.setLoop(false);
@@ -252,6 +256,20 @@ void Player::startPlaying() {
         _currentContext.attachments = _avatar->getAttachmentData();
         
         _currentContext.orientationInv = glm::inverse(_currentContext.orientation);
+        
+        RecordingContext& context = _recording->getContext();
+        if (_useAttachments) {
+            _avatar->setAttachmentData(context.attachments);
+        }
+        if (_useDisplayName) {
+            _avatar->setDisplayName(context.displayName);
+        }
+        if (_useHeadURL) {
+            _avatar->setFaceModelURL(context.headModel);
+        }
+        if (_useSkeletonURL) {
+            _avatar->setSkeletonModelURL(context.skeletonModel);
+        }
         
         bool wantDebug = false;
         if (wantDebug) {
@@ -294,6 +312,19 @@ void Player::stopPlaying() {
     
     // Turn off fake faceshift connection
     _avatar->setForceFaceshiftConnected(false);
+    
+    if (_useAttachments) {
+        _avatar->setAttachmentData(_currentContext.attachments);
+    }
+    if (_useDisplayName) {
+        _avatar->setDisplayName(_currentContext.displayName);
+    }
+    if (_useHeadURL) {
+        _avatar->setFaceModelURL(_currentContext.headModel);
+    }
+    if (_useSkeletonURL) {
+        _avatar->setSkeletonModelURL(_currentContext.skeletonModel);
+    }
     
     qDebug() << "Recorder::stopPlaying()";
 }

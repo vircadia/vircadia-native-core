@@ -191,6 +191,11 @@ private:
     RecordingContext _currentContext;
     bool _playFromCurrentPosition;
     bool _loop;
+    bool _useAttachments;
+    bool _useDisplayName;
+    bool _useHeadURL;
+    bool _useSkeletonURL;
+    
 };
 
 void writeRecordingToFile(RecordingPointer recording, QString file);
