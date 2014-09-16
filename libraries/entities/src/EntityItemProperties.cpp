@@ -592,9 +592,9 @@ void EntityItemProperties::markAllChanged() {
     _glowLevelChanged = true;
 }
 
-AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const { 
+AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {
     AACube maxCube = getMaximumAACubeInMeters();
-    maxCube.scale(1 / (float)TREE_SCALE);
+    maxCube.scale(1.0f / (float)TREE_SCALE);
     return maxCube;
 }
 
@@ -611,7 +611,7 @@ AACube EntityItemProperties::getMaximumAACubeInMeters() const {
     glm::vec3 registrationPoint = (_dimensions * _registrationPoint);
     glm::vec3 registrationRemainder = (_dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
     glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
-    
+
     // * we know that if you rotate in any direction you would create a sphere
     //   that has a radius of the length of furthest extent from registration point
     float radius = glm::length(furthestExtentFromRegistration);

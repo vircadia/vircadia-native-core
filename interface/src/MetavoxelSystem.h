@@ -392,8 +392,8 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
+    virtual bool findRayIntersection(RayIntersectionInfo& intersection,
+        const glm::vec3& clipMinimum, float clipSize) const;
 
 protected:
 

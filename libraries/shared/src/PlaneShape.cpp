@@ -11,6 +11,7 @@
 
 #include "PlaneShape.h"
 #include "SharedUtil.h"
+#include "GLMHelpers.h"
 
 const glm::vec3 UNROTATED_NORMAL(0.0f, 1.0f, 0.0f);
 
@@ -34,22 +35,42 @@ glm::vec3 PlaneShape::getNormal() const {
     return _rotation * UNROTATED_NORMAL;
 }
 
+void PlaneShape::setNormal(const glm::vec3& direction) {
+    glm::vec3 oldTranslation = _translation;
+    _rotation = rotationBetween(UNROTATED_NORMAL, direction);
+    glm::vec3 normal = getNormal();
+    _translation = glm::dot(oldTranslation, normal) * normal;
+}
+
+void PlaneShape::setPoint(const glm::vec3& point) {
+    glm::vec3 normal = getNormal();
+    _translation = glm::dot(point, normal) * normal;
+}
+
 glm::vec4 PlaneShape::getCoefficients() const {
     glm::vec3 normal = _rotation * UNROTATED_NORMAL;
     return glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, _translation));
 }
 
-bool PlaneShape::findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const {
+bool PlaneShape::findRayIntersection(RayIntersectionInfo& intersection) const {
     glm::vec3 n = getNormal();
-    float denominator = glm::dot(n, rayDirection);
+    float denominator = glm::dot(n, intersection._rayDirection);
     if (fabsf(denominator) < EPSILON) {
         // line is parallel to plane
-        return glm::dot(_translation - rayStart, n) < EPSILON;
+        if (glm::dot(_translation - intersection._rayStart, n) < EPSILON) {
+            // ray starts on the plane
+            intersection._hitDistance = 0.0f;
+            intersection._hitNormal = n;
+            intersection._hitShape = const_cast<PlaneShape*>(this);
+            return true;
+        }
     } else {
-        float d = glm::dot(_translation - rayStart, n) / denominator;
-        if (d > 0.0f) {
+        float d = glm::dot(_translation - intersection._rayStart, n) / denominator;
+        if (d > 0.0f && d < intersection._rayLength && d < intersection._hitDistance) {
             // ray points toward plane
-            distance = d;
+            intersection._hitDistance = d;
+            intersection._hitNormal = n;
+            intersection._hitShape = const_cast<PlaneShape*>(this);
             return true;
         }
     }

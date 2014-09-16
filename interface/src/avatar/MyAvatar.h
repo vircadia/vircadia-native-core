@@ -154,7 +154,9 @@ public slots:
     void decreaseSize();
     void resetSize();
     
-    void goToLocation(const glm::vec3& newPosition, bool hasOrientation = false, const glm::vec3& newOrientation = glm::vec3());
+    void goToLocation(const glm::vec3& newPosition,
+                      bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
+                      bool shouldFaceLocation = false);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
@@ -164,6 +166,7 @@ public slots:
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
 
     void updateMotionBehaviorsFromMenu();
+    void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
     glm::vec3 getRightPalmPosition();
@@ -206,7 +209,6 @@ private:
     float _maxMotorSpeed;
     quint32 _motionBehaviors;
 
-    glm::vec3 _lastFloorContactPoint;
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
     glm::vec3 _targetAvatarPosition;
     bool _shouldRender;
@@ -220,7 +222,6 @@ private:
     RecorderPointer _recorder;
     
 	// private methods
-    float computeDistanceToFloor(const glm::vec3& startPoint);
     void updateOrientation(float deltaTime);
     void updatePosition(float deltaTime);
     float computeMotorTimescale(const glm::vec3& velocity);

@@ -505,6 +505,11 @@ void ScriptEngine::run() {
                     // write the number of silent samples so the audio-mixer can uphold timing
                     packetStream.writeRawData(reinterpret_cast<const char*>(&SCRIPT_AUDIO_BUFFER_SAMPLES), sizeof(int16_t));
 
+                    // use the orientation and position of this avatar for the source of this audio
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&_avatarData->getPosition()), sizeof(glm::vec3));
+                    glm::quat headOrientation = _avatarData->getHeadOrientation();
+                    packetStream.writeRawData(reinterpret_cast<const char*>(&headOrientation), sizeof(glm::quat));
+
                 } else if (nextSoundOutput) {
                     // assume scripted avatar audio is mono and set channel flag to zero
                     packetStream << (quint8)0;

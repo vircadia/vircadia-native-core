@@ -19,6 +19,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "CollisionInfo.h"
+#include "RayIntersectionInfo.h"
 
 class Shape;
 class PhysicsSimulation;
@@ -52,7 +53,7 @@ public:
 
     PhysicsSimulation* getSimulation() const { return _simulation; }
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
     bool findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions);
     bool findSphereCollisions(const glm::vec3& sphereCenter, float sphereRadius, CollisionList& collisions);
     bool findPlaneCollisions(const glm::vec4& plane, CollisionList& collisions);
