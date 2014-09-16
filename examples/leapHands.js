@@ -26,7 +26,8 @@ var leapHands = (function () {
         CALIBRATING = 1,
         CALIBRATED = 2,
         CALIBRATION_TIME = 1000,  // milliseconds
-        PI = 3.141593;
+        PI = 3.141593,
+        isWindows;
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -123,6 +124,9 @@ var leapHands = (function () {
 
         if (hands[0].controller.isActive() && hands[1].controller.isActive()) {
             leapHandHeight = (hands[0].controller.getAbsTranslation().y + hands[1].controller.getAbsTranslation().y) / 2.0;
+
+            // TODO: Temporary detection of Windows to work around Leap Controller problem.
+            isWindows = (hands[1].controller.getAbsRotation().z > (0.25 * PI));
         } else {
             calibrationStatus = UNCALIBRATED;
             return;
@@ -302,7 +306,7 @@ var leapHands = (function () {
 
                 // TODO: Leap Motion controller's right-hand roll calculation only works if physical hand is upside down.
                 // Approximate fix is to add a fudge factor.
-                if (h === 1) {
+                if (h === 1 && isWindows) {
                     handRoll = handRoll + 0.6 * PI;
                 }
 
