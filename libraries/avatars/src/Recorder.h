@@ -142,12 +142,6 @@ public:
     
     RecordingPointer getRecording() const { return _recording; }
     
-    // Those should only be called if isPlaying() returns true
-    glm::quat getHeadRotation();
-    float getLeanSideways();
-    float getLeanForward();
-    
-    
 public slots:
     void startPlaying();
     void stopPlaying();

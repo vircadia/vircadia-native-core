@@ -186,37 +186,6 @@ qint64 Player::elapsed() const {
     }
 }
 
-glm::quat Player::getHeadRotation() {
-    if (!computeCurrentFrame()) {
-        qWarning() << "Incorrect use of Player::getHeadRotation()";
-        return glm::quat();
-    }
-    
-    if (_currentFrame == 0) {
-        return _recording->getFrame(_currentFrame).getHeadRotation();
-    }
-    return _recording->getFrame(0).getHeadRotation() *
-           _recording->getFrame(_currentFrame).getHeadRotation();
-}
-
-float Player::getLeanSideways() {
-    if (!computeCurrentFrame()) {
-        qWarning() << "Incorrect use of Player::getLeanSideways()";
-        return 0.0f;
-    }
-    
-    return _recording->getFrame(_currentFrame).getLeanSideways();
-}
-
-float Player::getLeanForward() {
-    if (!computeCurrentFrame()) {
-        qWarning() << "Incorrect use of Player::getLeanForward()";
-        return 0.0f;
-    }
-    
-    return _recording->getFrame(_currentFrame).getLeanForward();
-}
-
 void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
         qDebug() << "Recorder::startPlaying()";
