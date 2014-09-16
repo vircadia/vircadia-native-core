@@ -753,6 +753,15 @@ void Audio::handleAudioInput() {
                 quint16 numSilentSamples = numNetworkSamples;
                 memcpy(currentPacketPtr, &numSilentSamples, sizeof(quint16));
                 currentPacketPtr += sizeof(quint16);
+
+                // memcpy the three float positions
+                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+                currentPacketPtr += (sizeof(headPosition));
+                
+                // memcpy our orientation
+                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+                currentPacketPtr += sizeof(headOrientation);
+
             } else {
                 // set the mono/stereo byte
                 *currentPacketPtr++ = isStereo;
