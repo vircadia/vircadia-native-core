@@ -694,6 +694,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     bool wantDebug = true;
     if (wantDebug) {
+        qDebug() << "[DEBUG] WRITE recording";
         qDebug() << "Header:";
         qDebug() << "File Format version:" << VERSION;
         qDebug() << "Data length:" << dataLength;
@@ -846,7 +847,9 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     for (int i = 0; i < numAttachments; ++i) {
         AttachmentData data;
         // Model
-        fileStream >> data.modelURL;
+        QString modelURL;
+        fileStream >> modelURL;
+        data.modelURL = modelURL;
         // Joint name
         fileStream >> data.jointName;
         // Translation
@@ -939,6 +942,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     
     bool wantDebug = true;
     if (wantDebug) {
+        qDebug() << "[DEBUG] READ recording";
         qDebug() << "Header:";
         qDebug() << "File Format version:" << VERSION;
         qDebug() << "Data length:" << dataLength;
