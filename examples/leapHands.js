@@ -21,12 +21,11 @@ var leapHands = (function () {
         THUMB = 0,
         NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal(tip) joint
         MAX_HAND_INACTIVE_COUNT = 20,
-        avatarCalibrationStatus,
-        AVATAR_UNCALIBRATED = 0,
-        AVATAR_CALIBRATING = 1,
-        AVATAR_CALIBRATED = 2,
-        AVATAR_CALIBRATION_TIME = 1000,  // milliseconds
-        LEAP_HEIGHT_OFFSET = 0.15,
+        calibrationStatus,
+        UNCALIBRATED = 0,
+        CALIBRATING = 1,
+        CALIBRATED = 2,
+        CALIBRATION_TIME = 1000,  // milliseconds
         PI = 3.141593;
 
     function printSkeletonJointNames() {
@@ -115,23 +114,32 @@ var leapHands = (function () {
         */
     }
 
-    function calibrateAvatarFinish() {
+    function finishCalibration() {
         var avatarPosition,
             avatarOrientation,
-            handPosition,
+            avatarHandPosition,
+            leapHandHeight,
             h;
+
+        if (hands[0].controller.isActive() && hands[1].controller.isActive()) {
+            leapHandHeight = (hands[0].controller.getAbsTranslation().y + hands[1].controller.getAbsTranslation().y) / 2.0;
+        } else {
+            calibrationStatus = UNCALIBRATED;
+            return;
+        }
 
         avatarPosition = MyAvatar.position;
         avatarOrientation = MyAvatar.orientation;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
-            handPosition = MyAvatar.getJointPosition(hands[h].jointName);
+            avatarHandPosition = MyAvatar.getJointPosition(hands[h].jointName);
             hands[h].zeroPosition = {
-                x: handPosition.x - avatarPosition.x,
-                y: handPosition.y - avatarPosition.y,
-                z: avatarPosition.z - handPosition.z
+                x: avatarHandPosition.x - avatarPosition.x,
+                y: avatarHandPosition.y - avatarPosition.y,
+                z: avatarPosition.z - avatarHandPosition.z
             };
             hands[h].zeroPosition = Vec3.multiplyQbyV(MyAvatar.orientation, hands[h].zeroPosition);
+            hands[h].zeroPosition.y = hands[h].zeroPosition.y - leapHandHeight;
         }
 
         MyAvatar.clearJointData("LeftHand");
@@ -141,13 +149,13 @@ var leapHands = (function () {
         MyAvatar.clearJointData("RightForeArm");
         MyAvatar.clearJointData("RightArm");
 
-        avatarCalibrationStatus = AVATAR_CALIBRATED;
-        print("Leap Motion: Calibrated avatar");
+        calibrationStatus = CALIBRATED;
+        print("Leap Motion: Calibrated");
     }
 
-    function calibrateAvatar() {
+    function calibrate() {
 
-        avatarCalibrationStatus = AVATAR_CALIBRATING;
+        calibrationStatus = CALIBRATING;
 
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
         MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
@@ -158,17 +166,17 @@ var leapHands = (function () {
         MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
 
         // Wait for arms to assume their positions before calculating
-        Script.setTimeout(calibrateAvatarFinish, AVATAR_CALIBRATION_TIME);
+        Script.setTimeout(finishCalibration, CALIBRATION_TIME);
     }
 
     function checkCalibration() {
 
-        if (avatarCalibrationStatus === AVATAR_CALIBRATED) {
+        if (calibrationStatus === CALIBRATED) {
             return true;
         }
 
-        if (avatarCalibrationStatus !== AVATAR_CALIBRATING) {
-            calibrateAvatar();
+        if (calibrationStatus !== CALIBRATING) {
+            calibrate();
         }
 
         return false;
@@ -176,7 +184,7 @@ var leapHands = (function () {
 
     function setUp() {
 
-        avatarCalibrationStatus = AVATAR_UNCALIBRATED;
+        calibrationStatus = UNCALIBRATED;
 
         // TODO: Leap Motion controller joint naming doesn't match up with skeleton joint naming; numbers are out by 1.
 
@@ -282,7 +290,7 @@ var leapHands = (function () {
                 handOffset = hands[h].controller.getAbsTranslation();
                 handOffset = {
                     x: -handOffset.x,
-                    y: hands[h].zeroPosition.y + handOffset.y - LEAP_HEIGHT_OFFSET,
+                    y: hands[h].zeroPosition.y + handOffset.y,
                     z: hands[h].zeroPosition.z - handOffset.z
                 };
 
