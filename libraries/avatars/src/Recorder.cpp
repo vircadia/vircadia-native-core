@@ -455,7 +455,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     QElapsedTimer timer;
     QFile file(filename);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)){
+    if (!file.open(QIODevice::ReadWrite | QIODevice::Truncate)){
         qDebug() << "Couldn't open " << filename;
         return;
     }
@@ -472,7 +472,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     const qint64 dataLengthPos = file.pos();
     fileStream << (quint32)0; // Save four empty bytes for the data offset
     const quint64 crc16Pos = file.pos();
-    fileStream << (quint32)0; // Save four empty bytes for the CRC-16
+    fileStream << (quint16)0; // Save two empty bytes for the CRC-16
     
     
     // METADATA
@@ -640,14 +640,46 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     qint64 writtingTime = timer.restart();
     // Write data length and CRC-16
-    quint16 dataLength = file.pos() - dataOffset;
-    quint16 crc16= qChecksum(file.readAll().constData() + dataOffset,
-                             dataLength);
+    quint32 dataLength = file.pos() - dataOffset;
+    file.seek(dataOffset); // Go to beginning of data for checksum
+    quint16 crc16 = qChecksum(file.readAll().constData(), dataLength);
+    
     file.seek(dataLengthPos);
     fileStream << dataLength;
     file.seek(crc16Pos);
     fileStream << crc16;
     file.seek(dataOffset + dataLength);
+    
+    bool wantDebug = true;
+    if (wantDebug) {
+        qDebug() << "Header:";
+        qDebug() << "File Format version:" << VERSION;
+        qDebug() << "Data length:" << dataLength;
+        qDebug() << "Data offset:" << dataOffset;
+        qDebug() << "CRC-16:" << crc16;
+        
+        qDebug() << "Context block:";
+        qDebug() << "Global timestamp:" << context.globalTimestamp;
+        qDebug() << "Domain:" << context.domain;
+        qDebug() << "Position:" << context.position;
+        qDebug() << "Orientation:" << context.orientation;
+        qDebug() << "Scale:" << context.scale;
+        qDebug() << "Head Model:" << context.headModel;
+        qDebug() << "Skeleton Model:" << context.skeletonModel;
+        qDebug() << "Display Name:" << context.displayName;
+        qDebug() << "Num Attachments:" << context.attachments.size();
+        for (int i = 0; i < context.attachments.size(); ++i) {
+            qDebug() << "Model URL:" << context.attachments[i].modelURL;
+            qDebug() << "Joint Name:" << context.attachments[i].jointName;
+            qDebug() << "Translation:" << context.attachments[i].translation;
+            qDebug() << "Rotation:" << context.attachments[i].rotation;
+            qDebug() << "Scale:" << context.attachments[i].scale;
+        }
+        
+        qDebug() << "Recording:";
+        qDebug() << "Total frames:" << recording->getFrameNumber();
+        qDebug() << "Audio array:" << recording->getAudio()->getByteArray().size();
+    }
     
     qint64 checksumTime = timer.elapsed();
     qDebug() << "Wrote" << file.size() << "bytes in" << writtingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
@@ -712,12 +744,22 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         return recording;
     }
     
-    quint16 dataLength = 0;
-    fileStream >> dataLength;
-    quint32 dataOffset = 0;
+    quint16 dataOffset = 0;
     fileStream >> dataOffset;
-    quint32 crc16 = 0;
+    quint32 dataLength = 0;
+    fileStream >> dataLength;
+    quint16 crc16 = 0;
     fileStream >> crc16;
+    
+    
+    // Check checksum
+    
+    quint16 computedCRC16 = qChecksum(byteArray.constData() + dataOffset, dataLength);
+    if (computedCRC16 != crc16) {
+        qDebug() << "Checksum does not match. Bailling!";
+        recording.clear();
+        return recording;
+    }
     
     // METADATA
     // TODO
@@ -782,32 +824,6 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
             continue;
         }
         context.attachments << data;
-    }
-    
-    bool wantDebug = false;
-    if (wantDebug) {
-        qDebug() << "File Format version:" << VERSION;
-        qDebug() << "Data length:" << dataLength;
-        qDebug() << "Data offset:" << dataOffset;
-        qDebug() << "CRC-16:" << crc16;
-        
-        qDebug() << "Context block:";
-        qDebug() << "Domain:" << context.domain;
-        qDebug() << "Position:" << context.position;
-        qDebug() << "Orientation:" << context.orientation;
-        qDebug() << "Scale:" << context.scale;
-        qDebug() << "Head Model:" << context.headModel;
-        qDebug() << "Skeleton Model:" << context.skeletonModel;
-        qDebug() << "Display Name:" << context.displayName;
-        qDebug() << "Num Attachments:" << numAttachments;
-        
-        for (int i = 0; i < numAttachments; ++i) {
-            qDebug() << "Model URL:" << context.attachments[i].modelURL;
-            qDebug() << "Joint Name:" << context.attachments[i].jointName;
-            qDebug() << "Translation:" << context.attachments[i].translation;
-            qDebug() << "Rotation:" << context.attachments[i].rotation;
-            qDebug() << "Scale:" << context.attachments[i].scale;
-        }
     }
     
     // RECORDING
@@ -878,6 +894,38 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     QByteArray audioArray;
     fileStream >> audioArray;
     recording->addAudioPacket(audioArray);
+    
+    bool wantDebug = true;
+    if (wantDebug) {
+        qDebug() << "Header:";
+        qDebug() << "File Format version:" << VERSION;
+        qDebug() << "Data length:" << dataLength;
+        qDebug() << "Data offset:" << dataOffset;
+        qDebug() << "CRC-16:" << crc16;
+        
+        qDebug() << "Context block:";
+        qDebug() << "Global timestamp:" << context.globalTimestamp;
+        qDebug() << "Domain:" << context.domain;
+        qDebug() << "Position:" << context.position;
+        qDebug() << "Orientation:" << context.orientation;
+        qDebug() << "Scale:" << context.scale;
+        qDebug() << "Head Model:" << context.headModel;
+        qDebug() << "Skeleton Model:" << context.skeletonModel;
+        qDebug() << "Display Name:" << context.displayName;
+        qDebug() << "Num Attachments:" << numAttachments;
+        for (int i = 0; i < numAttachments; ++i) {
+            qDebug() << "Model URL:" << context.attachments[i].modelURL;
+            qDebug() << "Joint Name:" << context.attachments[i].jointName;
+            qDebug() << "Translation:" << context.attachments[i].translation;
+            qDebug() << "Rotation:" << context.attachments[i].rotation;
+            qDebug() << "Scale:" << context.attachments[i].scale;
+        }
+        
+        qDebug() << "Recording:";
+        qDebug() << "Total frames:" << recording->getFrameNumber();
+        qDebug() << "Audio array:" << recording->getAudio()->getByteArray().size();
+        
+    }
     
     qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     return recording;
