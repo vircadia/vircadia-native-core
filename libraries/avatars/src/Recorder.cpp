@@ -22,6 +22,7 @@
 #include "Recorder.h"
 
 
+#include <GLMHelpers.h>
 
 
 // TODO: remove operators
@@ -383,6 +384,57 @@ bool Player::computeCurrentFrame() {
         ++_currentFrame;
     }
     
+    return true;
+}
+
+void writeVec3(QDataStream& stream, glm::vec3 value) {
+    unsigned char buffer[256];
+    int writtenToBuffer = packFloatVec3ToSignedTwoByteFixed(buffer, value, 0);
+    stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
+}
+
+bool readVec3(QDataStream& stream, glm::vec3& value) {
+    int vec3ByteSize = 3 * 2; // 3 floats * 2 bytes
+    unsigned char buffer[256];
+    stream.readRawData(reinterpret_cast<char*>(buffer), vec3ByteSize);
+    int readFromBuffer = unpackFloatVec3FromSignedTwoByteFixed(buffer, value, 0);
+    if (readFromBuffer != vec3ByteSize) {
+        return false;
+    }
+    return true;
+}
+
+void writeQuat(QDataStream& stream, glm::quat value) {
+    unsigned char buffer[256];
+    int writtenToBuffer = packOrientationQuatToBytes(buffer, value);
+    stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
+}
+
+bool readQuat(QDataStream& stream, glm::quat& value) {
+    int quatByteSize = 4 * 2; // 4 floats * 2 bytes
+    unsigned char buffer[256];
+    stream.readRawData(reinterpret_cast<char*>(buffer), quatByteSize);
+    int readFromBuffer = unpackOrientationQuatFromBytes(buffer, value);
+    if (readFromBuffer != quatByteSize) {
+        return false;
+    }
+    return true;
+}
+
+void writeFloat(QDataStream& stream, float value) {
+    unsigned char buffer[256];
+    int writtenToBuffer = packFloatScalarToSignedTwoByteFixed(buffer, value, 0);
+    stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
+}
+
+bool readFloat(QDataStream& stream, float& value) {
+    int floatByteSize = 2; // 1 floats * 2 bytes
+    int16_t buffer[256];
+    stream.readRawData(reinterpret_cast<char*>(buffer), floatByteSize);
+    int readFromBuffer = unpackFloatScalarFromSignedTwoByteFixed(buffer, &value, 0);
+    if (readFromBuffer != floatByteSize) {
+        return false;
+    }
     return true;
 }
 
