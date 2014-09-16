@@ -26,6 +26,7 @@
 #include <SharedUtil.h>
 #include <Sound.h>
 
+class AttachmentData;
 class AvatarData;
 class Recorder;
 class Recording;
@@ -77,6 +78,21 @@ private:
     friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
 };
 
+class RecordingContext {
+public:
+    QString domain;
+    glm::vec3 position;
+    glm::quat orientation;
+    float scale;
+    QString headModel;
+    QString skeletonModel;
+    QString displayName;
+    QVector<AttachmentData> attachments;
+    
+    // This avoids recomputation every frame while recording.
+    glm::quat orientationInv;
+};
+
 /// Stores a recording
 class Recording {
 public:
@@ -86,6 +102,7 @@ public:
     bool isEmpty() const { return _timestamps.isEmpty(); }
     int getLength() const; // in ms
 
+    RecordingContext& getContext() { return _context; }
     int getFrameNumber() const { return _frames.size(); }
     qint32 getFrameTimestamp(int i) const;
     const RecordingFrame& getFrame(int i) const;
@@ -97,6 +114,7 @@ protected:
     void clear();
     
 private:
+    RecordingContext _context;
     QVector<qint32> _timestamps;
     QVector<RecordingFrame> _frames;
     
