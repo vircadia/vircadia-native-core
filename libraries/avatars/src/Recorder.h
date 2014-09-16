@@ -183,10 +183,8 @@ private:
     AvatarData* _avatar;
     QThread* _audioThread;
     
-    glm::vec3 _startingPosition;
-    glm::quat _startingRotation;
-    float _startingScale;
     
+    RecordingContext _currentContext;
     bool _playFromCurrentPosition;
     bool _loop;
 };

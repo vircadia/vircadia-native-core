@@ -18,12 +18,18 @@
 #include <QObject>
 
 #include "AvatarData.h"
+#include <Nodelist.h>
 #include "Recorder.h"
 
 
 
 
+// TODO: remove operators
+void operator<<(QDebug& stream, glm::vec3 vector) {
+    stream << vector.x << vector.y << vector.z;
 }
+void operator<<(QDebug& stream, glm::quat quat) {
+    stream << quat.x << quat.y << quat.z << quat.w;
 }
 
 void RecordingFrame::setBlendshapeCoefficients(QVector<float> blendshapeCoefficients) {
@@ -97,24 +103,42 @@ qint64 Recorder::elapsed() const {
 void Recorder::startRecording() {
     qDebug() << "Recorder::startRecording()";
     _recording->clear();
+    
+    RecordingContext& context = _recording->getContext();
+    context.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+    context.position = _avatar->getPosition();
+    context.orientation = _avatar->getOrientation();
+    context.scale = _avatar->getTargetScale();
+    context.headModel = _avatar->getFaceModelURL().toString();
+    context.skeletonModel = _avatar->getSkeletonModelURL().toString();
+    context.displayName = _avatar->getDisplayName();
+    context.attachments = _avatar->getAttachmentData();
+    
+    context.orientationInv = glm::inverse(context.orientation);
+    
+    bool wantDebug = false;
+    if (wantDebug) {
+        qDebug() << "Recorder::startRecording(): Recording Context";
+        qDebug() << "Domain:" << context.domain;
+        qDebug() << "Position:" << context.position;
+        qDebug() << "Orientation:" << context.orientation;
+        qDebug() << "Scale:" << context.scale;
+        qDebug() << "Head URL:" << context.headModel;
+        qDebug() << "Skeleton URL:" << context.skeletonModel;
+        qDebug() << "Display Name:" << context.displayName;
+        qDebug() << "Num Attachments:" << context.attachments.size();
+        
+        for (int i = 0; i < context.attachments.size(); ++i) {
+            qDebug() << "Model URL:" << context.attachments[i].modelURL;
+            qDebug() << "Joint Name:" << context.attachments[i].jointName;
+            qDebug() << "Translation:" << context.attachments[i].translation;
+            qDebug() << "Rotation:" << context.attachments[i].rotation;
+            qDebug() << "Scale:" << context.attachments[i].scale;
+        }
+    }
+    
     _timer.start();
-    
-    RecordingFrame frame;
-    frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
-    frame.setJointRotations(_avatar->getJointRotations());
-    frame.setTranslation(_avatar->getPosition());
-    frame.setRotation(_avatar->getOrientation());
-    frame.setScale(_avatar->getTargetScale());
-    
-    const HeadData* head = _avatar->getHeadData();
-    glm::quat rotation = glm::quat(glm::radians(glm::vec3(head->getFinalPitch(),
-                                                          head->getFinalYaw(),
-                                                          head->getFinalRoll())));
-    frame.setHeadRotation(rotation);
-    frame.setLeanForward(_avatar->getHeadData()->getLeanForward());
-    frame.setLeanSideways(_avatar->getHeadData()->getLeanSideways());
-    
-    _recording->addFrame(0, frame);
+    record();
 }
 
 void Recorder::stopRecording() {
@@ -134,22 +158,41 @@ void Recorder::saveToFile(QString file) {
 
 void Recorder::record() {
     if (isRecording()) {
-        const RecordingFrame& referenceFrame = _recording->getFrame(0);
+        const RecordingContext& context = _recording->getContext();
         RecordingFrame frame;
         frame.setBlendshapeCoefficients(_avatar->getHeadData()->getBlendshapeCoefficients());
         frame.setJointRotations(_avatar->getJointRotations());
-        frame.setTranslation(_avatar->getPosition() - referenceFrame.getTranslation());
-        frame.setRotation(glm::inverse(referenceFrame.getRotation()) * _avatar->getOrientation());
-        frame.setScale(_avatar->getTargetScale() / referenceFrame.getScale());
+        frame.setTranslation(context.orientationInv * (_avatar->getPosition() - context.position));
+        frame.setRotation(context.orientationInv * _avatar->getOrientation());
+        frame.setScale(_avatar->getTargetScale() / context.scale);
         
         
         const HeadData* head = _avatar->getHeadData();
-        glm::quat rotation = glm::quat(glm::radians(glm::vec3(head->getFinalPitch(),
-                                                              head->getFinalYaw(),
-                                                              head->getFinalRoll())));
-        frame.setHeadRotation(rotation);
-        frame.setLeanForward(_avatar->getHeadData()->getLeanForward());
-        frame.setLeanSideways(_avatar->getHeadData()->getLeanSideways());
+        if (head) {
+            glm::vec3 rotationDegrees = glm::vec3(head->getFinalPitch(),
+                                                  head->getFinalYaw(),
+                                                  head->getFinalRoll());
+            frame.setHeadRotation(glm::quat(glm::radians(rotationDegrees)));
+            frame.setLeanForward(head->getLeanForward());
+            frame.setLeanSideways(head->getLeanSideways());
+            glm::vec3 relativeLookAt = context.orientationInv *
+                                       (head->getLookAtPosition() - context.position);
+            frame.setLookAtPosition(relativeLookAt);
+        }
+        
+        bool wantDebug = false;
+        if (wantDebug) {
+            qDebug() << "Recording frame #" << _recording->getFrameNumber();
+            qDebug() << "Blendshapes:" << frame.getBlendshapeCoefficients().size();
+            qDebug() << "JointRotations:" << frame.getJointRotations().size();
+            qDebug() << "Translation:" << frame.getTranslation();
+            qDebug() << "Rotation:" << frame.getRotation();
+            qDebug() << "Scale:" << frame.getScale();
+            qDebug() << "Head rotation:" << frame.getHeadRotation();
+            qDebug() << "Lean Forward:" << frame.getLeanForward();
+            qDebug() << "Lean Sideways:" << frame.getLeanSideways();
+            qDebug() << "LookAtPosition:" << frame.getLookAtPosition();
+        }
         
         _recording->addFrame(_timer.elapsed(), frame);
     }
@@ -165,7 +208,6 @@ Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
     _avatar(avatar),
     _audioThread(NULL),
-    _startingScale(1.0f),
     _playFromCurrentPosition(true),
     _loop(false)
 {
@@ -188,9 +230,6 @@ qint64 Player::elapsed() const {
 
 void Player::startPlaying() {
     if (_recording && _recording->getFrameNumber() > 0) {
-        qDebug() << "Recorder::startPlaying()";
-        _currentFrame = 0;
-        
         // Setup audio thread
         _audioThread = new QThread();
         _options.setPosition(_avatar->getPosition());
@@ -203,16 +242,40 @@ void Player::startPlaying() {
         // Fake faceshift connection
         _avatar->setForceFaceshiftConnected(true);
         
-        if (_playFromCurrentPosition) {
-            _startingPosition = _avatar->getPosition();
-            _startingRotation = _avatar->getOrientation();
-            _startingScale = _avatar->getTargetScale();
-        } else {
-            _startingPosition = _recording->getFrame(0).getTranslation();
-            _startingRotation = _recording->getFrame(0).getRotation();
-            _startingScale = _recording->getFrame(0).getScale();
+        _currentContext.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+        _currentContext.position = _avatar->getPosition();
+        _currentContext.orientation = _avatar->getOrientation();
+        _currentContext.scale = _avatar->getTargetScale();
+        _currentContext.headModel = _avatar->getFaceModelURL().toString();
+        _currentContext.skeletonModel = _avatar->getSkeletonModelURL().toString();
+        _currentContext.displayName = _avatar->getDisplayName();
+        _currentContext.attachments = _avatar->getAttachmentData();
+        
+        _currentContext.orientationInv = glm::inverse(_currentContext.orientation);
+        
+        bool wantDebug = false;
+        if (wantDebug) {
+            qDebug() << "Player::startPlaying(): Recording Context";
+            qDebug() << "Domain:" << _currentContext.domain;
+            qDebug() << "Position:" << _currentContext.position;
+            qDebug() << "Orientation:" << _currentContext.orientation;
+            qDebug() << "Scale:" << _currentContext.scale;
+            qDebug() << "Head URL:" << _currentContext.headModel;
+            qDebug() << "Skeleton URL:" << _currentContext.skeletonModel;
+            qDebug() << "Display Name:" << _currentContext.displayName;
+            qDebug() << "Num Attachments:" << _currentContext.attachments.size();
+            
+            for (int i = 0; i < _currentContext.attachments.size(); ++i) {
+                qDebug() << "Model URL:" << _currentContext.attachments[i].modelURL;
+                qDebug() << "Joint Name:" << _currentContext.attachments[i].jointName;
+                qDebug() << "Translation:" << _currentContext.attachments[i].translation;
+                qDebug() << "Rotation:" << _currentContext.attachments[i].rotation;
+                qDebug() << "Scale:" << _currentContext.attachments[i].scale;
+            }
         }
         
+        qDebug() << "Recorder::startPlaying()";
+        _currentFrame = 0;
         _timer.start();
     }
 }
@@ -268,30 +331,29 @@ void Player::play() {
         return;
     }
     
-    if (_currentFrame == 0) {
-        // Don't play frame 0
-        // only meant to store absolute values
-        return;
+    RecordingContext& context = _recording->getContext();
+    if (_playFromCurrentPosition) {
+        context = _currentContext;
     }
+    const RecordingFrame& currentFrame = _recording->getFrame(_currentFrame);
     
-    _avatar->setPosition(_startingPosition +
-                         glm::inverse(_recording->getFrame(0).getRotation()) * _startingRotation *
-                         _recording->getFrame(_currentFrame).getTranslation());
-    _avatar->setOrientation(_startingRotation *
-                            _recording->getFrame(_currentFrame).getRotation());
-    _avatar->setTargetScale(_startingScale *
-                            _recording->getFrame(_currentFrame).getScale());
-    _avatar->setJointRotations(_recording->getFrame(_currentFrame).getJointRotations());
+    _avatar->setPosition(context.position + context.orientation * currentFrame.getTranslation());
+    _avatar->setOrientation(context.orientation * currentFrame.getRotation());
+    _avatar->setTargetScale(context.scale * currentFrame.getScale());
+    _avatar->setJointRotations(currentFrame.getJointRotations());
     
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
-        head->setBlendshapeCoefficients(_recording->getFrame(_currentFrame).getBlendshapeCoefficients());
-        head->setLeanSideways(_recording->getFrame(_currentFrame).getLeanSideways());
-        head->setLeanForward(_recording->getFrame(_currentFrame).getLeanForward());
-        glm::vec3 eulers = glm::degrees(safeEulerAngles(_recording->getFrame(_currentFrame).getHeadRotation()));
+        head->setBlendshapeCoefficients(currentFrame.getBlendshapeCoefficients());
+        head->setLeanSideways(currentFrame.getLeanSideways());
+        head->setLeanForward(currentFrame.getLeanForward());
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(currentFrame.getHeadRotation()));
         head->setFinalPitch(eulers.x);
         head->setFinalYaw(eulers.y);
         head->setFinalRoll(eulers.z);
+        head->setLookAtPosition(currentFrame.getLookAtPosition());
+    } else {
+        qDebug() << "WARNING: Player couldn't find head data.";
     }
     
     _options.setPosition(_avatar->getPosition());
