@@ -40,6 +40,9 @@ extern const QUrl DEFAULT_NODE_AUTH_URL;
 
 const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
+const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
+const unsigned short STUN_SERVER_PORT = 3478;
+
 class HifiSockAddr;
 
 typedef QSet<NodeType_t> NodeSet;
@@ -99,6 +102,9 @@ public:
 
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
+    
+    virtual void sendSTUNRequest();
+    virtual bool processSTUNResponse(const QByteArray& packet);
 public slots:
     void reset();
     void eraseAllNodes();
@@ -110,6 +116,7 @@ signals:
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
+    void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 protected:
     static LimitedNodeList* _sharedInstance;
 
@@ -130,6 +137,7 @@ protected:
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;
     QUdpSocket* _dtlsSocket;
+    HifiSockAddr _publicSockAddr;
     int _numCollectedPackets;
     int _numCollectedBytes;
     QElapsedTimer _packetStatTimer;
