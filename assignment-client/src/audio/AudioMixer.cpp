@@ -144,6 +144,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     
     bool shouldDistanceAttenuate = true;
     
+    bool sourceIsSelf = (streamToAdd == listeningNodeStream);
+    
     // if the two stream pointers do not match then these are different streams
     glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
     
@@ -176,7 +178,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     
     glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
     
-    if (streamToAdd->getType() != PositionalAudioStream::Injector) {
+    if (!sourceIsSelf && (streamToAdd->getType() != PositionalAudioStream::Injector)) {
         //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
         
@@ -212,29 +214,31 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         if (showDebug) qDebug() << "distanceCoefficient: " << distanceCoefficient;
     }
     
-    //  Compute sample delay for the two ears to create phase panning
-    glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+    if (!sourceIsSelf) {
+        //  Compute sample delay for the two ears to create phase panning
+        glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
 
-    // project the rotated source position vector onto the XZ plane
-    rotatedSourcePosition.y = 0.0f;
-    
-    // produce an oriented angle about the y-axis
-    bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                      glm::normalize(rotatedSourcePosition),
-                                                      glm::vec3(0.0f, 1.0f, 0.0f));
-    
-    const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-    
-    // figure out the number of samples of delay and the ratio of the amplitude
-    // in the weak channel for audio spatialization
-    float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-    numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
-    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-    
-    if (distanceBetween < RADIUS_OF_HEAD) {
-        // Diminish phase panning if source would be inside head
-        numSamplesDelay *= distanceBetween / RADIUS_OF_HEAD;
-        weakChannelAmplitudeRatio += (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio) * distanceBetween / RADIUS_OF_HEAD;
+        // project the rotated source position vector onto the XZ plane
+        rotatedSourcePosition.y = 0.0f;
+        
+        // produce an oriented angle about the y-axis
+        bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                          glm::normalize(rotatedSourcePosition),
+                                                          glm::vec3(0.0f, 1.0f, 0.0f));
+        
+        const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+        
+        // figure out the number of samples of delay and the ratio of the amplitude
+        // in the weak channel for audio spatialization
+        float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+        numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
+        weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+        
+        if (distanceBetween < RADIUS_OF_HEAD) {
+            // Diminish phase panning if source would be inside head
+            numSamplesDelay *= distanceBetween / RADIUS_OF_HEAD;
+            weakChannelAmplitudeRatio += (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio) * distanceBetween / RADIUS_OF_HEAD;
+        }
     }
     
     if (showDebug) {
@@ -300,7 +304,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         }
     }
 
-    if (_enableFilter) {
+    if (!sourceIsSelf && _enableFilter) {
 
         const float TWO_OVER_PI = 2.0f / PI;
         
