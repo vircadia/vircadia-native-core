@@ -58,11 +58,14 @@ private slots:
     void readAvailableDatagrams();
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
+    void requestCurrentIPAddressViaSTUN();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
+    bool hasOAuthProviderAndAuthInformation();
     bool optionallySetupAssignmentPayment();
+    void setupDynamicIPAddressUpdating();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     

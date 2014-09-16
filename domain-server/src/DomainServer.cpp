@@ -72,6 +72,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         setupNodeListAndAssignments();
         
         loadExistingSessionsFromSettings();
+        
+        // check if we have the flag that enables dynamic IP
+        setupDynamicIPAddressUpdating();
     }
 }
 
@@ -162,6 +165,8 @@ bool DomainServer::optionallySetupOAuth() {
     return true;
 }
 
+const QString DOMAIN_CONFIG_ID_KEY = "id";
+
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     const QString CUSTOM_PORT_OPTION = "port";
@@ -190,8 +195,6 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
     
-    const QString DOMAIN_CONFIG_ID_KEY = "id";
-    
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
     nodeList->setSessionUUID(_argumentVariantMap.value(DOMAIN_CONFIG_ID_KEY).toString());
@@ -209,27 +212,29 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     addStaticAssignmentsToQueue();
 }
 
-bool DomainServer::optionallySetupAssignmentPayment() {
-    // check if we have a username and password set via env
-    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
-    const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
-    const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
+const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
+const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
 
-    if (_argumentVariantMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
-        _argumentVariantMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool()) {
-        if (!_oauthProviderURL.isEmpty()) {
-
+bool DomainServer::hasOAuthProviderAndAuthInformation() {
+    
+    if (!_oauthProviderURL.isEmpty()) {
+        
+        static bool hasAttemptedAuthWithOAuthProvider = false;
+        
+        if (!hasAttemptedAuthWithOAuthProvider) {
             AccountManager& accountManager = AccountManager::getInstance();
             accountManager.setAuthURL(_oauthProviderURL);
-
+            
             if (!accountManager.hasValidAccessToken()) {
                 // we don't have a valid access token so we need to get one
+                // check if we have a username and password set via env
                 QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
                 QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
-
+                
                 if (!username.isEmpty() && !password.isEmpty()) {
+                    
                     accountManager.requestAccessToken(username, password);
-
+                    
                     // connect to loginFailed signal from AccountManager so we can quit if that is the case
                     connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
                 } else {
@@ -238,32 +243,77 @@ bool DomainServer::optionallySetupAssignmentPayment() {
                     return false;
                 }
             }
-
-            qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
-
-            // assume that the fact we are authing against HF data server means we will pay for assignments
-            // setup a timer to send transactions to pay assigned nodes every 30 seconds
-            QTimer* creditSetupTimer = new QTimer(this);
-            connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
-
-            const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
-            creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
-
-            QTimer* nodePaymentTimer = new QTimer(this);
-            connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
-
-            const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
-            nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
-
-        } else {
-            qDebug() << "Missing OAuth provider URL, but assigned node payment was enabled. domain-server will now quit.";
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-
-            return false;
+            
+            hasAttemptedAuthWithOAuthProvider = true;
         }
+
+    } else {
+        qDebug() << "Missing OAuth provider URL, but a domain-server feature was required that requires authentication." <<
+            "domain-server will now quit.";
+        QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        
+        return false;
+    }
+}
+
+bool DomainServer::optionallySetupAssignmentPayment() {
+    const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
+    
+    if (_argumentVariantMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
+        _argumentVariantMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
+        hasOAuthProviderAndAuthInformation()) {
+        
+        qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
+        
+        // assume that the fact we are authing against HF data server means we will pay for assignments
+        // setup a timer to send transactions to pay assigned nodes every 30 seconds
+        QTimer* creditSetupTimer = new QTimer(this);
+        connect(creditSetupTimer, &QTimer::timeout, this, &DomainServer::setupPendingAssignmentCredits);
+        
+        const qint64 CREDIT_CHECK_INTERVAL_MSECS = 5 * 1000;
+        creditSetupTimer->start(CREDIT_CHECK_INTERVAL_MSECS);
+        
+        QTimer* nodePaymentTimer = new QTimer(this);
+        connect(nodePaymentTimer, &QTimer::timeout, this, &DomainServer::sendPendingTransactionsToServer);
+        
+        const qint64 TRANSACTION_SEND_INTERVAL_MSECS = 30 * 1000;
+        nodePaymentTimer->start(TRANSACTION_SEND_INTERVAL_MSECS);
     }
 
     return true;
+}
+
+void DomainServer::setupDynamicIPAddressUpdating() {
+    const QString ENABLE_DYNAMIC_IP_UPDATING_OPTION = "update-ip";
+    
+    if (_argumentVariantMap.contains(ENABLE_DYNAMIC_IP_UPDATING_OPTION) &&
+        _argumentVariantMap.value(ENABLE_DYNAMIC_IP_UPDATING_OPTION).toBool() &&
+        hasOAuthProviderAndAuthInformation()) {
+        
+        const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
+        
+        if (!domainID.isNull()) {
+            qDebug() << "domain-server IP address will be updated for domain with ID"
+                << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+            
+            const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+            
+            // setup our timer to check our IP via stun every 30 seconds
+            QTimer* dynamicIPTimer = new QTimer(this);
+            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentIPAddressViaSTUN);
+            dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+            
+            // check our IP address right away
+            requestCurrentIPAddressViaSTUN();
+            
+        } else {
+            qDebug() << "Cannot enable dynamic domain-server IP address updating without a domain ID."
+                << "Please add an id to your config.json or pass it with the command line argument --id.";
+            qDebug() << "Failed dynamic IP address update setup. domain-server will now quit.";
+            
+            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        }
+    }
 }
 
 void DomainServer::loginFailed() {
@@ -834,6 +884,10 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
             }
         }
     }
+}
+
+void DomainServer::requestCurrentIPAddressViaSTUN() {
+    
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
