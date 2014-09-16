@@ -1197,8 +1197,6 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     float motorEfficiency = glm::clamp(deltaTime / computeMotorTimescale(velocity), 0.0f, 1.0f);
 
-    // compute targetVelocity
-    glm::vec3 targetVelocity(0.0f);
     if (_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED) {
         float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
             (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) + 
@@ -1235,13 +1233,12 @@ void MyAvatar::updatePosition(float deltaTime) {
                 }
                 _isPushing = true;
             } 
-            targetVelocity = _motorVelocity;
         } else {
             _motorVelocity = glm::vec3(0.0f);
         }
     }
-    targetVelocity = getHead()->getCameraOrientation() * targetVelocity;
 
+    glm::vec3 targetVelocity = getHead()->getCameraOrientation() * _motorVelocity;
     glm::vec3 deltaVelocity = targetVelocity - velocity;
 
     if (walkingOnFloor && !pushingUp) {
