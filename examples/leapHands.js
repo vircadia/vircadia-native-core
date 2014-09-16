@@ -21,6 +21,11 @@ var leapHands = (function () {
         THUMB = 0,
         NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal(tip) joint
         MAX_HAND_INACTIVE_COUNT = 20,
+        avatarCalibrationStatus,
+        AVATAR_UNCALIBRATED = 0,
+        AVATAR_CALIBRATING = 1,
+        AVATAR_CALIBRATED = 2,
+        AVATAR_CALIBRATION_TIME = 1000,  // milliseconds
         LEAP_HEIGHT_OFFSET = 0.15,
         PI = 3.141593;
 
@@ -110,7 +115,68 @@ var leapHands = (function () {
         */
     }
 
+    function calibrateAvatarFinish() {
+        var avatarPosition,
+            avatarOrientation,
+            handPosition,
+            h;
+
+        avatarPosition = MyAvatar.position;
+        avatarOrientation = MyAvatar.orientation;
+
+        for (h = 0; h < NUM_HANDS; h += 1) {
+            handPosition = MyAvatar.getJointPosition(hands[h].jointName);
+            hands[h].zeroPosition = {
+                x: handPosition.x - avatarPosition.x,
+                y: handPosition.y - avatarPosition.y,
+                z: avatarPosition.z - handPosition.z
+            };
+            hands[h].zeroPosition = Vec3.multiplyQbyV(MyAvatar.orientation, hands[h].zeroPosition);
+        }
+
+        MyAvatar.clearJointData("LeftHand");
+        MyAvatar.clearJointData("LeftForeArm");
+        MyAvatar.clearJointData("LeftArm");
+        MyAvatar.clearJointData("RightHand");
+        MyAvatar.clearJointData("RightForeArm");
+        MyAvatar.clearJointData("RightArm");
+
+        avatarCalibrationStatus = AVATAR_CALIBRATED;
+        print("Leap Motion: Calibrated avatar");
+    }
+
+    function calibrateAvatar() {
+
+        avatarCalibrationStatus = AVATAR_CALIBRATING;
+
+        // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
+        MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
+        MyAvatar.setJointData("LeftForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
+        MyAvatar.setJointData("LeftHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
+        MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 90.0));
+        MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
+        MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
+
+        // Wait for arms to assume their positions before calculating
+        Script.setTimeout(calibrateAvatarFinish, AVATAR_CALIBRATION_TIME);
+    }
+
+    function checkCalibration() {
+
+        if (avatarCalibrationStatus === AVATAR_CALIBRATED) {
+            return true;
+        }
+
+        if (avatarCalibrationStatus !== AVATAR_CALIBRATING) {
+            calibrateAvatar();
+        }
+
+        return false;
+    }
+
     function setUp() {
+
+        avatarCalibrationStatus = AVATAR_UNCALIBRATED;
 
         // TODO: Leap Motion controller joint naming doesn't match up with skeleton joint naming; numbers are out by 1.
 
@@ -187,19 +253,6 @@ var leapHands = (function () {
                 { jointName: "RightHandPinky3", controller: Controller.createInputController("Spatial", "joint_R_pinky4") }
             ]
         ];
-
-        // TODO: Add automatic calibration of avatar's hands.
-        // Calibration values for Ron.
-        hands[0].zeroPosition = {
-            x: -0.157,
-            y: 0.204,
-            z: 0.336
-        };
-        hands[1].zeroPosition = {
-            x: 0.234,
-            y: 0.204,
-            z: 0.339
-        };
     }
 
     function moveHands() {
@@ -219,6 +272,11 @@ var leapHands = (function () {
             side = h === 0 ? -1.0 : 1.0;
 
             if (hands[h].controller.isActive()) {
+
+                // Calibrate when and if a controller is first active.
+                if (!checkCalibration()) {
+                    return;
+                }
 
                 // Hand position ...
                 handOffset = hands[h].controller.getAbsTranslation();
