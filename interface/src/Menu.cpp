@@ -277,7 +277,8 @@ Menu::Menu() :
             avatar, SLOT(updateMotionBehaviorsFromMenu()));
 
     QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll);
+    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
+            avatar, SLOT(onToggleRagdoll()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithAvatars,
             0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithVoxels,
@@ -744,6 +745,7 @@ void Menu::loadSettings(QSettings* settings) {
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     myAvatar->updateCollisionGroups();
+    myAvatar->onToggleRagdoll();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();

@@ -28,7 +28,7 @@ public:
     AACubeShape* _shape;
 };
 
-typedef QHash<quint64, VoxelInfo> VoxelPool;
+typedef QHash<uint, VoxelInfo> VoxelPool;
 
 class VoxelShapeManager : public PhysicsEntity {
 public:
@@ -39,11 +39,14 @@ public:
     void buildShapes();
     void clearShapes();
 
+    bool needsUpdate(const quint64& now) const { return _updateExpiry < now; }
+
     /// \param cubes list of AACubes representing all of the voxels that should be in this VoxelShapeManager
-    void updateVoxels(CubeList& cubes);
+    void updateVoxels(const quint64& now, CubeList& cubes);
 
 
 private:
+    quint64 _updateExpiry;
     glm::vec3 _lastSimulationTranslation;
     VoxelPool _voxels;
 };

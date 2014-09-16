@@ -501,7 +501,6 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             processedBytes = 0;
             break;
     }
-    
     return processedBytes;
 }
 

@@ -15,6 +15,7 @@
 #include <QVector>
 
 #include "CollisionInfo.h"
+#include "RayIntersectionInfo.h"
 #include "SharedUtil.h" 
 
 class Shape;
@@ -145,11 +146,9 @@ namespace ShapeCollider {
     bool capsuleVsAACubeLegacy(const CapsuleShape* capsuleA, const glm::vec3& cubeCenter, float cubeSide, CollisionList& collisions);
 
     /// \param shapes list of pointers to shapes (shape pointers may be NULL)
-    /// \param startPoint beginning of ray
-    /// \param direction direction of ray
-    /// \param minDistance[out] shortest distance to intersection of ray with a shapes
+    /// \param intersection[out] struct with info about Ray and hit
     /// \return true if ray hits any shape in shapes
-    bool findRayIntersectionWithShapes(const QVector<Shape*> shapes, const glm::vec3& startPoint, const glm::vec3& direction, float& minDistance);
+    bool findRayIntersection(const QVector<Shape*>& shapes, RayIntersectionInfo& intersection);
 
 }   // namespace ShapeCollider
 

@@ -40,14 +40,16 @@ signals:
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
     void possibleDomainChangeRequired(const QString& newHostname);
-    void locationChangeRequired(const glm::vec3& newPosition, bool hasOrientationChange, const glm::vec3& newOrientation);
+    void locationChangeRequired(const glm::vec3& newPosition,
+                                bool hasOrientationChange, const glm::quat& newOrientation,
+                                bool shouldFaceLocation);
 private:
     const JSONCallbackParameters& apiCallbackParameters();
     
     bool handleUrl(const QUrl& lookupUrl);
     
     bool handleNetworkAddress(const QString& lookupString);
-    bool handleRelativeViewpoint(const QString& pathSubsection);
+    bool handleRelativeViewpoint(const QString& pathSubsection, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
 };
 

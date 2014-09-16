@@ -102,7 +102,7 @@ AudioMixer::~AudioMixer() {
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
-const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
+const float RADIUS_OF_HEAD = 0.076f;
 
 int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
                                                           AvatarAudioStream* listeningNodeStream) {
@@ -112,6 +112,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     // Basically, we'll repeat that last frame until it has a frame to mix.  Depending on how many times
     // we've repeated that frame in a row, we'll gradually fade that repeated frame into silence.
     // This improves the perceived quality of the audio slightly.
+    
+    bool showDebug = false;  // (randFloat() < 0.05f);
 
     float repeatedFrameFadeFactor = 1.0f;
 
@@ -140,112 +142,117 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
-    bool shouldAttenuate = (streamToAdd != listeningNodeStream);
+    bool shouldDistanceAttenuate = true;
     
-    if (shouldAttenuate) {
-        
-        // if the two stream pointers do not match then these are different streams
-        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
-        
-        float distanceBetween = glm::length(relativePosition);
-        
-        if (distanceBetween < EPSILON) {
-            distanceBetween = EPSILON;
+    //  Is the source that I am mixing my own?
+    bool sourceIsSelf = (streamToAdd == listeningNodeStream);
+    
+    glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
+    
+    float distanceBetween = glm::length(relativePosition);
+    
+    if (distanceBetween < EPSILON) {
+        distanceBetween = EPSILON;
+    }
+    
+    if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        // according to mixer performance we have decided this does not get to be mixed in
+        // bail out
+        return 0;
+    }
+    
+    ++_sumMixes;
+    
+    if (streamToAdd->getListenerUnattenuatedZone()) {
+        shouldDistanceAttenuate = !streamToAdd->getListenerUnattenuatedZone()->contains(listeningNodeStream->getPosition());
+    }
+    
+    if (streamToAdd->getType() == PositionalAudioStream::Injector) {
+        attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
+        if (showDebug) {
+            qDebug() << "AttenuationRatio: " << reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
         }
+    }
+    
+    if (showDebug) {
+        qDebug() << "distance: " << distanceBetween;
+    }
+    
+    glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
+    
+    if (!sourceIsSelf && (streamToAdd->getType() == PositionalAudioStream::Microphone)) {
+        //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
+        glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
         
-        if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
-            // according to mixer performance we have decided this does not get to be mixed in
-            // bail out
-            return 0;
-        }
+        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                           glm::normalize(rotatedListenerPosition));
         
-        ++_sumMixes;
+        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
         
-        if (streamToAdd->getListenerUnattenuatedZone()) {
-            shouldAttenuate = !streamToAdd->getListenerUnattenuatedZone()->contains(listeningNodeStream->getPosition());
-        }
+        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
         
-        if (streamToAdd->getType() == PositionalAudioStream::Injector) {
-            attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
-        }
-        
-        shouldAttenuate = shouldAttenuate && distanceBetween > ATTENUATION_EPSILON_DISTANCE;
-        
-        if (shouldAttenuate) {
-            glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
+        if (showDebug) {
+            qDebug() << "angleOfDelivery" << angleOfDelivery << "offAxisCoefficient: " << offAxisCoefficient;
             
-            float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
-            float radius = 0.0f;
-            
-            if (streamToAdd->getType() == PositionalAudioStream::Injector) {
-                radius = reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getRadius();
-            }
-            
-            if (radius == 0 || (distanceSquareToSource > radius * radius)) {
-                // this is either not a spherical source, or the listener is outside the sphere
-                
-                if (radius > 0) {
-                    // this is a spherical source - the distance used for the coefficient
-                    // needs to be the closest point on the boundary to the source
-                    
-                    // ovveride the distance to the node with the distance to the point on the
-                    // boundary of the sphere
-                    distanceSquareToSource -= (radius * radius);
-                    
-                } else {
-                    // calculate the angle delivery for off-axis attenuation
-                    glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
-                    
-                    float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                       glm::normalize(rotatedListenerPosition));
-                    
-                    const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-                    const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-                    
-                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
-                    
-                    // multiply the current attenuation coefficient by the calculated off axis coefficient
-                    attenuationCoefficient *= offAxisCoefficient;
-                }
-                
-                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-                
-                if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-                    // calculate the distance coefficient using the distance to this node
-                    float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                                     * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
-                    
-                    if (distanceCoefficient < 0) {
-                        distanceCoefficient = 0;
-                    }
-                    
-                    // multiply the current attenuation coefficient by the distance coefficient
-                    attenuationCoefficient *= distanceCoefficient;
-                }
-                
-                // project the rotated source position vector onto the XZ plane
-                rotatedSourcePosition.y = 0.0f;
-                
-                // produce an oriented angle about the y-axis
-                bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                                  glm::normalize(rotatedSourcePosition),
-                                                                  glm::vec3(0.0f, 1.0f, 0.0f));
-                
-                const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-                
-                // figure out the number of samples of delay and the ratio of the amplitude
-                // in the weak channel for audio spatialization
-                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
-                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-            }
         }
+        // multiply the current attenuation coefficient by the calculated off axis coefficient
+        
+        attenuationCoefficient *= offAxisCoefficient;
+    }
+    
+    if (shouldDistanceAttenuate && (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE)) {
+        // calculate the distance coefficient using the distance to this node
+        float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
+                                         * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
+        
+        if (distanceCoefficient < 0) {
+            distanceCoefficient = 0;
+        }
+        
+        // multiply the current attenuation coefficient by the distance coefficient
+        attenuationCoefficient *= distanceCoefficient;
+        if (showDebug) {
+            qDebug() << "distanceCoefficient: " << distanceCoefficient;
+        }
+    }
+    
+    if (!sourceIsSelf) {
+        //  Compute sample delay for the two ears to create phase panning
+        glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
+
+        // project the rotated source position vector onto the XZ plane
+        rotatedSourcePosition.y = 0.0f;
+        
+        // produce an oriented angle about the y-axis
+        bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                          glm::normalize(rotatedSourcePosition),
+                                                          glm::vec3(0.0f, 1.0f, 0.0f));
+        
+        const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+        
+        // figure out the number of samples of delay and the ratio of the amplitude
+        // in the weak channel for audio spatialization
+        float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+        numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
+        weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+        
+        if (distanceBetween < RADIUS_OF_HEAD) {
+            // Diminish phase panning if source would be inside head
+            numSamplesDelay *= distanceBetween / RADIUS_OF_HEAD;
+            weakChannelAmplitudeRatio += (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio) * distanceBetween / RADIUS_OF_HEAD;
+        }
+    }
+    
+    if (showDebug) {
+        qDebug() << "attenuation: " << attenuationCoefficient;
+        qDebug() << "bearingRelativeAngleToSource: " << bearingRelativeAngleToSource << " numSamplesDelay: " << numSamplesDelay;
     }
     
     AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd->getLastPopOutput();
     
-    if (!streamToAdd->isStereo() && shouldAttenuate) {
+    if (!streamToAdd->isStereo()) {
         // this is a mono stream, which means it gets full attenuation and spatialization
         
         // if the bearing relative angle to source is > 0 then the delayed channel is the right one
@@ -293,11 +300,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     } else {
         int stereoDivider = streamToAdd->isStereo() ? 1 : 2;
 
-        if (!shouldAttenuate) {
-            attenuationCoefficient = 1.0f;
-        }
-
-        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+       float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
 
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
             _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
@@ -305,25 +308,19 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         }
     }
 
-    if (_enableFilter && shouldAttenuate) {
+    if (!sourceIsSelf && _enableFilter) {
 
-        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
-        glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
-        glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-        
-        // project the rotated source position vector onto the XZ plane
-        rotatedSourcePosition.y = 0.0f;
-        
-        // produce an oriented angle about the y-axis
-        float bearingAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                        glm::normalize(rotatedSourcePosition),
-                                                        glm::vec3(0.0f, -1.0f, 0.0f));
         const float TWO_OVER_PI = 2.0f / PI;
         
         const float ZERO_DB = 1.0f;
-        const float NEGATIVE_ONE_DB = 0.891f;
+//        const float NEGATIVE_ONE_DB = 0.891f;
         const float NEGATIVE_THREE_DB = 0.708f;
-
+        const float NEGATIVE_SIX_DB = 0.501f;
+        
+        const float FILTER_GAIN_AT_0 = ZERO_DB; // source is in front
+        const float FILTER_GAIN_AT_90 = NEGATIVE_SIX_DB; // source is incident to left or right ear
+        const float FILTER_GAIN_AT_180 = NEGATIVE_SIX_DB; // source is behind
+        
         const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
         
         const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
@@ -332,43 +329,41 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         float penumbraFilterGainL;
         float penumbraFilterGainR;
 
-        // variable gain calculation broken down by quadrent
-        if (bearingAngleToSource < -PI_OVER_TWO && bearingAngleToSource > -PI) {
-            // gainL(-pi/2,0b)->(-pi,-1db)
+        // variable gain calculation broken down by quadrant
+        if (-bearingRelativeAngleToSource < -PI_OVER_TWO && -bearingRelativeAngleToSource > -PI) {
             penumbraFilterGainL = TWO_OVER_PI * 
-                (ZERO_DB - NEGATIVE_ONE_DB) * (bearingAngleToSource + PI_OVER_TWO) + ZERO_DB;
-            // gainR(-pi/2,-3db)->(-pi,-1db)
+                (FILTER_GAIN_AT_0 - FILTER_GAIN_AT_180) * (-bearingRelativeAngleToSource + PI_OVER_TWO) + FILTER_GAIN_AT_0;
             penumbraFilterGainR = TWO_OVER_PI * 
-                (NEGATIVE_THREE_DB - NEGATIVE_ONE_DB) * (bearingAngleToSource + PI_OVER_TWO) + NEGATIVE_THREE_DB;
-        } else if (bearingAngleToSource <= PI && bearingAngleToSource > PI_OVER_TWO) {
-            // gainL(+pi,-1db)->(pi/2,-3db)
+                (FILTER_GAIN_AT_90 - FILTER_GAIN_AT_180) * (-bearingRelativeAngleToSource + PI_OVER_TWO) + FILTER_GAIN_AT_90;
+        } else if (-bearingRelativeAngleToSource <= PI && -bearingRelativeAngleToSource > PI_OVER_TWO) {
             penumbraFilterGainL = TWO_OVER_PI * 
-                (NEGATIVE_ONE_DB - NEGATIVE_THREE_DB) * (bearingAngleToSource - PI) + NEGATIVE_ONE_DB;
-            // gainR(+pi,-1db)->(pi/2,0db)
+                (FILTER_GAIN_AT_180 - FILTER_GAIN_AT_90) * (-bearingRelativeAngleToSource - PI) + FILTER_GAIN_AT_180;
             penumbraFilterGainR = TWO_OVER_PI * 
-                (NEGATIVE_ONE_DB - ZERO_DB) * (bearingAngleToSource - PI) + NEGATIVE_ONE_DB;
-        } else if (bearingAngleToSource <= PI_OVER_TWO && bearingAngleToSource > 0) {
-            // gainL(+pi/2,-3db)->(0,0db)
+                (FILTER_GAIN_AT_180 - FILTER_GAIN_AT_0) * (-bearingRelativeAngleToSource - PI) + FILTER_GAIN_AT_180;
+        } else if (-bearingRelativeAngleToSource <= PI_OVER_TWO && -bearingRelativeAngleToSource > 0) {
             penumbraFilterGainL = TWO_OVER_PI *
-                (NEGATIVE_THREE_DB - ZERO_DB) * (bearingAngleToSource - PI_OVER_TWO) + NEGATIVE_THREE_DB;
-            // gainR(+p1/2,0db)->(0,0db)
-            penumbraFilterGainR = ZERO_DB;            
+                (FILTER_GAIN_AT_90 - FILTER_GAIN_AT_0) * (-bearingRelativeAngleToSource - PI_OVER_TWO) + FILTER_GAIN_AT_90;
+            penumbraFilterGainR = FILTER_GAIN_AT_0;            
         } else {
-            // gainL(0,0db)->(-pi/2,0db)
-            penumbraFilterGainL = ZERO_DB;
-            // gainR(0,0db)->(-pi/2,-3db)
+            penumbraFilterGainL = FILTER_GAIN_AT_0;
             penumbraFilterGainR =  TWO_OVER_PI * 
-                (ZERO_DB - NEGATIVE_THREE_DB) * (bearingAngleToSource) + ZERO_DB;
+                (FILTER_GAIN_AT_0 - FILTER_GAIN_AT_90) * (-bearingRelativeAngleToSource) + FILTER_GAIN_AT_0;
         }
+        
+        if (distanceBetween < RADIUS_OF_HEAD) {
+            // Diminish effect if source would be inside head
+            penumbraFilterGainL += (1.f - penumbraFilterGainL) * (1.f - distanceBetween / RADIUS_OF_HEAD);
+            penumbraFilterGainR += (1.f - penumbraFilterGainR) * (1.f - distanceBetween / RADIUS_OF_HEAD);
+        }
+
+
 #if 0
-            qDebug() << "avatar="
-                     << listeningNodeStream
-                     << "gainL=" 
+            qDebug() << "gainL="
                      << penumbraFilterGainL
                      << "gainR="
                      << penumbraFilterGainR
                      << "angle="
-                     << bearingAngleToSource;
+                     << -bearingRelativeAngleToSource;
 #endif
         
         // set the gain on both filter channels

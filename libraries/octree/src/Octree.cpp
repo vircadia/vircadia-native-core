@@ -851,7 +851,7 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     return false;
 }
 
-quint64 cubeListHashKey(const glm::vec3& point) {
+uint qHash(const glm::vec3& point) {
     // NOTE: TREE_SCALE = 16384 (15 bits) and multiplier is 1024 (11 bits), 
     // so each component (26 bits) uses more than its alloted 21 bits.
     // however we don't expect to span huge cubes so it is ok if we wrap
@@ -859,9 +859,9 @@ quint64 cubeListHashKey(const glm::vec3& point) {
     const uint BITS_PER_COMPONENT = 21;
     const quint64 MAX_SCALED_COMPONENT = 2097152; // 2^21
     const float RESOLUTION_PER_METER = 1024.0f; // 2^10
-    return (quint64)(point.x * RESOLUTION_PER_METER) % MAX_SCALED_COMPONENT + 
+    return qHash((quint64)(point.x * RESOLUTION_PER_METER) % MAX_SCALED_COMPONENT + 
         (((quint64)(point.y * RESOLUTION_PER_METER)) % MAX_SCALED_COMPONENT << BITS_PER_COMPONENT) +
-        (((quint64)(point.z * RESOLUTION_PER_METER)) % MAX_SCALED_COMPONENT << 2 * BITS_PER_COMPONENT);
+        (((quint64)(point.z * RESOLUTION_PER_METER)) % MAX_SCALED_COMPONENT << 2 * BITS_PER_COMPONENT));
 }
 
 bool findContentInCubeOp(OctreeElement* element, void* extraData) {
@@ -877,8 +877,9 @@ bool findContentInCubeOp(OctreeElement* element, void* extraData) {
         return true; // recurse on children
     }
     if (element->hasContent()) {
-        // NOTE: the voxel's center is unique so we use it as the input for the key
-        args->cubes->insert(cubeListHashKey(cube.calcCenter()), cube);
+        // NOTE: the voxel's center is unique so we use it as the input for the key.
+        // We use the qHash(glm::vec()) as the key as an optimization for the code that uses CubeLists.
+        args->cubes->insert(qHash(cube.calcCenter()), cube);
         return true;
     }
     return false;
