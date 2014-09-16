@@ -14,9 +14,9 @@
 
 //  A few sample files you may want to try: 
 
-//var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
+var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
 //var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/220Sine.wav");
-var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Bandcamp.wav");
+//var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Bandcamp.wav");
 
 var soundPlaying = false;
 var options = new AudioInjectionOptions();
@@ -31,10 +31,7 @@ function maybePlaySound(deltaTime) {
         var properties = {
                 type: "Sphere",
                 position: options.position, 
-                velocity: { x: 0, y: 0, z: 0}, 
-                gravity: { x: 0, y: 0, z: 0}, 
-                dimensions: { x: 0.2, y: 0.2, z: 0.2 },
-                damping: 0.999,
+                 dimensions: { x: 0.2, y: 0.2, z: 0.2 },
                 color: { red: 200, green: 0, blue: 0 }    
             };
         ball = Entities.addEntity(properties);
