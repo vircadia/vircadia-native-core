@@ -67,7 +67,7 @@
 	    "type": "checkbox",
         "label": "Enable Positional Filter",
         "help": "If enabled, positional audio stream uses lowpass filter",
-        "default": false
+        "default": true
       }
     }
   }
