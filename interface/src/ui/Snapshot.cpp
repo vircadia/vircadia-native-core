@@ -65,6 +65,24 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
 }
 
 QString Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
+    QFile* snapshotFile = savedFileForSnapshot(widget, avatar, false);
+    
+    // we don't need the snapshot file, so close it, grab its filename and delete it
+    snapshotFile->close();
+    
+    QString snapshotPath = QFileInfo(*snapshotFile).absoluteFilePath();
+    
+    delete snapshotFile;
+    
+    return snapshotPath;
+}
+
+QTemporaryFile* Snapshot::saveTempSnapshot(QGLWidget* widget, Avatar* avatar) {
+    // return whatever we get back from saved file for snapshot
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(widget, avatar, true));;
+}
+
+QFile* Snapshot::savedFileForSnapshot(QGLWidget* widget, Avatar* avatar, bool isTemporary) {
     QImage shot = widget->grabFrameBuffer();
     
     glm::vec3 location = avatar->getPosition();
@@ -91,16 +109,40 @@ QString Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     username.replace(QRegExp("[^A-Za-z0-9_]"), "-");
     
     QDateTime now = QDateTime::currentDateTime();
-    QString fileName = Menu::getInstance()->getSnapshotsLocation();
-
-    if (!fileName.endsWith(QDir::separator())) {
-        fileName.append(QDir::separator());
-    }
-
-    fileName.append(QString(FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation)));
-    shot.save(fileName, 0, 100);
     
-    return fileName;
+    QString filename = FILENAME_PATH_FORMAT.arg(username, now.toString(DATETIME_FORMAT), formattedLocation);
+    
+    const int IMAGE_QUALITY = 100;
+    
+    if (!isTemporary) {
+        QString snapshotFullPath = Menu::getInstance()->getSnapshotsLocation();
+        
+        if (!snapshotFullPath.endsWith(QDir::separator())) {
+            snapshotFullPath.append(QDir::separator());
+        }
+        
+        snapshotFullPath.append(filename);
+        
+        QFile* imageFile = new QFile(snapshotFullPath);
+        imageFile->open(QIODevice::WriteOnly);
+        
+        shot.save(imageFile, 0, IMAGE_QUALITY);
+        imageFile->close();
+        
+        return imageFile;
+    } else {
+        QTemporaryFile* imageTempFile = new QTemporaryFile(QDir::tempPath() + "/XXXXXX-" + filename);
+        
+        if (!imageTempFile->open()) {
+            qDebug() << "Unable to open QTemporaryFile for temp snapshot. Will not save.";
+            return NULL;
+        }
+        
+        shot.save(imageTempFile, 0, IMAGE_QUALITY);
+        imageTempFile->close();
+        
+        return imageTempFile;
+    }
 }
 
 

@@ -104,47 +104,48 @@ void LocationManager::updateSnapshotForExistingLocation(const QString& locationI
     // first create a snapshot and save it
     Application* application = Application::getInstance();
     
-    QString filename = Snapshot::saveSnapshot(application->getGLWidget(), application->getAvatar());
+    QTemporaryFile* tempImageFile = Snapshot::saveTempSnapshot(application->getGLWidget(), application->getAvatar());
     
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    // setup a multipart that is in the AccountManager thread - we need this so it can be cleaned up after the QNetworkReply
-    QHttpMultiPart* imageFileMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
-    imageFileMultiPart->moveToThread(accountManager.thread());
-    
-    // load the file at that filename, parent the mile to the QHttpMultipart
-    QFile* locationImageFile = new QFile(filename, imageFileMultiPart);
-    
-    if (!locationImageFile->open(QIODevice::ReadOnly)) {
+    if (tempImageFile && tempImageFile->open()) {
+        AccountManager& accountManager = AccountManager::getInstance();
+        
+        // setup a multipart that is in the AccountManager thread - we need this so it can be cleaned up after the QNetworkReply
+        QHttpMultiPart* imageFileMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+        imageFileMultiPart->moveToThread(accountManager.thread());
+        
+        // parent the temp file to the QHttpMultipart after moving it to account manager thread
+        tempImageFile->moveToThread(accountManager.thread());
+        tempImageFile->setParent(imageFileMultiPart);
+        
+        qDebug() << "Uploading a snapshot from" << QFileInfo(*tempImageFile).absoluteFilePath()
+            << "as location image for" << locationID;
+        
+        const QString LOCATION_IMAGE_NAME = "location[image]";
+        
+        QHttpPart imagePart;
+        imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                            QVariant("form-data; name=\"" + LOCATION_IMAGE_NAME +  "\";"
+                                     " filename=\"" + QFileInfo(tempImageFile->fileName()).fileName().toUtf8() +  "\""));
+        imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+        imagePart.setBodyDevice(tempImageFile);
+        
+        imageFileMultiPart->append(imagePart);
+        
+        const QString LOCATION_IMAGE_PUT_PATH = "api/v1/locations/%1/image";
+        
+        JSONCallbackParameters imageCallbackParams;
+        imageCallbackParams.jsonCallbackReceiver = this;
+        imageCallbackParams.jsonCallbackMethod = "locationImageUpdateSuccess";
+        
+        // make an authenticated request via account manager to upload the image
+        // don't do anything with error or success for now
+        AccountManager::getInstance().authenticatedRequest(LOCATION_IMAGE_PUT_PATH.arg(locationID),
+                                                           QNetworkAccessManager::PutOperation,
+                                                           JSONCallbackParameters(), QByteArray(), imageFileMultiPart);
+    } else {
         qDebug() << "Couldn't open snapshot file to upload as location image. No location image will be stored.";
         return;
     }
-    
-    qDebug() << "Uploading a snapshot from" << filename << "as location image for" << locationID;
-    
-    
-    
-    const QString LOCATION_IMAGE_NAME = "location[image]";
-    
-    QHttpPart imagePart;
-    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
-                        QVariant("form-data; name=\"" + LOCATION_IMAGE_NAME +  "\";"));
-    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
-    imagePart.setBodyDevice(locationImageFile);
-    
-    imageFileMultiPart->append(imagePart);
-    
-    const QString LOCATION_IMAGE_PUT_PATH = "api/v1/locations/%1/image";
-    
-    JSONCallbackParameters imageCallbackParams;
-    imageCallbackParams.jsonCallbackReceiver = this;
-    imageCallbackParams.jsonCallbackMethod = "locationImageUpdateSuccess";
-    
-    // make an authenticated request via account manager to upload the image
-    // don't do anything with error or success for now
-    AccountManager::getInstance().authenticatedRequest(LOCATION_IMAGE_PUT_PATH.arg(locationID),
-                                                       QNetworkAccessManager::PutOperation,
-                                                       JSONCallbackParameters(), QByteArray(), imageFileMultiPart);
 }
 
 
