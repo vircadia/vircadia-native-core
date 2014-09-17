@@ -1163,7 +1163,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(orientation);
 }
 
-glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool walkingOnFloor) {
+glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool hasFloor) {
     if (! (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED)) {
         return localVelocity;
     }
@@ -1216,7 +1216,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
 
             // Compute the target keyboard velocity (which ramps up slowly, and damps very quickly)
             // the max magnitude of which depends on what we're doing:
-            float finalMaxMotorSpeed = walkingOnFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
+            float finalMaxMotorSpeed = hasFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
             float motorLength = glm::length(_keyboardMotorVelocity);
             if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
                 // an active keyboard motor should never be slower than this
@@ -1255,7 +1255,7 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     // check for floor by casting a ray straight down from avatar's position
     float heightAboveFloor = FLT_MAX;
-    bool walkingOnFloor = false;
+    bool hasFloor = false;
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
     const float maxFloorDistance = boundingShape.getBoundingRadius() * NEARBY_FLOOR_THRESHOLD;
 
@@ -1263,12 +1263,13 @@ void MyAvatar::updatePosition(float deltaTime) {
     // NOTE: avatar is center of PhysicsSimulation, so rayStart is the origin for the purposes of the raycast
     intersection._rayStart = glm::vec3(0.0f);
     intersection._rayDirection = - _worldUpDirection;
-    intersection._rayLength = 5.0f * boundingShape.getBoundingRadius();
+    intersection._rayLength = 4.0f * boundingShape.getBoundingRadius();
     if (_physicsSimulation.findFloorRayIntersection(intersection)) {
         // NOTE: heightAboveFloor is the distance between the bottom of the avatar and the floor
-        heightAboveFloor = intersection._hitDistance - boundingShape.getBoundingRadius();
+        heightAboveFloor = intersection._hitDistance - boundingShape.getBoundingRadius()
+            + _skeletonModel.getBoundingShapeOffset().y;
         if (heightAboveFloor < maxFloorDistance) {
-            walkingOnFloor = true;
+            hasFloor = true;
         }
     }
 
@@ -1281,12 +1282,12 @@ void MyAvatar::updatePosition(float deltaTime) {
         if (pushingUp || glm::length2(velocity) > MAX_SPEED_UNDER_GRAVITY * MAX_SPEED_UNDER_GRAVITY) {
             // we're pushing up or moving quickly, so disable gravity
             setLocalGravity(glm::vec3(0.0f));
-            walkingOnFloor = false;
+            hasFloor = false;
         } else {
             if (heightAboveFloor > maxFloorDistance) {
                 // disable local gravity when floor is too far away
                 setLocalGravity(glm::vec3(0.0f));
-                walkingOnFloor = false;
+                hasFloor = false;
             } else {
                 // enable gravity
                 setLocalGravity(-_worldUpDirection);
@@ -1297,15 +1298,18 @@ void MyAvatar::updatePosition(float deltaTime) {
     bool zeroDownwardVelocity = false;
     bool gravityEnabled = (glm::length2(_gravity) > EPSILON);
     if (gravityEnabled) {
+        const float SLOP = 0.002f;
         if (heightAboveFloor < 0.0f) {
-            // Gravity is in effect so we assume that the avatar is colliding against the world and we need 
-            // to lift avatar out of floor, but we don't want to do it too fast (keep it smooth).
-            float distanceToLift = glm::min(-heightAboveFloor, MAX_WALKING_SPEED * deltaTime);
-
-            // We don't use applyPositionDelta() for this lift distance because we don't want the avatar 
-            // to come flying out of the floor.  Instead we update position directly, and set a boolean
-            // that will remind us later to zero any downward component of the velocity.
-            _position += (distanceToLift - EPSILON) * _worldUpDirection;
+            if (heightAboveFloor < -SLOP) {
+                // Gravity is in effect so we assume that the avatar is colliding against the world and we need 
+                // to lift avatar out of floor, but we don't want to do it too fast (keep it smooth).
+                float distanceToLift = glm::min(SLOP - heightAboveFloor, MAX_WALKING_SPEED * deltaTime);
+    
+                // We don't use applyPositionDelta() for this lift distance because we don't want the avatar 
+                // to come flying out of the floor.  Instead we update position directly, and set a boolean
+                // that will remind us later to zero any downward component of the velocity.
+                _position += distanceToLift * _worldUpDirection;
+            }
             zeroDownwardVelocity = true;
         }
         velocity += (deltaTime * GRAVITY_EARTH) * _gravity;
@@ -1316,15 +1320,8 @@ void MyAvatar::updatePosition(float deltaTime) {
     glm::vec3 localVelocity = glm::inverse(rotation) * velocity;
 
     // apply motors in camera frame
-    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, walkingOnFloor);
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, hasFloor);
     newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
-
-    if (walkingOnFloor && !pushingUp) {
-        // remove any delta component that points into floor
-        glm::vec3 deltaVelocity = newLocalVelocity - localVelocity;
-        deltaVelocity -= glm::dot(deltaVelocity, _worldUpDirection) * _worldUpDirection;
-        newLocalVelocity = localVelocity + deltaVelocity;
-    }
 
     // rotate back into world-frame
     velocity = rotation * newLocalVelocity;
@@ -1336,8 +1333,8 @@ void MyAvatar::updatePosition(float deltaTime) {
     // remove downward velocity so we don't push into floor
     if (zeroDownwardVelocity) {
         float verticalSpeed = glm::dot(velocity, _worldUpDirection);
-        if (verticalSpeed < 0.0f) {
-            velocity += verticalSpeed * _worldUpDirection;
+        if (verticalSpeed < 0.0f || !pushingUp) {
+            velocity -= verticalSpeed * _worldUpDirection;
         }
     }
 
