@@ -35,8 +35,12 @@ signals:
     void creationCompleted(const QString& errorMessage);
     
 private slots:
-    void namedLocationDataReceived(const QJsonObject& data);
+    void namedLocationDataReceived(const QJsonObject& jsonObject);
     void errorDataReceived(QNetworkReply& errorReply);
+    void locationImageUpdateSuccess(const QJsonObject& jsonObject);
+    
+private:
+    void updateSnapshotForExistingLocation(const QString& locationID);
 
 };
 
