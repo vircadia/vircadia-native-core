@@ -14,6 +14,8 @@
 
 #include <QEventLoop>
 #include <QFile>
+#include <QFileInfo>
+#include <QMessageBox>
 #include <QMetaObject>
 #include <QObject>
 
@@ -767,6 +769,18 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         file.close();
     }
     
+    if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
+        qDebug() << "Old .rec format";
+        QMessageBox::warning(NULL,
+                             QString("Old recording format"),
+                             QString("Converting your file to the new format."),
+                             QMessageBox::Ok);
+        readRecordingFromRecFile(recording, filename, byteArray);
+        return recording;
+    } else if (!filename.endsWith(".hfr") && !filename.endsWith(".HFR")) {
+        qDebug() << "File extension not recognized";
+    }
+    
     // Reset the recording passed in the arguments
     if (!recording) {
         recording.reset(new Recording());
@@ -982,4 +996,168 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     return recording;
 }
 
+
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray) {
+    QElapsedTimer timer;
+    timer.start();
+    
+    if (!recording) {
+        recording.reset(new Recording());
+    }
+    
+    QDataStream fileStream(byteArray);
+    
+    fileStream >> recording->_timestamps;
+    RecordingFrame baseFrame;
+    
+    // Blendshape coefficients
+    fileStream >> baseFrame._blendshapeCoefficients;
+    
+    // Joint Rotations
+    int jointRotationSize;
+    fileStream >> jointRotationSize;
+    baseFrame._jointRotations.resize(jointRotationSize);
+    for (int i = 0; i < jointRotationSize; ++i) {
+        fileStream >> baseFrame._jointRotations[i].x >> baseFrame._jointRotations[i].y >> baseFrame._jointRotations[i].z >> baseFrame._jointRotations[i].w;
+    }
+    
+    fileStream >> baseFrame._translation.x >> baseFrame._translation.y >> baseFrame._translation.z;
+    fileStream >> baseFrame._rotation.x >> baseFrame._rotation.y >> baseFrame._rotation.z >> baseFrame._rotation.w;
+    fileStream >> baseFrame._scale;
+    fileStream >> baseFrame._headRotation.x >> baseFrame._headRotation.y >> baseFrame._headRotation.z >> baseFrame._headRotation.w;
+    fileStream >> baseFrame._leanSideways;
+    fileStream >> baseFrame._leanForward;
+    
+    
+    // Fake context
+    RecordingContext& context = recording->getContext();
+    context.globalTimestamp = usecTimestampNow();
+    context.domain = NodeList::getInstance()->getDomainHandler().getHostname();
+    context.position = glm::vec3(144.5f, 3.3f, 181.3f);
+    context.orientation = glm::angleAxis(glm::radians(-92.5f), glm::vec3(0, 1, 0));;
+    context.scale = baseFrame._scale;
+    context.headModel = "http://public.highfidelity.io/models/heads/Emily_v4.fst";
+    context.skeletonModel = "http://public.highfidelity.io/models/skeletons/EmilyCutMesh_A.fst";
+    context.displayName = "Leslie";
+    context.attachments.clear();
+    AttachmentData data;
+    data.modelURL = "http://public.highfidelity.io/models/attachments/fbx.fst";
+    data.jointName = "RightHand" ;
+    data.translation = glm::vec3(0.04f, 0.07f, 0.0f);
+    data.rotation = glm::angleAxis(glm::radians(102.0f), glm::vec3(0, 1, 0));
+    data.scale = 0.20f;
+    context.attachments << data;
+    
+    context.orientationInv = glm::inverse(context.orientation);
+    
+    baseFrame._translation = glm::vec3();
+    baseFrame._rotation = glm::quat();
+    baseFrame._scale = 1.0f;
+    
+    recording->_frames << baseFrame;
+    
+    for (int i = 1; i < recording->_timestamps.size(); ++i) {
+        QBitArray mask;
+        QByteArray buffer;
+        QDataStream stream(&buffer, QIODevice::ReadOnly);
+        RecordingFrame frame;
+        RecordingFrame& previousFrame = recording->_frames.last();
+        
+        fileStream >> mask;
+        fileStream >> buffer;
+        int maskIndex = 0;
+        
+        // Blendshape Coefficients
+        frame._blendshapeCoefficients.resize(baseFrame._blendshapeCoefficients.size());
+        for (int i = 0; i < baseFrame._blendshapeCoefficients.size(); ++i) {
+            if (mask[maskIndex++]) {
+                stream >> frame._blendshapeCoefficients[i];
+            } else {
+                frame._blendshapeCoefficients[i] = previousFrame._blendshapeCoefficients[i];
+            }
+        }
+        
+        // Joint Rotations
+        frame._jointRotations.resize(baseFrame._jointRotations.size());
+        for (int i = 0; i < baseFrame._jointRotations.size(); ++i) {
+            if (mask[maskIndex++]) {
+                stream >> frame._jointRotations[i].x >> frame._jointRotations[i].y >> frame._jointRotations[i].z >> frame._jointRotations[i].w;
+            } else {
+                frame._jointRotations[i] = previousFrame._jointRotations[i];
+            }
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._translation.x >> frame._translation.y >> frame._translation.z;
+            frame._translation = context.orientationInv * frame._translation;
+        } else {
+            frame._translation = previousFrame._translation;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._rotation.x >> frame._rotation.y >> frame._rotation.z >> frame._rotation.w;
+        } else {
+            frame._rotation = previousFrame._rotation;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._scale;
+        } else {
+            frame._scale = previousFrame._scale;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._headRotation.x >> frame._headRotation.y >> frame._headRotation.z >> frame._headRotation.w;
+        } else {
+            frame._headRotation = previousFrame._headRotation;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._leanSideways;
+        } else {
+            frame._leanSideways = previousFrame._leanSideways;
+        }
+        
+        if (mask[maskIndex++]) {
+            stream >> frame._leanForward;
+        } else {
+            frame._leanForward = previousFrame._leanForward;
+        }
+        
+        recording->_frames << frame;
+    }
+    
+    QByteArray audioArray;
+    fileStream >> audioArray;
+    
+    // Cut down audio if necessary
+    int SAMPLE_RATE = 48000; // 48 kHz
+    int SAMPLE_SIZE = 2; // 16 bits
+    int MSEC_PER_SEC = 1000;
+    int audioLength = recording->getLength() * SAMPLE_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);
+    audioArray.chop(audioArray.size() - audioLength);
+    
+    recording->addAudioPacket(audioArray);
+    
+    qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
+    
+    // Set new filename
+    if (filename.startsWith("http") || filename.startsWith("https") || filename.startsWith("ftp")) {
+        filename = QUrl(filename).fileName();
+    }
+    if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
+        filename.chop(qstrlen(".rec"));
+    }
+    filename.append(".hfr");
+    filename = QFileInfo(filename).absoluteFilePath();
+    
+    // Set recording to new format
+    writeRecordingToFile(recording, filename);
+    QMessageBox::warning(NULL,
+                         QString("New recording location"),
+                         QString("The new recording was saved at:\n" + filename),
+                         QMessageBox::Ok);
+    qDebug() << "Recording has been successfully converted at" << filename;
+    return recording;
+}
 

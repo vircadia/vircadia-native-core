@@ -76,6 +76,7 @@ private:
     friend class Recorder;
     friend void writeRecordingToFile(RecordingPointer recording, QString file);
     friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
+    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray);
 };
 
 class RecordingContext {
@@ -125,6 +126,7 @@ private:
     friend class Player;
     friend void writeRecordingToFile(RecordingPointer recording, QString file);
     friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
+    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray);
 };
 
 /// Records a recording
@@ -198,7 +200,8 @@ private:
     
 };
 
-void writeRecordingToFile(RecordingPointer recording, QString file);
-RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
+void writeRecordingToFile(RecordingPointer recording, QString filename);
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename);
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray);
 
 #endif // hifi_Recorder_h
