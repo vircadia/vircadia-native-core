@@ -109,6 +109,7 @@ public:
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     float shininess;
+    float opacity;
     
     FBXTexture diffuseTexture;
     FBXTexture normalTexture;

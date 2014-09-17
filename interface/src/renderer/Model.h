@@ -256,7 +256,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows);
+    void renderMeshes(RenderMode mode, bool translucent, bool receiveShadows);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
