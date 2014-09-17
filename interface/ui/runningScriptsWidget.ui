@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>324</width>
-    <height>643</height>
+    <width>319</width>
+    <height>481</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,56 +30,11 @@
     <number>20</number>
    </property>
    <item>
-    <widget class="QWidget" name="header" native="true">
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <property name="leftMargin">
-       <number>6</number>
-      </property>
-      <property name="topMargin">
-       <number>0</number>
-      </property>
-      <property name="rightMargin">
-       <number>6</number>
-      </property>
-      <item>
-       <widget class="QLabel" name="widgetTitle">
-        <property name="styleSheet">
-         <string notr="true">color: #0e7077;
-font-size: 20px;</string>
-        </property>
-        <property name="text">
-         <string>Running Scripts</string>
-        </property>
-        <property name="margin">
-         <number>0</number>
-        </property>
-        <property name="indent">
-         <number>-1</number>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <widget class="QWidget" name="runningScriptsArea" native="true">
      <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+      <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
        <horstretch>0</horstretch>
-       <verstretch>1</verstretch>
+       <verstretch>0</verstretch>
       </sizepolicy>
      </property>
      <property name="minimumSize">
@@ -157,7 +112,7 @@ font: bold 16px;
         <property name="sizeHint" stdset="0">
          <size>
           <width>0</width>
-          <height>8</height>
+          <height>4</height>
          </size>
         </property>
        </spacer>
@@ -218,6 +173,12 @@ font: bold 16px;
       </item>
       <item>
        <widget class="QWidget" name="widget_4" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <layout class="QVBoxLayout" name="verticalLayout_8">
          <property name="spacing">
           <number>0</number>
@@ -236,6 +197,12 @@ font: bold 16px;
          </property>
          <item>
           <widget class="QScrollArea" name="runningScriptsList">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="font">
             <font>
              <family>Helvetica,Arial,sans-serif</family>
@@ -252,10 +219,13 @@ font: bold 16px;
             <number>0</number>
            </property>
            <property name="verticalScrollBarPolicy">
-            <enum>Qt::ScrollBarAsNeeded</enum>
+            <enum>Qt::ScrollBarAlwaysOn</enum>
            </property>
            <property name="horizontalScrollBarPolicy">
             <enum>Qt::ScrollBarAlwaysOff</enum>
+           </property>
+           <property name="sizeAdjustPolicy">
+            <enum>QAbstractScrollArea::AdjustToContents</enum>
            </property>
            <property name="widgetResizable">
             <bool>true</bool>
@@ -268,7 +238,7 @@ font: bold 16px;
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>284</width>
+              <width>264</width>
               <height>16</height>
              </rect>
             </property>
@@ -277,6 +247,9 @@ font: bold 16px;
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
             </property>
             <property name="styleSheet">
              <string notr="true">font-size: 14px;</string>
@@ -303,14 +276,20 @@ font: bold 16px;
          </item>
          <item>
           <widget class="QLabel" name="noRunningScriptsLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="styleSheet">
-            <string notr="true">font: 14px;</string>
+            <string notr="true">font: 14px; color: #5f5f5f;</string>
            </property>
            <property name="text">
-            <string>There are no scripts currently running.</string>
+            <string>There are no scripts running.</string>
            </property>
            <property name="alignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
            </property>
           </widget>
          </item>
@@ -325,14 +304,8 @@ font: bold 16px;
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
        <horstretch>0</horstretch>
-       <verstretch>2</verstretch>
+       <verstretch>0</verstretch>
       </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>300</height>
-      </size>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
@@ -352,6 +325,12 @@ font: bold 16px;
       </property>
       <item>
        <widget class="QWidget" name="widget" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="spacing">
           <number>0</number>
@@ -432,6 +411,12 @@ font: bold 16px;</string>
          </item>
          <item>
           <widget class="QListView" name="scriptListView">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="verticalScrollBarPolicy">
             <enum>Qt::ScrollBarAlwaysOn</enum>
            </property>
