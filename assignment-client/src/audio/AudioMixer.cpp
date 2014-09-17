@@ -255,48 +255,90 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     if (!streamToAdd->isStereo()) {
         // this is a mono stream, which means it gets full attenuation and spatialization
         
-        // if the bearing relative angle to source is > 0 then the delayed channel is the right one
-        int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
-        int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
-        
-        int16_t correctStreamSample[2], delayStreamSample[2];
-        int delayedChannelIndex = 0;
-        
-        const int SINGLE_STEREO_OFFSET = 2;
-        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
-        
-        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
-            
-            // setup the int16_t variables for the two sample sets
-            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationAndFade;
-            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationAndFade;
-            
-            delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
-            
-            delayStreamSample[0] = correctStreamSample[0] * weakChannelAmplitudeRatio;
-            delayStreamSample[1] = correctStreamSample[1] * weakChannelAmplitudeRatio;
-            
-            _clientSamples[s + goodChannelOffset] += correctStreamSample[0];
-            _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] += correctStreamSample[1];
-            _clientSamples[delayedChannelIndex] += delayStreamSample[0];
-            _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] += delayStreamSample[1];
-        }
-        
-        if (numSamplesDelay > 0) {
-            // if there was a sample delay for this stream, we need to pull samples prior to the popped output
-            // to stick at the beginning
-            float attenuationAndWeakChannelRatioAndFade = attenuationCoefficient * weakChannelAmplitudeRatio * repeatedFrameFadeFactor;
-            AudioRingBuffer::ConstIterator delayStreamPopOutput = streamPopOutput - numSamplesDelay;
+        // we need to do several things in this process:
+        //    1) convert from mono to stereo by copying each input sample into the left and right output samples
+        //    2) apply an attenuation AND fade to all samples (left and right)
+        //    3) based on the bearing relative angle to the source we will weaken and delay either the left or
+        //       right channel of the input into the output
+        //    4) because one of these channels is delayed, we will need to use historical samples from 
+        //       the input stream for that delayed channel
 
-            // TODO: delayStreamPopOutput may be inside the last frame written if the ringbuffer is completely full
+        // Mono input to stereo output (item 1 above)
+        int OUTPUT_SAMPLES_PER_INPUT_SAMPLE = 2;
+        int inputSampleCount = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+        int maxOutputIndex = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
+
+        // attenuation and fade applied to all samples (item 2 above)
+        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+
+        // determine which side is weak and delayed (item 3 above)
+        bool rightSideWeakAndDelayed = (bearingRelativeAngleToSource > 0.0f);
+        
+        // since we're converting from mono to stereo, we'll use these two indices to step through
+        // the output samples. we'll increment each index independently in the loop
+        int leftDestinationIndex = 0;
+        int rightDestinationIndex = 1;
+        
+        // One of our two channels will be delayed (determined below). We'll use this index to step
+        // through filling in our output with the historical samples for the delayed channel.  (item 4 above)
+        int delayedChannelHistoricalAudioOutputIndex;
+
+        // All samples will be attenuated by at least this much
+        float leftSideAttenuation = attenuationAndFade;
+        float rightSideAttenuation = attenuationAndFade;
+        
+        // The weak/delayed channel will be attenuated by this additional amount
+        float attenuationAndWeakChannelRatioAndFade = attenuationAndFade * weakChannelAmplitudeRatio;
+        
+        // Now, based on the determination of which side is weak and delayed, set up our true starting point
+        // for our indexes, as well as the appropriate attenuation for each channel
+        if (rightSideWeakAndDelayed) {
+            delayedChannelHistoricalAudioOutputIndex = rightDestinationIndex; 
+            rightSideAttenuation = attenuationAndWeakChannelRatioAndFade;
+            rightDestinationIndex += (numSamplesDelay * OUTPUT_SAMPLES_PER_INPUT_SAMPLE);
+        } else {
+            delayedChannelHistoricalAudioOutputIndex = leftDestinationIndex;
+            leftSideAttenuation = attenuationAndWeakChannelRatioAndFade;
+            leftDestinationIndex += (numSamplesDelay * OUTPUT_SAMPLES_PER_INPUT_SAMPLE);
+        }
+
+        // If there was a sample delay for this stream, we need to pull samples prior to the official start of the input
+        // and stick those samples at the beginning of the output. We only need to loop through this for the weak/delayed
+        // side, since the normal side is fully handled below. (item 4 above)
+        if (numSamplesDelay > 0) {
+
+            // TODO: delayStreamSourceSamples may be inside the last frame written if the ringbuffer is completely full
             // maybe make AudioRingBuffer have 1 extra frame in its buffer
-            
+            AudioRingBuffer::ConstIterator delayStreamSourceSamples = streamPopOutput - numSamplesDelay;
+
             for (int i = 0; i < numSamplesDelay; i++) {
-                int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatioAndFade;
-                ++delayStreamPopOutput;
+                int16_t originalHistoricalSample = *delayStreamSourceSamples;
+
+                _clientSamples[delayedChannelHistoricalAudioOutputIndex] += originalHistoricalSample 
+                                                                                 * attenuationAndWeakChannelRatioAndFade;
+                ++delayStreamSourceSamples; // move our input pointer
+                delayedChannelHistoricalAudioOutputIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE; // move our output sample
             }
         }
+
+        // Here's where we copy the MONO input to the STEREO output, and account for delay and weak side attenuation
+        for (int inputSample = 0; inputSample < inputSampleCount; inputSample++) {
+            int16_t originalSample = streamPopOutput[inputSample];
+            int16_t leftSideSample = originalSample * leftSideAttenuation;
+            int16_t rightSideSample = originalSample * rightSideAttenuation;
+
+            // since we might be delayed, don't write beyond our maxOutputIndex
+            if (leftDestinationIndex <= maxOutputIndex) {
+                _clientSamples[leftDestinationIndex] += leftSideSample;
+            }
+            if (rightDestinationIndex <= maxOutputIndex) {
+                _clientSamples[rightDestinationIndex] += rightSideSample;
+            }
+
+            leftDestinationIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+            rightDestinationIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+        }
+        
     } else {
         int stereoDivider = streamToAdd->isStereo() ? 1 : 2;
 
@@ -313,7 +355,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         const float TWO_OVER_PI = 2.0f / PI;
         
         const float ZERO_DB = 1.0f;
-//        const float NEGATIVE_ONE_DB = 0.891f;
+        //const float NEGATIVE_ONE_DB = 0.891f;
         const float NEGATIVE_THREE_DB = 0.708f;
         const float NEGATIVE_SIX_DB = 0.501f;
         
