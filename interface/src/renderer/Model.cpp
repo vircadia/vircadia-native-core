@@ -894,6 +894,10 @@ void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
 }
 
 void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    if (!isActive()) {
+        return;
+    }
+    
     if (_scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
         _scaleToFit = scaleToFit;
         
