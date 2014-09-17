@@ -33,6 +33,10 @@ static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE] = {17, 72, 70, 82, 13, 10, 26,
 // Version (Major, Minor)
 static const QPair<quint8, quint8> VERSION(0, 1);
 
+int SCALE_RADIX = 10;
+int BLENDSHAPE_RADIX = 15;
+int LEAN_RADIX = 7;
+
 void operator<<(QDebug& stream, glm::vec3 vector) {
     stream << vector.x << vector.y << vector.z;
 }
@@ -439,19 +443,15 @@ bool Player::computeCurrentFrame() {
 }
 
 void writeVec3(QDataStream& stream, glm::vec3 value) {
-    unsigned char buffer[256];
-    int writtenToBuffer = packFloatVec3ToSignedTwoByteFixed(buffer, value, 0);
-    stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
+    unsigned char buffer[sizeof(value)];
+    memcpy(buffer, &value, sizeof(value));
+    stream.writeRawData(reinterpret_cast<char*>(buffer), sizeof(value));
 }
 
 bool readVec3(QDataStream& stream, glm::vec3& value) {
-    int vec3ByteSize = 3 * 2; // 3 floats * 2 bytes
-    unsigned char buffer[256];
-    stream.readRawData(reinterpret_cast<char*>(buffer), vec3ByteSize);
-    int readFromBuffer = unpackFloatVec3FromSignedTwoByteFixed(buffer, value, 0);
-    if (readFromBuffer != vec3ByteSize) {
-        return false;
-    }
+    unsigned char buffer[sizeof(value)];
+    stream.readRawData(reinterpret_cast<char*>(buffer), sizeof(value));
+    memcpy(&value, buffer, sizeof(value));
     return true;
 }
 
@@ -472,17 +472,17 @@ bool readQuat(QDataStream& stream, glm::quat& value) {
     return true;
 }
 
-void writeFloat(QDataStream& stream, float value) {
+void writeFloat(QDataStream& stream, float value, int radix) {
     unsigned char buffer[256];
-    int writtenToBuffer = packFloatScalarToSignedTwoByteFixed(buffer, value, 0);
+    int writtenToBuffer = packFloatScalarToSignedTwoByteFixed(buffer, value, radix);
     stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
 }
 
-bool readFloat(QDataStream& stream, float& value) {
+bool readFloat(QDataStream& stream, float& value, int radix) {
     int floatByteSize = 2; // 1 floats * 2 bytes
     int16_t buffer[256];
     stream.readRawData(reinterpret_cast<char*>(buffer), floatByteSize);
-    int readFromBuffer = unpackFloatScalarFromSignedTwoByteFixed(buffer, &value, 0);
+    int readFromBuffer = unpackFloatScalarFromSignedTwoByteFixed(buffer, &value, radix);
     if (readFromBuffer != floatByteSize) {
         return false;
     }
@@ -539,7 +539,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     // Orientation
     writeQuat(fileStream, context.orientation);
     // Scale
-    writeFloat(fileStream, context.scale);
+    writeFloat(fileStream, context.scale, SCALE_RADIX);
     // Head model
     fileStream << context.headModel;
     // Skeleton model
@@ -558,13 +558,15 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
         // Orientation
         writeQuat(fileStream, data.rotation);
         // Scale
-        writeFloat(fileStream, data.scale);
+        writeFloat(fileStream, data.scale, SCALE_RADIX);
     }
     
     // RECORDING
     fileStream << recording->_timestamps;
     
     QBitArray mask;
+    quint32 numBlendshapes = 0;
+    quint32 numJoints = 0;
     
     for (int i = 0; i < recording->_timestamps.size(); ++i) {
         mask.fill(false);
@@ -575,24 +577,24 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
         RecordingFrame& frame = recording->_frames[i];
         
         // Blendshape Coefficients
-        quint32 numBlenshapes = frame.getBlendshapeCoefficients().size();
-        stream << numBlenshapes;
         if (i == 0) {
-            mask.resize(mask.size() + numBlenshapes);
+            numBlendshapes = frame.getBlendshapeCoefficients().size();
+            stream << numBlendshapes;
+            mask.resize(mask.size() + numBlendshapes);
         }
-        for (int j = 0; j < numBlenshapes; ++j) {
+        for (int j = 0; j < numBlendshapes; ++j) {
             if (i == 0 ||
                 frame._blendshapeCoefficients[j] != previousFrame._blendshapeCoefficients[j]) {
-                writeFloat(stream, frame.getBlendshapeCoefficients()[j]);
+                writeFloat(stream, frame.getBlendshapeCoefficients()[j], BLENDSHAPE_RADIX);
                 mask.setBit(maskIndex);
             }
             ++maskIndex;
         }
         
         // Joint Rotations
-        quint32 numJoints = frame.getJointRotations().size();
-        stream << numJoints;
         if (i == 0) {
+            numJoints = frame.getJointRotations().size();
+            stream << numJoints;
             mask.resize(mask.size() + numJoints);
         }
         for (int j = 0; j < numJoints; ++j) {
@@ -629,7 +631,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
             mask.resize(mask.size() + 1);
         }
         if (i == 0 || frame._scale != previousFrame._scale) {
-            writeFloat(stream, frame._scale);
+            writeFloat(stream, frame._scale, SCALE_RADIX);
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -649,7 +651,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
             mask.resize(mask.size() + 1);
         }
         if (i == 0 || frame._leanSideways != previousFrame._leanSideways) {
-            writeFloat(stream, frame._leanSideways);
+            writeFloat(stream, frame._leanSideways, LEAN_RADIX);
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -659,7 +661,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
             mask.resize(mask.size() + 1);
         }
         if (i == 0 || frame._leanForward != previousFrame._leanForward) {
-            writeFloat(stream, frame._leanForward);
+            writeFloat(stream, frame._leanForward, LEAN_RADIX);
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -829,7 +831,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     }
 
     // Scale
-    if (!readFloat(fileStream, context.scale)) {
+    if (!readFloat(fileStream, context.scale, SCALE_RADIX)) {
         qDebug() << "Couldn't read file correctly. (Invalid float)";
         recording.clear();
         return recording;
@@ -864,13 +866,15 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         }
         
         // Scale
-        if (!readFloat(fileStream, data.scale)) {
+        if (!readFloat(fileStream, data.scale, SCALE_RADIX)) {
             qDebug() << "Couldn't read attachment correctly. (Invalid float)";
             continue;
         }
         context.attachments << data;
     }
     
+    quint32 numBlendshapes = 0;
+    quint32 numJoints = 0;
     // RECORDING
     fileStream >> recording->_timestamps;
     
@@ -886,18 +890,19 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
         int maskIndex = 0;
         
         // Blendshape Coefficients
-        quint32 numBlendshapes = 0;
-        stream >> numBlendshapes;
+        if (i == 0) {
+            stream >> numBlendshapes;
+        }
         frame._blendshapeCoefficients.resize(numBlendshapes);
         for (int j = 0; j < numBlendshapes; ++j) {
-            if (!mask[maskIndex++] || !readFloat(stream, frame._blendshapeCoefficients[j])) {
+            if (!mask[maskIndex++] || !readFloat(stream, frame._blendshapeCoefficients[j], BLENDSHAPE_RADIX)) {
                 frame._blendshapeCoefficients[j] = previousFrame._blendshapeCoefficients[j];
             }
         }
-        
         // Joint Rotations
-        quint32 numJoints = 0;
-        stream >> numJoints;
+        if (i == 0) {
+            stream >> numJoints;
+        }
         frame._jointRotations.resize(numJoints);
         for (int j = 0; j < numJoints; ++j) {
             if (!mask[maskIndex++] || !readQuat(stream, frame._jointRotations[j])) {
@@ -913,7 +918,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
             frame._rotation = previousFrame._rotation;
         }
         
-        if (!mask[maskIndex++] || !readFloat(stream, frame._scale)) {
+        if (!mask[maskIndex++] || !readFloat(stream, frame._scale, SCALE_RADIX)) {
             frame._scale = previousFrame._scale;
         }
         
@@ -921,11 +926,11 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
             frame._headRotation = previousFrame._headRotation;
         }
         
-        if (!mask[maskIndex++] || !readFloat(stream, frame._leanSideways)) {
+        if (!mask[maskIndex++] || !readFloat(stream, frame._leanSideways, LEAN_RADIX)) {
             frame._leanSideways = previousFrame._leanSideways;
         }
         
-        if (!mask[maskIndex++] || !readFloat(stream, frame._leanForward)) {
+        if (!mask[maskIndex++] || !readFloat(stream, frame._leanForward, LEAN_RADIX)) {
             frame._leanForward = previousFrame._leanForward;
         }
         
