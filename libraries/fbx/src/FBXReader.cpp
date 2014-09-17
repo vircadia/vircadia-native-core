@@ -657,6 +657,7 @@ public:
     glm::vec3 diffuse;
     glm::vec3 specular;
     float shininess;
+    float opacity;
 };
 
 class Cluster {
@@ -1280,7 +1281,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f, 1.0f };
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1306,6 +1307,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
+                                    
+                                    } else if (property.properties.at(0) == "Opacity") {
+                                        material.opacity = property.properties.at(index).value<double>();
                                     }
                                 }
                             }
@@ -1602,6 +1606,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         part.diffuseColor = material.diffuse;
                         part.specularColor = material.specular;
                         part.shininess = material.shininess;
+                        part.opacity = material.opacity;
                         if (!diffuseTexture.filename.isNull()) {
                             part.diffuseTexture = diffuseTexture;
                         }
@@ -2042,6 +2047,7 @@ FBXGeometry readSVO(const QByteArray& model) {
     FBXMeshPart part;
     part.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     part.shininess = 96.0f;
+    part.opacity = 1.0f;
     mesh.parts.append(part);
 
     VoxelTree tree;
