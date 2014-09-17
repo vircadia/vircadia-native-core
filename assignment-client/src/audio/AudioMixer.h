@@ -13,6 +13,10 @@
 #define hifi_AudioMixer_h
 
 #include <AABox.h>
+#include <AudioFormat.h> // For AudioFilterHSF1s and _penumbraFilter
+#include <AudioBuffer.h> // For AudioFilterHSF1s and _penumbraFilter
+#include <AudioFilter.h> // For AudioFilterHSF1s and _penumbraFilter
+#include <AudioFilterBank.h> // For AudioFilterHSF1s and _penumbraFilter
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 
@@ -22,7 +26,6 @@ class AvatarAudioStream;
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
 const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
-
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
@@ -48,11 +51,17 @@ private:
     
     /// prepares and sends a mix to one Node
     int prepareMixForListeningNode(Node* node);
+
+    // used on a per stream basis to run the filter on before mixing, large enough to handle the historical
+    // data from a phase delay as well as an entire network buffer
+    int16_t _preMixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
     
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
-    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+    int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
+    AudioFilterHSF1s _penumbraFilter;
+    
     void perSecondActions();
 
     QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
