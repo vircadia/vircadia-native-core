@@ -57,17 +57,17 @@
         "help": "If enabled, audio upstream and downstream stats of each agent will be printed each second to stdout",
         "default": false
 	  },
-	  "J-disable-filter": {
-	    "type": "checkbox",
-        "label": "Disable Positional Filter",
-        "help": "If checked the positional audio stream will not use a lowpass filter",
-        "default": false
-      },
 	  "Z-unattenuated-zone": {
         "label": "Unattenuated Zone",
         "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
         "placeholder": "no zone",
         "default": ""
+      },
+	  "J-enable-filter": {
+	    "type": "checkbox",
+        "label": "Enable Positional Filter",
+        "help": "If enabled, positional audio stream uses lowpass filter",
+        "default": true
       }
     }
   }

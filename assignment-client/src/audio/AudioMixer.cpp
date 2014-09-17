@@ -690,12 +690,10 @@ void AudioMixer::run() {
             qDebug() << "Stream stats will be printed to stdout";
         }
 
-        const QString FILTER_KEY = "J-disable-filter";
-        _enableFilter = !audioGroupObject[FILTER_KEY].toBool();
+        const QString FILTER_KEY = "J-enable-filter";
+        _enableFilter = audioGroupObject[FILTER_KEY].toBool();
         if (_enableFilter) {
             qDebug() << "Filter enabled";
-        } else {
-            qDebug() << "Filter disabled";
         }
         
         const QString UNATTENUATED_ZONE_KEY = "Z-unattenuated-zone";
