@@ -57,6 +57,8 @@
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
+
+
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
@@ -92,7 +94,9 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _timeSpentPerHashMatchCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
     _readPendingCallsPerSecondStats(1, READ_DATAGRAMS_STATS_WINDOW_SECONDS)
 {
-    
+    // constant defined in AudioMixer.h.  However, we don't want to include this here
+    // we will soon find a better common home for these audio-related constants
+    _penumbraFilter.initialize(SAMPLE_RATE, (NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)) / 2);
 }
 
 AudioMixer::~AudioMixer() {
@@ -257,6 +261,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
         
         // we need to do several things in this process:
         //    1) convert from mono to stereo by copying each input sample into the left and right output samples
+        //    2) 
         //    2) apply an attenuation AND fade to all samples (left and right)
         //    3) based on the bearing relative angle to the source we will weaken and delay either the left or
         //       right channel of the input into the output
@@ -314,7 +319,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
             for (int i = 0; i < numSamplesDelay; i++) {
                 int16_t originalHistoricalSample = *delayStreamSourceSamples;
 
-                _clientSamples[delayedChannelHistoricalAudioOutputIndex] += originalHistoricalSample 
+                _preMixSamples[delayedChannelHistoricalAudioOutputIndex] += originalHistoricalSample 
                                                                                  * attenuationAndWeakChannelRatioAndFade;
                 ++delayStreamSourceSamples; // move our input pointer
                 delayedChannelHistoricalAudioOutputIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE; // move our output sample
@@ -329,10 +334,10 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
 
             // since we might be delayed, don't write beyond our maxOutputIndex
             if (leftDestinationIndex <= maxOutputIndex) {
-                _clientSamples[leftDestinationIndex] += leftSideSample;
+                _preMixSamples[leftDestinationIndex] += leftSideSample;
             }
             if (rightDestinationIndex <= maxOutputIndex) {
-                _clientSamples[rightDestinationIndex] += rightSideSample;
+                _preMixSamples[rightDestinationIndex] += rightSideSample;
             }
 
             leftDestinationIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
@@ -345,7 +350,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
 
         for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
+            _preMixSamples[s] = glm::clamp(_preMixSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
                                             MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
@@ -409,12 +414,15 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
 #endif
         
         // set the gain on both filter channels
-        AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
-        
-        penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-        penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
-          
-        penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+        _penumbraFilter.reset();
+        _penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+        _penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+        _penumbraFilter.render(_preMixSamples, _preMixSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+    }
+    
+    // Actually mix the _preMixSamples into the _mixSamples here.
+    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
+        _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
     }
 
     return 1;
@@ -424,7 +432,8 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
     
     // zero out the client mix for this node
-    memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+    memset(_preMixSamples, 0, sizeof(_preMixSamples));
+    memset(_mixSamples, 0, sizeof(_mixSamples));
 
     // loop through all other nodes that have sufficient audio to mix
     int streamsMixed = 0;
@@ -817,7 +826,7 @@ void AudioMixer::run() {
                         dataAt += sizeof(quint16);
 
                         // pack mixed audio samples
-                        memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                        memcpy(dataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                         dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
                     } else {
                         // pack header
