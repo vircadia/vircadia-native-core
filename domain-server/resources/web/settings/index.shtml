@@ -17,7 +17,7 @@
             <label for="<%- setting_id %>" class="col-sm-2 control-label"><%- setting.label %></label>
             <div class="col-sm-10">
               <% if (setting.type === "checkbox") { %>
-              <% var checked_box = (values[group_key] || {})[setting_key] || setting.default %>
+              <% var checked_box = _.has(values, group_key) ? values[group_key][setting_key] : setting.default %>
                 <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
               <% } else { %>
                 <% if (setting.input_addon) { %>

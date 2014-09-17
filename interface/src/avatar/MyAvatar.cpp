@@ -995,6 +995,7 @@ void MyAvatar::clearJointData(int index) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
         _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
+        _skeletonModel.clearJointAnimationPriority(index);
     }
 }
 
