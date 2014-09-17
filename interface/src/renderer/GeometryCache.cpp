@@ -684,10 +684,10 @@ bool NetworkMeshPart::isTranslucent() const {
     return diffuseTexture && diffuseTexture->isTranslucent();
 }
 
-int NetworkMesh::getTranslucentPartCount() const {
+int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
     int count = 0;
-    foreach (const NetworkMeshPart& part, parts) {
-        if (part.isTranslucent()) {
+    for (int i = 0; i < parts.size(); i++) {
+        if (parts.at(i).isTranslucent() || fbxMesh.parts.at(i).opacity != 1.0f) {
             count++;
         }
     }
