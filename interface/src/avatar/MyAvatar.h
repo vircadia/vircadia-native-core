@@ -131,6 +131,14 @@ public:
     
     void clearJointAnimationPriorities();
 
+    Q_INVOKABLE glm::vec3 getMotorVelocity() const { return _scriptedMotorVelocity; }
+    Q_INVOKABLE float getTimescale() const { return _scriptedMotorTimescale; }
+
+    Q_INVOKABLE void setMotorVelocity(const glm::vec3& velocity);
+    Q_INVOKABLE void setMotorTimescale(float timescale);
+
+    void clearScriptableSettings();
+
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
@@ -163,7 +171,7 @@ public slots:
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
 
-    void updateMotionBehaviorsFromMenu();
+    void updateMotionBehavior();
     void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
@@ -202,9 +210,10 @@ private:
     float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
-    glm::vec3 _motorVelocity;   // intended velocity of avatar motion (relative to what it's standing on)
-    float _motorTimescale;      // timescale for avatar motor to achieve its desired velocity
-    float _maxMotorSpeed;
+    glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)
+    float _keyboardMotorTimescale; // timescale for avatar to achieve its target velocity
+    glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (script)
+    float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
     quint32 _motionBehaviors;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
@@ -221,8 +230,9 @@ private:
     
 	// private methods
     void updateOrientation(float deltaTime);
+    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
+    glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
-    float computeMotorTimescale(const glm::vec3& velocity);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);
     void updateCollisionWithVoxels(float deltaTime, float radius);

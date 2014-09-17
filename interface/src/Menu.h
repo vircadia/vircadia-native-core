@@ -399,6 +399,7 @@ namespace MenuOption {
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
+    const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -437,6 +438,7 @@ namespace MenuOption {
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
+    const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString ShowBordersModelNodes = "Show Model Nodes";

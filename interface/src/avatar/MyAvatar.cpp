@@ -54,9 +54,11 @@ const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
 // to properly follow avatar size.
-float DEFAULT_MOTOR_TIMESCALE = 0.25f;
 float MAX_AVATAR_SPEED = 300.0f;
-float MAX_MOTOR_SPEED = MAX_AVATAR_SPEED; 
+float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED; 
+float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
+float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
+float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
 
 MyAvatar::MyAvatar() :
 	Avatar(),
@@ -71,9 +73,10 @@ MyAvatar::MyAvatar() :
     _isBraking(false),
     _trapDuration(0.0f),
     _thrust(0.0f),
-    _motorVelocity(0.0f),
-    _motorTimescale(DEFAULT_MOTOR_TIMESCALE),
-    _maxMotorSpeed(MAX_MOTOR_SPEED),
+    _keyboardMotorVelocity(0.0f),
+    _keyboardMotorTimescale(DEFAULT_KEYBOARD_MOTOR_TIMESCALE),
+    _scriptedMotorVelocity(0.0f),
+    _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -1027,6 +1030,28 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
     _billboardValid = false;
 }
 
+void MyAvatar::setMotorVelocity(const glm::vec3& velocity) {
+    float MAX_SCRIPTED_MOTOR_SPEED = 500.0f;
+    _scriptedMotorVelocity = velocity;
+    float speed = glm::length(_scriptedMotorVelocity);
+    if (speed > MAX_SCRIPTED_MOTOR_SPEED) {
+        _scriptedMotorVelocity *= MAX_SCRIPTED_MOTOR_SPEED / speed;
+    }
+}
+
+void MyAvatar::setMotorTimescale(float timescale) {
+    // we clamp the timescale on the large side (instead of just the low side) to prevent 
+    // obnoxiously large values from introducing NaN into avatar's velocity
+    _scriptedMotorTimescale = glm::clamp(timescale, MIN_SCRIPTED_MOTOR_TIMESCALE, 
+            DEFAULT_SCRIPTED_MOTOR_TIMESCALE);
+}
+
+void MyAvatar::clearScriptableSettings() {
+    clearJointAnimationPriorities();
+    _scriptedMotorVelocity = glm::vec3(0.0f);
+    _scriptedMotorTimescale = DEFAULT_SCRIPTED_MOTOR_TIMESCALE;
+}   
+
 void MyAvatar::attach(const QString& modelURL, const QString& jointName, const glm::vec3& translation,
         const glm::quat& rotation, float scale, bool allowDuplicates, bool useSaved) {
     if (QThread::currentThread() != thread()) {    
@@ -1138,13 +1163,102 @@ void MyAvatar::updateOrientation(float deltaTime) {
     setOrientation(orientation);
 }
 
+glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool walkingOnFloor) {
+    if (! (_motionBehaviors & AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED)) {
+        return localVelocity;
+    }
+    // compute motor efficiency
+    // The timescale of the motor is the approximate time it takes for the motor to 
+    // accomplish its intended localVelocity.  A short timescale makes the motor strong, 
+    // and a long timescale makes it weak.  The value of timescale to use depends 
+    // on what the motor is doing:
+    //
+    // (1) braking --> short timescale (aggressive motor assertion)
+    // (2) pushing --> medium timescale (mild motor assertion)
+    // (3) inactive --> long timescale (gentle friction for low speeds)
+    float MIN_KEYBOARD_MOTOR_TIMESCALE = 0.125f;
+    float MAX_KEYBOARD_MOTOR_TIMESCALE = 0.4f;
+    float MIN_KEYBOARD_BRAKE_SPEED = 0.3f;
+    float timescale = MAX_KEYBOARD_MOTOR_TIMESCALE;
+    bool isThrust = (glm::length2(_thrust) > EPSILON);
+    if (_isPushing || isThrust || 
+            (_scriptedMotorTimescale < MAX_KEYBOARD_MOTOR_TIMESCALE && 
+            _motionBehaviors | AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
+        // we don't want to break if anything is pushing the avatar around
+        timescale = _keyboardMotorTimescale;
+        _isBraking = false;
+    } else {
+        float speed = glm::length(localVelocity);
+        _isBraking = _wasPushing || (_isBraking && speed > MIN_KEYBOARD_BRAKE_SPEED);
+        if (_isBraking) {
+            timescale = MIN_KEYBOARD_MOTOR_TIMESCALE;
+        }
+    }
+    _wasPushing = _isPushing || isThrust;
+    _isPushing = false;
+    float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
+
+    float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
+        (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) + 
+        fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
+    if (keyboardInput) {
+        // Compute keyboard input
+        glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
+        glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
+        glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
+    
+        glm::vec3 direction = front + right + up;
+        float directionLength = glm::length(direction);
+    
+        // Compute motor magnitude
+        if (directionLength > EPSILON) {
+            direction /= directionLength;
+
+            // Compute the target keyboard velocity (which ramps up slowly, and damps very quickly)
+            // the max magnitude of which depends on what we're doing:
+            float finalMaxMotorSpeed = walkingOnFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
+            float motorLength = glm::length(_keyboardMotorVelocity);
+            if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
+                // an active keyboard motor should never be slower than this
+                _keyboardMotorVelocity = _scale * MIN_KEYBOARD_CONTROL_SPEED * direction;
+                motorEfficiency = 1.0f;
+            } else {
+                float KEYBOARD_MOTOR_LENGTH_TIMESCALE = 2.0f;
+                float INCREASE_FACTOR = 1.8f;
+                motorLength *= 1.0f + glm::clamp(deltaTime / KEYBOARD_MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f) * INCREASE_FACTOR;
+                if (motorLength > finalMaxMotorSpeed) {
+                    motorLength = finalMaxMotorSpeed;
+                }
+                _keyboardMotorVelocity = motorLength * direction;
+            }
+            _isPushing = true;
+        } 
+    } else {
+        _keyboardMotorVelocity = glm::vec3(0.0f);
+    }
+
+    // apply keyboard motor
+    return localVelocity + motorEfficiency * (_keyboardMotorVelocity - localVelocity);
+}
+
+glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVelocity) {
+    if (! (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
+        return localVelocity;
+    }
+    float motorEfficiency = glm::clamp(deltaTime / _scriptedMotorTimescale, 0.0f, 1.0f);
+    return localVelocity + motorEfficiency * (_scriptedMotorVelocity - localVelocity);
+}
+
 const float NEARBY_FLOOR_THRESHOLD = 5.0f;
 
 void MyAvatar::updatePosition(float deltaTime) {
 
     // check for floor by casting a ray straight down from avatar's position
     float heightAboveFloor = FLT_MAX;
+    bool walkingOnFloor = false;
     const CapsuleShape& boundingShape = _skeletonModel.getBoundingShape();
+    const float maxFloorDistance = boundingShape.getBoundingRadius() * NEARBY_FLOOR_THRESHOLD;
+
     RayIntersectionInfo intersection;
     // NOTE: avatar is center of PhysicsSimulation, so rayStart is the origin for the purposes of the raycast
     intersection._rayStart = glm::vec3(0.0f);
@@ -1153,26 +1267,28 @@ void MyAvatar::updatePosition(float deltaTime) {
     if (_physicsSimulation.findFloorRayIntersection(intersection)) {
         // NOTE: heightAboveFloor is the distance between the bottom of the avatar and the floor
         heightAboveFloor = intersection._hitDistance - boundingShape.getBoundingRadius();
+        if (heightAboveFloor < maxFloorDistance) {
+            walkingOnFloor = true;
+        }
     }
 
     // velocity is initialized to the measured _velocity but will be modified by friction, external thrust, etc
     glm::vec3 velocity = _velocity;
 
-    bool pushingUp = (_driveKeys[UP] - _driveKeys[DOWN] > 0.0f);
-    bool walkingOnFloor = false;
+    bool pushingUp = (_driveKeys[UP] - _driveKeys[DOWN] > 0.0f) || _scriptedMotorVelocity.y > 0.0f;
     if (_motionBehaviors & AVATAR_MOTION_STAND_ON_NEARBY_FLOORS) {
         const float MAX_SPEED_UNDER_GRAVITY = 2.0f * _scale * MAX_WALKING_SPEED;
         if (pushingUp || glm::length2(velocity) > MAX_SPEED_UNDER_GRAVITY * MAX_SPEED_UNDER_GRAVITY) {
             // we're pushing up or moving quickly, so disable gravity
             setLocalGravity(glm::vec3(0.0f));
+            walkingOnFloor = false;
         } else {
-            const float maxFloorDistance = boundingShape.getBoundingRadius() * NEARBY_FLOOR_THRESHOLD;
             if (heightAboveFloor > maxFloorDistance) {
                 // disable local gravity when floor is too far away
                 setLocalGravity(glm::vec3(0.0f));
+                walkingOnFloor = false;
             } else {
                 // enable gravity
-                walkingOnFloor = true;
                 setLocalGravity(-_worldUpDirection);
             }
         }
@@ -1195,59 +1311,23 @@ void MyAvatar::updatePosition(float deltaTime) {
         velocity += (deltaTime * GRAVITY_EARTH) * _gravity;
     }
 
-    float motorEfficiency = glm::clamp(deltaTime / computeMotorTimescale(velocity), 0.0f, 1.0f);
+    // rotate velocity into camera frame
+    glm::quat rotation = getHead()->getCameraOrientation();
+    glm::vec3 localVelocity = glm::inverse(rotation) * velocity;
 
-    if (_motionBehaviors & AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED) {
-        float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
-            (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) + 
-            fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
-        if (keyboardInput) {
-            // Compute keyboard input
-            glm::vec3 front = (_driveKeys[FWD] - _driveKeys[BACK]) * IDENTITY_FRONT;
-            glm::vec3 right = (_driveKeys[RIGHT] - _driveKeys[LEFT]) * IDENTITY_RIGHT;
-            glm::vec3 up = (_driveKeys[UP] - _driveKeys[DOWN]) * IDENTITY_UP;
-        
-            glm::vec3 direction = front + right + up;
-            float directionLength = glm::length(direction);
-        
-            // Compute motor magnitude
-            if (directionLength > EPSILON) {
-                direction /= directionLength;
-
-                // Compute the target keyboard velocity (which ramps up slowly, and damps very quickly)
-                // the max magnitude of which depends on what we're doing:
-                float finalMaxMotorSpeed = walkingOnFloor ? _scale * MAX_WALKING_SPEED : _scale * _maxMotorSpeed;
-                float motorLength = glm::length(_motorVelocity);
-                if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
-                    // an active keyboard motor should never be slower than this
-                    _motorVelocity = _scale * MIN_KEYBOARD_CONTROL_SPEED * direction;
-                    motorEfficiency = 1.0f;
-                } else {
-                    float MOTOR_LENGTH_TIMESCALE = 2.0f;
-                    float INCREASE_FACTOR = 1.8f;
-                    motorLength *= 1.0f + glm::clamp(deltaTime / MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f) * INCREASE_FACTOR;
-                    if (motorLength > finalMaxMotorSpeed) {
-                        motorLength = finalMaxMotorSpeed;
-                    }
-                    _motorVelocity = motorLength * direction;
-                }
-                _isPushing = true;
-            } 
-        } else {
-            _motorVelocity = glm::vec3(0.0f);
-        }
-    }
-
-    glm::vec3 targetVelocity = getHead()->getCameraOrientation() * _motorVelocity;
-    glm::vec3 deltaVelocity = targetVelocity - velocity;
+    // apply motors in camera frame
+    glm::vec3 newLocalVelocity = applyKeyboardMotor(deltaTime, localVelocity, walkingOnFloor);
+    newLocalVelocity = applyScriptedMotor(deltaTime, newLocalVelocity);
 
     if (walkingOnFloor && !pushingUp) {
-        // remove vertical component of deltaVelocity
+        // remove any delta component that points into floor
+        glm::vec3 deltaVelocity = newLocalVelocity - localVelocity;
         deltaVelocity -= glm::dot(deltaVelocity, _worldUpDirection) * _worldUpDirection;
+        newLocalVelocity = localVelocity + deltaVelocity;
     }
 
-    // apply motor
-    velocity += motorEfficiency * deltaVelocity;
+    // rotate back into world-frame
+    velocity = rotation * newLocalVelocity;
 
     // apply thrust
     velocity += _thrust * deltaTime;
@@ -1280,37 +1360,6 @@ void MyAvatar::updatePosition(float deltaTime) {
 
     updateChatCircle(deltaTime);
     measureMotionDerivatives(deltaTime);
-}
-
-float MyAvatar::computeMotorTimescale(const glm::vec3& velocity) {
-    // The timescale of the motor is the approximate time it takes for the motor to 
-    // accomplish its intended velocity.  A short timescale makes the motor strong, 
-    // and a long timescale makes it weak.  The value of timescale to use depends 
-    // on what the motor is doing:
-    //
-    // (1) braking --> short timescale (aggressive motor assertion)
-    // (2) pushing --> medium timescale (mild motor assertion)
-    // (3) inactive --> long timescale (gentle friction for low speeds)
-
-    float MIN_MOTOR_TIMESCALE = 0.125f;
-    float MAX_MOTOR_TIMESCALE = 0.4f;
-    float MIN_BRAKE_SPEED = 0.3f;
-
-    float timescale = MAX_MOTOR_TIMESCALE;
-    bool isThrust = (glm::length2(_thrust) > EPSILON);
-    if (_isPushing || isThrust) {
-        timescale = _motorTimescale;
-        _isBraking = false;
-    } else {
-        float speed = glm::length(velocity);
-        _isBraking = _wasPushing || (_isBraking && speed > MIN_BRAKE_SPEED);
-        if (_isBraking) {
-            timescale = MIN_MOTOR_TIMESCALE;
-        }
-    }
-    _wasPushing = _isPushing || isThrust;
-    _isPushing = false;
-    return timescale;
 }
 
 void MyAvatar::updateCollisionWithEnvironment(float deltaTime, float radius) {
@@ -1432,10 +1481,10 @@ void MyAvatar::updateCollisionWithVoxels(float deltaTime, float radius) {
             if (highestStep > MIN_STEP_HEIGHT && highestStep < MAX_STEP_HEIGHT && verticalPenetration <= 0.0f) {
                 // we're colliding against an edge
 
-                // rotate _motorVelocity into world frame
-                glm::vec3 targetVelocity = _motorVelocity;
+                // rotate _keyboardMotorVelocity into world frame
+                glm::vec3 targetVelocity = _keyboardMotorVelocity;
                 glm::quat rotation = getHead()->getCameraOrientation();
-                targetVelocity = rotation * _motorVelocity;
+                targetVelocity = rotation * _keyboardMotorVelocity;
                 if (_wasPushing && glm::dot(targetVelocity, totalPenetration) > EPSILON) {
                     // we're puhing into the edge, so we want to lift
     
@@ -1786,7 +1835,7 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition, bool hasOrientation, c
     emit transformChanged();
 }
 
-void MyAvatar::updateMotionBehaviorsFromMenu() {
+void MyAvatar::updateMotionBehavior() {
     Menu* menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::ObeyEnvironmentalGravity)) {
         _motionBehaviors |= AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY;
@@ -1808,6 +1857,16 @@ void MyAvatar::updateMotionBehaviorsFromMenu() {
     }
     if (!(_collisionGroups | COLLISION_GROUP_VOXELS)) {
         _voxelShapeManager.clearShapes();
+    }
+    if (menu->isOptionChecked(MenuOption::KeyboardMotorControl)) {
+        _motionBehaviors |= AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
+    } else {
+        _motionBehaviors &= ~AVATAR_MOTION_KEYBOARD_MOTOR_ENABLED;
+    }
+    if (menu->isOptionChecked(MenuOption::ScriptedMotorControl)) {
+        _motionBehaviors |= AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
+    } else {
+        _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
 }
 

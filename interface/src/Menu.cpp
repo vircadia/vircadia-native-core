@@ -268,13 +268,17 @@ Menu::Menu() :
                                   SLOT(resetSize()));
 
     QObject* avatar = appInstance->getAvatar();
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::KeyboardMotorControl, 
+            Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar, SLOT(updateMotionBehavior()));
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
+            avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ChatCircling, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
-            avatar, SLOT(updateMotionBehaviorsFromMenu()));
+            avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::StandOnNearbyFloors, 0, true,
-            avatar, SLOT(updateMotionBehaviorsFromMenu()));
+            avatar, SLOT(updateMotionBehavior()));
 
     QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
@@ -744,9 +748,11 @@ void Menu::loadSettings(QSettings* settings) {
 
     // MyAvatar caches some menu options, so we have to update them whenever we load settings.
     // TODO: cache more settings in MyAvatar that are checked with very high frequency.
+    setIsOptionChecked(MenuOption::KeyboardMotorControl , true);
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     myAvatar->updateCollisionGroups();
     myAvatar->onToggleRagdoll();
+    myAvatar->updateMotionBehavior();
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();
