@@ -9,9 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <qhttpmultipart.h>
 #include <qjsonobject.h>
 
 #include <AccountManager.h>
+
+#include "Application.h"
+#include "ui/Snapshot.h"
 
 #include "LocationManager.h"
 
@@ -24,13 +28,17 @@ LocationManager& LocationManager::getInstance() {
 
 const QString UNKNOWN_ERROR_MESSAGE = "Unknown error creating named location. Please try again!";
 
-void LocationManager::namedLocationDataReceived(const QJsonObject& data) {
-    if (data.isEmpty()) {
-        return;
-    }
+const QString LOCATION_OBJECT_KEY = "location";
+const QString LOCATION_ID_KEY = "id";
 
-    if (data.contains("status") && data["status"].toString() == "success") {
+void LocationManager::namedLocationDataReceived(const QJsonObject& rootObject) {
+
+    if (rootObject.contains("status") && rootObject["status"].toString() == "success") {
         emit creationCompleted(QString());
+        
+        // successfuly created a location - grab the ID from the response and create a snapshot to upload
+        QString locationIDString = rootObject[LOCATION_OBJECT_KEY].toObject()[LOCATION_ID_KEY].toString();
+        updateSnapshotForExistingLocation(locationIDString);
     } else {
         emit creationCompleted(UNKNOWN_ERROR_MESSAGE);
     }
@@ -87,3 +95,56 @@ void LocationManager::errorDataReceived(QNetworkReply& errorReply) {
         creationCompleted(UNKNOWN_ERROR_MESSAGE);
     }
 }
+
+void LocationManager::locationImageUpdateSuccess(const QJsonObject& rootObject) {
+    qDebug() << "Successfuly updated a location image.";
+}
+
+void LocationManager::updateSnapshotForExistingLocation(const QString& locationID) {
+    // first create a snapshot and save it
+    Application* application = Application::getInstance();
+    
+    QString filename = Snapshot::saveSnapshot(application->getGLWidget(), application->getAvatar());
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    // setup a multipart that is in the AccountManager thread - we need this so it can be cleaned up after the QNetworkReply
+    QHttpMultiPart* imageFileMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    imageFileMultiPart->moveToThread(accountManager.thread());
+    
+    // load the file at that filename, parent the mile to the QHttpMultipart
+    QFile* locationImageFile = new QFile(filename, imageFileMultiPart);
+    
+    if (!locationImageFile->open(QIODevice::ReadOnly)) {
+        qDebug() << "Couldn't open snapshot file to upload as location image. No location image will be stored.";
+        return;
+    }
+    
+    qDebug() << "Uploading a snapshot from" << filename << "as location image for" << locationID;
+    
+    
+    
+    const QString LOCATION_IMAGE_NAME = "location[image]";
+    
+    QHttpPart imagePart;
+    imagePart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                        QVariant("form-data; name=\"" + LOCATION_IMAGE_NAME +  "\";"));
+    imagePart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    imagePart.setBodyDevice(locationImageFile);
+    
+    imageFileMultiPart->append(imagePart);
+    
+    const QString LOCATION_IMAGE_PUT_PATH = "api/v1/locations/%1/image";
+    
+    JSONCallbackParameters imageCallbackParams;
+    imageCallbackParams.jsonCallbackReceiver = this;
+    imageCallbackParams.jsonCallbackMethod = "locationImageUpdateSuccess";
+    
+    // make an authenticated request via account manager to upload the image
+    // don't do anything with error or success for now
+    AccountManager::getInstance().authenticatedRequest(LOCATION_IMAGE_PUT_PATH.arg(locationID),
+                                                       QNetworkAccessManager::PutOperation,
+                                                       JSONCallbackParameters(), QByteArray(), imageFileMultiPart);
+}
+
+
