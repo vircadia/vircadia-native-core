@@ -42,17 +42,15 @@ ScriptsModel::ScriptsModel(QObject* parent) :
     _localDirectory(),
     _fsWatcher(),
     _localFiles(),
-    _remoteFiles() {
-
-    QString scriptPath = Menu::getInstance()->getScriptsLocation();
-
-    _localDirectory.setPath(scriptPath);
+    _remoteFiles()
+{
+    
     _localDirectory.setFilter(QDir::Files | QDir::Readable);
     _localDirectory.setNameFilters(QStringList("*.js"));
 
-    _fsWatcher.addPath(_localDirectory.absolutePath());
+    updateScriptsLocation(Menu::getInstance()->getScriptsLocation());
+    
     connect(&_fsWatcher, &QFileSystemWatcher::directoryChanged, this, &ScriptsModel::reloadLocalFiles);
-
     connect(Menu::getInstance(), &Menu::scriptLocationChanged, this, &ScriptsModel::updateScriptsLocation);
 
     reloadLocalFiles();
@@ -88,8 +86,13 @@ int ScriptsModel::rowCount(const QModelIndex& parent) const {
 
 void ScriptsModel::updateScriptsLocation(const QString& newPath) {
     _fsWatcher.removePath(_localDirectory.absolutePath());
+    
     _localDirectory.setPath(newPath);
-    _fsWatcher.addPath(_localDirectory.absolutePath());
+    
+    if (!_localDirectory.absolutePath().isEmpty()) {
+       _fsWatcher.addPath(_localDirectory.absolutePath());
+    }
+    
     reloadLocalFiles();
 }
 
