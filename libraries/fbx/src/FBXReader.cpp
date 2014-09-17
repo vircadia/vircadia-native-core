@@ -1309,7 +1309,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                         material.shininess = property.properties.at(index).value<double>();
                                     
                                     } else if (property.properties.at(0) == "Opacity") {
-                                        material.opacity = 0.5f; // property.properties.at(index).value<double>();
+                                        material.opacity = property.properties.at(index).value<double>();
                                     }
                                 }
                             }
