@@ -40,8 +40,8 @@ void AudioSourceTone::updateCoefficients() {
 
 void AudioSourceTone::initialize() {
     const float32_t FREQUENCY_220_HZ = 220.0f;
-    const float32_t GAIN_MINUS_3DB = 0.708f;
-    setParameters(SAMPLE_RATE, FREQUENCY_220_HZ, GAIN_MINUS_3DB);
+    const float32_t GAIN_MINUS_6DB = 0.501f;
+    setParameters(SAMPLE_RATE, FREQUENCY_220_HZ, GAIN_MINUS_6DB);
 }
 
 void AudioSourceTone::setParameters(const float32_t sampleRate, const float32_t frequency,  const float32_t amplitude) {

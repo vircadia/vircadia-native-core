@@ -75,6 +75,8 @@ public:
               - (_b1 * _ym1) 
               - (_b2 * _ym2);
 
+            y = (y >= -EPSILON && y < EPSILON) ? 0.0f : y; // clamp to 0
+
             // update delay line
             _xm2 = _xm1;
             _xm1 = x;
