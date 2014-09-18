@@ -219,6 +219,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
+    
+    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
+    // make sure it is ready before the NodeList might need it
+    OAuthWebViewHandler::getInstance();
 
     // start the nodeThread so its event loop is running
     _nodeThread->start();
@@ -417,11 +421,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-
-    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
-    OAuthWebViewHandler::getInstance();
-    // make sure the High Fidelity root CA is in our list of trusted certs
-    OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 
     _trayIcon->show();
     

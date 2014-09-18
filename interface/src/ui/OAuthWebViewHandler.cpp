@@ -27,7 +27,7 @@ OAuthWebViewHandler::OAuthWebViewHandler() :
     _webViewRedisplayTimer(),
     _lastAuthorizationURL()
 {
-    
+    addHighFidelityRootCAToSSLConfig();
 }
 
 const char HIGH_FIDELITY_CA[] = "-----BEGIN CERTIFICATE-----\n"
