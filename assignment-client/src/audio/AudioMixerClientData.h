@@ -24,8 +24,7 @@
 class PerListenerSourcePairData {
 public:
     PerListenerSourcePairData() { 
-        const int SAMPLE_PHASE_DELAY_AT_90 = 20;
-        _penumbraFilter.initialize(SAMPLE_RATE, (NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)) / 2);
+        _penumbraFilter.initialize(SAMPLE_RATE, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
     };
     AudioFilterHSF1s& getPenumbraFilter() { return _penumbraFilter; }
 
