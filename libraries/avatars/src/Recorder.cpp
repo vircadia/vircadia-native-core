@@ -86,7 +86,7 @@ void Recorder::stopRecording() {
     qDebug().nospace() << "Recorded " << _recording->getFrameNumber() << " during " << _recording->getLength() << " msec (" << _recording->getFrameNumber() / (_recording->getLength() / 1000.0f) << " fps)";
 }
 
-void Recorder::saveToFile(QString file) {
+void Recorder::saveToFile(QString& file) {
     if (_recording->isEmpty()) {
         qDebug() << "Cannot save recording to file, recording is empty.";
     }

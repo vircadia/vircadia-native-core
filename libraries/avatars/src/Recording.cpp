@@ -74,7 +74,7 @@ void Recording::addFrame(int timestamp, RecordingFrame &frame) {
     _frames << frame;
 }
 
-void Recording::addAudioPacket(QByteArray byteArray) {
+void Recording::addAudioPacket(QByteArray& byteArray) {
     if (!_audio) {
         _audio = new Sound(byteArray);
         return;
@@ -89,7 +89,7 @@ void Recording::clear() {
     _audio = NULL;
 }
 
-void writeVec3(QDataStream& stream, glm::vec3 value) {
+void writeVec3(QDataStream& stream, glm::vec3& value) {
     unsigned char buffer[sizeof(value)];
     memcpy(buffer, &value, sizeof(value));
     stream.writeRawData(reinterpret_cast<char*>(buffer), sizeof(value));
@@ -102,7 +102,7 @@ bool readVec3(QDataStream& stream, glm::vec3& value) {
     return true;
 }
 
-void writeQuat(QDataStream& stream, glm::quat value) {
+void writeQuat(QDataStream& stream, glm::quat& value) {
     unsigned char buffer[256];
     int writtenToBuffer = packOrientationQuatToBytes(buffer, value);
     stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
@@ -136,7 +136,7 @@ bool readFloat(QDataStream& stream, float& value, int radix) {
     return true;
 }
 
-void writeRecordingToFile(RecordingPointer recording, QString filename) {
+void writeRecordingToFile(RecordingPointer recording, QString& filename) {
     if (!recording || recording->getFrameNumber() < 1) {
         qDebug() << "Can't save empty recording";
         return;
@@ -377,7 +377,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     qDebug() << "Wrote" << file.size() << "bytes in" << writtingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
 }
 
-RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& filename) {
     QByteArray byteArray;
     QUrl url(filename);
     QElapsedTimer timer;
@@ -641,7 +641,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
 }
 
 
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray) {
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& filename, QByteArray& byteArray) {
     QElapsedTimer timer;
     timer.start();
     
