@@ -59,8 +59,8 @@ float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
-const int SCRIPTED_MOTOR_AVATAR_FRAME = 0;
-const int SCRIPTED_MOTOR_CAMERA_FRAME = 1;
+const int SCRIPTED_MOTOR_CAMERA_FRAME = 0;
+const int SCRIPTED_MOTOR_AVATAR_FRAME = 1;
 const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
 MyAvatar::MyAvatar() :
@@ -1062,10 +1062,10 @@ void MyAvatar::setScriptedMotorTimescale(float timescale) {
 }
 
 void MyAvatar::setScriptedMotorFrame(QString frame) {
-    if (frame.toLower() == "avatar") {
-        _scriptedMotorFrame = SCRIPTED_MOTOR_AVATAR_FRAME;
-    } else if (frame.toLower() == "camera") {
+    if (frame.toLower() == "camera") {
         _scriptedMotorFrame = SCRIPTED_MOTOR_CAMERA_FRAME;
+    } else if (frame.toLower() == "avatar") {
+        _scriptedMotorFrame = SCRIPTED_MOTOR_AVATAR_FRAME;
     } else if (frame.toLower() == "world") {
         _scriptedMotorFrame = SCRIPTED_MOTOR_WORLD_FRAME;
     }
@@ -1267,11 +1267,25 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
 }
 
 glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVelocity) {
+    // NOTE: localVelocity is in camera-frame because that's the frame of the default avatar motor
     if (! (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED)) {
         return localVelocity;
     }
+    glm::vec3 deltaVelocity(0.0f);
+    if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
+        // camera frame
+        deltaVelocity = _scriptedMotorVelocity - localVelocity;
+    } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
+        // avatar frame
+        glm::quat rotation = glm::inverse(getHead()->getCameraOrientation()) * getOrientation();
+        deltaVelocity = rotation * _scriptedMotorVelocity - localVelocity;
+    } else {
+        // world-frame
+        glm::quat rotation = glm::inverse(getHead()->getCameraOrientation());
+        deltaVelocity = rotation * _scriptedMotorVelocity - localVelocity;
+    }
     float motorEfficiency = glm::clamp(deltaTime / _scriptedMotorTimescale, 0.0f, 1.0f);
-    return localVelocity + motorEfficiency * (_scriptedMotorVelocity - localVelocity);
+    return localVelocity + motorEfficiency * deltaVelocity;
 }
 
 const float NEARBY_FLOOR_THRESHOLD = 5.0f;
