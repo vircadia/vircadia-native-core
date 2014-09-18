@@ -28,12 +28,12 @@
 #endif
 
 #include "location/LocationManager.h"
-#include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
 #include "ui/LoginDialog.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/ScriptEditorWindow.h"
-#include "ui/UserLocationsDialog.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -273,7 +273,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
-    UserLocationsDialog* _userLocationsDialog;
+    QPointer<DataWebDialog> _userLocationsDialog;
 #ifdef Q_OS_MAC
     SpeechRecognizer _speechRecognizer;
 #endif
