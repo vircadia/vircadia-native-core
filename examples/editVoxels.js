@@ -1110,7 +1110,7 @@ function keyPressEvent(event) {
             print("Color = " + (whichColor + 1));
             swatchesSound.play(whichColor);
             moveTools();
-        } else if (event.text == "0") {
+        } else if (event.text == "0" && voxelToolSelected) {
             // Create a brand new 1 meter voxel in front of your avatar
             var newPosition = getNewVoxelPosition();
             var newVoxel = {
