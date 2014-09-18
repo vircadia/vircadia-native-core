@@ -120,8 +120,8 @@ private:
     friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray);
 };
 
-void writeRecordingToFile(RecordingPointer recording, QString& filename);
-RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& filename);
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& filename, QByteArray& byteArray);
+void writeRecordingToFile(RecordingPointer recording, const QString& filename);
+RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& filename);
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, QByteArray& byteArray);
 
 #endif // hifi_Recording_h
