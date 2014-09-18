@@ -27,10 +27,13 @@ var HEAD_PITCH_RATE = 1.0;
 //var HEAD_PITCH_LIFT_THRUST = 3.0;
 var WALL_BOUNCE = 4000.0;
 
-var HEAD_VELOCITY_FWD_FACTOR = 2.0;
-var HEAD_VELOCITY_LEFT_FACTOR = 2.0;
-var HEAD_VELOCITY_UP_FACTOR = 2.0;
-var SHORT_TIMESCALE = 0.25;
+// Modify these values to tweak the strength of the motion.  
+// A larger *FACTOR increases the speed.
+// A lower SHORT_TIMESCALE makes the motor achieve full speed faster.
+var HEAD_VELOCITY_FWD_FACTOR = 20.0;
+var HEAD_VELOCITY_LEFT_FACTOR = 20.0;
+var HEAD_VELOCITY_UP_FACTOR = 20.0;
+var SHORT_TIMESCALE = 0.125;
 var VERY_LARGE_TIMESCALE = 1000000.0;
 
 var xAxis = {x:1.0, y:0.0, z:0.0 };
@@ -74,17 +77,6 @@ function moveWithHead(deltaTime) {
         headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
         headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
 
-//        var forward = Quat.getFront(Camera.getOrientation());
-//        var right = Quat.getRight(Camera.getOrientation());
-//        var up = Quat.getUp(Camera.getOrientation());
-//        if (noFly) {
-//            forward.y = 0.0;
-//            forward = Vec3.normalize(forward);
-//            right.y = 0.0;
-//            right = Vec3.normalize(right);
-//            up = { x: 0, y: 1, z: 0};
-//        }
-
         //  Thrust based on leaning forward and side-to-side
         var targetVelocity = {x:0.0, y:0.0, z:0.0};
         if (Math.abs(headDelta.z) > HEAD_MOVE_DEAD_ZONE) {
@@ -107,7 +99,7 @@ function moveWithHead(deltaTime) {
         MyAvatar.headPitch += deltaPitch * HEAD_PITCH_RATE * deltaTime; 
 
         // apply the motor
-        MyAvatar.setMotorVelocity(targetVelocity);
+        MyAvatar.motorVelocity = targetVelocity;
         motorTimescale = SHORT_TIMESCALE;
     }
 
@@ -126,12 +118,13 @@ function moveWithHead(deltaTime) {
             thrust.z += (roomLimits.zMax - position.z) * WALL_BOUNCE * deltaTime;
         } 
         MyAvatar.addThrust(thrust);
-        if (movingWithHead) {
+        if (movingWithHead && Vec3.length(thrust) > 0.0) {
             // reduce the timescale of the motor so that it won't defeat the thrust code
-            motorTimescale = 2.0 * SHORT_TIMESCALE;
+            Vec3.print("adebug room containment thrust = ", thrust);
+            motorTimescale = 4.0 * SHORT_TIMESCALE;
         }
     }
-    MyAvatar.setMotorTimescale(motorTimescale);
+    MyAvatar.motorTimescale = motorTimescale;
 }
 
 Controller.keyPressEvent.connect(function(event) {
@@ -146,15 +139,16 @@ Controller.keyPressEvent.connect(function(event) {
         MyAvatar.motorTimescale = VERY_LARGE_TIMESCALE;
         MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0};
         MyAvatar.motorReferenceFrame = "camera"; // alternatives are: "avatar" and "world"
-    }                        
+    }
 });
+
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SPACE") {
         movingWithHead = false;
         // disable motor by giving it an obnoxiously large timescale
         MyAvatar.motorTimescale = VERY_LARGE_TIMESCALE;
         MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0};
-    }                        
+    }
 });
 
 Script.update.connect(moveWithHead);
