@@ -20,7 +20,6 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QPair>
 
 #include "AvatarData.h"
@@ -74,7 +73,7 @@ void Recording::addFrame(int timestamp, RecordingFrame &frame) {
     _frames << frame;
 }
 
-void Recording::addAudioPacket(QByteArray byteArray) {
+void Recording::addAudioPacket(QByteArray& byteArray) {
     if (!_audio) {
         _audio = new Sound(byteArray);
         return;
@@ -89,7 +88,7 @@ void Recording::clear() {
     _audio = NULL;
 }
 
-void writeVec3(QDataStream& stream, glm::vec3 value) {
+void writeVec3(QDataStream& stream, glm::vec3& value) {
     unsigned char buffer[sizeof(value)];
     memcpy(buffer, &value, sizeof(value));
     stream.writeRawData(reinterpret_cast<char*>(buffer), sizeof(value));
@@ -102,7 +101,7 @@ bool readVec3(QDataStream& stream, glm::vec3& value) {
     return true;
 }
 
-void writeQuat(QDataStream& stream, glm::quat value) {
+void writeQuat(QDataStream& stream, glm::quat& value) {
     unsigned char buffer[256];
     int writtenToBuffer = packOrientationQuatToBytes(buffer, value);
     stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
@@ -136,7 +135,7 @@ bool readFloat(QDataStream& stream, float& value, int radix) {
     return true;
 }
 
-void writeRecordingToFile(RecordingPointer recording, QString filename) {
+void writeRecordingToFile(RecordingPointer recording, QString& filename) {
     if (!recording || recording->getFrameNumber() < 1) {
         qDebug() << "Can't save empty recording";
         return;
@@ -329,7 +328,7 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     
     fileStream << recording->_audio->getByteArray();
     
-    qint64 writtingTime = timer.restart();
+    qint64 writingTime = timer.restart();
     // Write data length and CRC-16
     quint32 dataLength = file.pos() - dataOffset;
     file.seek(dataOffset); // Go to beginning of data for checksum
@@ -374,10 +373,10 @@ void writeRecordingToFile(RecordingPointer recording, QString filename) {
     }
     
     qint64 checksumTime = timer.elapsed();
-    qDebug() << "Wrote" << file.size() << "bytes in" << writtingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
+    qDebug() << "Wrote" << file.size() << "bytes in" << writingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
 }
 
-RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename) {
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& filename) {
     QByteArray byteArray;
     QUrl url(filename);
     QElapsedTimer timer;
@@ -416,10 +415,6 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     
     if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
         qDebug() << "Old .rec format";
-        QMessageBox::warning(NULL,
-                             QString("Old recording format"),
-                             QString("Converting your file to the new format."),
-                             QMessageBox::Ok);
         readRecordingFromRecFile(recording, filename, byteArray);
         return recording;
     } else if (!filename.endsWith(".hfr") && !filename.endsWith(".HFR")) {
@@ -641,7 +636,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
 }
 
 
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray) {
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& filename, QByteArray& byteArray) {
     QElapsedTimer timer;
     timer.start();
     
@@ -797,10 +792,6 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString fi
     
     // Set recording to new format
     writeRecordingToFile(recording, filename);
-    QMessageBox::warning(NULL,
-                         QString("New recording location"),
-                         QString("The new recording was saved at:\n" + filename),
-                         QMessageBox::Ok);
     qDebug() << "Recording has been successfully converted at" << filename;
     return recording;
 }

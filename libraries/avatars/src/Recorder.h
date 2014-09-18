@@ -38,7 +38,7 @@ public:
 public slots:
     void startRecording();
     void stopRecording();
-    void saveToFile(QString file);
+    void saveToFile(QString& file);
     void record();
     void record(char* samples, int size);
     

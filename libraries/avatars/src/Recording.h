@@ -62,7 +62,7 @@ public:
     
 protected:
     void addFrame(int timestamp, RecordingFrame& frame);
-    void addAudioPacket(QByteArray byteArray);
+    void addAudioPacket(QByteArray& byteArray);
     void clear();
     
 private:
@@ -74,9 +74,9 @@ private:
     
     friend class Recorder;
     friend class Player;
-    friend void writeRecordingToFile(RecordingPointer recording, QString file);
-    friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
-    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray);
+    friend void writeRecordingToFile(RecordingPointer recording, QString& file);
+    friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& file);
+    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& filename, QByteArray& byteArray);
 };
 
 /// Stores the different values associated to one recording frame
@@ -101,7 +101,7 @@ protected:
     void setHeadRotation(glm::quat headRotation) { _headRotation = headRotation; }
     void setLeanSideways(float leanSideways) { _leanSideways = leanSideways; }
     void setLeanForward(float leanForward) { _leanForward = leanForward; }
-    void setLookAtPosition(glm::vec3 lookAtPosition) { _lookAtPosition = lookAtPosition; }
+    void setLookAtPosition(glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
 private:
     QVector<float> _blendshapeCoefficients;
@@ -115,13 +115,13 @@ private:
     glm::vec3 _lookAtPosition;
     
     friend class Recorder;
-    friend void writeRecordingToFile(RecordingPointer recording, QString file);
-    friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString file);
-    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray);
+    friend void writeRecordingToFile(RecordingPointer recording, QString& file);
+    friend RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& file);
+    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& filename, QByteArray& byteArray);
 };
 
-void writeRecordingToFile(RecordingPointer recording, QString filename);
-RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filename);
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString filename, QByteArray byteArray);
+void writeRecordingToFile(RecordingPointer recording, QString& filename);
+RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& filename);
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& filename, QByteArray& byteArray);
 
 #endif // hifi_Recording_h
