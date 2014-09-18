@@ -77,6 +77,7 @@ float extractUniformScale(const glm::mat4& matrix);
 float extractUniformScale(const glm::vec3& scale);
 
 QByteArray createByteArray(const glm::vec3& vector);
+QByteArray createByteArray(const glm::quat& quat);
 
 /// \return bool are two orientations similar to each other
 const float ORIENTATION_SIMILAR_ENOUGH = 5.0f; // 10 degrees in any direction

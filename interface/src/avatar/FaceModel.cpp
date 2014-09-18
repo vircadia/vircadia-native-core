@@ -57,15 +57,15 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
         * joint.rotation, DEFAULT_PRIORITY);
 }
 
-void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // likewise with the eye joints
     // NOTE: at the moment we do the math in the world-frame, hence the inverse transform is more complex than usual.
-    glm::mat4 inverse = glm::inverse(glm::mat4_cast(_rotation) * parentState.getTransform() * 
+    glm::mat4 inverse = glm::inverse(glm::mat4_cast(model->getRotation()) * parentState.getTransform() * 
             glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
             joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT, 0.0f));
     glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
-        _owningHead->getSaccade() - _translation, 1.0f));
+        _owningHead->getSaccade() - model->getTranslation(), 1.0f));
     glm::quat between = rotationBetween(front, lookAt);
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;
     state.setRotationInConstrainedFrame(glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
@@ -82,7 +82,7 @@ void FaceModel::updateJointState(int index) {
             maybeUpdateNeckRotation(parentState, joint, state);    
                 
         } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
-            maybeUpdateEyeRotation(parentState, joint, state);
+            maybeUpdateEyeRotation(this, parentState, joint, state);
         }
     }
 

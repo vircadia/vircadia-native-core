@@ -608,13 +608,13 @@ bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
     glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
     receiveShadows &= Menu::getInstance()->getShadowsEnabled();
-    renderMeshes(alpha, mode, false, receiveShadows);
+    renderMeshes(mode, false, receiveShadows);
     
     glDisable(GL_ALPHA_TEST);
     
     // render translucent meshes afterwards
     
-    renderMeshes(alpha, mode, true, receiveShadows);
+    renderMeshes(mode, true, receiveShadows);
     
     glDisable(GL_CULL_FACE);
     
@@ -894,6 +894,10 @@ void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
 }
 
 void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    if (!isActive()) {
+        return;
+    }
+    
     if (_scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
         _scaleToFit = scaleToFit;
         
@@ -1356,7 +1360,7 @@ void Model::deleteGeometry() {
     }
 }
 
-void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows) {
+void Model::renderMeshes(RenderMode mode, bool translucent, bool receiveShadows) {
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -1365,13 +1369,13 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
     for (int i = 0; i < networkMeshes.size(); i++) {
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
-        if (translucent ? (networkMesh.getTranslucentPartCount() == 0) :
-                (networkMesh.getTranslucentPartCount() == networkMesh.parts.size())) {
+        const FBXMesh& mesh = geometry.meshes.at(i);    
+        if (translucent ? (networkMesh.getTranslucentPartCount(mesh) == 0) :
+                (networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size())) {
             continue;
         }
         const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
-
-        const FBXMesh& mesh = geometry.meshes.at(i);    
+        
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
             // sanity check
@@ -1528,7 +1532,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         if (!mesh.colors.isEmpty()) {
             glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            glColor4f(1.0f, 1.0f, 1.0f, alpha);
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         }
         if (!mesh.texCoords.isEmpty()) {
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1538,7 +1542,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
             const FBXMeshPart& part = mesh.parts.at(j);
-            if (networkPart.isTranslucent() != translucent) {
+            if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
@@ -1547,8 +1551,8 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
-                glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
-                glm::vec4 specular = glm::vec4(part.specularColor, alpha);
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
+                glm::vec4 specular = glm::vec4(part.specularColor, part.opacity);
                 glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);

@@ -1002,6 +1002,7 @@ void MyAvatar::clearJointData(int index) {
     if (QThread::currentThread() == thread()) {
         // HACK: ATM only JS scripts call clearJointData() on MyAvatar so we hardcode the priority
         _skeletonModel.setJointState(index, false, glm::quat(), 0.0f);
+        _skeletonModel.clearJointAnimationPriority(index);
     }
 }
 
@@ -1833,25 +1834,34 @@ void MyAvatar::resetSize() {
     qDebug("Reseted scale to %f", _targetScale);
 }
 
-void MyAvatar::goToLocation(const glm::vec3& newPosition, bool hasOrientation, const glm::vec3& newOrientation) {    
-    glm::quat quatOrientation = getOrientation();
+void MyAvatar::goToLocation(const glm::vec3& newPosition,
+                            bool hasOrientation, const glm::quat& newOrientation,
+                            bool shouldFaceLocation) {
     
     qDebug().nospace() << "MyAvatar goToLocation - moving to " << newPosition.x << ", "
         << newPosition.y << ", " << newPosition.z;
     
+    glm::vec3 shiftedPosition = newPosition;
+    
     if (hasOrientation) {
         qDebug().nospace() << "MyAvatar goToLocation - new orientation is "
-            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z;
+            << newOrientation.x << ", " << newOrientation.y << ", " << newOrientation.z << ", " << newOrientation.w;
         
         // orient the user to face the target
-        glm::quat quatOrientation = glm::quat(glm::radians(newOrientation))
-            * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::quat quatOrientation = newOrientation;
+        
+        if (shouldFaceLocation) {
+            
+            quatOrientation = newOrientation * glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+            
+            // move the user a couple units away
+            const float DISTANCE_TO_USER = 2.0f;
+            shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
+        }
+        
         setOrientation(quatOrientation);
     }
 
-    // move the user a couple units away
-    const float DISTANCE_TO_USER = 2.0f;
-    glm::vec3 shiftedPosition = newPosition - quatOrientation * IDENTITY_FRONT * DISTANCE_TO_USER;
     slamPosition(shiftedPosition);
     emit transformChanged();
 }

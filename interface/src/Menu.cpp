@@ -332,9 +332,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersVoxelNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_1, false,
                                            &nodeBounds, SLOT(setShowVoxelNodes(bool)));
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersModelNodes,
+    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
-                                           &nodeBounds, SLOT(setShowModelNodes(bool)));
+                                           &nodeBounds, SLOT(setShowEntityNodes(bool)));
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersParticleNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
                                            &nodeBounds, SLOT(setShowParticleNodes(bool)));

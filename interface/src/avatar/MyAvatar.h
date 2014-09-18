@@ -163,7 +163,9 @@ public slots:
     void decreaseSize();
     void resetSize();
     
-    void goToLocation(const glm::vec3& newPosition, bool hasOrientation = false, const glm::vec3& newOrientation = glm::vec3());
+    void goToLocation(const glm::vec3& newPosition,
+                      bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
+                      bool shouldFaceLocation = false);
 
     //  Set/Get update the thrust that will move the avatar around
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };

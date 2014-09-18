@@ -657,6 +657,7 @@ public:
     glm::vec3 diffuse;
     glm::vec3 specular;
     float shininess;
+    float opacity;
 };
 
 class Cluster {
@@ -1280,7 +1281,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f, 1.0f };
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1306,6 +1307,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
+                                    
+                                    } else if (property.properties.at(0) == "Opacity") {
+                                        material.opacity = property.properties.at(index).value<double>();
                                     }
                                 }
                             }
@@ -1602,6 +1606,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         part.diffuseColor = material.diffuse;
                         part.specularColor = material.specular;
                         part.shininess = material.shininess;
+                        part.opacity = material.opacity;
                         if (!diffuseTexture.filename.isNull()) {
                             part.diffuseTexture = diffuseTexture;
                         }
@@ -1750,18 +1755,38 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                         // look for an unused slot in the weights vector
                         glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
-                        for (int k = 0; k < 4; k++) {
+                        int lowestIndex = -1;
+                        float lowestWeight = FLT_MAX;
+                        int k = 0;
+                        for (; k < 4; k++) {
                             if (weights[k] == 0.0f) {
                                 extracted.mesh.clusterIndices[it.value()][k] = i;
                                 weights[k] = weight;
                                 break;
                             }
+                            if (weights[k] < lowestWeight) {
+                                lowestIndex = k;
+                                lowestWeight = weights[k];
+                            }
+                        }
+                        if (k == 4) {
+                            // no space for an additional weight; we must replace the lowest
+                            weights[lowestIndex] = weight;
+                            extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
                         }
                     }
                 }
                 if (totalWeight > maxWeight) {
                     maxWeight = totalWeight;
                     maxJointIndex = jointIndex;
+                }
+            }
+            // normalize the weights if they don't add up to one
+            for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
+                glm::vec4& weights = extracted.mesh.clusterWeights[i];
+                float total = weights.x + weights.y + weights.z + weights.w;
+                if (total != 1.0f && total != 0.0f) {
+                    weights /= total; 
                 }
             }
         } else {
@@ -2042,6 +2067,7 @@ FBXGeometry readSVO(const QByteArray& model) {
     FBXMeshPart part;
     part.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     part.shininess = 96.0f;
+    part.opacity = 1.0f;
     mesh.parts.append(part);
 
     VoxelTree tree;

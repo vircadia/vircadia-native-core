@@ -145,7 +145,7 @@ public:
     
     QVector<NetworkMeshPart> parts;
     
-    int getTranslucentPartCount() const;
+    int getTranslucentPartCount(const FBXMesh& fbxMesh) const;
 };
 
 #endif // hifi_GeometryCache_h

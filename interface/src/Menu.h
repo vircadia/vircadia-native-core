@@ -441,7 +441,7 @@ namespace MenuOption {
     const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
-    const QString ShowBordersModelNodes = "Show Model Nodes";
+    const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
