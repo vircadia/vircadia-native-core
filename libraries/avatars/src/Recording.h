@@ -76,7 +76,8 @@ private:
     friend class Player;
     friend void writeRecordingToFile(RecordingPointer recording, const QString& file);
     friend RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& file);
-    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray);
+    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename,
+                                                     const QByteArray& byteArray);
 };
 
 /// Stores the different values associated to one recording frame
@@ -117,11 +118,12 @@ private:
     friend class Recorder;
     friend void writeRecordingToFile(RecordingPointer recording, const QString& file);
     friend RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& file);
-    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray);
+    friend RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename,
+                                                     const QByteArray& byteArray);
 };
 
 void writeRecordingToFile(RecordingPointer recording, const QString& filename);
 RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString& filename);
-RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, QByteArray& byteArray);
+RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QString& filename, const QByteArray& byteArray);
 
 #endif // hifi_Recording_h
