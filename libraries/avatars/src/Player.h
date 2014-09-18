@@ -37,7 +37,7 @@ public:
 public slots:
     void startPlaying();
     void stopPlaying();
-    void loadFromFile(QString& file);
+    void loadFromFile(const QString& file);
     void loadRecording(RecordingPointer recording);
     void play();
     
