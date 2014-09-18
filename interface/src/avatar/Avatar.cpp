@@ -1036,7 +1036,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
         }
     } 
 
-    if (showDisplayName) {
+    if (showDisplayName && Menu::getInstance()->isOptionChecked(MenuOption::NamesAboveHeads)) {
         _displayNameTargetAlpha = DISPLAYNAME_ALPHA;
     } else {
         _displayNameTargetAlpha = 0.0f;
