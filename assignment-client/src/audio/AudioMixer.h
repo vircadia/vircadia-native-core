@@ -13,10 +13,6 @@
 #define hifi_AudioMixer_h
 
 #include <AABox.h>
-#include <AudioFormat.h> // For AudioFilterHSF1s and _penumbraFilter
-#include <AudioBuffer.h> // For AudioFilterHSF1s and _penumbraFilter
-#include <AudioFilter.h> // For AudioFilterHSF1s and _penumbraFilter
-#include <AudioFilterBank.h> // For AudioFilterHSF1s and _penumbraFilter
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 
@@ -63,8 +59,6 @@ private:
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
     int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
-    AudioFilterHSF1s _penumbraFilter;
-    
     void perSecondActions();
 
     QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
