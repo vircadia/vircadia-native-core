@@ -11,7 +11,7 @@
 
 
 #include <GLMHelpers.h>
-#include <Nodelist.h>
+#include <NodeList.h>
 #include <StreamUtils.h>
 
 #include "AvatarData.h"
