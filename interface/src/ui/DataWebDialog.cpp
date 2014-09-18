@@ -15,6 +15,8 @@
 #include <LimitedNodeList.h>
 #include <OAuthNetworkAccessManager.h>
 
+#include "Application.h"
+
 #include "DataWebDialog.h"
 
 DataWebDialog::DataWebDialog() {
@@ -23,6 +25,12 @@ DataWebDialog::DataWebDialog() {
     
     // use an OAuthNetworkAccessManager instead of regular QNetworkAccessManager so our requests are authed
     page()->setNetworkAccessManager(OAuthNetworkAccessManager::getInstance());
+    
+    // have the page delete external links so they can be captured by the Application in case they are a hifi link
+    page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
+    
+    // have the Application handle external links
+    connect(this, &QWebView::linkClicked, Application::getInstance(), &Application::openUrl);
 }
 
 DataWebDialog* DataWebDialog::dialogForPath(const QString& path) {
