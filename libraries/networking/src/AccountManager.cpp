@@ -25,6 +25,8 @@
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
+const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
+
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
     return sharedInstance;
@@ -188,7 +190,8 @@ void AccountManager::invokedRequest(const QString& path,
     
     if (requiresAuthentication) {
         if (hasValidAccessToken()) {
-            requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
+            networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
+                                        _accountInfo.getAccessToken().authorizationHeaderValue());
         } else {
             qDebug() << "No valid access token present. Bailing on authenticated invoked request.";
             return;
@@ -405,9 +408,11 @@ void AccountManager::requestProfile() {
 
     QUrl profileURL = _authURL;
     profileURL.setPath("/api/v1/users/profile");
-    profileURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
+    
+    QNetworkRequest profileRequest(profileURL);
+    profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
 
-    QNetworkReply* profileReply = networkAccessManager.get(QNetworkRequest(profileURL));
+    QNetworkReply* profileReply = networkAccessManager.get(profileRequest);
     connect(profileReply, &QNetworkReply::finished, this, &AccountManager::requestProfileFinished);
     connect(profileReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestProfileError(QNetworkReply::NetworkError)));
 }

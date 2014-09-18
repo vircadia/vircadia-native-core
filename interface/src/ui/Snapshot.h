@@ -42,7 +42,11 @@ class Snapshot {
 
 public:
     static QString saveSnapshot(QGLWidget* widget, Avatar* avatar);
+    static QTemporaryFile* saveTempSnapshot(QGLWidget* widget, Avatar* avatar);
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
+    
+private:
+    static QFile* savedFileForSnapshot(QGLWidget* widget, Avatar* avatar, bool isTemporary);
 };
 
 #endif // hifi_Snapshot_h

@@ -281,7 +281,7 @@ void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const
 }
 
 void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(parentState, joint, state);
+    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(this, parentState, joint, state);
 }
 
 void SkeletonModel::renderJointConstraints(int jointIndex) {
