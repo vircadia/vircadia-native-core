@@ -62,8 +62,8 @@ Model::Model(QObject* parent) :
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
     _url("http://invalid.com"),
-    _blenderPending(false),
-    _blendRequired(false) {
+    _blendNumber(0),
+    _appliedBlendNumber(0) {
     
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -826,7 +826,7 @@ void Model::updateShapePositions() {
 class Blender : public QRunnable {
 public:
 
-    Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
+    Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
     
     virtual void run();
@@ -834,55 +834,55 @@ public:
 private:
     
     QPointer<Model> _model;
+    int _blendNumber;
     QWeakPointer<NetworkGeometry> _geometry;
     QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
+Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
     _model(model),
+    _blendNumber(blendNumber),
     _geometry(geometry),
     _meshes(meshes),
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
 
 void Blender::run() {
-    // make sure the model still exists
-    if (_model.isNull()) {
-        return;
-    }
     QVector<glm::vec3> vertices, normals;
-    int offset = 0;
-    foreach (const FBXMesh& mesh, _meshes) {
-        if (mesh.blendshapes.isEmpty()) {
-            continue;
-        }
-        vertices += mesh.vertices;
-        normals += mesh.normals;
-        glm::vec3* meshVertices = vertices.data() + offset;
-        glm::vec3* meshNormals = normals.data() + offset;
-        offset += mesh.vertices.size();
-        const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-        for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
-            float vertexCoefficient = _blendshapeCoefficients.at(i);
-            if (vertexCoefficient < EPSILON) {
+    if (!_model.isNull()) {
+        int offset = 0;
+        foreach (const FBXMesh& mesh, _meshes) {
+            if (mesh.blendshapes.isEmpty()) {
                 continue;
             }
-            float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
-            const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
-            for (int j = 0; j < blendshape.indices.size(); j++) {
-                int index = blendshape.indices.at(j);
-                meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
-                meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+            vertices += mesh.vertices;
+            normals += mesh.normals;
+            glm::vec3* meshVertices = vertices.data() + offset;
+            glm::vec3* meshNormals = normals.data() + offset;
+            offset += mesh.vertices.size();
+            const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+            for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
+                float vertexCoefficient = _blendshapeCoefficients.at(i);
+                if (vertexCoefficient < EPSILON) {
+                    continue;
+                }
+                float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
+                const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
+                for (int j = 0; j < blendshape.indices.size(); j++) {
+                    int index = blendshape.indices.at(j);
+                    meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
+                    meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+                }
             }
         }
     }
-    
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(Application::getInstance()->getGeometryCache(), "setBlendedVertices",
-        Q_ARG(const QPointer<Model>&, _model), Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry),
-        Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
+        Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
+        Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
+        Q_ARG(const QVector<glm::vec3>&, normals));
 }
 
 void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
@@ -1020,14 +1020,9 @@ void Model::simulateInternal(float deltaTime) {
     }
     
     // post the blender if we're not currently waiting for one to finish
-    if (geometry.hasBlendedMeshes()) {
-        if (_blenderPending) {
-            _blendRequired = true;
-        } else {
-            _blendRequired = false;
-            _blenderPending = true;
-            QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
-        }
+    if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+        _blendedBlendshapeCoefficients = _blendshapeCoefficients;
+        Application::getInstance()->getGeometryCache()->noteRequiresBlend(this);
     }
 }
 
@@ -1290,22 +1285,23 @@ void Model::renderJointCollisionShapes(float alpha) {
     // implement this when we have shapes for regular models
 }
 
-void Model::setBlendedVertices(const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices,
-        const QVector<glm::vec3>& normals) {
-    _blenderPending = false;
-    
-    // start the next blender if required
+bool Model::maybeStartBlender() {
     const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
-    if (_blendRequired) {
-        _blendRequired = false;
-        if (fbxGeometry.hasBlendedMeshes()) {
-            _blenderPending = true;
-            QThreadPool::globalInstance()->start(new Blender(this, _geometry, fbxGeometry.meshes, _blendshapeCoefficients));
-        }
+    if (fbxGeometry.hasBlendedMeshes()) {
+        QThreadPool::globalInstance()->start(new Blender(this, ++_blendNumber, _geometry,
+            fbxGeometry.meshes, _blendshapeCoefficients));
+        return true;
     }
-    if (_geometry != geometry || _blendedVertexBuffers.isEmpty()) {
+    return false;
+}
+
+void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (_geometry != geometry || _blendedVertexBuffers.isEmpty() || blendNumber < _appliedBlendNumber) {
         return;
     }
+    _appliedBlendNumber = blendNumber;
+    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();    
     int index = 0;
     for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
         const FBXMesh& mesh = fbxGeometry.meshes.at(i);
@@ -1358,6 +1354,8 @@ void Model::deleteGeometry() {
     if (_geometry) {
         _geometry->clearLoadPriority(this);
     }
+    
+    _blendedBlendshapeCoefficients.clear();
 }
 
 void Model::renderMeshes(RenderMode mode, bool translucent, bool receiveShadows) {
