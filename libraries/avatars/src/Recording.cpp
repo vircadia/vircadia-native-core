@@ -20,7 +20,6 @@
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
-#include <QMessageBox>
 #include <QPair>
 
 #include "AvatarData.h"
@@ -329,7 +328,7 @@ void writeRecordingToFile(RecordingPointer recording, QString& filename) {
     
     fileStream << recording->_audio->getByteArray();
     
-    qint64 writtingTime = timer.restart();
+    qint64 writingTime = timer.restart();
     // Write data length and CRC-16
     quint32 dataLength = file.pos() - dataOffset;
     file.seek(dataOffset); // Go to beginning of data for checksum
@@ -374,7 +373,7 @@ void writeRecordingToFile(RecordingPointer recording, QString& filename) {
     }
     
     qint64 checksumTime = timer.elapsed();
-    qDebug() << "Wrote" << file.size() << "bytes in" << writtingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
+    qDebug() << "Wrote" << file.size() << "bytes in" << writingTime + checksumTime << "ms. (" << checksumTime << "ms for checksum)";
 }
 
 RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& filename) {
@@ -416,10 +415,6 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString& file
     
     if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
         qDebug() << "Old .rec format";
-        QMessageBox::warning(NULL,
-                             QString("Old recording format"),
-                             QString("Converting your file to the new format."),
-                             QMessageBox::Ok);
         readRecordingFromRecFile(recording, filename, byteArray);
         return recording;
     } else if (!filename.endsWith(".hfr") && !filename.endsWith(".HFR")) {
@@ -797,10 +792,6 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, QString& f
     
     // Set recording to new format
     writeRecordingToFile(recording, filename);
-    QMessageBox::warning(NULL,
-                         QString("New recording location"),
-                         QString("The new recording was saved at:\n" + filename),
-                         QMessageBox::Ok);
     qDebug() << "Recording has been successfully converted at" << filename;
     return recording;
 }
