@@ -26,7 +26,7 @@ public:
         JOINT,
         AVATAR,
         
-        NUM_TYPE
+        NUM_TYPES
     };
     
     Referential(const unsigned char*& sourceBuffer, AvatarData* avatar);
