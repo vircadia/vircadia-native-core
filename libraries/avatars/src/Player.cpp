@@ -159,7 +159,7 @@ void Player::loopRecording() {
     _timer.restart();
 }
 
-void Player::loadFromFile(QString& file) {
+void Player::loadFromFile(const QString& file) {
     if (_recording) {
         _recording->clear();
     } else {
