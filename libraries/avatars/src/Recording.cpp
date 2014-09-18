@@ -457,7 +457,6 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, QString filen
     
     
     // Check checksum
-    
     quint16 computedCRC16 = qChecksum(byteArray.constData() + dataOffset, dataLength);
     if (computedCRC16 != crc16) {
         qDebug() << "Checksum does not match. Bailling!";

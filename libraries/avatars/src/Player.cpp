@@ -204,7 +204,7 @@ void Player::play() {
         head->setFinalPitch(eulers.x);
         head->setFinalYaw(eulers.y);
         head->setFinalRoll(eulers.z);
-        //head->setLookAtPosition(currentFrame.getLookAtPosition());
+        head->setLookAtPosition(currentFrame.getLookAtPosition());
     } else {
         qDebug() << "WARNING: Player couldn't find head data.";
     }
