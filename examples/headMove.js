@@ -79,7 +79,7 @@ function moveWithHead(deltaTime) {
         if (Math.abs(headDelta.z) > HEAD_MOVE_DEAD_ZONE) {
             if (Math.abs(Vec3.dot(velocity, forward)) < maxVelocity) {
                 thrust = Vec3.sum(thrust, Vec3.multiply(forward, -headDelta.z * HEAD_THRUST_FWD_SCALE * deltaTime));
-            }
+            } 
         }
         if (Math.abs(headDelta.x) > HEAD_STRAFE_DEAD_ZONE) {
             if (Math.abs(Vec3.dot(velocity, right)) < maxVelocity) {
