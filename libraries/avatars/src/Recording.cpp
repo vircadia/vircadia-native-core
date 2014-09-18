@@ -11,7 +11,7 @@
 
 #include <GLMHelpers.h>
 #include <NetworkAccessManager.h>
-#include <Nodelist.h>
+#include <NodeList.h>
 #include <Sound.h>
 #include <StreamUtils.h>
 
