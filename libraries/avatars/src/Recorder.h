@@ -170,8 +170,12 @@ public slots:
     void loadRecording(RecordingPointer recording);
     void play();
     
-    void setPlayFromCurrentLocation(bool playFromCurrentLocation);
-    void setLoop(bool loop);
+    void setPlayFromCurrentLocation(bool playFromCurrentPosition);
+    void setLoop(bool loop) { _loop = loop; }
+    void useAttachements(bool useAttachments) { _useAttachments = useAttachments; }
+    void useDisplayName(bool useDisplayName) { _useDisplayName = useDisplayName; }
+    void useHeadModel(bool useHeadURL) { _useHeadURL = useHeadURL; }
+    void useSkeletonModel(bool useSkeletonURL) { _useSkeletonURL = useSkeletonURL; }
     
 private:
     void setupAudioThread();
