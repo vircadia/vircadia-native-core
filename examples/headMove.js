@@ -45,7 +45,7 @@ var maxVelocity = 1.25;
 var noFly = true; 
 
 //var roomLimits = { xMin: 618, xMax: 635.5, zMin: 528, zMax: 552.5 };
-var roomLimits = { xMin: -1, xMax: 0, zMin: 0, zMax: 0 };
+var roomLimits = { xMin: 142.6, xMax: 153.7, zMin: 177.5, zMax: 192.0 };
 
 function isInRoom(position) {
     var BUFFER = 2.0;
@@ -71,19 +71,29 @@ function moveWithHead(deltaTime) {
         var deltaPitch = MyAvatar.getHeadDeltaPitch() - headStartDeltaPitch;
         var deltaRoll = MyAvatar.getHeadFinalRoll() - headStartRoll;
         var velocity = MyAvatar.getVelocity();
-        var bodyLocalCurrentHeadVector = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
-        bodyLocalCurrentHeadVector = Vec3.multiplyQbyV(Quat.angleAxis(-deltaYaw, {x:0, y: 1, z:0}), bodyLocalCurrentHeadVector);
+        var position = MyAvatar.position;
+        var neckPosition = MyAvatar.getNeckPosition();
+        var bodyLocalCurrentHeadVector = Vec3.subtract(neckPosition, position);
+        //bodyLocalCurrentHeadVector = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), bodyLocalCurrentHeadVector);
         var headDelta = Vec3.subtract(bodyLocalCurrentHeadVector, headStartPosition);
-        headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
+        //headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
         headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
+        if (Vec3.length(headDelta) > 0.005) {
+            Vec3.print("headDelta = ", headDelta);
+            Vec3.print("headStartPosition = ", headStartPosition);
+            Vec3.print("MyAvatar.position = ", position);
+            Vec3.print("MyAvatar.getNeckPosition() = ", neckPosition);
+
+        }
+        
 
         //  Thrust based on leaning forward and side-to-side
         var targetVelocity = {x:0.0, y:0.0, z:0.0};
         if (Math.abs(headDelta.z) > HEAD_MOVE_DEAD_ZONE) {
-            targetVelocity = Vec3.multiply(zAxis, -headDelta.z * HEAD_VELOCITY_FWD_FACTOR);
+            targetVelocity = Vec3.multiply(zAxis,   headDelta.z * HEAD_VELOCITY_FWD_FACTOR);
         }
         if (Math.abs(headDelta.x) > HEAD_STRAFE_DEAD_ZONE) {
-            var deltaVelocity = Vec3.multiply(xAxis, -headDelta.x * HEAD_VELOCITY_LEFT_FACTOR);
+            var deltaVelocity = Vec3.multiply(xAxis, headDelta.x * HEAD_VELOCITY_LEFT_FACTOR);
             targetVelocity = Vec3.sum(targetVelocity, deltaVelocity);
         }
         if (Math.abs(deltaYaw) > HEAD_ROTATE_DEAD_ZONE) {
@@ -130,7 +140,10 @@ function moveWithHead(deltaTime) {
 Controller.keyPressEvent.connect(function(event) {
     if (event.text == "SPACE" && !movingWithHead) {
         movingWithHead = true;
-        headStartPosition = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
+        Vec3.print("getNeckPosition() = ", MyAvatar.getNeckPosition());
+        headStartPosition = Vec3.subtract(MyAvatar.getNeckPosition(), MyAvatar.position);
+        //headStartPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), headStartPosition);
+        Vec3.print("First HeadStartPosition = ", headStartPosition);
         headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
         headStartFinalPitch = MyAvatar.getHeadFinalPitch();
         headStartRoll = MyAvatar.getHeadFinalRoll();
@@ -138,7 +151,7 @@ Controller.keyPressEvent.connect(function(event) {
         // start with disabled motor -- it will be updated shortly
         MyAvatar.motorTimescale = VERY_LARGE_TIMESCALE;
         MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0};
-        MyAvatar.motorReferenceFrame = "camera"; // alternatives are: "avatar" and "world"
+        MyAvatar.motorReferenceFrame = "avatar"; // alternatives are: "avatar" and "world"
     }
 });
 
