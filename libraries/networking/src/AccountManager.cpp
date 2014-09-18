@@ -25,8 +25,6 @@
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
-const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
-
 AccountManager& AccountManager::getInstance() {
     static AccountManager sharedInstance;
     return sharedInstance;
