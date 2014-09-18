@@ -1027,6 +1027,11 @@ float Avatar::getPelvisToHeadLength() const {
 }
 
 void Avatar::setShowDisplayName(bool showDisplayName) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::NamesAboveHeads)) {
+        _displayNameAlpha = 0.0f;
+        return;
+    }
+    
     // For myAvatar, the alpha update is not done (called in simulate for other avatars)
     if (Application::getInstance()->getAvatar() == this) {
         if (showDisplayName) {
@@ -1036,7 +1041,7 @@ void Avatar::setShowDisplayName(bool showDisplayName) {
         }
     } 
 
-    if (showDisplayName && Menu::getInstance()->isOptionChecked(MenuOption::NamesAboveHeads)) {
+    if (showDisplayName) {
         _displayNameTargetAlpha = DISPLAYNAME_ALPHA;
     } else {
         _displayNameTargetAlpha = 0.0f;
