@@ -22,6 +22,7 @@
 
 class PositionalAudioStream;
 class AvatarAudioStream;
+class AudioMixerClientData;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
@@ -46,8 +47,10 @@ public slots:
     
 private:
     /// adds one stream to the mix for a listening node
-    int addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
-                                                  AvatarAudioStream* listeningNodeStream);
+    int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
+                                                    const QUuid& streamUUID,
+                                                    PositionalAudioStream* streamToAdd,
+                                                    AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
     int prepareMixForListeningNode(Node* node);
