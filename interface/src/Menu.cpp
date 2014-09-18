@@ -273,6 +273,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ScriptedMotorControl, 0, true,
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ChatCircling, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::NamesAboveHeads, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::GlowWhenSpeaking, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::BlueSpeechSphere, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ObeyEnvironmentalGravity, Qt::SHIFT | Qt::Key_G, false,
@@ -1216,13 +1217,17 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
-        _userLocationsDialog = new UserLocationsDialog(Application::getInstance()->getWindow());
+        _userLocationsDialog = DataWebDialog::dialogForPath("/locations");
     }
-    if (_userLocationsDialog->isVisible()) {
-        _userLocationsDialog->hide();
-    } else {
+    
+    if (!_userLocationsDialog->isVisible()) {
         _userLocationsDialog->show();
     }
+    
+    _userLocationsDialog->raise();
+    _userLocationsDialog->activateWindow();
+    _userLocationsDialog->showNormal();
+    
 }
 
 void Menu::nameLocation() {

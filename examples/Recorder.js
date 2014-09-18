@@ -210,14 +210,14 @@ function mousePressEvent(event) {
         }
     } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
         if (!MyAvatar.isRecording() && !MyAvatar.isPlaying() && MyAvatar.playerLength() != 0) {
-            recordingFile = Window.save("Save recording to file", ".", "*.rec");
+            recordingFile = Window.save("Save recording to file", ".", "Recordings (*.hfr)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
 				MyAvatar.saveRecording(recordingFile);
             }
         }
     } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
         if (!MyAvatar.isRecording() && !MyAvatar.isPlaying()) {
-            recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
+            recordingFile = Window.browse("Load recorcding from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                 MyAvatar.loadRecording(recordingFile);
             }
