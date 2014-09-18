@@ -109,6 +109,7 @@ public:
     void renderJointCollisionShapes(float alpha);
     float getBoundingShapeRadius() const { return _boundingShape.getRadius(); }
     const CapsuleShape& getBoundingShape() const { return _boundingShape; }
+    const glm::vec3 getBoundingShapeOffset() const { return _boundingShapeLocalOffset; }
 
     void resetShapePositionsToDefaultPose(); // DEBUG method
 

@@ -309,8 +309,15 @@ void DomainServer::setupDynamicIPAddressUpdating() {
             // send public socket changes to the data server so nodes can find us at our new IP
             connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewPublicSocketToDataServer);
             
-            // check our IP address right away
-            requestCurrentIPAddressViaSTUN();
+            if (!AccountManager::getInstance().hasValidAccessToken()) {
+                // we don't have an access token to talk to data-web yet, so
+                // check our IP address as soon as we get an AccountManager access token
+                connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
+                        this, &DomainServer::requestCurrentIPAddressViaSTUN);
+            } else {
+                // access token good to go, attempt to update our IP now
+                requestCurrentIPAddressViaSTUN();
+            }
             
         } else {
             qDebug() << "Cannot enable dynamic domain-server IP address updating without a domain ID."
