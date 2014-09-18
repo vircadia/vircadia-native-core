@@ -49,10 +49,11 @@ typedef unsigned long long quint64;
 
 #include <Node.h>
 
+#include "HandData.h"
+#include "HeadData.h"
+#include "Player.h"
 #include "Recorder.h"
 #include "Referential.h"
-#include "HeadData.h"
-#include "HandData.h"
 
 // avatar motion behaviors
 const quint32 AVATAR_MOTION_MOTOR_KEYBOARD_ENABLED = 1U << 0;
