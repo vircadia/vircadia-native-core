@@ -614,6 +614,7 @@ void ScriptEngine::timerFired() {
 
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
+        _timerFunctionMap.remove(callingTimer);
         delete callingTimer;
     }
 }
