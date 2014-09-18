@@ -16,16 +16,29 @@ var debug = false;
 var movingWithHead = false; 
 var headStartPosition, headStartDeltaPitch, headStartFinalPitch, headStartRoll, headStartYaw;
 
-var HEAD_MOVE_DEAD_ZONE = 0.0;
+var HEAD_MOVE_DEAD_ZONE = 0.10;
 var HEAD_STRAFE_DEAD_ZONE = 0.0;
 var HEAD_ROTATE_DEAD_ZONE = 0.0; 
-var HEAD_THRUST_FWD_SCALE = 12000.0;
-var HEAD_THRUST_STRAFE_SCALE = 2000.0;
+//var HEAD_THRUST_FWD_SCALE = 12000.0;
+//var HEAD_THRUST_STRAFE_SCALE = 0.0;
 var HEAD_YAW_RATE = 1.0;
 var HEAD_PITCH_RATE = 1.0;
-var HEAD_ROLL_THRUST_SCALE = 75.0;
-var HEAD_PITCH_LIFT_THRUST = 3.0;
+//var HEAD_ROLL_THRUST_SCALE = 75.0;
+//var HEAD_PITCH_LIFT_THRUST = 3.0;
 var WALL_BOUNCE = 4000.0;
+
+// Modify these values to tweak the strength of the motion.  
+// A larger *FACTOR increases the speed.
+// A lower SHORT_TIMESCALE makes the motor achieve full speed faster.
+var HEAD_VELOCITY_FWD_FACTOR = 20.0;
+var HEAD_VELOCITY_LEFT_FACTOR = 20.0;
+var HEAD_VELOCITY_UP_FACTOR = 20.0;
+var SHORT_TIMESCALE = 0.125;
+var VERY_LARGE_TIMESCALE = 1000000.0;
+
+var xAxis = {x:1.0, y:0.0, z:0.0 };
+var yAxis = {x:0.0, y:1.0, z:0.0 };
+var zAxis = {x:0.0, y:0.0, z:1.0 };
 
 //  If these values are set to something 
 var maxVelocity = 1.25;
@@ -51,8 +64,8 @@ function isInRoom(position) {
 }
 
 function moveWithHead(deltaTime) {
-    var thrust = { x: 0, y: 0, z: 0 };
     var position = MyAvatar.position;
+    var motorTimescale = VERY_LARGE_TIMESCALE;
     if (movingWithHead) {
         var deltaYaw = MyAvatar.getHeadFinalYaw() - headStartYaw;
         var deltaPitch = MyAvatar.getHeadDeltaPitch() - headStartDeltaPitch;
@@ -64,44 +77,36 @@ function moveWithHead(deltaTime) {
         headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
         headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
 
-        var forward = Quat.getFront(Camera.getOrientation());
-        var right = Quat.getRight(Camera.getOrientation());
-        var up = Quat.getUp(Camera.getOrientation());
-        if (noFly) {
-            forward.y = 0.0;
-            forward = Vec3.normalize(forward);
-            right.y = 0.0;
-            right = Vec3.normalize(right);
-            up = { x: 0, y: 1, z: 0};
-        }
-
         //  Thrust based on leaning forward and side-to-side
+        var targetVelocity = {x:0.0, y:0.0, z:0.0};
         if (Math.abs(headDelta.z) > HEAD_MOVE_DEAD_ZONE) {
-            if (Math.abs(Vec3.dot(velocity, forward)) < maxVelocity) {
-                thrust = Vec3.sum(thrust, Vec3.multiply(forward, -headDelta.z * HEAD_THRUST_FWD_SCALE * deltaTime));
-            }
+            targetVelocity = Vec3.multiply(zAxis, -headDelta.z * HEAD_VELOCITY_FWD_FACTOR);
         }
         if (Math.abs(headDelta.x) > HEAD_STRAFE_DEAD_ZONE) {
-            if (Math.abs(Vec3.dot(velocity, right)) < maxVelocity) {
-                thrust = Vec3.sum(thrust, Vec3.multiply(right, headDelta.x * HEAD_THRUST_STRAFE_SCALE * deltaTime));
-            }
+            var deltaVelocity = Vec3.multiply(xAxis, -headDelta.x * HEAD_VELOCITY_LEFT_FACTOR);
+            targetVelocity = Vec3.sum(targetVelocity, deltaVelocity);
         }
         if (Math.abs(deltaYaw) > HEAD_ROTATE_DEAD_ZONE) {
-            var orientation = Quat.multiply(Quat.angleAxis((deltaYaw + deltaRoll) * HEAD_YAW_RATE * deltaTime, {x:0, y: 1, z:0}), MyAvatar.orientation);
+            var orientation = Quat.multiply(Quat.angleAxis((deltaYaw + deltaRoll) * HEAD_YAW_RATE * deltaTime, yAxis), MyAvatar.orientation);
             MyAvatar.orientation = orientation;
         }
         //  Thrust Up/Down based on head pitch
         if (!noFly) {
-            if ((Math.abs(Vec3.dot(velocity, up)) < maxVelocity)) {
-                thrust = Vec3.sum(thrust, Vec3.multiply({ x:0, y:1, z:0 }, (MyAvatar.getHeadFinalPitch() - headStartFinalPitch) * HEAD_PITCH_LIFT_THRUST * deltaTime));
-            } 
+            var deltaVelocity = Vec3.multiply(yAxis, headDelta.y * HEAD_VELOCITY_UP_FACTOR);
+            targetVelocity = Vec3.sum(targetVelocity, deltaVelocity);
         }
         //  For head trackers, adjust pitch by head pitch
         MyAvatar.headPitch += deltaPitch * HEAD_PITCH_RATE * deltaTime; 
 
+        // apply the motor
+        MyAvatar.motorVelocity = targetVelocity;
+        motorTimescale = SHORT_TIMESCALE;
     }
+
+    // Check against movement box limits
     if (isInRoom(position)) {
-        // Impose constraints to keep you in the space 
+        var thrust = { x: 0, y: 0, z: 0 };
+        // use thrust to constrain the avatar to the space 
         if (position.x < roomLimits.xMin) {
             thrust.x += (roomLimits.xMin - position.x) * WALL_BOUNCE * deltaTime;
         } else if (position.x > roomLimits.xMax) {
@@ -112,11 +117,14 @@ function moveWithHead(deltaTime) {
         } else if (position.z > roomLimits.zMax) {
             thrust.z += (roomLimits.zMax - position.z) * WALL_BOUNCE * deltaTime;
         } 
+        MyAvatar.addThrust(thrust);
+        if (movingWithHead && Vec3.length(thrust) > 0.0) {
+            // reduce the timescale of the motor so that it won't defeat the thrust code
+            Vec3.print("adebug room containment thrust = ", thrust);
+            motorTimescale = 4.0 * SHORT_TIMESCALE;
+        }
     }
-
-    // Check against movement box limits
-
-    MyAvatar.addThrust(thrust);
+    MyAvatar.motorTimescale = motorTimescale;
 }
 
 Controller.keyPressEvent.connect(function(event) {
@@ -126,13 +134,21 @@ Controller.keyPressEvent.connect(function(event) {
         headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
         headStartFinalPitch = MyAvatar.getHeadFinalPitch();
         headStartRoll = MyAvatar.getHeadFinalRoll();
-        headStartYaw = MyAvatar.getHeadFinalYaw(); 
-    }                        
+        headStartYaw = MyAvatar.getHeadFinalYaw();
+        // start with disabled motor -- it will be updated shortly
+        MyAvatar.motorTimescale = VERY_LARGE_TIMESCALE;
+        MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0};
+        MyAvatar.motorReferenceFrame = "camera"; // alternatives are: "avatar" and "world"
+    }
 });
+
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SPACE") {
         movingWithHead = false;
-    }                        
+        // disable motor by giving it an obnoxiously large timescale
+        MyAvatar.motorTimescale = VERY_LARGE_TIMESCALE;
+        MyAvatar.motorVelocity = {x:0.0, y:0.0, z:0.0};
+    }
 });
 
 Script.update.connect(moveWithHead);

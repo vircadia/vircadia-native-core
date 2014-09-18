@@ -83,7 +83,7 @@ int Referential::pack(unsigned char* destinationBuffer) const {
 int Referential::unpack(const unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
     _type = (Type)*sourceBuffer++;
-    if (_type < 0 || _type >= NUM_TYPE) {
+    if (_type < 0 || _type >= NUM_TYPES) {
         _type = UNKNOWN;
     }
     memcpy(&_version, sourceBuffer, sizeof(_version));

@@ -1755,18 +1755,38 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                         // look for an unused slot in the weights vector
                         glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
-                        for (int k = 0; k < 4; k++) {
+                        int lowestIndex = -1;
+                        float lowestWeight = FLT_MAX;
+                        int k = 0;
+                        for (; k < 4; k++) {
                             if (weights[k] == 0.0f) {
                                 extracted.mesh.clusterIndices[it.value()][k] = i;
                                 weights[k] = weight;
                                 break;
                             }
+                            if (weights[k] < lowestWeight) {
+                                lowestIndex = k;
+                                lowestWeight = weights[k];
+                            }
+                        }
+                        if (k == 4) {
+                            // no space for an additional weight; we must replace the lowest
+                            weights[lowestIndex] = weight;
+                            extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
                         }
                     }
                 }
                 if (totalWeight > maxWeight) {
                     maxWeight = totalWeight;
                     maxJointIndex = jointIndex;
+                }
+            }
+            // normalize the weights if they don't add up to one
+            for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
+                glm::vec4& weights = extracted.mesh.clusterWeights[i];
+                float total = weights.x + weights.y + weights.z + weights.w;
+                if (total != 1.0f && total != 0.0f) {
+                    weights /= total; 
                 }
             }
         } else {

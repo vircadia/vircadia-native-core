@@ -68,6 +68,7 @@
 #include <UUID.h>
 
 #include "Application.h"
+#include "ui/DataWebDialog.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
@@ -288,6 +289,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
     UserActivityLogger::getInstance().launch(applicationVersion());
+    
+    // grab the location manager instance early so it lives in our thread
+    LocationManager::getInstance();
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -924,6 +928,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::AddressBar);
                 } else {
                     Menu::getInstance()->triggerOption(MenuOption::Chat);
+                }
+                
+                break;
+                
+            case Qt::Key_N:
+                if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
                 }
                 
                 break;
@@ -3890,7 +3901,7 @@ void Application::stopAllScripts(bool restart) {
     // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
     // whenever a script stops in case it happened to have been setting joint rotations.
     // TODO: expose animation priorities and provide a layered animation control system.
-    _myAvatar->clearJointAnimationPriorities();
+    _myAvatar->clearScriptableSettings();
 }
 
 void Application::stopScript(const QString &scriptName) {
@@ -3902,6 +3913,9 @@ void Application::stopScript(const QString &scriptName) {
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
         _myAvatar->clearJointAnimationPriorities();
+    }
+    if (_scriptEnginesHash.empty()) {
+        _myAvatar->clearScriptableSettings();
     }
 }
 

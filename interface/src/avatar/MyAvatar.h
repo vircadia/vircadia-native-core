@@ -33,7 +33,9 @@ enum AvatarHandState
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
-    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviorsForScript WRITE setMotionBehaviorsByScript)
+    Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
+    Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
+    Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
     Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
 
 public:
@@ -131,14 +133,21 @@ public:
     
     void clearJointAnimationPriorities();
 
+    glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
+    float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }
+    QString getScriptedMotorFrame() const;
+
+    void setScriptedMotorVelocity(const glm::vec3& velocity);
+    void setScriptedMotorTimescale(float timescale);
+    void setScriptedMotorFrame(QString frame);
+
+    void clearScriptableSettings();
+
     virtual void attach(const QString& modelURL, const QString& jointName = QString(),
         const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
         bool allowDuplicates = false, bool useSaved = true);
         
     virtual void setCollisionGroups(quint32 collisionGroups);
-
-    void setMotionBehaviorsByScript(quint32 flags);
-    quint32 getMotionBehaviorsForScript() const { return _motionBehaviors & AVATAR_MOTION_SCRIPTABLE_BITS; }
 
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
@@ -165,7 +174,7 @@ public slots:
 
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
 
-    void updateMotionBehaviorsFromMenu();
+    void updateMotionBehavior();
     void onToggleRagdoll();
     
     glm::vec3 getLeftPalmPosition();
@@ -204,9 +213,11 @@ private:
     float _trapDuration; // seconds that avatar has been trapped by collisions
     glm::vec3 _thrust;  // impulse accumulator for outside sources
 
-    glm::vec3 _motorVelocity;   // intended velocity of avatar motion (relative to what it's standing on)
-    float _motorTimescale;      // timescale for avatar motor to achieve its desired velocity
-    float _maxMotorSpeed;
+    glm::vec3 _keyboardMotorVelocity; // target local-frame velocity of avatar (keyboard)
+    float _keyboardMotorTimescale; // timescale for avatar to achieve its target velocity
+    glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (script)
+    float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
+    int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
@@ -223,8 +234,9 @@ private:
     
 	// private methods
     void updateOrientation(float deltaTime);
+    glm::vec3 applyKeyboardMotor(float deltaTime, const glm::vec3& velocity, bool walkingOnFloor);
+    glm::vec3 applyScriptedMotor(float deltaTime, const glm::vec3& velocity);
     void updatePosition(float deltaTime);
-    float computeMotorTimescale(const glm::vec3& velocity);
     void updateCollisionWithAvatars(float deltaTime);
     void updateCollisionWithEnvironment(float deltaTime, float radius);
     void updateCollisionWithVoxels(float deltaTime, float radius);

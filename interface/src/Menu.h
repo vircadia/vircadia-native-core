@@ -28,12 +28,12 @@
 #endif
 
 #include "location/LocationManager.h"
-#include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
 #include "ui/LoginDialog.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/ScriptEditorWindow.h"
-#include "ui/UserLocationsDialog.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -273,7 +273,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
-    UserLocationsDialog* _userLocationsDialog;
+    QPointer<DataWebDialog> _userLocationsDialog;
 #ifdef Q_OS_MAC
     SpeechRecognizer _speechRecognizer;
 #endif
@@ -395,10 +395,12 @@ namespace MenuOption {
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
+    const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
+    const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -437,9 +439,10 @@ namespace MenuOption {
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
+    const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
-    const QString ShowBordersModelNodes = "Show Model Nodes";
+    const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
