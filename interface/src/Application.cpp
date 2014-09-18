@@ -430,9 +430,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
-    
-    DataWebDialog* dialogForPath = DataWebDialog::dialogForPath("/locations");
-    dialogForPath->show();
 }
 
 Application::~Application() {
