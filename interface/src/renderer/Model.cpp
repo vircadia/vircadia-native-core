@@ -439,11 +439,11 @@ bool Model::render(float alpha, RenderMode mode) {
     
     renderMeshes(mode, false);
     
-    glDisable(GL_ALPHA_TEST);
-    
     // render translucent meshes afterwards
     
     renderMeshes(mode, true);
+    
+    glDisable(GL_ALPHA_TEST);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
