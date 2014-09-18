@@ -1199,13 +1199,13 @@ void Model::renderMeshes(RenderMode mode, bool translucent) {
     for (int i = 0; i < networkMeshes.size(); i++) {
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
-        if (translucent ? (networkMesh.getTranslucentPartCount() == 0) :
-                (networkMesh.getTranslucentPartCount() == networkMesh.parts.size())) {
+        const FBXMesh& mesh = geometry.meshes.at(i);    
+        if (translucent ? (networkMesh.getTranslucentPartCount(mesh) == 0) :
+                (networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size())) {
             continue;
         }
         const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
 
-        const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
             // sanity check
