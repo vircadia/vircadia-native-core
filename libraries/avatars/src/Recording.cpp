@@ -781,17 +781,18 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     qDebug() << "Read " << byteArray.size()  << " bytes in " << timer.elapsed() << " ms.";
     
     // Set new filename
-    if (filename.startsWith("http") || filename.startsWith("https") || filename.startsWith("ftp")) {
-        filename = QUrl(filename).fileName();
+    QString newFilename = filename;
+    if (newFilename.startsWith("http") || newFilename.startsWith("https") || newFilename.startsWith("ftp")) {
+        newFilename = QUrl(newFilename).fileName();
     }
-    if (filename.endsWith(".rec") || filename.endsWith(".REC")) {
-        filename.chop(qstrlen(".rec"));
+    if (newFilename.endsWith(".rec") || newFilename.endsWith(".REC")) {
+        newFilename.chop(qstrlen(".rec"));
     }
-    filename.append(".hfr");
-    filename = QFileInfo(filename).absoluteFilePath();
+    newFilename.append(".hfr");
+    newFilename = QFileInfo(newFilename).absoluteFilePath();
     
     // Set recording to new format
-    writeRecordingToFile(recording, filename);
-    qDebug() << "Recording has been successfully converted at" << filename;
+    writeRecordingToFile(recording, newFilename);
+    qDebug() << "Recording has been successfully converted at" << newFilename;
     return recording;
 }
