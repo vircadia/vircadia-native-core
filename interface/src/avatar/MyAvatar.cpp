@@ -1324,11 +1324,11 @@ void MyAvatar::updatePosition(float deltaTime) {
     bool gravityEnabled = (glm::length2(_gravity) > EPSILON);
     if (gravityEnabled) {
         const float SLOP = 0.002f;
-        if (heightAboveFloor < 0.0f) {
-            if (heightAboveFloor < -SLOP) {
+        if (heightAboveFloor < SLOP) {
+            if (heightAboveFloor < 0.0) {
                 // Gravity is in effect so we assume that the avatar is colliding against the world and we need 
                 // to lift avatar out of floor, but we don't want to do it too fast (keep it smooth).
-                float distanceToLift = glm::min(SLOP - heightAboveFloor, MAX_WALKING_SPEED * deltaTime);
+                float distanceToLift = glm::min(-heightAboveFloor, MAX_WALKING_SPEED * deltaTime);
     
                 // We don't use applyPositionDelta() for this lift distance because we don't want the avatar 
                 // to come flying out of the floor.  Instead we update position directly, and set a boolean
@@ -1337,7 +1337,9 @@ void MyAvatar::updatePosition(float deltaTime) {
             }
             zeroDownwardVelocity = true;
         }
-        velocity += (deltaTime * GRAVITY_EARTH) * _gravity;
+        if (!zeroDownwardVelocity) {
+            velocity += (deltaTime * GRAVITY_EARTH) * _gravity;
+        }
     }
 
     // rotate velocity into camera frame
