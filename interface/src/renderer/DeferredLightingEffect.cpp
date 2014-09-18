@@ -32,6 +32,8 @@ void DeferredLightingEffect::init() {
         _directionalLightShadowMapLocations);
     loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", _directionalLightCascadedShadowMap,
         _directionalLightCascadedShadowMapLocations);
+    loadLightProgram("shaders/point_light.frag", _pointLight, _pointLightLocations);
+    loadLightProgram("shaders/spot_light.frag", _spotLight, _spotLightLocations);
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -71,6 +73,42 @@ void DeferredLightingEffect::renderWireCube(float size) {
     releaseSimpleProgram();
 }
 
+void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
+        const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation,
+        float linearAttenuation, float quadraticAttenuation) {
+    addSpotLight(position, radius, ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);    
+}
+
+void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
+        const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation, float linearAttenuation,
+        float quadraticAttenuation, const glm::vec3& direction, float exponent, float cutoff) {
+    if (exponent == 0.0f && cutoff == PI) {
+        PointLight light;
+        light.position = glm::vec4(position, 1.0f);
+        light.radius = radius;
+        light.ambient = glm::vec4(ambient, 1.0f);
+        light.diffuse = glm::vec4(diffuse, 1.0f);
+        light.specular = glm::vec4(specular, 1.0f);
+        light.constantAttenuation = constantAttenuation;
+        light.linearAttenuation = linearAttenuation;
+        _pointLights.append(light);
+        
+    } else {
+        SpotLight light;
+        light.position = glm::vec4(position, 1.0f);
+        light.radius = radius;
+        light.ambient = glm::vec4(ambient, 1.0f);
+        light.diffuse = glm::vec4(diffuse, 1.0f);
+        light.specular = glm::vec4(specular, 1.0f);
+        light.constantAttenuation = constantAttenuation;
+        light.linearAttenuation = linearAttenuation;
+        light.direction = direction;
+        light.exponent = exponent;
+        light.cutoff = cutoff;
+        _spotLights.append(light);
+    }
+}
+
 void DeferredLightingEffect::prepare() {
     // clear the normal and specular buffers
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, false);
@@ -86,13 +124,6 @@ void DeferredLightingEffect::prepare() {
 
 void DeferredLightingEffect::render() {
     // perform deferred lighting, rendering to free fbo
-    glPushMatrix();
-    glLoadIdentity();
-    
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);    
     
     glDisable(GL_BLEND);
@@ -162,12 +193,14 @@ void DeferredLightingEffect::render() {
     Application::getInstance()->computeOffAxisFrustum(
         left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     program->setUniformValue(locations->nearLocation, nearVal);
-    program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
+    float depthScale = (farVal - nearVal) / farVal;
+    program->setUniformValue(locations->depthScale, depthScale);
     float nearScale = -1.0f / nearVal;
     float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
     float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
-    program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
-        bottom * nearScale - tMin * depthTexCoordScaleT);
+    float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
+    float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
+    program->setUniformValue(locations->depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
     program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
     
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
@@ -177,6 +210,61 @@ void DeferredLightingEffect::render() {
     if (shadowsEnabled) {
         glBindTexture(GL_TEXTURE_2D, 0);        
         glActiveTexture(GL_TEXTURE3);
+    }
+    
+    // additive blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_ONE, GL_ONE);
+    
+    if (!_pointLights.isEmpty()) {
+        _pointLight.bind();
+        _pointLight.setUniformValue(_pointLightLocations.nearLocation, nearVal);
+        _pointLight.setUniformValue(_pointLightLocations.depthScale, depthScale);
+        _pointLight.setUniformValue(_pointLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
+        _pointLight.setUniformValue(_pointLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
+        
+        foreach (const PointLight& light, _pointLights) {
+            _pointLight.setUniformValue(_pointLightLocations.radius, light.radius);
+            glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
+            glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
+            glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+         
+            renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);   
+        }
+        _pointLights.clear();
+        
+        _pointLight.release();
+    }
+    
+    if (!_spotLights.isEmpty()) {
+        _spotLight.bind();
+        _spotLight.setUniformValue(_spotLightLocations.nearLocation, nearVal);
+        _spotLight.setUniformValue(_spotLightLocations.depthScale, depthScale);
+        _spotLight.setUniformValue(_spotLightLocations.depthTexCoordOffset, depthTexCoordOffsetS, depthTexCoordOffsetT);
+        _spotLight.setUniformValue(_spotLightLocations.depthTexCoordScale, depthTexCoordScaleS, depthTexCoordScaleT);
+        
+        foreach (const SpotLight& light, _spotLights) {
+            _spotLight.setUniformValue(_spotLightLocations.radius, light.radius);
+            glLightfv(GL_LIGHT1, GL_AMBIENT, (const GLfloat*)&light.ambient);
+            glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
+            glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
+            glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
+            glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
+            glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
+            
+            renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
+        }
+        _spotLights.clear();
+        
+        _spotLight.release();
     }
     
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -193,13 +281,20 @@ void DeferredLightingEffect::render() {
     freeFBO->release();
     
     // now transfer the lit region to the primary fbo
-    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glColorMask(true, true, true, false);
     
     primaryFBO->bind();
     
     glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     glEnable(GL_TEXTURE_2D);
+    
+    glPushMatrix();
+    glLoadIdentity();
+    
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
     
     renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
     
@@ -225,6 +320,7 @@ void DeferredLightingEffect::render() {
 }
 
 void DeferredLightingEffect::loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations) {
+    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/deferred_light.vert");
     program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + name);
     program.link();
     
@@ -240,5 +336,6 @@ void DeferredLightingEffect::loadLightProgram(const char* name, ProgramObject& p
     locations.depthScale = program.uniformLocation("depthScale");
     locations.depthTexCoordOffset = program.uniformLocation("depthTexCoordOffset");
     locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
+    locations.radius = program.uniformLocation("radius");
     program.release();
 }

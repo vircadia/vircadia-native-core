@@ -414,14 +414,10 @@ bool Model::render(float alpha, RenderMode mode) {
             glCullFace(GL_FRONT);
         
         } else if (mode == DEFAULT_RENDER_MODE) {
-            // update the local lights
-            for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-                if (i < _localLights.size()) {
-                    _localLightDirections[i] = glm::normalize(Application::getInstance()->getUntranslatedViewMatrix() *
-                        glm::vec4(_rotation * _localLights.at(i).direction, 0.0f));
-                } else {
-                    _localLightColors[i] = glm::vec4();
-                }
+            // add the local lights
+            foreach (const LocalLight& light, _localLights) {    
+                Application::getInstance()->getDeferredLightingEffect()->addSpotLight(glm::vec3(), 1.0f, glm::vec3(),
+                    light.color, light.color, 1.0f, 0.0f, 0.0f);
             }
         }
     }

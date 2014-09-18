@@ -284,9 +284,6 @@ private:
 
     QList<AnimationHandlePointer> _runningAnimations;
 
-    glm::vec4 _localLightColors[MAX_LOCAL_LIGHTS];
-    glm::vec4 _localLightDirections[MAX_LOCAL_LIGHTS];
-
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
     int _appliedBlendNumber;

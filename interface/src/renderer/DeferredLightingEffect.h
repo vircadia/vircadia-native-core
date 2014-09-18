@@ -14,6 +14,8 @@
 
 #include <QVector>
 
+#include <SharedUtil.h>
+
 #include "ProgramObject.h"
 
 class PostLightingRenderable;
@@ -46,6 +48,17 @@ public:
     //// Renders a wireframe cube with the simple program.
     void renderWireCube(float size);
     
+    /// Adds a point light to render for the current frame.
+    void addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
+        const glm::vec3& diffuse = glm::vec3(1.0f, 1.0f, 1.0f), const glm::vec3& specular = glm::vec3(1.0f, 1.0f, 1.0f),
+        float constantAttenuation = 1.0f, float linearAttenuation = 0.0f, float quadraticAttenuation = 0.0f);
+        
+    /// Adds a spot light to render for the current frame.
+    void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
+        const glm::vec3& diffuse = glm::vec3(1.0f, 1.0f, 1.0f), const glm::vec3& specular = glm::vec3(1.0f, 1.0f, 1.0f),
+        float constantAttenuation = 1.0f, float linearAttenuation = 0.0f, float quadraticAttenuation = 0.0f,
+        const glm::vec3& direction = glm::vec3(0.0f, 0.0f, -1.0f), float exponent = 0.0f, float cutoff = PI);
+    
     /// Adds an object to render after performing the deferred lighting for the current frame (e.g., a translucent object).
     void addPostLightingRenderable(PostLightingRenderable* renderable) { _postLightingRenderables.append(renderable); }
     
@@ -62,6 +75,7 @@ private:
         int depthScale;
         int depthTexCoordOffset;
         int depthTexCoordScale;
+        int radius;
     };
     
     static void loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations);
@@ -75,7 +89,32 @@ private:
     LightLocations _directionalLightShadowMapLocations;
     ProgramObject _directionalLightCascadedShadowMap;
     LightLocations _directionalLightCascadedShadowMapLocations;
+    ProgramObject _pointLight;
+    LightLocations _pointLightLocations;
+    ProgramObject _spotLight;
+    LightLocations _spotLightLocations;
     
+    class PointLight {
+    public:
+        glm::vec4 position;
+        float radius;
+        glm::vec4 ambient;
+        glm::vec4 diffuse;
+        glm::vec4 specular;
+        float constantAttenuation;
+        float linearAttenuation;
+        float quadraticAttenuation;
+    };
+    
+    class SpotLight : public PointLight {
+    public:
+        glm::vec3 direction;
+        float exponent;
+        float cutoff;
+    };
+    
+    QVector<PointLight> _pointLights;
+    QVector<SpotLight> _spotLights;
     QVector<PostLightingRenderable*> _postLightingRenderables;
 };
 
