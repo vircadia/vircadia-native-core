@@ -59,6 +59,9 @@ float MAX_KEYBOARD_MOTOR_SPEED = MAX_AVATAR_SPEED;
 float DEFAULT_KEYBOARD_MOTOR_TIMESCALE = 0.25f;
 float MIN_SCRIPTED_MOTOR_TIMESCALE = 0.005f;
 float DEFAULT_SCRIPTED_MOTOR_TIMESCALE = 1.0e6f;
+const int SCRIPTED_MOTOR_AVATAR_FRAME = 0;
+const int SCRIPTED_MOTOR_CAMERA_FRAME = 1;
+const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
 MyAvatar::MyAvatar() :
 	Avatar(),
@@ -77,6 +80,7 @@ MyAvatar::MyAvatar() :
     _keyboardMotorTimescale(DEFAULT_KEYBOARD_MOTOR_TIMESCALE),
     _scriptedMotorVelocity(0.0f),
     _scriptedMotorTimescale(DEFAULT_SCRIPTED_MOTOR_TIMESCALE),
+    _scriptedMotorFrame(SCRIPTED_MOTOR_CAMERA_FRAME),
     _motionBehaviors(AVATAR_MOTION_DEFAULTS),
     _lookAtTargetAvatar(),
     _shouldRender(true),
@@ -1030,7 +1034,17 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
     _billboardValid = false;
 }
 
-void MyAvatar::setMotorVelocity(const glm::vec3& velocity) {
+QString MyAvatar::getScriptedMotorFrame() const {
+    QString frame = "avatar";
+    if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
+        frame = "camera";
+    } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_WORLD_FRAME) {
+        frame = "world";
+    }
+    return frame;
+}
+
+void MyAvatar::setScriptedMotorVelocity(const glm::vec3& velocity) {
     float MAX_SCRIPTED_MOTOR_SPEED = 500.0f;
     _scriptedMotorVelocity = velocity;
     float speed = glm::length(_scriptedMotorVelocity);
@@ -1039,11 +1053,21 @@ void MyAvatar::setMotorVelocity(const glm::vec3& velocity) {
     }
 }
 
-void MyAvatar::setMotorTimescale(float timescale) {
+void MyAvatar::setScriptedMotorTimescale(float timescale) {
     // we clamp the timescale on the large side (instead of just the low side) to prevent 
     // obnoxiously large values from introducing NaN into avatar's velocity
     _scriptedMotorTimescale = glm::clamp(timescale, MIN_SCRIPTED_MOTOR_TIMESCALE, 
             DEFAULT_SCRIPTED_MOTOR_TIMESCALE);
+}
+
+void MyAvatar::setScriptedMotorFrame(QString frame) {
+    if (frame.toLower() == "avatar") {
+        _scriptedMotorFrame = SCRIPTED_MOTOR_AVATAR_FRAME;
+    } else if (frame.toLower() == "camera") {
+        _scriptedMotorFrame = SCRIPTED_MOTOR_CAMERA_FRAME;
+    } else if (frame.toLower() == "world") {
+        _scriptedMotorFrame = SCRIPTED_MOTOR_WORLD_FRAME;
+    }
 }
 
 void MyAvatar::clearScriptableSettings() {
@@ -1907,25 +1931,6 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
         // no collision with voxels --> disable standing on floors
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;
         menu->setIsOptionChecked(MenuOption::StandOnNearbyFloors, false);
-    }
-}
-
-void MyAvatar::setMotionBehaviorsByScript(quint32 flags) {
-    // start with the defaults
-    _motionBehaviors = AVATAR_MOTION_DEFAULTS;
-
-    // add the set scriptable bits
-    _motionBehaviors += flags & AVATAR_MOTION_SCRIPTABLE_BITS;
-
-    // reconcile incompatible settings from menu (if any)
-    Menu* menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::ObeyEnvironmentalGravity, (bool)(_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY));
-    // Environmental and Local gravities are incompatible.  Environmental setting trumps local.
-    if (_motionBehaviors & AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY) {
-        _motionBehaviors &= ~AVATAR_MOTION_OBEY_LOCAL_GRAVITY;
-        setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()));
-    } else if (! (_motionBehaviors & (AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY | AVATAR_MOTION_OBEY_LOCAL_GRAVITY))) {
-        setGravity(glm::vec3(0.0f));
     }
 }
 

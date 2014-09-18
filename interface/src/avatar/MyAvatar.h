@@ -33,7 +33,9 @@ enum AvatarHandState
 class MyAvatar : public Avatar {
     Q_OBJECT
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
-    Q_PROPERTY(quint32 motionBehaviors READ getMotionBehaviorsForScript WRITE setMotionBehaviorsByScript)
+    Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
+    Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
+    Q_PROPERTY(QString motorReferenceFrame READ getScriptedMotorFrame WRITE setScriptedMotorFrame)
     Q_PROPERTY(glm::vec3 gravity READ getGravity WRITE setLocalGravity)
 
 public:
@@ -131,11 +133,13 @@ public:
     
     void clearJointAnimationPriorities();
 
-    Q_INVOKABLE glm::vec3 getMotorVelocity() const { return _scriptedMotorVelocity; }
-    Q_INVOKABLE float getTimescale() const { return _scriptedMotorTimescale; }
+    glm::vec3 getScriptedMotorVelocity() const { return _scriptedMotorVelocity; }
+    float getScriptedMotorTimescale() const { return _scriptedMotorTimescale; }
+    QString getScriptedMotorFrame() const;
 
-    Q_INVOKABLE void setMotorVelocity(const glm::vec3& velocity);
-    Q_INVOKABLE void setMotorTimescale(float timescale);
+    void setScriptedMotorVelocity(const glm::vec3& velocity);
+    void setScriptedMotorTimescale(float timescale);
+    void setScriptedMotorFrame(QString frame);
 
     void clearScriptableSettings();
 
@@ -144,9 +148,6 @@ public:
         bool allowDuplicates = false, bool useSaved = true);
         
     virtual void setCollisionGroups(quint32 collisionGroups);
-
-    void setMotionBehaviorsByScript(quint32 flags);
-    quint32 getMotionBehaviorsForScript() const { return _motionBehaviors & AVATAR_MOTION_SCRIPTABLE_BITS; }
 
     void applyCollision(const glm::vec3& contactPoint, const glm::vec3& penetration);
 
@@ -214,6 +215,7 @@ private:
     float _keyboardMotorTimescale; // timescale for avatar to achieve its target velocity
     glm::vec3 _scriptedMotorVelocity; // target local-frame velocity of avatar (script)
     float _scriptedMotorTimescale; // timescale for avatar to achieve its target velocity
+    int _scriptedMotorFrame;
     quint32 _motionBehaviors;
 
     QWeakPointer<AvatarData> _lookAtTargetAvatar;
