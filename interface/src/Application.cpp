@@ -68,6 +68,7 @@
 #include <UUID.h>
 
 #include "Application.h"
+#include "ui/DataWebDialog.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
