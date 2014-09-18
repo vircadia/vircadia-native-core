@@ -1769,7 +1769,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                 lowestWeight = weights[k];
                             }
                         }
-                        if (k == 4) {
+                        if (k == 4 && weight > lowestWeight) {
                             // no space for an additional weight; we must replace the lowest
                             weights[lowestIndex] = weight;
                             extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
