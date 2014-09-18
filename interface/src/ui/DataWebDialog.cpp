@@ -26,7 +26,7 @@ DataWebDialog::DataWebDialog() {
     // use an OAuthNetworkAccessManager instead of regular QNetworkAccessManager so our requests are authed
     page()->setNetworkAccessManager(OAuthNetworkAccessManager::getInstance());
     
-    // have the page delete external links so they can be captured by the Application in case they are a hifi link
+    // have the page delegate external links so they can be captured by the Application in case they are a hifi link
     page()->setLinkDelegationPolicy(QWebPage::DelegateExternalLinks);
     
     // have the Application handle external links
