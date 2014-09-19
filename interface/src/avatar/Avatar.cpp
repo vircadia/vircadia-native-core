@@ -355,12 +355,12 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
             const float LIGHT_EXPONENT = 1.0f;
             const float LIGHT_CUTOFF = glm::radians(80.0f);
             float distance = BASE_LIGHT_DISTANCE * _scale;
-            glm::vec3 position = glm::mix(getPosition(), getHead()->getEyePosition(), 0.75f);
+            glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
             glm::quat orientation = getOrientation();
             foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
                 glm::vec3 direction = orientation * light.direction;
                 Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position - direction * distance,
-                    distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.0f, 0.0f, direction,
+                    distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
                     LIGHT_EXPONENT, LIGHT_CUTOFF);
             }
         
