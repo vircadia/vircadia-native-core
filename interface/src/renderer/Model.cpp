@@ -58,6 +58,7 @@ ProgramObject Model::_program;
 ProgramObject Model::_normalMapProgram;
 ProgramObject Model::_specularMapProgram;
 ProgramObject Model::_normalSpecularMapProgram;
+ProgramObject Model::_translucentProgram;
 
 ProgramObject Model::_shadowProgram;
 
@@ -65,6 +66,7 @@ ProgramObject Model::_skinProgram;
 ProgramObject Model::_skinNormalMapProgram;
 ProgramObject Model::_skinSpecularMapProgram;
 ProgramObject Model::_skinNormalSpecularMapProgram;
+ProgramObject Model::_skinTranslucentProgram;
 
 ProgramObject Model::_skinShadowProgram;
 
@@ -72,12 +74,14 @@ Model::Locations Model::_locations;
 Model::Locations Model::_normalMapLocations;
 Model::Locations Model::_specularMapLocations;
 Model::Locations Model::_normalSpecularMapLocations;
+Model::Locations Model::_translucentLocations;
 
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
+Model::SkinLocations Model::_skinTranslucentLocations;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -112,6 +116,7 @@ void Model::setOffset(const glm::vec3& offset) {
 void Model::initProgram(ProgramObject& program, Model::Locations& locations, int specularTextureUnit) {
     program.bind();
     locations.tangent = program.attributeLocation("tangent");
+    locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
     program.setUniformValue("specularMap", specularTextureUnit);
@@ -192,6 +197,14 @@ void Model::init() {
         
         initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations, 2);
         
+        _translucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model.vert");
+        _translucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_translucent.frag");
+        _translucentProgram.link();
+        
+        initProgram(_translucentProgram, _translucentLocations);
+        
         _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
         _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
             Application::resourcesPath() + "shaders/model_shadow.frag");
@@ -234,6 +247,14 @@ void Model::init() {
         _skinShadowProgram.link();
         
         initSkinProgram(_skinShadowProgram, _skinShadowLocations);
+        
+        _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model.vert");
+        _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_translucent.frag");
+        _skinTranslucentProgram.link();
+        
+        initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
     }
 }
 
@@ -410,20 +431,30 @@ bool Model::render(float alpha, RenderMode mode) {
     renderMeshes(mode, false);
     
     // render translucent meshes afterwards
-    
-    renderMeshes(mode, true);
+    if (mode == DEFAULT_RENDER_MODE) {
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+        renderMeshes(mode, true, 0.75f);
+    }
     
     glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
+    glDepthMask(false);
+    glDepthFunc(GL_LEQUAL);
+    //glEnable(GL_POLYGON_OFFSET_FILL);
+    //glPolygonOffset(-1.0f, -1.0f);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
+    renderMeshes(mode, true, 0.0f);
+    
+    //glDisable(GL_POLYGON_OFFSET_FILL);
+    glDepthMask(true);
+    glDepthFunc(GL_LESS);
     glDisable(GL_CULL_FACE);
     
     if (mode == SHADOW_RENDER_MODE) {
         glCullFace(GL_BACK);
     }
-    
-    glEnable(GL_BLEND);
     
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_NORMAL_ARRAY);
@@ -1161,7 +1192,7 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::renderMeshes(RenderMode mode, bool translucent) {
+void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold) {
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -1193,6 +1224,12 @@ void Model::renderMeshes(RenderMode mode, bool translucent) {
             program = &_shadowProgram;
             skinProgram = &_skinShadowProgram;
             skinLocations = &_skinShadowLocations;
+        
+        } else if (translucent && alphaThreshold == 0.0f) {
+            program = &_translucentProgram;
+            locations = &_translucentLocations;
+            skinProgram = &_skinTranslucentProgram;
+            skinLocations = &_skinTranslucentLocations;
             
         } else if (!mesh.tangents.isEmpty()) {
             if (mesh.hasSpecularTexture()) {
@@ -1242,6 +1279,8 @@ void Model::renderMeshes(RenderMode mode, bool translucent) {
             program->bind();
         }
         
+        activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
+        
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
@@ -1277,7 +1316,7 @@ void Model::renderMeshes(RenderMode mode, bool translucent) {
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
             const FBXMeshPart& part = mesh.parts.at(j);
-            if (networkPart.isTranslucent() != translucent) {
+            if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
@@ -1286,7 +1325,8 @@ void Model::renderMeshes(RenderMode mode, bool translucent) {
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
-                glm::vec4 diffuse = glm::vec4(part.diffuseColor, Application::getInstance()->getGlowEffect()->getIntensity());
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, (translucent && alphaThreshold == 0.0f) ?
+                    part.opacity : Application::getInstance()->getGlowEffect()->getIntensity());
                 glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                 glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);

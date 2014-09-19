@@ -242,7 +242,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(RenderMode mode, bool translucent);
+    void renderMeshes(RenderMode mode, bool translucent, float alphaThreshold = 0.5f);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -276,6 +276,7 @@ private:
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
+    static ProgramObject _translucentProgram;
     
     static ProgramObject _shadowProgram;
     
@@ -283,6 +284,7 @@ private:
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
+    static ProgramObject _skinTranslucentProgram;
     
     static ProgramObject _skinShadowProgram;
     
@@ -292,12 +294,14 @@ private:
     class Locations {
     public:
         int tangent;
+        int alphaThreshold;
     };
     
     static Locations _locations;
     static Locations _normalMapLocations;
     static Locations _specularMapLocations;
     static Locations _normalSpecularMapLocations;
+    static Locations _translucentLocations;
     
     static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
         
@@ -311,9 +315,10 @@ private:
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
-    static SkinLocations _skinNormalSpecularMapLocations;
+    static SkinLocations _skinNormalSpecularMapLocations;    
     static SkinLocations _skinShadowLocations;
-    
+    static SkinLocations _skinTranslucentLocations;
+        
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 };
 
