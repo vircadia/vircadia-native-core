@@ -78,7 +78,7 @@ private:
         int radius;
     };
     
-    static void loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations);
+    static void loadLightProgram(const char* name, bool limited, ProgramObject& program, LightLocations& locations);
    
     ProgramObject _simpleProgram;
     int _glowIntensityLocation;

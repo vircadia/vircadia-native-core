@@ -27,13 +27,13 @@ void DeferredLightingEffect::init() {
     _glowIntensityLocation = _simpleProgram.uniformLocation("glowIntensity");
     _simpleProgram.release();
     
-    loadLightProgram("shaders/directional_light.frag", _directionalLight, _directionalLightLocations);
-    loadLightProgram("shaders/directional_light_shadow_map.frag", _directionalLightShadowMap,
+    loadLightProgram("shaders/directional_light.frag", false, _directionalLight, _directionalLightLocations);
+    loadLightProgram("shaders/directional_light_shadow_map.frag", false, _directionalLightShadowMap,
         _directionalLightShadowMapLocations);
-    loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", _directionalLightCascadedShadowMap,
+    loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", false, _directionalLightCascadedShadowMap,
         _directionalLightCascadedShadowMapLocations);
-    loadLightProgram("shaders/point_light.frag", _pointLight, _pointLightLocations);
-    loadLightProgram("shaders/spot_light.frag", _spotLight, _spotLightLocations);
+    loadLightProgram("shaders/point_light.frag", true, _pointLight, _pointLightLocations);
+    loadLightProgram("shaders/spot_light.frag", true, _spotLight, _spotLightLocations);
 }
 
 void DeferredLightingEffect::bindSimpleProgram() {
@@ -216,6 +216,11 @@ void DeferredLightingEffect::render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
     
+    glm::vec4 sCoefficients(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
+    glm::vec4 tCoefficients(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
+    glTexGenfv(GL_S, GL_OBJECT_PLANE, (const GLfloat*)&sCoefficients);
+    glTexGenfv(GL_T, GL_OBJECT_PLANE, (const GLfloat*)&tCoefficients);
+    
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
         _pointLight.setUniformValue(_pointLightLocations.nearLocation, nearVal);
@@ -233,7 +238,7 @@ void DeferredLightingEffect::render() {
             glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
             glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
          
-            renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);   
+            renderFullscreenQuad();   
         }
         _pointLights.clear();
         
@@ -260,7 +265,7 @@ void DeferredLightingEffect::render() {
             glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
             glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
             
-            renderFullscreenQuad(sMin, sMin + sWidth, tMin, tMin + tHeight);
+            renderFullscreenQuad();
         }
         _spotLights.clear();
         
@@ -319,8 +324,9 @@ void DeferredLightingEffect::render() {
     _postLightingRenderables.clear();
 }
 
-void DeferredLightingEffect::loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/deferred_light.vert");
+void DeferredLightingEffect::loadLightProgram(const char* name, bool limited, ProgramObject& program, LightLocations& locations) {
+    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+        (limited ? "shaders/deferred_light_limited.vert" : "shaders/deferred_light.vert"));
     program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + name);
     program.link();
     
