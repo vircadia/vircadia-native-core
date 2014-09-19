@@ -1028,10 +1028,6 @@ float Avatar::getPelvisFloatingHeight() const {
     return -_skeletonModel.getBindExtents().minimum.y;
 }
 
-float Avatar::getPelvisToHeadLength() const {
-    return glm::distance(_position, getHead()->getPosition());
-}
-
 void Avatar::setShowDisplayName(bool showDisplayName) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::NamesAboveHeads)) {
         _displayNameAlpha = 0.0f;

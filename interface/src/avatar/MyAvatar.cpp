@@ -977,7 +977,7 @@ void MyAvatar::clearLookAtTargetAvatar() {
 }
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
-    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
+    return _position + getWorldAlignedOrientation() * _skeletonModel.getDefaultHeadModelPosition();
 }
 
 const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;

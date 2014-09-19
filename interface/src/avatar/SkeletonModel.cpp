@@ -656,6 +656,13 @@ void SkeletonModel::buildShapes() {
     // This method moves the shapes to their default positions in Model frame.
     computeBoundingShape(geometry);
 
+    int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
+    if (0 <= headJointIndex && headJointIndex < _jointStates.size()) {
+        getJointPosition(headJointIndex, _defaultHeadModelPosition);
+    } else {
+        _defaultHeadModelPosition = glm::vec3(0.f, 0.f, 0.f);
+    }
+
     // While the shapes are in their default position we disable collisions between
     // joints that are currently colliding.
     disableCurrentSelfCollisions();
