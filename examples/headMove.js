@@ -16,24 +16,21 @@ var debug = false;
 var movingWithHead = false; 
 var headStartPosition, headStartDeltaPitch, headStartFinalPitch, headStartRoll, headStartYaw;
 
-var HEAD_MOVE_DEAD_ZONE = 0.10;
-var HEAD_STRAFE_DEAD_ZONE = 0.0;
-var HEAD_ROTATE_DEAD_ZONE = 0.0; 
-//var HEAD_THRUST_FWD_SCALE = 12000.0;
-//var HEAD_THRUST_STRAFE_SCALE = 0.0;
-var HEAD_YAW_RATE = 1.0;
+var HEAD_MOVE_DEAD_ZONE = 0.03;
+var HEAD_STRAFE_DEAD_ZONE = 0.03;
+var HEAD_ROTATE_DEAD_ZONE = 10.0; 
+var HEAD_YAW_RATE = 2.0;
 var HEAD_PITCH_RATE = 1.0;
-//var HEAD_ROLL_THRUST_SCALE = 75.0;
-//var HEAD_PITCH_LIFT_THRUST = 3.0;
 var WALL_BOUNCE = 4000.0;
+var FIXED_WALK_VELOCITY = 1.5;
 
 // Modify these values to tweak the strength of the motion.  
 // A larger *FACTOR increases the speed.
 // A lower SHORT_TIMESCALE makes the motor achieve full speed faster.
 var HEAD_VELOCITY_FWD_FACTOR = 20.0;
-var HEAD_VELOCITY_LEFT_FACTOR = 20.0;
+var HEAD_VELOCITY_LEFT_FACTOR = 0.0;
 var HEAD_VELOCITY_UP_FACTOR = 20.0;
-var SHORT_TIMESCALE = 0.125;
+var SHORT_TIMESCALE = 0.01;
 var VERY_LARGE_TIMESCALE = 1000000.0;
 
 var xAxis = {x:1.0, y:0.0, z:0.0 };
@@ -43,9 +40,10 @@ var zAxis = {x:0.0, y:0.0, z:1.0 };
 //  If these values are set to something 
 var maxVelocity = 1.25;
 var noFly = true; 
+var fixedWalkVelocity = true;
 
 //var roomLimits = { xMin: 618, xMax: 635.5, zMin: 528, zMax: 552.5 };
-var roomLimits = { xMin: -1, xMax: 0, zMin: 0, zMax: 0 };
+var roomLimits = { xMin: 193.0, xMax: 206.5, zMin: 251.4, zMax: 269.5 };
 
 function isInRoom(position) {
     var BUFFER = 2.0;
@@ -71,25 +69,46 @@ function moveWithHead(deltaTime) {
         var deltaPitch = MyAvatar.getHeadDeltaPitch() - headStartDeltaPitch;
         var deltaRoll = MyAvatar.getHeadFinalRoll() - headStartRoll;
         var velocity = MyAvatar.getVelocity();
-        var bodyLocalCurrentHeadVector = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
-        bodyLocalCurrentHeadVector = Vec3.multiplyQbyV(Quat.angleAxis(-deltaYaw, {x:0, y: 1, z:0}), bodyLocalCurrentHeadVector);
+        var position = MyAvatar.position;
+        var neckPosition = MyAvatar.getNeckPosition();
+        var bodyLocalCurrentHeadVector = Vec3.subtract(neckPosition, position);
+        bodyLocalCurrentHeadVector = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), bodyLocalCurrentHeadVector);
         var headDelta = Vec3.subtract(bodyLocalCurrentHeadVector, headStartPosition);
-        headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
         headDelta.y = 0.0;   //  Don't respond to any of the vertical component of head motion
+        headDelta = Vec3.multiplyQbyV(MyAvatar.orientation, headDelta);
+        headDelta = Vec3.multiplyQbyV(Quat.inverse(Camera.getOrientation()), headDelta);
+        
+        var length = Vec3.length(headDelta);
 
+        if (length > 1.0) {
+            //  Needs fixed!  Right now sometimes reported neck position jumps to a bad value
+            headDelta.x = headDelta.y = headDelta.z = 0.0;
+            length = 0.0;
+        }
+        
         //  Thrust based on leaning forward and side-to-side
         var targetVelocity = {x:0.0, y:0.0, z:0.0};
+        if (length > HEAD_MOVE_DEAD_ZONE) {
+            targetVelocity = Vec3.multiply(headDelta, HEAD_VELOCITY_FWD_FACTOR);
+        }
+        /*
         if (Math.abs(headDelta.z) > HEAD_MOVE_DEAD_ZONE) {
-            targetVelocity = Vec3.multiply(zAxis, -headDelta.z * HEAD_VELOCITY_FWD_FACTOR);
+            if (fixedWalkVelocity) {
+                targetVelocity = Vec3.multiply(zAxis, headDelta.z > 0 ? FIXED_WALK_VELOCITY : -FIXED_WALK_VELOCITY);
+            } else {
+                targetVelocity = Vec3.multiply(zAxis, headDelta.z * HEAD_VELOCITY_FWD_FACTOR);
+            }
         }
         if (Math.abs(headDelta.x) > HEAD_STRAFE_DEAD_ZONE) {
-            var deltaVelocity = Vec3.multiply(xAxis, -headDelta.x * HEAD_VELOCITY_LEFT_FACTOR);
+            var deltaVelocity = Vec3.multiply(xAxis, headDelta.x * HEAD_VELOCITY_LEFT_FACTOR);
             targetVelocity = Vec3.sum(targetVelocity, deltaVelocity);
         }
+        */
         if (Math.abs(deltaYaw) > HEAD_ROTATE_DEAD_ZONE) {
             var orientation = Quat.multiply(Quat.angleAxis((deltaYaw + deltaRoll) * HEAD_YAW_RATE * deltaTime, yAxis), MyAvatar.orientation);
             MyAvatar.orientation = orientation;
         }
+
         //  Thrust Up/Down based on head pitch
         if (!noFly) {
             var deltaVelocity = Vec3.multiply(yAxis, headDelta.y * HEAD_VELOCITY_UP_FACTOR);
@@ -130,7 +149,8 @@ function moveWithHead(deltaTime) {
 Controller.keyPressEvent.connect(function(event) {
     if (event.text == "SPACE" && !movingWithHead) {
         movingWithHead = true;
-        headStartPosition = Vec3.subtract(MyAvatar.getHeadPosition(), MyAvatar.position);
+       headStartPosition = Vec3.subtract(MyAvatar.getNeckPosition(), MyAvatar.position);
+        headStartPosition = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), headStartPosition);
         headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
         headStartFinalPitch = MyAvatar.getHeadFinalPitch();
         headStartRoll = MyAvatar.getHeadFinalRoll();
