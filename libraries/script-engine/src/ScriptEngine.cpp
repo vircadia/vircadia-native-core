@@ -605,17 +605,17 @@ void ScriptEngine::stop() {
 
 void ScriptEngine::timerFired() {
     QTimer* callingTimer = reinterpret_cast<QTimer*>(sender());
-
-    // call the associated JS function, if it exists
     QScriptValue timerFunction = _timerFunctionMap.value(callingTimer);
-    if (timerFunction.isValid()) {
-        timerFunction.call();
-    }
-
+    
     if (!callingTimer->isActive()) {
         // this timer is done, we can kill it
         _timerFunctionMap.remove(callingTimer);
         delete callingTimer;
+    }
+    
+    // call the associated JS function, if it exists
+    if (timerFunction.isValid()) {
+        timerFunction.call();
     }
 }
 
