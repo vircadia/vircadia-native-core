@@ -440,14 +440,11 @@ bool Model::render(float alpha, RenderMode mode) {
     glEnable(GL_BLEND);
     glDepthMask(false);
     glDepthFunc(GL_LEQUAL);
-    //glEnable(GL_POLYGON_OFFSET_FILL);
-    //glPolygonOffset(-1.0f, -1.0f);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
     renderMeshes(mode, true, 0.0f);
     
-    //glDisable(GL_POLYGON_OFFSET_FILL);
     glDepthMask(true);
     glDepthFunc(GL_LESS);
     glDisable(GL_CULL_FACE);
