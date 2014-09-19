@@ -38,6 +38,7 @@
 #include "Application.h"
 #include "AccountManager.h"
 #include "Menu.h"
+#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
 #include "ui/AnimationsDialog.h"
@@ -1217,7 +1218,9 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
-        _userLocationsDialog = DataWebDialog::dialogForPath("/locations");
+        JavascriptObjectMap locationObjectMap;
+        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        _userLocationsDialog = DataWebDialog::dialogForPath("/locations", locationObjectMap);
     }
     
     if (!_userLocationsDialog->isVisible()) {

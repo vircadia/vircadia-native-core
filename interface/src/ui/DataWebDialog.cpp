@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <qwebframe.h>
 #include <qwebview.h>
 
 #include <AccountManager.h>
@@ -33,8 +34,13 @@ DataWebDialog::DataWebDialog() {
     connect(this, &QWebView::linkClicked, Application::getInstance(), &Application::openUrl);
 }
 
-DataWebDialog* DataWebDialog::dialogForPath(const QString& path) {
+DataWebDialog* DataWebDialog::dialogForPath(const QString& path,
+                                            const JavascriptObjectMap& javascriptObjects) {
     DataWebDialog* dialogWebView = new DataWebDialog();
+    
+    dialogWebView->_javascriptObjects = javascriptObjects;
+    connect(dialogWebView->page()->mainFrame(), &QWebFrame::javaScriptWindowObjectCleared,
+            dialogWebView, &DataWebDialog::addJavascriptObjectsToWindow);
     
     QUrl dataWebUrl(DEFAULT_NODE_AUTH_URL);
     dataWebUrl.setPath(path);
@@ -44,4 +50,10 @@ DataWebDialog* DataWebDialog::dialogForPath(const QString& path) {
     dialogWebView->load(dataWebUrl);
     
     return dialogWebView;
+}
+
+void DataWebDialog::addJavascriptObjectsToWindow() {
+    foreach(const QString& name, _javascriptObjects.keys()) {
+        page()->mainFrame()->addToJavaScriptWindowObject(name, _javascriptObjects[name]);
+    }
 }
