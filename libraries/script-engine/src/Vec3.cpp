@@ -25,6 +25,10 @@ glm::vec3 Vec3::multiply(const glm::vec3& v1, float f) {
     return v1 * f;
 }
 
+glm::vec3 Vec3::multiply(float f, const glm::vec3& v1) {
+    return v1 * f;
+}
+
 glm::vec3 Vec3::multiplyQbyV(const glm::quat& q, const glm::vec3& v) {
     return q * v;
 }

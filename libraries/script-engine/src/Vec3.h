@@ -28,6 +28,7 @@ public slots:
     glm::vec3 cross(const glm::vec3& v1, const glm::vec3& v2);
     float dot(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 multiply(const glm::vec3& v1, float f);
+    glm::vec3 multiply(float, const glm::vec3& v1);
     glm::vec3 multiplyQbyV(const glm::quat& q, const glm::vec3& v);
     glm::vec3 sum(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 subtract(const glm::vec3& v1, const glm::vec3& v2);
