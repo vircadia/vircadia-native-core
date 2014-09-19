@@ -17,15 +17,15 @@
 #include "Player.h"
 
 Player::Player(AvatarData* avatar) :
-_recording(new Recording()),
-_avatar(avatar),
-_audioThread(NULL),
-_playFromCurrentPosition(true),
-_loop(false),
-_useAttachments(true),
-_useDisplayName(true),
-_useHeadURL(true),
-_useSkeletonURL(true)
+    _recording(new Recording()),
+    _avatar(avatar),
+    _audioThread(NULL),
+    _playFromCurrentPosition(true),
+    _loop(false),
+    _useAttachments(true),
+    _useDisplayName(true),
+    _useHeadURL(true),
+    _useSkeletonURL(true)
 {
     _timer.invalidate();
     _options.setLoop(false);
@@ -157,10 +157,9 @@ void Player::loopRecording() {
     setupAudioThread();
     _currentFrame = 0;
     _timer.restart();
-    
 }
 
-void Player::loadFromFile(QString file) {
+void Player::loadFromFile(const QString& file) {
     if (_recording) {
         _recording->clear();
     } else {
@@ -204,7 +203,7 @@ void Player::play() {
         head->setFinalPitch(eulers.x);
         head->setFinalYaw(eulers.y);
         head->setFinalRoll(eulers.z);
-        head->setLookAtPosition(currentFrame.getLookAtPosition());
+        head->setLookAtPosition(context->position + context->orientation * currentFrame.getLookAtPosition());
     } else {
         qDebug() << "WARNING: Player couldn't find head data.";
     }

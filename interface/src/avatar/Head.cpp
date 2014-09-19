@@ -32,6 +32,7 @@ Head::Head(Avatar* owningAvatar) :
     _eyePosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
     _lastLoudness(0.0f),
+    _longTermAverageLoudness(-1.0f),
     _audioAttack(0.0f),
     _angularVelocity(0,0,0),
     _renderLookatVectors(false),
@@ -62,7 +63,7 @@ void Head::reset() {
 }
 
 void Head::simulate(float deltaTime, bool isMine, bool billboard) {
-    //  Update audio trailing average for rendering facial animations
+    
     if (isMine) {
         MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
         
@@ -78,6 +79,18 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             }            
         }
     }
+    //  Update audio trailing average for rendering facial animations
+    const float AUDIO_AVERAGING_SECS = 0.05f;
+    const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.f;
+    _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
+
+    if (_longTermAverageLoudness == -1.0) {
+        _longTermAverageLoudness = _averageLoudness;
+    } else {
+        _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
+    }
+    float deltaLoudness = glm::max(0.0f, _averageLoudness - _longTermAverageLoudness);
+    //qDebug() << "deltaLoudness: " << deltaLoudness;
     
     if (!(_isFaceshiftConnected || billboard)) {
         // Update eye saccades
@@ -92,9 +105,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             _saccadeTarget = SACCADE_MAGNITUDE * randVector();
         }
         _saccade += (_saccadeTarget - _saccade) * 0.50f;
-    
-        const float AUDIO_AVERAGING_SECS = 0.05f;
-        _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
         
         //  Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
@@ -108,8 +118,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
                                  
         //  Update audio attack data for facial animation (eyebrows and mouth)
-        _audioAttack = 0.9f * _audioAttack + 0.1f * fabs(_audioLoudness - _lastLoudness);
-        _lastLoudness = _audioLoudness;
+        _audioAttack = 0.9f * _audioAttack + 0.1f * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
         
         const float BROW_LIFT_THRESHOLD = 100.0f;
         if (_audioAttack > BROW_LIFT_THRESHOLD) {
