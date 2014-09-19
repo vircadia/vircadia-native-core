@@ -12,7 +12,14 @@
 Script.include("toolBars.js");
 
 var recordingFile = "recording.rec";
-var playFromCurrentLocation = true;
+
+function setPlayerOptions() {
+  MyAvatar.setPlayFromCurrentLocation(true);
+  MyAvatar.setPlayerUseDisplayName(false);
+  MyAvatar.setPlayerUseAttachments(false);
+  MyAvatar.setPlayerUseHeadModel(false);
+  MyAvatar.setPlayerUseSkeletonModel(false);
+}
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
@@ -186,7 +193,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         } else if (MyAvatar.playerLength() > 0) {
-            MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+            setPlayerOptions();
             MyAvatar.setPlayerLoop(false);
             MyAvatar.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
@@ -201,7 +208,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         } else if (MyAvatar.playerLength() > 0) {
-            MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+            setPlayerOptions();
             MyAvatar.setPlayerLoop(true);
             MyAvatar.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);

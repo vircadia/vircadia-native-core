@@ -302,6 +302,10 @@ public slots:
     void startPlaying();
     void setPlayFromCurrentLocation(bool playFromCurrentLocation);
     void setPlayerLoop(bool loop);
+    void setPlayerUseDisplayName(bool useDisplayName);
+    void setPlayerUseAttachments(bool useAttachments);
+    void setPlayerUseHeadModel(bool useHeadModel);
+    void setPlayerUseSkeletonModel(bool useSkeletonModel);
     void play();
     void stopPlaying();
     
