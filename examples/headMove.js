@@ -16,18 +16,18 @@ var debug = false;
 var movingWithHead = false; 
 var headStartPosition, headStartDeltaPitch, headStartFinalPitch, headStartRoll, headStartYaw;
 
-var HEAD_MOVE_DEAD_ZONE = 0.03;
+var HEAD_MOVE_DEAD_ZONE = 0.05;
 var HEAD_STRAFE_DEAD_ZONE = 0.03;
 var HEAD_ROTATE_DEAD_ZONE = 10.0; 
-var HEAD_YAW_RATE = 2.0;
+var HEAD_YAW_RATE = 1.5;
 var HEAD_PITCH_RATE = 1.0;
-var WALL_BOUNCE = 4000.0;
+var WALL_BOUNCE = 10000.0;
 var FIXED_WALK_VELOCITY = 1.5;
 
 // Modify these values to tweak the strength of the motion.  
 // A larger *FACTOR increases the speed.
 // A lower SHORT_TIMESCALE makes the motor achieve full speed faster.
-var HEAD_VELOCITY_FWD_FACTOR = 20.0;
+var HEAD_VELOCITY_FWD_FACTOR = 10.0;
 var HEAD_VELOCITY_LEFT_FACTOR = 0.0;
 var HEAD_VELOCITY_UP_FACTOR = 20.0;
 var SHORT_TIMESCALE = 0.01;
@@ -84,11 +84,14 @@ function moveWithHead(deltaTime) {
             //  Needs fixed!  Right now sometimes reported neck position jumps to a bad value
             headDelta.x = headDelta.y = headDelta.z = 0.0;
             length = 0.0;
+            return;
         }
         
         //  Thrust based on leaning forward and side-to-side
         var targetVelocity = {x:0.0, y:0.0, z:0.0};
         if (length > HEAD_MOVE_DEAD_ZONE) {
+            //headDelta = Vec3.normalize(headDelta);
+            //targetVelocity = Vec3.multiply(headDelta, FIXED_WALK_VELOCITY);
             targetVelocity = Vec3.multiply(headDelta, HEAD_VELOCITY_FWD_FACTOR);
         }
         /*
@@ -140,7 +143,7 @@ function moveWithHead(deltaTime) {
         if (movingWithHead && Vec3.length(thrust) > 0.0) {
             // reduce the timescale of the motor so that it won't defeat the thrust code
             Vec3.print("adebug room containment thrust = ", thrust);
-            motorTimescale = 4.0 * SHORT_TIMESCALE;
+            motorTimescale = 1000000.0;
         }
     }
     MyAvatar.motorTimescale = motorTimescale;
