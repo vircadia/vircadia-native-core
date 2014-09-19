@@ -877,7 +877,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
-    if (QThread::currentThread() != thread()) {    
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+                                  Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
     // make sure we have as many models as attachments
@@ -892,9 +894,9 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
         _attachmentModels[i]->setSnapModelToCenter(true);
         _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
-        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }
 
