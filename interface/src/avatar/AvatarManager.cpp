@@ -99,7 +99,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool postLighting, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
@@ -112,13 +112,13 @@ void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatar
             if (!avatar->isInitialized()) {
                 continue;
             }
-            avatar->render(cameraPosition, renderMode);
+            avatar->render(cameraPosition, renderMode, postLighting);
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
         renderAvatarFades(cameraPosition, renderMode);
     } else {
         // just render myAvatar
-        _myAvatar->render(cameraPosition, renderMode);
+        _myAvatar->render(cameraPosition, renderMode, postLighting);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }

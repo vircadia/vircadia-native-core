@@ -411,16 +411,16 @@ void MyAvatar::renderDebugBodyPoints() {
 }
 
 // virtual
-void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+void MyAvatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool postLighting) {
     // don't render if we've been asked to disable local rendering
     if (!_shouldRender) {
         return; // exit early
     }
 
-    Avatar::render(cameraPosition, renderMode);
+    Avatar::render(cameraPosition, renderMode, postLighting);
     
     // don't display IK constraints in shadow mode
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && renderMode != SHADOW_RENDER_MODE) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ShowIKConstraints) && postLighting) {
         _skeletonModel.renderIKConstraints();
     }
 }

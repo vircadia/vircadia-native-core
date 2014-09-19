@@ -2910,7 +2910,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);   
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+            false, selfAvatarOnly);   
     }
     
     {
@@ -2918,6 +2919,12 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         _deferredLightingEffect.render();
     }
 
+    {
+        PerformanceTimer perfTimer("avatarsPostLighting");
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+            true, selfAvatarOnly);   
+    }
+    
     //Render the sixense lasers
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
         _myAvatar->renderLaserPointers();

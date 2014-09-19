@@ -37,7 +37,7 @@ public:
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
+    void renderAvatars(Avatar::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
     
