@@ -421,7 +421,10 @@ bool Model::render(float alpha, RenderMode mode) {
     
     glDisable(GL_BLEND);
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_EQUAL, Application::getInstance()->getGlowEffect()->getIntensity());
+    
+    if (mode == SHADOW_RENDER_MODE) {
+        glAlphaFunc(GL_EQUAL, 0.0f);
+    }
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
@@ -431,10 +434,8 @@ bool Model::render(float alpha, RenderMode mode) {
     renderMeshes(mode, false);
     
     // render translucent meshes afterwards
-    if (mode == DEFAULT_RENDER_MODE) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
-        renderMeshes(mode, true, 0.75f);
-    }
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    renderMeshes(mode, true, 0.75f);
     
     glDisable(GL_ALPHA_TEST);
     glEnable(GL_BLEND);
@@ -443,7 +444,9 @@ bool Model::render(float alpha, RenderMode mode) {
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
-    renderMeshes(mode, true, 0.0f);
+    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        renderMeshes(mode, true, 0.0f);
+    }
     
     glDepthMask(true);
     glDepthFunc(GL_LESS);
@@ -1322,8 +1325,14 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
-                glm::vec4 diffuse = glm::vec4(part.diffuseColor, (translucent && alphaThreshold == 0.0f) ?
-                    part.opacity : Application::getInstance()->getGlowEffect()->getIntensity());
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
+                if (!(translucent && alphaThreshold == 0.0f)) {
+                    float emissive = (part.emissiveColor.r + part.emissiveColor.g + part.emissiveColor.b) / 3.0f;
+                    diffuse.a = qMax(Application::getInstance()->getGlowEffect()->getIntensity(), emissive);
+                    glAlphaFunc(GL_EQUAL, diffuse.a);
+                    diffuse = glm::vec4(qMax(diffuse.r, part.emissiveColor.r), qMax(diffuse.g, part.emissiveColor.g),
+                        qMax(diffuse.b, part.emissiveColor.b), diffuse.a);
+                }
                 glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                 glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
