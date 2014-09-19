@@ -3800,8 +3800,8 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
     scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
-    // model has some custom types
-    Model::registerMetaTypes(scriptEngine);
+    // AvatarManager has some custom types
+    AvatarManager::registerMetaTypes(scriptEngine);
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features

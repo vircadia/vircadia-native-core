@@ -34,16 +34,11 @@ class Shape;
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
-const int MAX_LOCAL_LIGHTS = 2;
-
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
-
-    /// Registers the script types associated with models.
-    static void registerMetaTypes(QScriptEngine* engine);
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -171,15 +166,6 @@ public:
     void setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    class LocalLight {
-    public:
-        glm::vec3 color;
-        glm::vec3 direction;
-    };
-    
-    void setLocalLights(const QVector<LocalLight>& localLights) { _localLights = localLights; }
-    const QVector<LocalLight>& getLocalLights() const { return _localLights; }
-
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
 
     QVector<JointState>& getJointStates() { return _jointStates; }
@@ -202,8 +188,6 @@ protected:
     glm::vec3 _registrationPoint; /// the point in model space our center is snapped to
     
     bool _showTrueJointTransforms;
-    
-    QVector<LocalLight> _localLights;
     
     QVector<JointState> _jointStates;
 
@@ -336,8 +320,6 @@ private:
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
-Q_DECLARE_METATYPE(Model::LocalLight)
-Q_DECLARE_METATYPE(QVector<Model::LocalLight>)
 
 /// Represents a handle to a model animation.
 class AnimationHandle : public QObject {

@@ -345,17 +345,25 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
-        
-        // local lights directions and colors
-        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
-        _skeletonModel.setLocalLights(localLights);
-        getHead()->getFaceModel().setLocalLights(localLights);
-        
         // render body
         if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
         }
         if (renderMode != SHADOW_RENDER_MODE) {
+            // add local lights
+            const float BASE_LIGHT_DISTANCE = 2.0f;
+            const float LIGHT_EXPONENT = 1.0f;
+            const float LIGHT_CUTOFF = glm::radians(80.0f);
+            float distance = BASE_LIGHT_DISTANCE * _scale;
+            glm::vec3 position = glm::mix(getPosition(), getHead()->getEyePosition(), 0.75f);
+            glm::quat orientation = getOrientation();
+            foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
+                glm::vec3 direction = orientation * light.direction;
+                Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position - direction * distance,
+                    distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.0f, 0.0f, direction,
+                    LIGHT_EXPONENT, LIGHT_CUTOFF);
+            }
+        
             bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
             bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
             bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);

@@ -11,7 +11,6 @@
 
 #include <QMetaType>
 #include <QRunnable>
-#include <QScriptEngine>
 #include <QThreadPool>
 
 #include <glm/gtx/transform.hpp>
@@ -20,7 +19,6 @@
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
 #include <PhysicsEntity.h>
-#include <RegisteredMetaTypes.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 
@@ -32,23 +30,6 @@ using namespace std;
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
-
-static QScriptValue localLightToScriptValue(QScriptEngine* engine, const Model::LocalLight& light) {
-    QScriptValue object = engine->newObject();
-    object.setProperty("direction", vec3toScriptValue(engine, light.direction));
-    object.setProperty("color", vec3toScriptValue(engine, light.color));
-    return object;
-}
-
-static void localLightFromScriptValue(const QScriptValue& value, Model::LocalLight& light) {
-    vec3FromScriptValue(value.property("direction"), light.direction);
-    vec3FromScriptValue(value.property("color"), light.color);
-}
-
-void Model::registerMetaTypes(QScriptEngine* engine) {
-    qScriptRegisterMetaType(engine, localLightToScriptValue, localLightFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<Model::LocalLight> >(engine);
-}
 
 Model::Model(QObject* parent) :
     QObject(parent),
@@ -412,13 +393,6 @@ bool Model::render(float alpha, RenderMode mode) {
         glEnable(GL_CULL_FACE);
         if (mode == SHADOW_RENDER_MODE) {
             glCullFace(GL_FRONT);
-        
-        } else if (mode == DEFAULT_RENDER_MODE) {
-            // add the local lights
-            foreach (const LocalLight& light, _localLights) {    
-                Application::getInstance()->getDeferredLightingEffect()->addSpotLight(glm::vec3(), 1.0f, glm::vec3(),
-                    light.color, light.color, 1.0f, 0.0f, 0.0f);
-            }
         }
     }
     
