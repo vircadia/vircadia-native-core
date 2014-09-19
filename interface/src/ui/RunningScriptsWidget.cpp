@@ -136,6 +136,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
 
 
     ui->noRunningScriptsLabel->setVisible(list.isEmpty());
+    ui->runningScriptsList->setVisible(!list.isEmpty());
     ui->reloadAllButton->setVisible(!list.isEmpty());
     ui->stopAllButton->setVisible(!list.isEmpty());
 
