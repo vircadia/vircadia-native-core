@@ -13,21 +13,13 @@
 #define hifi_AudioEditBuffer_h
 
 template< typename T >
-class AudioEditBuffer 
-    : public AudioFrameBuffer<T> {
+class AudioEditBuffer : public AudioFrameBuffer<T> {
     
 public:
     
-    AudioEditBuffer() : 
-        AudioFrameBuffer<T>() {
-    }
-    
-    AudioEditBuffer(const uint32_t channelCount, const uint32_t frameCount) : 
-        AudioFrameBuffer<T>(channelCount, frameCount) {
-    }
-    
-    ~AudioEditBuffer() {
-    }
+    AudioEditBuffer();    
+    AudioEditBuffer(const uint32_t channelCount, const uint32_t frameCount);    
+    ~AudioEditBuffer();
     
     bool getZeroCrossing(uint32_t start, bool direction, float32_t epsilon, uint32_t& zero);
         
@@ -36,7 +28,21 @@ public:
 };
 
 template< typename T >
-bool AudioEditBuffer<T>::getZeroCrossing(uint32_t start, bool direction, float32_t epsilon, uint32_t& zero) {
+AudioEditBuffer<T>::AudioEditBuffer() : 
+    AudioFrameBuffer<T>() {
+}
+
+template< typename T >
+AudioEditBuffer<T>::AudioEditBuffer(const uint32_t channelCount, const uint32_t frameCount) : 
+    AudioFrameBuffer<T>(channelCount, frameCount) {
+}
+
+template< typename T >
+    AudioEditBuffer<T>::~AudioEditBuffer() {
+}
+
+template< typename T >
+inline bool AudioEditBuffer<T>::getZeroCrossing(uint32_t start, bool direction, float32_t epsilon, uint32_t& zero) {
     
     zero = this->_frameCount;
     
@@ -69,7 +75,7 @@ bool AudioEditBuffer<T>::getZeroCrossing(uint32_t start, bool direction, float32
 }
 
 template< typename T >
-void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool slope) {
+inline void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool slope) {
     
     if (start >= stop || start > this->_frameCount || stop > this->_frameCount ) {
         return;
@@ -97,7 +103,7 @@ void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool slope) {
 }
 
 template< typename T >
-void AudioEditBuffer<T>::exponentialFade(uint32_t start, uint32_t stop, bool slope) {
+inline void AudioEditBuffer<T>::exponentialFade(uint32_t start, uint32_t stop, bool slope) {
     // TBD
 }
 
