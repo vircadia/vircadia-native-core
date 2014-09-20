@@ -61,7 +61,7 @@ public:
             
             if (frameBuffer.getChannelCount() == 1) {
                 
-                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
+                for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
                     samples[0][i + 0] *= _gain;
                     samples[0][i + 1] *= _gain;
                     samples[0][i + 2] *= _gain;
@@ -82,7 +82,7 @@ public:
             }
             else if (frameBuffer.getChannelCount() == 2) {
                 
-                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
+                for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
                     samples[0][i + 0] *= _gain;
                     samples[0][i + 1] *= _gain;
                     samples[0][i + 2] *= _gain;
@@ -123,8 +123,8 @@ public:
         }
         else {
             
-            for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
-                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {
+            for (uint32_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+                for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {
                     samples[j][i] *= _gain;
                 }
             }

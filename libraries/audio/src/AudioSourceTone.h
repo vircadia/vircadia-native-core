@@ -44,7 +44,7 @@ inline void AudioSourceTone::render(AudioBufferFloat32& frameBuffer) {
     float32_t** samples = frameBuffer.getFrameData();
     float32_t yq;
     float32_t y;
-    for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
+    for (uint32_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
         
         yq = _yq1 - (_epsilon * _y1);
         y = _y1 + (_epsilon * yq);
@@ -53,7 +53,7 @@ inline void AudioSourceTone::render(AudioBufferFloat32& frameBuffer) {
         _yq1 = yq;
         _y1 = y;
         
-        for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+        for (uint32_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
             samples[j][i] = _amplitude * y;
         }
     }

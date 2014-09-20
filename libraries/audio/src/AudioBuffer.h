@@ -17,17 +17,19 @@
 template< typename T >
 class AudioFrameBuffer {
     
-    uint16_t _channelCount;
-    uint16_t _channelCountMax;
-    uint16_t _frameCount;
-    uint16_t _frameCountMax;
+protected:
+    
+    uint32_t _channelCount;
+    uint32_t _channelCountMax;
+    uint32_t _frameCount;
+    uint32_t _frameCountMax;
     
     T** _frameBuffer;
 
     void allocateFrames() {
         _frameBuffer = new T*[_channelCountMax];
         if (_frameBuffer) {
-            for (uint16_t i = 0; i < _channelCountMax; ++i) {
+            for (uint32_t i = 0; i < _channelCountMax; ++i) {
                 _frameBuffer[i] = new T[_frameCountMax];
             }
         }
@@ -35,7 +37,7 @@ class AudioFrameBuffer {
     
     void deallocateFrames() {
         if (_frameBuffer) {
-            for (uint16_t i = 0; i < _channelCountMax; ++i) {
+            for (uint32_t i = 0; i < _channelCountMax; ++i) {
                 delete _frameBuffer[i];
             }
             delete _frameBuffer;
@@ -52,7 +54,7 @@ public:
         _frameBuffer(NULL) {
     }
     
-    AudioFrameBuffer(const uint16_t channelCount, const uint16_t frameCount) :
+    AudioFrameBuffer(const uint32_t channelCount, const uint32_t frameCount) :
         _channelCount(channelCount),
         _channelCountMax(channelCount),
         _frameCount(frameCount),
@@ -61,11 +63,11 @@ public:
         allocateFrames();
     }
     
-    ~AudioFrameBuffer() {
+    virtual ~AudioFrameBuffer() {
         finalize();
     }
     
-    void initialize(const uint16_t channelCount, const uint16_t frameCount) {
+    void initialize(const uint32_t channelCount, const uint32_t frameCount) {
         if (_frameBuffer) {
             finalize();
         }
@@ -88,25 +90,25 @@ public:
         return _frameBuffer;
     }
     
-    uint16_t getChannelCount() {
+    uint32_t getChannelCount() {
         return _channelCount;
     }
     
-    uint16_t getFrameCount() {
+    uint32_t getFrameCount() {
         return _frameCount;
     }
-    
+
     void zeroFrames() {
         if (!_frameBuffer) {
             return;
         }
-        for (uint16_t i = 0; i < _channelCountMax; ++i) {
+        for (uint32_t i = 0; i < _channelCountMax; ++i) {
             memset(_frameBuffer[i], 0, sizeof(T)*_frameCountMax);
         }
     }
      
     template< typename S >
-    void copyFrames(uint16_t channelCount, const uint16_t frameCount, S* frames, const bool copyOut = false) {
+    void copyFrames(uint32_t channelCount, const uint32_t frameCount, S* frames, const bool copyOut = false) {
         if ( !_frameBuffer || !frames) {
             return;
         }
@@ -152,8 +154,8 @@ public:
             S* dst = frames;
             
             if(typeid(T) == typeid(S)) { // source and destination types are the same
-                for (int i = 0; i < _frameCount; ++i) {
-                    for (int j = 0; j < _channelCount; ++j) {
+                for (uint32_t i = 0; i < _frameCount; ++i) {
+                    for (uint32_t j = 0; j < _channelCount; ++j) {
                         *dst++ = _frameBuffer[j][i];
                     }
                 }
@@ -164,8 +166,8 @@ public:
                     
                     const int scale = (2 << ((8 * sizeof(S)) - 1));
                     
-                    for (int i = 0; i < _frameCount; ++i) {
-                        for (int j = 0; j < _channelCount; ++j) {
+                    for (uint32_t i = 0; i < _frameCount; ++i) {
+                        for (uint32_t j = 0; j < _channelCount; ++j) {
                             *dst++ = (S)(_frameBuffer[j][i] * scale);
                         }
                     }
@@ -179,8 +181,8 @@ public:
             S* src = frames;
             
             if(typeid(T) == typeid(S)) { // source and destination types are the same
-                for (int i = 0; i < _frameCount; ++i) {
-                    for (int j = 0; j < _channelCount; ++j) {
+                for (uint32_t i = 0; i < _frameCount; ++i) {
+                    for (uint32_t j = 0; j < _channelCount; ++j) {
                         _frameBuffer[j][i] = *src++;
                     }
                 }
@@ -191,8 +193,8 @@ public:
                     
                     const int scale = (2 << ((8 * sizeof(S)) - 1));
                     
-                    for (int i = 0; i < _frameCount; ++i) {
-                        for (int j = 0; j < _channelCount; ++j) {
+                    for (uint32_t i = 0; i < _frameCount; ++i) {
+                        for (uint32_t j = 0; j < _channelCount; ++j) {
                             _frameBuffer[j][i] = ((T)(*src++)) / scale;
                         }
                     }

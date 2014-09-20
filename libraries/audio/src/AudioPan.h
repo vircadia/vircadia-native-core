@@ -88,7 +88,7 @@ public:
             
             if (frameBuffer.getChannelCount() == 2) {
                 
-                for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
+                for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
                     samples[0][i + 0] *= _gainLeft;
                     samples[0][i + 1] *= _gainLeft;
                     samples[0][i + 2] *= _gainLeft;
@@ -128,7 +128,7 @@ public:
             }
         }
         else {
-            for (uint16_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {
+            for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {
                 samples[0][i] *= _gainLeft;
                 samples[1][i] *= _gainRight;
             }
