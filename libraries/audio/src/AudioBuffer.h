@@ -150,23 +150,6 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
         _channelCount = channelCount; 
     }
     else {
-        //
-        // However we do not attempt to copy more frames than we've allocated ;-) This is a framing error caused by either
-        // a/ the platform audio driver not correctly queuing and regularly smoothing device IO capture frames -or-
-        // b/ our IO processing thread (currently running on a Qt GUI thread) has been delayed/scheduled too late.
-        // 
-        // The fix is not to make the problem worse by allocating additional frames on this thread, rather, it is to handle
-        // dynamic re-sizing off the IO processing thread.   While a/ is not in our control, we will address the off thread
-        // re-sizing,, as well as b/, in later releases.
-        //
-        // For now, we log this condition, and do our best to recover by copying as many frames as we have allocated.  
-        // Unfortunately, this will result (temporarily), in an audible discontinuity.
-        // 
-        // If you repeatedly receive this error, contact craig@highfidelity.io and send me what audio device you are using,
-        // what audio-stack you are using (pulse/alsa, core audio, ...),  what OS, and what the reported frame/channel 
-        // counts are.  In addition, any information about what you were doing at the time of the discontinuity, would be
-        // useful (e.g., accessing any client features/menus)
-        //
         qDebug() << "Audio framing error:  _channelCount=" 
         << _channelCount 
         << "channelCountMax=" 
@@ -176,30 +159,154 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
         << "frameCountMax=" 
         << _frameCountMax;
         
-        
         _channelCount = std::min(_channelCount,_channelCountMax);
         _frameCount = std::min(_frameCount,_frameCountMax);
     }
     
+    bool frameAlignment16 = (_frameCount & 0x0F) == 0;
+    
     if (copyOut) {
         S* dst = frames;
         
-        if(typeid(T) == typeid(S)) { // source and destination types are the same
-            for (uint32_t i = 0; i < _frameCount; ++i) {
-                for (uint32_t j = 0; j < _channelCount; ++j) {
-                    *dst++ = _frameBuffer[j][i];
+        if(typeid(T) == typeid(S)) { // source and destination types are the same, just copy out
+            
+            if (frameAlignment16 && (_channelCount == 1 || _channelCount == 2)) {
+                
+                if (_channelCount == 1) {
+                    for (uint32_t i = 0; i < _frameCount; i += 16) {
+                        *dst++ = _frameBuffer[0][0];
+                        *dst++ = _frameBuffer[0][1];
+                        *dst++ = _frameBuffer[0][2];
+                        *dst++ = _frameBuffer[0][3];
+                        *dst++ = _frameBuffer[0][4];
+                        *dst++ = _frameBuffer[0][5];
+                        *dst++ = _frameBuffer[0][6];
+                        *dst++ = _frameBuffer[0][7];
+                        *dst++ = _frameBuffer[0][8];
+                        *dst++ = _frameBuffer[0][9];
+                        *dst++ = _frameBuffer[0][10];
+                        *dst++ = _frameBuffer[0][11];
+                        *dst++ = _frameBuffer[0][12];
+                        *dst++ = _frameBuffer[0][13];
+                        *dst++ = _frameBuffer[0][14];
+                        *dst++ = _frameBuffer[0][15];
+                    }
+                }
+                else if (_channelCount == 2) {
+                    for (uint32_t i = 0; i < _frameCount; i += 16) {
+                        *dst++ = _frameBuffer[0][0];
+                        *dst++ = _frameBuffer[1][0];
+                        *dst++ = _frameBuffer[0][1];
+                        *dst++ = _frameBuffer[1][1];
+                        *dst++ = _frameBuffer[0][2];
+                        *dst++ = _frameBuffer[1][2];
+                        *dst++ = _frameBuffer[0][3];
+                        *dst++ = _frameBuffer[1][3];
+                        *dst++ = _frameBuffer[0][4];
+                        *dst++ = _frameBuffer[1][4];
+                        *dst++ = _frameBuffer[0][5];
+                        *dst++ = _frameBuffer[1][5];
+                        *dst++ = _frameBuffer[0][6];
+                        *dst++ = _frameBuffer[1][6];
+                        *dst++ = _frameBuffer[0][7];
+                        *dst++ = _frameBuffer[1][7];
+                        *dst++ = _frameBuffer[0][8];
+                        *dst++ = _frameBuffer[1][8];
+                        *dst++ = _frameBuffer[0][9];
+                        *dst++ = _frameBuffer[1][9];
+                        *dst++ = _frameBuffer[0][10];
+                        *dst++ = _frameBuffer[1][10];
+                        *dst++ = _frameBuffer[0][11];
+                        *dst++ = _frameBuffer[1][11];
+                        *dst++ = _frameBuffer[0][12];
+                        *dst++ = _frameBuffer[1][12];
+                        *dst++ = _frameBuffer[0][13];
+                        *dst++ = _frameBuffer[1][13];
+                        *dst++ = _frameBuffer[0][14];
+                        *dst++ = _frameBuffer[1][14];
+                        *dst++ = _frameBuffer[0][15];
+                        *dst++ = _frameBuffer[1][15];
+                    }
+                }
+            }
+            else {
+                for (uint32_t i = 0; i < _frameCount; ++i) {
+                    for (uint32_t j = 0; j < _channelCount; ++j) {
+                        *dst++ = _frameBuffer[j][i];
+                    }
                 }
             }
         }
         else {
             if(typeid(T) == typeid(float32_t) &&
-               typeid(S) == typeid(int16_t)) {
+               typeid(S) == typeid(int16_t)) { // source and destination aare not the same, convert from float32_t to int16_t and copy out
                 
                 const int scale = (2 << ((8 * sizeof(S)) - 1));
-                
-                for (uint32_t i = 0; i < _frameCount; ++i) {
-                    for (uint32_t j = 0; j < _channelCount; ++j) {
-                        *dst++ = (S)(_frameBuffer[j][i] * scale);
+
+                if (frameAlignment16 && (_channelCount == 1 || _channelCount == 2)) {
+                    
+                    if (_channelCount == 1) {
+                        for (uint32_t i = 0; i < _frameCount; i += 16) {
+                            *dst++ = (S)(_frameBuffer[0][0] * scale);
+                            *dst++ = (S)(_frameBuffer[0][1] * scale);
+                            *dst++ = (S)(_frameBuffer[0][2] * scale);
+                            *dst++ = (S)(_frameBuffer[0][3] * scale);
+                            *dst++ = (S)(_frameBuffer[0][4] * scale);
+                            *dst++ = (S)(_frameBuffer[0][5] * scale);
+                            *dst++ = (S)(_frameBuffer[0][6] * scale);
+                            *dst++ = (S)(_frameBuffer[0][7] * scale);
+                            *dst++ = (S)(_frameBuffer[0][8] * scale);
+                            *dst++ = (S)(_frameBuffer[0][9] * scale);
+                            *dst++ = (S)(_frameBuffer[0][10] * scale);
+                            *dst++ = (S)(_frameBuffer[0][11] * scale);
+                            *dst++ = (S)(_frameBuffer[0][12] * scale);
+                            *dst++ = (S)(_frameBuffer[0][13] * scale);
+                            *dst++ = (S)(_frameBuffer[0][14] * scale);
+                            *dst++ = (S)(_frameBuffer[0][15] * scale);
+                        }
+                    }
+                    else if (_channelCount == 2) {
+                        for (uint32_t i = 0; i < _frameCount; i += 16) {
+                            *dst++ = (S)(_frameBuffer[0][0] * scale);
+                            *dst++ = (S)(_frameBuffer[1][0] * scale);
+                            *dst++ = (S)(_frameBuffer[0][1] * scale);
+                            *dst++ = (S)(_frameBuffer[1][1] * scale);
+                            *dst++ = (S)(_frameBuffer[0][2] * scale);
+                            *dst++ = (S)(_frameBuffer[1][2] * scale);
+                            *dst++ = (S)(_frameBuffer[0][3] * scale);
+                            *dst++ = (S)(_frameBuffer[1][3] * scale);
+                            *dst++ = (S)(_frameBuffer[0][4] * scale);
+                            *dst++ = (S)(_frameBuffer[1][4] * scale);
+                            *dst++ = (S)(_frameBuffer[0][5] * scale);
+                            *dst++ = (S)(_frameBuffer[1][5] * scale);
+                            *dst++ = (S)(_frameBuffer[0][6] * scale);
+                            *dst++ = (S)(_frameBuffer[1][6] * scale);
+                            *dst++ = (S)(_frameBuffer[0][7] * scale);
+                            *dst++ = (S)(_frameBuffer[1][7] * scale);
+                            *dst++ = (S)(_frameBuffer[0][8] * scale);
+                            *dst++ = (S)(_frameBuffer[1][8] * scale);
+                            *dst++ = (S)(_frameBuffer[0][9] * scale);
+                            *dst++ = (S)(_frameBuffer[1][9] * scale);
+                            *dst++ = (S)(_frameBuffer[0][10] * scale);
+                            *dst++ = (S)(_frameBuffer[1][10] * scale);
+                            *dst++ = (S)(_frameBuffer[0][11] * scale);
+                            *dst++ = (S)(_frameBuffer[1][11] * scale);
+                            *dst++ = (S)(_frameBuffer[0][12] * scale);
+                            *dst++ = (S)(_frameBuffer[1][12] * scale);
+                            *dst++ = (S)(_frameBuffer[0][13] * scale);
+                            *dst++ = (S)(_frameBuffer[1][13] * scale);
+                            *dst++ = (S)(_frameBuffer[0][14] * scale);
+                            *dst++ = (S)(_frameBuffer[1][14] * scale);
+                            *dst++ = (S)(_frameBuffer[0][15] * scale);
+                            *dst++ = (S)(_frameBuffer[1][15] * scale);
+                        }
+                    }
+                }
+                else {
+                    for (uint32_t i = 0; i < _frameCount; ++i) {
+                        for (uint32_t j = 0; j < _channelCount; ++j) {
+                            *dst++ = (S)(_frameBuffer[j][i] * scale);
+                        }
                     }
                 }
             }
@@ -208,25 +315,148 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
             }
         }
     }
-    else { // copyIn
+    else { // copyIn 
         S* src = frames;
         
-        if(typeid(T) == typeid(S)) { // source and destination types are the same
-            for (uint32_t i = 0; i < _frameCount; ++i) {
-                for (uint32_t j = 0; j < _channelCount; ++j) {
-                    _frameBuffer[j][i] = *src++;
+        if(typeid(T) == typeid(S)) { // source and destination types are the same, copy in
+            
+            if (frameAlignment16 && (_channelCount == 1 || _channelCount == 2)) {
+                
+                if (_channelCount == 1) {
+                    for (uint32_t i = 0; i < _frameCount; i += 16) {
+                        _frameBuffer[0][0] = *src++;
+                        _frameBuffer[0][1] = *src++;
+                        _frameBuffer[0][2] = *src++;
+                        _frameBuffer[0][3] = *src++;
+                        _frameBuffer[0][4] = *src++;
+                        _frameBuffer[0][5] = *src++;
+                        _frameBuffer[0][6] = *src++;
+                        _frameBuffer[0][7] = *src++;
+                        _frameBuffer[0][8] = *src++;
+                        _frameBuffer[0][9] = *src++;
+                        _frameBuffer[0][10] = *src++;
+                        _frameBuffer[0][11] = *src++;
+                        _frameBuffer[0][12] = *src++;
+                        _frameBuffer[0][13] = *src++;
+                        _frameBuffer[0][14] = *src++;
+                        _frameBuffer[0][15] = *src++;
+                    }
+                }
+                else if (_channelCount == 2) {
+                    for (uint32_t i = 0; i < _frameCount; i += 16) {
+                        _frameBuffer[0][0] = *src++;
+                        _frameBuffer[1][0] = *src++;
+                        _frameBuffer[0][1] = *src++;
+                        _frameBuffer[1][1] = *src++;
+                        _frameBuffer[0][2] = *src++;
+                        _frameBuffer[1][2] = *src++;
+                        _frameBuffer[0][3] = *src++;
+                        _frameBuffer[1][3] = *src++;
+                        _frameBuffer[0][4] = *src++;
+                        _frameBuffer[1][4] = *src++;
+                        _frameBuffer[0][5] = *src++;
+                        _frameBuffer[1][5] = *src++;
+                        _frameBuffer[0][6] = *src++;
+                        _frameBuffer[1][6] = *src++;
+                        _frameBuffer[0][7] = *src++;
+                        _frameBuffer[1][7] = *src++;
+                        _frameBuffer[0][8] = *src++;
+                        _frameBuffer[1][8] = *src++;
+                        _frameBuffer[0][9] = *src++;
+                        _frameBuffer[1][9] = *src++;
+                        _frameBuffer[0][10] = *src++;
+                        _frameBuffer[1][10] = *src++;
+                        _frameBuffer[0][11] = *src++;
+                        _frameBuffer[1][11] = *src++;
+                        _frameBuffer[0][12] = *src++;
+                        _frameBuffer[1][12] = *src++;
+                        _frameBuffer[0][13] = *src++;
+                        _frameBuffer[1][13] = *src++;
+                        _frameBuffer[0][14] = *src++;
+                        _frameBuffer[1][14] = *src++;
+                        _frameBuffer[0][15] = *src++;
+                        _frameBuffer[1][15] = *src++;
+                    }
+                }
+            }
+            else { 
+                for (uint32_t i = 0; i < _frameCount; ++i) {
+                    for (uint32_t j = 0; j < _channelCount; ++j) {
+                        _frameBuffer[j][i] = *src++;
+                    }
                 }
             }
         }
-        else {
+        else { 
             if(typeid(T) == typeid(float32_t) &&
-               typeid(S) == typeid(int16_t)) {
+               typeid(S) == typeid(int16_t)) { // source and destination aare not the same, convert from int16_t to float32_t and copy in
                 
                 const int scale = (2 << ((8 * sizeof(S)) - 1));
                 
-                for (uint32_t i = 0; i < _frameCount; ++i) {
-                    for (uint32_t j = 0; j < _channelCount; ++j) {
-                        _frameBuffer[j][i] = ((T)(*src++)) / scale;
+                if (frameAlignment16 && (_channelCount == 1 || _channelCount == 2)) {
+                    
+                    if (_channelCount == 1) {
+                        for (uint32_t i = 0; i < _frameCount; i += 16) {
+                            _frameBuffer[0][0] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][1] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][2] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][3] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][4] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][5] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][6] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][7] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][8] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][9] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][10] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][11] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][12] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][13] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][14] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][15] = ((T)(*src++)) / scale;
+                        }
+                    }
+                    else if (_channelCount == 2) {
+                        for (uint32_t i = 0; i < _frameCount; i += 16) {
+                            _frameBuffer[0][0] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][0] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][1] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][1] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][2] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][2] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][3] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][3] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][4] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][4] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][5] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][5] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][6] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][6] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][7] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][7] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][8] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][8] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][9] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][9] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][10] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][10] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][11] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][11] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][12] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][12] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][13] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][13] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][14] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][14] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][15] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][15] = ((T)(*src++)) / scale;
+                        }
+                    }
+                }
+                else {
+                    for (uint32_t i = 0; i < _frameCount; ++i) {
+                        for (uint32_t j = 0; j < _channelCount; ++j) {
+                            _frameBuffer[j][i] = ((T)(*src++)) / scale;
+                        }
                     }
                 }
             }
