@@ -96,7 +96,6 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
 {
     // constant defined in AudioMixer.h.  However, we don't want to include this here
     // we will soon find a better common home for these audio-related constants
-    _penumbraFilter.initialize(SAMPLE_RATE, (NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)) / 2);
 }
 
 AudioMixer::~AudioMixer() {
@@ -108,8 +107,10 @@ const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float RADIUS_OF_HEAD = 0.076f;
 
-int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
-                                                          AvatarAudioStream* listeningNodeStream) {
+int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
+                                                            const QUuid& streamUUID,
+                                                            PositionalAudioStream* streamToAdd,
+                                                            AvatarAudioStream* listeningNodeStream) {
     // If repetition with fade is enabled:
     // If streamToAdd could not provide a frame (it was starved), then we'll mix its previously-mixed frame
     // This is preferable to not mixing it at all since that's equivalent to inserting silence.
@@ -413,11 +414,13 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
                      << -bearingRelativeAngleToSource;
 #endif
         
+        // Get our per listener/source data so we can get our filter
+        AudioFilterHSF1s& penumbraFilter = listenerNodeData->getListenerSourcePairData(streamUUID)->getPenumbraFilter();
+ 
         // set the gain on both filter channels
-        _penumbraFilter.reset();
-        _penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-        _penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
-        _penumbraFilter.render(_preMixSamples, _preMixSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+        penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+        penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+        penumbraFilter.render(_preMixSamples, _preMixSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
     }
     
     // Actually mix the _preMixSamples into the _mixSamples here.
@@ -430,6 +433,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
 
 int AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
+    AudioMixerClientData* listenerNodeData = (AudioMixerClientData*)node->getLinkedData();
     
     // zero out the client mix for this node
     memset(_preMixSamples, 0, sizeof(_preMixSamples));
@@ -447,9 +451,15 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
             QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
             for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
                 PositionalAudioStream* otherNodeStream = i.value();
+                QUuid streamUUID = i.key();
                 
+                if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
+                    streamUUID = otherNode->getUUID();
+                }
+                 
                 if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
-                    streamsMixed += addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
+                    streamsMixed += addStreamToMixForListeningNodeWithStream(listenerNodeData, streamUUID, 
+                                                                                otherNodeStream, nodeAudioStream);
                 }
             }
         }
