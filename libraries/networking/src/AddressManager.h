@@ -31,7 +31,7 @@ public:
     
     void attemptPlaceNameLookup(const QString& lookupString);
 public slots:
-    void handleLookupString(const QString& lookupString);
+    bool handleLookupString(const QString& lookupString);
     
     void handleAPIResponse(const QJsonObject& jsonObject);
     void handleAPIError(QNetworkReply& errorReply);

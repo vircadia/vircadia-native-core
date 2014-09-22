@@ -923,12 +923,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                if (isMeta) {
-                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::Chat);
-                }
+                Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                break;
                 
+            case Qt::Key_CapsLock:
+                Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
             case Qt::Key_N:

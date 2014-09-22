@@ -28,6 +28,8 @@
 #endif
 
 #include "location/LocationManager.h"
+
+#include "ui/AddressBarDialog.h"
 #include "ui/ChatWindow.h"
 #include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
@@ -299,6 +301,7 @@ private:
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
     QPointer<LoginDialog> _loginDialog;
+    QPointer<AddressBarDialog> _addressBarDialog;
     bool _hasLoginDialogDisplayed;
     QAction* _chatAction;
     QString _snapshotsLocation;

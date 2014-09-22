@@ -173,7 +173,7 @@ Menu::Menu() :
                                   SLOT(toggleLocationList()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::AddressBar,
-                                  Qt::CTRL | Qt::Key_Enter,
+                                  Qt::Key_Enter,
                                   this,
                                   SLOT(toggleAddressBar()));
 
@@ -1154,22 +1154,10 @@ void Menu::changePrivateKey() {
 }
 
 void Menu::toggleAddressBar() {
-
-    QInputDialog addressBarDialog(Application::getInstance()->getWindow());
-    addressBarDialog.setWindowTitle("Address Bar");
-    addressBarDialog.setWindowFlags(Qt::Sheet);
-    addressBarDialog.setLabelText("place, domain, @user, example.com, /position/orientation");
-
-    addressBarDialog.resize(addressBarDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW,
-                            addressBarDialog.size().height());
-
-    int dialogReturn = addressBarDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !addressBarDialog.textValue().isEmpty()) {
-        // let the AddressManger figure out what to do with this
-        AddressManager::getInstance().handleLookupString(addressBarDialog.textValue());
+    if (!_addressBarDialog) {
+        _addressBarDialog = new AddressBarDialog();
+        _addressBarDialog->show();
     }
-    
-    sendFakeEnterEvent();
 }
 
 void Menu::displayAddressOfflineMessage() {

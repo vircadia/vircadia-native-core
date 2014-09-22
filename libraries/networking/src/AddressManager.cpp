@@ -85,7 +85,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
     return false;
 }
 
-void AddressManager::handleLookupString(const QString& lookupString) {
+bool AddressManager::handleLookupString(const QString& lookupString) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
         QString sanitizedString = lookupString;
@@ -100,8 +100,10 @@ void AddressManager::handleLookupString(const QString& lookupString) {
             lookupURL = QUrl(lookupString);
         }
         
-        handleUrl(lookupURL);
+        return handleUrl(lookupURL);
     }
+    
+    return false;
 }
 
 void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
