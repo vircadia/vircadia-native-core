@@ -2741,8 +2741,6 @@ QImage Application::renderAvatarBillboard() {
 
     _textureCache.getPrimaryFramebufferObject()->release();
 
-    image.save("billboard.png");
-
     return image;
 }
 
