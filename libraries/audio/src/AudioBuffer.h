@@ -148,8 +148,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
         // We always allow copying fewer frames than we have allocated
         _frameCount = frameCount;
         _channelCount = channelCount; 
-    }
-    else {
+    } else {
         qDebug() << "Audio framing error:  _channelCount=" 
         << _channelCount 
         << "channelCountMax=" 
@@ -163,7 +162,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
         _frameCount = std::min(_frameCount,_frameCountMax);
     }
     
-    bool frameAlignment16 = (_frameCount & 0x0F) == 0;
+    bool frameAlignment16 = false; // (_frameCount & 0x0F) == 0;
     
     if (copyOut) {
         S* dst = frames;
@@ -191,8 +190,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                         *dst++ = _frameBuffer[0][14];
                         *dst++ = _frameBuffer[0][15];
                     }
-                }
-                else if (_channelCount == 2) {
+                } else if (_channelCount == 2) {
                     for (uint32_t i = 0; i < _frameCount; i += 16) {
                         *dst++ = _frameBuffer[0][0];
                         *dst++ = _frameBuffer[1][0];
@@ -228,16 +226,14 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                         *dst++ = _frameBuffer[1][15];
                     }
                 }
-            }
-            else {
+            } else {
                 for (uint32_t i = 0; i < _frameCount; ++i) {
                     for (uint32_t j = 0; j < _channelCount; ++j) {
                         *dst++ = _frameBuffer[j][i];
                     }
                 }
             }
-        }
-        else {
+        } else {
             if(typeid(T) == typeid(float32_t) &&
                typeid(S) == typeid(int16_t)) { // source and destination aare not the same, convert from float32_t to int16_t and copy out
                 
@@ -264,8 +260,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                             *dst++ = (S)(_frameBuffer[0][14] * scale);
                             *dst++ = (S)(_frameBuffer[0][15] * scale);
                         }
-                    }
-                    else if (_channelCount == 2) {
+                    } else if (_channelCount == 2) {
                         for (uint32_t i = 0; i < _frameCount; i += 16) {
                             *dst++ = (S)(_frameBuffer[0][0] * scale);
                             *dst++ = (S)(_frameBuffer[1][0] * scale);
@@ -301,21 +296,18 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                             *dst++ = (S)(_frameBuffer[1][15] * scale);
                         }
                     }
-                }
-                else {
+                } else {
                     for (uint32_t i = 0; i < _frameCount; ++i) {
                         for (uint32_t j = 0; j < _channelCount; ++j) {
                             *dst++ = (S)(_frameBuffer[j][i] * scale);
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 assert(0); // currently unsupported conversion
             }
         }
-    }
-    else { // copyIn 
+    } else { // copyIn 
         S* src = frames;
         
         if(typeid(T) == typeid(S)) { // source and destination types are the same, copy in
@@ -341,8 +333,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                         _frameBuffer[0][14] = *src++;
                         _frameBuffer[0][15] = *src++;
                     }
-                }
-                else if (_channelCount == 2) {
+                } else if (_channelCount == 2) {
                     for (uint32_t i = 0; i < _frameCount; i += 16) {
                         _frameBuffer[0][0] = *src++;
                         _frameBuffer[1][0] = *src++;
@@ -378,16 +369,14 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                         _frameBuffer[1][15] = *src++;
                     }
                 }
-            }
-            else { 
+            } else { 
                 for (uint32_t i = 0; i < _frameCount; ++i) {
                     for (uint32_t j = 0; j < _channelCount; ++j) {
                         _frameBuffer[j][i] = *src++;
                     }
                 }
             }
-        }
-        else { 
+        } else { 
             if(typeid(T) == typeid(float32_t) &&
                typeid(S) == typeid(int16_t)) { // source and destination aare not the same, convert from int16_t to float32_t and copy in
                 
@@ -414,8 +403,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                             _frameBuffer[0][14] = ((T)(*src++)) / scale;
                             _frameBuffer[0][15] = ((T)(*src++)) / scale;
                         }
-                    }
-                    else if (_channelCount == 2) {
+                    } else if (_channelCount == 2) {
                         for (uint32_t i = 0; i < _frameCount; i += 16) {
                             _frameBuffer[0][0] = ((T)(*src++)) / scale;
                             _frameBuffer[1][0] = ((T)(*src++)) / scale;
@@ -451,16 +439,14 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                             _frameBuffer[1][15] = ((T)(*src++)) / scale;
                         }
                     }
-                }
-                else {
+                } else {
                     for (uint32_t i = 0; i < _frameCount; ++i) {
                         for (uint32_t j = 0; j < _channelCount; ++j) {
                             _frameBuffer[j][i] = ((T)(*src++)) / scale;
                         }
                     }
                 }
-            }
-            else {
+            } else {
                 assert(0); // currently unsupported conversion
             }
         }

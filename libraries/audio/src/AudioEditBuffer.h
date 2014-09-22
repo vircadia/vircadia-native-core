@@ -88,8 +88,7 @@ inline void AudioEditBuffer<T>::linearFade(uint32_t start, uint32_t stop, bool s
     if (slope) { // 0.0 to 1.0f in delta increments
         delta = 1.0f / (float32_t)count;
         gain = 0.0f;
-    }
-    else { // 1.0f to 0.0f in delta increments
+    } else { // 1.0f to 0.0f in delta increments
         delta = -1.0f / (float32_t)count;
         gain = 1.0f;
     }

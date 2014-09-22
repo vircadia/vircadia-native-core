@@ -63,8 +63,7 @@ inline void AudioGain::render(AudioBufferFloat32& frameBuffer) {
                 samples[0][i + 14] *= _gain;
                 samples[0][i + 15] *= _gain;
             }
-        }
-        else if (frameBuffer.getChannelCount() == 2) {
+        } else if (frameBuffer.getChannelCount() == 2) {
             
             for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 16) {
                 samples[0][i + 0] *= _gain;
@@ -100,12 +99,10 @@ inline void AudioGain::render(AudioBufferFloat32& frameBuffer) {
                 samples[1][i + 14] *= _gain;
                 samples[1][i + 15] *= _gain;
             }
-        }
-        else {
+        } else {
             assert("unsupported channel format");
         }
-    }
-    else {
+    } else {
         
         for (uint32_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
             for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {

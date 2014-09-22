@@ -87,12 +87,10 @@ inline void AudioPan::render(AudioBufferFloat32& frameBuffer) {
                 samples[1][i + 14] *= _gainRight;
                 samples[1][i + 15] *= _gainRight;
             }
-        }
-        else {
+        } else {
             assert("unsupported channel format");
         }
-    }
-    else {
+    } else {
         for (uint32_t i = 0; i < frameBuffer.getFrameCount(); i += 1) {
             samples[0][i] *= _gainLeft;
             samples[1][i] *= _gainRight;
@@ -107,16 +105,13 @@ inline void AudioPan::updateCoefficients() {
     if (_pan >= ONE_MINUS_EPSILON) { // full right
         _gainLeft = 0.0f;
         _gainRight = 1.0f;
-    }
-    else if (_pan <= ZERO_PLUS_EPSILON) { // full left
+    } else if (_pan <= ZERO_PLUS_EPSILON) { // full left
         _gainLeft = 1.0f;
         _gainRight = 0.0f;
-    }
-    else if ((_pan >= ONE_HALF_MINUS_EPSILON) && (_pan <= ONE_HALF_PLUS_EPSILON)) {  // center
+    } else if ((_pan >= ONE_HALF_MINUS_EPSILON) && (_pan <= ONE_HALF_PLUS_EPSILON)) {  // center
         _gainLeft = 1.0f / SQUARE_ROOT_OF_2;
         _gainRight = 1.0f / SQUARE_ROOT_OF_2;
-    }
-    else { // intermediate cases
+    } else { // intermediate cases
         _gainLeft = cosf( TWO_PI * _pan );
         _gainRight = sinf( TWO_PI * _pan );
     }
