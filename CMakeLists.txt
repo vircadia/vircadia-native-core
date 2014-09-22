@@ -35,8 +35,7 @@ endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
 
-# set our Base SDK to 10.8
-set(CMAKE_OSX_SYSROOT /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.8.sdk)
+# set our OS X deployment target to
 set(CMAKE_OSX_DEPLOYMENT_TARGET 10.8)
 
 # Find includes in corresponding build directories
