@@ -50,7 +50,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
                 glScalef(dimensions.x, dimensions.y, dimensions.z);
-                glutSolidCube(1.0f);
+                Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             glPopMatrix();
         glPopMatrix();
     } else {
@@ -86,6 +86,8 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
 
         glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
         
+        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
+        
         glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
@@ -99,6 +101,8 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glPopMatrix();
         glPopMatrix();
 
+        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        
         glDisableClientState(GL_VERTEX_ARRAY);  // disable vertex arrays
         glDisableClientState(GL_NORMAL_ARRAY);
     }    

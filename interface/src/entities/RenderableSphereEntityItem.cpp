@@ -48,7 +48,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
 
             glScalef(dimensions.x, dimensions.y, dimensions.z);
-            glutSolidSphere(0.5f, 15, 15);
+            Application::getInstance()->getDeferredLightingEffect()->renderSolidSphere(0.5f, 15, 15);
         glPopMatrix();
     glPopMatrix();
 };

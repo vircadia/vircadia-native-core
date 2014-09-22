@@ -34,16 +34,11 @@ class Shape;
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
-const int MAX_LOCAL_LIGHTS = 2;
-
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
     
 public:
-
-    /// Registers the script types associated with models.
-    static void registerMetaTypes(QScriptEngine* engine);
 
     Model(QObject* parent = NULL);
     virtual ~Model();
@@ -89,7 +84,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, bool receiveShadows = true);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -171,22 +166,13 @@ public:
     void setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
-    class LocalLight {
-    public:
-        glm::vec3 color;
-        glm::vec3 direction;
-    };
-    
-    void setLocalLights(const QVector<LocalLight>& localLights) { _localLights = localLights; }
-    const QVector<LocalLight>& getLocalLights() const { return _localLights; }
-
     void setShowTrueJointTransforms(bool show) { _showTrueJointTransforms = show; }
 
     QVector<JointState>& getJointStates() { return _jointStates; }
     const QVector<JointState>& getJointStates() const { return _jointStates; }
  
     void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
-
+    
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
     
@@ -202,8 +188,6 @@ protected:
     glm::vec3 _registrationPoint; /// the point in model space our center is snapped to
     
     bool _showTrueJointTransforms;
-    
-    QVector<LocalLight> _localLights;
     
     QVector<JointState> _jointStates;
 
@@ -258,7 +242,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(RenderMode mode, bool translucent, bool receiveShadows);
+    void renderMeshes(RenderMode mode, bool translucent, float alphaThreshold = 0.5f);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -284,9 +268,6 @@ private:
 
     QList<AnimationHandlePointer> _runningAnimations;
 
-    glm::vec4 _localLightColors[MAX_LOCAL_LIGHTS];
-    glm::vec4 _localLightDirections[MAX_LOCAL_LIGHTS];
-
     QVector<float> _blendedBlendshapeCoefficients;
     int _blendNumber;
     int _appliedBlendNumber;
@@ -295,16 +276,7 @@ private:
     static ProgramObject _normalMapProgram;
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
-    
-    static ProgramObject _shadowMapProgram;
-    static ProgramObject _shadowNormalMapProgram;
-    static ProgramObject _shadowSpecularMapProgram;
-    static ProgramObject _shadowNormalSpecularMapProgram;
-    
-    static ProgramObject _cascadedShadowMapProgram;
-    static ProgramObject _cascadedShadowNormalMapProgram;
-    static ProgramObject _cascadedShadowSpecularMapProgram;
-    static ProgramObject _cascadedShadowNormalSpecularMapProgram;
+    static ProgramObject _translucentProgram;
     
     static ProgramObject _shadowProgram;
     
@@ -312,54 +284,26 @@ private:
     static ProgramObject _skinNormalMapProgram;
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
-    
-    static ProgramObject _skinShadowMapProgram;
-    static ProgramObject _skinShadowNormalMapProgram;
-    static ProgramObject _skinShadowSpecularMapProgram;
-    static ProgramObject _skinShadowNormalSpecularMapProgram;
-    
-    static ProgramObject _skinCascadedShadowMapProgram;
-    static ProgramObject _skinCascadedShadowNormalMapProgram;
-    static ProgramObject _skinCascadedShadowSpecularMapProgram;
-    static ProgramObject _skinCascadedShadowNormalSpecularMapProgram;
+    static ProgramObject _skinTranslucentProgram;
     
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
-    static int _shadowNormalMapTangentLocation;
-    static int _shadowNormalSpecularMapTangentLocation;
-    static int _cascadedShadowNormalMapTangentLocation;
-    static int _cascadedShadowNormalSpecularMapTangentLocation;
-    
-    static int _cascadedShadowMapDistancesLocation;
-    static int _cascadedShadowNormalMapDistancesLocation;
-    static int _cascadedShadowSpecularMapDistancesLocation;
-    static int _cascadedShadowNormalSpecularMapDistancesLocation;
     
     class Locations {
     public:
-        int localLightColors;
-        int localLightDirections; 
         int tangent;
-        int shadowDistances;
+        int alphaThreshold;
     };
     
     static Locations _locations;
     static Locations _normalMapLocations;
     static Locations _specularMapLocations;
     static Locations _normalSpecularMapLocations;
-    static Locations _shadowMapLocations;
-    static Locations _shadowNormalMapLocations;
-    static Locations _shadowSpecularMapLocations;
-    static Locations _shadowNormalSpecularMapLocations;
-    static Locations _cascadedShadowMapLocations;
-    static Locations _cascadedShadowNormalMapLocations;
-    static Locations _cascadedShadowSpecularMapLocations;
-    static Locations _cascadedShadowNormalSpecularMapLocations;
+    static Locations _translucentLocations;
     
-    static void initProgram(ProgramObject& program, Locations& locations,
-        int specularTextureUnit = 1, int shadowTextureUnit = 1);
+    static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
         
     class SkinLocations : public Locations {
     public:
@@ -371,26 +315,16 @@ private:
     static SkinLocations _skinLocations;
     static SkinLocations _skinNormalMapLocations;
     static SkinLocations _skinSpecularMapLocations;
-    static SkinLocations _skinNormalSpecularMapLocations;
-    static SkinLocations _skinShadowMapLocations;
-    static SkinLocations _skinShadowNormalMapLocations;
-    static SkinLocations _skinShadowSpecularMapLocations;
-    static SkinLocations _skinShadowNormalSpecularMapLocations;
-    static SkinLocations _skinCascadedShadowMapLocations;
-    static SkinLocations _skinCascadedShadowNormalMapLocations;
-    static SkinLocations _skinCascadedShadowSpecularMapLocations;
-    static SkinLocations _skinCascadedShadowNormalSpecularMapLocations;
+    static SkinLocations _skinNormalSpecularMapLocations;    
     static SkinLocations _skinShadowLocations;
-    
-    static void initSkinProgram(ProgramObject& program, SkinLocations& locations,
-        int specularTextureUnit = 1, int shadowTextureUnit = 1);
+    static SkinLocations _skinTranslucentLocations;
+        
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
-Q_DECLARE_METATYPE(Model::LocalLight)
-Q_DECLARE_METATYPE(QVector<Model::LocalLight>)
 
 /// Represents a handle to a model animation.
 class AnimationHandle : public QObject {

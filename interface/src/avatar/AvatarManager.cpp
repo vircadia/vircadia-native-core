@@ -11,9 +11,12 @@
 
 #include <string>
 
+#include <QScriptEngine>
+
 #include <glm/gtx/string_cast.hpp>
 
 #include <PerfStat.h>
+#include <RegisteredMetaTypes.h>
 #include <UUID.h>
 
 #include "Application.h"
@@ -25,6 +28,23 @@
 
 // We add _myAvatar into the hash with all the other AvatarData, and we use the default NULL QUid as the key.
 const QUuid MY_AVATAR_KEY;  // NULL key
+
+static QScriptValue localLightToScriptValue(QScriptEngine* engine, const AvatarManager::LocalLight& light) {
+    QScriptValue object = engine->newObject();
+    object.setProperty("direction", vec3toScriptValue(engine, light.direction));
+    object.setProperty("color", vec3toScriptValue(engine, light.color));
+    return object;
+}
+
+static void localLightFromScriptValue(const QScriptValue& value, AvatarManager::LocalLight& light) {
+    vec3FromScriptValue(value.property("direction"), light.direction);
+    vec3FromScriptValue(value.property("color"), light.color);
+}
+
+void AvatarManager::registerMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, localLightToScriptValue, localLightFromScriptValue);
+    qScriptRegisterSequenceMetaType<QVector<AvatarManager::LocalLight> >(engine);
+}
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarFades() {
@@ -79,7 +99,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     simulateAvatarFades(deltaTime);
 }
 
-void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly) {
+void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool postLighting, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "Application::renderAvatars()");
     bool renderLookAtVectors = Menu::getInstance()->isOptionChecked(MenuOption::RenderLookAtVectors);
@@ -92,13 +112,13 @@ void AvatarManager::renderAvatars(Avatar::RenderMode renderMode, bool selfAvatar
             if (!avatar->isInitialized()) {
                 continue;
             }
-            avatar->render(cameraPosition, renderMode);
+            avatar->render(cameraPosition, renderMode, postLighting);
             avatar->setDisplayingLookatVectors(renderLookAtVectors);
         }
         renderAvatarFades(cameraPosition, renderMode);
     } else {
         // just render myAvatar
-        _myAvatar->render(cameraPosition, renderMode);
+        _myAvatar->render(cameraPosition, renderMode, postLighting);
         _myAvatar->setDisplayingLookatVectors(renderLookAtVectors);
     }
 }
@@ -159,19 +179,19 @@ void AvatarManager::clearOtherAvatars() {
     _myAvatar->clearLookAtTargetAvatar();
 }
 
-void AvatarManager::setLocalLights(const QVector<Model::LocalLight>& localLights) {
+void AvatarManager::setLocalLights(const QVector<AvatarManager::LocalLight>& localLights) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setLocalLights", Q_ARG(const QVector<Model::LocalLight>&, localLights));
+        QMetaObject::invokeMethod(this, "setLocalLights", Q_ARG(const QVector<AvatarManager::LocalLight>&, localLights));
         return;
     }
     _localLights = localLights;
 }
 
-QVector<Model::LocalLight> AvatarManager::getLocalLights() const {
+QVector<AvatarManager::LocalLight> AvatarManager::getLocalLights() const {
     if (QThread::currentThread() != thread()) {
-        QVector<Model::LocalLight> result;
+        QVector<AvatarManager::LocalLight> result;
         QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "getLocalLights", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVector<Model::LocalLight>, result));
+            Q_RETURN_ARG(QVector<AvatarManager::LocalLight>, result));
         return result;
     }
     return _localLights;
