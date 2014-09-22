@@ -1,10 +1,10 @@
 #version 120
 
 //
-//  directional_light.frag
+//  spot_light.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 9/3/14.
+//  Created by Andrzej Kapolka on 9/18/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -35,26 +35,35 @@ uniform vec2 depthTexCoordOffset;
 // scale for depth texture coordinates
 uniform vec2 depthTexCoordScale;
 
+// the radius (hard cutoff) of the light effect
+uniform float radius;
+
 void main(void) {
     // compute the view space position using the depth
     float z = near / (texture2D(depthMap, gl_TexCoord[0].st).r * depthScale - 1.0);
-    vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 0.0);
+    vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 1.0);
     
     // get the normal from the map
     vec4 normal = texture2D(normalMap, gl_TexCoord[0].st);
     vec4 normalizedNormal = normalize(normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0));
     
     // compute the base color based on OpenGL lighting model
-    float diffuse = dot(normalizedNormal, gl_LightSource[0].position);
+    vec4 lightVector = gl_LightSource[1].position - position;
+    float lightDistance = length(lightVector);
+    lightVector = lightVector / lightDistance;
+    float diffuse = dot(normalizedNormal, lightVector);
     float facingLight = step(0.0, diffuse);
-    vec4 baseColor = texture2D(diffuseMap, gl_TexCoord[0].st) * (gl_FrontLightModelProduct.sceneColor +
-        gl_FrontLightProduct[0].ambient + gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
+    vec4 baseColor = texture2D(diffuseMap, gl_TexCoord[0].st) * (gl_FrontLightProduct[1].ambient +
+        gl_FrontLightProduct[1].diffuse * (diffuse * facingLight));
     
-    // compute the specular multiplier (sans exponent)
-    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position - normalize(position)),
+    // compute attenuation based on distance, etc.
+    float attenuation = step(lightDistance, radius) / dot(vec3(gl_LightSource[1].constantAttenuation,
+        gl_LightSource[1].linearAttenuation, gl_LightSource[1].quadraticAttenuation),
+            vec3(1.0, lightDistance, lightDistance * lightDistance));
+                
+    // add base to specular, modulate by attenuation
+    float specular = facingLight * max(0.0, dot(normalize(lightVector - normalize(vec4(position.xyz, 0.0))),
         normalizedNormal));    
-    
-    // add specular contribution
     vec4 specularColor = texture2D(specularMap, gl_TexCoord[0].st);
-    gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normal.a);
+    gl_FragColor = vec4((baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb) * attenuation, 0.0);
 }

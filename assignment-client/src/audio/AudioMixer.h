@@ -13,15 +13,12 @@
 #define hifi_AudioMixer_h
 
 #include <AABox.h>
-#include <AudioFormat.h> // For AudioFilterHSF1s and _penumbraFilter
-#include <AudioBuffer.h> // For AudioFilterHSF1s and _penumbraFilter
-#include <AudioFilter.h> // For AudioFilterHSF1s and _penumbraFilter
-#include <AudioFilterBank.h> // For AudioFilterHSF1s and _penumbraFilter
 #include <AudioRingBuffer.h>
 #include <ThreadedAssignment.h>
 
 class PositionalAudioStream;
 class AvatarAudioStream;
+class AudioMixerClientData;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
@@ -46,8 +43,10 @@ public slots:
     
 private:
     /// adds one stream to the mix for a listening node
-    int addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
-                                                  AvatarAudioStream* listeningNodeStream);
+    int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
+                                                    const QUuid& streamUUID,
+                                                    PositionalAudioStream* streamToAdd,
+                                                    AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
     int prepareMixForListeningNode(Node* node);
@@ -60,8 +59,6 @@ private:
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
     int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
-    AudioFilterHSF1s _penumbraFilter;
-    
     void perSecondActions();
 
     QString getReadPendingDatagramsCallsPerSecondsStatsString() const;

@@ -656,6 +656,7 @@ class Material {
 public:
     glm::vec3 diffuse;
     glm::vec3 specular;
+    glm::vec3 emissive;
     float shininess;
     float opacity;
 };
@@ -1281,7 +1282,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f, 1.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f };
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1305,6 +1306,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     } else if (property.properties.at(0) == "SpecularColor") {
                                         material.specular = getVec3(property.properties, index);
 
+                                    } else if (property.properties.at(0) == "Emissive") {
+                                        material.emissive = getVec3(property.properties, index);
+                                    
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
                                     
@@ -1605,6 +1609,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         FBXMeshPart& part = extracted.mesh.parts[j];
                         part.diffuseColor = material.diffuse;
                         part.specularColor = material.specular;
+                        part.emissiveColor = material.emissive;
                         part.shininess = material.shininess;
                         part.opacity = material.opacity;
                         if (!diffuseTexture.filename.isNull()) {

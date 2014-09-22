@@ -698,14 +698,14 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        _glowEffect.render();
-
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
 
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
+
+        _glowEffect.render();
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -1754,6 +1754,7 @@ void Application::init() {
 
     _environment.init();
 
+    _deferredLightingEffect.init();
     _glowEffect.init();
     _ambientOcclusionEffect.init();
     _voxelShader.init();
@@ -2709,7 +2710,6 @@ void Application::updateShadowMap() {
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
-const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 void Application::setupWorldLight() {
 
@@ -2843,6 +2843,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
+    _deferredLightingEffect.prepare();
+
     if (!selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
@@ -2851,15 +2853,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             glutSolidSphere(originSphereRadius, 15, 15);
         glPopMatrix();
 
-        // disable specular lighting for ground and voxels
-        glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-
         // draw the audio reflector overlay
         {
             PerformanceTimer perfTimer("audio");
             _audioReflector.render();
         }
         
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceTimer perfTimer("buckyBalls");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... bucky balls...");
+            _buckyBalls.render();
+        }
+
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -2874,13 +2880,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
-        }
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
         }
 
         // render particles...
@@ -2906,27 +2905,34 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... AmbientOcclusion...");
             _ambientOcclusionEffect.render();
         }
-
-        // restore default, white specular
-        glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-
-        _nodeBoundsDisplay.draw();
-
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-        
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+            false, selfAvatarOnly);   
+    }
+    
+    {
+        PerformanceTimer perfTimer("lighting");
+        _deferredLightingEffect.render();
+    }
 
-        //Render the sixense lasers
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-            _myAvatar->renderLaserPointers();
-        }
+    {
+        PerformanceTimer perfTimer("avatarsPostLighting");
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+            true, selfAvatarOnly);   
+    }
+    
+    //Render the sixense lasers
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+        _myAvatar->renderLaserPointers();
     }
 
     if (!selfAvatarOnly) {
+        _nodeBoundsDisplay.draw();
+    
         //  Render the world box
         if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
                 Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
@@ -3001,7 +3007,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
     // allow 3DTV/Oculus to override parameters from camera
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     if (OculusManager::isConnected()) {
         OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
@@ -3800,8 +3806,8 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
     scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
-    // model has some custom types
-    Model::registerMetaTypes(scriptEngine);
+    // AvatarManager has some custom types
+    AvatarManager::registerMetaTypes(scriptEngine);
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
