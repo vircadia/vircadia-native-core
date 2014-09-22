@@ -658,7 +658,11 @@ void SkeletonModel::buildShapes() {
 
     int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
     if (0 <= headJointIndex && headJointIndex < _jointStates.size()) {
+        int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
+        glm::vec3 rootModelPosition;
         getJointPosition(headJointIndex, _defaultHeadModelPosition);
+        getJointPosition(rootJointIndex, rootModelPosition);
+        _defaultHeadModelPosition = _defaultHeadModelPosition - rootModelPosition;
     } else {
         _defaultHeadModelPosition = glm::vec3(0.f, 0.f, 0.f);
     }
