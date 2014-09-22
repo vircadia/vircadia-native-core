@@ -101,10 +101,8 @@ void LocationManager::locationImageUpdateSuccess(const QJsonObject& rootObject) 
 }
 
 void LocationManager::updateSnapshotForExistingLocation(const QString& locationID) {
-    // first create a snapshot and save it
-    Application* application = Application::getInstance();
-    
-    QTemporaryFile* tempImageFile = Snapshot::saveTempSnapshot(application->getGLWidget(), application->getAvatar());
+    // first create a snapshot and save it    
+    QTemporaryFile* tempImageFile = Snapshot::saveTempSnapshot();
     
     if (tempImageFile && tempImageFile->open()) {
         AccountManager& accountManager = AccountManager::getInstance();
