@@ -38,6 +38,10 @@ QString LocationScriptingInterface::getHostname() {
     return NodeList::getInstance()->getDomainHandler().getHostname();
 }
 
+QString LocationScriptingInterface::getDomainID() const {
+    return uuidStringWithoutCurlyBraces(NodeList::getInstance()->getDomainHandler().getUUID());
+}
+
 void LocationScriptingInterface::assign(const QString& url) {
     QMetaObject::invokeMethod(&AddressManager::getInstance(), "handleLookupString", Q_ARG(const QString&, url));
 }
