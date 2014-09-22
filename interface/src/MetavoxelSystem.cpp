@@ -2319,9 +2319,16 @@ void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
     _model->render(alpha);
 }
 
-bool StaticModelRenderer::findRayIntersection(RayIntersectionInfo& intersection,
-        const glm::vec3& clipMinimum, float clipSize) const {
-    return _model->findRayIntersection(intersection);
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+    RayIntersectionInfo info;
+    info._rayStart = origin;
+    info._rayDirection = direction;
+    if (!_model->findRayIntersection(info)) {
+        return false;
+    }
+    distance = info._hitDistance;
+    return true;
 }
 
 void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {
