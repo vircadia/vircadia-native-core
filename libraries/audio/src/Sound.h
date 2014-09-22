@@ -33,6 +33,7 @@ private:
     QByteArray _byteArray;
     bool _hasDownloaded;
     
+    void trimFrames();
     void downSample(const QByteArray& rawAudioByteArray);
     void interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
 
