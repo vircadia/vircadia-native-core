@@ -97,6 +97,12 @@ glm::vec3 Avatar::getChestPosition() const {
     return _skeletonModel.getNeckPosition(neckPosition) ? (_position + neckPosition) * 0.5f : _position;
 }
 
+glm::vec3 Avatar::getNeckPosition() const {
+    glm::vec3 neckPosition;
+    return _skeletonModel.getNeckPosition(neckPosition) ? neckPosition : _position;
+}
+
+
 glm::quat Avatar::getWorldAlignedOrientation () const {
     return computeRotationFromBodyToWorldUp() * getOrientation();
 }
@@ -871,7 +877,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
-    if (QThread::currentThread() != thread()) {    
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+                                  Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
     // make sure we have as many models as attachments
@@ -886,9 +894,9 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
         _attachmentModels[i]->setSnapModelToCenter(true);
         _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
-        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }
 

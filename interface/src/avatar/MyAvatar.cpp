@@ -1029,7 +1029,9 @@ void MyAvatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     Avatar::setAttachmentData(attachmentData);
-    if (QThread::currentThread() != thread()) {    
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+                                  Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
     _billboardValid = false;

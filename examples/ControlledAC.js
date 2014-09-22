@@ -12,6 +12,10 @@
 // Set the following variables to the values needed
 var filename = "http://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/bartender.rec";
 var playFromCurrentLocation = true;
+var useDisplayName = true;
+var useAttachments = true;
+var useHeadModel = true;
+var useSkeletonModel = true;
 
 // ID of the agent. Two agents can't have the same ID.
 var id = 0;
@@ -44,10 +48,14 @@ COLORS[SHOW] = { red: SHOW, green: 0,  blue: 0 };
 COLORS[HIDE] = { red: HIDE, green: 0,  blue: 0 };
 
 controlVoxelPosition.x += id * controlVoxelSize;
-
-Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
     
 Avatar.loadRecording(filename);
+
+Avatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+Avatar.setPlayerUseDisplayName(useDisplayName);
+Avatar.setPlayerUseAttachments(useAttachments);
+Avatar.setPlayerUseHeadModel(useHeadModel);
+Avatar.setPlayerUseSkeletonModel(useSkeletonModel);
 
 function setupVoxelViewer() {
   var voxelViewerOffset = 10;

@@ -154,6 +154,8 @@ public:
     Q_INVOKABLE void setJointModelPositionAndOrientation(int index, const glm::vec3 position, const glm::quat& rotation);
     Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position, 
         const glm::quat& rotation);
+    
+    Q_INVOKABLE glm::vec3 getNeckPosition() const;
 
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
