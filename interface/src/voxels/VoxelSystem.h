@@ -228,10 +228,8 @@ private:
 
     bool _voxelsDirty;
 
+    static ProgramObject _program;
     static ProgramObject _perlinModulateProgram;
-    static ProgramObject _shadowMapProgram;
-    static ProgramObject _cascadedShadowMapProgram;
-    static int _shadowDistancesLocation;
 
     static void bindPerlinModulateProgram();
 

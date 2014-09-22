@@ -11,6 +11,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include "Application.h"
 #include "InterfaceConfig.h"
 
 #include "ParticleTreeRenderer.h"
@@ -112,7 +113,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
                 if (wantDebugSphere) {
                     glPushMatrix();
                         glTranslatef(position.x, position.y, position.z);
-                        glutWireSphere(radius, 15, 15);
+                        Application::getInstance()->getDeferredLightingEffect()->renderWireSphere(radius, 15, 15);
                     glPopMatrix();
                 }
 
@@ -120,7 +121,7 @@ void ParticleTreeRenderer::renderElement(OctreeElement* element, RenderArgs* arg
         } else {
             glPushMatrix();
                 glTranslatef(position.x, position.y, position.z);
-                glutSolidSphere(radius, 15, 15);
+                Application::getInstance()->getDeferredLightingEffect()->renderSolidSphere(radius, 15, 15);
             glPopMatrix();
         }
     }

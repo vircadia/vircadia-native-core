@@ -24,6 +24,9 @@
 #include <SharedUtil.h>
 
 #include "AudioRingBuffer.h"
+#include "AudioFormat.h"
+#include "AudioBuffer.h"
+#include "AudioEditBuffer.h"
 #include "Sound.h"
 
 // procedural audio version of Sound
@@ -120,6 +123,7 @@ void Sound::replyFinished() {
             //  Process as RAW file
             downSample(rawAudioByteArray);
         }
+        trimFrames();
     } else {
         qDebug() << "Network reply without 'Content-Type'.";
     }
@@ -133,7 +137,6 @@ void Sound::replyError(QNetworkReply::NetworkError code) {
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
-
     // assume that this was a RAW file and is now an array of samples that are
     // signed, 16-bit, 48Khz, mono
 
@@ -153,6 +156,26 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
             destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 4);
         }
     }
+}
+
+void Sound::trimFrames() {
+    
+    const uint32_t inputFrameCount = _byteArray.size() / sizeof(int16_t);
+    const uint32_t trimCount = 1024;  // number of leading and trailing frames to trim
+    
+    if (inputFrameCount <= (2 * trimCount)) {
+        return;
+    }
+    
+    int16_t* inputFrameData = (int16_t*)_byteArray.data();
+
+    AudioEditBufferFloat32 editBuffer(1, inputFrameCount);
+    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
+    
+    editBuffer.linearFade(0, trimCount, true);
+    editBuffer.linearFade(inputFrameCount - trimCount, inputFrameCount, false);
+    
+    editBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
 }
 
 //

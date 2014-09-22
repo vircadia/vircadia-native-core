@@ -14,9 +14,6 @@
 // the tangent vector
 attribute vec3 tangent;
 
-// the interpolated position
-varying vec4 interpolatedPosition;
-
 // the interpolated normal
 varying vec4 interpolatedNormal;
 
@@ -24,22 +21,16 @@ varying vec4 interpolatedNormal;
 varying vec4 interpolatedTangent;
 
 void main(void) {
-
-    // transform and store the position, normal and tangent for interpolation
-    interpolatedPosition = gl_ModelViewMatrix * gl_Vertex;
+    // transform and store the normal and tangent for interpolation
     interpolatedNormal = gl_ModelViewMatrix * vec4(gl_Normal, 0.0);
     interpolatedTangent = gl_ModelViewMatrix * vec4(tangent, 0.0);
     
-    // pass along the vertex color
-    gl_FrontColor = gl_Color;
+    // pass along the diffuse color
+    gl_FrontColor = gl_Color * gl_FrontMaterial.diffuse;
     
     // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
-    // and the shadow texture coordinates
-    gl_TexCoord[1] = vec4(dot(gl_EyePlaneS[0], interpolatedPosition), dot(gl_EyePlaneT[0], interpolatedPosition),
-        dot(gl_EyePlaneR[0], interpolatedPosition), 1.0); 
-      
     // use standard pipeline transform
     gl_Position = ftransform();
 }

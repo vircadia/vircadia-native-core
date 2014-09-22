@@ -273,13 +273,12 @@ static TextRenderer* textRenderer(TextRendererType type) {
     return displayNameRenderer;
 }
 
-void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
+void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool postLighting) {
     if (_referential) {
         _referential->update();
     }
     
-    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(),
-                      _position) < 10.0f) {
+    if (postLighting && glm::distance(Application::getInstance()->getAvatar()->getPosition(), _position) < 10.0f) {
         // render pointing lasers
         glm::vec3 laserColor = glm::vec3(1.0f, 0.0f, 1.0f);
         float laserLength = 50.0f;
@@ -351,17 +350,28 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
                       ? 1.0f
                       : GLOW_FROM_AVERAGE_LOUDNESS;
         
-        
-        // local lights directions and colors
-        const QVector<Model::LocalLight>& localLights = Application::getInstance()->getAvatarManager().getLocalLights();
-        _skeletonModel.setLocalLights(localLights);
-        getHead()->getFaceModel().setLocalLights(localLights);
-        
         // render body
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        if (!postLighting && Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
             renderBody(renderMode, glowLevel);
+
+            if (renderMode != SHADOW_RENDER_MODE) {
+                // add local lights
+                const float BASE_LIGHT_DISTANCE = 2.0f;
+                const float LIGHT_EXPONENT = 1.0f;
+                const float LIGHT_CUTOFF = glm::radians(80.0f);
+                float distance = BASE_LIGHT_DISTANCE * _scale;
+                glm::vec3 position = glm::mix(_skeletonModel.getTranslation(), getHead()->getFaceModel().getTranslation(), 0.9f);
+                glm::quat orientation = getOrientation();
+                foreach (const AvatarManager::LocalLight& light, Application::getInstance()->getAvatarManager().getLocalLights()) {
+                    glm::vec3 direction = orientation * light.direction;
+                    Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position - direction * distance,
+                        distance * 2.0f, glm::vec3(), light.color, light.color, 1.0f, 0.5f, 0.0f, direction,
+                        LIGHT_EXPONENT, LIGHT_CUTOFF);
+                }
+            }
         }
-        if (renderMode != SHADOW_RENDER_MODE) {
+        
+        if (postLighting) {
             bool renderSkeleton = Menu::getInstance()->isOptionChecked(MenuOption::RenderSkeletonCollisionShapes);
             bool renderHead = Menu::getInstance()->isOptionChecked(MenuOption::RenderHeadCollisionShapes);
             bool renderBounding = Menu::getInstance()->isOptionChecked(MenuOption::RenderBoundingCollisionShapes);
@@ -397,7 +407,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
         // quick check before falling into the code below:
         // (a 10 degree breadth of an almost 2 meter avatar kicks in at about 12m)
         const float MIN_VOICE_SPHERE_DISTANCE = 12.0f;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
+        if (postLighting && Menu::getInstance()->isOptionChecked(MenuOption::BlueSpeechSphere)
             && distanceToTarget > MIN_VOICE_SPHERE_DISTANCE) {
 
             // render voice intensity sphere for avatars that are farther away
@@ -425,7 +435,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode) {
 
     const float DISPLAYNAME_DISTANCE = 20.0f;
     setShowDisplayName(renderMode == NORMAL_RENDER_MODE && distanceToTarget < DISPLAYNAME_DISTANCE);
-    if (renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
+    if (!postLighting || renderMode != NORMAL_RENDER_MODE || (isMyAvatar() &&
             Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON)) {
         return;
     }
@@ -501,7 +511,7 @@ void Avatar::renderBody(RenderMode renderMode, float glowLevel) {
             return;
         }
         
-        _skeletonModel.render(1.0f, modelRenderMode, Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows));
+        _skeletonModel.render(1.0f, modelRenderMode);
         renderAttachments(renderMode);
         getHand()->render(false, modelRenderMode);
     }
@@ -547,9 +557,8 @@ void Avatar::simulateAttachments(float deltaTime) {
 void Avatar::renderAttachments(RenderMode renderMode) {
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    bool receiveShadows = Menu::getInstance()->isOptionChecked(MenuOption::AvatarsReceiveShadows);
     foreach (Model* model, _attachmentModels) {
-        model->render(1.0f, modelRenderMode, receiveShadows);
+        model->render(1.0f, modelRenderMode);
     }
 }
 
@@ -877,7 +886,9 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     AvatarData::setAttachmentData(attachmentData);
-    if (QThread::currentThread() != thread()) {    
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::DirectConnection,
+                                  Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
     // make sure we have as many models as attachments
@@ -892,9 +903,9 @@ void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     
     // update the urls
     for (int i = 0; i < attachmentData.size(); i++) {
+        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
         _attachmentModels[i]->setSnapModelToCenter(true);
         _attachmentModels[i]->setScaleToFit(true, _scale * _attachmentData.at(i).scale);
-        _attachmentModels[i]->setURL(attachmentData.at(i).modelURL);
     }
 }
 

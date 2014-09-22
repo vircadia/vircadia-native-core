@@ -12,7 +12,7 @@
 #ifndef hifi_RenderUtil_h
 #define hifi_RenderUtil_h
 
-/// Renders a quad from (-1, -1, 0) to (1, 1, 0) with texture coordinates from (sMin, 0) to (sMax, 1).
-void renderFullscreenQuad(float sMin = 0.0f, float sMax = 1.0f);
+/// Renders a quad from (-1, -1, 0) to (1, 1, 0) with texture coordinates from (sMin, tMin) to (sMax, tMax).
+void renderFullscreenQuad(float sMin = 0.0f, float sMax = 1.0f, float tMin = 0.0f, float tMax = 1.0f);
 
 #endif // hifi_RenderUtil_h

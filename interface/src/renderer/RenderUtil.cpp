@@ -12,15 +12,15 @@
 #include "InterfaceConfig.h"
 #include "RenderUtil.h"
 
-void renderFullscreenQuad(float sMin, float sMax) {
+void renderFullscreenQuad(float sMin, float sMax, float tMin, float tMax) {
     glBegin(GL_QUADS);
-        glTexCoord2f(sMin, 0.0f);
+        glTexCoord2f(sMin, tMin);
         glVertex2f(-1.0f, -1.0f);
-        glTexCoord2f(sMax, 0.0f);
+        glTexCoord2f(sMax, tMin);
         glVertex2f(1.0f, -1.0f);
-        glTexCoord2f(sMax, 1.0f);
+        glTexCoord2f(sMax, tMax);
         glVertex2f(1.0f, 1.0f);
-        glTexCoord2f(sMin, 1.0f);
+        glTexCoord2f(sMin, tMax);
         glVertex2f(-1.0f, 1.0f);
     glEnd();
 }
