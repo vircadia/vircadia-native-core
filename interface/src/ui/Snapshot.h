@@ -14,10 +14,11 @@
 
 #include "InterfaceConfig.h"
 
-#include <QImage>
-#include <QFile>
+#include <qimage.h>
+#include <qfile.h>
+#include <qtemporaryfile.h>
 #include <QGLWidget>
-#include <QString>
+#include <qstring.h>
 
 #include "avatar/Avatar.h"
 
