@@ -162,7 +162,7 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
         _frameCount = std::min(_frameCount,_frameCountMax);
     }
     
-    bool frameAlignment16 = false; // (_frameCount & 0x0F) == 0;
+    bool frameAlignment16 = (_frameCount & 0x0F) == 0;
     
     if (copyOut) {
         S* dst = frames;
@@ -173,57 +173,57 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                 
                 if (_channelCount == 1) {
                     for (uint32_t i = 0; i < _frameCount; i += 16) {
-                        *dst++ = _frameBuffer[0][0];
-                        *dst++ = _frameBuffer[0][1];
-                        *dst++ = _frameBuffer[0][2];
-                        *dst++ = _frameBuffer[0][3];
-                        *dst++ = _frameBuffer[0][4];
-                        *dst++ = _frameBuffer[0][5];
-                        *dst++ = _frameBuffer[0][6];
-                        *dst++ = _frameBuffer[0][7];
-                        *dst++ = _frameBuffer[0][8];
-                        *dst++ = _frameBuffer[0][9];
-                        *dst++ = _frameBuffer[0][10];
-                        *dst++ = _frameBuffer[0][11];
-                        *dst++ = _frameBuffer[0][12];
-                        *dst++ = _frameBuffer[0][13];
-                        *dst++ = _frameBuffer[0][14];
-                        *dst++ = _frameBuffer[0][15];
+                        *dst++ = _frameBuffer[0][i + 0];
+                        *dst++ = _frameBuffer[0][i + 1];
+                        *dst++ = _frameBuffer[0][i + 2];
+                        *dst++ = _frameBuffer[0][i + 3];
+                        *dst++ = _frameBuffer[0][i + 4];
+                        *dst++ = _frameBuffer[0][i + 5];
+                        *dst++ = _frameBuffer[0][i + 6];
+                        *dst++ = _frameBuffer[0][i + 7];
+                        *dst++ = _frameBuffer[0][i + 8];
+                        *dst++ = _frameBuffer[0][i + 9];
+                        *dst++ = _frameBuffer[0][i + 10];
+                        *dst++ = _frameBuffer[0][i + 11];
+                        *dst++ = _frameBuffer[0][i + 12];
+                        *dst++ = _frameBuffer[0][i + 13];
+                        *dst++ = _frameBuffer[0][i + 14];
+                        *dst++ = _frameBuffer[0][i + 15];
                     }
                 } else if (_channelCount == 2) {
                     for (uint32_t i = 0; i < _frameCount; i += 16) {
-                        *dst++ = _frameBuffer[0][0];
-                        *dst++ = _frameBuffer[1][0];
-                        *dst++ = _frameBuffer[0][1];
-                        *dst++ = _frameBuffer[1][1];
-                        *dst++ = _frameBuffer[0][2];
-                        *dst++ = _frameBuffer[1][2];
-                        *dst++ = _frameBuffer[0][3];
-                        *dst++ = _frameBuffer[1][3];
-                        *dst++ = _frameBuffer[0][4];
-                        *dst++ = _frameBuffer[1][4];
-                        *dst++ = _frameBuffer[0][5];
-                        *dst++ = _frameBuffer[1][5];
-                        *dst++ = _frameBuffer[0][6];
-                        *dst++ = _frameBuffer[1][6];
-                        *dst++ = _frameBuffer[0][7];
-                        *dst++ = _frameBuffer[1][7];
-                        *dst++ = _frameBuffer[0][8];
-                        *dst++ = _frameBuffer[1][8];
-                        *dst++ = _frameBuffer[0][9];
-                        *dst++ = _frameBuffer[1][9];
-                        *dst++ = _frameBuffer[0][10];
-                        *dst++ = _frameBuffer[1][10];
-                        *dst++ = _frameBuffer[0][11];
-                        *dst++ = _frameBuffer[1][11];
-                        *dst++ = _frameBuffer[0][12];
-                        *dst++ = _frameBuffer[1][12];
-                        *dst++ = _frameBuffer[0][13];
-                        *dst++ = _frameBuffer[1][13];
-                        *dst++ = _frameBuffer[0][14];
-                        *dst++ = _frameBuffer[1][14];
-                        *dst++ = _frameBuffer[0][15];
-                        *dst++ = _frameBuffer[1][15];
+                        *dst++ = _frameBuffer[0][i + 0];
+                        *dst++ = _frameBuffer[1][i + 0];
+                        *dst++ = _frameBuffer[0][i + 1];
+                        *dst++ = _frameBuffer[1][i + 1];
+                        *dst++ = _frameBuffer[0][i + 2];
+                        *dst++ = _frameBuffer[1][i + 2];
+                        *dst++ = _frameBuffer[0][i + 3];
+                        *dst++ = _frameBuffer[1][i + 3];
+                        *dst++ = _frameBuffer[0][i + 4];
+                        *dst++ = _frameBuffer[1][i + 4];
+                        *dst++ = _frameBuffer[0][i + 5];
+                        *dst++ = _frameBuffer[1][i + 5];
+                        *dst++ = _frameBuffer[0][i + 6];
+                        *dst++ = _frameBuffer[1][i + 6];
+                        *dst++ = _frameBuffer[0][i + 7];
+                        *dst++ = _frameBuffer[1][i + 7];
+                        *dst++ = _frameBuffer[0][i + 8];
+                        *dst++ = _frameBuffer[1][i + 8];
+                        *dst++ = _frameBuffer[0][i + 9];
+                        *dst++ = _frameBuffer[1][i + 9];
+                        *dst++ = _frameBuffer[0][i + 10];
+                        *dst++ = _frameBuffer[1][i + 10];
+                        *dst++ = _frameBuffer[0][i + 11];
+                        *dst++ = _frameBuffer[1][i + 11];
+                        *dst++ = _frameBuffer[0][i + 12];
+                        *dst++ = _frameBuffer[1][i + 12];
+                        *dst++ = _frameBuffer[0][i + 13];
+                        *dst++ = _frameBuffer[1][i + 13];
+                        *dst++ = _frameBuffer[0][i + 14];
+                        *dst++ = _frameBuffer[1][i + 14];
+                        *dst++ = _frameBuffer[0][i + 15];
+                        *dst++ = _frameBuffer[1][i + 15];
                     }
                 }
             } else {
@@ -243,57 +243,57 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                     
                     if (_channelCount == 1) {
                         for (uint32_t i = 0; i < _frameCount; i += 16) {
-                            *dst++ = (S)(_frameBuffer[0][0] * scale);
-                            *dst++ = (S)(_frameBuffer[0][1] * scale);
-                            *dst++ = (S)(_frameBuffer[0][2] * scale);
-                            *dst++ = (S)(_frameBuffer[0][3] * scale);
-                            *dst++ = (S)(_frameBuffer[0][4] * scale);
-                            *dst++ = (S)(_frameBuffer[0][5] * scale);
-                            *dst++ = (S)(_frameBuffer[0][6] * scale);
-                            *dst++ = (S)(_frameBuffer[0][7] * scale);
-                            *dst++ = (S)(_frameBuffer[0][8] * scale);
-                            *dst++ = (S)(_frameBuffer[0][9] * scale);
-                            *dst++ = (S)(_frameBuffer[0][10] * scale);
-                            *dst++ = (S)(_frameBuffer[0][11] * scale);
-                            *dst++ = (S)(_frameBuffer[0][12] * scale);
-                            *dst++ = (S)(_frameBuffer[0][13] * scale);
-                            *dst++ = (S)(_frameBuffer[0][14] * scale);
-                            *dst++ = (S)(_frameBuffer[0][15] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 0] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 1] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 2] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 3] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 4] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 5] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 6] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 7] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 8] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 9] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 10] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 11] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 12] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 13] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 14] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 15] * scale);
                         }
                     } else if (_channelCount == 2) {
                         for (uint32_t i = 0; i < _frameCount; i += 16) {
-                            *dst++ = (S)(_frameBuffer[0][0] * scale);
-                            *dst++ = (S)(_frameBuffer[1][0] * scale);
-                            *dst++ = (S)(_frameBuffer[0][1] * scale);
-                            *dst++ = (S)(_frameBuffer[1][1] * scale);
-                            *dst++ = (S)(_frameBuffer[0][2] * scale);
-                            *dst++ = (S)(_frameBuffer[1][2] * scale);
-                            *dst++ = (S)(_frameBuffer[0][3] * scale);
-                            *dst++ = (S)(_frameBuffer[1][3] * scale);
-                            *dst++ = (S)(_frameBuffer[0][4] * scale);
-                            *dst++ = (S)(_frameBuffer[1][4] * scale);
-                            *dst++ = (S)(_frameBuffer[0][5] * scale);
-                            *dst++ = (S)(_frameBuffer[1][5] * scale);
-                            *dst++ = (S)(_frameBuffer[0][6] * scale);
-                            *dst++ = (S)(_frameBuffer[1][6] * scale);
-                            *dst++ = (S)(_frameBuffer[0][7] * scale);
-                            *dst++ = (S)(_frameBuffer[1][7] * scale);
-                            *dst++ = (S)(_frameBuffer[0][8] * scale);
-                            *dst++ = (S)(_frameBuffer[1][8] * scale);
-                            *dst++ = (S)(_frameBuffer[0][9] * scale);
-                            *dst++ = (S)(_frameBuffer[1][9] * scale);
-                            *dst++ = (S)(_frameBuffer[0][10] * scale);
-                            *dst++ = (S)(_frameBuffer[1][10] * scale);
-                            *dst++ = (S)(_frameBuffer[0][11] * scale);
-                            *dst++ = (S)(_frameBuffer[1][11] * scale);
-                            *dst++ = (S)(_frameBuffer[0][12] * scale);
-                            *dst++ = (S)(_frameBuffer[1][12] * scale);
-                            *dst++ = (S)(_frameBuffer[0][13] * scale);
-                            *dst++ = (S)(_frameBuffer[1][13] * scale);
-                            *dst++ = (S)(_frameBuffer[0][14] * scale);
-                            *dst++ = (S)(_frameBuffer[1][14] * scale);
-                            *dst++ = (S)(_frameBuffer[0][15] * scale);
-                            *dst++ = (S)(_frameBuffer[1][15] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 0] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 0] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 1] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 1] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 2] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 2] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 3] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 3] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 4] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 4] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 5] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 5] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 6] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 6] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 7] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 7] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 8] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 8] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 9] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 9] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 10] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 10] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 11] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 11] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 12] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 12] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 13] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 13] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 14] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 14] * scale);
+                            *dst++ = (S)(_frameBuffer[0][i + 15] * scale);
+                            *dst++ = (S)(_frameBuffer[1][i + 15] * scale);
                         }
                     }
                 } else {
@@ -316,57 +316,57 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                 
                 if (_channelCount == 1) {
                     for (uint32_t i = 0; i < _frameCount; i += 16) {
-                        _frameBuffer[0][0] = *src++;
-                        _frameBuffer[0][1] = *src++;
-                        _frameBuffer[0][2] = *src++;
-                        _frameBuffer[0][3] = *src++;
-                        _frameBuffer[0][4] = *src++;
-                        _frameBuffer[0][5] = *src++;
-                        _frameBuffer[0][6] = *src++;
-                        _frameBuffer[0][7] = *src++;
-                        _frameBuffer[0][8] = *src++;
-                        _frameBuffer[0][9] = *src++;
-                        _frameBuffer[0][10] = *src++;
-                        _frameBuffer[0][11] = *src++;
-                        _frameBuffer[0][12] = *src++;
-                        _frameBuffer[0][13] = *src++;
-                        _frameBuffer[0][14] = *src++;
-                        _frameBuffer[0][15] = *src++;
+                        _frameBuffer[0][i + 0] = *src++;
+                        _frameBuffer[0][i + 1] = *src++;
+                        _frameBuffer[0][i + 2] = *src++;
+                        _frameBuffer[0][i + 3] = *src++;
+                        _frameBuffer[0][i + 4] = *src++;
+                        _frameBuffer[0][i + 5] = *src++;
+                        _frameBuffer[0][i + 6] = *src++;
+                        _frameBuffer[0][i + 7] = *src++;
+                        _frameBuffer[0][i + 8] = *src++;
+                        _frameBuffer[0][i + 9] = *src++;
+                        _frameBuffer[0][i + 10] = *src++;
+                        _frameBuffer[0][i + 11] = *src++;
+                        _frameBuffer[0][i + 12] = *src++;
+                        _frameBuffer[0][i + 13] = *src++;
+                        _frameBuffer[0][i + 14] = *src++;
+                        _frameBuffer[0][i + 15] = *src++;
                     }
                 } else if (_channelCount == 2) {
                     for (uint32_t i = 0; i < _frameCount; i += 16) {
-                        _frameBuffer[0][0] = *src++;
-                        _frameBuffer[1][0] = *src++;
-                        _frameBuffer[0][1] = *src++;
-                        _frameBuffer[1][1] = *src++;
-                        _frameBuffer[0][2] = *src++;
-                        _frameBuffer[1][2] = *src++;
-                        _frameBuffer[0][3] = *src++;
-                        _frameBuffer[1][3] = *src++;
-                        _frameBuffer[0][4] = *src++;
-                        _frameBuffer[1][4] = *src++;
-                        _frameBuffer[0][5] = *src++;
-                        _frameBuffer[1][5] = *src++;
-                        _frameBuffer[0][6] = *src++;
-                        _frameBuffer[1][6] = *src++;
-                        _frameBuffer[0][7] = *src++;
-                        _frameBuffer[1][7] = *src++;
-                        _frameBuffer[0][8] = *src++;
-                        _frameBuffer[1][8] = *src++;
-                        _frameBuffer[0][9] = *src++;
-                        _frameBuffer[1][9] = *src++;
-                        _frameBuffer[0][10] = *src++;
-                        _frameBuffer[1][10] = *src++;
-                        _frameBuffer[0][11] = *src++;
-                        _frameBuffer[1][11] = *src++;
-                        _frameBuffer[0][12] = *src++;
-                        _frameBuffer[1][12] = *src++;
-                        _frameBuffer[0][13] = *src++;
-                        _frameBuffer[1][13] = *src++;
-                        _frameBuffer[0][14] = *src++;
-                        _frameBuffer[1][14] = *src++;
-                        _frameBuffer[0][15] = *src++;
-                        _frameBuffer[1][15] = *src++;
+                        _frameBuffer[0][i + 0] = *src++;
+                        _frameBuffer[1][i + 0] = *src++;
+                        _frameBuffer[0][i + 1] = *src++;
+                        _frameBuffer[1][i + 1] = *src++;
+                        _frameBuffer[0][i + 2] = *src++;
+                        _frameBuffer[1][i + 2] = *src++;
+                        _frameBuffer[0][i + 3] = *src++;
+                        _frameBuffer[1][i + 3] = *src++;
+                        _frameBuffer[0][i + 4] = *src++;
+                        _frameBuffer[1][i + 4] = *src++;
+                        _frameBuffer[0][i + 5] = *src++;
+                        _frameBuffer[1][i + 5] = *src++;
+                        _frameBuffer[0][i + 6] = *src++;
+                        _frameBuffer[1][i + 6] = *src++;
+                        _frameBuffer[0][i + 7] = *src++;
+                        _frameBuffer[1][i + 7] = *src++;
+                        _frameBuffer[0][i + 8] = *src++;
+                        _frameBuffer[1][i + 8] = *src++;
+                        _frameBuffer[0][i + 9] = *src++;
+                        _frameBuffer[1][i + 9] = *src++;
+                        _frameBuffer[0][i + 10] = *src++;
+                        _frameBuffer[1][i + 10] = *src++;
+                        _frameBuffer[0][i + 11] = *src++;
+                        _frameBuffer[1][i + 11] = *src++;
+                        _frameBuffer[0][i + 12] = *src++;
+                        _frameBuffer[1][i + 12] = *src++;
+                        _frameBuffer[0][i + 13] = *src++;
+                        _frameBuffer[1][i + 13] = *src++;
+                        _frameBuffer[0][i + 14] = *src++;
+                        _frameBuffer[1][i + 14] = *src++;
+                        _frameBuffer[0][i + 15] = *src++;
+                        _frameBuffer[1][i + 15] = *src++;
                     }
                 }
             } else { 
@@ -386,57 +386,57 @@ inline void AudioFrameBuffer< T >::copyFrames(uint32_t channelCount, const uint3
                     
                     if (_channelCount == 1) {
                         for (uint32_t i = 0; i < _frameCount; i += 16) {
-                            _frameBuffer[0][0] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][1] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][2] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][3] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][4] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][5] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][6] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][7] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][8] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][9] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][10] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][11] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][12] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][13] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][14] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][15] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 0] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 1] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 2] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 3] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 4] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 5] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 6] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 7] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 8] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 9] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 10] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 11] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 12] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 13] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 14] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 15] = ((T)(*src++)) / scale;
                         }
                     } else if (_channelCount == 2) {
                         for (uint32_t i = 0; i < _frameCount; i += 16) {
-                            _frameBuffer[0][0] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][0] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][1] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][1] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][2] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][2] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][3] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][3] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][4] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][4] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][5] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][5] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][6] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][6] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][7] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][7] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][8] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][8] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][9] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][9] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][10] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][10] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][11] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][11] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][12] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][12] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][13] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][13] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][14] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][14] = ((T)(*src++)) / scale;
-                            _frameBuffer[0][15] = ((T)(*src++)) / scale;
-                            _frameBuffer[1][15] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 0] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 0] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 1] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 1] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 2] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 2] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 3] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 3] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 4] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 4] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 5] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 5] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 6] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 6] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 7] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 7] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 8] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 8] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 9] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 9] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 10] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 10] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 11] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 11] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 12] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 12] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 13] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 13] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 14] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 14] = ((T)(*src++)) / scale;
+                            _frameBuffer[0][i + 15] = ((T)(*src++)) / scale;
+                            _frameBuffer[1][i + 15] = ((T)(*src++)) / scale;
                         }
                     }
                 } else {

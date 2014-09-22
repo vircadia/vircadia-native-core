@@ -57,8 +57,7 @@ inline bool AudioEditBuffer<T>::getZeroCrossing(uint32_t start, bool direction, 
                 }
             }
         }
-    }
-    else { // scan from the right
+    } else { // scan from the right
         if (start != 0 && start < this->_frameCount) {
             for (uint32_t i = start; i != 0; --i) {
                 for (uint32_t j = 0; j < this->_channelCount; ++j) {
