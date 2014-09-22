@@ -70,8 +70,8 @@ public:
         uint32_t randomNumber;
         
         float32_t** samples = frameBuffer.getFrameData();
-        for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
-            for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+        for (uint32_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
+            for (uint32_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
                 
                 _index = (_index + 1) & _indexMask; // increment and mask index.
                 if (_index != 0) { // if index is zero, don't update any random values.

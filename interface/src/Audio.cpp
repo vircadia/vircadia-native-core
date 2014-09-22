@@ -509,7 +509,7 @@ void Audio::handleAudioInput() {
     if (!_muted && (_audioSourceInjectEnabled || _peqEnabled)) {
         
         int16_t* inputFrameData = (int16_t*)inputByteArray.data();
-        const int inputFrameCount = inputByteArray.size() / sizeof(int16_t);
+        const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
 
         _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
 
