@@ -39,7 +39,8 @@ QString LocationScriptingInterface::getHostname() {
 }
 
 QString LocationScriptingInterface::getDomainID() const {
-    return uuidStringWithoutCurlyBraces(NodeList::getInstance()->getDomainHandler().getUUID());
+    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    return domainID.isNull() ? "" : uuidStringWithoutCurlyBraces(domainID);
 }
 
 void LocationScriptingInterface::assign(const QString& url) {
