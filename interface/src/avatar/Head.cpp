@@ -89,8 +89,6 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     } else {
         _longTermAverageLoudness = glm::mix(_longTermAverageLoudness, _averageLoudness, glm::min(deltaTime / AUDIO_LONG_TERM_AVERAGING_SECS, 1.0f));
     }
-    float deltaLoudness = glm::max(0.0f, _averageLoudness - _longTermAverageLoudness);
-    //qDebug() << "deltaLoudness: " << deltaLoudness;
     
     if (!(_isFaceshiftConnected || billboard)) {
         // Update eye saccades

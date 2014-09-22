@@ -2730,15 +2730,14 @@ void Application::setupWorldLight() {
 QImage Application::renderAvatarBillboard() {
     _textureCache.getPrimaryFramebufferObject()->bind();
 
-    glDisable(GL_BLEND);
+    // the "glow" here causes an alpha of one
+    Glower glower;
 
     const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-
-    glEnable(GL_BLEND);
 
     _textureCache.getPrimaryFramebufferObject()->release();
 
