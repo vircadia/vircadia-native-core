@@ -18,6 +18,7 @@
 
 Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
+    _timerOffset(0),
     _avatar(avatar),
     _audioThread(NULL),
     _playFromCurrentPosition(true),
@@ -38,7 +39,7 @@ bool Player::isPlaying() const {
 
 qint64 Player::elapsed() const {
     if (isPlaying()) {
-        return _timer.elapsed();
+        return _timerOffset + _timer.elapsed();
     } else {
         return 0;
     }
@@ -97,8 +98,9 @@ void Player::startPlaying() {
         _avatar->setForceFaceshiftConnected(true);
         
         qDebug() << "Recorder::startPlaying()";
-        _currentFrame = 0;
         setupAudioThread();
+        _currentFrame = 0;
+        _timerOffset = 0;
         _timer.start();
     }
 }
@@ -156,6 +158,7 @@ void Player::loopRecording() {
     cleanupAudioThread();
     setupAudioThread();
     _currentFrame = 0;
+    _timerOffset = 0;
     _timer.restart();
 }
 
@@ -213,6 +216,43 @@ void Player::play() {
     _injector->setOptions(_options);
 }
 
+void Player::setCurrentFrame(int currentFrame) {
+    if (_recording && currentFrame >= _recording->getFrameNumber()) {
+        stopPlaying();
+        return;
+    }
+    
+    _currentFrame = currentFrame;
+    _timerOffset = _recording->getFrameTimestamp(_currentFrame);
+}
+
+void Player::setCurrentTime(qint64 currentTime) {
+    if (currentTime < 0 || currentTime >= _recording->getLength()) {
+        stopPlaying();
+        return;
+    }
+    
+    _timerOffset = currentTime;
+    
+    // Find correct frame
+    int bestGuess = 0;
+    int lowestBound = 0;
+    int highestBound = _recording->getFrameNumber() - 1;
+    while (_recording->getFrameTimestamp(bestGuess) <= _timerOffset &&
+           _recording->getFrameTimestamp(bestGuess + 1) > _timerOffset) {
+        if (_recording->getFrameTimestamp(bestGuess) < _timerOffset) {
+            lowestBound = bestGuess;
+        } else {
+            highestBound = bestGuess;
+        }
+        
+        bestGuess = lowestBound +
+                    (highestBound - lowestBound) *
+                    (_timerOffset - _recording->getFrameTimestamp(lowestBound)) /
+                    (_recording->getFrameTimestamp(highestBound) - _recording->getFrameTimestamp(lowestBound));
+    }
+}
+
 void Player::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
     _playFromCurrentPosition = playFromCurrentLocation;
 }
@@ -227,7 +267,7 @@ bool Player::computeCurrentFrame() {
     }
     
     while (_currentFrame < _recording->getFrameNumber() - 1 &&
-           _recording->getFrameTimestamp(_currentFrame) < _timer.elapsed()) {
+           _recording->getFrameTimestamp(_currentFrame) < elapsed()) {
         ++_currentFrame;
     }
     

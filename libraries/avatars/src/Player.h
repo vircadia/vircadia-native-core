@@ -41,6 +41,9 @@ public slots:
     void loadRecording(RecordingPointer recording);
     void play();
     
+    void setCurrentFrame(int currentFrame);
+    void setCurrentTime(qint64 currentTime);
+    
     void setPlayFromCurrentLocation(bool playFromCurrentPosition);
     void setLoop(bool loop) { _loop = loop; }
     void useAttachements(bool useAttachments) { _useAttachments = useAttachments; }
@@ -57,6 +60,7 @@ private:
     QElapsedTimer _timer;
     RecordingPointer _recording;
     int _currentFrame;
+    qint64 _timerOffset;
     
     QSharedPointer<AudioInjector> _injector;
     AudioInjectorOptions _options;
