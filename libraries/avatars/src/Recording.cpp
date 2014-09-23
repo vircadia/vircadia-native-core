@@ -228,7 +228,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             stream << numBlendshapes;
             mask.resize(mask.size() + numBlendshapes);
         }
-        for (int j = 0; j < numBlendshapes; ++j) {
+        for (quint32 j = 0; j < numBlendshapes; ++j) {
             if (i == 0 ||
                 frame._blendshapeCoefficients[j] != previousFrame._blendshapeCoefficients[j]) {
                 writeFloat(stream, frame.getBlendshapeCoefficients()[j], BLENDSHAPE_RADIX);
@@ -243,7 +243,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             stream << numJoints;
             mask.resize(mask.size() + numJoints);
         }
-        for (int j = 0; j < numJoints; ++j) {
+        for (quint32 j = 0; j < numJoints; ++j) {
             if (i == 0 ||
                 frame._jointRotations[j] != previousFrame._jointRotations[j]) {
                 writeQuat(stream, frame._jointRotations[j]);
@@ -547,7 +547,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
             stream >> numBlendshapes;
         }
         frame._blendshapeCoefficients.resize(numBlendshapes);
-        for (int j = 0; j < numBlendshapes; ++j) {
+        for (quint32 j = 0; j < numBlendshapes; ++j) {
             if (!mask[maskIndex++] || !readFloat(stream, frame._blendshapeCoefficients[j], BLENDSHAPE_RADIX)) {
                 frame._blendshapeCoefficients[j] = previousFrame._blendshapeCoefficients[j];
             }
@@ -557,7 +557,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
             stream >> numJoints;
         }
         frame._jointRotations.resize(numJoints);
-        for (int j = 0; j < numJoints; ++j) {
+        for (quint32 j = 0; j < numJoints; ++j) {
             if (!mask[maskIndex++] || !readQuat(stream, frame._jointRotations[j])) {
                 frame._jointRotations[j] = previousFrame._jointRotations[j];
             }
