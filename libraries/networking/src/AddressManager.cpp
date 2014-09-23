@@ -80,12 +80,13 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         
         // if this is a relative path then handle it as a relative viewpoint
         handleRelativeViewpoint(lookupUrl.path());
+        emit lookupResultsFinished();
     }
     
     return false;
 }
 
-bool AddressManager::handleLookupString(const QString& lookupString) {
+void AddressManager::handleLookupString(const QString& lookupString) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
         QString sanitizedString = lookupString;
@@ -100,10 +101,8 @@ bool AddressManager::handleLookupString(const QString& lookupString) {
             lookupURL = QUrl(lookupString);
         }
         
-        return handleUrl(lookupURL);
+        handleUrl(lookupURL);
     }
-    
-    return false;
 }
 
 void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
@@ -151,6 +150,7 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
         // we've been told that this result exists but is offline, emit our signal so the application can handle
         emit lookupResultIsOffline();
     }
+    emit lookupResultsFinished();
 }
 
 void AddressManager::handleAPIError(QNetworkReply& errorReply) {
@@ -159,6 +159,7 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
         emit lookupResultIsNotFound();
     }
+    emit lookupResultsFinished();
 }
 
 const QString GET_PLACE = "/api/v1/places/%1";
@@ -182,6 +183,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     
     if (hostnameRegex.indexIn(lookupString) != -1) {
         emit possibleDomainChangeRequired(hostnameRegex.cap(0));
+        emit lookupResultsFinished();
         return true;
     }
     
@@ -189,6 +191,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         emit possibleDomainChangeRequired(ipAddressRegex.cap(0));
+        emit lookupResultsFinished();
         return true;
     }
     

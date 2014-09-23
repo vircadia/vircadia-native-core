@@ -78,14 +78,16 @@ void AddressBarDialog::setupUI() {
     
     verticalLayout->addLayout(addressLayout);
     
-    connect(addressLineEdit, &QLineEdit::returnPressed, this, &AddressBarDialog::accept);
     connect(goButton, &QPushButton::clicked, this, &AddressBarDialog::accept);
     connect(closeButton, &QPushButton::clicked, this, &QDialog::close);
 }
 
 void AddressBarDialog::accept() {
-    // let the AddressManger figure out what to do with this
-    if (AddressManager::getInstance().handleLookupString(addressLineEdit->text())) {
-        close();
+    if (!addressLineEdit->text().isEmpty()) {
+        goButton->setStyleSheet("background: #333; color: #e7eeee; border-radius: 4px;");
+        
+        AddressManager& addressManager = AddressManager::getInstance();
+        connect(&addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::close);
+        addressManager.handleLookupString(addressLineEdit->text());
     }
 }

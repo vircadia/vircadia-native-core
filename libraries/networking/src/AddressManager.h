@@ -31,12 +31,13 @@ public:
     
     void attemptPlaceNameLookup(const QString& lookupString);
 public slots:
-    bool handleLookupString(const QString& lookupString);
+    void handleLookupString(const QString& lookupString);
     
     void handleAPIResponse(const QJsonObject& jsonObject);
     void handleAPIError(QNetworkReply& errorReply);
     void goToUser(const QString& username);
 signals:
+    void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
     void possibleDomainChangeRequired(const QString& newHostname);
