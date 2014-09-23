@@ -30,6 +30,7 @@ public:
     Player(AvatarData* avatar);
     
     bool isPlaying() const;
+    bool isPaused() const;
     qint64 elapsed() const;
     
     RecordingPointer getRecording() const { return _recording; }
@@ -38,6 +39,7 @@ public:
 public slots:
     void startPlaying();
     void stopPlaying();
+    void pausePlayer();
     void loadFromFile(const QString& file);
     void loadRecording(RecordingPointer recording);
     void play();
@@ -70,6 +72,8 @@ private:
     AvatarData* _avatar;
     QThread* _audioThread;
     
+    bool _isPaused;
+    int _pausedFrame;
     
     RecordingContext _currentContext;
     bool _playFromCurrentPosition;
@@ -78,7 +82,6 @@ private:
     bool _useDisplayName;
     bool _useHeadURL;
     bool _useSkeletonURL;
-    
 };
 
 #endif // hifi_Player_h

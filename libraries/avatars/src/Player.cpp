@@ -22,6 +22,7 @@ Player::Player(AvatarData* avatar) :
     _timerOffset(0),
     _avatar(avatar),
     _audioThread(NULL),
+    _isPaused(false),
     _playFromCurrentPosition(true),
     _loop(false),
     _useAttachments(true),
@@ -38,16 +39,26 @@ bool Player::isPlaying() const {
     return _timer.isValid();
 }
 
+bool Player::isPaused() const {
+    return _isPaused;
+}
+
 qint64 Player::elapsed() const {
     if (isPlaying()) {
         return _timerOffset + _timer.elapsed();
+    } else if (isPaused()) {
+        return _timerOffset;
     } else {
         return 0;
     }
 }
 
 void Player::startPlaying() {
-    if (_recording && _recording->getFrameNumber() > 0) {
+    if (!_recording || _recording->getFrameNumber() <= 1) {
+        return;
+    }
+    
+    if (!_isPaused) {
         _currentContext.globalTimestamp = usecTimestampNow();
         _currentContext.domain = NodeList::getInstance()->getDomainHandler().getHostname();
         _currentContext.position = _avatar->getPosition();
@@ -103,6 +114,13 @@ void Player::startPlaying() {
         _currentFrame = 0;
         _timerOffset = 0;
         _timer.start();
+    } else {
+        qDebug() << "Recorder::startPlaying(): Unpause";
+        setupAudioThread();
+        _timer.start();
+        _isPaused = false;
+        
+        setCurrentFrame(_pausedFrame);
     }
 }
 
@@ -110,6 +128,7 @@ void Player::stopPlaying() {
     if (!isPlaying()) {
         return;
     }
+    _isPaused = false;
     _timer.invalidate();
     cleanupAudioThread();
     _avatar->clearJointsData();
@@ -131,6 +150,16 @@ void Player::stopPlaying() {
     }
     
     qDebug() << "Recorder::stopPlaying()";
+}
+
+void Player::pausePlayer() {
+    _timerOffset = elapsed();
+    _timer.invalidate();
+    cleanupAudioThread();
+    
+    _isPaused = true;
+    _pausedFrame = _currentFrame;
+    qDebug() << "Recorder::pausePlayer()";
 }
 
 void Player::setupAudioThread() {
@@ -170,10 +199,13 @@ void Player::loadFromFile(const QString& file) {
         _recording = RecordingPointer(new Recording());
     }
     readRecordingFromFile(_recording, file);
+    
+    _isPaused = false;
 }
 
 void Player::loadRecording(RecordingPointer recording) {
     _recording = recording;
+    _isPaused = false;
 }
 
 void Player::play() {
@@ -218,14 +250,14 @@ void Player::play() {
 }
 
 void Player::setCurrentFrame(int currentFrame) {
-    if (_recording && currentFrame >= _recording->getFrameNumber()) {
+    if (_recording && (currentFrame < 0 || currentFrame >= _recording->getFrameNumber())) {
         stopPlaying();
         return;
     }
     
     _currentFrame = currentFrame;
     _timerOffset = _recording->getFrameTimestamp(_currentFrame);
-    _timer.restart();
+    _timer.start();
     
     setAudionInjectorPosition();
 }
@@ -239,25 +271,35 @@ void Player::setCurrentTime(qint64 currentTime) {
     // Find correct frame
     int lowestBound = 0;
     int highestBound = _recording->getFrameNumber() - 1;
-    int bestGuess = 0;
-    while (!(_recording->getFrameTimestamp(bestGuess) <= currentTime &&
-             _recording->getFrameTimestamp(bestGuess + 1) > currentTime)) {
+    while (lowestBound + 1 != highestBound) {
+        assert(lowestBound < highestBound);
         
-        if (_recording->getFrameTimestamp(bestGuess) <= currentTime) {
-            lowestBound = bestGuess;
-        } else {
-            highestBound = bestGuess;
-        }
-        
-        bestGuess = lowestBound +
+        int bestGuess = lowestBound +
                     (highestBound - lowestBound) *
                     (float)(currentTime - _recording->getFrameTimestamp(lowestBound)) /
                     (float)(_recording->getFrameTimestamp(highestBound) - _recording->getFrameTimestamp(lowestBound));
+        
+        
+        if (_recording->getFrameTimestamp(bestGuess) <= currentTime) {
+            if (currentTime < _recording->getFrameTimestamp(bestGuess + 1)) {
+                lowestBound = bestGuess;
+                highestBound = bestGuess + 1;
+            } else {
+                lowestBound = bestGuess + 1;
+            }
+        } else {
+            if (_recording->getFrameTimestamp(bestGuess - 1) <= currentTime) {
+                lowestBound = bestGuess - 1;
+                highestBound = bestGuess;
+            } else {
+                highestBound = bestGuess - 1;
+            }
+        }
     }
     
-    _currentFrame = bestGuess;
-    _timerOffset = _recording->getFrameTimestamp(bestGuess);
-    _timer.restart();
+    _currentFrame = lowestBound;
+    _timerOffset = _recording->getFrameTimestamp(lowestBound);
+    _timer.start();
     
     setAudionInjectorPosition();
 }
