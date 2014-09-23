@@ -202,8 +202,8 @@ function moveUI() {
 		y: windowDimensions.y - relative.y - ToolBar.SPACING
                          });
     
-    slider.x = relative.x;
-    slider.y = windowDimensions.y - relative.y - 100;
+    slider.x = relative.x - ToolBar.SPACING;
+    slider.y = windowDimensions.y - relative.y - slider.h - ToolBar.SPACING;
     
     Overlays.editOverlay(slider.background, {
                          x: slider.x,
@@ -237,7 +237,7 @@ function mousePressEvent(event) {
         }
     } else if (playIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
         if (MyAvatar.isPlaying()) {
-            MyAvatar.stopPlaying();
+            MyAvatar.pausePlayer();
             toolBar.setAlpha(ALPHA_ON, recordIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
@@ -252,7 +252,7 @@ function mousePressEvent(event) {
         }
     } else if (playLoopIcon === toolBar.clicked(clickedOverlay) && !MyAvatar.isRecording()) {
         if (MyAvatar.isPlaying()) {
-            MyAvatar.stopPlaying();
+            MyAvatar.pausePlayer();
             toolBar.setAlpha(ALPHA_ON, recordIcon);
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
@@ -283,19 +283,31 @@ function mousePressEvent(event) {
                 toolBar.setAlpha(ALPHA_ON, saveIcon);
             }
         }
-    } else if (slider.x < event.x < slider.x + slider.w &&
+    } else if (MyAvatar.isPlaying() &&
+               slider.x < event.x < slider.x + slider.w &&
                slider.y < event.y < slider.y + slider.h) {
-        
-        
+        isSliding = true;
+        slider.pos = (event.x - slider.x) / slider.w;
+        MyAvatar.setPlayerTime(slider.pos * MyAvatar.playerLength());
+    }
+}
+var isSliding = false;
+
+
+function mouseMoveEvent(event) {
+    if (isSliding) {
+        slider.pos = (event.x - slider.x) / slider.w;
+        if (slider.pos < 0.0) {
+            slider.pos = 0.0;
+        } else if (slider.pos > 1.0) {
+            slider.pos = 1.0;
+        }
+        MyAvatar.setPlayerTime(slider.pos * MyAvatar.playerLength());
     }
 }
 
-function mouseMoveEvent(event) {
-    
-}
-
 function mouseReleaseEvent(event) {
-    
+    isSliding = false;
 }
 
 function update() {
