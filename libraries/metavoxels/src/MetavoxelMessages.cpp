@@ -667,8 +667,9 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    QVector<QRgb> colorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
+    QVector<QRgb> oldColorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
         colorPointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    QVector<QRgb> colorContents = oldColorContents;
     
     Box overlap = info.getBounds().getIntersection(_region);
     float scale = VOXEL_BLOCK_SIZE / info.size;
@@ -725,32 +726,92 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
             for (int x = hermiteMinX, hermiteMaxX = x + hermiteSizeX - 1; x <= hermiteMaxX; x++,
                     hermiteDestX += VoxelHermiteData::EDGE_COUNT) {
                 // internal edges are set to zero; border edges (when non-terminal) are set to the intersection values
-                hermiteDestX[0] = 0x0;
                 if ((x == hermiteMinX || x == hermiteMaxX) && x != VOXEL_BLOCK_SIZE) {
-                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int offset = z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    const QRgb* color = colorContents.constData() + offset;
                     int alpha0 = qAlpha(color[0]);
-                    if (alpha0 != qAlpha(color[1])) {
-                        hermiteDestX[0] = qRgba(alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, 0,
-                            ((x == hermiteMinX ? overlap.minimum.x : overlap.maximum.x) - x) * EIGHT_BIT_MAXIMUM);
+                    int alpha1 = qAlpha(color[1]);
+                    if (alpha0 != alpha1) {
+                        const QRgb* oldColor = oldColorContents.constData() + offset;
+                        if (qAlpha(oldColor[0]) == alpha0 && qAlpha(oldColor[1]) == alpha1) {
+                            if (x == hermiteMinX) {
+                                int alpha = (overlap.minimum.x - x) * EIGHT_BIT_MAXIMUM;
+                                if (alpha <= qAlpha(hermiteDestX[0])) {
+                                    hermiteDestX[0] = qRgba(alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, 0, alpha);
+                                }
+                            } else {
+                                int alpha = (overlap.maximum.x - x) * EIGHT_BIT_MAXIMUM;
+                                if (alpha >= qAlpha(hermiteDestX[0])) {
+                                    hermiteDestX[0] = qRgba(alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, 0, alpha);
+                                }
+                            }
+                        } else {
+                            hermiteDestX[0] = qRgba(alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, 0,
+                                ((x == hermiteMinX ? overlap.minimum.x : overlap.maximum.x) - x) * EIGHT_BIT_MAXIMUM);
+                        } 
+                    } else {
+                        hermiteDestX[0] = 0x0;
                     }
+                } else {
+                    hermiteDestX[0] = 0x0;
                 }
-                hermiteDestX[1] = 0x0;
                 if ((y == hermiteMinY || y == hermiteMaxY) && y != VOXEL_BLOCK_SIZE) {
-                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int offset = z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    const QRgb* color = colorContents.constData() + offset;
                     int alpha0 = qAlpha(color[0]);
-                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_SAMPLES])) {
-                        hermiteDestX[1] = qRgba(0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0,
-                            ((y == hermiteMinY ? overlap.minimum.y : overlap.maximum.y) - y) * EIGHT_BIT_MAXIMUM);
+                    int alpha2 = qAlpha(color[VOXEL_BLOCK_SAMPLES]);
+                    if (alpha0 != alpha2) {
+                        const QRgb* oldColor = oldColorContents.constData() + offset;
+                        if (qAlpha(oldColor[0]) == alpha0 && qAlpha(oldColor[VOXEL_BLOCK_SAMPLES]) == alpha2) {
+                            if (y == hermiteMinY) {
+                                int alpha = (overlap.minimum.y - y) * EIGHT_BIT_MAXIMUM;
+                                if (alpha <= qAlpha(hermiteDestX[1])) {
+                                    hermiteDestX[1] = qRgba(0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, alpha);
+                                }
+                            } else {
+                                int alpha = (overlap.maximum.y - y) * EIGHT_BIT_MAXIMUM;
+                                if (alpha >= qAlpha(hermiteDestX[1])) {
+                                    hermiteDestX[1] = qRgba(0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0, alpha);
+                                }
+                            }
+                        } else {
+                            hermiteDestX[1] = qRgba(0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, 0,
+                                ((y == hermiteMinY ? overlap.minimum.y : overlap.maximum.y) - y) * EIGHT_BIT_MAXIMUM);
+                        }
+                    } else {
+                        hermiteDestX[1] = 0x0;
                     }
+                } else {
+                    hermiteDestX[1] = 0x0;
                 }
-                hermiteDestX[2] = 0x0;
                 if ((z == hermiteMinZ || z == hermiteMaxZ) && z != VOXEL_BLOCK_SIZE) {
-                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int offset = z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    const QRgb* color = colorContents.constData() + offset;
                     int alpha0 = qAlpha(color[0]);
-                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_AREA])) {
-                        hermiteDestX[2] = qRgba(0, 0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX,
-                            ((z == hermiteMinZ ? overlap.minimum.z : overlap.maximum.z) - z) * EIGHT_BIT_MAXIMUM);
+                    int alpha4 = qAlpha(color[VOXEL_BLOCK_AREA]);
+                    if (alpha0 != alpha4) {
+                        const QRgb* oldColor = oldColorContents.constData() + offset;
+                        if (qAlpha(oldColor[0]) == alpha0 && qAlpha(oldColor[VOXEL_BLOCK_AREA]) == alpha4) {
+                            if (z == hermiteMinZ) {
+                                int alpha = (overlap.minimum.z - z) * EIGHT_BIT_MAXIMUM;
+                                if (alpha <= qAlpha(hermiteDestX[2])) {
+                                    hermiteDestX[2] = qRgba(0, 0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, alpha);
+                                }
+                            } else {
+                                int alpha = (overlap.maximum.z - z) * EIGHT_BIT_MAXIMUM;
+                                if (alpha >= qAlpha(hermiteDestX[2])) {
+                                    hermiteDestX[2] = qRgba(0, 0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX, alpha);
+                                }
+                            }
+                        } else {
+                            hermiteDestX[2] = qRgba(0, 0, alpha0 == 0 ? -NORMAL_MAX : NORMAL_MAX,
+                                ((z == hermiteMinZ ? overlap.minimum.z : overlap.maximum.z) - z) * EIGHT_BIT_MAXIMUM);
+                        }
+                    } else {
+                        hermiteDestX[2] = 0x0;
                     }
+                } else {
+                    hermiteDestX[2] = 0x0;
                 }
             }
         }
@@ -864,8 +925,9 @@ int VoxelMaterialSphereEditVisitor::visit(MetavoxelInfo& info) {
         return DEFAULT_ORDER;
     }
     VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    QVector<QRgb> colorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
+    QVector<QRgb> oldColorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
         colorPointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    QVector<QRgb> colorContents = oldColorContents;
     
     Box overlap = info.getBounds().getIntersection(_bounds);
     float scale = VOXEL_BLOCK_SIZE / info.size;
@@ -883,6 +945,7 @@ int VoxelMaterialSphereEditVisitor::visit(MetavoxelInfo& info) {
     float relativeRadiusSquared = relativeRadius * relativeRadius;
     
     QRgb rgb = _color.rgba();
+    bool flipped = (qAlpha(rgb) == 0);
     glm::vec3 position(0.0f, 0.0f, minZ);
     for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
             *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z++) {
@@ -932,78 +995,117 @@ int VoxelMaterialSphereEditVisitor::visit(MetavoxelInfo& info) {
                     hermiteDestX += VoxelHermiteData::EDGE_COUNT) {
                 // at each intersected non-terminal edge, we check for a transition and, if one is detected, we assign the
                 // crossing and normal values based on intersection with the sphere
-                hermiteDestX[0] = 0x0;
-                glm::vec3 offset(x - relativeCenter.x, y - relativeCenter.y, z - relativeCenter.z);
+                glm::vec3 vector(x - relativeCenter.x, y - relativeCenter.y, z - relativeCenter.z);
                 if (x != VOXEL_BLOCK_SIZE) {
-                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int offset = z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    const QRgb* color = colorContents.constData() + offset;
                     int alpha0 = qAlpha(color[0]);
-                    if (alpha0 != qAlpha(color[1])) {
-                        float radicand = relativeRadiusSquared - offset.y * offset.y - offset.z * offset.z;
+                    int alpha1 = qAlpha(color[1]);
+                    if (alpha0 != alpha1) {
+                        float radicand = relativeRadiusSquared - vector.y * vector.y - vector.z * vector.z;
                         float parameter = 0.5f;
                         if (radicand >= 0.0f) {
                             float root = glm::sqrt(radicand);
-                            parameter = -offset.x - root;
+                            parameter = -vector.x - root;
                             if (parameter < 0.0f || parameter > 1.0f) {
-                                parameter = glm::clamp(-offset.x + root, 0.0f, 1.0f);
+                                parameter = glm::clamp(-vector.x + root, 0.0f, 1.0f);
                             }
                         }
-                        glm::vec3 normal = offset + glm::vec3(parameter, 0.0f, 0.0f);
+                        glm::vec3 normal = vector + glm::vec3(parameter, 0.0f, 0.0f);
                         float length = glm::length(normal);
                         if (length > EPSILON) {
                             normal /= length;
                         } else {
                             normal = glm::vec3(0.0f, 1.0f, 0.0f);
                         }
-                        hermiteDestX[0] = packNormal(normal, parameter * EIGHT_BIT_MAXIMUM);
+                        const QRgb* oldColor = oldColorContents.constData() + offset;
+                        if (qAlpha(oldColor[0]) == alpha0 && qAlpha(oldColor[1]) == alpha1) {
+                            int alpha = parameter * EIGHT_BIT_MAXIMUM;
+                            if (normal.x < 0.0f ? alpha <= qAlpha(hermiteDestX[0]) : alpha >= qAlpha(hermiteDestX[0])) {
+                                hermiteDestX[0] = packNormal(flipped ? -normal : normal, alpha);    
+                            }
+                        } else {
+                            hermiteDestX[0] = packNormal(flipped ? -normal : normal, parameter * EIGHT_BIT_MAXIMUM);
+                        }
+                    } else {
+                        hermiteDestX[0] = 0x0;
                     }
+                } else {
+                    hermiteDestX[0] = 0x0;
                 }
-                hermiteDestX[1] = 0x0;
                 if (y != VOXEL_BLOCK_SIZE) {
-                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int offset = z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    const QRgb* color = colorContents.constData() + offset;
                     int alpha0 = qAlpha(color[0]);
-                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_SAMPLES])) {
-                        float radicand = relativeRadiusSquared - offset.x * offset.x - offset.z * offset.z;
+                    int alpha2 = qAlpha(color[VOXEL_BLOCK_SAMPLES]);
+                    if (alpha0 != alpha2) {
+                        float radicand = relativeRadiusSquared - vector.x * vector.x - vector.z * vector.z;
                         float parameter = 0.5f;
                         if (radicand >= 0.0f) {
                             float root = glm::sqrt(radicand);
-                            parameter = -offset.y - root;
+                            parameter = -vector.y - root;
                             if (parameter < 0.0f || parameter > 1.0f) {
-                                parameter = glm::clamp(-offset.y + root, 0.0f, 1.0f);
+                                parameter = glm::clamp(-vector.y + root, 0.0f, 1.0f);
                             }
                         }
-                        glm::vec3 normal = offset + glm::vec3(parameter, 0.0f, 0.0f);
+                        glm::vec3 normal = vector + glm::vec3(parameter, 0.0f, 0.0f);
                         float length = glm::length(normal);
                         if (length > EPSILON) {
                             normal /= length;
                         } else {
                             normal = glm::vec3(1.0f, 0.0f, 0.0f);
                         }
-                        hermiteDestX[1] = packNormal(normal, parameter * EIGHT_BIT_MAXIMUM);
+                        const QRgb* oldColor = oldColorContents.constData() + offset;
+                        if (qAlpha(oldColor[0]) == alpha0 && qAlpha(oldColor[VOXEL_BLOCK_SAMPLES]) == alpha2) {
+                            int alpha = parameter * EIGHT_BIT_MAXIMUM;
+                            if (normal.y < 0.0f ? alpha <= qAlpha(hermiteDestX[1]) : alpha >= qAlpha(hermiteDestX[1])) {
+                                hermiteDestX[1] = packNormal(flipped ? -normal : normal, alpha);    
+                            }
+                        } else {
+                            hermiteDestX[1] = packNormal(flipped ? -normal : normal, parameter * EIGHT_BIT_MAXIMUM);
+                        }
+                    } else {
+                        hermiteDestX[1] = 0x0;
                     }
+                } else {
+                    hermiteDestX[1] = 0x0;
                 }
-                hermiteDestX[2] = 0x0;
                 if (z != VOXEL_BLOCK_SIZE) {
-                    const QRgb* color = colorContents.constData() + z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    int offset = z * VOXEL_BLOCK_AREA + y * VOXEL_BLOCK_SAMPLES + x;
+                    const QRgb* color = colorContents.constData() + offset;
                     int alpha0 = qAlpha(color[0]);
-                    if (alpha0 != qAlpha(color[VOXEL_BLOCK_AREA])) {
-                        float radicand = relativeRadiusSquared - offset.x * offset.x - offset.y * offset.y;
+                    int alpha4 = qAlpha(color[VOXEL_BLOCK_AREA]);
+                    if (alpha0 != alpha4) {
+                        float radicand = relativeRadiusSquared - vector.x * vector.x - vector.y * vector.y;
                         float parameter = 0.5f;
                         if (radicand >= 0.0f) {
                             float root = glm::sqrt(radicand);
-                            parameter = -offset.z - root;
+                            parameter = -vector.z - root;
                             if (parameter < 0.0f || parameter > 1.0f) {
-                                parameter = glm::clamp(-offset.z + root, 0.0f, 1.0f);
+                                parameter = glm::clamp(-vector.z + root, 0.0f, 1.0f);
                             }
                         }
-                        glm::vec3 normal = offset + glm::vec3(parameter, 0.0f, 0.0f);
+                        glm::vec3 normal = vector + glm::vec3(parameter, 0.0f, 0.0f);
                         float length = glm::length(normal);
                         if (length > EPSILON) {
                             normal /= length;
                         } else {
                             normal = glm::vec3(1.0f, 0.0f, 0.0f);
                         }
-                        hermiteDestX[2] = packNormal(normal, parameter * EIGHT_BIT_MAXIMUM);
+                        const QRgb* oldColor = oldColorContents.constData() + offset;
+                        if (qAlpha(oldColor[0]) == alpha0 && qAlpha(oldColor[VOXEL_BLOCK_AREA]) == alpha4) {
+                            int alpha = parameter * EIGHT_BIT_MAXIMUM;
+                            if (normal.z < 0.0f ? alpha <= qAlpha(hermiteDestX[2]) : alpha >= qAlpha(hermiteDestX[2])) {
+                                hermiteDestX[2] = packNormal(flipped ? -normal : normal, alpha);    
+                            }
+                        } else {
+                            hermiteDestX[2] = packNormal(flipped ? -normal : normal, parameter * EIGHT_BIT_MAXIMUM);
+                        }
+                    } else {
+                        hermiteDestX[2] = 0x0;
                     }
+                } else {
+                    hermiteDestX[2] = 0x0;
                 }
             }
         }
