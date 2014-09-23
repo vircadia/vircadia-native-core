@@ -61,7 +61,7 @@ static void setPalm(float deltaTime, int index) {
     palm->setActive(true);
     
     // Read controller buttons and joystick into the hand
-    if (!Application::getInstance()->getJoystickManager()->getJoystickStates().isEmpty()) {
+    if (!Application::getInstance()->getJoystickManager()->getJoysticks().isEmpty()) {
         const JoystickState& state = Application::getInstance()->getJoystickManager()->getJoystickStates().at(0);
         if (state.axes.size() >= 4 && state.buttons.size() >= 4) {
             if (index == LEFT_HAND_INDEX) {

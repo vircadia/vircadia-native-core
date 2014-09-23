@@ -25,12 +25,13 @@ JoystickManager::JoystickManager() {
     SDL_Init(SDL_INIT_JOYSTICK);
     int joystickCount = SDL_NumJoysticks();
     for (int i = 0; i < joystickCount; i++) {
-        SDL_Joystick* joystick = SDL_JoystickOpen(i);
-        if (joystick) {
-            JoystickState state = { SDL_JoystickName(i), QVector<float>(SDL_JoystickNumAxes(joystick)),
-                QVector<bool>(SDL_JoystickNumButtons(joystick)) };
-            _joystickStates.append(state);
-            _joysticks.append(joystick);
+        SDL_Joystick* sdlJoystick = SDL_JoystickOpen(i);
+        if (sdlJoystick) {
+            _sdlJoysticks.append(sdlJoystick);
+            
+            JoystickInputController controller(SDL_JoystickName(i),
+                                               SDL_JoystickNumAxes(sdlJoystick), SDL_JoystickNumButtons(sdlJoystick));
+            _joysticks.append(controller);
         }
     }
 #endif
@@ -38,8 +39,8 @@ JoystickManager::JoystickManager() {
 
 JoystickManager::~JoystickManager() {
 #ifdef HAVE_SDL
-    foreach (SDL_Joystick* joystick, _joysticks) {
-        SDL_JoystickClose(joystick);
+    foreach (SDL_Joystick* sdlJoystick, _sdlJoysticks) {
+        SDL_JoystickClose(sdlJoystick);
     }
     SDL_Quit();
 #endif
@@ -50,16 +51,16 @@ void JoystickManager::update() {
     PerformanceTimer perfTimer("joystick");
     SDL_JoystickUpdate();
     
-    for (int i = 0; i < _joystickStates.size(); i++) {
-        SDL_Joystick* joystick = _joysticks.at(i);
-        JoystickState& state = _joystickStates[i];
-        for (int j = 0; j < state.axes.size(); j++) {
-            float value = glm::round(SDL_JoystickGetAxis(joystick, j) + 0.5f) / numeric_limits<short>::max();
+    for (int i = 0; i < _joysticks.size(); i++) {
+        SDL_Joystick* sdlJoystick = _sdlJoysticks.at(i);
+        JoystickInputController& joystick = _joysticks[i];
+        for (int j = 0; j < joystick.getNumAxes(); j++) {
+            float value = glm::round(SDL_JoystickGetAxis(sdlJoystick, j) + 0.5f) / numeric_limits<short>::max();
             const float DEAD_ZONE = 0.1f;
-            state.axes[j] = glm::abs(value) < DEAD_ZONE ? 0.0f : value;
+            joystick.updateAxis(j, glm::abs(value) < DEAD_ZONE ? 0.0f : value);
         }
-        for (int j = 0; j < state.buttons.size(); j++) {
-            state.buttons[j] = SDL_JoystickGetButton(joystick, j);
+        for (int j = 0; j < joystick.getNumButtons(); j++) {
+            joystick.updateButton(j, SDL_JoystickGetButton(sdlJoystick, j));
         }
     }
 #endif

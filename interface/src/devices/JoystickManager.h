@@ -20,6 +20,8 @@
 #undef main
 #endif
 
+#include "JoystickInputController.h"
+
 class JoystickState;
 
 /// Handles joystick input through SDL.
@@ -27,27 +29,19 @@ class JoystickManager : public QObject {
     Q_OBJECT
 
 public:
-    
     JoystickManager();
     virtual ~JoystickManager();
     
-    const QVector<JoystickState>& getJoystickStates() const { return _joystickStates; }
+    QVector<JoystickInputController>& getJoysticks() { return _joysticks; }
     
     void update();
 
 private:
-    QVector<JoystickState> _joystickStates;
+    QVector<JoystickInputController> _joysticks;
     
 #ifdef HAVE_SDL
-    QVector<SDL_Joystick*> _joysticks;
+    QVector<SDL_Joystick*> _sdlJoysticks;
 #endif
-};
-
-class JoystickState {
-public:
-    QString name;
-    QVector<float> axes;
-    QVector<bool> buttons;
 };
 
 #endif // hifi_JoystickManager_h
