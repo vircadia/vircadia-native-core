@@ -51,12 +51,6 @@ void MetavoxelSystem::init() {
         new BufferDataAttribute("voxelBuffer"));
     _voxelBufferAttribute->setLODThresholdMultiplier(
         AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
-    
-    loadLightProgram("shaders/directional_light.frag", _directionalLight, _directionalLightLocations);
-    loadLightProgram("shaders/directional_light_shadow_map.frag", _directionalLightShadowMap,
-        _directionalLightShadowMapLocations);
-    loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", _directionalLightCascadedShadowMap,
-        _directionalLightCascadedShadowMapLocations);
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() {
@@ -127,150 +121,18 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-const GLenum COLOR_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0 };
-const GLenum NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT1 };
-const GLenum COLOR_NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-
 void MetavoxelSystem::render() {
     // update the frustum
     ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
         viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
-    
-    _needToLight = false;
-
-    // clear the normal buffer
-    glDrawBuffers(sizeof(NORMAL_DRAW_BUFFERS) / sizeof(NORMAL_DRAW_BUFFERS[0]), NORMAL_DRAW_BUFFERS);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
-    
+   
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor, true);
     
     // give external parties a chance to join in
     emit rendering();
-    
-    if (!_needToLight) {
-        return; // skip lighting if not needed
-    }
-    
-    // perform deferred lighting, rendering to free fbo
-    glPushMatrix();
-    glLoadIdentity();
-    
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    
-    glDisable(GL_BLEND);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(false);
-    
-    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
-    primaryFBO->release();
-    
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
-    freeFBO->bind();
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
-    
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
-    
-    // get the viewport side (left, right, both)
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_X_INDEX = 0;
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    float sMin = viewport[VIEWPORT_X_INDEX] / (float)primaryFBO->width();
-    float sWidth = viewport[VIEWPORT_WIDTH_INDEX] / (float)primaryFBO->width();
-        
-    if (Menu::getInstance()->getShadowsEnabled()) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
-        
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
-        
-        ProgramObject* program = &_directionalLightShadowMap;
-        const LightLocations* locations = &_directionalLightShadowMapLocations;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-            program = &_directionalLightCascadedShadowMap;
-            locations = &_directionalLightCascadedShadowMapLocations;
-            _directionalLightCascadedShadowMap.bind();
-            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances,
-                Application::getInstance()->getShadowDistances());
-        
-        } else {
-            program->bind();
-        }
-        program->setUniformValue(locations->shadowScale,
-            1.0f / Application::getInstance()->getTextureCache()->getShadowFramebufferObject()->width());
-        
-        float left, right, bottom, top, nearVal, farVal;
-        glm::vec4 nearClipPlane, farClipPlane;
-        Application::getInstance()->computeOffAxisFrustum(
-            left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-        program->setUniformValue(locations->nearLocation, nearVal);
-        program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
-        float nearScale = -1.0f / nearVal;
-        float sScale = 1.0f / sWidth;
-        float depthTexCoordScaleS = (right - left) * nearScale * sScale;
-        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale - sMin * depthTexCoordScaleS,
-            bottom * nearScale);
-        program->setUniformValue(locations->depthTexCoordScale, depthTexCoordScaleS, (top - bottom) * nearScale);
-        
-        renderFullscreenQuad(sMin, sMin + sWidth);
-        
-        program->release();
-        
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glActiveTexture(GL_TEXTURE1);
-    
-    } else {
-        _directionalLight.bind();
-        renderFullscreenQuad(sMin, sMin + sWidth);
-        _directionalLight.release();        
-    }
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glActiveTexture(GL_TEXTURE0);
-    
-    freeFBO->release();
-    
-    // now transfer the lit region to the primary fbo
-    glEnable(GL_BLEND);
-    
-    primaryFBO->bind();
-    
-    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
-    glEnable(GL_TEXTURE_2D);
-    
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    
-    renderFullscreenQuad(sMin, sMin + sWidth);
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-    
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(true);
-    
-    glDisable(GL_ALPHA_TEST);
-    
-    glPopMatrix();
-    
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
 }
 
 class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
@@ -630,24 +492,6 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
     }
 }
 
-void MetavoxelSystem::loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + name);
-    program.link();
-    
-    program.bind();
-    program.setUniformValue("diffuseMap", 0);
-    program.setUniformValue("normalMap", 1);
-    program.setUniformValue("depthMap", 2);
-    program.setUniformValue("shadowMap", 3);
-    locations.shadowDistances = program.uniformLocation("shadowDistances");
-    locations.shadowScale = program.uniformLocation("shadowScale");
-    locations.nearLocation = program.uniformLocation("near");
-    locations.depthScale = program.uniformLocation("depthScale");
-    locations.depthTexCoordOffset = program.uniformLocation("depthTexCoordOffset");
-    locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
-    program.release();
-}
-
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
     MetavoxelClient(node, updater) {
 }
@@ -980,7 +824,7 @@ void HeightfieldBuffer::render(bool cursor) {
         
         glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
         
-        glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
         glDepthMask(false);
@@ -1053,7 +897,7 @@ void HeightfieldBuffer::render(bool cursor) {
         glDepthMask(true);
         glDepthFunc(GL_LESS);
         
-        glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
         
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
         
@@ -1077,14 +921,12 @@ void HeightfieldBuffer::render(bool cursor) {
     
     bufferPair.first.release();
     bufferPair.second.release();
-    
-    Application::getInstance()->getMetavoxels()->noteNeedToLight();
 }
 
 QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
-    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
@@ -1117,7 +959,7 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
@@ -1165,7 +1007,7 @@ void VoxelBuffer::render(bool cursor) {
     glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
     
     if (!_materials.isEmpty()) {
-        glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
         glDepthMask(false);
@@ -1235,7 +1077,7 @@ void VoxelBuffer::render(bool cursor) {
         glDepthMask(true);
         glDepthFunc(GL_LESS);
         
-        glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
         
         DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materials);
         DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materialWeights);
@@ -1245,8 +1087,6 @@ void VoxelBuffer::render(bool cursor) {
     
     _vertexBuffer.release();
     _indexBuffer.release();
-    
-    Application::getInstance()->getMetavoxels()->noteNeedToLight();
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -2282,7 +2122,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     _pointProgram.release();
     
-    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
     glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
@@ -2325,7 +2165,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 void DefaultMetavoxelRendererImplementation::loadSplatProgram(const char* type,
@@ -2479,9 +2319,16 @@ void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
     _model->render(alpha);
 }
 
-bool StaticModelRenderer::findRayIntersection(RayIntersectionInfo& intersection,
-        const glm::vec3& clipMinimum, float clipSize) const {
-    return _model->findRayIntersection(intersection);
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+    RayIntersectionInfo info;
+    info._rayStart = origin;
+    info._rayDirection = direction;
+    if (!_model->findRayIntersection(info)) {
+        return false;
+    }
+    distance = info._hitDistance;
+    return true;
 }
 
 void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {

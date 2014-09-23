@@ -125,7 +125,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
                     glPushMatrix();
                         glTranslatef(position.x, position.y, position.z);
-                        glutWireCube(size);
+                        Application::getInstance()->getDeferredLightingEffect()->renderWireCube(size);
                     glPopMatrix();
                 }
             } else {
@@ -133,7 +133,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
                 glPushMatrix();
                     glTranslatef(position.x, position.y, position.z);
-                    glutWireCube(size);
+                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(size);
                 glPopMatrix();
             }
         }
@@ -142,7 +142,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
         glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
-        glutWireCube(size);
+        Application::getInstance()->getDeferredLightingEffect()->renderWireCube(size);
         glPopMatrix();
     }
 }

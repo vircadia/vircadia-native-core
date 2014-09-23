@@ -26,6 +26,9 @@ const float amplitude = 0.5;
 // the position in model space
 varying vec3 position;
 
+// the normal in view space
+varying vec4 normal;
+
 // gradient based on gradients from cube edge centers rather than random from texture lookup
 float randomEdgeGrad(int hash, vec3 position){
     int h = int(mod(hash, 16));
@@ -114,7 +117,8 @@ void main(void) {
 
     // apply vertex lighting
     vec3 color = gl_Color.rgb * vec3(noise, noise, noise);
-    gl_FragColor = vec4(color, 1);
+    gl_FragData[0] = vec4(color, 1);
+    gl_FragData[1] = normalize(normal) * 0.5 + vec4(0.5, 0.5, 0.5, 1.0);
 }
 
 

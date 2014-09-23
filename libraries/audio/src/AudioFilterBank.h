@@ -15,24 +15,24 @@
 //
 // Helper/convenience class that implements a bank of Filter objects
 //
-template< typename T, const int N, const int C >
+template< typename T, const uint32_t N, const uint32_t C >
 class AudioFilterBank {
 
     //
     // types
     //
     struct FilterParameter {
-        float _p1;
-        float _p2;
-        float _p3;
+        float32_t _p1;
+        float32_t _p2;
+        float32_t _p3;
     };
 
     //
     // private static data
     //
-    static const int _filterCount   = N;
-    static const int _channelCount  = C;
-    static const int _profileCount  = 4;
+    static const uint32_t _filterCount   = N;
+    static const uint32_t _channelCount  = C;
+    static const uint32_t _profileCount  = 4;
     
     static FilterParameter _profiles[ _profileCount ][ _filterCount ];
 
@@ -40,9 +40,9 @@ class AudioFilterBank {
     // private data
     //
     T           _filters[ _filterCount ][ _channelCount ];
-    float*      _buffer[ _channelCount ];
-    float       _sampleRate;
-    uint16_t    _frameCount;
+    float32_t*  _buffer[ _channelCount ];
+    float32_t   _sampleRate;
+    uint32_t    _frameCount;
 
 public:
 
@@ -64,11 +64,11 @@ public:
     //
     // public interface
     //
-    void initialize(const float sampleRate, const int frameCount = 0) {
+    void initialize(const float32_t sampleRate, const uint32_t frameCount = 0) {
         finalize();
 
-        for (int i = 0; i < _channelCount; ++i) {
-            _buffer[i] = (float*)malloc(frameCount * sizeof(float));
+        for (uint32_t i = 0; i < _channelCount; ++i) {
+            _buffer[i] = (float32_t*)malloc(frameCount * sizeof(float32_t));
         }
         
         _sampleRate = sampleRate;
@@ -79,7 +79,7 @@ public:
     }
 
     void finalize() {
-        for (int i = 0; i < _channelCount; ++i) {
+        for (uint32_t i = 0; i < _channelCount; ++i) {
             if (_buffer[i]) {
                 free (_buffer[i]);
                 _buffer[i] = NULL;
@@ -90,52 +90,53 @@ public:
     void loadProfile(int profileIndex) {
         if (profileIndex >= 0 && profileIndex < _profileCount) {
             
-            for (int i = 0; i < _filterCount; ++i) {
+            for (uint32_t i = 0; i < _filterCount; ++i) {
                 FilterParameter p = _profiles[profileIndex][i];
 
-                for (int j = 0; j < _channelCount; ++j) {
+                for (uint32_t j = 0; j < _channelCount; ++j) {
                     _filters[i][j].setParameters(_sampleRate,p._p1,p._p2,p._p3);
                 }
             }
         }
     }
 
-    void setParameters(int filterStage, int filterChannel, const float sampleRate, const float frequency, const float gain, 
-                       const float slope) {
+    void setParameters(uint32_t filterStage, uint32_t filterChannel, const float32_t sampleRate, const float32_t frequency, 
+                       const float32_t gain, const float32_t slope) {
         if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].setParameters(sampleRate,frequency,gain,slope);
         }
     }
 
-    void getParameters(int filterStage, int filterChannel, float& sampleRate, float& frequency, float& gain, float& slope) {
+    void getParameters(uint32_t filterStage, uint32_t filterChannel, float32_t& sampleRate, float32_t& frequency, 
+                       float32_t& gain, float32_t& slope) {
         if (filterStage >= 0 && filterStage < _filterCount && filterChannel >= 0 && filterChannel < _channelCount) {
             _filters[filterStage][filterChannel].getParameters(sampleRate,frequency,gain,slope);
         }
     }
     
-    void render(const int16_t* in, int16_t* out, const int frameCount) {
+    void render(const int16_t* in, int16_t* out, const uint32_t frameCount) {
         if (!_buffer || (frameCount > _frameCount))
             return;
 
         const int scale = (2 << ((8 * sizeof(int16_t)) - 1));
 
         // de-interleave and convert int16_t to float32 (normalized to -1. ... 1.)
-        for (int i = 0; i < frameCount; ++i) {
-            for (int j = 0; j < _channelCount; ++j) {
+        for (uint32_t i = 0; i < frameCount; ++i) {
+            for (uint32_t j = 0; j < _channelCount; ++j) {
                 _buffer[j][i] = ((float)(*in++)) / scale;
             }
         }
 
         // now step through each filter
-        for (int i = 0; i < _channelCount; ++i) {
-            for (int j = 0; j < _filterCount; ++j) {
+        for (uint32_t i = 0; i < _channelCount; ++i) {
+            for (uint32_t j = 0; j < _filterCount; ++j) {
                 _filters[j][i].render( &_buffer[i][0], &_buffer[i][0], frameCount );
             }
         }
 
         // convert float32 to int16_t and interleave
-        for (int i = 0; i < frameCount; ++i) {
-            for (int j = 0; j < _channelCount; ++j) {
+        for (uint32_t i = 0; i < frameCount; ++i) {
+            for (uint32_t j = 0; j < _channelCount; ++j) {
                 *out++ = (int16_t)(_buffer[j][i] * scale);
             }
         }
@@ -144,16 +145,16 @@ public:
     void render(AudioBufferFloat32& frameBuffer) {
         
         float32_t** samples = frameBuffer.getFrameData();
-        for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
-            for (int i = 0; i < _filterCount; ++i) {
+        for (uint32_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+            for (uint32_t i = 0; i < _filterCount; ++i) {
                 _filters[i][j].render( samples[j], samples[j], frameBuffer.getFrameCount() );
             }
         }
     }
     
     void reset() {
-        for (int i = 0; i < _filterCount; ++i) {
-            for (int j = 0; j < _channelCount; ++j) {
+        for (uint32_t i = 0; i < _filterCount; ++i) {
+            for (uint32_t j = 0; j < _channelCount; ++j) {
                 _filters[i][j].reset();
             }
         }

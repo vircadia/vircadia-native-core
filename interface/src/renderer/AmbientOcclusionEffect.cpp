@@ -36,7 +36,7 @@ void AmbientOcclusionEffect::init() {
                                                + "shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
-    // create the sample kernel: an array of spherically distributed offset vectors
+    // create the sample kernel: an array of hemispherically distributed offset vectors
     const int SAMPLE_KERNEL_SIZE = 16;
     QVector3D sampleKernel[SAMPLE_KERNEL_SIZE];
     for (int i = 0; i < SAMPLE_KERNEL_SIZE; i++) {
@@ -51,7 +51,8 @@ void AmbientOcclusionEffect::init() {
     
     _occlusionProgram->bind();
     _occlusionProgram->setUniformValue("depthTexture", 0);
-    _occlusionProgram->setUniformValue("rotationTexture", 1);
+    _occlusionProgram->setUniformValue("normalTexture", 1);
+    _occlusionProgram->setUniformValue("rotationTexture", 2);
     _occlusionProgram->setUniformValueArray("sampleKernel", sampleKernel, SAMPLE_KERNEL_SIZE);
     _occlusionProgram->setUniformValue("radius", 0.1f);
     _occlusionProgram->release();
@@ -71,10 +72,10 @@ void AmbientOcclusionEffect::init() {
     unsigned char rotationData[ROTATION_WIDTH * ROTATION_HEIGHT * ELEMENTS_PER_PIXEL];
     unsigned char* rotation = rotationData;
     for (int i = 0; i < ROTATION_WIDTH * ROTATION_HEIGHT; i++) {
-        glm::vec3 randvec = glm::sphericalRand(1.0f);
-        *rotation++ = ((randvec.x + 1.0f) / 2.0f) * 255.0f;
-        *rotation++ = ((randvec.y + 1.0f) / 2.0f) * 255.0f;
-        *rotation++ = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
+        glm::vec3 vector = glm::sphericalRand(1.0f);
+        *rotation++ = ((vector.x + 1.0f) / 2.0f) * 255.0f;
+        *rotation++ = ((vector.y + 1.0f) / 2.0f) * 255.0f;
+        *rotation++ = ((vector.z + 1.0f) / 2.0f) * 255.0f;
     }
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ROTATION_WIDTH, ROTATION_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, rotationData);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -101,6 +102,9 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
     
     glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
+    
+    glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
@@ -137,6 +141,10 @@ void AmbientOcclusionEffect::render() {
     freeFBO->release();
     
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     glActiveTexture(GL_TEXTURE0);
     
     // now render secondary to primary with 4x4 blur
