@@ -293,9 +293,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
     UserActivityLogger::getInstance().launch(applicationVersion());
-    
-    // grab the location manager instance early so it lives in our thread
-    LocationManager::getInstance();
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -1450,6 +1447,14 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        if (fullscreen) {
+            // Menu show() after hide() doesn't work with Rift VR display so set height instead.
+            _window->menuBar()->setMaximumHeight(0);
+        } else {
+            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
+        }
+    }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
 }
@@ -4163,7 +4168,7 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
+    QString fileName = Snapshot::saveSnapshot();
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {

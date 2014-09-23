@@ -15,11 +15,18 @@
 #include <qobject.h>
 #include <qwebview.h>
 
+typedef QMap<QString, QObject*> JavascriptObjectMap;
+
 class DataWebDialog : public QWebView {
     Q_OBJECT
 public:
     DataWebDialog();
-    static DataWebDialog* dialogForPath(const QString& path);
+    static DataWebDialog* dialogForPath(const QString& path,
+                                        const JavascriptObjectMap& javascriptObjects = JavascriptObjectMap());
+private slots:
+    void addJavascriptObjectsToWindow();
+private:
+    JavascriptObjectMap _javascriptObjects;
 };
 
 #endif // hifi_WebkitDialog_h

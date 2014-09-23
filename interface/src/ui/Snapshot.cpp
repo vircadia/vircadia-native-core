@@ -64,8 +64,8 @@ SnapshotMetaData* Snapshot::parseSnapshotData(QString snapshotPath) {
     return data;
 }
 
-QString Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
-    QFile* snapshotFile = savedFileForSnapshot(widget, avatar, false);
+QString Snapshot::saveSnapshot() {
+    QFile* snapshotFile = savedFileForSnapshot(false);
     
     // we don't need the snapshot file, so close it, grab its filename and delete it
     snapshotFile->close();
@@ -77,13 +77,17 @@ QString Snapshot::saveSnapshot(QGLWidget* widget, Avatar* avatar) {
     return snapshotPath;
 }
 
-QTemporaryFile* Snapshot::saveTempSnapshot(QGLWidget* widget, Avatar* avatar) {
+QTemporaryFile* Snapshot::saveTempSnapshot() {
     // return whatever we get back from saved file for snapshot
-    return static_cast<QTemporaryFile*>(savedFileForSnapshot(widget, avatar, true));;
+    return static_cast<QTemporaryFile*>(savedFileForSnapshot(true));;
 }
 
-QFile* Snapshot::savedFileForSnapshot(QGLWidget* widget, Avatar* avatar, bool isTemporary) {
+QFile* Snapshot::savedFileForSnapshot(bool isTemporary) {
+    
+    QGLWidget* widget =  Application::getInstance()->getGLWidget();
     QImage shot = widget->grabFrameBuffer();
+    
+    Avatar* avatar = Application::getInstance()->getAvatar();
     
     glm::vec3 location = avatar->getPosition();
     glm::quat orientation = avatar->getHead()->getOrientation();
