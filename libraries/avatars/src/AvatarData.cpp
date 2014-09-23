@@ -661,6 +661,30 @@ void AvatarData::setPlayerLoop(bool loop) {
     }
 }
 
+void AvatarData::setPlayerUseDisplayName(bool useDisplayName) {
+    if(_player) {
+        _player->useDisplayName(useDisplayName);
+    }
+}
+
+void AvatarData::setPlayerUseAttachments(bool useAttachments) {
+    if(_player) {
+        _player->useAttachements(useAttachments);
+    }
+}
+
+void AvatarData::setPlayerUseHeadModel(bool useHeadModel) {
+    if(_player) {
+        _player->useHeadModel(useHeadModel);
+    }
+}
+
+void AvatarData::setPlayerUseSkeletonModel(bool useSkeletonModel) {
+    if(_player) {
+        _player->useSkeletonModel(useSkeletonModel);
+    }
+}
+
 void AvatarData::play() {
     if (isPlaying()) {
         if (QThread::currentThread() != thread()) {

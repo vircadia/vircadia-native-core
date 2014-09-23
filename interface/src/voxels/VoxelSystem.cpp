@@ -506,29 +506,13 @@ void VoxelSystem::initVoxelMemory() {
         _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
 
         // create our simple fragment shader if we're the first system to init
-        if (!_shadowMapProgram.isLinked()) {
-            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-                Application::resourcesPath() + "shaders/shadow_map.vert");
-            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-                Application::resourcesPath() + "shaders/shadow_map.frag");
-            _shadowMapProgram.link();
-
-            _shadowMapProgram.bind();
-            _shadowMapProgram.setUniformValue("shadowMap", 0);
-            _shadowMapProgram.release();
-            
-            _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-                Application::resourcesPath() + "shaders/cascaded_shadow_map.vert");
-            _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-                Application::resourcesPath() + "shaders/cascaded_shadow_map.frag");
-            _cascadedShadowMapProgram.link();
-
-            _cascadedShadowMapProgram.bind();
-            _cascadedShadowMapProgram.setUniformValue("shadowMap", 0);
-            _shadowDistancesLocation = _cascadedShadowMapProgram.uniformLocation("shadowDistances");
-            _cascadedShadowMapProgram.release();
+        if (!_program.isLinked()) {
+            _program.addShaderFromSourceFile(QGLShader::Vertex,
+                Application::resourcesPath() + "shaders/voxel.vert");
+            _program.addShaderFromSourceFile(QGLShader::Fragment,
+                Application::resourcesPath() + "shaders/voxel.frag");
+            _program.link();
         }
-        
     }
     _renderer = new PrimitiveRenderer(_maxVoxels);
 
@@ -1150,10 +1134,8 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
     return startVertex + glm::vec3(identityVertex[0], identityVertex[1], identityVertex[2]) * voxelScale;
 }
 
+ProgramObject VoxelSystem::_program;
 ProgramObject VoxelSystem::_perlinModulateProgram;
-ProgramObject VoxelSystem::_shadowMapProgram;
-ProgramObject VoxelSystem::_cascadedShadowMapProgram;
-int VoxelSystem::_shadowDistancesLocation;
 
 void VoxelSystem::init() {
     if (_initialized) {
@@ -1410,8 +1392,11 @@ void VoxelSystem::render() {
 
             applyScaleAndBindProgram(texture);
 
-            // for performance, enable backface culling
+            // for performance, enable backface culling and disable blending
             glEnable(GL_CULL_FACE);
+            glDisable(GL_BLEND);
+
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         }
 
         // draw voxels in 6 passes
@@ -1453,6 +1438,7 @@ void VoxelSystem::render() {
             PerformanceWarning warn(showWarnings, "render().. cleanup after glDrawRangeElementsEXT()...");
 
             glDisable(GL_CULL_FACE);
+            glEnable(GL_BLEND);
 
             removeScaleAndReleaseProgram(texture);
 
@@ -1478,41 +1464,31 @@ void VoxelSystem::render() {
 }
 
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
-
-    if (Menu::getInstance()->getShadowsEnabled()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-            _cascadedShadowMapProgram.bind();
-            _cascadedShadowMapProgram.setUniform(_shadowDistancesLocation, Application::getInstance()->getShadowDistances());
-        } else {
-            _shadowMapProgram.bind();
-        }
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
-
-    } else if (texture) {
+    if (texture) {
         bindPerlinModulateProgram();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
+    } else {
+        _program.bind();
     }
 
     glPushMatrix();
     glScalef(_treeScale, _treeScale, _treeScale);
+    
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
 }
 
 void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
 
-    if (Menu::getInstance()->getShadowsEnabled()) {
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-            _cascadedShadowMapProgram.release();
-        } else {
-            _shadowMapProgram.release();
-        }
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-    } else if (texture) {
+    if (texture) {
         _perlinModulateProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);
+    } else {
+        _program.release();
     }
+    
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 int VoxelSystem::_nodeCount = 0;

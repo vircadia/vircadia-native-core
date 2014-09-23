@@ -23,6 +23,7 @@
 #include "FaceModel.h"
 #include "InterfaceConfig.h"
 #include "world.h"
+#include "renderer/DeferredLightingEffect.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
@@ -35,7 +36,7 @@ const float EYE_EAR_GAP = 0.08f;
 class Avatar;
 class ProgramObject;
 
-class Head : public HeadData {
+class Head : public HeadData, public PostLightingRenderable {
 public:
     Head(Avatar* owningAvatar);
     
@@ -43,6 +44,7 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine, bool billboard = false);
     void render(float alpha, Model::RenderMode mode);
+    virtual void renderPostLighting();
     void setScale(float scale);
     void setPosition(glm::vec3 position) { _position = position; }
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
@@ -121,6 +123,7 @@ private:
     
     float _scale;
     float _lastLoudness;
+    float _longTermAverageLoudness;
     float _audioAttack;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;

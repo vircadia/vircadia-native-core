@@ -12,7 +12,14 @@
 Script.include("toolBars.js");
 
 var recordingFile = "recording.rec";
-var playFromCurrentLocation = true;
+
+function setPlayerOptions() {
+  MyAvatar.setPlayFromCurrentLocation(true);
+  MyAvatar.setPlayerUseDisplayName(false);
+  MyAvatar.setPlayerUseAttachments(false);
+  MyAvatar.setPlayerUseHeadModel(false);
+  MyAvatar.setPlayerUseSkeletonModel(false);
+}
 
 var windowDimensions = Controller.getViewportDimensions();
 var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
@@ -186,7 +193,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         } else if (MyAvatar.playerLength() > 0) {
-            MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+            setPlayerOptions();
             MyAvatar.setPlayerLoop(false);
             MyAvatar.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
@@ -201,7 +208,7 @@ function mousePressEvent(event) {
             toolBar.setAlpha(ALPHA_ON, saveIcon);
             toolBar.setAlpha(ALPHA_ON, loadIcon);
         } else if (MyAvatar.playerLength() > 0) {
-            MyAvatar.setPlayFromCurrentLocation(playFromCurrentLocation);
+            setPlayerOptions();
             MyAvatar.setPlayerLoop(true);
             MyAvatar.startPlaying();
             toolBar.setAlpha(ALPHA_OFF, recordIcon);
@@ -210,14 +217,14 @@ function mousePressEvent(event) {
         }
     } else if (saveIcon === toolBar.clicked(clickedOverlay)) {
         if (!MyAvatar.isRecording() && !MyAvatar.isPlaying() && MyAvatar.playerLength() != 0) {
-            recordingFile = Window.save("Save recording to file", ".", "*.rec");
+            recordingFile = Window.save("Save recording to file", ".", "Recordings (*.hfr)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
 				MyAvatar.saveRecording(recordingFile);
             }
         }
     } else if (loadIcon === toolBar.clicked(clickedOverlay)) {
         if (!MyAvatar.isRecording() && !MyAvatar.isPlaying()) {
-            recordingFile = Window.browse("Load recorcding from file", ".", "*.rec");
+            recordingFile = Window.browse("Load recorcding from file", ".", "Recordings (*.hfr *.rec *.HFR *.REC)");
             if (!(recordingFile === "null" || recordingFile === null || recordingFile === "")) {
                 MyAvatar.loadRecording(recordingFile);
             }

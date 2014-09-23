@@ -59,23 +59,15 @@ template<typename T> inline QByteArray& operator>>(QByteArray& in, ByteCountCode
 template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
     QByteArray output;
 
-    //qDebug() << "data=";
-    //outputBufferBits((const unsigned char*)&data, sizeof(data));
-    
-    T totalBits = sizeof(data) * BITS_IN_BYTE;
-    //qDebug() << "totalBits=" << totalBits;
-    T valueBits = totalBits;
+    int totalBits = sizeof(data) * BITS_IN_BYTE;
+    int valueBits = totalBits;
     bool firstValueFound = false;
     T temp = data;
     T lastBitMask = (T)(1) << (totalBits - 1);
 
-    //qDebug() << "lastBitMask=";
-    //outputBufferBits((const unsigned char*)&lastBitMask, sizeof(lastBitMask));
-
     // determine the number of bits that the value takes
     for (int bitAt = 0; bitAt < totalBits; bitAt++) {
         T bitValue = (temp & lastBitMask) == lastBitMask;
-        //qDebug() << "bitValue[" << bitAt <<"]=" << bitValue;
         if (!firstValueFound) {
             if (bitValue == 0) {
                 valueBits--;
@@ -85,17 +77,12 @@ template<typename T> inline QByteArray ByteCountCoded<T>::encode() const {
         }
         temp = temp << 1;
     }
-    //qDebug() << "valueBits=" << valueBits;
     
     // calculate the number of total bytes, including our header
     // BITS_IN_BYTE-1 because we need to code the number of bytes in the header
     // + 1 because we always take at least 1 byte, even if number of bits is less than a bytes worth
     int numberOfBytes = (valueBits / (BITS_IN_BYTE - 1)) + 1; 
-    //qDebug() << "numberOfBytes=" << numberOfBytes;
 
-    //int numberOfBits = numberOfBytes + valueBits;
-    //qDebug() << "numberOfBits=" << numberOfBits;
-    
     output.fill(0, numberOfBytes);
 
     // next pack the number of header bits in, the first N-1 to be set to 1, the last to be set to 0

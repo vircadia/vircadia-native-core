@@ -18,6 +18,7 @@
 
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
+#include "ModelEntityItem.h"
 
 EntityItemProperties::EntityItemProperties() :
 
@@ -28,17 +29,21 @@ EntityItemProperties::EntityItemProperties() :
     _type(EntityTypes::Unknown),
 
     _position(0),
-    _radius(ENTITY_DEFAULT_RADIUS),
-    _rotation(ENTITY_DEFAULT_ROTATION),
+    _dimensions(EntityItem::DEFAULT_DIMENSIONS),
+    _rotation(EntityItem::DEFAULT_ROTATION),
     _mass(EntityItem::DEFAULT_MASS),
     _velocity(EntityItem::DEFAULT_VELOCITY),
     _gravity(EntityItem::DEFAULT_GRAVITY),
     _damping(EntityItem::DEFAULT_DAMPING),
     _lifetime(EntityItem::DEFAULT_LIFETIME),
     _script(EntityItem::DEFAULT_SCRIPT),
+    _registrationPoint(EntityItem::DEFAULT_REGISTRATION_POINT),
+    _angularVelocity(EntityItem::DEFAULT_ANGULAR_VELOCITY),
+    _angularDamping(EntityItem::DEFAULT_ANGULAR_DAMPING),
+    _visible(EntityItem::DEFAULT_VISIBLE),
 
     _positionChanged(false),
-    _radiusChanged(false),
+    _dimensionsChanged(false),
     _rotationChanged(false),
     _massChanged(false),
     _velocityChanged(false),
@@ -46,15 +51,20 @@ EntityItemProperties::EntityItemProperties() :
     _dampingChanged(false),
     _lifetimeChanged(false),
     _scriptChanged(false),
+    _registrationPointChanged(false),
+    _angularVelocityChanged(false),
+    _angularDampingChanged(false),
+    _visibleChanged(false),
 
     _color(),
     _modelURL(""),
     _animationURL(""),
-    _animationIsPlaying(false),
-    _animationFrameIndex(0.0),
-    _animationFPS(ENTITY_DEFAULT_ANIMATION_FPS),
+    _animationIsPlaying(ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
+    _animationFrameIndex(ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
+    _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
 
+    _naturalDimensions(1.0f, 1.0f, 1.0f),
     _colorChanged(false),
     _modelURLChanged(false),
     _animationURLChanged(false),
@@ -73,7 +83,7 @@ void EntityItemProperties::debugDump() const {
     qDebug() << "   _id=" << _id;
     qDebug() << "   _idSet=" << _idSet;
     qDebug() << "   _position=" << _position.x << "," << _position.y << "," << _position.z;
-    qDebug() << "   _radius=" << _radius;
+    qDebug() << "   _dimensions=" << getDimensions();
     qDebug() << "   _modelURL=" << _modelURL;
     qDebug() << "   changed properties...";
     EntityPropertyFlags props = getChangedProperties();
@@ -82,65 +92,26 @@ void EntityItemProperties::debugDump() const {
 
 EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     EntityPropertyFlags changedProperties;
-    if (_radiusChanged) {
-        changedProperties += PROP_RADIUS;
-    }
-
-    if (_positionChanged) {
-        changedProperties += PROP_POSITION;
-    }
-
-    if (_rotationChanged) {
-        changedProperties += PROP_ROTATION;
-    }
-
-    if (_massChanged) {
-        changedProperties += PROP_MASS;
-    }
-
-    if (_velocityChanged) {
-        changedProperties += PROP_VELOCITY;
-    }
-
-    if (_gravityChanged) {
-        changedProperties += PROP_GRAVITY;
-    }
-
-    if (_dampingChanged) {
-        changedProperties += PROP_DAMPING;
-    }
-
-    if (_lifetimeChanged) {
-        changedProperties += PROP_LIFETIME;
-    }
-
-    if (_scriptChanged) {
-        changedProperties += PROP_SCRIPT;
-    }
-
-    if (_colorChanged) {
-        changedProperties += PROP_COLOR;
-    }
-
-    if (_modelURLChanged) {
-        changedProperties += PROP_MODEL_URL;
-    }
-
-    if (_animationURLChanged) {
-        changedProperties += PROP_ANIMATION_URL;
-    }
-
-    if (_animationIsPlayingChanged) {
-        changedProperties += PROP_ANIMATION_PLAYING;
-    }
-
-    if (_animationFrameIndexChanged) {
-        changedProperties += PROP_ANIMATION_FRAME_INDEX;
-    }
-
-    if (_animationFPSChanged) {
-        changedProperties += PROP_ANIMATION_FPS;
-    }
+    
+    CHECK_PROPERTY_CHANGE(PROP_DIMENSIONS, dimensions);
+    CHECK_PROPERTY_CHANGE(PROP_POSITION, position);
+    CHECK_PROPERTY_CHANGE(PROP_ROTATION, rotation);
+    CHECK_PROPERTY_CHANGE(PROP_MASS, mass);
+    CHECK_PROPERTY_CHANGE(PROP_VELOCITY, velocity);
+    CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
+    CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
+    CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
+    CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
+    CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
+    CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_URL, animationURL);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
+    CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
+    CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
+    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
+    CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
 
     return changedProperties;
 }
@@ -149,38 +120,35 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue properties = engine->newObject();
 
     if (_idSet) {
-        properties.setProperty("id", _id.toString());
-        bool isKnownID = (_id != UNKNOWN_ENTITY_ID);
-        properties.setProperty("isKnownID", isKnownID);
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(id, _id.toString());
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, (_id != UNKNOWN_ENTITY_ID));
+    } else {
+        COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(isKnownID, false);
     }
 
-    properties.setProperty("type", EntityTypes::getEntityTypeName(_type));
-
-    QScriptValue position = vec3toScriptValue(engine, _position);
-    properties.setProperty("position", position);
-    properties.setProperty("radius", _radius);
-    QScriptValue rotation = quatToScriptValue(engine, _rotation);
-    properties.setProperty("rotation", rotation);
-    properties.setProperty("mass", _mass);
-    QScriptValue velocity = vec3toScriptValue(engine, _velocity);
-    properties.setProperty("velocity", velocity);
-    QScriptValue gravity = vec3toScriptValue(engine, _gravity);
-    properties.setProperty("gravity", gravity);
-    properties.setProperty("damping", _damping);
-    properties.setProperty("lifetime", _lifetime);
-    properties.setProperty("age", getAge()); // gettable, but not settable
-    properties.setProperty("ageAsText", formatSecondsElapsed(getAge())); // gettable, but not settable
-    properties.setProperty("script", _script);
-
-    QScriptValue color = xColorToScriptValue(engine, _color);
-    properties.setProperty("color", color);
-    properties.setProperty("modelURL", _modelURL);
-    
-    properties.setProperty("animationURL", _animationURL);
-    properties.setProperty("animationIsPlaying", _animationIsPlaying);
-    properties.setProperty("animationFrameIndex", _animationFrameIndex);
-    properties.setProperty("animationFPS", _animationFPS);
-    properties.setProperty("glowLevel", _glowLevel);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(type, EntityTypes::getEntityTypeName(_type));
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(position);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(dimensions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(naturalDimensions); // gettable, but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE_QUAT(rotation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
+    COPY_PROPERTY_TO_QSCRIPTVALUE(script);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(registrationPoint);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(angularVelocity);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(angularDamping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(visible);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR(color);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -192,217 +160,39 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
         sittingPoints.setProperty(i, sittingPoint);
     }
     sittingPoints.setProperty("length", _sittingPoints.size());
-    properties.setProperty("sittingPoints", sittingPoints);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
     return properties;
 }
 
 void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
 
+
     QScriptValue typeScriptValue = object.property("type");
     if (typeScriptValue.isValid()) {
-        QString typeName;
-        typeName = typeScriptValue.toVariant().toString();
-        _type = EntityTypes::getEntityTypeFromName(typeName);
+        setType(typeScriptValue.toVariant().toString());
     }
 
-    QScriptValue position = object.property("position");
-    if (position.isValid()) {
-        QScriptValue x = position.property("x");
-        QScriptValue y = position.property("y");
-        QScriptValue z = position.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newPosition;
-            newPosition.x = x.toVariant().toFloat();
-            newPosition.y = y.toVariant().toFloat();
-            newPosition.z = z.toVariant().toFloat();
-            if (_defaultSettings || newPosition != _position) {
-                setPosition(newPosition); // gives us automatic clamping
-            }
-        }
-    }
-
-    QScriptValue radius = object.property("radius");
-    if (radius.isValid()) {
-        float newRadius;
-        newRadius = radius.toVariant().toFloat();
-        if (_defaultSettings || newRadius != _radius) {
-            _radius = newRadius;
-            _radiusChanged = true;
-        }
-    }
-
-    QScriptValue rotation = object.property("rotation");
-    if (rotation.isValid()) {
-        QScriptValue x = rotation.property("x");
-        QScriptValue y = rotation.property("y");
-        QScriptValue z = rotation.property("z");
-        QScriptValue w = rotation.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            glm::quat newRotation;
-            newRotation.x = x.toVariant().toFloat();
-            newRotation.y = y.toVariant().toFloat();
-            newRotation.z = z.toVariant().toFloat();
-            newRotation.w = w.toVariant().toFloat();
-            if (_defaultSettings || newRotation != _rotation) {
-                _rotation = newRotation;
-                _rotationChanged = true;
-            }
-        }
-    }
-
-    QScriptValue mass = object.property("mass");
-    if (mass.isValid()) {
-        float newValue;
-        newValue = mass.toVariant().toFloat();
-        if (_defaultSettings || newValue != _mass) {
-            _mass = newValue;
-            _massChanged = true;
-        }
-    }
-    
-    QScriptValue velocity = object.property("velocity");
-    if (velocity.isValid()) {
-        QScriptValue x = velocity.property("x");
-        QScriptValue y = velocity.property("y");
-        QScriptValue z = velocity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newValue;
-            newValue.x = x.toVariant().toFloat();
-            newValue.y = y.toVariant().toFloat();
-            newValue.z = z.toVariant().toFloat();
-            if (_defaultSettings || newValue != _velocity) {
-                _velocity = newValue;
-                _velocityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue gravity = object.property("gravity");
-    if (gravity.isValid()) {
-        QScriptValue x = gravity.property("x");
-        QScriptValue y = gravity.property("y");
-        QScriptValue z = gravity.property("z");
-        if (x.isValid() && y.isValid() && z.isValid()) {
-            glm::vec3 newValue;
-            newValue.x = x.toVariant().toFloat();
-            newValue.y = y.toVariant().toFloat();
-            newValue.z = z.toVariant().toFloat();
-            if (_defaultSettings || newValue != _gravity) {
-                _gravity = newValue;
-                _gravityChanged = true;
-            }
-        }
-    }
-
-    QScriptValue damping = object.property("damping");
-    if (damping.isValid()) {
-        float newValue;
-        newValue = damping.toVariant().toFloat();
-        if (_defaultSettings || newValue != _damping) {
-            _damping = newValue;
-            _dampingChanged = true;
-        }
-    }
-
-    QScriptValue lifetime = object.property("lifetime");
-    if (lifetime.isValid()) {
-        float newValue;
-        newValue = lifetime.toVariant().toFloat();
-        if (_defaultSettings || newValue != _lifetime) {
-            _lifetime = newValue;
-            _lifetimeChanged = true;
-        }
-    }
-
-    QScriptValue script = object.property("script");
-    if (script.isValid()) {
-        QString newValue;
-        newValue = script.toVariant().toString();
-        if (_defaultSettings || newValue != _script) {
-            _script = newValue;
-            _scriptChanged = true;
-        }
-    }
-
-    QScriptValue color = object.property("color");
-    if (color.isValid()) {
-        QScriptValue red = color.property("red");
-        QScriptValue green = color.property("green");
-        QScriptValue blue = color.property("blue");
-        if (red.isValid() && green.isValid() && blue.isValid()) {
-            xColor newColor;
-            newColor.red = red.toVariant().toInt();
-            newColor.green = green.toVariant().toInt();
-            newColor.blue = blue.toVariant().toInt();
-            if (_defaultSettings || (newColor.red != _color.red ||
-                newColor.green != _color.green ||
-                newColor.blue != _color.blue)) {
-                _color = newColor;
-                _colorChanged = true;
-            }
-        }
-    }
-
-    QScriptValue modelURL = object.property("modelURL");
-    if (modelURL.isValid()) {
-        QString newModelURL;
-        newModelURL = modelURL.toVariant().toString();
-        if (_defaultSettings || newModelURL != _modelURL) {
-            _modelURL = newModelURL;
-            _modelURLChanged = true;
-        }
-    }
-    
-    QScriptValue animationURL = object.property("animationURL");
-    if (animationURL.isValid()) {
-        QString newAnimationURL;
-        newAnimationURL = animationURL.toVariant().toString();
-        if (_defaultSettings || newAnimationURL != _animationURL) {
-            _animationURL = newAnimationURL;
-            _animationURLChanged = true;
-        }
-    }
-
-    QScriptValue animationIsPlaying = object.property("animationIsPlaying");
-    if (animationIsPlaying.isValid()) {
-        bool newIsAnimationPlaying;
-        newIsAnimationPlaying = animationIsPlaying.toVariant().toBool();
-        if (_defaultSettings || newIsAnimationPlaying != _animationIsPlaying) {
-            _animationIsPlaying = newIsAnimationPlaying;
-            _animationIsPlayingChanged = true;
-        }
-    }
-    
-    QScriptValue animationFrameIndex = object.property("animationFrameIndex");
-    if (animationFrameIndex.isValid()) {
-        float newFrameIndex;
-        newFrameIndex = animationFrameIndex.toVariant().toFloat();
-        if (_defaultSettings || newFrameIndex != _animationFrameIndex) {
-            _animationFrameIndex = newFrameIndex;
-            _animationFrameIndexChanged = true;
-        }
-    }
-    
-    QScriptValue animationFPS = object.property("animationFPS");
-    if (animationFPS.isValid()) {
-        float newFPS;
-        newFPS = animationFPS.toVariant().toFloat();
-        if (_defaultSettings || newFPS != _animationFPS) {
-            _animationFPS = newFPS;
-            _animationFPSChanged = true;
-        }
-    }
-    
-    QScriptValue glowLevel = object.property("glowLevel");
-    if (glowLevel.isValid()) {
-        float newGlowLevel;
-        newGlowLevel = glowLevel.toVariant().toFloat();
-        if (_defaultSettings || newGlowLevel != _glowLevel) {
-            _glowLevel = newGlowLevel;
-            _glowLevelChanged = true;
-        }
-    }
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(position, setPosition);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(dimensions, setDimensions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_QUAT(rotation, setRotation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(mass, setMass);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(velocity, setVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(gravity, setGravity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(damping, setDamping);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lifetime, setLifetime);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(script, setScript);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(registrationPoint, setRegistrationPoint);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_VEC3(angularVelocity, setAngularVelocity);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(angularDamping, setAngularDamping);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(visible, setVisible);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(color, setColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(modelURL, setModelURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationURL, setAnimationURL);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(animationIsPlaying, setAnimationIsPlaying);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
 
     _lastEdited = usecTimestampNow();
 }
@@ -432,7 +222,6 @@ void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemP
 //
 bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut) {
-
     OctreePacketData ourDataPacket(false, sizeIn); // create a packetData object to add out packet details too.
     OctreePacketData* packetData = &ourDataPacket; // we want a pointer to this so we can use our APPEND_ENTITY_PROPERTY macro
 
@@ -532,23 +321,26 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             // These items would go here once supported....
             //      PROP_PAGED_PROPERTY,
             //      PROP_CUSTOM_PROPERTIES_INCLUDED,
-            //      PROP_VISIBLE,
 
             APPEND_ENTITY_PROPERTY(PROP_POSITION, appendPosition, properties.getPosition());
-            APPEND_ENTITY_PROPERTY(PROP_RADIUS, appendValue, properties.getRadius());
+            APPEND_ENTITY_PROPERTY(PROP_DIMENSIONS, appendValue, properties.getDimensions()); // NOTE: PROP_RADIUS obsolete
             APPEND_ENTITY_PROPERTY(PROP_ROTATION, appendValue, properties.getRotation());
             APPEND_ENTITY_PROPERTY(PROP_MASS, appendValue, properties.getMass());
             APPEND_ENTITY_PROPERTY(PROP_VELOCITY, appendValue, properties.getVelocity());
             APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, properties.getGravity());
             APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, properties.getDamping());
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
-            //APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());  // not supported by edit messages
+            APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
             APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
+            APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
+            APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, properties.getAngularDamping());
+            APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -727,20 +519,24 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     processedBytes += propertyFlags.getEncodedLength();
 
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_POSITION, glm::vec3, setPosition);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_RADIUS, float, setRadius);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DIMENSIONS, glm::vec3, setDimensions);  // NOTE: PROP_RADIUS obsolete
     READ_ENTITY_PROPERTY_QUAT_TO_PROPERTIES(PROP_ROTATION, setRotation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_MASS, float, setMass);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VELOCITY, glm::vec3, setVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_GRAVITY, glm::vec3, setGravity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_DAMPING, float, setDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
-    //READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript); // not yet supported by edit messages...
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SCRIPT,setScript);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
 
     return valid;
 }
@@ -774,10 +570,8 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
     return true;
 }
 
-
 void EntityItemProperties::markAllChanged() {
     _positionChanged = true;
-    _radiusChanged = true;
     _rotationChanged = true;
     _massChanged = true;
     _velocityChanged = true;
@@ -785,7 +579,10 @@ void EntityItemProperties::markAllChanged() {
     _dampingChanged = true;
     _lifetimeChanged = true;
     _scriptChanged = true;
-
+    _registrationPointChanged = true;
+    _angularVelocityChanged = true;
+    _angularDampingChanged = true;
+    _visibleChanged = true;
     _colorChanged = true;
     _modelURLChanged = true;
     _animationURLChanged = true;
@@ -793,5 +590,36 @@ void EntityItemProperties::markAllChanged() {
     _animationFrameIndexChanged = true;
     _animationFPSChanged = true;
     _glowLevelChanged = true;
+}
 
+AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {
+    AACube maxCube = getMaximumAACubeInMeters();
+    maxCube.scale(1.0f / (float)TREE_SCALE);
+    return maxCube;
+}
+
+/// The maximum bounding cube for the entity, independent of it's rotation.
+/// This accounts for the registration point (upon which rotation occurs around).
+/// 
+AACube EntityItemProperties::getMaximumAACubeInMeters() const { 
+    // * we know that the position is the center of rotation
+    glm::vec3 centerOfRotation = _position; // also where _registration point is
+
+    // * we know that the registration point is the center of rotation
+    // * we can calculate the length of the furthest extent from the registration point
+    //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
+    glm::vec3 registrationPoint = (_dimensions * _registrationPoint);
+    glm::vec3 registrationRemainder = (_dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
+    glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
+
+    // * we know that if you rotate in any direction you would create a sphere
+    //   that has a radius of the length of furthest extent from registration point
+    float radius = glm::length(furthestExtentFromRegistration);
+
+    // * we know that the minimum bounding cube of this maximum possible sphere is
+    //   (center - radius) to (center + radius)
+    glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
+    float diameter = radius * 2.0f;
+
+    return AACube(minimumCorner, diameter);
 }

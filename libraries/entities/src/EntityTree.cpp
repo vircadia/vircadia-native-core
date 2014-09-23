@@ -79,7 +79,10 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityItemID entityID = entityItem->getEntityItemID();
     EntityTreeElement* containingElement = getContainingElement(entityID);
-    assert(containingElement == NULL); // don't call addEntityItem() on existing entity items
+    if (containingElement) {
+        qDebug() << "UNEXPECTED!!!! don't call addEntityItem() on existing entity items. entityID=" << entityID;
+        return;
+    }
 
     // Recurse the tree and store the entity in the correct tree element
     AddEntityOperator theOperator(this, entityItem);
@@ -95,14 +98,13 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        //assert(containingElement); // don't call updateEntity() on entity items that don't exist
         qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
         return false;
     }
 
     EntityItem* existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
-        assert(existingEntity); // don't call updateEntity() on entity items that don't exist
+        qDebug() << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
     
@@ -118,8 +120,8 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 
     containingElement = getContainingElement(entityID);
     if (!containingElement) {
-        qDebug() << "after updateEntity() we no longer have a containing element???";
-        assert(containingElement); // don't call updateEntity() on entity items that don't exist
+        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" << entityID;
+        return false;
     }
     
     return true;
@@ -127,19 +129,20 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 
 
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
+    EntityItem* result = NULL;
+
     // NOTE: This method is used in the client and the server tree. In the client, it's possible to create EntityItems 
     // that do not yet have known IDs. In the server tree however we don't want to have entities without known IDs.
     if (getIsServer() && !entityID.isKnownID) {
-        //assert(entityID.isKnownID);
         qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... (getIsSever() && !entityID.isKnownID)";
+        return result;
     }
 
-    EntityItem* result = NULL;
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qDebug() << "UNEXPECTED!!! ----- EntityTree::addEntity()... entityID=" << entityID << "containingElement=" << containingElement;
-        assert(containingElement == NULL); // don't call addEntity() on existing entity items
+        qDebug() << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID 
+                    << "containingElement=" << containingElement;
         return result;
     }
 
@@ -239,9 +242,9 @@ void EntityTree::removeEntityFromSimulationLists(const EntityItemID& entityID) {
 /// based to known IDs. This means we don't have to recurse the tree to mark the changed path as dirty.
 void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
 
-    //assert(getIsClient()); // we should only call this on client trees
     if (!getIsClient()) {
         qDebug() << "UNEXPECTED!!! EntityTree::handleAddEntityResponse() with !getIsClient() ***";
+        return;
     }
 
     const unsigned char* dataAt = reinterpret_cast<const unsigned char*>(packet.data());
@@ -430,8 +433,15 @@ EntityItem* EntityTree::findEntityByEntityItemID(const EntityItemID& entityID) /
 }
 
 EntityItemID EntityTree::assignEntityID(const EntityItemID& entityItemID) {
-    assert(getIsServer()); // NOTE: this only operates on an server tree.
-    assert(!getContainingElement(entityItemID)); // NOTE: don't call this for existing entityIDs
+    if (!getIsServer()) {
+        qDebug() << "UNEXPECTED!!! assignEntityID should only be called on a server tree. entityItemID:" << entityItemID;
+        return entityItemID;
+    }
+
+    if (getContainingElement(entityItemID)) {
+        qDebug() << "UNEXPECTED!!! don't call assignEntityID() for existing entityIDs. entityItemID:" << entityItemID;
+        return entityItemID;
+    }
 
     // The EntityItemID is responsible for assigning actual IDs and keeping track of them.
     return entityItemID.assignActualIDForToken();
@@ -440,7 +450,10 @@ EntityItemID EntityTree::assignEntityID(const EntityItemID& entityItemID) {
 int EntityTree::processEditPacketData(PacketType packetType, const unsigned char* packetData, int packetLength,
                     const unsigned char* editData, int maxLength, const SharedNodePointer& senderNode) {
 
-    assert(getIsServer()); // NOTE: this only operates on an server tree.
+    if (!getIsServer()) {
+        qDebug() << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
+        return 0;
+    }
 
     int processedBytes = 0;
     // we handle these types of "edit" packets
@@ -488,7 +501,6 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
             processedBytes = 0;
             break;
     }
-    
     return processedBytes;
 }
 
@@ -652,13 +664,14 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                     entitiesToDelete << thisEntity->getEntityItemID();
                     entitiesBecomingStatic << thisEntity;
                 } else {
-                    AACube oldCube = thisEntity->getAACube();
+                    AACube oldCube = thisEntity->getMaximumAACube();
                     thisEntity->update(now);
-                    AACube newCube = thisEntity->getAACube();
+                    AACube newCube = thisEntity->getMaximumAACube();
                     
                     // check to see if this movement has sent the entity outside of the domain.
                     AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
                     if (!domainBounds.touches(newCube)) {
+                        qDebug() << "Entity " << thisEntity->getEntityItemID() << " moved out of domain bounds.";
                         entitiesToDelete << thisEntity->getEntityItemID();
                         entitiesBecomingStatic << thisEntity;
                     } else {
@@ -968,9 +981,21 @@ EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityIt
 
 // TODO: do we need to make this thread safe? Or is it acceptable as is
 void EntityTree::resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element) {
-    assert(entityItemID.id != UNKNOWN_ENTITY_ID);
-    assert(entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN);
-    assert(element);
+    if (entityItemID.id == UNKNOWN_ENTITY_ID) {
+        //assert(entityItemID.id != UNKNOWN_ENTITY_ID);
+        qDebug() << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_ID. entityItemID:" << entityItemID;
+        return;
+    }
+    if (entityItemID.creatorTokenID == UNKNOWN_ENTITY_TOKEN) {
+        //assert(entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN);
+        qDebug() << "UNEXPECTED! resetContainingElement() called with UNKNOWN_ENTITY_TOKEN. entityItemID:" << entityItemID;
+        return;
+    }
+    if (!element) {
+        //assert(element);
+        qDebug() << "UNEXPECTED! resetContainingElement() called with NULL element. entityItemID:" << entityItemID;
+        return;
+    }
     
     // remove the old version with the creatorTokenID
     EntityItemID creatorTokenVersion;

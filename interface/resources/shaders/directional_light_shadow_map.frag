@@ -17,6 +17,9 @@ uniform sampler2D diffuseMap;
 // the normal texture
 uniform sampler2D normalMap;
 
+// the specular texture
+uniform sampler2D specularMap;
+
 // the depth texture
 uniform sampler2D depthMap;
 
@@ -46,15 +49,27 @@ void main(void) {
     // compute the corresponding texture coordinates
     vec3 shadowTexCoord = vec3(dot(gl_EyePlaneS[0], position), dot(gl_EyePlaneT[0], position), dot(gl_EyePlaneR[0], position));
     
-    // compute the color based on OpenGL lighting model, use the alpha from the normal map
+    // get the normal from the map
     vec4 normal = texture2D(normalMap, gl_TexCoord[0].st);
-    float diffuse = dot(normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0), gl_LightSource[0].position);
+    vec4 normalizedNormal = normalize(normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0));
+    
+    // average values from the shadow map
+    float diffuse = dot(normalizedNormal, gl_LightSource[0].position);
     float facingLight = step(0.0, diffuse) * 0.25 *
         (shadow2D(shadowMap, shadowTexCoord + vec3(-shadowScale, -shadowScale, 0.0)).r +
         shadow2D(shadowMap, shadowTexCoord + vec3(-shadowScale, shadowScale, 0.0)).r +
         shadow2D(shadowMap, shadowTexCoord + vec3(shadowScale, -shadowScale, 0.0)).r +
         shadow2D(shadowMap, shadowTexCoord + vec3(shadowScale, shadowScale, 0.0)).r);
+        
+    // compute the base color based on OpenGL lighting model
     vec4 baseColor = texture2D(diffuseMap, gl_TexCoord[0].st) * (gl_FrontLightModelProduct.sceneColor +
         gl_FrontLightProduct[0].ambient + gl_FrontLightProduct[0].diffuse * (diffuse * facingLight));
-    gl_FragColor = vec4(baseColor.rgb, normal.a);
+    
+    // compute the specular multiplier (sans exponent)
+    float specular = facingLight * max(0.0, dot(normalize(gl_LightSource[0].position - normalize(vec4(position.xyz, 0.0))),
+        normalizedNormal));    
+    
+    // add specular contribution
+    vec4 specularColor = texture2D(specularMap, gl_TexCoord[0].st);
+    gl_FragColor = vec4(baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb, normal.a);
 }

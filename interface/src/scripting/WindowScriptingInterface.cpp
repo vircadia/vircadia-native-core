@@ -34,6 +34,26 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
 }
 
+QScriptValue WindowScriptingInterface::hasFocus() {
+    return Application::getInstance()->getGLWidget()->hasFocus();
+}
+
+void WindowScriptingInterface::setCursorVisible(bool visible) {
+    Application::getInstance()->setCursorVisible(visible);
+}
+
+void WindowScriptingInterface::setCursorPosition(int x, int y) {
+    QCursor::setPos(x, y);
+}
+
+QScriptValue WindowScriptingInterface::getCursorPositionX() {
+    return QCursor::pos().x();
+}
+
+QScriptValue WindowScriptingInterface::getCursorPositionY() {
+    return QCursor::pos().y();
+}
+
 QScriptValue WindowScriptingInterface::alert(const QString& message) {
     QScriptValue retVal;
     QMetaObject::invokeMethod(this, "showAlert", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QScriptValue, retVal), Q_ARG(const QString&, message));
@@ -220,6 +240,7 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
     if (_formResult == QDialog::Accepted) {
         int e = -1;
         int d = -1;
+        int c = -1;
         for (int i = 0; i < _form.property("length").toInt32(); ++i) {
             QScriptValue item = _form.property(i);
             QScriptValue value = item.property("value");
@@ -234,6 +255,10 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
                 d += 1;
                 value = _directories.at(d)->property("path").toString();
                 item.setProperty("directory", value);
+                _form.setProperty(i, item);
+            } else if (item.property("options").isArray()) {
+                c += 1;
+                item.setProperty("value", _combos.at(c)->currentText());
                 _form.setProperty(i, item);
             } else {
                 e += 1;
@@ -288,6 +313,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
     if (result == QDialog::Accepted) {
         int e = -1;
         int d = -1;
+        int c = -1;
         for (int i = 0; i < form.property("length").toInt32(); ++i) {
             QScriptValue item = form.property(i);
             QScriptValue value = item.property("value");
@@ -303,6 +329,10 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
                 value = _directories.at(d)->property("path").toString();
                 item.setProperty("directory", value);
                 form.setProperty(i, item);
+            } else if (item.property("options").isArray()) {
+                c += 1;
+                item.setProperty("value", _combos.at(c)->currentText());
+                _form.setProperty(i, item);
             } else {
                 e += 1;
                 bool ok = true;
@@ -405,6 +435,15 @@ QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue
 
         } else if (item.property("type").toString() == "header") {
             formLayout->addRow(new QLabel(item.property("label").toString()));
+        } else if (item.property("options").isArray()) {
+            QComboBox* combo = new QComboBox();
+            combo->setMinimumWidth(200);
+            QStringList options = item.property("options").toVariant().toStringList();
+            for (QStringList::const_iterator it = options.begin(); it != options.end(); it += 1) {
+                combo->addItem(*it);
+            }
+            _combos.push_back(combo);
+            formLayout->addRow(new QLabel(item.property("label").toString()), combo);
         } else {
             QLineEdit* edit = new QLineEdit(item.property("value").toString());
             edit->setMinimumWidth(200);
@@ -496,4 +535,12 @@ int WindowScriptingInterface::getInnerWidth() {
 
 int WindowScriptingInterface::getInnerHeight() {
     return Application::getInstance()->getWindow()->geometry().height();
+}
+
+int WindowScriptingInterface::getX() {
+    return Application::getInstance()->getWindow()->x();
+}
+
+int WindowScriptingInterface::getY() {
+    return Application::getInstance()->getWindow()->y();
 }

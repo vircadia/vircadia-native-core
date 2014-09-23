@@ -60,6 +60,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
+    setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
     
     Model::simulate(deltaTime, fullUpdate);
     
@@ -280,7 +281,7 @@ void SkeletonModel::maybeUpdateNeckRotation(const JointState& parentState, const
 }
 
 void SkeletonModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
-    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(parentState, joint, state);
+    _owningAvatar->getHead()->getFaceModel().maybeUpdateEyeRotation(this, parentState, joint, state);
 }
 
 void SkeletonModel::renderJointConstraints(int jointIndex) {

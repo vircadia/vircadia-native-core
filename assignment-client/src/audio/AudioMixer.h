@@ -18,11 +18,11 @@
 
 class PositionalAudioStream;
 class AvatarAudioStream;
+class AudioMixerClientData;
 
 const int SAMPLE_PHASE_DELAY_AT_90 = 20;
 
 const int READ_DATAGRAMS_STATS_WINDOW_SECONDS = 30;
-
 
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer : public ThreadedAssignment {
@@ -43,15 +43,21 @@ public slots:
     
 private:
     /// adds one stream to the mix for a listening node
-    int addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
-                                                  AvatarAudioStream* listeningNodeStream);
+    int addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
+                                                    const QUuid& streamUUID,
+                                                    PositionalAudioStream* streamToAdd,
+                                                    AvatarAudioStream* listeningNodeStream);
     
     /// prepares and sends a mix to one Node
     int prepareMixForListeningNode(Node* node);
+
+    // used on a per stream basis to run the filter on before mixing, large enough to handle the historical
+    // data from a phase delay as well as an entire network buffer
+    int16_t _preMixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
     
     // client samples capacity is larger than what will be sent to optimize mixing
     // we are MMX adding 4 samples at a time so we need client samples to have an extra 4
-    int16_t _clientSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
+    int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
     void perSecondActions();
 

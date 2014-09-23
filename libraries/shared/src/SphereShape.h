@@ -34,7 +34,7 @@ public:
 
     void setRadius(float radius) { _boundingRadius = radius; }
 
-    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
 
     float getVolume() const { return 1.3333333333f * PI * _boundingRadius * _boundingRadius * _boundingRadius; }
 };

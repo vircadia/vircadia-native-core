@@ -51,6 +51,7 @@
 #include <QMimeData>
 #include <QMessageBox>
 
+#include <AddressManager.h>
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
@@ -67,6 +68,7 @@
 #include <UUID.h>
 
 #include "Application.h"
+#include "ui/DataWebDialog.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
@@ -80,10 +82,11 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/GlobalServicesScriptingInterface.h"
+#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
-#include "scripting/LocationScriptingInterface.h"
 
 #include "ui/InfoView.h"
 #include "ui/OAuthWebViewHandler.h"
@@ -216,6 +219,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     if (portStr) {
         listenPort = atoi(portStr);
     }
+    
+    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
+    // make sure it is ready before the NodeList might need it
+    OAuthWebViewHandler::getInstance();
 
     // start the nodeThread so its event loop is running
     _nodeThread->start();
@@ -289,6 +296,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
+    
+    AddressManager& addressManager = AddressManager::getInstance();
+    
+    // connect to the domainChangeRequired signal on AddressManager
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+            this, &Application::changeDomainHostname);
+    
+    // when -url in command line, teleport to location
+    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -358,9 +374,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     Particle::setVoxelEditPacketSender(&_voxelEditSender);
     Particle::setParticleEditPacketSender(&_particleEditSender);
 
-    // when -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
-
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
     // allow you to move a particle around in your hand
@@ -405,14 +418,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(_window, &MainWindow::windowGeometryChanged,
             _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
-
-    //When -url in command line, teleport to location
-    urlGoTo(argc, constArgv);
-
-    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
-    OAuthWebViewHandler::getInstance();
-    // make sure the High Fidelity root CA is in our list of trusted certs
-    OAuthWebViewHandler::addHighFidelityRootCAToSSLConfig();
 
     _trayIcon->show();
     
@@ -690,14 +695,14 @@ void Application::paintGL() {
         displaySide(whichCamera);
         glPopMatrix();
 
-        _glowEffect.render();
-
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             renderRearViewMirror(_mirrorViewRect);
 
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
         }
+
+        _glowEffect.render();
 
         {
             PerformanceTimer perfTimer("renderOverlay");
@@ -806,13 +811,16 @@ bool Application::event(QEvent* event) {
 
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
+        
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        bool isHifiSchemeURL = !fileEvent->url().isEmpty() && fileEvent->url().toLocalFile().startsWith(CUSTOM_URL_SCHEME);
-        if (isHifiSchemeURL) {
-            Menu::getInstance()->goToURL(fileEvent->url().toLocalFile());
+        
+        if (!fileEvent->url().isEmpty()) {
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
         }
+        
         return false;
     }
+    
     return QApplication::event(event);
 }
 
@@ -905,12 +913,26 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_D:
-                _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                if (!isMeta) {
+                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                }
                 break;
 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                Menu::getInstance()->triggerOption(MenuOption::Chat);
+                if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::AddressBar);
+                } else {
+                    Menu::getInstance()->triggerOption(MenuOption::Chat);
+                }
+                
+                break;
+                
+            case Qt::Key_N:
+                if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::NameLocation);
+                }
+                
                 break;
 
             case Qt::Key_Up:
@@ -1057,10 +1079,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
-
-            case Qt::Key_At:
-                Menu::getInstance()->goTo();
-                break;
             default:
                 event->ignore();
                 break;
@@ -1073,7 +1091,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     _keysPressed.remove(event->key());
 
     _controllerScriptingInterface.emitKeyReleaseEvent(event); // send events to any registered scripts
-
+    
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isKeyCaptured(event)) {
         return;
@@ -1125,7 +1143,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             _myAvatar->setDriveKeys(RIGHT, 0.f);
             _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
             break;
-
+        case Qt::Key_Control:
+        case Qt::Key_Shift:
+        case Qt::Key_Meta:
+        case Qt::Key_Alt:
+            _myAvatar->clearDriveKeys();
+            break;
         default:
             event->ignore();
             break;
@@ -1314,7 +1337,7 @@ void Application::dropEvent(QDropEvent *event) {
     SnapshotMetaData* snapshotData = Snapshot::parseSnapshotData(snapshotPath);
     if (snapshotData) {
         if (!snapshotData->getDomain().isEmpty()) {
-            Menu::getInstance()->goToDomain(snapshotData->getDomain());
+            changeDomainHostname(snapshotData->getDomain());
         }
 
         _myAvatar->setPosition(snapshotData->getLocation());
@@ -1424,6 +1447,14 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        if (fullscreen) {
+            // Menu show() after hide() doesn't work with Rift VR display so set height instead.
+            _window->menuBar()->setMaximumHeight(0);
+        } else {
+            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
+        }
+    }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
 }
@@ -1728,6 +1759,7 @@ void Application::init() {
 
     _environment.init();
 
+    _deferredLightingEffect.init();
     _glowEffect.init();
     _ambientOcclusionEffect.init();
     _voxelShader.init();
@@ -2683,7 +2715,6 @@ void Application::updateShadowMap() {
 const GLfloat WORLD_AMBIENT_COLOR[] = { 0.525f, 0.525f, 0.6f };
 const GLfloat WORLD_DIFFUSE_COLOR[] = { 0.6f, 0.525f, 0.525f };
 const GLfloat WORLD_SPECULAR_COLOR[] = { 0.94f, 0.94f, 0.737f, 1.0f };
-const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 void Application::setupWorldLight() {
 
@@ -2704,15 +2735,14 @@ void Application::setupWorldLight() {
 QImage Application::renderAvatarBillboard() {
     _textureCache.getPrimaryFramebufferObject()->bind();
 
-    glDisable(GL_BLEND);
+    // the "glow" here causes an alpha of one
+    Glower glower;
 
     const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-
-    glEnable(GL_BLEND);
 
     _textureCache.getPrimaryFramebufferObject()->release();
 
@@ -2723,6 +2753,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
+
+    // load the view frustum
+    loadViewFrustum(whichCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2814,6 +2847,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
 
+    _deferredLightingEffect.prepare();
+
     if (!selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
@@ -2822,15 +2857,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             glutSolidSphere(originSphereRadius, 15, 15);
         glPopMatrix();
 
-        // disable specular lighting for ground and voxels
-        glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-
         // draw the audio reflector overlay
         {
             PerformanceTimer perfTimer("audio");
             _audioReflector.render();
         }
         
+        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
+            PerformanceTimer perfTimer("buckyBalls");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                "Application::displaySide() ... bucky balls...");
+            _buckyBalls.render();
+        }
+
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -2845,13 +2884,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
-        }
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
         }
 
         // render particles...
@@ -2877,27 +2909,34 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                 "Application::displaySide() ... AmbientOcclusion...");
             _ambientOcclusionEffect.render();
         }
-
-        // restore default, white specular
-        glMaterialfv(GL_FRONT, GL_SPECULAR, WORLD_SPECULAR_COLOR);
-
-        _nodeBoundsDisplay.draw();
-
     }
 
     bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
-        
-        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE, selfAvatarOnly);
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+            false, selfAvatarOnly);   
+    }
+    
+    {
+        PerformanceTimer perfTimer("lighting");
+        _deferredLightingEffect.render();
+    }
 
-        //Render the sixense lasers
-        if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
-            _myAvatar->renderLaserPointers();
-        }
+    {
+        PerformanceTimer perfTimer("avatarsPostLighting");
+        _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
+            true, selfAvatarOnly);   
+    }
+    
+    //Render the sixense lasers
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+        _myAvatar->renderLaserPointers();
     }
 
     if (!selfAvatarOnly) {
+        _nodeBoundsDisplay.draw();
+    
         //  Render the world box
         if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats) && 
                 Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
@@ -2971,7 +3010,14 @@ void Application::getProjectionMatrix(glm::dmat4* projectionMatrix) {
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    // allow 3DTV/Oculus to override parameters from camera
+    _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    if (OculusManager::isConnected()) {
+        OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    } else if (TV3DManager::isConnected()) {
+        TV3DManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);    
+    }
 }
 
 glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
@@ -3357,29 +3403,54 @@ void Application::updateWindowTitle(){
         title += " - ₵" + creditBalanceString;
     }
 
+#ifndef WIN32
+    // crashes with vs2013/win32
     qDebug("Application title set to: %s", title.toStdString().c_str());
+#endif
     _window->setWindowTitle(title);
 }
 
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-
-    if (accountManager.isLoggedIn()) {
+    const QUuid& domainUUID = NodeList::getInstance()->getDomainHandler().getUUID();
+    
+    if (accountManager.isLoggedIn() && !domainUUID.isNull()) {
 
         // construct a QJsonObject given the user's current address information
-        QJsonObject updatedLocationObject;
+        QJsonObject rootObject;
 
-        QJsonObject addressObject;
-        addressObject.insert("position", QString(createByteArray(_myAvatar->getPosition())));
-        addressObject.insert("orientation", QString(createByteArray(glm::degrees(safeEulerAngles(_myAvatar->getOrientation())))));
-        addressObject.insert("domain", NodeList::getInstance()->getDomainHandler().getHostname());
+        QJsonObject locationObject;
+        
+        QString pathString = AddressManager::pathForPositionAndOrientation(_myAvatar->getPosition(),
+                                                                           true,
+                                                                           _myAvatar->getOrientation());
+       
+        const QString LOCATION_KEY_IN_ROOT = "location";
+        const QString PATH_KEY_IN_LOCATION = "path";
+        const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
+        
+        locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
+        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainUUID.toString());
 
-        updatedLocationObject.insert("address", addressObject);
+        rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
-                                            JSONCallbackParameters(), QJsonDocument(updatedLocationObject).toJson());
+        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+                                            JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
+}
+
+void Application::changeDomainHostname(const QString &newDomainHostname) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    if (!nodeList->getDomainHandler().isCurrentHostname(newDomainHostname)) {
+        // tell the MyAvatar object to send a kill packet so that it dissapears from its old avatar mixer immediately
+        _myAvatar->sendKillAvatar();
+        
+        // call the domain hostname change as a queued connection on the nodelist
+        QMetaObject::invokeMethod(&NodeList::getInstance()->getDomainHandler(), "setHostname",
+                                  Q_ARG(const QString&, newDomainHostname));
+    }
 }
 
 void Application::domainChanged(const QString& domainHostname) {
@@ -3739,8 +3810,8 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
     scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 
-    // model has some custom types
-    Model::registerMetaTypes(scriptEngine);
+    // AvatarManager has some custom types
+    AvatarManager::registerMetaTypes(scriptEngine);
 
     // hook our avatar object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
@@ -3765,12 +3836,11 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                      LocationScriptingInterface::locationSetter, windowValue);
-
+                                       LocationScriptingInterface::locationSetter, windowValue);
     // register `location` on the global object.
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
-                                      LocationScriptingInterface::locationSetter);
-
+                                       LocationScriptingInterface::locationSetter);
+    
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
@@ -3778,9 +3848,11 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
-    
+
+    scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
-    
+
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
 #endif
@@ -3838,7 +3910,7 @@ void Application::stopAllScripts(bool restart) {
     // HACK: ATM scripts cannot set/get their animation priorities, so we clear priorities
     // whenever a script stops in case it happened to have been setting joint rotations.
     // TODO: expose animation priorities and provide a layered animation control system.
-    _myAvatar->clearJointAnimationPriorities();
+    _myAvatar->clearScriptableSettings();
 }
 
 void Application::stopScript(const QString &scriptName) {
@@ -3850,6 +3922,9 @@ void Application::stopScript(const QString &scriptName) {
         // whenever a script stops in case it happened to have been setting joint rotations.
         // TODO: expose animation priorities and provide a layered animation control system.
         _myAvatar->clearJointAnimationPriorities();
+    }
+    if (_scriptEnginesHash.empty()) {
+        _myAvatar->clearScriptableSettings();
     }
 }
 
@@ -3896,6 +3971,17 @@ void Application::uploadSkeleton() {
 
 void Application::uploadAttachment() {
     uploadModel(ATTACHMENT_MODEL);
+}
+
+void Application::openUrl(const QUrl& url) {
+    if (!url.isEmpty()) {
+        if (url.scheme() == HIFI_URL_SCHEME) {
+            AddressManager::getInstance().handleLookupString(url.toString());
+        } else {
+            // address manager did not handle - ask QDesktopServices to handle
+            QDesktopServices::openUrl(url);
+        }
+    }
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
@@ -4068,13 +4154,21 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.write(latestVersion.toStdString().c_str());
 }
 
+void Application::setCursorVisible(bool visible) {
+    if (visible) {
+        restoreOverrideCursor();
+    } else {
+        setOverrideCursor(Qt::BlankCursor);
+    }
+}
+
 void Application::takeSnapshot() {
     QMediaPlayer* player = new QMediaPlayer();
     QFileInfo inf = QFileInfo(Application::resourcesPath() + "sounds/snap.wav");
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
+    QString fileName = Snapshot::saveSnapshot();
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {
@@ -4085,38 +4179,4 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
-}
-
-void Application::urlGoTo(int argc, const char * constArgv[]) {
-    //Gets the url (hifi://domain/destination/orientation)
-    QString customUrl = getCmdOption(argc, constArgv, "-url");
-    if(customUrl.startsWith(CUSTOM_URL_SCHEME + "//")) {
-        QStringList urlParts = customUrl.remove(0, CUSTOM_URL_SCHEME.length() + 2).split('/', QString::SkipEmptyParts);
-        if (urlParts.count() == 1) {
-            // location coordinates or place name
-             QString domain = urlParts[0];
-             Menu::goToDomain(domain);
-        } else if (urlParts.count() > 1) {
-            // if url has 2 or more parts, the first one is domain name
-            QString domain = urlParts[0];
-
-            // second part is either a destination coordinate or
-            // a place name
-            QString destination = urlParts[1];
-
-            // any third part is an avatar orientation.
-            QString orientation = urlParts.count() > 2 ? urlParts[2] : QString();
-
-            Menu::goToDomain(domain);
-
-            // goto either @user, #place, or x-xx,y-yy,z-zz
-            // style co-ordinate.
-            Menu::goTo(destination);
-
-            if (!orientation.isEmpty()) {
-                // location orientation
-                Menu::goToOrientation(orientation);
-            }
-        }
-    }
 }

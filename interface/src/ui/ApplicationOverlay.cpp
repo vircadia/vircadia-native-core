@@ -414,7 +414,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     renderTexturedHemisphere();
 
-    renderPointersOculus(whichCamera.getPosition());
+    renderPointersOculus(myAvatar->getHead()->getEyePosition());
 
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);

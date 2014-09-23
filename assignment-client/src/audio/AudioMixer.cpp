@@ -57,6 +57,8 @@
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
+
+
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
@@ -92,7 +94,8 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _timeSpentPerHashMatchCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
     _readPendingCallsPerSecondStats(1, READ_DATAGRAMS_STATS_WINDOW_SECONDS)
 {
-    
+    // constant defined in AudioMixer.h.  However, we don't want to include this here
+    // we will soon find a better common home for these audio-related constants
 }
 
 AudioMixer::~AudioMixer() {
@@ -102,16 +105,20 @@ AudioMixer::~AudioMixer() {
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
-const float ATTENUATION_EPSILON_DISTANCE = 0.1f;
+const float RADIUS_OF_HEAD = 0.076f;
 
-int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* streamToAdd,
-                                                          AvatarAudioStream* listeningNodeStream) {
+int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
+                                                            const QUuid& streamUUID,
+                                                            PositionalAudioStream* streamToAdd,
+                                                            AvatarAudioStream* listeningNodeStream) {
     // If repetition with fade is enabled:
     // If streamToAdd could not provide a frame (it was starved), then we'll mix its previously-mixed frame
     // This is preferable to not mixing it at all since that's equivalent to inserting silence.
     // Basically, we'll repeat that last frame until it has a frame to mix.  Depending on how many times
     // we've repeated that frame in a row, we'll gradually fade that repeated frame into silence.
     // This improves the perceived quality of the audio slightly.
+    
+    bool showDebug = false;  // (randFloat() < 0.05f);
 
     float repeatedFrameFadeFactor = 1.0f;
 
@@ -140,177 +147,86 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
     
-    bool shouldAttenuate = (streamToAdd != listeningNodeStream);
+    bool shouldDistanceAttenuate = true;
     
-    if (shouldAttenuate) {
-        
-        // if the two stream pointers do not match then these are different streams
-        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
-        
-        float distanceBetween = glm::length(relativePosition);
-        
-        if (distanceBetween < EPSILON) {
-            distanceBetween = EPSILON;
-        }
-        
-        if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
-            // according to mixer performance we have decided this does not get to be mixed in
-            // bail out
-            return 0;
-        }
-        
-        ++_sumMixes;
-        
-        if (streamToAdd->getListenerUnattenuatedZone()) {
-            shouldAttenuate = !streamToAdd->getListenerUnattenuatedZone()->contains(listeningNodeStream->getPosition());
-        }
-        
-        if (streamToAdd->getType() == PositionalAudioStream::Injector) {
-            attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
-        }
-        
-        shouldAttenuate = shouldAttenuate && distanceBetween > ATTENUATION_EPSILON_DISTANCE;
-        
-        if (shouldAttenuate) {
-            glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
-            
-            float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
-            float radius = 0.0f;
-            
-            if (streamToAdd->getType() == PositionalAudioStream::Injector) {
-                radius = reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getRadius();
-            }
-            
-            if (radius == 0 || (distanceSquareToSource > radius * radius)) {
-                // this is either not a spherical source, or the listener is outside the sphere
-                
-                if (radius > 0) {
-                    // this is a spherical source - the distance used for the coefficient
-                    // needs to be the closest point on the boundary to the source
-                    
-                    // ovveride the distance to the node with the distance to the point on the
-                    // boundary of the sphere
-                    distanceSquareToSource -= (radius * radius);
-                    
-                } else {
-                    // calculate the angle delivery for off-axis attenuation
-                    glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
-                    
-                    float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                       glm::normalize(rotatedListenerPosition));
-                    
-                    const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-                    const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-                    
-                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
-                    
-                    // multiply the current attenuation coefficient by the calculated off axis coefficient
-                    attenuationCoefficient *= offAxisCoefficient;
-                }
-                
-                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-                
-                if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
-                    // calculate the distance coefficient using the distance to this node
-                    float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                                     * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
-                    
-                    if (distanceCoefficient < 0) {
-                        distanceCoefficient = 0;
-                    }
-                    
-                    // multiply the current attenuation coefficient by the distance coefficient
-                    attenuationCoefficient *= distanceCoefficient;
-                }
-                
-                // project the rotated source position vector onto the XZ plane
-                rotatedSourcePosition.y = 0.0f;
-                
-                // produce an oriented angle about the y-axis
-                bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                                  glm::normalize(rotatedSourcePosition),
-                                                                  glm::vec3(0.0f, 1.0f, 0.0f));
-                
-                const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-                
-                // figure out the number of samples of delay and the ratio of the amplitude
-                // in the weak channel for audio spatialization
-                float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
-                numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
-                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-            }
+    //  Is the source that I am mixing my own?
+    bool sourceIsSelf = (streamToAdd == listeningNodeStream);
+    
+    glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
+    
+    float distanceBetween = glm::length(relativePosition);
+    
+    if (distanceBetween < EPSILON) {
+        distanceBetween = EPSILON;
+    }
+    
+    if (streamToAdd->getLastPopOutputTrailingLoudness() / distanceBetween <= _minAudibilityThreshold) {
+        // according to mixer performance we have decided this does not get to be mixed in
+        // bail out
+        return 0;
+    }
+    
+    ++_sumMixes;
+    
+    if (streamToAdd->getListenerUnattenuatedZone()) {
+        shouldDistanceAttenuate = !streamToAdd->getListenerUnattenuatedZone()->contains(listeningNodeStream->getPosition());
+    }
+    
+    if (streamToAdd->getType() == PositionalAudioStream::Injector) {
+        attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
+        if (showDebug) {
+            qDebug() << "AttenuationRatio: " << reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
         }
     }
     
-    AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd->getLastPopOutput();
+    if (showDebug) {
+        qDebug() << "distance: " << distanceBetween;
+    }
     
-    if (!streamToAdd->isStereo() && shouldAttenuate) {
-        // this is a mono stream, which means it gets full attenuation and spatialization
+    glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
+    
+    if (!sourceIsSelf && (streamToAdd->getType() == PositionalAudioStream::Microphone)) {
+        //  source is another avatar, apply fixed off-axis attenuation to make them quieter as they turn away from listener
+        glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd->getOrientation()) * relativePosition;
         
-        // if the bearing relative angle to source is > 0 then the delayed channel is the right one
-        int delayedChannelOffset = (bearingRelativeAngleToSource > 0.0f) ? 1 : 0;
-        int goodChannelOffset = delayedChannelOffset == 0 ? 1 : 0;
+        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                           glm::normalize(rotatedListenerPosition));
         
-        int16_t correctStreamSample[2], delayStreamSample[2];
-        int delayedChannelIndex = 0;
+        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
         
-        const int SINGLE_STEREO_OFFSET = 2;
-        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / PI_OVER_TWO));
         
-        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s += 4) {
+        if (showDebug) {
+            qDebug() << "angleOfDelivery" << angleOfDelivery << "offAxisCoefficient: " << offAxisCoefficient;
             
-            // setup the int16_t variables for the two sample sets
-            correctStreamSample[0] = streamPopOutput[s / 2] * attenuationAndFade;
-            correctStreamSample[1] = streamPopOutput[(s / 2) + 1] * attenuationAndFade;
-            
-            delayedChannelIndex = s + (numSamplesDelay * 2) + delayedChannelOffset;
-            
-            delayStreamSample[0] = correctStreamSample[0] * weakChannelAmplitudeRatio;
-            delayStreamSample[1] = correctStreamSample[1] * weakChannelAmplitudeRatio;
-            
-            _clientSamples[s + goodChannelOffset] += correctStreamSample[0];
-            _clientSamples[s + goodChannelOffset + SINGLE_STEREO_OFFSET] += correctStreamSample[1];
-            _clientSamples[delayedChannelIndex] += delayStreamSample[0];
-            _clientSamples[delayedChannelIndex + SINGLE_STEREO_OFFSET] += delayStreamSample[1];
+        }
+        // multiply the current attenuation coefficient by the calculated off axis coefficient
+        
+        attenuationCoefficient *= offAxisCoefficient;
+    }
+    
+    if (shouldDistanceAttenuate && (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE)) {
+        // calculate the distance coefficient using the distance to this node
+        float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
+                                         * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
+        
+        if (distanceCoefficient < 0) {
+            distanceCoefficient = 0;
         }
         
-        if (numSamplesDelay > 0) {
-            // if there was a sample delay for this stream, we need to pull samples prior to the popped output
-            // to stick at the beginning
-            float attenuationAndWeakChannelRatioAndFade = attenuationCoefficient * weakChannelAmplitudeRatio * repeatedFrameFadeFactor;
-            AudioRingBuffer::ConstIterator delayStreamPopOutput = streamPopOutput - numSamplesDelay;
-
-            // TODO: delayStreamPopOutput may be inside the last frame written if the ringbuffer is completely full
-            // maybe make AudioRingBuffer have 1 extra frame in its buffer
-            
-            for (int i = 0; i < numSamplesDelay; i++) {
-                int parentIndex = i * 2;
-                _clientSamples[parentIndex + delayedChannelOffset] += *delayStreamPopOutput * attenuationAndWeakChannelRatioAndFade;
-                ++delayStreamPopOutput;
-            }
-        }
-    } else {
-        int stereoDivider = streamToAdd->isStereo() ? 1 : 2;
-
-        if (!shouldAttenuate) {
-            attenuationCoefficient = 1.0f;
-        }
-
-        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
-
-        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
-            _clientSamples[s] = glm::clamp(_clientSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
-                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        // multiply the current attenuation coefficient by the distance coefficient
+        attenuationCoefficient *= distanceCoefficient;
+        if (showDebug) {
+            qDebug() << "distanceCoefficient: " << distanceCoefficient;
         }
     }
-
-    if (_enableFilter && shouldAttenuate) {
-
-        glm::vec3 relativePosition = streamToAdd->getPosition() - listeningNodeStream->getPosition();
-        glm::quat inverseOrientation = glm::inverse(listeningNodeStream->getOrientation());
+    
+    if (!sourceIsSelf) {
+        //  Compute sample delay for the two ears to create phase panning
         glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-        
+
         // project the rotated source position vector onto the XZ plane
         rotatedSourcePosition.y = 0.0f;
         
@@ -319,49 +235,197 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
                                                           glm::normalize(rotatedSourcePosition),
                                                           glm::vec3(0.0f, 1.0f, 0.0f));
         
-        // if the source is in the range (-pi/2,+pi/2) (e.g, -Z from the listener's perspective
-        if (bearingRelativeAngleToSource < -PI_OVER_TWO || bearingRelativeAngleToSource > PI_OVER_TWO)
-        {
-            AudioFilterHSF1s& penumbraFilter = streamToAdd->getFilter();
+        const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+        
+        // figure out the number of samples of delay and the ratio of the amplitude
+        // in the weak channel for audio spatialization
+        float sinRatio = fabsf(sinf(bearingRelativeAngleToSource));
+        numSamplesDelay = SAMPLE_PHASE_DELAY_AT_90 * sinRatio;
+        weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+        
+        if (distanceBetween < RADIUS_OF_HEAD) {
+            // Diminish phase panning if source would be inside head
+            numSamplesDelay *= distanceBetween / RADIUS_OF_HEAD;
+            weakChannelAmplitudeRatio += (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio) * distanceBetween / RADIUS_OF_HEAD;
+        }
+    }
+    
+    if (showDebug) {
+        qDebug() << "attenuation: " << attenuationCoefficient;
+        qDebug() << "bearingRelativeAngleToSource: " << bearingRelativeAngleToSource << " numSamplesDelay: " << numSamplesDelay;
+    }
+    
+    AudioRingBuffer::ConstIterator streamPopOutput = streamToAdd->getLastPopOutput();
+    
+    if (!streamToAdd->isStereo()) {
+        // this is a mono stream, which means it gets full attenuation and spatialization
+        
+        // we need to do several things in this process:
+        //    1) convert from mono to stereo by copying each input sample into the left and right output samples
+        //    2) 
+        //    2) apply an attenuation AND fade to all samples (left and right)
+        //    3) based on the bearing relative angle to the source we will weaken and delay either the left or
+        //       right channel of the input into the output
+        //    4) because one of these channels is delayed, we will need to use historical samples from 
+        //       the input stream for that delayed channel
 
-            const float FULL_POWER = 1.0f;
-            const float SQUARE_ROOT_OF_TWO_OVER_TWO = 0.71f;
-            const float HALF_POWER = SQUARE_ROOT_OF_TWO_OVER_TWO;
-            
-            const float ONE_OVER_TWO_PI = 1.0f / TWO_PI;
-            const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
-            
-            // calculate the updated gain, frequency and slope. 
-            const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
-            const float penumbraFilterSlope = SQUARE_ROOT_OF_TWO_OVER_TWO; // constant slope
+        // Mono input to stereo output (item 1 above)
+        int OUTPUT_SAMPLES_PER_INPUT_SAMPLE = 2;
+        int inputSampleCount = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+        int maxOutputIndex = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
 
-            const float penumbraFilterGainL = (bearingRelativeAngleToSource <= -PI_OVER_TWO) ?
-                ((+1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource + PI_OVER_TWO)) + FULL_POWER) :
-                ((+1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource - PI)) + HALF_POWER);
-                
-            const float penumbraFilterGainR = (bearingRelativeAngleToSource <= -PI_OVER_TWO) ?
-                ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource + PI_OVER_TWO)) + HALF_POWER) :
-                ((-1.0 * ONE_OVER_TWO_PI * (bearingRelativeAngleToSource - PI)) + HALF_POWER);
-            
+        // attenuation and fade applied to all samples (item 2 above)
+        float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+
+        // determine which side is weak and delayed (item 3 above)
+        bool rightSideWeakAndDelayed = (bearingRelativeAngleToSource > 0.0f);
+        
+        // since we're converting from mono to stereo, we'll use these two indices to step through
+        // the output samples. we'll increment each index independently in the loop
+        int leftDestinationIndex = 0;
+        int rightDestinationIndex = 1;
+        
+        // One of our two channels will be delayed (determined below). We'll use this index to step
+        // through filling in our output with the historical samples for the delayed channel.  (item 4 above)
+        int delayedChannelHistoricalAudioOutputIndex;
+
+        // All samples will be attenuated by at least this much
+        float leftSideAttenuation = attenuationAndFade;
+        float rightSideAttenuation = attenuationAndFade;
+        
+        // The weak/delayed channel will be attenuated by this additional amount
+        float attenuationAndWeakChannelRatioAndFade = attenuationAndFade * weakChannelAmplitudeRatio;
+        
+        // Now, based on the determination of which side is weak and delayed, set up our true starting point
+        // for our indexes, as well as the appropriate attenuation for each channel
+        if (rightSideWeakAndDelayed) {
+            delayedChannelHistoricalAudioOutputIndex = rightDestinationIndex; 
+            rightSideAttenuation = attenuationAndWeakChannelRatioAndFade;
+            rightDestinationIndex += (numSamplesDelay * OUTPUT_SAMPLES_PER_INPUT_SAMPLE);
+        } else {
+            delayedChannelHistoricalAudioOutputIndex = leftDestinationIndex;
+            leftSideAttenuation = attenuationAndWeakChannelRatioAndFade;
+            leftDestinationIndex += (numSamplesDelay * OUTPUT_SAMPLES_PER_INPUT_SAMPLE);
+        }
+
+        // If there was a sample delay for this stream, we need to pull samples prior to the official start of the input
+        // and stick those samples at the beginning of the output. We only need to loop through this for the weak/delayed
+        // side, since the normal side is fully handled below. (item 4 above)
+        if (numSamplesDelay > 0) {
+
+            // TODO: delayStreamSourceSamples may be inside the last frame written if the ringbuffer is completely full
+            // maybe make AudioRingBuffer have 1 extra frame in its buffer
+            AudioRingBuffer::ConstIterator delayStreamSourceSamples = streamPopOutput - numSamplesDelay;
+
+            for (int i = 0; i < numSamplesDelay; i++) {
+                int16_t originalHistoricalSample = *delayStreamSourceSamples;
+
+                _preMixSamples[delayedChannelHistoricalAudioOutputIndex] += originalHistoricalSample 
+                                                                                 * attenuationAndWeakChannelRatioAndFade;
+                ++delayStreamSourceSamples; // move our input pointer
+                delayedChannelHistoricalAudioOutputIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE; // move our output sample
+            }
+        }
+
+        // Here's where we copy the MONO input to the STEREO output, and account for delay and weak side attenuation
+        for (int inputSample = 0; inputSample < inputSampleCount; inputSample++) {
+            int16_t originalSample = streamPopOutput[inputSample];
+            int16_t leftSideSample = originalSample * leftSideAttenuation;
+            int16_t rightSideSample = originalSample * rightSideAttenuation;
+
+            // since we might be delayed, don't write beyond our maxOutputIndex
+            if (leftDestinationIndex <= maxOutputIndex) {
+                _preMixSamples[leftDestinationIndex] += leftSideSample;
+            }
+            if (rightDestinationIndex <= maxOutputIndex) {
+                _preMixSamples[rightDestinationIndex] += rightSideSample;
+            }
+
+            leftDestinationIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+            rightDestinationIndex += OUTPUT_SAMPLES_PER_INPUT_SAMPLE;
+        }
+        
+    } else {
+        int stereoDivider = streamToAdd->isStereo() ? 1 : 2;
+
+       float attenuationAndFade = attenuationCoefficient * repeatedFrameFadeFactor;
+
+        for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
+            _preMixSamples[s] = glm::clamp(_preMixSamples[s] + (int)(streamPopOutput[s / stereoDivider] * attenuationAndFade),
+                                            MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+        }
+    }
+
+    if (!sourceIsSelf && _enableFilter) {
+
+        const float TWO_OVER_PI = 2.0f / PI;
+        
+        const float ZERO_DB = 1.0f;
+        //const float NEGATIVE_ONE_DB = 0.891f;
+        const float NEGATIVE_THREE_DB = 0.708f;
+        const float NEGATIVE_SIX_DB = 0.501f;
+        
+        const float FILTER_GAIN_AT_0 = ZERO_DB; // source is in front
+        const float FILTER_GAIN_AT_90 = NEGATIVE_SIX_DB; // source is incident to left or right ear
+        const float FILTER_GAIN_AT_180 = NEGATIVE_SIX_DB; // source is behind
+        
+        const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
+        
+        const float penumbraFilterFrequency = FILTER_CUTOFF_FREQUENCY_HZ; // constant frequency
+        const float penumbraFilterSlope = NEGATIVE_THREE_DB; // constant slope
+        
+        float penumbraFilterGainL;
+        float penumbraFilterGainR;
+
+        // variable gain calculation broken down by quadrant
+        if (-bearingRelativeAngleToSource < -PI_OVER_TWO && -bearingRelativeAngleToSource > -PI) {
+            penumbraFilterGainL = TWO_OVER_PI * 
+                (FILTER_GAIN_AT_0 - FILTER_GAIN_AT_180) * (-bearingRelativeAngleToSource + PI_OVER_TWO) + FILTER_GAIN_AT_0;
+            penumbraFilterGainR = TWO_OVER_PI * 
+                (FILTER_GAIN_AT_90 - FILTER_GAIN_AT_180) * (-bearingRelativeAngleToSource + PI_OVER_TWO) + FILTER_GAIN_AT_90;
+        } else if (-bearingRelativeAngleToSource <= PI && -bearingRelativeAngleToSource > PI_OVER_TWO) {
+            penumbraFilterGainL = TWO_OVER_PI * 
+                (FILTER_GAIN_AT_180 - FILTER_GAIN_AT_90) * (-bearingRelativeAngleToSource - PI) + FILTER_GAIN_AT_180;
+            penumbraFilterGainR = TWO_OVER_PI * 
+                (FILTER_GAIN_AT_180 - FILTER_GAIN_AT_0) * (-bearingRelativeAngleToSource - PI) + FILTER_GAIN_AT_180;
+        } else if (-bearingRelativeAngleToSource <= PI_OVER_TWO && -bearingRelativeAngleToSource > 0) {
+            penumbraFilterGainL = TWO_OVER_PI *
+                (FILTER_GAIN_AT_90 - FILTER_GAIN_AT_0) * (-bearingRelativeAngleToSource - PI_OVER_TWO) + FILTER_GAIN_AT_90;
+            penumbraFilterGainR = FILTER_GAIN_AT_0;            
+        } else {
+            penumbraFilterGainL = FILTER_GAIN_AT_0;
+            penumbraFilterGainR =  TWO_OVER_PI * 
+                (FILTER_GAIN_AT_0 - FILTER_GAIN_AT_90) * (-bearingRelativeAngleToSource) + FILTER_GAIN_AT_0;
+        }
+        
+        if (distanceBetween < RADIUS_OF_HEAD) {
+            // Diminish effect if source would be inside head
+            penumbraFilterGainL += (1.f - penumbraFilterGainL) * (1.f - distanceBetween / RADIUS_OF_HEAD);
+            penumbraFilterGainR += (1.f - penumbraFilterGainR) * (1.f - distanceBetween / RADIUS_OF_HEAD);
+        }
+
+
 #if 0
-            float distanceBetween = glm::length(relativePosition);
-            qDebug() << "avatar=" 
-                     << listeningNodeStream 
-                     << "gainL=" 
+            qDebug() << "gainL="
                      << penumbraFilterGainL
                      << "gainR="
                      << penumbraFilterGainR
                      << "angle="
-                     << bearingRelativeAngleToSource
-                     << "dist="
-                     << distanceBetween;
+                     << -bearingRelativeAngleToSource;
 #endif
-            // set the gain on both filter channels
-            penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
-            penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
-          
-            penumbraFilter.render(_clientSamples, _clientSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
-        }
+        
+        // Get our per listener/source data so we can get our filter
+        AudioFilterHSF1s& penumbraFilter = listenerNodeData->getListenerSourcePairData(streamUUID)->getPenumbraFilter();
+ 
+        // set the gain on both filter channels
+        penumbraFilter.setParameters(0, 0, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainL, penumbraFilterSlope);
+        penumbraFilter.setParameters(0, 1, SAMPLE_RATE, penumbraFilterFrequency, penumbraFilterGainR, penumbraFilterSlope);
+        penumbraFilter.render(_preMixSamples, _preMixSamples, NETWORK_BUFFER_LENGTH_SAMPLES_STEREO / 2);
+    }
+    
+    // Actually mix the _preMixSamples into the _mixSamples here.
+    for (int s = 0; s < NETWORK_BUFFER_LENGTH_SAMPLES_STEREO; s++) {
+        _mixSamples[s] = glm::clamp(_mixSamples[s] + _preMixSamples[s], MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
     }
 
     return 1;
@@ -369,9 +433,11 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(PositionalAudioStream* 
 
 int AudioMixer::prepareMixForListeningNode(Node* node) {
     AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
+    AudioMixerClientData* listenerNodeData = (AudioMixerClientData*)node->getLinkedData();
     
     // zero out the client mix for this node
-    memset(_clientSamples, 0, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+    memset(_preMixSamples, 0, sizeof(_preMixSamples));
+    memset(_mixSamples, 0, sizeof(_mixSamples));
 
     // loop through all other nodes that have sufficient audio to mix
     int streamsMixed = 0;
@@ -385,9 +451,15 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
             QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
             for (i = otherNodeAudioStreams.constBegin(); i != otherNodeAudioStreams.constEnd(); i++) {
                 PositionalAudioStream* otherNodeStream = i.value();
+                QUuid streamUUID = i.key();
                 
+                if (otherNodeStream->getType() == PositionalAudioStream::Microphone) {
+                    streamUUID = otherNode->getUUID();
+                }
+                 
                 if (*otherNode != *node || otherNodeStream->shouldLoopbackForNode()) {
-                    streamsMixed += addStreamToMixForListeningNodeWithStream(otherNodeStream, nodeAudioStream);
+                    streamsMixed += addStreamToMixForListeningNodeWithStream(listenerNodeData, streamUUID, 
+                                                                                otherNodeStream, nodeAudioStream);
                 }
             }
         }
@@ -764,7 +836,7 @@ void AudioMixer::run() {
                         dataAt += sizeof(quint16);
 
                         // pack mixed audio samples
-                        memcpy(dataAt, _clientSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                        memcpy(dataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                         dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
                     } else {
                         // pack header

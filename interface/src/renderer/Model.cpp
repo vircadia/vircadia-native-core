@@ -11,7 +11,6 @@
 
 #include <QMetaType>
 #include <QRunnable>
-#include <QScriptEngine>
 #include <QThreadPool>
 
 #include <glm/gtx/transform.hpp>
@@ -20,7 +19,6 @@
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
 #include <PhysicsEntity.h>
-#include <RegisteredMetaTypes.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 
@@ -33,35 +31,21 @@ static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
 
-static QScriptValue localLightToScriptValue(QScriptEngine* engine, const Model::LocalLight& light) {
-    QScriptValue object = engine->newObject();
-    object.setProperty("direction", vec3toScriptValue(engine, light.direction));
-    object.setProperty("color", vec3toScriptValue(engine, light.color));
-    return object;
-}
-
-static void localLightFromScriptValue(const QScriptValue& value, Model::LocalLight& light) {
-    vec3FromScriptValue(value.property("direction"), light.direction);
-    vec3FromScriptValue(value.property("color"), light.color);
-}
-
-void Model::registerMetaTypes(QScriptEngine* engine) {
-    qScriptRegisterMetaType(engine, localLightToScriptValue, localLightFromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<Model::LocalLight> >(engine);
-}
-
 Model::Model(QObject* parent) :
     QObject(parent),
     _scale(1.0f, 1.0f, 1.0f),
     _scaleToFit(false),
-    _scaleToFitLargestDimension(0.0f),
+    _scaleToFitDimensions(0.0f),
     _scaledToFit(false),
-    _snapModelToCenter(false),
-    _snappedToCenter(false),
+    _snapModelToRegistrationPoint(false),
+    _snappedToRegistrationPoint(false),
     _showTrueJointTransforms(true),
     _lodDistance(0.0f),
     _pupilDilation(0.0f),
-    _url("http://invalid.com") {
+    _url("http://invalid.com"),
+    _blendNumber(0),
+    _appliedBlendNumber(0) {
+    
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
@@ -74,16 +58,7 @@ ProgramObject Model::_program;
 ProgramObject Model::_normalMapProgram;
 ProgramObject Model::_specularMapProgram;
 ProgramObject Model::_normalSpecularMapProgram;
-
-ProgramObject Model::_shadowMapProgram;
-ProgramObject Model::_shadowNormalMapProgram;
-ProgramObject Model::_shadowSpecularMapProgram;
-ProgramObject Model::_shadowNormalSpecularMapProgram;
-
-ProgramObject Model::_cascadedShadowMapProgram;
-ProgramObject Model::_cascadedShadowNormalMapProgram;
-ProgramObject Model::_cascadedShadowSpecularMapProgram;
-ProgramObject Model::_cascadedShadowNormalSpecularMapProgram;
+ProgramObject Model::_translucentProgram;
 
 ProgramObject Model::_shadowProgram;
 
@@ -91,16 +66,7 @@ ProgramObject Model::_skinProgram;
 ProgramObject Model::_skinNormalMapProgram;
 ProgramObject Model::_skinSpecularMapProgram;
 ProgramObject Model::_skinNormalSpecularMapProgram;
-
-ProgramObject Model::_skinShadowMapProgram;
-ProgramObject Model::_skinShadowNormalMapProgram;
-ProgramObject Model::_skinShadowSpecularMapProgram;
-ProgramObject Model::_skinShadowNormalSpecularMapProgram;
-
-ProgramObject Model::_skinCascadedShadowMapProgram;
-ProgramObject Model::_skinCascadedShadowNormalMapProgram;
-ProgramObject Model::_skinCascadedShadowSpecularMapProgram;
-ProgramObject Model::_skinCascadedShadowNormalSpecularMapProgram;
+ProgramObject Model::_skinTranslucentProgram;
 
 ProgramObject Model::_skinShadowProgram;
 
@@ -108,28 +74,14 @@ Model::Locations Model::_locations;
 Model::Locations Model::_normalMapLocations;
 Model::Locations Model::_specularMapLocations;
 Model::Locations Model::_normalSpecularMapLocations;
-Model::Locations Model::_shadowMapLocations;
-Model::Locations Model::_shadowNormalMapLocations;
-Model::Locations Model::_shadowSpecularMapLocations;
-Model::Locations Model::_shadowNormalSpecularMapLocations;
-Model::Locations Model::_cascadedShadowMapLocations;
-Model::Locations Model::_cascadedShadowNormalMapLocations;
-Model::Locations Model::_cascadedShadowSpecularMapLocations;
-Model::Locations Model::_cascadedShadowNormalSpecularMapLocations;
-    
+Model::Locations Model::_translucentLocations;
+
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
-Model::SkinLocations Model::_skinShadowMapLocations;
-Model::SkinLocations Model::_skinShadowNormalMapLocations;
-Model::SkinLocations Model::_skinShadowSpecularMapLocations;
-Model::SkinLocations Model::_skinShadowNormalSpecularMapLocations;
-Model::SkinLocations Model::_skinCascadedShadowMapLocations;
-Model::SkinLocations Model::_skinCascadedShadowNormalMapLocations;
-Model::SkinLocations Model::_skinCascadedShadowSpecularMapLocations;
-Model::SkinLocations Model::_skinCascadedShadowNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
+Model::SkinLocations Model::_skinTranslucentLocations;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -157,27 +109,22 @@ void Model::setOffset(const glm::vec3& offset) {
     _offset = offset; 
     
     // if someone manually sets our offset, then we are no longer snapped to center
-    _snapModelToCenter = false; 
-    _snappedToCenter = false; 
+    _snapModelToRegistrationPoint = false; 
+    _snappedToRegistrationPoint = false; 
 }
 
-void Model::initProgram(ProgramObject& program, Model::Locations& locations,
-        int specularTextureUnit, int shadowTextureUnit) {
+void Model::initProgram(ProgramObject& program, Model::Locations& locations, int specularTextureUnit) {
     program.bind();
     locations.tangent = program.attributeLocation("tangent");
-    locations.shadowDistances = program.uniformLocation("shadowDistances");
-    locations.localLightColors = program.uniformLocation("localLightColors");
-    locations.localLightDirections = program.uniformLocation("localLightDirections");
+    locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     program.setUniformValue("diffuseMap", 0);
     program.setUniformValue("normalMap", 1);
     program.setUniformValue("specularMap", specularTextureUnit);
-    program.setUniformValue("shadowMap", shadowTextureUnit);
     program.release();
 }
 
-void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations,
-        int specularTextureUnit, int shadowTextureUnit) {
-    initProgram(program, locations, specularTextureUnit, shadowTextureUnit);
+void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations, int specularTextureUnit) {
+    initProgram(program, locations, specularTextureUnit);
     
     program.bind();
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
@@ -250,77 +197,18 @@ void Model::init() {
         
         initProgram(_normalSpecularMapProgram, _normalSpecularMapLocations, 2);
         
-        
-        _shadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model.vert");
-        _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/model_shadow_map.frag");
-        _shadowMapProgram.link();
-        
-        initProgram(_shadowMapProgram, _shadowMapLocations);
-        
-        _shadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
-        _shadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow_normal_map.frag");
-        _shadowNormalMapProgram.link();
-        
-        initProgram(_shadowNormalMapProgram, _shadowNormalMapLocations, 1, 2);
-        
-        _shadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+        _translucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
             Application::resourcesPath() + "shaders/model.vert");
-        _shadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow_specular_map.frag");
-        _shadowSpecularMapProgram.link();
+        _translucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_translucent.frag");
+        _translucentProgram.link();
         
-        initProgram(_shadowSpecularMapProgram, _shadowSpecularMapLocations, 1, 2);
-        
-        _shadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
-        _shadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow_normal_specular_map.frag");
-        _shadowNormalSpecularMapProgram.link();
-        
-        initProgram(_shadowNormalSpecularMapProgram, _shadowNormalSpecularMapLocations, 2, 3);
-        
-        
-        _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/model.vert");
-        _cascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/model_cascaded_shadow_map.frag");
-        _cascadedShadowMapProgram.link();
-        
-        initProgram(_cascadedShadowMapProgram, _cascadedShadowMapLocations);
-        
-        _cascadedShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
-        _cascadedShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_cascaded_shadow_normal_map.frag");
-        _cascadedShadowNormalMapProgram.link();
-        
-        initProgram(_cascadedShadowNormalMapProgram, _cascadedShadowNormalMapLocations, 1, 2);
-        
-        _cascadedShadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model.vert");
-        _cascadedShadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_cascaded_shadow_specular_map.frag");
-        _cascadedShadowSpecularMapProgram.link();
-        
-        initProgram(_cascadedShadowSpecularMapProgram, _cascadedShadowSpecularMapLocations, 1, 2);
-        
-        _cascadedShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
-        _cascadedShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_cascaded_shadow_normal_specular_map.frag");
-        _cascadedShadowNormalSpecularMapProgram.link();
-        
-        initProgram(_cascadedShadowNormalSpecularMapProgram, _cascadedShadowNormalSpecularMapLocations, 2, 3);
-        
+        initProgram(_translucentProgram, _translucentLocations);
         
         _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
         _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
             Application::resourcesPath() + "shaders/model_shadow.frag");
         _shadowProgram.link();
-        
         
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/skin_model.vert");
         _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model.frag");
@@ -352,73 +240,6 @@ void Model::init() {
         
         initSkinProgram(_skinNormalSpecularMapProgram, _skinNormalSpecularMapLocations, 2);
         
-        
-        _skinShadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/skin_model.vert");
-        _skinShadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/model_shadow_map.frag");
-        _skinShadowMapProgram.link();
-        
-        initSkinProgram(_skinShadowMapProgram, _skinShadowMapLocations);
-        
-        _skinShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow_normal_map.frag");
-        _skinShadowNormalMapProgram.link();
-        
-        initSkinProgram(_skinShadowNormalMapProgram, _skinShadowNormalMapLocations, 1, 2);
-        
-        _skinShadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model.vert");
-        _skinShadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow_specular_map.frag");
-        _skinShadowSpecularMapProgram.link();
-        
-        initSkinProgram(_skinShadowSpecularMapProgram, _skinShadowSpecularMapLocations, 1, 2);
-        
-        _skinShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_shadow_normal_specular_map.frag");
-        _skinShadowNormalSpecularMapProgram.link();
-        
-        initSkinProgram(_skinShadowNormalSpecularMapProgram, _skinShadowNormalSpecularMapLocations, 2, 3);
-        
-        
-        _skinCascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/skin_model.vert");
-        _skinCascadedShadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/model_cascaded_shadow_map.frag");
-        _skinCascadedShadowMapProgram.link();
-        
-        initSkinProgram(_skinCascadedShadowMapProgram, _skinCascadedShadowMapLocations);
-        
-        _skinCascadedShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinCascadedShadowNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_cascaded_shadow_normal_map.frag");
-        _skinCascadedShadowNormalMapProgram.link();
-        
-        initSkinProgram(_skinCascadedShadowNormalMapProgram, _skinCascadedShadowNormalMapLocations, 1, 2);
-        
-        _skinCascadedShadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model.vert");
-        _skinCascadedShadowSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_cascaded_shadow_specular_map.frag");
-        _skinCascadedShadowSpecularMapProgram.link();
-        
-        initSkinProgram(_skinCascadedShadowSpecularMapProgram, _skinCascadedShadowSpecularMapLocations, 1, 2);
-        
-        _skinCascadedShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinCascadedShadowNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_cascaded_shadow_normal_specular_map.frag");
-        _skinCascadedShadowNormalSpecularMapProgram.link();
-        
-        initSkinProgram(_skinCascadedShadowNormalSpecularMapProgram, _skinCascadedShadowNormalSpecularMapLocations, 2, 3);
-        
-        
         _skinShadowProgram.addShaderFromSourceFile(QGLShader::Vertex,
             Application::resourcesPath() + "shaders/skin_model_shadow.vert");
         _skinShadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
@@ -426,6 +247,14 @@ void Model::init() {
         _skinShadowProgram.link();
         
         initSkinProgram(_skinShadowProgram, _skinShadowLocations);
+        
+        _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model.vert");
+        _skinTranslucentProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_translucent.frag");
+        _skinTranslucentProgram.link();
+        
+        initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
     }
 }
 
@@ -555,7 +384,7 @@ void Model::setJointStates(QVector<JointState> states) {
     _boundingRadius = radius;
 }
 
-bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
+bool Model::render(float alpha, RenderMode mode) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha, mode);
@@ -585,34 +414,42 @@ bool Model::render(float alpha, RenderMode mode, bool receiveShadows) {
         glEnable(GL_CULL_FACE);
         if (mode == SHADOW_RENDER_MODE) {
             glCullFace(GL_FRONT);
-        
-        } else if (mode == DEFAULT_RENDER_MODE) {
-            // update the local lights
-            for (int i = 0; i < MAX_LOCAL_LIGHTS; i++) {
-                if (i < _localLights.size()) {
-                    _localLightDirections[i] = glm::normalize(Application::getInstance()->getUntranslatedViewMatrix() *
-                        glm::vec4(_rotation * _localLights.at(i).direction, 0.0f));
-                } else {
-                    _localLightColors[i] = glm::vec4();
-                }
-            }
         }
     }
     
     // render opaque meshes with alpha testing
     
+    glDisable(GL_BLEND);
     glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.5f * alpha);
     
-    receiveShadows &= Menu::getInstance()->getShadowsEnabled();
-    renderMeshes(alpha, mode, false, receiveShadows);
+    if (mode == SHADOW_RENDER_MODE) {
+        glAlphaFunc(GL_EQUAL, 0.0f);
+    }
     
-    glDisable(GL_ALPHA_TEST);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
+        mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
+        mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
+        mode == DEFAULT_RENDER_MODE);
+    
+    renderMeshes(mode, false);
     
     // render translucent meshes afterwards
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    renderMeshes(mode, true, 0.75f);
     
-    renderMeshes(alpha, mode, true, receiveShadows);
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
+    glDepthMask(false);
+    glDepthFunc(GL_LEQUAL);
     
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
+    
+    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        renderMeshes(mode, true, 0.0f);
+    }
+    
+    glDepthMask(true);
+    glDepthFunc(GL_LESS);
     glDisable(GL_CULL_FACE);
     
     if (mode == SHADOW_RENDER_MODE) {
@@ -823,7 +660,7 @@ void Model::updateShapePositions() {
 class Blender : public QRunnable {
 public:
 
-    Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
+    Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients);
     
     virtual void run();
@@ -831,62 +668,84 @@ public:
 private:
     
     QPointer<Model> _model;
+    int _blendNumber;
     QWeakPointer<NetworkGeometry> _geometry;
     QVector<FBXMesh> _meshes;
     QVector<float> _blendshapeCoefficients;
 };
 
-Blender::Blender(Model* model, const QWeakPointer<NetworkGeometry>& geometry,
+Blender::Blender(Model* model, int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
         const QVector<FBXMesh>& meshes, const QVector<float>& blendshapeCoefficients) :
     _model(model),
+    _blendNumber(blendNumber),
     _geometry(geometry),
     _meshes(meshes),
     _blendshapeCoefficients(blendshapeCoefficients) {
 }
 
 void Blender::run() {
-    // make sure the model/geometry still exists
-    if (_model.isNull() || _geometry.isNull()) {
-        return;
-    }
     QVector<glm::vec3> vertices, normals;
-    int offset = 0;
-    foreach (const FBXMesh& mesh, _meshes) {
-        if (mesh.blendshapes.isEmpty()) {
-            continue;
-        }
-        vertices += mesh.vertices;
-        normals += mesh.normals;
-        glm::vec3* meshVertices = vertices.data() + offset;
-        glm::vec3* meshNormals = normals.data() + offset;
-        offset += mesh.vertices.size();
-        const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-        for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
-            float vertexCoefficient = _blendshapeCoefficients.at(i);
-            if (vertexCoefficient < EPSILON) {
+    if (!_model.isNull()) {
+        int offset = 0;
+        foreach (const FBXMesh& mesh, _meshes) {
+            if (mesh.blendshapes.isEmpty()) {
                 continue;
             }
-            float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
-            const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
-            for (int j = 0; j < blendshape.indices.size(); j++) {
-                int index = blendshape.indices.at(j);
-                meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
-                meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+            vertices += mesh.vertices;
+            normals += mesh.normals;
+            glm::vec3* meshVertices = vertices.data() + offset;
+            glm::vec3* meshNormals = normals.data() + offset;
+            offset += mesh.vertices.size();
+            const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+            for (int i = 0, n = qMin(_blendshapeCoefficients.size(), mesh.blendshapes.size()); i < n; i++) {
+                float vertexCoefficient = _blendshapeCoefficients.at(i);
+                if (vertexCoefficient < EPSILON) {
+                    continue;
+                }
+                float normalCoefficient = vertexCoefficient * NORMAL_COEFFICIENT_SCALE;
+                const FBXBlendshape& blendshape = mesh.blendshapes.at(i);
+                for (int j = 0; j < blendshape.indices.size(); j++) {
+                    int index = blendshape.indices.at(j);
+                    meshVertices[index] += blendshape.vertices.at(j) * vertexCoefficient;
+                    meshNormals[index] += blendshape.normals.at(j) * normalCoefficient;
+                }
             }
         }
     }
-    
     // post the result to the geometry cache, which will dispatch to the model if still alive
     QMetaObject::invokeMethod(Application::getInstance()->getGeometryCache(), "setBlendedVertices",
-        Q_ARG(const QPointer<Model>&, _model), Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry),
-        Q_ARG(const QVector<glm::vec3>&, vertices), Q_ARG(const QVector<glm::vec3>&, normals));
+        Q_ARG(const QPointer<Model>&, _model), Q_ARG(int, _blendNumber),
+        Q_ARG(const QWeakPointer<NetworkGeometry>&, _geometry), Q_ARG(const QVector<glm::vec3>&, vertices),
+        Q_ARG(const QVector<glm::vec3>&, normals));
+}
+
+void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
+    if (_scaleToFit != scaleToFit || _scaleToFitDimensions != dimensions) {
+        _scaleToFit = scaleToFit;
+        _scaleToFitDimensions = dimensions;
+        _scaledToFit = false; // force rescaling
+    }
 }
 
 void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
-    if (_scaleToFit != scaleToFit || _scaleToFitLargestDimension != largestDimension) {
+    if (!isActive()) {
+        return;
+    }
+    
+    if (_scaleToFit != scaleToFit || glm::length(_scaleToFitDimensions) != largestDimension) {
         _scaleToFit = scaleToFit;
-        _scaleToFitLargestDimension = largestDimension;
-        _scaledToFit = false; // force rescaling
+        
+        // we only need to do this work if we're "turning on" scale to fit.
+        if (scaleToFit) {
+            Extents modelMeshExtents = getUnscaledMeshExtents();
+            float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
+            float maxScale = largestDimension / maxDimension;
+            glm::vec3 modelMeshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+            glm::vec3 dimensions = modelMeshDimensions * maxScale;
+        
+            _scaleToFitDimensions = dimensions;
+            _scaledToFit = false; // force rescaling
+        }
     }
 }
 
@@ -895,37 +754,40 @@ void Model::scaleToFit() {
 
     // size is our "target size in world space"
     // we need to set our model scale so that the extents of the mesh, fit in a cube that size...
-    float maxDimension = glm::distance(modelMeshExtents.maximum, modelMeshExtents.minimum);
-    float maxScale = _scaleToFitLargestDimension / maxDimension;
-    glm::vec3 scale(maxScale, maxScale, maxScale);
-    setScaleInternal(scale);
+    glm::vec3 meshDimensions = modelMeshExtents.maximum - modelMeshExtents.minimum;
+    glm::vec3 rescaleDimensions = _scaleToFitDimensions / meshDimensions;
+    setScaleInternal(rescaleDimensions);
     _scaledToFit = true;
 }
 
-void Model::setSnapModelToCenter(bool snapModelToCenter) {
-    if (_snapModelToCenter != snapModelToCenter) {
-        _snapModelToCenter = snapModelToCenter;
-        _snappedToCenter = false; // force re-centering
+void Model::setSnapModelToRegistrationPoint(bool snapModelToRegistrationPoint, const glm::vec3& registrationPoint) {
+    glm::vec3 clampedRegistrationPoint = glm::clamp(registrationPoint, 0.0f, 1.0f);
+    if (_snapModelToRegistrationPoint != snapModelToRegistrationPoint || _registrationPoint != clampedRegistrationPoint) {
+        _snapModelToRegistrationPoint = snapModelToRegistrationPoint;
+        _registrationPoint = clampedRegistrationPoint;
+        _snappedToRegistrationPoint = false; // force re-centering
     }
 }
 
-void Model::snapToCenter() {
+void Model::snapToRegistrationPoint() {
     Extents modelMeshExtents = getUnscaledMeshExtents();
-    glm::vec3 halfDimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum) * 0.5f;
-    glm::vec3 offset = -modelMeshExtents.minimum - halfDimensions;
+    glm::vec3 dimensions = (modelMeshExtents.maximum - modelMeshExtents.minimum);
+    glm::vec3 offset = -modelMeshExtents.minimum - (dimensions * _registrationPoint);
     _offset = offset;
-    _snappedToCenter = true;
+    _snappedToRegistrationPoint = true;
 }
 
 void Model::simulate(float deltaTime, bool fullUpdate) {
-    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit) || (_snapModelToCenter && !_snappedToCenter);
+    fullUpdate = updateGeometry() || fullUpdate || (_scaleToFit && !_scaledToFit)
+                    || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
+                    
     if (isActive() && fullUpdate) {
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
             scaleToFit();
         }
-        if (_snapModelToCenter && !_snappedToCenter) {
-            snapToCenter();
+        if (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint) {
+            snapToRegistrationPoint();
         }
         simulateInternal(deltaTime);
     }
@@ -991,9 +853,10 @@ void Model::simulateInternal(float deltaTime) {
         }
     }
     
-    // post the blender
-    if (geometry.hasBlendedMeshes()) {
-        QThreadPool::globalInstance()->start(new Blender(this, _geometry, geometry.meshes, _blendshapeCoefficients));
+    // post the blender if we're not currently waiting for one to finish
+    if (geometry.hasBlendedMeshes() && _blendshapeCoefficients != _blendedBlendshapeCoefficients) {
+        _blendedBlendshapeCoefficients = _blendshapeCoefficients;
+        Application::getInstance()->getGeometryCache()->noteRequiresBlend(this);
     }
 }
 
@@ -1256,14 +1119,26 @@ void Model::renderJointCollisionShapes(float alpha) {
     // implement this when we have shapes for regular models
 }
 
-void Model::setBlendedVertices(const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (_blendedVertexBuffers.isEmpty()) {
+bool Model::maybeStartBlender() {
+    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();
+    if (fbxGeometry.hasBlendedMeshes()) {
+        QThreadPool::globalInstance()->start(new Blender(this, ++_blendNumber, _geometry,
+            fbxGeometry.meshes, _blendshapeCoefficients));
+        return true;
+    }
+    return false;
+}
+
+void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeometry>& geometry,
+        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (_geometry != geometry || _blendedVertexBuffers.isEmpty() || blendNumber < _appliedBlendNumber) {
         return;
     }
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    _appliedBlendNumber = blendNumber;
+    const FBXGeometry& fbxGeometry = _geometry->getFBXGeometry();    
     int index = 0;
-    for (int i = 0; i < geometry.meshes.size(); i++) {
-        const FBXMesh& mesh = geometry.meshes.at(i);
+    for (int i = 0; i < fbxGeometry.meshes.size(); i++) {
+        const FBXMesh& mesh = fbxGeometry.meshes.at(i);
         if (mesh.blendshapes.isEmpty()) {
             continue;
         }
@@ -1313,24 +1188,25 @@ void Model::deleteGeometry() {
     if (_geometry) {
         _geometry->clearLoadPriority(this);
     }
+    
+    _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool receiveShadows) {
+void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold) {
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     
-    bool cascadedShadows = Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows);
     for (int i = 0; i < networkMeshes.size(); i++) {
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
-        if (translucent ? (networkMesh.getTranslucentPartCount() == 0) :
-                (networkMesh.getTranslucentPartCount() == networkMesh.parts.size())) {
+        const FBXMesh& mesh = geometry.meshes.at(i);    
+        if (translucent ? (networkMesh.getTranslucentPartCount(mesh) == 0) :
+                (networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size())) {
             continue;
         }
         const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
 
-        const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
             // sanity check
@@ -1344,48 +1220,25 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         ProgramObject* skinProgram = &_skinProgram;
         SkinLocations* skinLocations = &_skinLocations;
         GLenum specularTextureUnit = 0;
-        GLenum shadowTextureUnit = 0;
         if (mode == SHADOW_RENDER_MODE) {
             program = &_shadowProgram;
             skinProgram = &_skinShadowProgram;
             skinLocations = &_skinShadowLocations;
+        
+        } else if (translucent && alphaThreshold == 0.0f) {
+            program = &_translucentProgram;
+            locations = &_translucentLocations;
+            skinProgram = &_skinTranslucentProgram;
+            skinLocations = &_skinTranslucentLocations;
             
         } else if (!mesh.tangents.isEmpty()) {
             if (mesh.hasSpecularTexture()) {
-                if (receiveShadows) {
-                    if (cascadedShadows) {
-                        program = &_cascadedShadowNormalSpecularMapProgram;
-                        locations = &_cascadedShadowNormalSpecularMapLocations;
-                        skinProgram = &_skinCascadedShadowNormalSpecularMapProgram;
-                        skinLocations = &_skinCascadedShadowNormalSpecularMapLocations;
-                    } else {
-                        program = &_shadowNormalSpecularMapProgram;
-                        locations = &_shadowNormalSpecularMapLocations;
-                        skinProgram = &_skinShadowNormalSpecularMapProgram;
-                        skinLocations = &_skinShadowNormalSpecularMapLocations;
-                    }
-                    shadowTextureUnit = GL_TEXTURE3;
-                } else {
-                    program = &_normalSpecularMapProgram;
-                    locations = &_normalSpecularMapLocations;
-                    skinProgram = &_skinNormalSpecularMapProgram;
-                    skinLocations = &_skinNormalSpecularMapLocations;
-                }
+                program = &_normalSpecularMapProgram;
+                locations = &_normalSpecularMapLocations;
+                skinProgram = &_skinNormalSpecularMapProgram;
+                skinLocations = &_skinNormalSpecularMapLocations;
                 specularTextureUnit = GL_TEXTURE2;
                 
-            } else if (receiveShadows) {
-                if (cascadedShadows) {
-                    program = &_cascadedShadowNormalMapProgram;
-                    locations = &_cascadedShadowNormalMapLocations;
-                    skinProgram = &_skinCascadedShadowNormalMapProgram;
-                    skinLocations = &_skinCascadedShadowNormalMapLocations;
-                } else {
-                    program = &_shadowNormalMapProgram;
-                    locations = &_shadowNormalMapLocations;
-                    skinProgram = &_skinShadowNormalMapProgram;
-                    skinLocations = &_skinShadowNormalMapLocations;
-                }
-                shadowTextureUnit = GL_TEXTURE2;
             } else {
                 program = &_normalMapProgram;
                 locations = &_normalMapLocations;
@@ -1393,40 +1246,11 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 skinLocations = &_skinNormalMapLocations;
             }
         } else if (mesh.hasSpecularTexture()) {
-            if (receiveShadows) {
-                if (cascadedShadows) {
-                    program = &_cascadedShadowSpecularMapProgram;
-                    locations = &_cascadedShadowSpecularMapLocations;
-                    skinProgram = &_skinCascadedShadowSpecularMapProgram;
-                    skinLocations = &_skinCascadedShadowSpecularMapLocations;
-                } else {
-                    program = &_shadowSpecularMapProgram;
-                    locations = &_shadowSpecularMapLocations;
-                    skinProgram = &_skinShadowSpecularMapProgram;
-                    skinLocations = &_skinShadowSpecularMapLocations;
-                }
-                shadowTextureUnit = GL_TEXTURE2;
-            } else {
-                program = &_specularMapProgram;
-                locations = &_specularMapLocations;
-                skinProgram = &_skinSpecularMapProgram;
-                skinLocations = &_skinSpecularMapLocations;
-            }
-            specularTextureUnit = GL_TEXTURE1;
-            
-        } else if (receiveShadows) {
-            if (cascadedShadows) {
-                program = &_cascadedShadowMapProgram;
-                locations = &_cascadedShadowMapLocations;
-                skinProgram = &_skinCascadedShadowMapProgram;
-                skinLocations = &_skinCascadedShadowMapLocations;
-            } else {
-                program = &_shadowMapProgram;
-                locations = &_shadowMapLocations;
-                skinProgram = &_skinShadowMapProgram;
-                skinLocations = &_skinShadowMapLocations;
-            }
-            shadowTextureUnit = GL_TEXTURE1;
+            program = &_specularMapProgram;
+            locations = &_specularMapLocations;
+            skinProgram = &_skinSpecularMapProgram;
+            skinLocations = &_skinSpecularMapLocations;
+            specularTextureUnit = GL_TEXTURE1;   
         }
         
         const MeshState& state = _meshStates.at(i);
@@ -1454,14 +1278,9 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
             glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
             program->bind();
         }
-        if (cascadedShadows) {
-            activeProgram->setUniform(activeLocations->shadowDistances, Application::getInstance()->getShadowDistances());
-        }
-        if (mode != SHADOW_RENDER_MODE) {
-            activeProgram->setUniformValueArray(activeLocations->localLightDirections,
-                (const GLfloat*)_localLightDirections, MAX_LOCAL_LIGHTS, 4);
-        }
-             
+        
+        activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
+        
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
@@ -1487,7 +1306,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         if (!mesh.colors.isEmpty()) {
             glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            glColor4f(1.0f, 1.0f, 1.0f, alpha);
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         }
         if (!mesh.texCoords.isEmpty()) {
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -1497,7 +1316,7 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
             const FBXMeshPart& part = mesh.parts.at(j);
-            if (networkPart.isTranslucent() != translucent) {
+            if ((networkPart.isTranslucent() || part.opacity != 1.0f) != translucent) {
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
@@ -1506,18 +1325,19 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
-                glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
-                glm::vec4 specular = glm::vec4(part.specularColor, alpha);
+                glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
+                if (!(translucent && alphaThreshold == 0.0f)) {
+                    float emissive = (part.emissiveColor.r + part.emissiveColor.g + part.emissiveColor.b) / 3.0f;
+                    diffuse.a = qMax(Application::getInstance()->getGlowEffect()->getIntensity(), emissive);
+                    glAlphaFunc(GL_EQUAL, diffuse.a);
+                    diffuse = glm::vec4(qMax(diffuse.r, part.emissiveColor.r), qMax(diffuse.g, part.emissiveColor.g),
+                        qMax(diffuse.b, part.emissiveColor.b), diffuse.a);
+                }
+                glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                 glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                 glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
                 glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
-            
-                for (int k = 0; k < qMin(MAX_LOCAL_LIGHTS, _localLights.size()); k++) {
-                    _localLightColors[k] = glm::vec4(_localLights.at(k).color, 1.0f) * diffuse;
-                }
-                activeProgram->setUniformValueArray(activeLocations->localLightColors,
-                    (const GLfloat*)_localLightColors, MAX_LOCAL_LIGHTS, 4);
             
                 Texture* diffuseMap = networkPart.diffuseTexture.data();
                 if (mesh.isEye && diffuseMap) {
@@ -1526,7 +1346,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                 }
                 glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
                     Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
-                
                 
                 if (!mesh.tangents.isEmpty()) {                 
                     glActiveTexture(GL_TEXTURE1);                
@@ -1541,12 +1360,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
                     Texture* specularMap = networkPart.specularTexture.data();
                     glBindTexture(GL_TEXTURE_2D, !specularMap ?
                         Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
-                    glActiveTexture(GL_TEXTURE0);
-                }
-                
-                if (shadowTextureUnit) {
-                    glActiveTexture(shadowTextureUnit);
-                    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
                     glActiveTexture(GL_TEXTURE0);
                 }
             }
@@ -1574,12 +1387,6 @@ void Model::renderMeshes(float alpha, RenderMode mode, bool translucent, bool re
         
         if (specularTextureUnit) {
             glActiveTexture(specularTextureUnit);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glActiveTexture(GL_TEXTURE0);
-        }
-        
-        if (shadowTextureUnit) {
-            glActiveTexture(shadowTextureUnit);
             glBindTexture(GL_TEXTURE_2D, 0);
             glActiveTexture(GL_TEXTURE0);
         }

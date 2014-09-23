@@ -20,6 +20,10 @@
 #include "Model.h"
 #include "world.h"
 
+GeometryCache::GeometryCache() :
+    _pendingBlenders(0) {
+}
+
 GeometryCache::~GeometryCache() {
     foreach (const VerticesIndices& vbo, _hemisphereVBOs) {
         glDeleteBuffers(1, &vbo.first);
@@ -296,10 +300,30 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, cons
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
-void GeometryCache::setBlendedVertices(const QPointer<Model>& model, const QWeakPointer<NetworkGeometry>& geometry,
-        const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
-    if (!model.isNull() && model->getGeometry() == geometry) {
-        model->setBlendedVertices(vertices, normals);
+void GeometryCache::noteRequiresBlend(Model* model) {
+    if (_pendingBlenders < QThread::idealThreadCount()) {
+        if (model->maybeStartBlender()) {
+            _pendingBlenders++;
+        }
+        return;
+    }
+    if (!_modelsRequiringBlends.contains(model)) {
+        _modelsRequiringBlends.append(model);
+    }
+}
+
+void GeometryCache::setBlendedVertices(const QPointer<Model>& model, int blendNumber,
+        const QWeakPointer<NetworkGeometry>& geometry, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals) {
+    if (!model.isNull()) {
+        model->setBlendedVertices(blendNumber, geometry, vertices, normals);
+    }
+    _pendingBlenders--;
+    while (!_modelsRequiringBlends.isEmpty()) {
+        Model* nextModel = _modelsRequiringBlends.takeFirst();
+        if (nextModel && nextModel->maybeStartBlender()) {
+            _pendingBlenders++;
+            return;
+        }
     }
 }
 
@@ -684,10 +708,10 @@ bool NetworkMeshPart::isTranslucent() const {
     return diffuseTexture && diffuseTexture->isTranslucent();
 }
 
-int NetworkMesh::getTranslucentPartCount() const {
+int NetworkMesh::getTranslucentPartCount(const FBXMesh& fbxMesh) const {
     int count = 0;
-    foreach (const NetworkMeshPart& part, parts) {
-        if (part.isTranslucent()) {
+    for (int i = 0; i < parts.size(); i++) {
+        if (parts.at(i).isTranslucent() || fbxMesh.parts.at(i).opacity != 1.0f) {
             count++;
         }
     }

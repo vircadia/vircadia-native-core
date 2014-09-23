@@ -27,13 +27,12 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "location/LocationManager.h"
-#include "ui/PreferencesDialog.h"
 #include "ui/ChatWindow.h"
+#include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
 #include "ui/LoginDialog.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/ScriptEditorWindow.h"
-#include "ui/UserLocationsDialog.h"
 
 const float ADJUST_LOD_DOWN_FPS = 40.0;
 const float ADJUST_LOD_UP_FPS = 55.0;
@@ -104,6 +103,8 @@ public:
 
     float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     void setFaceshiftEyeDeflection(float faceshiftEyeDeflection) { _faceshiftEyeDeflection = faceshiftEyeDeflection; bumpSettings(); }
+    const QString& getFaceshiftHostname() const { return _faceshiftHostname; }
+    void setFaceshiftHostname(const QString& hostname) { _faceshiftHostname = hostname; bumpSettings(); }
     QString getSnapshotsLocation() const;
     void setSnapshotsLocation(QString snapshotsLocation) { _snapshotsLocation = snapshotsLocation; bumpSettings(); }
 
@@ -162,11 +163,6 @@ public:
                                            int menuItemLocation = UNSPECIFIED_POSITION);
 
     void removeAction(QMenu* menu, const QString& actionName);
-
-    bool static goToDestination(QString destination);
-    void static goToOrientation(QString orientation);
-    void static goToDomain(const QString newDomain);
-    void static goTo(QString destination);
     
     const QByteArray& getWalletPrivateKey() const { return _walletPrivateKey; }
 
@@ -185,11 +181,8 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
-    void goTo();
-    bool goToURL(QString location);
-    void goToUser(const QString& user);
+    void toggleAddressBar();
     void pasteToVoxel();
-    void openUrl(const QUrl& url);
 
     void toggleLoginMenuItem();
 
@@ -211,8 +204,6 @@ private slots:
     void editAttachments();
     void editAnimations();
     void changePrivateKey();
-    void goToDomainDialog();
-    void goToLocation();
     void nameLocation();
     void toggleLocationList();
     void bandwidthDetailsClosed();
@@ -226,8 +217,9 @@ private slots:
     void toggleConsole();
     void toggleChat();
     void audioMuteToggled();
-    void namedLocationCreated(LocationManager::NamedLocationCreateResponse response);
-    void multipleDestinationsDecision(const QJsonObject& userData, const QJsonObject& placeData);
+    void displayNameLocationResponse(const QString& errorString);
+    void displayAddressOfflineMessage();
+    void displayAddressNotFoundMessage();
     void muteEnvironment();
 
 private:
@@ -271,6 +263,7 @@ private:
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     float _realWorldFieldOfView;   //  The actual FOV set by the user's monitor size and view distance
     float _faceshiftEyeDeflection;
+    QString _faceshiftHostname;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
@@ -279,7 +272,8 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
-    UserLocationsDialog* _userLocationsDialog;
+    QPointer<DataWebDialog> _newLocationDialog;
+    QPointer<DataWebDialog> _userLocationsDialog;
 #ifdef Q_OS_MAC
     SpeechRecognizer _speechRecognizer;
 #endif
@@ -315,6 +309,7 @@ private:
 
 namespace MenuOption {
     const QString AboutApp = "About Interface";
+    const QString AddressBar = "Show Address Bar";
     const QString AlignForearmsWithWrists = "Align Forearms with Wrists";
     const QString AlternateIK = "Alternate IK";
     const QString AmbientOcclusion = "Ambient Occlusion";
@@ -351,7 +346,6 @@ namespace MenuOption {
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
     const QString Avatars = "Avatars";
-    const QString AvatarsReceiveShadows = "Avatars Receive Shadows";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
@@ -400,13 +394,12 @@ namespace MenuOption {
     const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
-    const QString GoHome = "Go Home";
-    const QString GoToDomain = "Go To Domain...";
-    const QString GoTo = "Go To...";
-    const QString GoToLocation = "Go To Location...";
+    const QString NamesAboveHeads = "Names Above Heads";
+    const QString GoToUser = "Go To User";
     const QString HeadMouse = "Head Mouse";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
+    const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -445,9 +438,10 @@ namespace MenuOption {
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
+    const QString ScriptedMotorControl = "Enable Scripted Motor Control";
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
-    const QString ShowBordersModelNodes = "Show Model Nodes";
+    const QString ShowBordersEntityNodes = "Show Entity Nodes";
     const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";

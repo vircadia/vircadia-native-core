@@ -109,14 +109,8 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 
     int networkSamples;
 
-    if (packetType == PacketTypeSilentAudioFrame) {
-        quint16 numSilentSamples = *(reinterpret_cast<const quint16*>(dataAt));
-        readBytes += sizeof(quint16);
-        networkSamples = (int)numSilentSamples;
-    } else {
-        // parse the info after the seq number and before the audio data (the stream properties)
-        readBytes += parseStreamProperties(packetType, packet.mid(readBytes), networkSamples);
-    }
+    // parse the info after the seq number and before the audio data (the stream properties)
+    readBytes += parseStreamProperties(packetType, packet.mid(readBytes), networkSamples);
 
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
@@ -377,7 +371,7 @@ void InboundAudioStream::packetReceivedUpdateTimingStats() {
     
     // update our timegap stats and desired jitter buffer frames if necessary
     // discard the first few packets we receive since they usually have gaps that aren't represensative of normal jitter
-    const int NUM_INITIAL_PACKETS_DISCARD = 3;
+    const quint32 NUM_INITIAL_PACKETS_DISCARD = 3;
     quint64 now = usecTimestampNow();
     if (_incomingSequenceNumberStats.getReceived() > NUM_INITIAL_PACKETS_DISCARD) {
         quint64 gap = now - _lastPacketReceivedTime;

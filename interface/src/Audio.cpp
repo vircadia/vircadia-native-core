@@ -102,9 +102,9 @@ Audio::Audio(QObject* parent) :
     _scopeOutputOffset(0),
     _framesPerScope(DEFAULT_FRAMES_PER_SCOPE),
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
-    _peqEnabled(false),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
+    _peqEnabled(false),
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
@@ -164,14 +164,24 @@ void Audio::audioMixerKilled() {
     resetStats();
 }
 
+
 QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& deviceName) {
     QAudioDeviceInfo result;
+#ifdef WIN32
+    // NOTE
+    // this is a workaround for a windows only QtBug https://bugreports.qt-project.org/browse/QTBUG-16117
+    // static QAudioDeviceInfo objects get deallocated when QList<QAudioDevieInfo> objects go out of scope
+    result = (mode == QAudio::AudioInput) ? 
+        QAudioDeviceInfo::defaultInputDevice() : 
+        QAudioDeviceInfo::defaultOutputDevice();
+#else
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
         qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
         }
     }
+#endif
     return result;
 }
 
@@ -277,6 +287,7 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
         pMMDeviceEnumerator = NULL;
         CoUninitialize();
     }
+
     qDebug() << "DEBUG [" << deviceName << "] [" << getNamedAudioDeviceForMode(mode, deviceName).deviceName() << "]";
     
     return getNamedAudioDeviceForMode(mode, deviceName);
@@ -495,30 +506,34 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    int16_t* inputFrameData = (int16_t*)inputByteArray.data();
-    const int inputFrameCount = inputByteArray.size() / sizeof(int16_t);
+    if (!_muted && (_audioSourceInjectEnabled || _peqEnabled)) {
+        
+        int16_t* inputFrameData = (int16_t*)inputByteArray.data();
+        const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
 
-    _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
+        _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, false /*copy in*/);
 
-    _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
-    
-    //  Add audio source injection if enabled
-    if (_audioSourceInjectEnabled && !_muted) {
-     
-        if (_toneSourceEnabled) {  // sine generator
-            _toneSource.render(_inputFrameBuffer);
+#if ENABLE_INPUT_GAIN
+        _inputGain.render(_inputFrameBuffer);  // input/mic gain+mute
+#endif
+        //  Add audio source injection if enabled
+        if (_audioSourceInjectEnabled) {
+         
+            if (_toneSourceEnabled) {  // sine generator
+                _toneSource.render(_inputFrameBuffer);
+            }
+            else if(_noiseSourceEnabled) { // pink noise generator
+                _noiseSource.render(_inputFrameBuffer);
+            }
+            _sourceGain.render(_inputFrameBuffer); // post gain
         }
-        else if(_noiseSourceEnabled) { // pink noise generator
-            _noiseSource.render(_inputFrameBuffer);
+        if (_peqEnabled) {
+            _peq.render(_inputFrameBuffer); // 3-band parametric eq
         }
-        _sourceGain.render(_inputFrameBuffer); // post gain
-    }
-    if (_peqEnabled && !_muted) {
-        _peq.render(_inputFrameBuffer); // 3-band parametric eq
-    }
 
-    _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
-    
+        _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
+    }
+        
     if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
         // if this person wants local loopback add that to the locally injected audio
 
@@ -633,6 +648,8 @@ void Audio::handleAudioInput() {
                     _dcOffset = DC_OFFSET_AVERAGING * _dcOffset + (1.0f - DC_OFFSET_AVERAGING) * measuredDcOffset;
                 }
                 
+                _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+                
                 //  If Noise Gate is enabled, check and turn the gate on and off
                 if (!_audioSourceInjectEnabled && _noiseGateEnabled) {
                     float averageOfAllSampleFrames = 0.0f;
@@ -736,6 +753,15 @@ void Audio::handleAudioInput() {
                 quint16 numSilentSamples = numNetworkSamples;
                 memcpy(currentPacketPtr, &numSilentSamples, sizeof(quint16));
                 currentPacketPtr += sizeof(quint16);
+
+                // memcpy the three float positions
+                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+                currentPacketPtr += (sizeof(headPosition));
+                
+                // memcpy our orientation
+                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+                currentPacketPtr += sizeof(headOrientation);
+
             } else {
                 // set the mono/stereo byte
                 *currentPacketPtr++ = isStereo;

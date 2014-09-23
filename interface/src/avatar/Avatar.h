@@ -79,7 +79,8 @@ public:
     
     enum RenderMode { NORMAL_RENDER_MODE, SHADOW_RENDER_MODE, MIRROR_RENDER_MODE };
     
-    virtual void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE);
+    virtual void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE,
+        bool postLighting = false);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { getHead()->setRenderLookatVectors(displayingLookatVectors); }
@@ -99,7 +100,7 @@ public:
     /// Returns the distance to use as a LOD parameter.
     float getLODDistance() const;
 
-    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
 
     /// \param shapes list of shapes to collide against avatar
     /// \param collisions list to store collision results
@@ -151,6 +152,12 @@ public:
     Q_INVOKABLE glm::quat getJointCombinedRotation(int index) const;
     Q_INVOKABLE glm::quat getJointCombinedRotation(const QString& name) const;
     
+    Q_INVOKABLE void setJointModelPositionAndOrientation(int index, const glm::vec3 position, const glm::quat& rotation);
+    Q_INVOKABLE void setJointModelPositionAndOrientation(const QString& name, const glm::vec3 position, 
+        const glm::quat& rotation);
+    
+    Q_INVOKABLE glm::vec3 getNeckPosition() const;
+
     Q_INVOKABLE glm::vec3 getVelocity() const { return _velocity; }
     Q_INVOKABLE glm::vec3 getAcceleration() const { return _acceleration; }
     Q_INVOKABLE glm::vec3 getAngularVelocity() const { return _angularVelocity; }
@@ -160,6 +167,13 @@ public:
     /// Scales a world space position vector relative to the avatar position and scale
     /// \param vector position to be scaled. Will store the result
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
+
+    void slamPosition(const glm::vec3& position);
+
+    // Call this when updating Avatar position with a delta.  This will allow us to 
+    // _accurately_ measure position changes and compute the resulting velocity 
+    // (otherwise floating point error will cause problems at large positions).
+    void applyPositionDelta(const glm::vec3& delta);
 
 public slots:
     void updateCollisionGroups();
@@ -173,12 +187,15 @@ protected:
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
 
+    glm::vec3 _velocity;
+
     // These position histories and derivatives are in the world-frame.
     // The derivatives are the MEASURED results of all external and internal forces
     // and are therefor READ-ONLY --> motion control of the Avatar is NOT obtained 
     // by setting these values.
-    glm::vec3 _lastPosition;
-    glm::vec3 _velocity;
+    // Floating point error prevents us from accurately measuring velocity using a naive approach 
+    // (e.g. vel = (pos - lastPos)/dt) so instead we use _positionDeltaAccumulator.
+    glm::vec3 _positionDeltaAccumulator;
     glm::vec3 _lastVelocity;
     glm::vec3 _acceleration;
     glm::vec3 _angularVelocity;
@@ -211,7 +228,7 @@ protected:
     glm::vec3 getDisplayNamePosition();
 
     void renderDisplayName();
-    virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);
+    virtual void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     void simulateAttachments(float deltaTime);

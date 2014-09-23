@@ -68,6 +68,7 @@
 #include "entities/EntityTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
+#include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "renderer/PointShader.h"
@@ -114,7 +115,6 @@ static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
-static const QString CUSTOM_URL_SCHEME = "hifi:";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
 static const float BILLBOARD_DISTANCE = 5.0f;       // meters
@@ -153,7 +153,6 @@ public:
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
-    void urlGoTo(int argc, const char * constArgv[]);
 
     void keyPressEvent(QKeyEvent* event);
     void keyReleaseEvent(QKeyEvent* event);
@@ -192,6 +191,7 @@ public:
     const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -248,6 +248,7 @@ public:
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
+    DeferredLightingEffect* getDeferredLightingEffect() { return &_deferredLightingEffect; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     ControllerScriptingInterface* getControllerScriptingInterface() { return &_controllerScriptingInterface; }
 
@@ -298,6 +299,8 @@ public:
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
+    void setCursorVisible(bool visible);
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -313,6 +316,7 @@ signals:
     void importDone();
 
 public slots:
+    void changeDomainHostname(const QString& newDomainHostname);
     void domainChanged(const QString& domainHostname);
     void updateWindowTitle();
     void updateLocationInServer();
@@ -352,6 +356,8 @@ public slots:
     void uploadHead();
     void uploadSkeleton();
     void uploadAttachment();
+    
+    void openUrl(const QUrl& url);
 
     void bumpSettings() { ++_numChangedSettings; }
     
@@ -486,6 +492,7 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
@@ -554,6 +561,7 @@ private:
     AnimationCache _animationCache;
     TextureCache _textureCache;
 
+    DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
     VoxelShader _voxelShader;

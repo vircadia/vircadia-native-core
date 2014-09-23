@@ -51,7 +51,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeMicrophoneAudioWithEcho:
             return 2;
         case PacketTypeSilentAudioFrame:
-            return 3;
+            return 4;
         case PacketTypeMixedAudio:
             return 1;
         case PacketTypeAvatarData:
@@ -75,8 +75,11 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeParticleErase:
             return 1;
+
+        case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_SUPPORT_SPLIT_MTU;
+            return VERSION_ENTITIES_SUPPORT_DIMENSIONS;
+
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

@@ -78,7 +78,7 @@ private:
 
     static ChannelInfo _CHANNELS[];
 
-    TextRenderer _textRenderer;
+    TextRenderer* _textRenderer;
     ChannelInfo* _channels;
     Stream _streams[N_STREAMS];
     int _scaleMaxIndex;

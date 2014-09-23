@@ -14,6 +14,9 @@
 // the depth texture
 uniform sampler2D depthTexture;
 
+// the normal texture
+uniform sampler2D normalTexture;
+
 // the random rotation texture
 uniform sampler2D rotationTexture;
 
@@ -57,10 +60,11 @@ vec3 texCoordToViewSpace(vec2 texCoord) {
 }
 
 void main(void) {
-    vec3 rotationX = texture2D(rotationTexture, gl_TexCoord[0].st * noiseScale).rgb;
-    vec3 rotationY = normalize(cross(rotationX, vec3(0.0, 0.0, 1.0)));
-    mat3 rotation = mat3(rotationX, rotationY, cross(rotationX, rotationY));
-    
+    vec3 rotationZ = texture2D(normalTexture, gl_TexCoord[0].st).xyz * 2.0 - vec3(1.0, 1.0, 1.0);
+    vec3 rotationY = normalize(cross(rotationZ, texture2D(rotationTexture,
+        gl_TexCoord[0].st * noiseScale).xyz - vec3(0.5, 0.5, 0.5)));
+    mat3 rotation = mat3(cross(rotationY, rotationZ), rotationY, rotationZ);
+
     vec3 center = texCoordToViewSpace(gl_TexCoord[0].st);
     
     vec2 rdenominator = 1.0 / (rightTop - leftBottom);

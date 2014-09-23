@@ -25,7 +25,7 @@ public:
     float getScale() const { return _scale; }
     void setScale(float scale) { _scale = scale; }
 
-    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const;
+    bool findRayIntersection(RayIntersectionInfo& intersection) const;
 
     float getVolume() const { return _scale * _scale * _scale; }
 

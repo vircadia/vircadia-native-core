@@ -32,12 +32,13 @@ EntityItem* RenderableBoxEntityItem::factory(const EntityItemID& entityID, const
 void RenderableBoxEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableBoxEntityItem::render");
     assert(getType() == EntityTypes::Box);
-    glm::vec3 position = getPosition() * (float)TREE_SCALE;
-    float size = getSize() * (float)TREE_SCALE;
+    glm::vec3 position = getPositionInMeters();
+    glm::vec3 center = getCenter() * (float)TREE_SCALE;
+    glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
+    glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
 
-
-    const bool useGlutCube = false;
+    const bool useGlutCube = true;
     
     if (useGlutCube) {
         glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
@@ -45,10 +46,14 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            glutSolidCube(size);
+            glPushMatrix();
+                glm::vec3 positionToCenter = center - position;
+                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+                glScalef(dimensions.x, dimensions.y, dimensions.z);
+                Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+            glPopMatrix();
         glPopMatrix();
     } else {
-
         static GLfloat vertices[] = { 1, 1, 1,  -1, 1, 1,  -1,-1, 1,   1,-1, 1,   // v0,v1,v2,v3 (front)
                                       1, 1, 1,   1,-1, 1,   1,-1,-1,   1, 1,-1,   // v0,v3,v4,v5 (right)
                                       1, 1, 1,   1, 1,-1,  -1, 1,-1,  -1, 1, 1,   // v0,v5,v6,v1 (top)
@@ -79,22 +84,25 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         glNormalPointer(GL_FLOAT, 0, normals);
         glVertexPointer(3, GL_FLOAT, 0, vertices);
 
-        //glEnable(GL_BLEND);
-
         glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
+        
+        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
         
         glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        
-            // we need to do half the size because the geometry in the VBOs are from -1,-1,-1 to 1,1,1 
-            float halfSize = size/2.0f;
-        
-            glScalef(halfSize, halfSize, halfSize);
-            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, indices);
+            glPushMatrix();
+                glm::vec3 positionToCenter = center - position;
+                glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+                // we need to do half the size because the geometry in the VBOs are from -1,-1,-1 to 1,1,1 
+                glScalef(halfDimensions.x, halfDimensions.y, halfDimensions.z);
+                glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_BYTE, indices);
+            glPopMatrix();
         glPopMatrix();
 
+        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        
         glDisableClientState(GL_VERTEX_ARRAY);  // disable vertex arrays
         glDisableClientState(GL_NORMAL_ARRAY);
     }    

@@ -76,23 +76,8 @@ void PhysicsEntity::clearShapes() {
     _shapes.clear();
 }
 
-bool PhysicsEntity::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
-    int numShapes = _shapes.size();
-    float minDistance = FLT_MAX;
-    for (int j = 0; j < numShapes; ++j) {
-        const Shape* shape = _shapes[j];
-        float thisDistance = FLT_MAX;
-        if (shape && shape->findRayIntersection(origin, direction, thisDistance)) {
-            if (thisDistance < minDistance) {
-                minDistance = thisDistance;
-            }
-        }
-    }
-    if (minDistance < FLT_MAX) {
-        distance = minDistance;
-        return true;
-    }
-    return false;
+bool PhysicsEntity::findRayIntersection(RayIntersectionInfo& intersection) const {
+    return ShapeCollider::findRayIntersection(_shapes, intersection);
 }
 
 bool PhysicsEntity::findCollisions(const QVector<const Shape*> shapes, CollisionList& collisions) {

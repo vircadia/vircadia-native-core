@@ -253,7 +253,9 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
             } else if (event.text.toUpper() == "CAPS LOCK") {
                 event.key = Qt::Key_CapsLock;
             } else {
-                event.key = event.text.at(0).unicode();
+                // Key values do not distinguish between uppercase and lowercase
+                // and use the uppercase key value.
+                event.key = event.text.toUpper().at(0).unicode();
             }
             event.isValid = true;
         }

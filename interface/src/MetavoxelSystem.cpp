@@ -16,6 +16,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QReadLocker>
 #include <QWriteLocker>
+#include <QThreadPool>
 #include <QtDebug>
 
 #include <glm/gtx/transform.hpp>
@@ -51,12 +52,6 @@ void MetavoxelSystem::init() {
         new BufferDataAttribute("voxelBuffer"));
     _voxelBufferAttribute->setLODThresholdMultiplier(
         AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
-    
-    loadLightProgram("shaders/directional_light.frag", _directionalLight, _directionalLightLocations);
-    loadLightProgram("shaders/directional_light_shadow_map.frag", _directionalLightShadowMap,
-        _directionalLightShadowMapLocations);
-    loadLightProgram("shaders/directional_light_cascaded_shadow_map.frag", _directionalLightCascadedShadowMap,
-        _directionalLightCascadedShadowMapLocations);
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() {
@@ -127,139 +122,18 @@ int RenderVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-const GLenum COLOR_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0 };
-const GLenum NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT1 };
-const GLenum COLOR_NORMAL_DRAW_BUFFERS[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-
 void MetavoxelSystem::render() {
     // update the frustum
-    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
         viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
-    
-    _needToLight = false;
-
-    // clear the normal buffer
-    glDrawBuffers(sizeof(NORMAL_DRAW_BUFFERS) / sizeof(NORMAL_DRAW_BUFFERS[0]), NORMAL_DRAW_BUFFERS);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
-    
+   
     RenderVisitor renderVisitor(getLOD());
     guideToAugmented(renderVisitor, true);
     
     // give external parties a chance to join in
     emit rendering();
-    
-    if (!_needToLight) {
-        return; // skip lighting if not needed
-    }
-    
-    // perform deferred lighting, rendering to free fbo
-    glPushMatrix();
-    glLoadIdentity();
-    
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    
-    glDisable(GL_BLEND);
-    glDisable(GL_LIGHTING);
-    glDisable(GL_DEPTH_TEST);
-    glDepthMask(false);
-    
-    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
-    primaryFBO->release();
-    
-    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
-    freeFBO->bind();
-    glClear(GL_COLOR_BUFFER_BIT);
-    
-    glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
-    
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
-    
-    if (Menu::getInstance()->getShadowsEnabled()) {
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
-        
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
-        
-        ProgramObject* program = &_directionalLightShadowMap;
-        const LightLocations* locations = &_directionalLightShadowMapLocations;
-        if (Menu::getInstance()->isOptionChecked(MenuOption::CascadedShadows)) {
-            program = &_directionalLightCascadedShadowMap;
-            locations = &_directionalLightCascadedShadowMapLocations;
-            _directionalLightCascadedShadowMap.bind();
-            _directionalLightCascadedShadowMap.setUniform(locations->shadowDistances,
-                Application::getInstance()->getShadowDistances());
-        
-        } else {
-            program->bind();
-        }
-        program->setUniformValue(locations->shadowScale,
-            1.0f / Application::getInstance()->getTextureCache()->getShadowFramebufferObject()->width());
-        
-        float left, right, bottom, top, nearVal, farVal;
-        glm::vec4 nearClipPlane, farClipPlane;
-        Application::getInstance()->computeOffAxisFrustum(
-            left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-        program->setUniformValue(locations->nearLocation, nearVal);
-        program->setUniformValue(locations->depthScale, (farVal - nearVal) / farVal);
-        float nearScale = -1.0f / nearVal;
-        program->setUniformValue(locations->depthTexCoordOffset, left * nearScale, bottom * nearScale);
-        program->setUniformValue(locations->depthTexCoordScale, (right - left) * nearScale, (top - bottom) * nearScale);
-        
-        renderFullscreenQuad();
-        
-        program->release();
-        
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        glActiveTexture(GL_TEXTURE1);
-    
-    } else {
-        _directionalLight.bind();
-        renderFullscreenQuad();
-        _directionalLight.release();        
-    }
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glActiveTexture(GL_TEXTURE0);
-    
-    freeFBO->release();
-    
-    // now transfer the lit region to the primary fbo
-    glEnable(GL_BLEND);
-    
-    primaryFBO->bind();
-    
-    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
-    glEnable(GL_TEXTURE_2D);
-    
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    
-    renderFullscreenQuad();
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-    
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(true);
-    
-    glDisable(GL_ALPHA_TEST);
-    
-    glPopMatrix();
-    
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
 }
 
 class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
@@ -619,24 +493,6 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
     }
 }
 
-void MetavoxelSystem::loadLightProgram(const char* name, ProgramObject& program, LightLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + name);
-    program.link();
-    
-    program.bind();
-    program.setUniformValue("diffuseMap", 0);
-    program.setUniformValue("normalMap", 1);
-    program.setUniformValue("depthMap", 2);
-    program.setUniformValue("shadowMap", 3);
-    locations.shadowDistances = program.uniformLocation("shadowDistances");
-    locations.shadowScale = program.uniformLocation("shadowScale");
-    locations.nearLocation = program.uniformLocation("near");
-    locations.depthScale = program.uniformLocation("depthScale");
-    locations.depthTexCoordOffset = program.uniformLocation("depthTexCoordOffset");
-    locations.depthTexCoordScale = program.uniformLocation("depthTexCoordScale");
-    program.release();
-}
-
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
     MetavoxelClient(node, updater) {
 }
@@ -781,9 +637,9 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _heightTextureID(0),
     _colorTextureID(0),
     _materialTextureID(0),
-    _heightSize(glm::sqrt(height.size())),
+    _heightSize(glm::sqrt(float(height.size()))),
     _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
-    _colorSize(glm::sqrt(color.size() / DataBlock::COLOR_BYTES)),
+    _colorSize(glm::sqrt(float(color.size() / DataBlock::COLOR_BYTES))),
     _colorIncrement(scale / (_colorSize - SHARED_EDGE)) {
     
     _heightBounds.minimum.x -= _heightIncrement * HEIGHT_BORDER;
@@ -808,7 +664,7 @@ HeightfieldBuffer::~HeightfieldBuffer() {
 }
 
 QByteArray HeightfieldBuffer::getUnextendedHeight() const {
-    int srcSize = glm::sqrt(_height.size());
+    int srcSize = glm::sqrt(float(_height.size()));
     int destSize = srcSize - 3;
     QByteArray unextended(destSize * destSize, 0);
     const char* src = _height.constData() + srcSize + 1;
@@ -820,7 +676,7 @@ QByteArray HeightfieldBuffer::getUnextendedHeight() const {
 }
 
 QByteArray HeightfieldBuffer::getUnextendedColor() const {
-    int srcSize = glm::sqrt(_color.size() / DataBlock::COLOR_BYTES);
+    int srcSize = glm::sqrt(float(_color.size() / DataBlock::COLOR_BYTES));
     int destSize = srcSize - 1;
     QByteArray unextended(destSize * destSize * DataBlock::COLOR_BYTES, 0);
     const char* src = _color.constData();
@@ -865,7 +721,7 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
                
         } else {
-            int colorSize = glm::sqrt(_color.size() / DataBlock::COLOR_BYTES);    
+            int colorSize = glm::sqrt(float(_color.size() / DataBlock::COLOR_BYTES));
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
         }
         
@@ -876,7 +732,7 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            int materialSize = glm::sqrt(_material.size());    
+            int materialSize = glm::sqrt(float(_material.size()));
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, materialSize, materialSize, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, _material.constData());
             
@@ -969,7 +825,7 @@ void HeightfieldBuffer::render(bool cursor) {
         
         glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
         
-        glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
         glDepthMask(false);
@@ -1042,7 +898,7 @@ void HeightfieldBuffer::render(bool cursor) {
         glDepthMask(true);
         glDepthFunc(GL_LESS);
         
-        glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
         
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
         
@@ -1066,14 +922,12 @@ void HeightfieldBuffer::render(bool cursor) {
     
     bufferPair.first.release();
     bufferPair.second.release();
-    
-    Application::getInstance()->getMetavoxels()->noteNeedToLight();
 }
 
 QHash<int, HeightfieldBuffer::BufferPair> HeightfieldBuffer::_bufferPairs;
 
 void HeightfieldPreview::render(const glm::vec3& translation, float scale) const {
-    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
     glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
@@ -1106,7 +960,7 @@ void HeightfieldPreview::render(const glm::vec3& translation, float scale) const
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
     
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
@@ -1154,7 +1008,7 @@ void VoxelBuffer::render(bool cursor) {
     glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
     
     if (!_materials.isEmpty()) {
-        glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
         glDepthMask(false);
@@ -1224,7 +1078,7 @@ void VoxelBuffer::render(bool cursor) {
         glDepthMask(true);
         glDepthFunc(GL_LESS);
         
-        glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
         
         DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materials);
         DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materialWeights);
@@ -1234,8 +1088,6 @@ void VoxelBuffer::render(bool cursor) {
     
     _vertexBuffer.release();
     _indexBuffer.release();
-    
-    Application::getInstance()->getMetavoxels()->noteNeedToLight();
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -1419,7 +1271,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
         char* dest = _buffer->getHeight().data() + destY * heightSize + destX;
         
         const QByteArray& srcHeight = height->getContents();
-        int srcSize = glm::sqrt(srcHeight.size());
+        int srcSize = glm::sqrt(float(srcHeight.size()));
         float srcIncrement = info.size / srcSize;
         
         if (info.size == _buffer->getScale() && srcSize == (heightSize - HeightfieldBuffer::HEIGHT_EXTENSION)) {
@@ -1472,7 +1324,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
         int destBytes = destWidth * DataBlock::COLOR_BYTES;
         
         const QByteArray& srcColor = color->getContents();
-        srcSize = glm::sqrt(srcColor.size() / DataBlock::COLOR_BYTES);
+        srcSize = glm::sqrt(float(srcColor.size() / DataBlock::COLOR_BYTES));
         int srcStride = srcSize * DataBlock::COLOR_BYTES;
         srcIncrement = info.size / srcSize;
         
@@ -1542,7 +1394,7 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
     HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
     if (height) {
         const QByteArray& heightContents = height->getContents();
-        int size = glm::sqrt(heightContents.size());
+        int size = glm::sqrt(float(heightContents.size()));
         int extendedSize = size + HeightfieldBuffer::HEIGHT_EXTENSION;
         int heightContentsSize = extendedSize * extendedSize;
         
@@ -1550,7 +1402,7 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
         int colorContentsSize = 0;
         if (color) {
             const QByteArray& colorContents = color->getContents();
-            int colorSize = glm::sqrt(colorContents.size() / DataBlock::COLOR_BYTES);
+            int colorSize = glm::sqrt(float(colorContents.size() / DataBlock::COLOR_BYTES));
             int extendedColorSize = colorSize + HeightfieldBuffer::SHARED_EDGE;
             colorContentsSize = extendedColorSize * extendedColorSize * DataBlock::COLOR_BYTES;
         }
@@ -1732,7 +1584,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         for (int z = 0; z < expanded; z++) {
             const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
-                int lastIndex;
+                int lastIndex = 0;
                 const QRgb* colorX = colorY;
                 for (int x = 0; x < expanded; x++) {
                     int alpha0 = colorX[0] >> ALPHA_OFFSET;
@@ -2176,7 +2028,7 @@ private:
 SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
         QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-        lod, encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+        lod, encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
@@ -2212,7 +2064,7 @@ private:
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
@@ -2246,12 +2098,12 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     float viewportWidth = viewport[VIEWPORT_WIDTH_INDEX];
     float viewportHeight = viewport[VIEWPORT_HEIGHT_INDEX];
     float viewportDiagonal = sqrtf(viewportWidth * viewportWidth + viewportHeight * viewportHeight);
-    float worldDiagonal = glm::distance(Application::getInstance()->getViewFrustum()->getNearBottomLeft(),
-        Application::getInstance()->getViewFrustum()->getNearTopRight());
+    float worldDiagonal = glm::distance(Application::getInstance()->getDisplayViewFrustum()->getNearBottomLeft(),
+        Application::getInstance()->getDisplayViewFrustum()->getNearTopRight());
 
     _pointProgram.bind();
     _pointProgram.setUniformValue(_pointScaleLocation, viewportDiagonal *
-        Application::getInstance()->getViewFrustum()->getNearClip() / worldDiagonal);
+        Application::getInstance()->getDisplayViewFrustum()->getNearClip() / worldDiagonal);
         
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
@@ -2271,7 +2123,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     _pointProgram.release();
     
-    glDrawBuffers(sizeof(COLOR_NORMAL_DRAW_BUFFERS) / sizeof(COLOR_NORMAL_DRAW_BUFFERS[0]), COLOR_NORMAL_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
     glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
@@ -2314,7 +2166,7 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     
-    glDrawBuffers(sizeof(COLOR_DRAW_BUFFERS) / sizeof(COLOR_DRAW_BUFFERS[0]), COLOR_DRAW_BUFFERS);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
 
 void DefaultMetavoxelRendererImplementation::loadSplatProgram(const char* type,
@@ -2470,7 +2322,14 @@ void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
 
 bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const {
-    return _model->findRayIntersection(origin, direction, distance);
+    RayIntersectionInfo info;
+    info._rayStart = origin;
+    info._rayDirection = direction;
+    if (!_model->findRayIntersection(info)) {
+        return false;
+    }
+    distance = info._hitDistance;
+    return true;
 }
 
 void StaticModelRenderer::applyTranslation(const glm::vec3& translation) {

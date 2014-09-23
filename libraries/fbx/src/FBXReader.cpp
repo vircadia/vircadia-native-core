@@ -33,27 +33,6 @@
 
 using namespace std;
 
-void Extents::reset() {
-    minimum = glm::vec3(FLT_MAX);
-    maximum = glm::vec3(-FLT_MAX);
-}
-
-bool Extents::containsPoint(const glm::vec3& point) const {
-    return (point.x >= minimum.x && point.x <= maximum.x
-        && point.y >= minimum.y && point.y <= maximum.y
-        && point.z >= minimum.z && point.z <= maximum.z);
-}
-
-void Extents::addExtents(const Extents& extents) {
-     minimum = glm::min(minimum, extents.minimum);
-     maximum = glm::max(maximum, extents.maximum);
-}
-
-void Extents::addPoint(const glm::vec3& point) {
-    minimum = glm::min(minimum, point);
-    maximum = glm::max(maximum, point);
-}
-
 bool FBXMesh::hasSpecularTexture() const {
     foreach (const FBXMeshPart& part, parts) {
         if (!part.specularTexture.filename.isEmpty()) {
@@ -677,7 +656,9 @@ class Material {
 public:
     glm::vec3 diffuse;
     glm::vec3 specular;
+    glm::vec3 emissive;
     float shininess;
+    float opacity;
 };
 
 class Cluster {
@@ -1301,7 +1282,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         textureContent.insert(filename, content);
                     }
                 } else if (object.name == "Material") {
-                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(), 96.0f, 1.0f };
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -1325,8 +1306,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     } else if (property.properties.at(0) == "SpecularColor") {
                                         material.specular = getVec3(property.properties, index);
 
+                                    } else if (property.properties.at(0) == "Emissive") {
+                                        material.emissive = getVec3(property.properties, index);
+                                    
                                     } else if (property.properties.at(0) == "Shininess") {
                                         material.shininess = property.properties.at(index).value<double>();
+                                    
+                                    } else if (property.properties.at(0) == "Opacity") {
+                                        material.opacity = property.properties.at(index).value<double>();
                                     }
                                 }
                             }
@@ -1622,7 +1609,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         FBXMeshPart& part = extracted.mesh.parts[j];
                         part.diffuseColor = material.diffuse;
                         part.specularColor = material.specular;
+                        part.emissiveColor = material.emissive;
                         part.shininess = material.shininess;
+                        part.opacity = material.opacity;
                         if (!diffuseTexture.filename.isNull()) {
                             part.diffuseTexture = diffuseTexture;
                         }
@@ -1771,18 +1760,38 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
 
                         // look for an unused slot in the weights vector
                         glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
-                        for (int k = 0; k < 4; k++) {
+                        int lowestIndex = -1;
+                        float lowestWeight = FLT_MAX;
+                        int k = 0;
+                        for (; k < 4; k++) {
                             if (weights[k] == 0.0f) {
                                 extracted.mesh.clusterIndices[it.value()][k] = i;
                                 weights[k] = weight;
                                 break;
                             }
+                            if (weights[k] < lowestWeight) {
+                                lowestIndex = k;
+                                lowestWeight = weights[k];
+                            }
+                        }
+                        if (k == 4 && weight > lowestWeight) {
+                            // no space for an additional weight; we must replace the lowest
+                            weights[lowestIndex] = weight;
+                            extracted.mesh.clusterIndices[it.value()][lowestIndex] = i;
                         }
                     }
                 }
                 if (totalWeight > maxWeight) {
                     maxWeight = totalWeight;
                     maxJointIndex = jointIndex;
+                }
+            }
+            // normalize the weights if they don't add up to one
+            for (int i = 0; i < extracted.mesh.clusterWeights.size(); i++) {
+                glm::vec4& weights = extracted.mesh.clusterWeights[i];
+                float total = weights.x + weights.y + weights.z + weights.w;
+                if (total != 1.0f && total != 0.0f) {
+                    weights /= total; 
                 }
             }
         } else {
@@ -2063,6 +2072,7 @@ FBXGeometry readSVO(const QByteArray& model) {
     FBXMeshPart part;
     part.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
     part.shininess = 96.0f;
+    part.opacity = 1.0f;
     mesh.parts.append(part);
 
     VoxelTree tree;
@@ -2132,40 +2142,3 @@ FBXGeometry readSVO(const QByteArray& model) {
 
     return geometry;
 }
-
-void calculateRotatedExtents(Extents& extents, const glm::quat& rotation) {
-    glm::vec3 bottomLeftNear(extents.minimum.x, extents.minimum.y, extents.minimum.z);
-    glm::vec3 bottomRightNear(extents.maximum.x, extents.minimum.y, extents.minimum.z);
-    glm::vec3 bottomLeftFar(extents.minimum.x, extents.minimum.y, extents.maximum.z);
-    glm::vec3 bottomRightFar(extents.maximum.x, extents.minimum.y, extents.maximum.z);
-    glm::vec3 topLeftNear(extents.minimum.x, extents.maximum.y, extents.minimum.z);
-    glm::vec3 topRightNear(extents.maximum.x, extents.maximum.y, extents.minimum.z);
-    glm::vec3 topLeftFar(extents.minimum.x, extents.maximum.y, extents.maximum.z);
-    glm::vec3 topRightFar(extents.maximum.x, extents.maximum.y, extents.maximum.z);
-
-    glm::vec3 bottomLeftNearRotated =  rotation * bottomLeftNear;
-    glm::vec3 bottomRightNearRotated = rotation * bottomRightNear;
-    glm::vec3 bottomLeftFarRotated = rotation * bottomLeftFar;
-    glm::vec3 bottomRightFarRotated = rotation * bottomRightFar;
-    glm::vec3 topLeftNearRotated = rotation * topLeftNear;
-    glm::vec3 topRightNearRotated = rotation * topRightNear;
-    glm::vec3 topLeftFarRotated = rotation * topLeftFar;
-    glm::vec3 topRightFarRotated = rotation * topRightFar;
-    
-    extents.minimum = glm::min(bottomLeftNearRotated,
-                        glm::min(bottomRightNearRotated,
-                        glm::min(bottomLeftFarRotated,
-                        glm::min(bottomRightFarRotated,
-                        glm::min(topLeftNearRotated,
-                        glm::min(topRightNearRotated,
-                        glm::min(topLeftFarRotated,topRightFarRotated)))))));
-
-    extents.maximum = glm::max(bottomLeftNearRotated,
-                        glm::max(bottomRightNearRotated,
-                        glm::max(bottomLeftFarRotated,
-                        glm::max(bottomRightFarRotated,
-                        glm::max(topLeftNearRotated,
-                        glm::max(topRightNearRotated,
-                        glm::max(topLeftFarRotated,topRightFarRotated)))))));
-}
-

@@ -21,16 +21,16 @@ class AudioBiquad {
     //
     // private data
     //
-    float _a0;  // gain
-    float _a1;  // feedforward 1
-    float _a2;  // feedforward 2
-    float _b1;  // feedback 1
-    float _b2;  // feedback 2
+    float32_t _a0;  // gain
+    float32_t _a1;  // feedforward 1
+    float32_t _a2;  // feedforward 2
+    float32_t _b1;  // feedback 1
+    float32_t _b2;  // feedback 2
 
-    float _xm1;
-    float _xm2;
-    float _ym1;
-    float _ym2;
+    float32_t _xm1;
+    float32_t _xm2;
+    float32_t _ym1;
+    float32_t _ym2;
 
 public:
 
@@ -51,20 +51,20 @@ public:
     //
     // public interface
     //
-    void setParameters(const float a0, const float a1, const float a2, const float b1, const float b2) {
+    void setParameters(const float32_t a0, const float32_t a1, const float32_t a2, const float32_t b1, const float32_t b2) {
         _a0 = a0; _a1 = a1; _a2 = a2; _b1 = b1; _b2 = b2;
     }
 
-    void getParameters(float& a0, float& a1, float& a2, float& b1, float& b2) {
+    void getParameters(float32_t& a0, float32_t& a1, float32_t& a2, float32_t& b1, float32_t& b2) {
         a0 = _a0; a1 = _a1; a2 = _a2; b1 = _b1; b2 = _b2;
     }
 
-    void render(const float* in, float* out, const int frames) {
+    void render(const float32_t* in, float32_t* out, const uint32_t frames) {
         
-        float x;
-        float y;
+        float32_t x;
+        float32_t y;
 
-        for (int i = 0; i < frames; ++i) {
+        for (uint32_t i = 0; i < frames; ++i) {
 
             x = *in++;
 
@@ -74,6 +74,8 @@ public:
               + (_a2 * _xm2)
               - (_b1 * _ym1) 
               - (_b2 * _ym2);
+
+            y = (y >= -EPSILON && y < EPSILON) ? 0.0f : y; // clamp to 0
 
             // update delay line
             _xm2 = _xm1;
@@ -103,10 +105,10 @@ protected:
     // data
     //
     AudioBiquad _kernel;
-    float _sampleRate;
-    float _frequency;
-    float _gain;
-    float _slope;
+    float32_t _sampleRate;
+    float32_t _frequency;
+    float32_t _gain;
+    float32_t _slope;
     
     //
     // helpers
@@ -129,7 +131,7 @@ public:
     //
     // public interface
     //
-    void setParameters(const float sampleRate, const float frequency, const float gain, const float slope) {
+    void setParameters(const float32_t sampleRate, const float32_t frequency, const float32_t gain, const float32_t slope) {
         
         _sampleRate = std::max(sampleRate, 1.0f);
         _frequency = std::max(frequency, 2.0f);
@@ -139,11 +141,11 @@ public:
         updateKernel();
     }
     
-    void getParameters(float& sampleRate, float& frequency, float& gain, float& slope) {
+    void getParameters(float32_t& sampleRate, float32_t& frequency, float32_t& gain, float32_t& slope) {
         sampleRate = _sampleRate; frequency = _frequency; gain = _gain; slope = _slope;
     }
     
-    void render(const float* in, float* out, const int frames) {
+    void render(const float32_t* in, float32_t* out, const uint32_t frames) {
         _kernel.render(in,out,frames);
     }
     
@@ -164,14 +166,14 @@ public:
     //
     void updateKernel() {
         
-        const float a =  _gain;
-        const float aAdd1 = a + 1.0f;
-        const float aSub1 = a - 1.0f;
-        const float omega = TWO_PI * _frequency / _sampleRate;
-        const float aAdd1TimesCosOmega = aAdd1 * cosf(omega);
-        const float aSub1TimesCosOmega = aSub1 * cosf(omega);
-        const float alpha = 0.5f * sinf(omega) / _slope;
-        const float zeta = 2.0f * sqrtf(a) * alpha;
+        const float32_t a =  _gain;
+        const float32_t aAdd1 = a + 1.0f;
+        const float32_t aSub1 = a - 1.0f;
+        const float32_t omega = TWO_PI * _frequency / _sampleRate;
+        const float32_t aAdd1TimesCosOmega = aAdd1 * cosf(omega);
+        const float32_t aSub1TimesCosOmega = aSub1 * cosf(omega);
+        const float32_t alpha = 0.5f * sinf(omega) / _slope;
+        const float32_t zeta = 2.0f * sqrtf(a) * alpha;
         /*
         b0 =    A*( (A+1) - (A-1)*cos(w0) + 2*sqrt(A)*alpha )
         b1 =  2*A*( (A-1) - (A+1)*cos(w0)                   )
@@ -180,14 +182,14 @@ public:
         a1 =   -2*( (A-1) + (A+1)*cos(w0)                   )
         a2 =        (A+1) + (A-1)*cos(w0) - 2*sqrt(A)*alpha
         */
-        const float b0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta) * a;
-        const float b1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO) * a;
-        const float b2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta) * a;
-        const float a0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta);
-        const float a1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO);
-        const float a2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta);
+        const float32_t b0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta) * a;
+        const float32_t b1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO) * a;
+        const float32_t b2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta) * a;
+        const float32_t a0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta);
+        const float32_t a1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO);
+        const float32_t a2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta);
         
-        const float normA0 = 1.0f / a0;
+        const float32_t normA0 = 1.0f / a0;
 
         _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }
@@ -205,14 +207,14 @@ public:
     //
     void updateKernel() {
         
-        const float a =  _gain;
-        const float aAdd1 = a + 1.0f;
-        const float aSub1 = a - 1.0f;
-        const float omega = TWO_PI * _frequency / _sampleRate;
-        const float aAdd1TimesCosOmega = aAdd1 * cosf(omega);
-        const float aSub1TimesCosOmega = aSub1 * cosf(omega);
-        const float alpha = 0.5f * sinf(omega) / _slope;
-        const float zeta = 2.0f * sqrtf(a) * alpha;
+        const float32_t a =  _gain;
+        const float32_t aAdd1 = a + 1.0f;
+        const float32_t aSub1 = a - 1.0f;
+        const float32_t omega = TWO_PI * _frequency / _sampleRate;
+        const float32_t aAdd1TimesCosOmega = aAdd1 * cosf(omega);
+        const float32_t aSub1TimesCosOmega = aSub1 * cosf(omega);
+        const float32_t alpha = 0.5f * sinf(omega) / _slope;
+        const float32_t zeta = 2.0f * sqrtf(a) * alpha;
         /*
          b0 =    A*( (A+1) + (A-1)*cos(w0) + 2*sqrt(A)*alpha )
          b1 = -2*A*( (A-1) + (A+1)*cos(w0)                   )
@@ -221,14 +223,14 @@ public:
          a1 =    2*( (A-1) - (A+1)*cos(w0)                   )
          a2 =        (A+1) - (A-1)*cos(w0) - 2*sqrt(A)*alpha
          */
-        const float b0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta) * a;
-        const float b1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO) * a;
-        const float b2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta) * a;
-        const float a0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta);
-        const float a1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO);
-        const float a2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta);
+        const float32_t b0 = +1.0f * (aAdd1 + aSub1TimesCosOmega + zeta) * a;
+        const float32_t b1 = -2.0f * (aSub1 + aAdd1TimesCosOmega + ZERO) * a;
+        const float32_t b2 = +1.0f * (aAdd1 + aSub1TimesCosOmega - zeta) * a;
+        const float32_t a0 = +1.0f * (aAdd1 - aSub1TimesCosOmega + zeta);
+        const float32_t a1 = +2.0f * (aSub1 - aAdd1TimesCosOmega + ZERO);
+        const float32_t a2 = +1.0f * (aAdd1 - aSub1TimesCosOmega - zeta);
         
-        const float normA0 = 1.0f / a0;
+        const float32_t normA0 = 1.0f / a0;
         
         _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }
@@ -246,9 +248,9 @@ public:
     //
     void updateKernel() {
         
-        const float omega = TWO_PI * _frequency / _sampleRate;
-        const float cosOmega = cosf(omega);
-        const float alpha = 0.5f * sinf(omega) / _slope;
+        const float32_t omega = TWO_PI * _frequency / _sampleRate;
+        const float32_t cosOmega = cosf(omega);
+        const float32_t alpha = 0.5f * sinf(omega) / _slope;
         /*
          b0 =   1 - alpha
          b1 =  -2*cos(w0)
@@ -257,14 +259,14 @@ public:
          a1 =  -2*cos(w0)
          a2 =   1 - alpha
          */
-        const float b0 = +1.0f - alpha;
-        const float b1 = -2.0f * cosOmega;
-        const float b2 = +1.0f + alpha;
-        const float a0 = +1.0f + alpha;
-        const float a1 = -2.0f * cosOmega;
-        const float a2 = +1.0f - alpha;
+        const float32_t b0 = +1.0f - alpha;
+        const float32_t b1 = -2.0f * cosOmega;
+        const float32_t b2 = +1.0f + alpha;
+        const float32_t a0 = +1.0f + alpha;
+        const float32_t a1 = -2.0f * cosOmega;
+        const float32_t a2 = +1.0f - alpha;
         
-        const float normA0 = 1.0f / a0;
+        const float32_t normA0 = 1.0f / a0;
         
         _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }
@@ -282,12 +284,12 @@ public:
     //
     void updateKernel() {
         
-        const float a = _gain;
-        const float omega = TWO_PI * _frequency / _sampleRate;
-        const float cosOmega = cosf(omega);
-        const float alpha = 0.5f * sinf(omega) / _slope;
-        const float alphaMulA = alpha * a;
-        const float alphaDivA = alpha / a;
+        const float32_t a = _gain;
+        const float32_t omega = TWO_PI * _frequency / _sampleRate;
+        const float32_t cosOmega = cosf(omega);
+        const float32_t alpha = 0.5f * sinf(omega) / _slope;
+        const float32_t alphaMulA = alpha * a;
+        const float32_t alphaDivA = alpha / a;
         /*
          b0 =   1 + alpha*A
          b1 =  -2*cos(w0)
@@ -296,14 +298,14 @@ public:
          a1 =  -2*cos(w0)
          a2 =   1 - alpha/A
          */
-        const float b0 = +1.0f + alphaMulA;
-        const float b1 = -2.0f * cosOmega;
-        const float b2 = +1.0f - alphaMulA;
-        const float a0 = +1.0f + alphaDivA;
-        const float a1 = -2.0f * cosOmega;
-        const float a2 = +1.0f - alphaDivA;
+        const float32_t b0 = +1.0f + alphaMulA;
+        const float32_t b1 = -2.0f * cosOmega;
+        const float32_t b2 = +1.0f - alphaMulA;
+        const float32_t a0 = +1.0f + alphaDivA;
+        const float32_t a1 = -2.0f * cosOmega;
+        const float32_t a2 = +1.0f - alphaDivA;
         
-        const float normA0 = 1.0f / a0;
+        const float32_t normA0 = 1.0f / a0;
         
         _kernel.setParameters(b0 * normA0, b1 * normA0 , b2 * normA0, a1 * normA0, a2 * normA0);
     }

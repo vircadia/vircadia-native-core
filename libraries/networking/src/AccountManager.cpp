@@ -188,7 +188,8 @@ void AccountManager::invokedRequest(const QString& path,
     
     if (requiresAuthentication) {
         if (hasValidAccessToken()) {
-            requestURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
+            networkRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER,
+                                        _accountInfo.getAccessToken().authorizationHeaderValue());
         } else {
             qDebug() << "No valid access token present. Bailing on authenticated invoked request.";
             return;
@@ -292,8 +293,7 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
     if (callbackParams.errorCallbackReceiver) {
         // invoke the right method on the callback receiver
         QMetaObject::invokeMethod(callbackParams.errorCallbackReceiver, qPrintable(callbackParams.errorCallbackMethod),
-                                  Q_ARG(QNetworkReply::NetworkError, requestReply->error()),
-                                  Q_ARG(const QString&, requestReply->errorString()));
+                                  Q_ARG(QNetworkReply&, *requestReply));
 
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);
@@ -406,9 +406,11 @@ void AccountManager::requestProfile() {
 
     QUrl profileURL = _authURL;
     profileURL.setPath("/api/v1/users/profile");
-    profileURL.setQuery("access_token=" + _accountInfo.getAccessToken().token);
+    
+    QNetworkRequest profileRequest(profileURL);
+    profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
 
-    QNetworkReply* profileReply = networkAccessManager.get(QNetworkRequest(profileURL));
+    QNetworkReply* profileReply = networkAccessManager.get(profileRequest);
     connect(profileReply, &QNetworkReply::finished, this, &AccountManager::requestProfileFinished);
     connect(profileReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(requestProfileError(QNetworkReply::NetworkError)));
 }

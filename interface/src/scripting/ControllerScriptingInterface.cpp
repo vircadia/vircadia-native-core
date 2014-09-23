@@ -312,7 +312,8 @@ void ControllerScriptingInterface::updateInputControllers() {
 InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
     AbstractInputController(),
     _deviceTrackerId(deviceTrackerId),
-    _subTrackerId(subTrackerId)
+    _subTrackerId(subTrackerId),
+    _isActive(false)
 {
 }
 

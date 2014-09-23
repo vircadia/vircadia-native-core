@@ -1727,6 +1727,70 @@
       </layout>
      </item>
      <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_999">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>7</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>7</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_999">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="text">
+          <string>Faceshift hostname</string>
+         </property>
+         <property name="indent">
+          <number>0</number>
+         </property>
+         <property name="buddy">
+          <cstring>faceshiftHostnameEdit</cstring>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer_999">
+         <property name="font">
+          <font>
+           <family>Arial</family>
+          </font>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </spacer>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="faceshiftHostnameEdit">
+           <property name="font">
+            <font>
+             <family>Arial</family>
+            </font>
+           </property>
+           <property name="layoutDirection">
+            <enum>Qt::LeftToRight</enum>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="placeholderText">
+            <string>localhost</string>
+           </property>
+          </widget>
+       </item>
+      </layout>
+     </item>   
+     <item>
       <widget class="QLabel" name="voxelsTitleLabel">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Minimum">

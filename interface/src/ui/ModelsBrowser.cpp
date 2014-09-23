@@ -15,6 +15,7 @@
 #include <QHeaderView>
 #include <QMessageBox>
 #include <QUrl>
+#include <qurlquery.h>
 #include <QXmlStreamReader>
 
 #include <NetworkAccessManager.h>

@@ -57,7 +57,6 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _domainHandler(this),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(),
-    _publicSockAddr(),
     _hasCompletedInitialSTUNFailure(false),
     _stunRequestsSinceSuccess(0)
 {
@@ -195,47 +194,16 @@ void NodeList::addSetOfNodeTypesToNodeInterestSet(const NodeSet& setOfNodeTypes)
     _nodeTypesOfInterest.unite(setOfNodeTypes);
 }
 
-const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
-const int NUM_BYTES_STUN_HEADER = 20;
+
 const unsigned int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
 
 void NodeList::sendSTUNRequest() {
-    const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
-    const unsigned short STUN_SERVER_PORT = 3478;
-
-    unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
-
-    int packetIndex = 0;
-
-    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-
-    // leading zeros + message type
-    const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
-    memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
-    packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
-
-    // message length (no additional attributes are included)
-    uint16_t messageLength = 0;
-    memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
-    packetIndex += sizeof(messageLength);
-
-    memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
-    packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-
-    // transaction ID (random 12-byte unsigned integer)
-    const uint NUM_TRANSACTION_ID_BYTES = 12;
-    QUuid randomUUID = QUuid::createUuid();
-    memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
-
-    // lookup the IP for the STUN server
-    static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
 
     if (!_hasCompletedInitialSTUNFailure) {
-        qDebug("Sending intial stun request to %s", stunSockAddr.getAddress().toString().toLocal8Bit().constData());
+        qDebug() << "Sending intial stun request to" << STUN_SERVER_HOSTNAME;
     }
-
-    _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
-                              stunSockAddr.getAddress(), stunSockAddr.getPort());
+    
+    LimitedNodeList::sendSTUNRequest();
 
     _stunRequestsSinceSuccess++;
 
@@ -255,79 +223,16 @@ void NodeList::sendSTUNRequest() {
     }
 }
 
-void NodeList::processSTUNResponse(const QByteArray& packet) {
-    // check the cookie to make sure this is actually a STUN response
-    // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
-    const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
-    const uint16_t XOR_MAPPED_ADDRESS_TYPE = htons(0x0020);
-
-    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-
-    int attributeStartIndex = NUM_BYTES_STUN_HEADER;
-
-    if (memcmp(packet.data() + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
-               &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
-               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
-
-        // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
-        while (attributeStartIndex < packet.size()) {
-            if (memcmp(packet.data() + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
-                const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
-                const int NUM_BYTES_FAMILY_ALIGN = 1;
-                const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
-
-                // reset the number of failed STUN requests since last success
-                _stunRequestsSinceSuccess = 0;
-
-                int byteIndex = attributeStartIndex + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
-                
-                uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packet.data() + byteIndex, sizeof(addressFamily));
-
-                byteIndex += sizeof(addressFamily);
-
-                if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
-                    // grab the X-Port
-                    uint16_t xorMappedPort = 0;
-                    memcpy(&xorMappedPort, packet.data() + byteIndex, sizeof(xorMappedPort));
-
-                    uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
-
-                    byteIndex += sizeof(xorMappedPort);
-
-                    // grab the X-Address
-                    uint32_t xorMappedAddress = 0;
-                    memcpy(&xorMappedAddress, packet.data() + byteIndex, sizeof(xorMappedAddress));
-
-                    uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-
-                    QHostAddress newPublicAddress = QHostAddress(stunAddress);
-
-                    if (newPublicAddress != _publicSockAddr.getAddress() || newPublicPort != _publicSockAddr.getPort()) {
-                        _publicSockAddr = HifiSockAddr(newPublicAddress, newPublicPort);
-
-                        qDebug("New public socket received from STUN server is %s:%hu",
-                               _publicSockAddr.getAddress().toString().toLocal8Bit().constData(),
-                               _publicSockAddr.getPort());
-
-                    }
-
-                    _hasCompletedInitialSTUNFailure = true;
-
-                    break;
-                }
-            } else {
-                // push forward attributeStartIndex by the length of this attribute
-                const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
-
-                uint16_t attributeLength = 0;
-                memcpy(&attributeLength, packet.data() + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE,
-                       sizeof(attributeLength));
-                attributeLength = ntohs(attributeLength);
-
-                attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
-            }
-        }
+bool NodeList::processSTUNResponse(const QByteArray& packet) {
+    if (LimitedNodeList::processSTUNResponse(packet)) {
+        // reset the number of failed STUN requests since last success
+        _stunRequestsSinceSuccess = 0;
+        
+        _hasCompletedInitialSTUNFailure = true;
+        
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -397,7 +302,10 @@ int NodeList::processDomainServerList(const QByteArray& packet) {
     _numNoReplyDomainCheckIns = 0;
     
     // if this was the first domain-server list from this domain, we've now connected
-    _domainHandler.setIsConnected(true);
+    if (!_domainHandler.isConnected()) {
+        _domainHandler.setUUID(uuidFromPacketHeader(packet));
+        _domainHandler.setIsConnected(true);
+    }
 
     int readNodes = 0;
     

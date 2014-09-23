@@ -26,6 +26,10 @@ class AvatarManager : public AvatarHashMap {
     Q_OBJECT
 
 public:
+    
+    /// Registers the script types associated with the avatar manager.
+    static void registerMetaTypes(QScriptEngine* engine);
+
     AvatarManager(QObject* parent = 0);
 
     void init();
@@ -33,12 +37,18 @@ public:
     MyAvatar* getMyAvatar() { return _myAvatar.data(); }
     
     void updateOtherAvatars(float deltaTime);
-    void renderAvatars(Avatar::RenderMode renderMode, bool selfAvatarOnly = false);
+    void renderAvatars(Avatar::RenderMode renderMode, bool postLighting = false, bool selfAvatarOnly = false);
     
     void clearOtherAvatars();
     
-    Q_INVOKABLE void setLocalLights(const QVector<Model::LocalLight>& localLights);
-    Q_INVOKABLE QVector<Model::LocalLight> getLocalLights() const;
+    class LocalLight {
+    public:
+        glm::vec3 color;
+        glm::vec3 direction;
+    };
+    
+    Q_INVOKABLE void setLocalLights(const QVector<AvatarManager::LocalLight>& localLights);
+    Q_INVOKABLE QVector<AvatarManager::LocalLight> getLocalLights() const;
     
 private:
     AvatarManager(const AvatarManager& other);
@@ -54,7 +64,10 @@ private:
     QVector<AvatarSharedPointer> _avatarFades;
     QSharedPointer<MyAvatar> _myAvatar;
     
-    QVector<Model::LocalLight> _localLights;
+    QVector<AvatarManager::LocalLight> _localLights;
 };
+
+Q_DECLARE_METATYPE(AvatarManager::LocalLight)
+Q_DECLARE_METATYPE(QVector<AvatarManager::LocalLight>)
 
 #endif // hifi_AvatarManager_h

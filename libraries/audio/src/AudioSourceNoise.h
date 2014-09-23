@@ -48,7 +48,7 @@ public:
         
         _runningSum = 0;
         _index = 0;
-        _indexMask = (1 << _randomRows) - 1;
+        _indexMask = (uint16_t)((1 << _randomRows) - 1);
         _scale = 1.0f / ((_randomRows + 1) * (1 << (_randomBits - 1)));
     }
     
@@ -70,8 +70,8 @@ public:
         uint32_t randomNumber;
         
         float32_t** samples = frameBuffer.getFrameData();
-        for (uint16_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
-            for (uint16_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
+        for (uint32_t i = 0; i < frameBuffer.getFrameCount(); ++i) {
+            for (uint32_t j = 0; j < frameBuffer.getChannelCount(); ++j) {
                 
                 _index = (_index + 1) & _indexMask; // increment and mask index.
                 if (_index != 0) { // if index is zero, don't update any random values.
