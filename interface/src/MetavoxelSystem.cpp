@@ -16,6 +16,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QReadLocker>
 #include <QWriteLocker>
+#include <QThreadPool>
 #include <QtDebug>
 
 #include <glm/gtx/transform.hpp>
@@ -636,9 +637,9 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _heightTextureID(0),
     _colorTextureID(0),
     _materialTextureID(0),
-    _heightSize(glm::sqrt(height.size())),
+    _heightSize(glm::sqrt(float(height.size()))),
     _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
-    _colorSize(glm::sqrt(color.size() / DataBlock::COLOR_BYTES)),
+    _colorSize(glm::sqrt(float(color.size() / DataBlock::COLOR_BYTES))),
     _colorIncrement(scale / (_colorSize - SHARED_EDGE)) {
     
     _heightBounds.minimum.x -= _heightIncrement * HEIGHT_BORDER;
@@ -663,7 +664,7 @@ HeightfieldBuffer::~HeightfieldBuffer() {
 }
 
 QByteArray HeightfieldBuffer::getUnextendedHeight() const {
-    int srcSize = glm::sqrt(_height.size());
+    int srcSize = glm::sqrt(float(_height.size()));
     int destSize = srcSize - 3;
     QByteArray unextended(destSize * destSize, 0);
     const char* src = _height.constData() + srcSize + 1;
@@ -675,7 +676,7 @@ QByteArray HeightfieldBuffer::getUnextendedHeight() const {
 }
 
 QByteArray HeightfieldBuffer::getUnextendedColor() const {
-    int srcSize = glm::sqrt(_color.size() / DataBlock::COLOR_BYTES);
+    int srcSize = glm::sqrt(float(_color.size() / DataBlock::COLOR_BYTES));
     int destSize = srcSize - 1;
     QByteArray unextended(destSize * destSize * DataBlock::COLOR_BYTES, 0);
     const char* src = _color.constData();
@@ -720,7 +721,7 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
                
         } else {
-            int colorSize = glm::sqrt(_color.size() / DataBlock::COLOR_BYTES);    
+            int colorSize = glm::sqrt(float(_color.size() / DataBlock::COLOR_BYTES));
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, colorSize, colorSize, 0, GL_RGB, GL_UNSIGNED_BYTE, _color.constData());
         }
         
@@ -731,7 +732,7 @@ void HeightfieldBuffer::render(bool cursor) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            int materialSize = glm::sqrt(_material.size());    
+            int materialSize = glm::sqrt(float(_material.size()));
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, materialSize, materialSize, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, _material.constData());
             
@@ -1270,7 +1271,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
         char* dest = _buffer->getHeight().data() + destY * heightSize + destX;
         
         const QByteArray& srcHeight = height->getContents();
-        int srcSize = glm::sqrt(srcHeight.size());
+        int srcSize = glm::sqrt(float(srcHeight.size()));
         float srcIncrement = info.size / srcSize;
         
         if (info.size == _buffer->getScale() && srcSize == (heightSize - HeightfieldBuffer::HEIGHT_EXTENSION)) {
@@ -1323,7 +1324,7 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
         int destBytes = destWidth * DataBlock::COLOR_BYTES;
         
         const QByteArray& srcColor = color->getContents();
-        srcSize = glm::sqrt(srcColor.size() / DataBlock::COLOR_BYTES);
+        srcSize = glm::sqrt(float(srcColor.size() / DataBlock::COLOR_BYTES));
         int srcStride = srcSize * DataBlock::COLOR_BYTES;
         srcIncrement = info.size / srcSize;
         
@@ -1393,7 +1394,7 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
     HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
     if (height) {
         const QByteArray& heightContents = height->getContents();
-        int size = glm::sqrt(heightContents.size());
+        int size = glm::sqrt(float(heightContents.size()));
         int extendedSize = size + HeightfieldBuffer::HEIGHT_EXTENSION;
         int heightContentsSize = extendedSize * extendedSize;
         
@@ -1401,7 +1402,7 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
         int colorContentsSize = 0;
         if (color) {
             const QByteArray& colorContents = color->getContents();
-            int colorSize = glm::sqrt(colorContents.size() / DataBlock::COLOR_BYTES);
+            int colorSize = glm::sqrt(float(colorContents.size() / DataBlock::COLOR_BYTES));
             int extendedColorSize = colorSize + HeightfieldBuffer::SHARED_EDGE;
             colorContentsSize = extendedColorSize * extendedColorSize * DataBlock::COLOR_BYTES;
         }
