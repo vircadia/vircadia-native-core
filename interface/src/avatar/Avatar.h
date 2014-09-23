@@ -228,7 +228,7 @@ protected:
     glm::vec3 getDisplayNamePosition();
 
     void renderDisplayName();
-    virtual void renderBody(RenderMode renderMode, float glowLevel = 0.0f);
+    virtual void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
     virtual bool shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const;
 
     void simulateAttachments(float deltaTime);

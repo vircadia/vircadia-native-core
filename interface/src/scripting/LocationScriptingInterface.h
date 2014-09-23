@@ -29,6 +29,7 @@ class LocationScriptingInterface : public QObject {
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getHostname)
     Q_PROPERTY(QString pathname READ getPathname)
+    Q_PROPERTY(QString domainID READ getDomainID)
     LocationScriptingInterface() { };
 public:
     static LocationScriptingInterface* getInstance();
@@ -38,6 +39,7 @@ public:
     QString getProtocol() { return HIFI_URL_SCHEME; };
     QString getPathname();
     QString getHostname();
+    QString getDomainID() const;
 
     static QScriptValue locationGetter(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue locationSetter(QScriptContext* context, QScriptEngine* engine);
