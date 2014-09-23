@@ -56,7 +56,7 @@ public:
     void setShapes(QVector<ListShapeEntry>& shapes);
 
     // TODO: either implement this or remove ListShape altogether
-    bool findRayIntersection(const glm::vec3& rayStart, const glm::vec3& rayDirection, float& distance) const { return false; }
+    virtual bool findRayIntersection(RayIntersectionInfo& intersection) const { return false; }
 
 protected:
     void clear();
