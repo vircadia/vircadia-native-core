@@ -56,7 +56,7 @@ public:
     void setShapes(QVector<ListShapeEntry>& shapes);
 
     // TODO: either implement this or remove ListShape altogether
-    virtual bool findRayIntersection(RayIntersectionInfo& intersection) const { return false; }
+    bool findRayIntersection(RayIntersectionInfo& intersection) const { return false; }
 
 protected:
     void clear();
