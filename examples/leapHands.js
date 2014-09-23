@@ -13,7 +13,8 @@
 
 var leapHands = (function () {
 
-    var hands,
+    var isOnHMD,
+        hands,
         wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right
         fingers,
@@ -188,8 +189,6 @@ var leapHands = (function () {
 
     function setUp() {
 
-        calibrationStatus = UNCALIBRATED;
-
         // TODO: Leap Motion controller joint naming doesn't match up with skeleton joint naming; numbers are out by 1.
 
         hands = [
@@ -265,6 +264,19 @@ var leapHands = (function () {
                 { jointName: "RightHandPinky3", controller: Controller.createInputController("Spatial", "joint_R_pinky4") }
             ]
         ];
+
+        isOnHMD = Menu.isOptionChecked("Leap Motion on HMD");
+        if (isOnHMD) {
+            print("Leap Motion is on HMD");
+
+            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: 0.0 };
+            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: 0.0 };
+
+            calibrationStatus = CALIBRATED;
+        } else {
+            print("Leap Motion is on desk");
+            calibrationStatus = UNCALIBRATED;
+        }
     }
 
     function moveHands() {
