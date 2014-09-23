@@ -40,7 +40,6 @@ private:
     AudioInjectorOptions _options;
     bool _shouldStop;
     int _currentSendPosition;
-    
 };
 
 Q_DECLARE_METATYPE(AudioInjector*)

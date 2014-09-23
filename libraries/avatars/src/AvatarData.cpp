@@ -625,7 +625,7 @@ int AvatarData::playerCurrentFrame() {
 }
 
 int AvatarData::playerFrameNumber() {
-    return (_player) ? _player->getRecording()->getFrameNumber() : 0;
+    return (_player && _player->getRecording()) ? _player->getRecording()->getFrameNumber() : 0;
 }
 
 void AvatarData::loadRecording(QString filename) {
@@ -722,7 +722,6 @@ void AvatarData::pausePlayer() {
     if (_player) {
         _player->pausePlayer();
     }
-    
 }
 
 void AvatarData::stopPlaying() {

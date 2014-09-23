@@ -279,7 +279,6 @@ void Player::setCurrentTime(qint64 currentTime) {
                     (float)(currentTime - _recording->getFrameTimestamp(lowestBound)) /
                     (float)(_recording->getFrameTimestamp(highestBound) - _recording->getFrameTimestamp(lowestBound));
         
-        
         if (_recording->getFrameTimestamp(bestGuess) <= currentTime) {
             if (currentTime < _recording->getFrameTimestamp(bestGuess + 1)) {
                 lowestBound = bestGuess;
