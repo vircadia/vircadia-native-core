@@ -40,6 +40,7 @@ var timerOffset;
 setupToolBar();
 
 var timer = null;
+var slider = null;
 setupTimer();
 
 var watchStop = false;
@@ -115,6 +116,30 @@ function setupTimer() {
 		alpha: 1.0,
 		visible: true
 	});
+
+    slider = { x: 0, y: 0,
+                w: 200, h: 20,
+                pos: 0.0, // 0.0 <= pos <= 1.0
+    };
+    slider.background = Overlays.addOverlay("text", {
+                                            text: "",
+                                            backgroundColor: { red: 128, green: 128, blue: 128 },
+                                            x: slider.x, y: slider.y,
+                                            width: slider.w,
+                                            height: slider.h,
+                                            alpha: 1.0,
+                                            visible: true
+                                            });
+    slider.foreground = Overlays.addOverlay("text", {
+                                            text: "",
+                                            backgroundColor: { red: 200, green: 200, blue: 200 },
+                                            x: slider.x, y: slider.y,
+                                            width: slider.pos * slider.w,
+                                            height: slider.h,
+                                            alpha: 1.0,
+                                            visible: true
+                                            });
+
 }
 
 function updateTimer() {
@@ -131,6 +156,18 @@ function updateTimer() {
 		text: text
 	})
     toolBar.changeSpacing(text.length * 8 + ((MyAvatar.isRecording()) ? 15 : 0), spacing);
+    
+    if (MyAvatar.isRecording()) {
+        slider.pos = 1.0;
+    } else if (!MyAvatar.isPlaying) {
+        slider.pos = 0.0;
+    } else {
+        slider.pos = MyAvatar.playerElapsed() / MyAvatar.playerLength();
+    }
+    
+    Overlays.editOverlay(slider.foreground, {
+                         width: slider.pos * slider.w
+                         });
 }
 
 function formatTime(time) {
@@ -163,7 +200,19 @@ function moveUI() {
 	Overlays.editOverlay(timer, {
 		x: relative.x + timerOffset - ToolBar.SPACING,
 		y: windowDimensions.y - relative.y - ToolBar.SPACING
-	});
+                         });
+    
+    slider.x = relative.x;
+    slider.y = windowDimensions.y - relative.y - 100;
+    
+    Overlays.editOverlay(slider.background, {
+                         x: slider.x,
+                         y: slider.y,
+                         });
+    Overlays.editOverlay(slider.foreground, {
+                         x: slider.x,
+                         y: slider.y,
+                         });
 }
 
 function mousePressEvent(event) {
@@ -234,9 +283,19 @@ function mousePressEvent(event) {
                 toolBar.setAlpha(ALPHA_ON, saveIcon);
             }
         }
-    } else {
+    } else if (slider.x < event.x < slider.x + slider.w &&
+               slider.y < event.y < slider.y + slider.h) {
+        
         
     }
+}
+
+function mouseMoveEvent(event) {
+    
+}
+
+function mouseReleaseEvent(event) {
+    
 }
 
 function update() {
@@ -264,11 +323,15 @@ function scriptEnding() {
 	if (MyAvatar.isPlaying()) {
 		MyAvatar.stopPlaying();
 	}
-	toolBar.cleanup();
-	Overlays.deleteOverlay(timer);
+    toolBar.cleanup();
+    Overlays.deleteOverlay(timer);
+    Overlays.deleteOverlay(slider.background);
+    Overlays.deleteOverlay(slider.foreground);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
+Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(scriptEnding);
 
