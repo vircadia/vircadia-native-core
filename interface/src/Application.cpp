@@ -293,9 +293,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
     UserActivityLogger::getInstance().launch(applicationVersion());
-    
-    // grab the location manager instance early so it lives in our thread
-    LocationManager::getInstance();
 
     // once the event loop has started, check and signal for an access token
     QMetaObject::invokeMethod(&accountManager, "checkAndSignalForAccessToken", Qt::QueuedConnection);
@@ -1450,6 +1447,14 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
+        if (fullscreen) {
+            // Menu show() after hide() doesn't work with Rift VR display so set height instead.
+            _window->menuBar()->setMaximumHeight(0);
+        } else {
+            _window->menuBar()->setMaximumHeight(QWIDGETSIZE_MAX);
+        }
+    }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
 }
@@ -2730,15 +2735,14 @@ void Application::setupWorldLight() {
 QImage Application::renderAvatarBillboard() {
     _textureCache.getPrimaryFramebufferObject()->bind();
 
-    glDisable(GL_BLEND);
+    // the "glow" here causes an alpha of one
+    Glower glower;
 
     const int BILLBOARD_SIZE = 64;
     renderRearViewMirror(QRect(0, _glWidget->getDeviceHeight() - BILLBOARD_SIZE, BILLBOARD_SIZE, BILLBOARD_SIZE), true);
 
     QImage image(BILLBOARD_SIZE, BILLBOARD_SIZE, QImage::Format_ARGB32);
     glReadPixels(0, 0, BILLBOARD_SIZE, BILLBOARD_SIZE, GL_BGRA, GL_UNSIGNED_BYTE, image.bits());
-
-    glEnable(GL_BLEND);
 
     _textureCache.getPrimaryFramebufferObject()->release();
 
@@ -4164,7 +4168,7 @@ void Application::takeSnapshot() {
     player->setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
     player->play();
 
-    QString fileName = Snapshot::saveSnapshot(_glWidget, _myAvatar);
+    QString fileName = Snapshot::saveSnapshot();
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (!accountManager.isLoggedIn()) {

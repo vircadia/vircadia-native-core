@@ -1107,7 +1107,7 @@ void MyAvatar::attach(const QString& modelURL, const QString& jointName, const g
     Avatar::attach(modelURL, jointName, translation, rotation, scale, allowDuplicates, useSaved);
 }
 
-void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
+void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLevel) {
     if (!(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
         return; // wait until both models are loaded
     }
@@ -1115,28 +1115,34 @@ void MyAvatar::renderBody(RenderMode renderMode, float glowLevel) {
     //  Render the body's voxels and head
     Model::RenderMode modelRenderMode = (renderMode == SHADOW_RENDER_MODE) ?
         Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
-    _skeletonModel.render(1.0f, modelRenderMode);
-    renderAttachments(renderMode);
+    if (!postLighting) {
+        _skeletonModel.render(1.0f, modelRenderMode);
+        renderAttachments(renderMode);
+    }
     
     //  Render head so long as the camera isn't inside it
     const Camera *camera = Application::getInstance()->getCamera();
     const glm::vec3 cameraPos = camera->getPosition() + (camera->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) * camera->getDistance();
     if (shouldRenderHead(cameraPos, renderMode)) {
-        getHead()->render(1.0f, modelRenderMode);
+        if (!postLighting) {
+            getHead()->render(1.0f, modelRenderMode);
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-            // Render Hair
-            glPushMatrix();
-            glm::vec3 headPosition = getHead()->getPosition();
-            glTranslatef(headPosition.x, headPosition.y, headPosition.z);
-            const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            _hair.render();
-            glPopMatrix();
+            if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+                // Render Hair
+                glPushMatrix();
+                glm::vec3 headPosition = getHead()->getPosition();
+                glTranslatef(headPosition.x, headPosition.y, headPosition.z);
+                const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
+                glm::vec3 axis = glm::axis(rotation);
+                glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+                _hair.render();
+                glPopMatrix();
+            }
         }
     }
-    getHand()->render(true, modelRenderMode);
+    if (postLighting) {
+        getHand()->render(true, modelRenderMode);
+    }
 }
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;

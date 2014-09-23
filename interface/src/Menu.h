@@ -27,7 +27,6 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "location/LocationManager.h"
 #include "ui/ChatWindow.h"
 #include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
@@ -273,6 +272,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
 #ifdef Q_OS_MAC
     SpeechRecognizer _speechRecognizer;

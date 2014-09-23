@@ -1031,7 +1031,7 @@ void ImportHeightfieldTool::apply() {
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
         
-        int size = glm::sqrt(height.size()) + HeightfieldBuffer::SHARED_EDGE; 
+        int size = glm::sqrt(float(height.size())) + HeightfieldBuffer::SHARED_EDGE;
         QByteArray material(size * size, 0);
         HeightfieldMaterialDataPointer materialPointer(new HeightfieldMaterialData(material));
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), new MetavoxelNode(AttributeValue(
@@ -1103,7 +1103,7 @@ void ImportHeightfieldTool::updateHeightImage() {
     if (_loadingImage) {
         return;
     }
-    int size = glm::sqrt(_rawHeight.size());
+    int size = glm::sqrt(float(_rawHeight.size()));
     _heightImage = QImage(size, size, QImage::Format_RGB888);
     const quint16* src = _rawHeight.constData();
     float scale = _heightScale->value(), offset = _heightOffset->value();
