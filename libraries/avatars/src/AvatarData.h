@@ -298,8 +298,13 @@ public slots:
     bool isPlaying();
     qint64 playerElapsed();
     qint64 playerLength();
+    int playerCurrentFrame();
+    int playerFrameNumber();
+    
     void loadRecording(QString filename);
     void startPlaying();
+    void setPlayerFrame(int frame);
+    void setPlayerTime(qint64 time);
     void setPlayFromCurrentLocation(bool playFromCurrentLocation);
     void setPlayerLoop(bool loop);
     void setPlayerUseDisplayName(bool useDisplayName);

@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AudioRingBuffer.h>
 #include <GLMHelpers.h>
 #include <NodeList.h>
 #include <StreamUtils.h>
@@ -224,6 +225,9 @@ void Player::setCurrentFrame(int currentFrame) {
     
     _currentFrame = currentFrame;
     _timerOffset = _recording->getFrameTimestamp(_currentFrame);
+    _timer.restart();
+    
+    setAudionInjectorPosition();
 }
 
 void Player::setCurrentTime(qint64 currentTime) {
@@ -232,15 +236,14 @@ void Player::setCurrentTime(qint64 currentTime) {
         return;
     }
     
-    _timerOffset = currentTime;
-    
     // Find correct frame
-    int bestGuess = 0;
     int lowestBound = 0;
     int highestBound = _recording->getFrameNumber() - 1;
-    while (_recording->getFrameTimestamp(bestGuess) <= _timerOffset &&
-           _recording->getFrameTimestamp(bestGuess + 1) > _timerOffset) {
-        if (_recording->getFrameTimestamp(bestGuess) < _timerOffset) {
+    int bestGuess = 0;
+    while (!(_recording->getFrameTimestamp(bestGuess) <= currentTime &&
+             _recording->getFrameTimestamp(bestGuess + 1) > currentTime)) {
+        
+        if (_recording->getFrameTimestamp(bestGuess) <= currentTime) {
             lowestBound = bestGuess;
         } else {
             highestBound = bestGuess;
@@ -248,9 +251,24 @@ void Player::setCurrentTime(qint64 currentTime) {
         
         bestGuess = lowestBound +
                     (highestBound - lowestBound) *
-                    (_timerOffset - _recording->getFrameTimestamp(lowestBound)) /
-                    (_recording->getFrameTimestamp(highestBound) - _recording->getFrameTimestamp(lowestBound));
+                    (float)(currentTime - _recording->getFrameTimestamp(lowestBound)) /
+                    (float)(_recording->getFrameTimestamp(highestBound) - _recording->getFrameTimestamp(lowestBound));
     }
+    
+    _currentFrame = bestGuess;
+    _timerOffset = _recording->getFrameTimestamp(bestGuess);
+    _timer.restart();
+    
+    setAudionInjectorPosition();
+}
+
+void Player::setAudionInjectorPosition() {
+    int MSEC_PER_SEC = 1000;
+    int SAMPLE_SIZE = 2; // 16 bits
+    int CHANNEL_COUNT = 1;
+    int FRAME_SIZE = SAMPLE_SIZE * CHANNEL_COUNT;
+    int currentAudioFrame = elapsed() * FRAME_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);
+    _injector->setCurrentSendPosition(currentAudioFrame);
 }
 
 void Player::setPlayFromCurrentLocation(bool playFromCurrentLocation) {

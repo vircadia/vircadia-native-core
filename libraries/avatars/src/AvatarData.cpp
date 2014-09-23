@@ -625,6 +625,32 @@ qint64 AvatarData::playerLength() {
     return _player->getRecording()->getLength();
 }
 
+int AvatarData::playerCurrentFrame() {
+    if (!_player) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        int result;
+        QMetaObject::invokeMethod(this, "playerCurrentFrame", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(int, result));
+        return result;
+    }
+    return _player->getCurrentFrame();
+}
+
+int AvatarData::playerFrameNumber() {
+    if (!_player) {
+        return 0;
+    }
+    if (QThread::currentThread() != thread()) {
+        int result;
+        QMetaObject::invokeMethod(this, "playerFrameNumber", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(int, result));
+        return result;
+    }
+    return _player->getRecording()->getFrameNumber();
+}
+
 void AvatarData::loadRecording(QString filename) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
@@ -647,6 +673,18 @@ void AvatarData::startPlaying() {
         _player = PlayerPointer(new Player(this));
     }
     _player->startPlaying();
+}
+
+void AvatarData::setPlayerFrame(int frame) {
+    if (_player) {
+        _player->setCurrentFrame(frame);
+    }
+}
+
+void AvatarData::setPlayerTime(qint64 time) {
+    if (_player) {
+        _player->setCurrentTime(time);
+    }
 }
 
 void AvatarData::setPlayFromCurrentLocation(bool playFromCurrentLocation) {

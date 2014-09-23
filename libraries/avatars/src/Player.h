@@ -33,6 +33,7 @@ public:
     qint64 elapsed() const;
     
     RecordingPointer getRecording() const { return _recording; }
+    int getCurrentFrame() const { return _currentFrame; }
     
 public slots:
     void startPlaying();
@@ -55,6 +56,7 @@ private:
     void setupAudioThread();
     void cleanupAudioThread();
     void loopRecording();
+    void setAudionInjectorPosition();
     bool computeCurrentFrame();
     
     QElapsedTimer _timer;
