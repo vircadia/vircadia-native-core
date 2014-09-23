@@ -953,6 +953,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     _targetAvatarPosition = glm::vec3(0.0f);
     const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
     float smallestAngleTo = MIN_LOOKAT_ANGLE;
+    int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         avatar->setIsLookAtTarget(false);
@@ -965,10 +966,20 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
             }
+            //  Check if this avatar is looking at me, and fix their gaze on my camera if so
+            if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
+                howManyLookingAtMe++;
+                //  Have that avatar look directly at my camera
+                //  TODO: correct to look at left/right eye
+                avatar->getHead()->setLookAtPosition(Application::getInstance()->getCamera()->getPosition());
+            }
         }
     }
     if (_lookAtTargetAvatar) {
         static_cast<Avatar*>(_lookAtTargetAvatar.data())->setIsLookAtTarget(true);
+    }
+    if (howManyLookingAtMe > 0) {
+        qDebug() << "look @me: " << howManyLookingAtMe;
     }
 }
 

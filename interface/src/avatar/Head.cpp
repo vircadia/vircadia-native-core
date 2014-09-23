@@ -47,6 +47,7 @@ Head::Head(Avatar* owningAvatar) :
     _deltaLeanSideways(0.f),
     _deltaLeanForward(0.f),
     _isCameraMoving(false),
+    _isLookingAtMe(false),
     _faceModel(this)
 {
   
@@ -217,6 +218,14 @@ glm::quat Head::getFinalOrientationInWorldFrame() const {
 
 glm::quat Head::getFinalOrientationInLocalFrame() const {
     return glm::quat(glm::radians(glm::vec3(getFinalPitch(), getFinalYaw(), getFinalRoll() )));
+}
+
+glm::vec3 Head::getCorrectedLookAtPosition() {
+    if (_isLookingAtMe) {
+        return getLookAtPosition();
+    } else {
+        return _correctedLookAtPosition;
+    }
 }
 
 glm::quat Head::getCameraOrientation () const {

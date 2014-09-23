@@ -1882,13 +1882,13 @@ void Application::shrinkMirrorView() {
     }
 }
 
-const float HEAD_SPHERE_RADIUS = 0.07f;
+const float HEAD_SPHERE_RADIUS = 0.1f;
 
 bool Application::isLookingAtMyAvatar(Avatar* avatar) {
     glm::vec3 theirLookat = avatar->getHead()->getLookAtPosition();
-    glm::vec3 myHeadPosition = _myAvatar->getHead()->getPosition();
+    glm::vec3 myEyePosition = _myAvatar->getHead()->getEyePosition();
 
-    if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
+    if (pointInSphere(theirLookat, myEyePosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
         return true;
     }
     return false;
