@@ -42,8 +42,8 @@ void AddressBarDialog::setupUI() {
     QSizePolicy sizePolicyLineEdit(QSizePolicy::Preferred, QSizePolicy::Fixed);
     sizePolicyLineEdit.setHorizontalStretch(60);
     addressLineEdit->setSizePolicy(sizePolicyLineEdit);
-    addressLineEdit->setMinimumSize(QSize(200, 50));
-    addressLineEdit->setMaximumSize(QSize(615, 50));
+    addressLineEdit->setMinimumSize(QSize(200, 54));
+    addressLineEdit->setMaximumSize(QSize(615, 54));
     QFont font("Helvetica,Arial,sans-serif", 20);
     addressLineEdit->setFont(font);
     addressLineEdit->setStyleSheet("padding: 0 10px;");
@@ -55,8 +55,7 @@ void AddressBarDialog::setupUI() {
     goButton = new QPushButton(this);
     goButton->setSizePolicy(sizePolicy);
     goButton->setMinimumSize(QSize(54, 54));
-    goButton->setFont(font);
-    goButton->setText("➡");
+    goButton->setIcon(QIcon(Application::resourcesPath() + "images/arrow.svg"));
     goButton->setStyleSheet("background: #0e7077; color: #e7eeee; border-radius: 4px;");
     goButton->setIconSize(QSize(32, 32));
     goButton->setDefault(true);
