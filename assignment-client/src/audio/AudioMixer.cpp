@@ -361,13 +361,13 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         const float TWO_OVER_PI = 2.0f / PI;
         
         const float ZERO_DB = 1.0f;
-        //const float NEGATIVE_ONE_DB = 0.891f;
+        const float NEGATIVE_ONE_DB = 0.891f;
         const float NEGATIVE_THREE_DB = 0.708f;
         const float NEGATIVE_SIX_DB = 0.501f;
         
         const float FILTER_GAIN_AT_0 = ZERO_DB; // source is in front
-        const float FILTER_GAIN_AT_90 = NEGATIVE_SIX_DB; // source is incident to left or right ear
-        const float FILTER_GAIN_AT_180 = NEGATIVE_SIX_DB; // source is behind
+        const float FILTER_GAIN_AT_90 = NEGATIVE_ONE_DB; // source is incident to left or right ear
+        const float FILTER_GAIN_AT_180 = NEGATIVE_THREE_DB; // source is behind
         
         const float FILTER_CUTOFF_FREQUENCY_HZ = 1000.0f;
         
