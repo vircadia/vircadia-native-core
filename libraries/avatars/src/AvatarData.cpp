@@ -587,16 +587,11 @@ bool AvatarData::hasReferential() {
 }
 
 bool AvatarData::isPlaying() {
-    if (!_player) {
-        return false;
-    }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "isPlaying", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, result));
-        return result;
-    }
     return _player && _player->isPlaying();
+}
+
+bool AvatarData::isPaused() {
+    return _player && _player->isPaused();
 }
 
 qint64 AvatarData::playerElapsed() {
@@ -626,29 +621,11 @@ qint64 AvatarData::playerLength() {
 }
 
 int AvatarData::playerCurrentFrame() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        int result;
-        QMetaObject::invokeMethod(this, "playerCurrentFrame", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(int, result));
-        return result;
-    }
-    return _player->getCurrentFrame();
+    return (_player) ? _player->getCurrentFrame() : 0;
 }
 
 int AvatarData::playerFrameNumber() {
-    if (!_player) {
-        return 0;
-    }
-    if (QThread::currentThread() != thread()) {
-        int result;
-        QMetaObject::invokeMethod(this, "playerFrameNumber", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(int, result));
-        return result;
-    }
-    return _player->getRecording()->getFrameNumber();
+    return (_player) ? _player->getRecording()->getFrameNumber() : 0;
 }
 
 void AvatarData::loadRecording(QString filename) {
@@ -732,6 +709,20 @@ void AvatarData::play() {
         
         _player->play();
     }
+}
+
+void AvatarData::pausePlayer() {
+    if (!_player) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "pausePlayer", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (_player) {
+        _player->pausePlayer();
+    }
+    
 }
 
 void AvatarData::stopPlaying() {
