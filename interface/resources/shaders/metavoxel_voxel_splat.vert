@@ -29,6 +29,9 @@ attribute vec4 materials;
 // the weights of each material
 attribute vec4 materialWeights;
 
+// the model space normal
+varying vec3 normal;
+
 // alpha values for the four splat textures
 varying vec4 alphaValues;
 
@@ -36,12 +39,19 @@ void main(void) {
     // use the fixed-function position
     gl_Position = ftransform();
     
+    // pass along the normal
+    normal = gl_Normal;
+    
     // pass along the scaled/offset texture coordinates
-    vec4 textureSpacePosition = vec4(gl_Vertex.xz, 0.0, 1.0);
-    gl_TexCoord[0] = textureSpacePosition * vec4(splatTextureScalesS[0], splatTextureScalesT[0], 0.0, 1.0);
-    gl_TexCoord[1] = textureSpacePosition * vec4(splatTextureScalesS[1], splatTextureScalesT[1], 0.0, 1.0);
-    gl_TexCoord[2] = textureSpacePosition * vec4(splatTextureScalesS[2], splatTextureScalesT[2], 0.0, 1.0);
-    gl_TexCoord[3] = textureSpacePosition * vec4(splatTextureScalesS[3], splatTextureScalesT[3], 0.0, 1.0);
+    vec4 textureSpacePosition = gl_Vertex.xyyz;
+    gl_TexCoord[0] = textureSpacePosition * vec4(splatTextureScalesS[0], splatTextureScalesT[0],
+        splatTextureScalesS[0], splatTextureScalesT[0]);
+    gl_TexCoord[1] = textureSpacePosition * vec4(splatTextureScalesS[1], splatTextureScalesT[1],
+        splatTextureScalesS[1], splatTextureScalesT[1]);
+    gl_TexCoord[2] = textureSpacePosition * vec4(splatTextureScalesS[2], splatTextureScalesT[2],
+        splatTextureScalesS[2], splatTextureScalesT[2]);
+    gl_TexCoord[3] = textureSpacePosition * vec4(splatTextureScalesS[3], splatTextureScalesT[3],
+        splatTextureScalesS[3], splatTextureScalesT[3]);
     
     // compute the alpha values for each texture
     float value = materials[0];
