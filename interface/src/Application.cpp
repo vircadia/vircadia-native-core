@@ -926,7 +926,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 Menu::getInstance()->triggerOption(MenuOption::AddressBar);
                 break;
                 
-            case Qt::Key_CapsLock:
+            case Qt::Key_Backslash:
                 Menu::getInstance()->triggerOption(MenuOption::Chat);
                 break;
                 
