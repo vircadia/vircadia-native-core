@@ -131,33 +131,24 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
     EntityItem* entityB;
     if (_entities->findSpherePenetration(center, radius, penetration, (void**)&entityB, Octree::NoLock)) {
         // NOTE: 'penetration' is the depth that 'entityA' overlaps 'entityB'.  It points from A into B.
-
-qDebug() << "penetration:" << penetration << "in meters";
-
         glm::vec3 penetrationInTreeUnits = penetration / (float)(TREE_SCALE);
-
-qDebug() << "penetrationInTreeUnits:" << penetrationInTreeUnits;
 
         // Even if the Entities overlap... when the Entities are already moving appart
         // we don't want to count this as a collision.
         glm::vec3 relativeVelocity = entityA->getVelocity() - entityB->getVelocity();
 
-qDebug() << "A old velocity:" << entityA->getVelocity() * (float)TREE_SCALE << "in meters";
-qDebug() << "B old velocity:" << entityB->getVelocity() * (float)TREE_SCALE << "in meters";
-qDebug() << "relativeVelocity:" << relativeVelocity * (float)TREE_SCALE << "in meters";
-
         bool movingTowardEachOther = glm::dot(relativeVelocity, penetrationInTreeUnits) > 0.0f;
         bool doCollisions = true;
 
         if (doCollisions) {
-            //entityA->collisionWithEntity(entityB, penetration);
-            //entityB->collisionWithEntity(entityA, penetration * -1.0f); // the penetration is reversed
+            entityA->collisionWithEntity(entityB, penetration);
+            entityB->collisionWithEntity(entityA, penetration * -1.0f); // the penetration is reversed
 
             CollisionInfo collision;
             collision._penetration = penetration;
             // for now the contactPoint is the average between the the two paricle centers
             collision._contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
-            //emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
+            emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
 
             glm::vec3 axis = glm::normalize(penetration);
             glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
@@ -165,85 +156,33 @@ qDebug() << "relativeVelocity:" << relativeVelocity * (float)TREE_SCALE << "in m
             float massA = entityA->getMass();
             float massB = entityB->getMass();
             float totalMass = massA + massB;
-qDebug() << "massA:" << massA;
-qDebug() << "massB:" << massB;
-qDebug() << "totalMass:" << totalMass;
 
             // handle Entity A
-
-qDebug() << "OLD - VALUES - entityA ----";
-qDebug() << "entityA->getVelocity():" << entityA->getVelocity() << "no scaling";
-qDebug() << "entityA->getVelocity():" << entityA->getVelocity() * (float)TREE_SCALE << "in meters";
-qDebug() << "entityA->getPosition():" << entityA->getPosition() * (float)TREE_SCALE << "in meters";
-
-
-            glm::vec3 newVelocity = entityA->getVelocity() - axialVelocity * (2.0f * massB / totalMass);
-            glm::vec3 newPosition = entityA->getPosition() - 0.5f * penetrationInTreeUnits;
-
-qDebug() << "A new Velocity:" << newVelocity * (float)TREE_SCALE << "in meters";
-qDebug() << "A new Position:" << newPosition * (float)TREE_SCALE << "in meters";
+            glm::vec3 newVelocityA = entityA->getVelocity() - axialVelocity * (2.0f * massB / totalMass);
+            glm::vec3 newPositionA = entityA->getPosition() - 0.5f * penetrationInTreeUnits;
 
             EntityItemProperties propertiesA = entityA->getProperties();
-
-qDebug() << "propertiesA = entityA->getProperties() --- BEFORE SETTING ----";
-qDebug() << "    propertiesA.getPosition():" << propertiesA.getPosition() << "in meters";
-qDebug() << "    propertiesA.getVelocity():" << propertiesA.getVelocity() << "in meters";
-qDebug() << "    propertiesA.getMaximumAACubeInTreeUnits():" << propertiesA.getMaximumAACubeInTreeUnits();
-
             EntityItemID idA(entityA->getID());
-            propertiesA.setVelocity(newVelocity * (float)TREE_SCALE);
-            propertiesA.setPosition(newPosition * (float)TREE_SCALE);
-
-qDebug() << "updateEntity(idA, propertiesA)....";
-qDebug() << "    idA:"  << idA;
-qDebug() << "    propertiesA.getPosition():" << propertiesA.getPosition() << "in meters";
-qDebug() << "    propertiesA.getVelocity():" << propertiesA.getVelocity() << "in meters";
-qDebug() << "    propertiesA.getMaximumAACubeInTreeUnits():" << propertiesA.getMaximumAACubeInTreeUnits();
+            propertiesA.setVelocity(newVelocityA * (float)TREE_SCALE);
+            propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
 
             _entities->updateEntity(idA, propertiesA);
-
-qDebug() << "AFTER updateEntity()....";
-qDebug() << "    entityA->getVelocity():" << entityA->getVelocity() << "no scaling";
-qDebug() << "    entityA->getPosition():" << entityA->getPosition() * (float)TREE_SCALE << "in meters";
-
-
             _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
-                           //queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
-
-qDebug() << "OLD - VALUES - entityB ----";
-qDebug() << "    entityB->getVelocity():" << entityB->getVelocity() << "no scaling";
-qDebug() << "    entityB->getPosition():" << entityB->getPosition() * (float)TREE_SCALE << "in meters";
 
             glm::vec3 newVelocityB = entityB->getVelocity() + axialVelocity * (2.0f * massA / totalMass);
             glm::vec3 newPositionB = entityB->getPosition() + 0.5f * penetrationInTreeUnits;
 
-qDebug() << "B new Velocity:" << newVelocityB << "no scaling";
-qDebug() << "B new Position:" << newPositionB * (float)TREE_SCALE << "in meters";
-
             EntityItemProperties propertiesB = entityB->getProperties();
-
-qDebug() << "propertiesB = entityB->getProperties()";
-qDebug() << "    propertiesB.getPosition():" << propertiesB.getPosition() << "not scaled, should be meters";
-qDebug() << "    propertiesB.getVelocity():" << propertiesB.getVelocity() << "not scaled, should be ???";
-qDebug() << "    propertiesB.getMaximumAACubeInTreeUnits():" << propertiesB.getMaximumAACubeInTreeUnits();
 
             EntityItemID idB(entityB->getID());
             propertiesB.setVelocity(newVelocityB * (float)TREE_SCALE);
             propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
 
-qDebug() << "updateEntity(idB, propertiesB)....";
-qDebug() << "    idB:"  << idB;
-qDebug() << "    propertiesB.getPosition():" << propertiesB.getPosition();
-qDebug() << "    propertiesB.getVelocity():" << propertiesB.getVelocity();
-qDebug() << "    propertiesB.getMaximumAACubeInTreeUnits():" << propertiesB.getMaximumAACubeInTreeUnits();
-
             _entities->updateEntity(idB, propertiesB);
 
-qDebug() << "AFTER updateEntity()....";
-qDebug() << "    entityB->getVelocity():" << entityB->getVelocity() << "no scaling";
-qDebug() << "    entityB->getPosition():" << entityB->getPosition() * (float)TREE_SCALE << "in meters";
-
             _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
+            
+            // TODO: Do we need this?
             //_packetSender->releaseQueuedMessages();
 
             //updateCollisionSound(entityA, penetration, COLLISION_FREQUENCY);
@@ -252,6 +191,8 @@ qDebug() << "    entityB->getPosition():" << entityB->getPosition() * (float)TRE
 }
 
 void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
+    
+    // TODO: implement support for colliding with avatars
 
 #if 0
     // Entities that are in hand, don't collide with avatars
