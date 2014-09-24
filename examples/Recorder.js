@@ -159,9 +159,7 @@ function updateTimer() {
     
     if (MyAvatar.isRecording()) {
         slider.pos = 1.0;
-    } else if (!MyAvatar.isPlaying) {
-        slider.pos = 0.0;
-    } else {
+    } else if (MyAvatar.playerLength() > 0) {
         slider.pos = MyAvatar.playerElapsed() / MyAvatar.playerLength();
     }
     
@@ -283,9 +281,9 @@ function mousePressEvent(event) {
                 toolBar.setAlpha(ALPHA_ON, saveIcon);
             }
         }
-    } else if (MyAvatar.isPlaying() &&
-               slider.x < event.x < slider.x + slider.w &&
-               slider.y < event.y < slider.y + slider.h) {
+    } else if (MyAvatar.playerLength() > 0 &&
+               slider.x < event.x && event.x < slider.x + slider.w &&
+               slider.y < event.y && event.y < slider.y + slider.h) {
         isSliding = true;
         slider.pos = (event.x - slider.x) / slider.w;
         MyAvatar.setPlayerTime(slider.pos * MyAvatar.playerLength());
@@ -293,14 +291,12 @@ function mousePressEvent(event) {
 }
 var isSliding = false;
 
-
 function mouseMoveEvent(event) {
     if (isSliding) {
         slider.pos = (event.x - slider.x) / slider.w;
-        if (slider.pos < 0.0) {
+        if (slider.pos < 0.0 || slider.pos > 1.0) {
+            MyAvatar.stopPlaying();
             slider.pos = 0.0;
-        } else if (slider.pos > 1.0) {
-            slider.pos = 1.0;
         }
         MyAvatar.setPlayerTime(slider.pos * MyAvatar.playerLength());
     }

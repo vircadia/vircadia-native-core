@@ -257,9 +257,14 @@ void Player::setCurrentFrame(int currentFrame) {
     
     _currentFrame = currentFrame;
     _timerOffset = _recording->getFrameTimestamp(_currentFrame);
-    _timer.start();
     
-    setAudionInjectorPosition();
+    if (isPlaying()) {
+        _timer.start();
+        setAudionInjectorPosition();
+    } else {
+        _isPaused = true;
+        _pausedFrame = currentFrame;
+    }
 }
 
 void Player::setCurrentTime(qint64 currentTime) {
@@ -298,9 +303,14 @@ void Player::setCurrentTime(qint64 currentTime) {
     
     _currentFrame = lowestBound;
     _timerOffset = _recording->getFrameTimestamp(lowestBound);
-    _timer.start();
     
-    setAudionInjectorPosition();
+    if (isPlaying()) {
+        _timer.start();
+        setAudionInjectorPosition();
+    } else {
+        _isPaused = true;
+        _pausedFrame = lowestBound;
+    }
 }
 
 void Player::setAudionInjectorPosition() {

@@ -96,8 +96,6 @@ void AudioInjector::injectAudio() {
         timer.start();
         int nextFrame = 0;
         
-        _currentSendPosition = 0;
-        
         int numPreAudioDataBytes = injectAudioPacket.size();
         bool shouldLoop = _options.getLoop();
         
