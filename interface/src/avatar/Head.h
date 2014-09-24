@@ -130,6 +130,7 @@ private:
     float _lastLoudness;
     float _longTermAverageLoudness;
     float _audioAttack;
+    float _audioJawOpen;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
     glm::vec3 _saccade;

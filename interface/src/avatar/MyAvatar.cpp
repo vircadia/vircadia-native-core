@@ -978,7 +978,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 howManyLookingAtMe++;
                 //  Have that avatar look directly at my camera
                 //  Philip TODO: correct to look at left/right eye
-                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getCamera()->getPosition());
+                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }

@@ -34,6 +34,7 @@ Head::Head(Avatar* owningAvatar) :
     _lastLoudness(0.0f),
     _longTermAverageLoudness(-1.0f),
     _audioAttack(0.0f),
+    _audioJawOpen(0.0f),
     _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _saccade(0.0f, 0.0f, 0.0f),
@@ -157,11 +158,21 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
         
         // use data to update fake Faceshift blendshape coefficients
-        const float JAW_OPEN_SCALE = 10.f;
+        const float JAW_OPEN_SCALE = 0.015f;
+        const float JAW_OPEN_RATE = 0.9f;
+        const float JAW_CLOSE_RATE = 0.90f;
+        float audioDelta = sqrtf(glm::max(_averageLoudness - _longTermAverageLoudness, 0.0f)) * JAW_OPEN_SCALE;
+        if (audioDelta > _audioJawOpen) {
+            _audioJawOpen += (audioDelta - _audioJawOpen) * JAW_OPEN_RATE;
+        } else {
+            _audioJawOpen *= JAW_CLOSE_RATE;
+        }
+        _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
+        
         Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink,
                                                                            _rightEyeBlink,
             _browAudioLift,
-            glm::clamp(log(_averageLoudness) / JAW_OPEN_SCALE, 0.0f, 1.0f),
+            _audioJawOpen,
             _blendshapeCoefficients);
     }
     
