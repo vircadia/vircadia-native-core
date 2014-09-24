@@ -62,6 +62,7 @@ void JoystickScriptingInterface::update() {
 
 Joystick* JoystickScriptingInterface::joystickWithName(const QString& name) {
     Joystick* matchingJoystick = _openJoysticks.value(name);
+#ifdef HAVE_SDL
     if (!matchingJoystick) {
         // we haven't opened a joystick with this name yet - enumerate our SDL devices and see if it exists
         int joystickCount = SDL_NumJoysticks();
@@ -75,6 +76,7 @@ Joystick* JoystickScriptingInterface::joystickWithName(const QString& name) {
         
         qDebug() << "No matching joystick found with name" << name << "- returning NULL pointer.";
     }
+#endif
     
     return matchingJoystick;
 }
