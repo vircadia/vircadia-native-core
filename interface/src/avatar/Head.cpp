@@ -200,7 +200,7 @@ void Head::render(float alpha, Model::RenderMode mode) {
 }
 
 void Head::renderPostLighting() {
-    renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+        renderLookatVectors(_leftEyePosition, _rightEyePosition, getCorrectedLookAtPosition());
 }
 
 void Head::setScale (float scale) {
@@ -220,10 +220,15 @@ glm::quat Head::getFinalOrientationInLocalFrame() const {
 
 glm::vec3 Head::getCorrectedLookAtPosition() {
     if (_isLookingAtMe) {
-        return getLookAtPosition();
-    } else {
         return _correctedLookAtPosition;
+    } else {
+        return getLookAtPosition();
     }
+}
+
+void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
+    _isLookingAtMe = true; 
+    _correctedLookAtPosition = correctedLookAtPosition;
 }
 
 glm::quat Head::getCameraOrientation () const {

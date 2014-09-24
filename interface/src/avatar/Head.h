@@ -63,9 +63,10 @@ public:
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
-    void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) { _correctedLookAtPosition = correctedLookAtPosition; }
+    void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition);
     glm::vec3 getCorrectedLookAtPosition();
     void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
+    bool getIsLookingAtMe() { return _isLookingAtMe; }
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }

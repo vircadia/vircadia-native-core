@@ -119,7 +119,7 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
     
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
-    AvatarData* getLookAtTargetAvatar() const { return _lookAtTargetAvatar.data(); }
+    QWeakPointer<AvatarData> getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
     void clearLookAtTargetAvatar();
     
