@@ -93,7 +93,6 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
     float radius = entity->getRadius() * (float)(TREE_SCALE);
     const float ELASTICITY = 0.4f;
     const float DAMPING = 0.05f;
-    const float COLLISION_FREQUENCY = 0.5f;
     CollisionInfo collisionInfo;
     collisionInfo._damping = DAMPING;
     collisionInfo._elasticity = ELASTICITY;
@@ -106,7 +105,6 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
         // findSpherePenetration() only computes the penetration but we also want some other collision info
         // so we compute it ourselves here.  Note that we must multiply scale by TREE_SCALE when feeding 
         // the results to systems outside of this octree reference frame.
-        updateCollisionSound(entity, collisionInfo._penetration, COLLISION_FREQUENCY);
         collisionInfo._contactPoint = (float)TREE_SCALE * (entity->getPosition() + entity->getRadius() * glm::normalize(collisionInfo._penetration));
         // let the global script run their collision scripts for Entities if they have them
         emitGlobalEntityCollisionWithVoxel(entity, voxelDetails, collisionInfo);
@@ -124,9 +122,6 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
 void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
     glm::vec3 center = entityA->getPosition() * (float)(TREE_SCALE);
     float radius = entityA->getRadius() * (float)(TREE_SCALE);
-    //const float ELASTICITY = 0.4f;
-    //const float DAMPING = 0.0f;
-    const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     EntityItem* entityB;
     if (_entities->findSpherePenetration(center, radius, penetration, (void**)&entityB, Octree::NoLock)) {
@@ -141,6 +136,8 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
         bool doCollisions = true;
 
         if (doCollisions) {
+            quint64 now = usecTimestampNow();
+        
             entityA->collisionWithEntity(entityB, penetration);
             entityB->collisionWithEntity(entityA, penetration * -1.0f); // the penetration is reversed
 
@@ -165,7 +162,8 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
             EntityItemID idA(entityA->getID());
             propertiesA.setVelocity(newVelocityA * (float)TREE_SCALE);
             propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
-
+            propertiesA.setLastEdited(now);
+            
             _entities->updateEntity(idA, propertiesA);
             _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
 
@@ -177,15 +175,13 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
             EntityItemID idB(entityB->getID());
             propertiesB.setVelocity(newVelocityB * (float)TREE_SCALE);
             propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
+            propertiesB.setLastEdited(now);
 
             _entities->updateEntity(idB, propertiesB);
-
             _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
             
             // TODO: Do we need this?
             //_packetSender->releaseQueuedMessages();
-
-            //updateCollisionSound(entityA, penetration, COLLISION_FREQUENCY);
         }
     }
 }
@@ -230,7 +226,6 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
                 if (glm::dot(relativeVelocity, collision->_penetration) <= 0.f) {
                     // only collide when Entity and collision point are moving toward each other
                     // (doing this prevents some "collision snagging" when Entity penetrates the object)
-                    updateCollisionSound(entity, collision->_penetration, COLLISION_FREQUENCY);
                     collision->_penetration /= (float)(TREE_SCALE);
                     entity->applyHardCollision(*collision);
                     queueEntityPropertiesUpdate(entity);
@@ -250,43 +245,4 @@ void EntityCollisionSystem::queueEntityPropertiesUpdate(EntityItem* entity) {
     properties.setPosition(entity->getPosition() * (float)TREE_SCALE);
     properties.setVelocity(entity->getVelocity() * (float)TREE_SCALE);
     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, entityItemID, properties);
-}
-
-
-void EntityCollisionSystem::updateCollisionSound(EntityItem* Entity, const glm::vec3 &penetration, float frequency) {
-
-    //  consider whether to have the collision make a sound
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.3f;
-    const float COLLISION_LOUDNESS = 1.f;
-    const float DURATION_SCALING = 0.004f;
-    const float NOISE_SCALING = 0.1f;
-    glm::vec3 velocity = Entity->getVelocity() * (float)(TREE_SCALE);
-
-    /*
-    // how do we want to handle this??
-    //
-     glm::vec3 gravity = Entity->getGravity() * (float)(TREE_SCALE);
-
-    if (glm::length(gravity) > EPSILON) {
-        //  If gravity is on, remove the effect of gravity on velocity for this
-        //  frame, so that we are not constantly colliding with the surface
-        velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
-    }
-    */
-    float normalSpeed = glm::dot(velocity, glm::normalize(penetration));
-    // NOTE: it is possible for normalSpeed to be NaN at this point 
-    // (sometimes the average penetration of a bunch of voxels is a zero length vector which cannot be normalized) 
-    // however the check below will fail (NaN comparisons always fail) and everything will be fine.
-
-    if (normalSpeed > AUDIBLE_COLLISION_THRESHOLD) {
-        //  Volume is proportional to collision velocity
-        //  Base frequency is modified upward by the angle of the collision
-        //  Noise is a function of the angle of collision
-        //  Duration of the sound is a function of both base frequency and velocity of impact
-        float tangentialSpeed = glm::length(velocity) - normalSpeed;
-        _audio->startCollisionSound( std::min(COLLISION_LOUDNESS * normalSpeed, 1.f),
-            frequency * (1.f + tangentialSpeed / normalSpeed),
-            std::min(tangentialSpeed / normalSpeed * NOISE_SCALING, 1.f),
-            1.f - DURATION_SCALING * powf(frequency, 0.5f) / normalSpeed, false);
-    }
 }

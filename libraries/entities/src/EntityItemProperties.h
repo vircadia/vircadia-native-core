@@ -221,8 +221,9 @@ public:
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; _visibleChanged = true; }
 
-private:
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
+
+private:
 
     QUuid _id;
     bool _idSet;
