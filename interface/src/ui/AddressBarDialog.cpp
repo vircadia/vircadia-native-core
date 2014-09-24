@@ -54,10 +54,10 @@ void AddressBarDialog::setupUI() {
     
     goButton = new QPushButton(this);
     goButton->setSizePolicy(sizePolicy);
-    goButton->setMinimumSize(QSize(54, 54));
-    goButton->setIcon(QIcon(Application::resourcesPath() + "images/arrow.svg"));
-    goButton->setStyleSheet("background: #0e7077; color: #e7eeee; border-radius: 4px;");
-    goButton->setIconSize(QSize(32, 32));
+    goButton->setMinimumSize(QSize(55, 55));
+    goButton->setMaximumSize(QSize(55, 55));
+    goButton->setIcon(QIcon(Application::resourcesPath() + "images/address-bar-submit.svg"));
+    goButton->setIconSize(QSize(55, 55));
     goButton->setDefault(true);
     goButton->setFlat(true);
     addressLayout->addWidget(goButton);
@@ -83,8 +83,7 @@ void AddressBarDialog::setupUI() {
 
 void AddressBarDialog::accept() {
     if (!addressLineEdit->text().isEmpty()) {
-        goButton->setStyleSheet("background: #333; color: #e7eeee; border-radius: 4px;");
-        
+        goButton->setIcon(QIcon(Application::resourcesPath() + "images/address-bar-submit-active.svg"));
         AddressManager& addressManager = AddressManager::getInstance();
         connect(&addressManager, &AddressManager::lookupResultsFinished, this, &QDialog::close);
         addressManager.handleLookupString(addressLineEdit->text());
