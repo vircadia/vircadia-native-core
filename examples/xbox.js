@@ -10,8 +10,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-joysticks = Joysticks.availableJoystickNames;
+gamepad = Joysticks.joystickWithName("Wireless 360 Controller");
 
-for (i = 0; i < joysticks.length; i++) {
-  print("Joystick " + i + " is " + joysticks[i]);
+function reportAxisValue(axis, newValue, oldValue) {
+  print("The value for axis " + axis + " has changed to " + newValue  + ". It was " + oldValue);
 }
+
+gamepad.axisValueChanged.connect(reportAxisValue);

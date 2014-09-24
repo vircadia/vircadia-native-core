@@ -3766,6 +3766,14 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
+QScriptValue joystickToScriptValue(QScriptEngine *engine, Joystick* const &in) {
+    return engine->newQObject(in);
+}
+
+void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
+    out = qobject_cast<Joystick*>(object.toQObject());
+}
+
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
     bool loadScriptFromEditor, bool activateMainWindow) {
     QUrl scriptUrl(scriptFilename);
@@ -3850,6 +3858,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
     
     scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
+    qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());
