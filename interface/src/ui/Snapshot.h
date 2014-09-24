@@ -14,9 +14,11 @@
 
 #include "InterfaceConfig.h"
 
-#include <QImage>
+#include <qimage.h>
+#include <qfile.h>
+#include <qtemporaryfile.h>
 #include <QGLWidget>
-#include <QString>
+#include <qstring.h>
 
 #include "avatar/Avatar.h"
 
@@ -41,12 +43,12 @@ private:
 class Snapshot {
 
 public:
-    static QString saveSnapshot(QGLWidget* widget, Avatar* avatar);
-    static QTemporaryFile* saveTempSnapshot(QGLWidget* widget, Avatar* avatar);
+    static QString saveSnapshot();
+    static QTemporaryFile* saveTempSnapshot();
     static SnapshotMetaData* parseSnapshotData(QString snapshotPath);
     
 private:
-    static QFile* savedFileForSnapshot(QGLWidget* widget, Avatar* avatar, bool isTemporary);
+    static QFile* savedFileForSnapshot(bool isTemporary);
 };
 
 #endif // hifi_Snapshot_h

@@ -38,6 +38,7 @@
 #include "Application.h"
 #include "AccountManager.h"
 #include "Menu.h"
+#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "Util.h"
 #include "ui/AnimationsDialog.h"
@@ -95,6 +96,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
+    _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
 #ifdef Q_OS_MAC
     _speechRecognizer(),
@@ -1204,7 +1206,9 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
-        _userLocationsDialog = DataWebDialog::dialogForPath("/locations");
+        JavascriptObjectMap locationObjectMap;
+        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        _userLocationsDialog = DataWebDialog::dialogForPath("/locations", locationObjectMap);
     }
     
     if (!_userLocationsDialog->isVisible()) {
@@ -1244,31 +1248,20 @@ void Menu::nameLocation() {
         
         return;
     }
-
-    QInputDialog nameDialog(Application::getInstance()->getWindow());
-    nameDialog.setWindowTitle("Name this location");
-    nameDialog.setLabelText("Name this location, then share that name with others.\n"
-                            "When they come here, they'll have the same viewpoint\n"
-                            "(wherever you are standing and looking now) as you.\n\n"
-                            "Location name:");
-
-    nameDialog.resize((int) (nameDialog.parentWidget()->size().width() * 0.30), nameDialog.size().height());
-
-    if (nameDialog.exec() == QDialog::Accepted) {
-
-        QString locationName = nameDialog.textValue().trimmed();
-        if (locationName.isEmpty()) {
-            return;
-        }
-
-        MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-        LocationManager* manager = new LocationManager();
-        connect(manager, &LocationManager::creationCompleted, this, &Menu::displayNameLocationResponse);
-        NamedLocation* location = new NamedLocation(locationName,
-                                                    myAvatar->getPosition(), myAvatar->getOrientation(),
-                                                    domainHandler.getUUID());
-        manager->createNamedLocation(location);
+    
+    if (!_newLocationDialog) {
+        JavascriptObjectMap locationObjectMap;
+        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        _newLocationDialog = DataWebDialog::dialogForPath("/locations/new", locationObjectMap);
     }
+    
+    if (!_newLocationDialog->isVisible()) {
+        _newLocationDialog->show();
+    }
+    
+    _newLocationDialog->raise();
+    _newLocationDialog->activateWindow();
+    _newLocationDialog->showNormal();
 }
 
 void Menu::pasteToVoxel() {

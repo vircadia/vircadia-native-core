@@ -87,11 +87,13 @@ int ScriptsModel::rowCount(const QModelIndex& parent) const {
 void ScriptsModel::updateScriptsLocation(const QString& newPath) {
     _fsWatcher.removePath(_localDirectory.absolutePath());
     
-    _localDirectory.setPath(newPath);
-    
-    if (!_localDirectory.absolutePath().isEmpty()) {
-       _fsWatcher.addPath(_localDirectory.absolutePath());
-    }
+    if (!newPath.isEmpty()) {
+        _localDirectory.setPath(newPath);
+        
+        if (!_localDirectory.absolutePath().isEmpty()) {
+            _fsWatcher.addPath(_localDirectory.absolutePath());
+        }
+    }    
     
     reloadLocalFiles();
 }

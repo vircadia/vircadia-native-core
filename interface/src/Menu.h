@@ -27,8 +27,6 @@
 #include "SpeechRecognizer.h"
 #endif
 
-#include "location/LocationManager.h"
-
 #include "ui/AddressBarDialog.h"
 #include "ui/ChatWindow.h"
 #include "ui/DataWebDialog.h"
@@ -275,6 +273,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
 #ifdef Q_OS_MAC
     SpeechRecognizer _speechRecognizer;
@@ -300,8 +299,8 @@ private:
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
-    QPointer<LoginDialog> _loginDialog;
     QPointer<AddressBarDialog> _addressBarDialog;
+    QPointer<LoginDialog> _loginDialog;
     bool _hasLoginDialogDisplayed;
     QAction* _chatAction;
     QString _snapshotsLocation;
