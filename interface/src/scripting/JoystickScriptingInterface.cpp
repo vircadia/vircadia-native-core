@@ -1,5 +1,5 @@
 //
-//  JoystickManager.cpp
+//  JoystickScriptingInterface.cpp
 //  interface/src/devices
 //
 //  Created by Andrzej Kapolka on 5/15/14.
