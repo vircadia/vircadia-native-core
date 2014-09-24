@@ -22,6 +22,16 @@
           <label for="http_port" class="control-label">HTTP port</label>
           <input type="text" class="form-control" id="http_port" name="http_port" value="40100" disabled=true>
         </div>
+        
+        <div class="form-group">
+          <label for="http_username" class="control-label">HTTP Username</label>
+          <input type="text" class="form-control" id="http_username" name="http_username">
+        </div>
+        
+        <div class="form-group">
+          <label for="http_password" class="control-label">HTTP Password</label>
+          <input type="password" class="form-control" id="http_password" name="http_password">
+        </div>
       </div>
       <div class="panel-footer">
         <input class="btn btn-success" name="commit" type="submit" value="Save and restart">
