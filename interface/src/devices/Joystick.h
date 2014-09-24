@@ -39,6 +39,9 @@ public:
     
     const QString& getName() const { return _name; }
     
+    const QVector<float>& getAxes() const { return _axes; }
+    const QVector<bool>& getButtons() const { return _buttons; }
+    
     int getNumAxes() const { return _axes.size(); }
     int getNumButtons() const { return _buttons.size(); }
     
