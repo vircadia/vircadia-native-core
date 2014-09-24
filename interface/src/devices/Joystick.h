@@ -26,7 +26,7 @@ class Joystick : public QObject {
     Q_PROPERTY(QString name READ getName)
     
     Q_PROPERTY(int numAxes READ getNumAxes)
-    Q_PROPERTY(QVector<float> axes READ getAxes)
+    Q_PROPERTY(int numButtons READ getNumButtons)
 public:
     Joystick();
     ~Joystick();
