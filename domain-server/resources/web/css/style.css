@@ -1,8 +1,8 @@
-#nodes-lead, #settings-lead {
+.table-lead {
   color: #66CCCC;
 }
 
-#nodes-lead .lead-line, #settings-lead .lead-line {
+.table-lead .lead-line {
   background-color: #66CCCC;
 }
 
