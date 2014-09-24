@@ -10,15 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-gamepad = Controller.joystick();
-print("THE GAMEPAD NAME is " + gamepad.name);
-print("THE GAMEPAD HAS " + gamepad.numAxes + " AXES")
+joysticks = Joysticks.availableJoystickNames;
 
-function printValues() {
-  controllerAxes = gamepad.axes;
-  for (i = 0; i < controllerAxes.size; i++) {
-    // print("The value for axis " + i + " is " + controllerAxes[i]);
-  }
+for (i = 0; i < joysticks.length; i++) {
+  print("Joystick " + i + " is " + joysticks[i]);
 }
-
-Script.update.connect(printValues);

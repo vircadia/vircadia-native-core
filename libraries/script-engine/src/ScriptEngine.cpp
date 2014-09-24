@@ -35,7 +35,6 @@
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"
 #include "DataViewClass.h"
-#include "JoystickInputController.h"
 #include "MenuItemProperties.h"
 #include "MIDIEvent.h"
 #include "LocalVoxels.h"
@@ -79,14 +78,6 @@ QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputCo
 
 void inputControllerFromScriptValue(const QScriptValue &object, AbstractInputController* &out) {
     out = qobject_cast<AbstractInputController*>(object.toQObject());
-}
-
-QScriptValue joystickToScriptValue(QScriptEngine *engine, JoystickInputController* const &in) {
-    return engine->newQObject(in);
-}
-
-void joystickFromScriptValue(const QScriptValue &object, JoystickInputController* &out) {
-    out = qobject_cast<JoystickInputController*>(object.toQObject());
 }
 
 ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNameString,
@@ -287,7 +278,6 @@ void ScriptEngine::init() {
     
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
-    qScriptRegisterMetaType(this, joystickToScriptValue, joystickFromScriptValue);
 
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 

@@ -82,6 +82,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/JoystickScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -2155,7 +2156,7 @@ void Application::update(float deltaTime) {
         updateFaceshift();
         updateVisage();
         _sixenseManager.update(deltaTime);
-        _joystickManager.update();
+        JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
 
     }
@@ -3847,6 +3848,8 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
 
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
+    
+    scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

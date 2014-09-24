@@ -113,7 +113,6 @@ public slots:
 
     /// Factory to create an InputController
     virtual AbstractInputController* createInputController(const QString& deviceName, const QString& tracker);
-    JoystickInputController* joystick() const;
 
     virtual void releaseInputController(AbstractInputController* input);
 

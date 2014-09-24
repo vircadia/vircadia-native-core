@@ -297,17 +297,6 @@ AbstractInputController* ControllerScriptingInterface::createInputController(con
     }
 }
 
-JoystickInputController* ControllerScriptingInterface::joystick() const {
-    // stub to just return the first joystick - assume we only have one connected
-    QVector<JoystickInputController>& activeJoysticks = Application::getInstance()->getJoystickManager()->getJoysticks();
-    
-    if (activeJoysticks.size() > 0) {
-        return &activeJoysticks[0];
-    } else {
-        return NULL;
-    }
-}
-
 void ControllerScriptingInterface::releaseInputController(AbstractInputController* input) {
     _inputControllers.erase(input->getKey());
 }
