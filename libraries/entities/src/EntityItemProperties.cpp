@@ -24,7 +24,7 @@ EntityItemProperties::EntityItemProperties() :
 
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
-    _lastEdited(0),
+    _lastEdited(usecTimestampNow()),
     _created(UNKNOWN_CREATED_TIME),
     _type(EntityTypes::Unknown),
 
