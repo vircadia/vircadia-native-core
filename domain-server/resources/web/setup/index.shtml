@@ -7,19 +7,51 @@
       </div>
       <div class="panel-body">
         <div class="form-group">
-          <label for="domain_name" class="control-label">Domain name</label>
-           <select id="domain_name" name="domain[name]" class="form-control">
-             <option>1</option>
-             <option>2</option>
-             <option>3</option>
-             <option>4</option>
-             <option>5</option>
-           </select>
+          <label for="name" class="control-label">Domain ID</label>
+          <input type="text" class="form-control" id="domain_id" name="domain_id">
+          <span class="help-block">This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank.</span>
+          <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#choose-domain-modal">Choose from my domains</button>
+        </div>
+        
+        <div class="form-group">
+          <label for="udp_port" class="control-label">UDP port</label>
+          <input type="text" class="form-control" id="udp_port" name="udp_port" value="40102" disabled=true>
+        </div> 
+        
+        <div class="form-group">
+          <label for="http_port" class="control-label">HTTP port</label>
+          <input type="text" class="form-control" id="http_port" name="http_port" value="40100" disabled=true>
         </div>
       </div>
+      <div class="panel-footer">
+        <input class="btn btn-success" name="commit" type="submit" value="Save and restart">
+      </div>
+      <div>
     </div>
   </form>
 </div>
+
+<div class="modal fade" id="choose-domain-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+        <h4 class="modal-title">Choose from my domains</h4>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <select id="domain_id" name="domain_id" class="form-control">
+          </select>
+        </div>
+        <a class="btn btn-primary" href="https://data.highfidelity.io/domains/new" target="_blank">Create new domain</a>
+        <button type="button" class="btn btn-default">Refresh domain list</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success">Choose domain</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
   
 <!--#include virtual="footer.html"-->
 <!--#include virtual="page-end.html"-->
