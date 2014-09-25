@@ -1,15 +1,40 @@
 var Settings = {};
 
 $(document).ready(function(){  
-  var source = $('#settings-template').html();
-  Settings.template = _.template(source);
+  /*
+  * Clamped-width. 
+  * Usage:
+  *  <div data-clampedwidth=".myParent">This long content will force clamped width</div>
+  *
+  * Author: LV
+  */
+  
+  $('[data-clampedwidth]').each(function () {
+      var elem = $(this);
+      var parentPanel = elem.data('clampedwidth');
+      var resizeFn = function () {
+          var sideBarNavWidth = $(parentPanel).width() - parseInt(elem.css('paddingLeft')) - parseInt(elem.css('paddingRight')) - parseInt(elem.css('marginLeft')) - parseInt(elem.css('marginRight')) - parseInt(elem.css('borderLeftWidth')) - parseInt(elem.css('borderRightWidth'));
+          elem.css('width', sideBarNavWidth);
+      };
+
+      resizeFn();
+      $(window).resize(resizeFn);
+  });
+  
+  
+  var panelsSource = $('#panels-template').html();
+  Settings.panelsTemplate = _.template(panelsSource);
+  
+  var sidebarTemplate = $('#list-group-template').html();
+  Settings.sidebarTemplate = _.template(sidebarTemplate)
   
   reloadSettings();
 });
 
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){
-    $('#settings').html(Settings.template(data));
+    $('.list-group').html(Settings.sidebarTemplate(data))
+    $('#panels').html(Settings.panelsTemplate(data));
   });
 }
 

@@ -21,18 +21,18 @@
 
 #include "DomainServerSettingsManager.h"
 
-const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/web/settings/describe-settings.json";
+const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 const QString SETTINGS_JSON_FILE_RELATIVE_PATH = "/resources/settings.json";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
-    _descriptionObject(),
+    _descriptionArray(),
     _settingsMap()
 {
     // load the description object from the settings description
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
     
-    _descriptionObject = QJsonDocument::fromJson(descriptionFile.readAll()).object();
+    _descriptionArray = QJsonDocument::fromJson(descriptionFile.readAll()).array();
     
     // load the existing config file to get the current values
     QFile configFile(QCoreApplication::applicationDirPath() + SETTINGS_JSON_FILE_RELATIVE_PATH);
@@ -46,6 +46,7 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
 
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
+const QString SETTINGS_GROUP_KEY_NAME = "key";
 
 bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
@@ -60,7 +61,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
         
         if (typeValue.isEmpty()) {
             // combine the description object and our current settings map
-            responseObject["descriptions"] = _descriptionObject;
+            responseObject["descriptions"] = _descriptionArray;
             responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
         } else {
             // convert the string type value to a QJsonValue
@@ -69,8 +70,9 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
             const QString AFFECTED_TYPES_JSON_KEY = "assignment-types";
             
             // enumerate the groups in the description object to find which settings to pass
-            foreach(const QString& group, _descriptionObject.keys()) {
-                QJsonObject groupObject = _descriptionObject[group].toObject();
+            foreach(const QJsonValue& groupValue, _descriptionArray) {
+                QJsonObject groupObject = groupValue.toObject();
+                QString groupKey = groupObject[SETTINGS_GROUP_KEY_NAME].toString();
                 QJsonObject groupSettingsObject = groupObject[DESCRIPTION_SETTINGS_KEY].toObject();
                 
                 QJsonObject groupResponseObject;
@@ -89,7 +91,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
                         
                         // we need to check if the settings map has a value for this setting
                         QVariant variantValue;
-                        QVariant settingsMapGroupValue = _settingsMap.value(group);
+                        QVariant settingsMapGroupValue = _settingsMap.value(groupObject[SETTINGS_GROUP_KEY_NAME].toString());
                         
                         if (!settingsMapGroupValue.isNull()) {
                             variantValue = settingsMapGroupValue.toMap().value(settingKey);
@@ -106,7 +108,7 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
                 
                 if (!groupResponseObject.isEmpty()) {
                     // set this group's object to the constructed object
-                    responseObject[group] = groupResponseObject;
+                    responseObject[groupKey] = groupResponseObject;
                 }
             }
             
@@ -126,7 +128,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QJsonObject postedObject = postedDocument.object();
         
         // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionObject);
+        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionArray);
         
         // store whatever the current _settingsMap is to file
         persistToFile();
@@ -145,46 +147,49 @@ const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 
 void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         QVariantMap& settingsVariant,
-                                                                        QJsonObject descriptionObject) {
+                                                                        QJsonArray descriptionArray) {
     foreach(const QString& key, postedObject.keys()) {
 
         QJsonValue rootValue = postedObject[key];
         
         // we don't continue if this key is not present in our descriptionObject
-        if (descriptionObject.contains(key)) {
-            if (rootValue.isString()) {
-                if (rootValue.toString().isEmpty()) {
-                    // this is an empty value, clear it in settings variant so the default is sent
-                    settingsVariant.remove(key);
-                } else {
-                    if (descriptionObject[key].toObject().contains(SETTING_DESCRIPTION_TYPE_KEY)) {
-                        // for now this means that this is a double, so set it as a double
-                        settingsVariant[key] = rootValue.toString().toDouble();
-                    } else {
-                        settingsVariant[key] = rootValue.toString();
-                    }
-                }
-            } else if (rootValue.isBool()) {
-                settingsVariant[key] = rootValue.toBool();
-            } else if (rootValue.isObject()) {
-                // there's a JSON Object to explore, so attempt to recurse into it
-                QJsonObject nextDescriptionObject = descriptionObject[key].toObject();
-                
-                if (nextDescriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
-                    if (!settingsVariant.contains(key)) {
-                        // we don't have a map below this key yet, so set it up now
-                        settingsVariant[key] = QVariantMap();
-                    }
-                    
-                    QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[key].data());
-                    
-                    recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
-                                                          thisMap,
-                                                          nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toObject());
-                    
-                    if (thisMap.isEmpty()) {
-                        // we've cleared all of the settings below this value, so remove this one too
+        foreach(const QJsonValue& groupValue, descriptionArray) {
+            if (groupValue.toObject()[SETTINGS_GROUP_KEY_NAME].toString() == key) {
+                QJsonObject groupObject = groupValue.toObject();
+                if (rootValue.isString()) {
+                    if (rootValue.toString().isEmpty()) {
+                        // this is an empty value, clear it in settings variant so the default is sent
                         settingsVariant.remove(key);
+                    } else {
+                        if (groupObject.contains(SETTING_DESCRIPTION_TYPE_KEY)) {
+                            // for now this means that this is a double, so set it as a double
+                            settingsVariant[key] = rootValue.toString().toDouble();
+                        } else {
+                            settingsVariant[key] = rootValue.toString();
+                        }
+                    }
+                } else if (rootValue.isBool()) {
+                    settingsVariant[key] = rootValue.toBool();
+                } else if (rootValue.isObject()) {
+                    // there's a JSON Object to explore, so attempt to recurse into it
+                    QJsonObject nextDescriptionObject = groupObject;
+                    
+                    if (nextDescriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
+                        if (!settingsVariant.contains(key)) {
+                            // we don't have a map below this key yet, so set it up now
+                            settingsVariant[key] = QVariantMap();
+                        }
+                        
+                        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[key].data());
+                        
+                        recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
+                                                              thisMap,
+                                                              nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toArray());
+                        
+                        if (thisMap.isEmpty()) {
+                            // we've cleared all of the settings below this value, so remove this one too
+                            settingsVariant.remove(key);
+                        }
                     }
                 }
             }

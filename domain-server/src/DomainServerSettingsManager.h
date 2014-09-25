@@ -12,6 +12,7 @@
 #ifndef hifi_DomainServerSettingsManager_h
 #define hifi_DomainServerSettingsManager_h
 
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 
 #include <HTTPManager.h>
@@ -26,10 +27,10 @@ public:
     QByteArray getJSONSettingsMap() const;
 private:
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
-                                               QJsonObject descriptionObject);
+                                               QJsonArray descriptionArray);
     void persistToFile();
     
-    QJsonObject _descriptionObject;
+    QJsonArray _descriptionArray;
     QVariantMap _settingsMap;
 };
 

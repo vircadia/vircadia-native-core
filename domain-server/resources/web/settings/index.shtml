@@ -1,50 +1,73 @@
 <!--#include virtual="header.html"-->
-<div id="settings-lead" class="table-lead"><h3>Settings</h3><div class="lead-line"></div></div>
-<div style="clear: both;"></div>
-<div class="alert" style="display:none;"></div>
-<form class="form-horizontal" id="settings-form" role="form">
+
+<div class="col-md-10 col-md-offset-1">
+  <div class="col-md-12">
+    <div class="alert" style="display:none;"></div>
+  </div>
   
-<script id="settings-template" type="text/template">
-  <% _.each(descriptions, function(group, group_key){ %>
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h3 class="panel-title"><%- group.label %></h3>
+  <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
+    <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="50">
+      
+      <script id="list-group-template" type="text/template">
+        <% _.each(descriptions, function(group){ %>
+          <a href="" class="list-group-item">
+            <%- group.label %>
+          </a>
+        <% }); %>
+      </script>
+      
+      <div class="list-group">
       </div>
-      <div class="panel-body">
-        <% _.each(group.settings, function(setting, setting_key){ %>
-          <div class="form-group">
-            <% var setting_id = group_key + "." + setting_key %>
-            <label for="<%- setting_id %>" class="col-sm-2 control-label"><%- setting.label %></label>
-            <div class="col-sm-10">
-              <% if (setting.type === "checkbox") { %>
-              <% var checked_box = _.has(values, group_key) ? values[group_key][setting_key] : setting.default %>
-                <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
-              <% } else { %>
-                <% if (setting.input_addon) { %>
-                  <div class="input-group">
-                    <div class="input-group-addon"><%- setting.input_addon %></div>
-                <% } %>
-                <input type="text" class="form-control" id="<%- setting_id %>" 
-                  placeholder="<%- setting.placeholder %>" 
-                  value="<%- (values[group_key] || {})[setting_key] %>">
-                  
-                <% if (setting.input_addon) { %>
-                  </div>
-                <% } %>
-              <% } %>
+      
+      <button id="save-button" class="btn btn-success">Save and restart</button>
+    </div>
+  </div>
+  
+  <div class="col-md-9 col-sm-9">
+    <form class="form-horizontal" id="settings-form" role="form">
+  
+      <script id="panels-template" type="text/template">
+        <% _.each(descriptions, function(group){ %>
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title"><%- group.label %></h3>
             </div>
-            <p class="help-block col-sm-offset-2 col-sm-10"><%- setting.help %></p>
+            <div class="panel-body">
+              <% _.each(group.settings, function(setting){ %>
+                <div class="form-group">
+                  <% var setting_id = group.name + "." + setting.name %>
+                  <label for="<%- setting_id %>" class="col-sm-2 control-label"><%- setting.label %></label>
+                  <div class="col-sm-10">
+                    <% if (setting.type === "checkbox") { %>
+                    <% var checked_box = _.has(values, group.name) ? values[group.name][setting.name] : setting.default %>
+                      <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
+                    <% } else { %>
+                      <% if (setting.input_addon) { %>
+                        <div class="input-group">
+                          <div class="input-group-addon"><%- setting.input_addon %></div>
+                      <% } %>
+                      <input type="text" class="form-control" id="<%- setting_id %>" 
+                        placeholder="<%- setting.placeholder %>" 
+                        value="<%- (values[group.name] || {})[setting.name] %>">
+                  
+                      <% if (setting.input_addon) { %>
+                        </div>
+                      <% } %>
+                    <% } %>
+                  </div>
+                  <p class="help-block col-sm-offset-2 col-sm-10"><%- setting.help %></p>
+                </div>
+              <% }); %>
+            </div>
           </div>
         <% }); %>
-      </div>
-    </div>
-  <% }); %>
-  <button type="submit" class="btn btn-default">Save</button>
-</script>
+      </script>
 
-<div id="settings"></div>
- </form>
- 
+      <div id="panels"></div>
+     </form>
+  </div>
+</div>
+
 <!--#include virtual="footer.html"-->
 <script src='/js/settings.js'></script>
 <script src='/js/form2js.min.js'></script>
