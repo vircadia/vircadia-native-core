@@ -535,6 +535,10 @@ bool EntityItem::isRestingOnSurface() const {
 
 void EntityItem::update(const quint64& updateTime) {
     bool wantDebug = false;
+    
+    if (_lastUpdated == 0) {
+        _lastUpdated = updateTime;
+    }
 
     float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
 
@@ -578,7 +582,7 @@ void EntityItem::update(const quint64& updateTime) {
     _lastUpdated = updateTime;
 
     if (wantDebug) {
-        qDebug() << "********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
+        qDebug() << "     ********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
     }
 
     if (hasAngularVelocity()) {
@@ -614,7 +618,7 @@ void EntityItem::update(const quint64& updateTime) {
         glm::vec3 newPosition = position + (velocity * timeElapsed);
 
         if (wantDebug) {        
-            qDebug() << "EntityItem::update()....";
+            qDebug() << "  EntityItem::update()....";
             qDebug() << "    timeElapsed:" << timeElapsed;
             qDebug() << "    old AACube:" << getMaximumAACube();
             qDebug() << "    old position:" << position;

@@ -930,6 +930,9 @@ void Particle::applyHardCollision(const CollisionInfo& collisionInfo) {
 }
 
 void Particle::update(const quint64& now) {
+    if (_lastUpdated == 0) {
+        _lastUpdated = now;
+    }
     float timeElapsed = (float)(now - _lastUpdated) / (float)(USECS_PER_SECOND);
     _lastUpdated = now;
 

@@ -951,19 +951,36 @@ void MyAvatar::updateLookAtTargetAvatar() {
     //
     _lookAtTargetAvatar.clear();
     _targetAvatarPosition = glm::vec3(0.0f);
-    const float MIN_LOOKAT_ANGLE = PI / 4.0f;        //  Smallest angle between face and person where we will look at someone
-    float smallestAngleTo = MIN_LOOKAT_ANGLE;
+    
+    glm::quat faceRotation = Application::getInstance()->getViewFrustum()->getOrientation();
+    FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
+    if (tracker) {
+        // If faceshift or other face tracker in use, add on the actual angle of the head
+        faceRotation *= tracker->getHeadRotation();
+    }
+    glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
+    glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
+    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.f;
+    
+    int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
         avatar->setIsLookAtTarget(false);
-        if (!avatar->isMyAvatar()) {
-            glm::vec3 DEFAULT_GAZE_IN_HEAD_FRAME = glm::vec3(0.0f, 0.0f, -1.0f);
-            float angleTo = glm::angle(getHead()->getFinalOrientationInWorldFrame() * DEFAULT_GAZE_IN_HEAD_FRAME,
-                                       glm::normalize(avatar->getHead()->getEyePosition() - getHead()->getEyePosition()));
+        if (!avatar->isMyAvatar() && avatar->isInitialized()) {
+            float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - cameraPosition));
             if (angleTo < smallestAngleTo) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
+            }
+            //  Check if this avatar is looking at me, and fix their gaze on my camera if so
+            if (Application::getInstance()->isLookingAtMyAvatar(avatar)) {
+                howManyLookingAtMe++;
+                //  Have that avatar look directly at my camera
+                //  Philip TODO: correct to look at left/right eye
+                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+            } else {
+                avatar->getHead()->clearCorrectedLookAtPosition();
             }
         }
     }
