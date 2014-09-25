@@ -37,52 +37,6 @@
         </div>
         <div>
       </div>
-      <div class="panel panel-default" id="metaverse">
-        <div class="panel-heading">
-          <h3 class="panel-title">Metaverse Registration</h3>
-        </div>
-        <div class="panel-body">
-          <div class="form-group">
-            <label for="token" class="control-label">High Fidelity Access Token</label>
-            <input type="text" class="form-control" id="token" name="token">
-            <span class="help-block">
-              This is an access token generated on the <a href="https://data.highfidelity.io/tokens">My Tokens</a> page of your High Fidelity account.<br/>
-              Generate a token with the 'domains' scope and paste it here.<br/>
-              This is required to associate this domain-server with a domain in your.
-            </span>
-          </div>
-          <div class="form-group">
-            <label for="name" class="control-label">Domain ID</label>
-            <input type="text" class="form-control" id="domain_id" name="domain_id">
-            <span class="help-block">This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank.</span>
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#choose-domain-modal">Choose from my domains</button>
-          </div>
-        </div>
-        <div>
-      </div>
-      <div class="panel panel-default" id="metaverse">
-        <div class="panel-heading">
-          <h3 class="panel-title">Metaverse Registration</h3>
-        </div>
-        <div class="panel-body">
-          <div class="form-group">
-            <label for="token" class="control-label">High Fidelity Access Token</label>
-            <input type="text" class="form-control" id="token" name="token">
-            <span class="help-block">
-              This is an access token generated on the <a href="https://data.highfidelity.io/tokens">My Tokens</a> page of your High Fidelity account.<br/>
-              Generate a token with the 'domains' scope and paste it here.<br/>
-              This is required to associate this domain-server with a domain in your.
-            </span>
-          </div>
-          <div class="form-group">
-            <label for="name" class="control-label">Domain ID</label>
-            <input type="text" class="form-control" id="domain_id" name="domain_id">
-            <span class="help-block">This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank.</span>
-            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#choose-domain-modal">Choose from my domains</button>
-          </div>
-        </div>
-        <div>
-      </div>
     </form>
   </div>
 </div>
