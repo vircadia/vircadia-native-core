@@ -43,26 +43,13 @@ void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
 EntityCollisionSystem::~EntityCollisionSystem() {
 }
 
-bool EntityCollisionSystem::updateOperation(OctreeElement* element, void* extraData) {
-    EntityCollisionSystem* system = static_cast<EntityCollisionSystem*>(extraData);
-    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
-
-    // iterate the Entities...
-    QList<EntityItem*>& entities = entityTreeElement->getEntities();
-    uint16_t numberOfEntities = entities.size();
-    for (uint16_t i = 0; i < numberOfEntities; i++) {
-        EntityItem* entity = entities[i];
-        system->checkEntity(entity);
-    }
-
-    return true;
-}
-
-
 void EntityCollisionSystem::update() {
     // update all Entities
     if (_entities->tryLockForRead()) {
-        _entities->recurseTreeWithOperation(updateOperation, this);
+        QList<EntityItem*>& movingEntities = _entities->getMovingEntities();
+        foreach (EntityItem* entity, movingEntities) {
+            checkEntity(entity);
+        }
         _entities->unlock();
     }
 }
