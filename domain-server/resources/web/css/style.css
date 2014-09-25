@@ -47,3 +47,12 @@ span.port {
 .stale {
   color: red;
 }
+
+#setup-sidebar.affix {
+  position: fixed;
+  top: 15px;
+}
+
+#save-button {
+  width: 100%;
+}
