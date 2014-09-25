@@ -5,7 +5,7 @@
     "settings": [
       {
         "name": "access-token",
-        "label": "High Fidelity Access Token",
+        "label": "Access Token",
         "help": "This is an access token generated on the <a href='https://data.highfidelity.io/tokens'>My Tokens</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
       },
       {

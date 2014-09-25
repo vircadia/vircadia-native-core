@@ -55,7 +55,7 @@
                       <% } %>
                     <% } %>
                   </div>
-                  <p class="help-block col-sm-offset-2 col-sm-10"><%- setting.help %></p>
+                  <p class="help-block col-sm-offset-2 col-sm-10"><%= setting.help %></p>
                 </div>
               <% }); %>
             </div>
