@@ -30,8 +30,6 @@ public:
     
     const AvatarHash& getAvatarHash() { return _avatarHash; }
     int size() const { return _avatarHash.size(); }
-
-    virtual void insert(const QUuid& sessionUUID, AvatarSharedPointer avatar);
     
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);

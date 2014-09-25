@@ -298,6 +298,8 @@ public:
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
 
     void setCursorVisible(bool visible);
+    
+    bool isLookingAtMyAvatar(Avatar* avatar);
 
 signals:
 
@@ -412,7 +414,6 @@ private:
     void updateCursor(float deltaTime);
 
     Avatar* findLookatTargetAvatar(glm::vec3& eyePosition, QUuid &nodeUUID);
-    bool isLookingAtMyAvatar(Avatar* avatar);
 
     void renderLookatIndicator(glm::vec3 pointOfInterest);
 

@@ -630,7 +630,7 @@ void Audio::handleAudioInput() {
                     measuredDcOffset += networkAudioSamples[i];
                     networkAudioSamples[i] -= (int16_t) _dcOffset;
                     thisSample = fabsf(networkAudioSamples[i]);
-                    if (thisSample >= (32767.0f * CLIPPING_THRESHOLD)) {
+                    if (thisSample >= ((float)MAX_16_BIT_AUDIO_SAMPLE * CLIPPING_THRESHOLD)) {
                         _timeSinceLastClip = 0.0f;
                     }
                     loudness += thisSample;
@@ -1375,17 +1375,8 @@ int Audio::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_
         return 0;
     }
     
-    // Constant multiplier to map sample value to vertical size of scope
-    float multiplier = (float)MULTIPLIER_SCOPE_HEIGHT / logf(2.0f);
-
-    // Used to scale each sample.  (logf(sample) + fadeOffset) is same as logf(sample * fade).
-    float fadeOffset = logf(fade);
-
     // Temporary variable receives sample value
     float sample;
-
-    // Temporary variable receives mapping of sample value
-    int16_t value;
 
     QMutexLocker lock(&_guard);
     // Short int pointer to mapped samples in byte array
@@ -1393,14 +1384,7 @@ int Audio::addBufferToScope(QByteArray* byteArray, int frameOffset, const int16_
 
     for (int i = 0; i < sourceSamplesPerChannel; i++) {
         sample = (float)source[i * sourceNumberOfChannels + sourceChannel];
-        if (sample > 1) {
-            value = (int16_t)(multiplier * (logf(sample) + fadeOffset));
-        } else if (sample < -1) {
-            value = (int16_t)(-multiplier * (logf(-sample) + fadeOffset));
-        } else {
-            value = 0;
-        }
-        destination[frameOffset] = value;
+        destination[frameOffset] = sample / (float) MAX_16_BIT_AUDIO_SAMPLE * (float)SCOPE_HEIGHT / 2.0f;
         frameOffset = (frameOffset == _samplesPerScope - 1) ? 0 : frameOffset + 1;
     }
     return frameOffset;
