@@ -58,6 +58,8 @@ signals:
     void EntityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& penetration);
 
 private:
+    void applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo);
+
     static bool updateOperation(OctreeElement* element, void* extraData);
     void emitGlobalEntityCollisionWithVoxel(EntityItem* Entity, VoxelDetail* voxelDetails, const CollisionInfo& penetration);
     void emitGlobalEntityCollisionWithEntity(EntityItem* entityA, EntityItem* entityB, const CollisionInfo& penetration);

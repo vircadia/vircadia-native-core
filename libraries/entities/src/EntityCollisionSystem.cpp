@@ -99,9 +99,6 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
     VoxelDetail* voxelDetails = NULL;
     if (_voxels->findSpherePenetration(center, radius, collisionInfo._penetration, (void**)&voxelDetails)) {
 
-        // let the Entities run their collision scripts if they have them
-        //entity->collisionWithVoxel(voxelDetails, collisionInfo._penetration);
-
         // findSpherePenetration() only computes the penetration but we also want some other collision info
         // so we compute it ourselves here.  Note that we must multiply scale by TREE_SCALE when feeding 
         // the results to systems outside of this octree reference frame.
@@ -112,9 +109,8 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
         // we must scale back down to the octree reference frame before updating the Entity properties
         collisionInfo._penetration /= (float)(TREE_SCALE);
         collisionInfo._contactPoint /= (float)(TREE_SCALE);
-        entity->applyHardCollision(collisionInfo);
-        queueEntityPropertiesUpdate(entity);
 
+        applyHardCollision(entity, collisionInfo);
         delete voxelDetails; // cleanup returned details
     }
 }
@@ -138,9 +134,6 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
         if (doCollisions) {
             quint64 now = usecTimestampNow();
         
-            entityA->collisionWithEntity(entityB, penetration);
-            entityB->collisionWithEntity(entityA, penetration * -1.0f); // the penetration is reversed
-
             CollisionInfo collision;
             collision._penetration = penetration;
             // for now the contactPoint is the average between the the two paricle centers
@@ -188,9 +181,6 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 
 void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
     
-    // TODO: implement support for colliding with avatars
-
-#if 0
     // Entities that are in hand, don't collide with avatars
     if (!_avatars) {
         return;
@@ -200,7 +190,6 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
     float radius = entity->getRadius() * (float)(TREE_SCALE);
     const float ELASTICITY = 0.9f;
     const float DAMPING = 0.1f;
-    const float COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
 
     _collisions.clear();
@@ -227,22 +216,57 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
                     // only collide when Entity and collision point are moving toward each other
                     // (doing this prevents some "collision snagging" when Entity penetrates the object)
                     collision->_penetration /= (float)(TREE_SCALE);
-                    entity->applyHardCollision(*collision);
-                    queueEntityPropertiesUpdate(entity);
+                    applyHardCollision(entity, *collision);
                 }
             }
         }
     }
-    
-#endif
 }
 
-void EntityCollisionSystem::queueEntityPropertiesUpdate(EntityItem* entity) {
-    // queue the result for sending to the Entity server
+void EntityCollisionSystem::applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo) {
+    // HALTING_* params are determined using expected acceleration of gravity over some timescale.  
+    // This is a HACK for entities that bounce in a 1.0 gravitational field and should eventually be made more universal.
+    const float HALTING_ENTITY_PERIOD = 0.0167f;  // ~1/60th of a second
+    const float HALTING_ENTITY_SPEED = 9.8 * HALTING_ENTITY_PERIOD / (float)(TREE_SCALE);
+
+    //
+    //  Update the entity in response to a hard collision.  Position will be reset exactly
+    //  to outside the colliding surface.  Velocity will be modified according to elasticity.
+    //
+    //  if elasticity = 0.0, collision is inelastic (vel normal to collision is lost)
+    //  if elasticity = 1.0, collision is 100% elastic.
+    //
+    glm::vec3 position = entity->getPosition();
+    glm::vec3 velocity = entity->getVelocity();
+
+    const float EPSILON = 0.0f;
+    glm::vec3 relativeVelocity = collisionInfo._addedVelocity - velocity;
+    float velocityDotPenetration = glm::dot(relativeVelocity, collisionInfo._penetration);
+    if (velocityDotPenetration < EPSILON) {
+        // entity is moving into collision surface
+        //
+        // TODO: do something smarter here by comparing the mass of the entity vs that of the other thing 
+        // (other's mass could be stored in the Collision Info).  The smaller mass should surrender more 
+        // position offset and should slave more to the other's velocity in the static-friction case.
+        position -= collisionInfo._penetration;
+
+        if (glm::length(relativeVelocity) < HALTING_ENTITY_SPEED) {
+            // static friction kicks in and entities moves with colliding object
+            velocity = collisionInfo._addedVelocity;
+        } else {
+            glm::vec3 direction = glm::normalize(collisionInfo._penetration);
+            velocity += glm::dot(relativeVelocity, direction) * (1.0f + collisionInfo._elasticity) * direction;    // dynamic reflection
+            velocity += glm::clamp(collisionInfo._damping, 0.0f, 1.0f) * (relativeVelocity - glm::dot(relativeVelocity, direction) * direction);   // dynamic friction
+        }
+    }
+
     EntityItemProperties properties = entity->getProperties();
     EntityItemID entityItemID(entity->getID());
 
-    properties.setPosition(entity->getPosition() * (float)TREE_SCALE);
-    properties.setVelocity(entity->getVelocity() * (float)TREE_SCALE);
+    properties.setPosition(position * (float)TREE_SCALE);
+    properties.setVelocity(velocity * (float)TREE_SCALE);
+    properties.setLastEdited(usecTimestampNow());
+
+    _entities->updateEntity(entityItemID, properties);
     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, entityItemID, properties);
 }

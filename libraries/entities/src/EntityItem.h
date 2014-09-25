@@ -229,8 +229,6 @@ public:
     float getRadius() const;
     
     void applyHardCollision(const CollisionInfo& collisionInfo);
-    void collisionWithEntity(EntityItem* other, const glm::vec3& penetration);
-    void collisionWithVoxel(VoxelDetail* voxelDetails, const glm::vec3& penetration);
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
