@@ -13,8 +13,10 @@
 #include <AbstractAudioInterface.h>
 #include <VoxelTree.h>
 #include <AvatarData.h>
+#include <CollisionInfo.h>
 #include <HeadData.h>
 #include <HandData.h>
+#include <SphereShape.h>
 
 #include "EntityItem.h"
 #include "EntityCollisionSystem.h"
@@ -106,8 +108,26 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
     glm::vec3 center = entityA->getPosition() * (float)(TREE_SCALE);
     float radius = entityA->getRadius() * (float)(TREE_SCALE);
     glm::vec3 penetration;
-    EntityItem* entityB;
-    if (_entities->findSpherePenetration(center, radius, penetration, (void**)&entityB, Octree::NoLock)) {
+    EntityItem* entityB = NULL;
+    
+    const float MAX_COLLISIONS_PER_ENTITY = 32;
+    CollisionList collisions(MAX_COLLISIONS_PER_ENTITY);
+    bool shapeCollisionsAccurate = false;
+    bool shapeCollisions = _entities->findShapeCollisions(&entityA->getCollisionShapeInMeters(), 
+                                            collisions, Octree::NoLock, &shapeCollisionsAccurate);
+    
+    if (shapeCollisions) {
+        for(int i = 0; i < collisions.size(); i++) {
+            CollisionInfo* collision = collisions[i];
+            penetration = collision->_penetration;
+            entityB = static_cast<EntityItem*>(collision->_extraData);
+            
+            // TODO: how to handle multiple collisions?
+            break;
+        }
+    }
+    
+    if (shapeCollisions) {
         // NOTE: 'penetration' is the depth that 'entityA' overlaps 'entityB'.  It points from A into B.
         glm::vec3 penetrationInTreeUnits = penetration / (float)(TREE_SCALE);
 

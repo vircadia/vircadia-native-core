@@ -832,7 +832,6 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
 
 bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     ShapeArgs* args = static_cast<ShapeArgs*>(extraData);
-
     // coarse check against bounds
     AACube cube = element->getAACube();
     cube.scale(TREE_SCALE);

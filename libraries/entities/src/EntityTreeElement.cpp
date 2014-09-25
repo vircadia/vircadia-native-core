@@ -551,25 +551,17 @@ bool EntityTreeElement::findSpherePenetration(const glm::vec3& center, float rad
 
 bool EntityTreeElement::findShapeCollisions(const Shape* shape, CollisionList& collisions) const {
     bool atLeastOneCollision = false;
-    //AACube cube = getAACube();
-    //return ShapeCollider::collideShapeWithAACubeLegacy(shape, cube.calcCenter(), cube.getScale(), collisions);
-
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
-        glm::vec3 entityCenter = entity->getPosition();
-        float entityRadius = entity->getRadius();
-
-        // don't collide with yourself???
-        //if (entityCenter == center && entityRadius == radius) {
-        //    return false;
-        //}
-        AACube entityAACube = entity->getMinimumAACube();
-        AACubeShape aaCube(entityAACube.getScale(), entityAACube.calcCenter());
-
-        if (ShapeCollider::collideShapes(shape, &aaCube, collisions)) {
-            atLeastOneCollision = true;
+        const Shape* otherCollisionShape = &entity->getCollisionShapeInMeters();
+        if (shape != otherCollisionShape) {
+            if (ShapeCollider::collideShapes(shape, otherCollisionShape, collisions)) {
+                CollisionInfo* lastCollision = collisions.getLastCollision();
+                lastCollision->_extraData = entity;
+                atLeastOneCollision = true;
+            }
         }
         ++entityItr;
     }
