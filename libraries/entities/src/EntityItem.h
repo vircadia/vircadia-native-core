@@ -20,6 +20,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
+#include <VoxelDetail.h>
 
 #include "EntityItemID.h" 
 #include "EntityItemProperties.h" 
@@ -227,6 +228,7 @@ public:
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
+    void applyHardCollision(const CollisionInfo& collisionInfo);
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init

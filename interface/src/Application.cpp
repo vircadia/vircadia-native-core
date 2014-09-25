@@ -82,6 +82,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/JoystickScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -1822,6 +1823,8 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
+    _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
@@ -2165,7 +2168,7 @@ void Application::update(float deltaTime) {
         updateFaceshift();
         updateVisage();
         _sixenseManager.update(deltaTime);
-        _joystickManager.update();
+        JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
 
     }
@@ -2194,6 +2197,10 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("entities");
         _entities.update(); // update the models...
+        {
+            PerformanceTimer perfTimer("collisions");
+            _entityCollisionSystem.update(); // collide the entities...
+        }
     }
 
     {
@@ -3775,6 +3782,14 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
+QScriptValue joystickToScriptValue(QScriptEngine *engine, Joystick* const &in) {
+    return engine->newQObject(in);
+}
+
+void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
+    out = qobject_cast<Joystick*>(object.toQObject());
+}
+
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
     bool loadScriptFromEditor, bool activateMainWindow) {
     QUrl scriptUrl(scriptFilename);
@@ -3857,6 +3872,9 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
 
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
+    
+    scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
+    qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

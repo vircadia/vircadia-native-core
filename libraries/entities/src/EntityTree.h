@@ -139,6 +139,8 @@ public:
 
     void trackDeletedEntity(const EntityItemID& entityID);
 
+    QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
+
 private:
 
     void updateChangingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
