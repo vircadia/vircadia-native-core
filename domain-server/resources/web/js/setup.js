@@ -18,4 +18,16 @@ $(document).ready(function(){
       resizeFn();
       $(window).resize(resizeFn);
   });
+  
+  
+  var listSource = $('#list-group-template').html();
+  var listTemplate = _.template(listSource);
+
+  reloadSettings();
+
+  function reloadSettings() {
+    $.getJSON('describe-setup.json', function(data){
+      $('.list-group').html(listTemplate(data));
+    });
+  }
 });

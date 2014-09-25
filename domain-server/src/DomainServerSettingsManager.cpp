@@ -21,7 +21,7 @@
 
 #include "DomainServerSettingsManager.h"
 
-const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/web/settings/describe.json";
+const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/web/settings/describe-settings.json";
 const QString SETTINGS_JSON_FILE_RELATIVE_PATH = "/resources/settings.json";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :

@@ -3,9 +3,13 @@
   <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
     <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="50">
       <div class="list-group">
-        <a href="#metaverse" class="list-group-item active">
-          Metaverse Registration
-        </a>
+        <script id="list-group-template" type="text/template">
+          <% _.each(descriptions, function(group, group_key){ %>
+            <a href="" class="list-group-item">
+              <%- group.label %>
+            </a>
+          <% }); %>
+        </script>
       </div>
       
       <button id="save-button" class="btn btn-success">Save and restart</button>
@@ -67,4 +71,5 @@
   
 <!--#include virtual="footer.html"-->
 <script src='/js/setup.js'></script>
+<script src='/js/underscore-1.5.0.min.js'></script>
 <!--#include virtual="page-end.html"-->
