@@ -1158,6 +1158,9 @@ void Menu::changePrivateKey() {
 void Menu::toggleAddressBar() {
     if (!_addressBarDialog) {
         _addressBarDialog = new AddressBarDialog();
+    }
+    
+    if (!_addressBarDialog->isVisible()) {
         _addressBarDialog->show();
     }
 }

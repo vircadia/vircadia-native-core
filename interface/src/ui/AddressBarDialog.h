@@ -19,7 +19,6 @@
 #include <QSpacerItem>
 #include <QVBoxLayout>
 
-
 class AddressBarDialog : public FramelessDialog {
     Q_OBJECT
 
@@ -28,15 +27,16 @@ public:
     
 private:
     void setupUI();
+    void showEvent(QShowEvent* event);
     
-    QVBoxLayout *verticalLayout;
-    QHBoxLayout *addressLayout;
-    QSpacerItem *leftSpacer;
-    QLineEdit *addressLineEdit;
-    QSpacerItem *buttonSpacer;
-    QPushButton *goButton;
-    QSpacerItem *rightSpacer;
-    QPushButton *closeButton;
+    QVBoxLayout *_verticalLayout;
+    QHBoxLayout *_addressLayout;
+    QSpacerItem *_leftSpacer;
+    QSpacerItem *_rightSpacer;
+    QSpacerItem *_buttonSpacer;
+    QPushButton *_goButton;
+    QPushButton *_closeButton;
+    QLineEdit *_addressLineEdit;
     
 private slots:
     void accept();
