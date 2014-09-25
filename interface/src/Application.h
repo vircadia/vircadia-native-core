@@ -31,6 +31,7 @@
 #include <QSystemTrayIcon>
 
 #include <EntityEditPacketSender.h>
+#include <EntityCollisionSystem.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -481,6 +482,7 @@ private:
     ParticleCollisionSystem _particleCollisionSystem;
 
     EntityTreeRenderer _entities;
+    EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
     EntityTree _entityClipboard;
 

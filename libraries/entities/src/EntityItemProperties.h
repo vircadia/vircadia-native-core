@@ -90,6 +90,8 @@ public:
 
     // editing related features supported by all entities
     quint64 getLastEdited() const { return _lastEdited; }
+    float getEditedAgo() const /// Elapsed seconds since this entity was last edited
+        { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
     EntityPropertyFlags getChangedProperties() const;
 
     /// used by EntityScriptingInterface to return EntityItemProperties for unknown models
@@ -121,14 +123,14 @@ public:
     float getMass() const { return _mass; }
     void setMass(float value) { _mass = value; _massChanged = true; }
 
-    /// velocity in domain scale units (0.0-1.0) per second
+    /// velocity in meters (0.0-1.0) per second
     const glm::vec3& getVelocity() const { return _velocity; }
-    /// velocity in domain scale units (0.0-1.0) per second
+    /// velocity in meters (0.0-1.0) per second
     void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true; }
 
-    /// gravity in domain scale units (0.0-1.0) per second squared
+    /// gravity in meters (0.0-TREE_SCALE) per second squared
     const glm::vec3& getGravity() const { return _gravity; }
-    /// gravity in domain scale units (0.0-1.0) per second squared
+    /// gravity in meters (0.0-TREE_SCALE) per second squared
     void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true; }
 
     float getDamping() const { return _damping; }
@@ -219,8 +221,9 @@ public:
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; _visibleChanged = true; }
 
-private:
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
+
+private:
 
     QUuid _id;
     bool _idSet;
@@ -284,5 +287,17 @@ private:
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
+
+
+inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {
+    debug << "EntityItemProperties[" << "\n"
+        << "  position:" << properties.getPosition() << "in meters" << "\n"
+        << "  velocity:" << properties.getVelocity() << "in meters" << "\n"
+        << "  last edited:" << properties.getLastEdited() << "\n"
+        << "  edited ago:" << properties.getEditedAgo() << "\n"
+        << "]";
+
+    return debug;
+}
 
 #endif // hifi_EntityItemProperties_h

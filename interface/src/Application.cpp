@@ -1823,6 +1823,8 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
+    _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
@@ -2191,6 +2193,10 @@ void Application::update(float deltaTime) {
     {
         PerformanceTimer perfTimer("entities");
         _entities.update(); // update the models...
+        {
+            PerformanceTimer perfTimer("collisions");
+            _entityCollisionSystem.update(); // collide the entities...
+        }
     }
 
     {

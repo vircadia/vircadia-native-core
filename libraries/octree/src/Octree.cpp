@@ -732,9 +732,6 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
     if (!box.expandedContains(args->center, args->radius)) {
         return false;
     }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
     if (element->hasContent()) {
         glm::vec3 elementPenetration;
         if (element->findSpherePenetration(args->center, args->radius, elementPenetration, &args->penetratedObject)) {
@@ -743,6 +740,9 @@ bool findSpherePenetrationOp(OctreeElement* element, void* extraData) {
             args->penetration = addPenetrations(args->penetration, elementPenetration * (float)(TREE_SCALE));
             args->found = true;
         }
+    }
+    if (!element->isLeaf()) {
+        return true; // recurse on children
     }
     return false;
 }
