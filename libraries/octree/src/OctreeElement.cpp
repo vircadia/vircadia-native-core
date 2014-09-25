@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <assert.h>
 #include <cmath>
 #include <cstring>
 #include <stdio.h>
@@ -17,7 +18,8 @@
 
 #include <NodeList.h>
 #include <PerfStat.h>
-#include <assert.h>
+#include <AACubeShape.h>
+#include <ShapeCollider.h>
 
 #include "AACube.h"
 #include "OctalCode.h"
@@ -1369,6 +1371,10 @@ bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
     return _cube.findSpherePenetration(center, radius, penetration);
 }
 
+bool OctreeElement::findShapeCollisions(const Shape* shape, CollisionList& collisions) const {
+    AACube cube = getAACube();
+    return ShapeCollider::collideShapeWithAACubeLegacy(shape, cube.calcCenter(), cube.getScale(), collisions);
+}
 
 // TODO: consider removing this, or switching to using getOrCreateChildElementContaining(const AACube& box)...
 OctreeElement* OctreeElement::getOrCreateChildElementAt(float x, float y, float z, float s) {

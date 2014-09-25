@@ -817,15 +817,15 @@ bool findCapsulePenetrationOp(OctreeElement* element, void* extraData) {
     if (!box.expandedIntersectsSegment(args->start, args->end, args->radius)) {
         return false;
     }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
     if (element->hasContent()) {
         glm::vec3 nodePenetration;
         if (box.findCapsulePenetration(args->start, args->end, args->radius, nodePenetration)) {
             args->penetration = addPenetrations(args->penetration, nodePenetration * (float)(TREE_SCALE));
             args->found = true;
         }
+    }
+    if (!element->isLeaf()) {
+        return true; // recurse on children
     }
     return false;
 }
@@ -839,14 +839,14 @@ bool findShapeCollisionsOp(OctreeElement* element, void* extraData) {
     if (!cube.expandedContains(args->shape->getTranslation(), args->shape->getBoundingRadius())) {
         return false;
     }
-    if (!element->isLeaf()) {
-        return true; // recurse on children
-    }
     if (element->hasContent()) {
-        if (ShapeCollider::collideShapeWithAACubeLegacy(args->shape, cube.calcCenter(), cube.getScale(), args->collisions)) {
+        if (element->findShapeCollisions(args->shape, args->collisions)) {
             args->found = true;
             return true;
         }
+    }
+    if (!element->isLeaf()) {
+        return true; // recurse on children
     }
     return false;
 }
