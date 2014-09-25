@@ -32,7 +32,7 @@
 static const int MAGIC_NUMBER_SIZE = 8;
 static const char MAGIC_NUMBER[MAGIC_NUMBER_SIZE] = {17, 72, 70, 82, 13, 10, 26, 10};
 // Version (Major, Minor)
-static const QPair<quint8, quint8> VERSION(0, 1);
+static const QPair<quint8, quint8> VERSION(0, 2);
 
 int SCALE_RADIX = 10;
 int BLENDSHAPE_RADIX = 15;
@@ -118,12 +118,6 @@ bool readQuat(QDataStream& stream, glm::quat& value) {
     return true;
 }
 
-void writeFloat(QDataStream& stream, float value, int radix) {
-    unsigned char buffer[256];
-    int writtenToBuffer = packFloatScalarToSignedTwoByteFixed(buffer, value, radix);
-    stream.writeRawData(reinterpret_cast<char*>(buffer), writtenToBuffer);
-}
-
 bool readFloat(QDataStream& stream, float& value, int radix) {
     int floatByteSize = 2; // 1 floats * 2 bytes
     int16_t buffer[256];
@@ -185,7 +179,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
     // Orientation
     writeQuat(fileStream, context.orientation);
     // Scale
-    writeFloat(fileStream, context.scale, SCALE_RADIX);
+    fileStream << context.scale;
     // Head model
     fileStream << context.headModel;
     // Skeleton model
@@ -204,7 +198,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
         // Orientation
         writeQuat(fileStream, data.rotation);
         // Scale
-        writeFloat(fileStream, data.scale, SCALE_RADIX);
+        fileStream << data.scale;
     }
     
     // RECORDING
@@ -231,7 +225,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
         for (quint32 j = 0; j < numBlendshapes; ++j) {
             if (i == 0 ||
                 frame._blendshapeCoefficients[j] != previousFrame._blendshapeCoefficients[j]) {
-                writeFloat(stream, frame.getBlendshapeCoefficients()[j], BLENDSHAPE_RADIX);
+                stream << frame.getBlendshapeCoefficients()[j];
                 mask.setBit(maskIndex);
             }
             ++maskIndex;
@@ -277,7 +271,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             mask.resize(mask.size() + 1);
         }
         if (i == 0 || frame._scale != previousFrame._scale) {
-            writeFloat(stream, frame._scale, SCALE_RADIX);
+            stream << frame._scale;
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -297,7 +291,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             mask.resize(mask.size() + 1);
         }
         if (i == 0 || frame._leanSideways != previousFrame._leanSideways) {
-            writeFloat(stream, frame._leanSideways, LEAN_RADIX);
+            stream << frame._leanSideways;
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -307,7 +301,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
             mask.resize(mask.size() + 1);
         }
         if (i == 0 || frame._leanForward != previousFrame._leanForward) {
-            writeFloat(stream, frame._leanForward, LEAN_RADIX);
+            stream << frame._leanForward;
             mask.setBit(maskIndex);
         }
         maskIndex++;
@@ -438,7 +432,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     
     QPair<quint8, quint8> version;
     fileStream >> version; // File format version
-    if (version != VERSION) {
+    if (version != VERSION && version != QPair<quint8, quint8>(0,1)) {
         qDebug() << "ERROR: This file format version is not supported.";
         return recording;
     }
@@ -484,10 +478,10 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     }
     
     // Scale
-    if (!readFloat(fileStream, context.scale, SCALE_RADIX)) {
-        qDebug() << "Couldn't read file correctly. (Invalid float)";
-        recording.clear();
-        return recording;
+    if (version == QPair<quint8, quint8>(0,1)) {
+        readFloat(fileStream, context.scale, SCALE_RADIX);
+    } else {
+        fileStream >> context.scale;
     }
     // Head model
     fileStream >> context.headModel;
@@ -519,9 +513,10 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         }
         
         // Scale
-        if (!readFloat(fileStream, data.scale, SCALE_RADIX)) {
-            qDebug() << "Couldn't read attachment correctly. (Invalid float)";
-            continue;
+        if (version == QPair<quint8, quint8>(0,1)) {
+            readFloat(fileStream, data.scale, SCALE_RADIX);
+        } else {
+            fileStream >> data.scale;
         }
         context.attachments << data;
     }
@@ -548,8 +543,12 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         }
         frame._blendshapeCoefficients.resize(numBlendshapes);
         for (quint32 j = 0; j < numBlendshapes; ++j) {
-            if (!mask[maskIndex++] || !readFloat(stream, frame._blendshapeCoefficients[j], BLENDSHAPE_RADIX)) {
+            if (!mask[maskIndex++]) {
                 frame._blendshapeCoefficients[j] = previousFrame._blendshapeCoefficients[j];
+            } else if (version == QPair<quint8, quint8>(0,1)) {
+                readFloat(stream, frame._blendshapeCoefficients[j], BLENDSHAPE_RADIX);
+            } else {
+                stream >> frame._blendshapeCoefficients[j];
             }
         }
         // Joint Rotations
@@ -571,20 +570,32 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
             frame._rotation = previousFrame._rotation;
         }
         
-        if (!mask[maskIndex++] || !readFloat(stream, frame._scale, SCALE_RADIX)) {
+        if (!mask[maskIndex++]) {
             frame._scale = previousFrame._scale;
+        } else if (version == QPair<quint8, quint8>(0,1)) {
+            readFloat(stream, frame._scale, SCALE_RADIX);
+        } else {
+            stream >> frame._scale;
         }
         
         if (!mask[maskIndex++] || !readQuat(stream, frame._headRotation)) {
             frame._headRotation = previousFrame._headRotation;
         }
         
-        if (!mask[maskIndex++] || !readFloat(stream, frame._leanSideways, LEAN_RADIX)) {
+        if (!mask[maskIndex++]) {
             frame._leanSideways = previousFrame._leanSideways;
+        } else if (version == QPair<quint8, quint8>(0,1)) {
+            readFloat(stream, frame._leanSideways, LEAN_RADIX);
+        } else {
+            stream >> frame._leanSideways;
         }
         
-        if (!mask[maskIndex++] || !readFloat(stream, frame._leanForward, LEAN_RADIX)) {
+        if (!mask[maskIndex++]) {
             frame._leanForward = previousFrame._leanForward;
+        } else if (version == QPair<quint8, quint8>(0,1)) {
+            readFloat(stream, frame._leanForward, LEAN_RADIX);
+        } else {
+            stream >> frame._leanForward;
         }
         
         if (!mask[maskIndex++] || !readVec3(stream, frame._lookAtPosition)) {

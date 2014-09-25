@@ -82,6 +82,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
+#include "scripting/JoystickScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
@@ -1889,13 +1890,12 @@ void Application::shrinkMirrorView() {
     }
 }
 
-const float HEAD_SPHERE_RADIUS = 0.07f;
+const float HEAD_SPHERE_RADIUS = 0.1f;
 
 bool Application::isLookingAtMyAvatar(Avatar* avatar) {
-    glm::vec3 theirLookat = avatar->getHead()->getLookAtPosition();
-    glm::vec3 myHeadPosition = _myAvatar->getHead()->getPosition();
-
-    if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
+    glm::vec3 theirLookAt = avatar->getHead()->getLookAtPosition();
+    glm::vec3 myEyePosition = _myAvatar->getHead()->getEyePosition();
+    if (pointInSphere(theirLookAt, myEyePosition, HEAD_SPHERE_RADIUS * _myAvatar->getScale())) {
         return true;
     }
     return false;
@@ -2001,21 +2001,23 @@ void Application::updateMyAvatarLookAtPosition() {
         lookAtSpot = _myCamera.getPosition();
 
     } else {
-        if (_myAvatar->getLookAtTargetAvatar() && _myAvatar != _myAvatar->getLookAtTargetAvatar()) {
+        AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
+        if (lookingAt && _myAvatar != lookingAt.data()) {
+            
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
             if (tracker) {
                 //  If tracker active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
-                    lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getRightEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
                 } else {
                     // Look at their left eye
-                    lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getLeftEyePosition();
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
                 }
             } else {
                 //  Need to add randomly looking back and forth between left and right eye for case with no tracker
-                lookAtSpot = static_cast<Avatar*>(_myAvatar->getLookAtTargetAvatar())->getHead()->getEyePosition();
+                lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getEyePosition();
             }
         } else {
             //  I am not looking at anyone else, so just look forward
@@ -2162,7 +2164,7 @@ void Application::update(float deltaTime) {
         updateFaceshift();
         updateVisage();
         _sixenseManager.update(deltaTime);
-        _joystickManager.update();
+        JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
 
     }
@@ -3776,6 +3778,14 @@ void Application::saveScripts() {
     _settings->endArray();
 }
 
+QScriptValue joystickToScriptValue(QScriptEngine *engine, Joystick* const &in) {
+    return engine->newQObject(in);
+}
+
+void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
+    out = qobject_cast<Joystick*>(object.toQObject());
+}
+
 ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
     bool loadScriptFromEditor, bool activateMainWindow) {
     QUrl scriptUrl(scriptFilename);
@@ -3858,6 +3868,9 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("GlobalServices", GlobalServicesScriptingInterface::getInstance());
 
     scriptEngine->registerGlobalObject("AvatarManager", &_avatarManager);
+    
+    scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
+    qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

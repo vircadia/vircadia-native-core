@@ -9,18 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var position = { x:1, y: 1, z: 10 };
-var rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
-var scale = 1.0;
 
 var modelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/entities/radio/Speakers2Finished.fbx";
 var soundURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/FamilyStereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 0.7;
-audioOptions.position = position;
-audioOptions.orientation = Quat.multiply(AudioRotationOffset, rotation);
+audioOptions.volume = 0.5;
 audioOptions.loop = true;
 audioOptions.isStereo = true;
 var injector = null;
@@ -34,15 +29,22 @@ function update() {
     if (entity === null) {
         if (sound.downloaded) {
             print("Sound file downloaded");
+            var position = Vec3.sum(MyAvatar.position,
+                                    Vec3.multiplyQbyV(MyAvatar.orientation,
+                                                      { x: 0, y: 0.3, z: -1 }));
+            var rotation = Quat.multiply(MyAvatar.orientation,
+                                         Quat.fromPitchYawRollDegrees(0, -90, 0));
             entity = Entities.addEntity({
-                                      type: "Model",
-                                      position: position,
-                                      rotation: rotation,
-                                      radius: scale / 2.0,
-                                      modelURL: modelURL
+                                        type: "Model",
+                                        position: position,
+                                        rotation: rotation,
+                                        dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+                                        modelURL: modelURL
                                       });
             properties = Entities.getEntityProperties(entity);
             
+            audioOptions.position = position;
+            audioOptions.orientation = rotation;
             injector = Audio.playSound(sound, audioOptions);
         }
     } else {
@@ -61,6 +63,7 @@ function update() {
             Script.update.disconnect(update);
             Script.scriptEnding.connect(scriptEnding);
             scriptEnding();
+            Script.stop();
         }
     }
 }

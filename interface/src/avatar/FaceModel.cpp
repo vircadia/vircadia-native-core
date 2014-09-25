@@ -64,7 +64,7 @@ void FaceModel::maybeUpdateEyeRotation(Model* model, const JointState& parentSta
             glm::translate(state.getDefaultTranslationInConstrainedFrame()) *
             joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation));
     glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getFinalOrientationInWorldFrame() * IDENTITY_FRONT, 0.0f));
-    glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
+    glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getCorrectedLookAtPosition() +
         _owningHead->getSaccade() - model->getTranslation(), 1.0f));
     glm::quat between = rotationBetween(front, lookAt);
     const float MAX_ANGLE = 30.0f * RADIANS_PER_DEGREE;

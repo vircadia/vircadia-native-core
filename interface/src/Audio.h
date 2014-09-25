@@ -47,6 +47,8 @@
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
+static const int MAX_16_BIT_AUDIO_SAMPLE = 32767;
+
 
 class QAudioInput;
 class QAudioOutput;
