@@ -1995,8 +1995,12 @@ void Application::updateMyAvatarLookAtPosition() {
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself)
-        lookAtSpot = _myCamera.getPosition();
-
+        if (!OculusManager::isConnected()) {
+            lookAtSpot = _myCamera.getPosition();
+        } else {
+            lookAtSpot = OculusManager::getLeftEyePosition();
+        }
+ 
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
         if (lookingAt && _myAvatar != lookingAt.data()) {

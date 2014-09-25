@@ -45,6 +45,9 @@ public:
     
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
+    
+    static glm::vec3 getLeftEyePosition() { return _leftEyePosition; }
+    static glm::vec3 getRightEyePosition() { return _rightEyePosition; }
         
 private:
 #ifdef HAVE_LIBOVR
@@ -96,6 +99,10 @@ private:
     static bool _programInitialized;
     static Camera* _camera;
     static int _activeEyeIndex;
+    
+    static glm::vec3 _leftEyePosition;
+    static glm::vec3 _rightEyePosition;
+    
 #endif
 };
 
