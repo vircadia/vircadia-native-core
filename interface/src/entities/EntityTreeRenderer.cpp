@@ -296,7 +296,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     ModelEntityItem* modelEntity = static_cast<ModelEntityItem*>(entityItem);
                     qDebug() << "                  url:" << modelEntity->getModelURL();
                 }
-                qDebug() << "            entityBox:" << entityBox;
+                qDebug() << "            entityBox:" << entityItem->getAABox();
                 qDebug() << "           dimensions:" << entityItem->getDimensionsInMeters() << "in meters";
                 qDebug() << "     largestDimension:" << entityBox.getLargestDimension() << "in meters";
                 qDebug() << "         shouldRender:" << shouldRenderEntity(entityBox.getLargestDimension(), distance);
