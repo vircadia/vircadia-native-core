@@ -21,11 +21,6 @@ AvatarHashMap::AvatarHashMap() :
     connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
-void AvatarHashMap::insert(const QUuid& sessionUUID, AvatarSharedPointer avatar) {
-    _avatarHash.insert(sessionUUID, avatar);
-    avatar->setSessionUUID(sessionUUID);
-}
-
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
     qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
     return _avatarHash.erase(iterator);
@@ -95,9 +90,11 @@ AvatarSharedPointer AvatarHashMap::matchingOrNewAvatar(const QUuid& sessionUUID,
         matchingAvatar = newSharedAvatar();
     
         qDebug() << "Adding avatar with sessionUUID " << sessionUUID << "to AvatarHashMap.";
-        _avatarHash.insert(sessionUUID, matchingAvatar);
         
+        matchingAvatar->setSessionUUID(sessionUUID);
         matchingAvatar->setOwningAvatarMixer(mixerWeakPointer);
+        
+        _avatarHash.insert(sessionUUID, matchingAvatar);
     }
     
     return matchingAvatar;

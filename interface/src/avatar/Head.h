@@ -63,6 +63,11 @@ public:
     const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
     void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
+    void setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition);
+    glm::vec3 getCorrectedLookAtPosition();
+    void clearCorrectedLookAtPosition() { _isLookingAtMe = false; }
+    bool getIsLookingAtMe() { return _isLookingAtMe; }
+    
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
@@ -125,6 +130,7 @@ private:
     float _lastLoudness;
     float _longTermAverageLoudness;
     float _audioAttack;
+    float _audioJawOpen;
     glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
     glm::vec3 _saccade;
@@ -143,7 +149,10 @@ private:
     float _deltaLeanForward;
 
     bool _isCameraMoving;
+    bool _isLookingAtMe;
     FaceModel _faceModel;
+    
+    glm::vec3 _correctedLookAtPosition;
     
     // private methods
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
