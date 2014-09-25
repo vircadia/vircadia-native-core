@@ -15,6 +15,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QVariant>
 
 #include "HifiConfigVariantMap.h"
@@ -75,8 +76,10 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
         // we have a config file - try and read it
         configFilePath = argumentList[configIndex + 1];
     } else {
-        // no config file - try to read a file at resources/config.json
-        configFilePath = QCoreApplication::applicationDirPath() + "/resources/config.json";
+        // no config file - try to read a file config.json at the system config path
+        configFilePath = QString("%1/%2/%3/config.json").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
+                                                             QCoreApplication::organizationName(),
+                                                             QCoreApplication::applicationName());
     }
     
     QFile configFile(configFilePath);
