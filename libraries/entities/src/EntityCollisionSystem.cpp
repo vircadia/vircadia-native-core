@@ -116,7 +116,7 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
         glm::vec3 relativeVelocity = entityA->getVelocity() - entityB->getVelocity();
 
         bool movingTowardEachOther = glm::dot(relativeVelocity, penetrationInTreeUnits) > 0.0f;
-        bool doCollisions = true;
+        bool doCollisions = movingTowardEachOther; // don't do collisions if the entities are moving away from each other
 
         if (doCollisions) {
             quint64 now = usecTimestampNow();
