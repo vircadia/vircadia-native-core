@@ -118,7 +118,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
                                  
         //  Update audio attack data for facial animation (eyebrows and mouth)
-        _audioAttack = 0.9f * _audioAttack + 0.1f * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        const float AUDIO_ATTACK_AVERAGING_RATE = 0.9f;
+        _audioAttack = AUDIO_ATTACK_AVERAGING_RATE * _audioAttack + (1.0f - AUDIO_ATTACK_AVERAGING_RATE) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
         _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
         
         const float BROW_LIFT_THRESHOLD = 100.0f;
