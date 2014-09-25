@@ -352,12 +352,14 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         _camera->setTargetPosition(position + trackerPosition);
         
         //  Store the latest left and right eye render locations for things that need to know
+        glm::vec3 thisEyePosition = position + trackerPosition +
+            (bodyOrientation * glm::quat(orientation.x, orientation.y, orientation.z, orientation.w) *
+             glm::vec3(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z));
+        
         if (eyeIndex == 0) {
-            //_leftEyePosition = position + trackerPosition;
-            glm::vec3 leftEye = position + trackerPosition;
-            qDebug() << "LE: " << leftEye.x << ", " << leftEye.y << ", " << leftEye.z;
+            _leftEyePosition = thisEyePosition;
         } else {
-            whichCamera.setRightEyePosition(position + trackerPosition);
+            _rightEyePosition = thisEyePosition;
         }
 
         _camera->update(1.0f / Application::getInstance()->getFps());

@@ -86,7 +86,8 @@ MyAvatar::MyAvatar() :
     _shouldRender(true),
     _billboardValid(false),
     _physicsSimulation(),
-    _voxelShapeManager()
+    _voxelShapeManager(),
+    _isLookingAtLeftEye(true)
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -995,6 +996,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
 void MyAvatar::clearLookAtTargetAvatar() {
     _lookAtTargetAvatar.clear();
+}
+
+bool MyAvatar::isLookingAtLeftEye() {
+    float const CHANCE_OF_CHANGING_EYE = 0.01f;
+    if (randFloat() < CHANCE_OF_CHANGING_EYE) {
+        _isLookingAtLeftEye = !_isLookingAtLeftEye;
+    }
+    return _isLookingAtLeftEye;
 }
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {
