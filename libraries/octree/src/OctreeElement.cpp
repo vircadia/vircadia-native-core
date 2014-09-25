@@ -1373,6 +1373,7 @@ bool OctreeElement::findSpherePenetration(const glm::vec3& center, float radius,
 
 bool OctreeElement::findShapeCollisions(const Shape* shape, CollisionList& collisions) const {
     AACube cube = getAACube();
+    cube.scale(TREE_SCALE);
     return ShapeCollider::collideShapeWithAACubeLegacy(shape, cube.calcCenter(), cube.getScale(), collisions);
 }
 
