@@ -58,6 +58,19 @@
   </div>
 </div>
 
+<div class="modal fade" id="restart-modal">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">domain-server is restarting</h4>
+      </div>
+      <div class="modal-body">
+        <h5>This page will automatically refresh in <span id="refresh-time">3 seconds</span>.</h5>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
 <!--#include virtual="footer.html"-->
 <script src='/js/underscore-min.js'></script>
 <script src='/js/settings.js'></script>

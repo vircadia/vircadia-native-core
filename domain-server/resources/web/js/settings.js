@@ -143,12 +143,11 @@ $('body').on('click', '.save-button', function(e){
     type: 'POST'
   }).done(function(data){
     if (data.status == "success") {
-      showAlertMessage("Domain settings saved.", true);
+      showRestartModal();
     } else {
       showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
+      reloadSettings();
     }
-    
-    reloadSettings();
   }).fail(function(){
     showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
     reloadSettings();
@@ -179,6 +178,30 @@ function badgeSidebarForDifferences(changedInput) {
   }
   
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
+}
+
+function showRestartModal() {
+  $('#restart-modal').modal({
+    backdrop: 'static',
+    keyboard: false
+  });
+  
+  var secondsElapsed = 0;
+  var numberOfSecondsToWait = 3;
+  
+  var refreshSpan = $('span#refresh-time')
+  refreshSpan.html(numberOfSecondsToWait +  " seconds");
+  
+  // call ourselves every 1 second to countdown
+  window.setInterval(function(){
+    secondsElapsed++;
+    secondsLeft = numberOfSecondsToWait - secondsElapsed
+    refreshSpan.html(secondsLeft + (secondsLeft == 1 ? " second" : " seconds"))
+    
+    if (secondsElapsed == numberOfSecondsToWait) {
+      location.reload(true);
+    }
+  }, 1000);
 }
 
 function cleanupFormValues(node) {  
