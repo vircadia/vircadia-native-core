@@ -168,8 +168,8 @@ void AddressManager::attemptPlaceNameLookup(const QString& lookupString) {
     // assume this is a place name and see if we can get any info on it
     QString placeName = QUrl::toPercentEncoding(lookupString);
     AccountManager::getInstance().unauthenticatedRequest(GET_PLACE.arg(placeName),
-                                                       QNetworkAccessManager::GetOperation,
-                                                       apiCallbackParameters());
+                                                         QNetworkAccessManager::GetOperation,
+                                                         apiCallbackParameters());
 }
 
 bool AddressManager::handleNetworkAddress(const QString& lookupString) {
@@ -269,6 +269,6 @@ void AddressManager::goToUser(const QString& username) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
     // this is a username - pull the captured name and lookup that user's location
     AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
-                                                       QNetworkAccessManager::GetOperation,
-                                                       apiCallbackParameters());
+                                                         QNetworkAccessManager::GetOperation,
+                                                         apiCallbackParameters());
 }

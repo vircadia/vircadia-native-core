@@ -17,10 +17,10 @@ const QString ADDRESSBAR_GO_BUTTON_ICON = "images/address-bar-submit.svg";
 const QString ADDRESSBAR_GO_BUTTON_ACTIVE_ICON = "images/address-bar-submit-active.svg";
 
 AddressBarDialog::AddressBarDialog() :
-    FramelessDialog(Application::getInstance()->getWindow(), 0, FramelessDialog::POSITION_TOP) {
-        
-        setAttribute(Qt::WA_DeleteOnClose, false);
-        setupUI();
+    FramelessDialog(Application::getInstance()->getWindow(), 0, FramelessDialog::POSITION_TOP)
+{
+    setAttribute(Qt::WA_DeleteOnClose, false);
+    setupUI();
 }
 
 void AddressBarDialog::setupUI() {
