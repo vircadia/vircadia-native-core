@@ -25,6 +25,7 @@
 #include "ViewFrustum.h"
 #include "OctreeConstants.h"
 
+class CollisionList;
 class EncodeBitstreamParams;
 class Octree;
 class OctreeElement;
@@ -32,6 +33,7 @@ class OctreeElementBag;
 class OctreeElementDeleteHook;
 class OctreePacketData;
 class ReadBitstreamToTreeParams;
+class Shape;
 class VoxelSystem;
 
 const float SMALLEST_REASONABLE_OCTREE_ELEMENT_SCALE = (1.0f / TREE_SCALE) / 10000.0f; // 1/10,000th of a meter
@@ -127,6 +129,8 @@ public:
 
     virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
                         glm::vec3& penetration, void** penetratedObject) const;
+
+    virtual bool findShapeCollisions(const Shape* shape, CollisionList& collisions) const;
 
     // Base class methods you don't need to implement
     const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }

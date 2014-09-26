@@ -12,6 +12,7 @@
 #ifndef hifi_AACubeShape_h
 #define hifi_AACubeShape_h
 
+#include <QDebug>
 #include "Shape.h"
 
 class AACubeShape : public Shape {
@@ -28,9 +29,22 @@ public:
     bool findRayIntersection(RayIntersectionInfo& intersection) const;
 
     float getVolume() const { return _scale * _scale * _scale; }
+    virtual QDebug& dumpToDebug(QDebug& debugConext) const;
 
 protected:
     float _scale;
 };
+
+inline QDebug& AACubeShape::dumpToDebug(QDebug& debugConext) const {
+    debugConext << "AACubeShape[ (" 
+            << "type: " << getType()
+            << "position: "
+            << getTranslation().x << ", " << getTranslation().y << ", " << getTranslation().z
+            << "scale: "
+            << getScale()
+            << "]";
+
+    return debugConext;
+}
 
 #endif // hifi_AACubeShape_h

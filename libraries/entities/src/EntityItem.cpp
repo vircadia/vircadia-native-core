@@ -70,6 +70,8 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
     _angularDamping = DEFAULT_ANGULAR_DAMPING;
     _visible = DEFAULT_VISIBLE;
+    
+    recalculateCollisionShape();
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -490,6 +492,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
+        recalculateCollisionShape();
     }
     return bytesRead;
 }
@@ -675,7 +678,7 @@ void EntityItem::update(const quint64& updateTime) {
             velocity = NO_VELOCITY;
         }
 
-        setPosition(position);
+        setPosition(position); // this will automatically recalculate our collision shape
         setVelocity(velocity);
         
         if (wantDebug) {        
@@ -749,7 +752,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         }
     }
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters); // this will call recalculate collision shape if needed
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
@@ -902,4 +905,12 @@ float EntityItem::getRadius() const {
     float radius = length / 2.0f;
     return radius;
 }
+
+void EntityItem::recalculateCollisionShape() {
+    AACube entityAACube = getMinimumAACube();
+    entityAACube.scale(TREE_SCALE); // scale to meters
+    _collisionShape.setTranslation(entityAACube.calcCenter());
+    _collisionShape.setScale(entityAACube.getScale());
+}
+
 
