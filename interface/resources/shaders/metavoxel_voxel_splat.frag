@@ -17,13 +17,20 @@ const int SPLAT_COUNT = 4;
 // the splat textures
 uniform sampler2D diffuseMaps[SPLAT_COUNT];
 
+// the model space normal
+varying vec3 normal;
+
 // alpha values for the four splat textures
 varying vec4 alphaValues;
 
 void main(void) {
+    // determine the cube face to use for texture coordinate generation
+    vec3 absNormal = abs(normal);
+    vec2 parameters = step(absNormal.yy, absNormal.xz) * step(absNormal.zx, absNormal.xz);
+    
     // blend the splat textures
-    gl_FragColor = (texture2D(diffuseMaps[0], gl_TexCoord[0].st) * alphaValues.x +
-        texture2D(diffuseMaps[1], gl_TexCoord[1].st) * alphaValues.y +
-        texture2D(diffuseMaps[2], gl_TexCoord[2].st) * alphaValues.z +
-        texture2D(diffuseMaps[3], gl_TexCoord[3].st) * alphaValues.w);
+    gl_FragColor = (texture2D(diffuseMaps[0], mix(gl_TexCoord[0].xw, gl_TexCoord[0].zy, parameters)) * alphaValues.x +
+        texture2D(diffuseMaps[1], mix(gl_TexCoord[1].xw, gl_TexCoord[1].zy, parameters)) * alphaValues.y +
+        texture2D(diffuseMaps[2], mix(gl_TexCoord[2].xw, gl_TexCoord[2].zy, parameters)) * alphaValues.z +
+        texture2D(diffuseMaps[3], mix(gl_TexCoord[3].xw, gl_TexCoord[3].zy, parameters)) * alphaValues.w);
 }
