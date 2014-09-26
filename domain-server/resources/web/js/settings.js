@@ -119,7 +119,7 @@ function reloadSettings() {
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
 
-$('#settings').on('click', 'button', function(e){
+$('body').on('click', '.save-button', function(e){
   // disable any inputs not changed
   $("input:not([data-changed])").each(function(){
     $(this).prop('disabled', true);
@@ -132,6 +132,9 @@ $('#settings').on('click', 'button', function(e){
   $("input").each(function(){
     $(this).prop('disabled', false);
   });
+  
+  // remove focus from the button
+  $(this).blur()
   
   // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
   $.ajax('/settings.json', {

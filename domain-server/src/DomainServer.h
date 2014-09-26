@@ -115,8 +115,6 @@ private:
     QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
     TransactionHash _pendingAssignmentCredits;
     
-    QVariantMap _argumentVariantMap;
-    
     bool _isUsingDTLS;
     
     QUrl _oauthProviderURL;

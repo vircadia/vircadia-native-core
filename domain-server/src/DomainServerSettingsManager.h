@@ -24,7 +24,10 @@ public:
     bool handlePublicHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
+    void loadSettingsMap(const QStringList& argumentList);
+    
     QByteArray getJSONSettingsMap() const;
+    const QVariantMap& getSettingsMap() const { return _settingsMap; }
 private:
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
                                                QJsonArray descriptionArray);
@@ -32,6 +35,7 @@ private:
     
     QJsonArray _descriptionArray;
     QVariantMap _settingsMap;
+    QString _settingsFilepath;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

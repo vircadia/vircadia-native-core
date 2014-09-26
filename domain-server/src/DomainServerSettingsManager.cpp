@@ -10,19 +10,21 @@
 //
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QDir>
 #include <QtCore/QFile>
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
+#include <QtCore/QStandardPaths>
 #include <QtCore/QUrl>
 #include <QtCore/QUrlQuery>
 
 #include <Assignment.h>
+#include <HifiConfigVariantMap.h>
 #include <HTTPConnection.h>
 
 #include "DomainServerSettingsManager.h"
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
-const QString SETTINGS_JSON_FILE_RELATIVE_PATH = "/resources/settings.json";
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
@@ -33,20 +35,20 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     descriptionFile.open(QIODevice::ReadOnly);
     
     _descriptionArray = QJsonDocument::fromJson(descriptionFile.readAll()).array();
+}
+
+void DomainServerSettingsManager::loadSettingsMap(const QStringList& argumentList) {
+    _settingsMap = HifiConfigVariantMap::mergeMasterConfigWithUserConfig(argumentList);
     
-    // load the existing config file to get the current values
-    QFile configFile(QCoreApplication::applicationDirPath() + SETTINGS_JSON_FILE_RELATIVE_PATH);
+    qDebug() << _settingsMap;
     
-    if (configFile.exists()) {
-        configFile.open(QIODevice::ReadOnly);
-        
-        _settingsMap = QJsonDocument::fromJson(configFile.readAll()).toVariant().toMap();
-    }
+    // figure out where we are supposed to persist our settings to
+    _settingsFilepath = HifiConfigVariantMap::userConfigFilepath(argumentList);
 }
 
 const QString DESCRIPTION_SETTINGS_KEY = "settings";
 const QString SETTING_DEFAULT_KEY = "default";
-const QString SETTINGS_GROUP_KEY_NAME = "key";
+const QString SETTINGS_GROUP_KEY_NAME = "name";
 
 bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
@@ -209,7 +211,15 @@ QByteArray DomainServerSettingsManager::getJSONSettingsMap() const {
 }
 
 void DomainServerSettingsManager::persistToFile() {
-    QFile settingsFile(QCoreApplication::applicationDirPath() + SETTINGS_JSON_FILE_RELATIVE_PATH);
+    
+    // make sure we have the dir the settings file is supposed to live in
+    QFileInfo settingsFileInfo(_settingsFilepath);
+    
+    if (!settingsFileInfo.dir().exists()) {
+        settingsFileInfo.dir().mkpath(".");
+    }
+    
+    QFile settingsFile(_settingsFilepath);
     
     if (settingsFile.open(QIODevice::WriteOnly)) {
         settingsFile.write(getJSONSettingsMap());

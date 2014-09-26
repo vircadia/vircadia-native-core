@@ -22,7 +22,7 @@
       </ul>
       
       <button id="advanced-toggle-button" class="btn btn-info">Show advanced</button>
-      <button id="save-button" class="btn btn-success">Save and restart</button>
+      <button class="btn btn-success save-button">Save and restart</button>
     </div>
   </div>
   
