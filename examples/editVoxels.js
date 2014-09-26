@@ -1127,8 +1127,6 @@ function keyPressEvent(event) {
         } else if (event.text == "z") {
             undoSound.playRandom();
         }
-        
-        
     }
     
     trackKeyPressEvent(event); // used by preview support

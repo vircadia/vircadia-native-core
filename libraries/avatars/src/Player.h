@@ -30,16 +30,22 @@ public:
     Player(AvatarData* avatar);
     
     bool isPlaying() const;
+    bool isPaused() const;
     qint64 elapsed() const;
     
     RecordingPointer getRecording() const { return _recording; }
+    int getCurrentFrame() const { return _currentFrame; }
     
 public slots:
     void startPlaying();
     void stopPlaying();
+    void pausePlayer();
     void loadFromFile(const QString& file);
     void loadRecording(RecordingPointer recording);
     void play();
+    
+    void setCurrentFrame(int currentFrame);
+    void setCurrentTime(qint64 currentTime);
     
     void setPlayFromCurrentLocation(bool playFromCurrentPosition);
     void setLoop(bool loop) { _loop = loop; }
@@ -52,18 +58,20 @@ private:
     void setupAudioThread();
     void cleanupAudioThread();
     void loopRecording();
+    void setAudionInjectorPosition();
     bool computeCurrentFrame();
     
     QElapsedTimer _timer;
     RecordingPointer _recording;
     int _currentFrame;
+    int _pausedFrame;
+    qint64 _timerOffset;
     
     QSharedPointer<AudioInjector> _injector;
     AudioInjectorOptions _options;
     
     AvatarData* _avatar;
     QThread* _audioThread;
-    
     
     RecordingContext _currentContext;
     bool _playFromCurrentPosition;
@@ -72,7 +80,6 @@ private:
     bool _useDisplayName;
     bool _useHeadURL;
     bool _useSkeletonURL;
-    
 };
 
 #endif // hifi_Player_h

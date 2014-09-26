@@ -296,10 +296,16 @@ public slots:
     bool hasReferential();
     
     bool isPlaying();
+    bool isPaused();
     qint64 playerElapsed();
     qint64 playerLength();
+    int playerCurrentFrame();
+    int playerFrameNumber();
+    
     void loadRecording(QString filename);
     void startPlaying();
+    void setPlayerFrame(int frame);
+    void setPlayerTime(qint64 time);
     void setPlayFromCurrentLocation(bool playFromCurrentLocation);
     void setPlayerLoop(bool loop);
     void setPlayerUseDisplayName(bool useDisplayName);
@@ -307,6 +313,7 @@ public slots:
     void setPlayerUseHeadModel(bool useHeadModel);
     void setPlayerUseSkeletonModel(bool useSkeletonModel);
     void play();
+    void pausePlayer();
     void stopPlaying();
     
 protected:
