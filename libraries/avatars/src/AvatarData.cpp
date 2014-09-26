@@ -587,16 +587,11 @@ bool AvatarData::hasReferential() {
 }
 
 bool AvatarData::isPlaying() {
-    if (!_player) {
-        return false;
-    }
-    if (QThread::currentThread() != thread()) {
-        bool result;
-        QMetaObject::invokeMethod(this, "isPlaying", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(bool, result));
-        return result;
-    }
     return _player && _player->isPlaying();
+}
+
+bool AvatarData::isPaused() {
+    return _player && _player->isPaused();
 }
 
 qint64 AvatarData::playerElapsed() {
@@ -625,6 +620,14 @@ qint64 AvatarData::playerLength() {
     return _player->getRecording()->getLength();
 }
 
+int AvatarData::playerCurrentFrame() {
+    return (_player) ? _player->getCurrentFrame() : 0;
+}
+
+int AvatarData::playerFrameNumber() {
+    return (_player && _player->getRecording()) ? _player->getRecording()->getFrameNumber() : 0;
+}
+
 void AvatarData::loadRecording(QString filename) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "loadRecording", Qt::BlockingQueuedConnection,
@@ -647,6 +650,18 @@ void AvatarData::startPlaying() {
         _player = PlayerPointer(new Player(this));
     }
     _player->startPlaying();
+}
+
+void AvatarData::setPlayerFrame(int frame) {
+    if (_player) {
+        _player->setCurrentFrame(frame);
+    }
+}
+
+void AvatarData::setPlayerTime(qint64 time) {
+    if (_player) {
+        _player->setCurrentTime(time);
+    }
 }
 
 void AvatarData::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
@@ -693,6 +708,19 @@ void AvatarData::play() {
         }
         
         _player->play();
+    }
+}
+
+void AvatarData::pausePlayer() {
+    if (!_player) {
+        return;
+    }
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "pausePlayer", Qt::BlockingQueuedConnection);
+        return;
+    }
+    if (_player) {
+        _player->pausePlayer();
     }
 }
 
