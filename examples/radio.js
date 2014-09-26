@@ -10,7 +10,7 @@
 //
 
 
-var modelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/entities/radio/Speakers2Finished.fbx";
+var modelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/entities/radio/Speakers2_DeletedPlanes.fbx";
 var soundURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/FamilyStereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
@@ -20,7 +20,7 @@ audioOptions.loop = true;
 audioOptions.isStereo = true;
 var injector = null;
 
-var sound = new Sound(soundURL);
+var sound = new Sound(soundURL, audioOptions.isStereo);
 
 var entity = null;
 var properties = null;
@@ -38,7 +38,7 @@ function update() {
                                         type: "Model",
                                         position: position,
                                         rotation: rotation,
-                                        dimensions: { x: 0.5, y: 0.5, z: 0.5 },
+                                        dimensions: { x: 0.2, y: 0.2, z: 0.2 },
                                         modelURL: modelURL
                                       });
             properties = Entities.getEntityProperties(entity);
