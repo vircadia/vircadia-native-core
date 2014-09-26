@@ -78,6 +78,11 @@ void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* enti
 }
 
 void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
+
+    if (entity->getIgnoreForCollisions() || !entity->getCollisionsWillMove()) {
+        return; // bail early if this entity is to be ignored or wont move
+    }
+
     glm::vec3 center = entity->getPosition() * (float)(TREE_SCALE);
     float radius = entity->getRadius() * (float)(TREE_SCALE);
     const float ELASTICITY = 0.4f;
@@ -120,95 +125,95 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
     bool shapeCollisions = _entities->findShapeCollisions(&entityA->getCollisionShapeInMeters(), 
                                             collisions, Octree::NoLock, &shapeCollisionsAccurate);
     
+
     if (shapeCollisions) {
         for(int i = 0; i < collisions.size(); i++) {
+
             CollisionInfo* collision = collisions[i];
             penetration = collision->_penetration;
             entityB = static_cast<EntityItem*>(collision->_extraData);
             
-            // TODO: how to handle multiple collisions?
-            break;
-        }
-    }
-    
-    if (shapeCollisions) {
-        // NOTE: 'penetration' is the depth that 'entityA' overlaps 'entityB'.  It points from A into B.
-        glm::vec3 penetrationInTreeUnits = penetration / (float)(TREE_SCALE);
+            // NOTE: 'penetration' is the depth that 'entityA' overlaps 'entityB'.  It points from A into B.
+            glm::vec3 penetrationInTreeUnits = penetration / (float)(TREE_SCALE);
 
-        // Even if the Entities overlap... when the Entities are already moving appart
-        // we don't want to count this as a collision.
-        glm::vec3 relativeVelocity = entityA->getVelocity() - entityB->getVelocity();
-
-        bool wantToMoveA = entityA->getCollisionsWillMove();
-        bool wantToMoveB = entityB->getCollisionsWillMove();
-        bool movingTowardEachOther = glm::dot(relativeVelocity, penetrationInTreeUnits) > 0.0f;
-        
-        // only do collisions if the entities are moving toward each other and one or the other
-        // of the entities are movable from collisions
-        bool doCollisions = movingTowardEachOther && (wantToMoveA || wantToMoveB); 
-
-        if (doCollisions) {
-            quint64 now = usecTimestampNow();
-        
-            CollisionInfo collision;
-            collision._penetration = penetration;
-            // for now the contactPoint is the average between the the two paricle centers
-            collision._contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
-            emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
-
-            glm::vec3 axis = glm::normalize(penetration);
-            glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
-
-            float massA = entityA->getMass();
-            float massB = entityB->getMass();
-            float totalMass = massA + massB;
-            float massRatioA = (2.0f * massB / totalMass);
-            float massRatioB = (2.0f * massA / totalMass);
-
-            // in the event that one of our entities is non-moving, then fix up these ratios
-            if (wantToMoveA && !wantToMoveB) {
-                massRatioA = 2.0f;
-                massRatioB = 0.0f;
-            }
-
-            if (!wantToMoveA && wantToMoveB) {
-                massRatioA = 0.0f;
-                massRatioB = 2.0f;
-            }
+            // Even if the Entities overlap... when the Entities are already moving appart
+            // we don't want to count this as a collision.
+            glm::vec3 relativeVelocity = entityA->getVelocity() - entityB->getVelocity();
             
-            // unless the entity is configured to not be moved by collision, calculate it's new position
-            // and velocity and apply it
-            if (wantToMoveA) {
-                // handle Entity A
-                glm::vec3 newVelocityA = entityA->getVelocity() - axialVelocity * massRatioA;
-                glm::vec3 newPositionA = entityA->getPosition() - 0.5f * penetrationInTreeUnits;
+            bool fullyEnclosedCollision = glm::length(penetrationInTreeUnits) > entityA->getLargestDimension();
 
-                EntityItemProperties propertiesA = entityA->getProperties();
-                EntityItemID idA(entityA->getID());
-                propertiesA.setVelocity(newVelocityA * (float)TREE_SCALE);
-                propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
-                propertiesA.setLastEdited(now);
+            bool wantToMoveA = entityA->getCollisionsWillMove();
+            bool wantToMoveB = entityB->getCollisionsWillMove();
+            bool movingTowardEachOther = glm::dot(relativeVelocity, penetrationInTreeUnits) > 0.0f;
+
+            // only do collisions if the entities are moving toward each other and one or the other
+            // of the entities are movable from collisions
+            bool doCollisions = !fullyEnclosedCollision && movingTowardEachOther && (wantToMoveA || wantToMoveB); 
+
+            if (doCollisions) {
+
+                quint64 now = usecTimestampNow();
         
-                _entities->updateEntity(idA, propertiesA);
-                _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
-            }            
+                CollisionInfo collision;
+                collision._penetration = penetration;
+                // for now the contactPoint is the average between the the two paricle centers
+                collision._contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
+                emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
 
-            // unless the entity is configured to not be moved by collision, calculate it's new position
-            // and velocity and apply it
-            if (wantToMoveB) {
-                glm::vec3 newVelocityB = entityB->getVelocity() + axialVelocity * massRatioB;
-                glm::vec3 newPositionB = entityB->getPosition() + 0.5f * penetrationInTreeUnits;
+                glm::vec3 axis = glm::normalize(penetration);
+                glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
 
-                EntityItemProperties propertiesB = entityB->getProperties();
+                float massA = entityA->getMass();
+                float massB = entityB->getMass();
+                float totalMass = massA + massB;
+                float massRatioA = (2.0f * massB / totalMass);
+                float massRatioB = (2.0f * massA / totalMass);
 
-                EntityItemID idB(entityB->getID());
-                propertiesB.setVelocity(newVelocityB * (float)TREE_SCALE);
-                propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
-                propertiesB.setLastEdited(now);
+                // in the event that one of our entities is non-moving, then fix up these ratios
+                if (wantToMoveA && !wantToMoveB) {
+                    massRatioA = 2.0f;
+                    massRatioB = 0.0f;
+                }
 
-                _entities->updateEntity(idB, propertiesB);
-                _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
-            }      
+                if (!wantToMoveA && wantToMoveB) {
+                    massRatioA = 0.0f;
+                    massRatioB = 2.0f;
+                }
+            
+                // unless the entity is configured to not be moved by collision, calculate it's new position
+                // and velocity and apply it
+                if (wantToMoveA) {
+                    // handle Entity A
+                    glm::vec3 newVelocityA = entityA->getVelocity() - axialVelocity * massRatioA;
+                    glm::vec3 newPositionA = entityA->getPosition() - 0.5f * penetrationInTreeUnits;
+
+                    EntityItemProperties propertiesA = entityA->getProperties();
+                    EntityItemID idA(entityA->getID());
+                    propertiesA.setVelocity(newVelocityA * (float)TREE_SCALE);
+                    propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
+                    propertiesA.setLastEdited(now);
+
+                    _entities->updateEntity(idA, propertiesA);
+                    _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
+                }            
+
+                // unless the entity is configured to not be moved by collision, calculate it's new position
+                // and velocity and apply it
+                if (wantToMoveB) {
+                    glm::vec3 newVelocityB = entityB->getVelocity() + axialVelocity * massRatioB;
+                    glm::vec3 newPositionB = entityB->getPosition() + 0.5f * penetrationInTreeUnits;
+
+                    EntityItemProperties propertiesB = entityB->getProperties();
+
+                    EntityItemID idB(entityB->getID());
+                    propertiesB.setVelocity(newVelocityB * (float)TREE_SCALE);
+                    propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
+                    propertiesB.setLastEdited(now);
+
+                    _entities->updateEntity(idB, propertiesB);
+                    _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
+                }      
+            }
         }
     }
 }
@@ -218,6 +223,10 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
     // Entities that are in hand, don't collide with avatars
     if (!_avatars) {
         return;
+    }
+
+    if (entity->getIgnoreForCollisions() || !entity->getCollisionsWillMove()) {
+        return; // bail early if this entity is to be ignored or wont move
     }
 
     glm::vec3 center = entity->getPosition() * (float)(TREE_SCALE);

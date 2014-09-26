@@ -558,7 +558,9 @@ bool EntityTreeElement::findShapeCollisions(const Shape* shape, CollisionList& c
         
         // entities that are set for ignore for collisions then don't consider them for collision
         const Shape* otherCollisionShape = &entity->getCollisionShapeInMeters();
-        if (shape != otherCollisionShape && !entity->getIgnoreForCollisions()) {
+        
+        bool ignoreForCollisions = entity->getIgnoreForCollisions();
+        if (shape != otherCollisionShape && !ignoreForCollisions) {
             if (ShapeCollider::collideShapes(shape, otherCollisionShape, collisions)) {
                 CollisionInfo* lastCollision = collisions.getLastCollision();
                 lastCollision->_extraData = entity;
