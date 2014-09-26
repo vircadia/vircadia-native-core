@@ -30,7 +30,9 @@ InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, const In
 
 const uchar MAX_INJECTOR_VOLUME = 255;
 
-int InjectedAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+int InjectedAudioStream::parseStreamProperties(PacketType type,
+                                               const QByteArray& packetAfterSeqNum,
+                                               int& numAudioSamples) {
     // setup a data stream to read from this packet
     QDataStream packetStream(packetAfterSeqNum);
 
@@ -38,7 +40,8 @@ int InjectedAudioStream::parseStreamProperties(PacketType type, const QByteArray
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
     
     packetStream >> _isStereo;
-    _ringBuffer.resizeForFrameSize(isStereo() ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    _ringBuffer.resizeForFrameSize(isStereo() ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO :
+                                                NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
     // pull the loopback flag and set our boolean
     uchar shouldLoopback;

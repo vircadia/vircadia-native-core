@@ -84,7 +84,8 @@ Sound::Sound(const QUrl& sampleURL, bool isStereo, QObject* parent) :
     
     QNetworkReply* soundDownload = networkAccessManager.get(QNetworkRequest(sampleURL));
     connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
-    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(replyError(QNetworkReply::NetworkError)));
+    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(replyError(QNetworkReply::NetworkError)));
 }
 
 Sound::Sound(const QByteArray byteArray, QObject* parent) :
@@ -163,7 +164,8 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
             if (i + 1 >= numSourceSamples) {
                 destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
             } else {
-                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 4);
+                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2)
+                                                + (sourceSamples[i + 1] / 4);
             }
         }
     }

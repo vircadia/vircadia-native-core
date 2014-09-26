@@ -77,11 +77,13 @@ void AudioInjector::injectAudio() {
         
         // pack the position for injected audio
         int positionOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()), sizeof(_options.getPosition()));
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()),
+                                  sizeof(_options.getPosition()));
         
         // pack our orientation for injected audio
         int orientationOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()), sizeof(_options.getOrientation()));
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()),
+                                  sizeof(_options.getOrientation()));
         
         // pack zero for radius
         float radius = 0;
@@ -117,10 +119,12 @@ void AudioInjector::injectAudio() {
             injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
 
             // pack the sequence number
-            memcpy(injectAudioPacket.data() + numPreSequenceNumberBytes, &outgoingInjectedAudioSequenceNumber, sizeof(quint16));
+            memcpy(injectAudioPacket.data() + numPreSequenceNumberBytes,
+                   &outgoingInjectedAudioSequenceNumber, sizeof(quint16));
             
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
-            memcpy(injectAudioPacket.data() + numPreAudioDataBytes, soundByteArray.data() + currentSendPosition, bytesToCopy);
+            memcpy(injectAudioPacket.data() + numPreAudioDataBytes,
+                   soundByteArray.data() + currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
             NodeList* nodeList = NodeList::getInstance();
