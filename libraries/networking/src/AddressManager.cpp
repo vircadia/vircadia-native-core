@@ -80,6 +80,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
         
         // if this is a relative path then handle it as a relative viewpoint
         handleRelativeViewpoint(lookupUrl.path());
+        emit lookupResultsFinished();
     }
     
     return false;
@@ -149,6 +150,7 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
         // we've been told that this result exists but is offline, emit our signal so the application can handle
         emit lookupResultIsOffline();
     }
+    emit lookupResultsFinished();
 }
 
 void AddressManager::handleAPIError(QNetworkReply& errorReply) {
@@ -157,6 +159,7 @@ void AddressManager::handleAPIError(QNetworkReply& errorReply) {
     if (errorReply.error() == QNetworkReply::ContentNotFoundError) {
         emit lookupResultIsNotFound();
     }
+    emit lookupResultsFinished();
 }
 
 const QString GET_PLACE = "/api/v1/places/%1";
@@ -164,7 +167,7 @@ const QString GET_PLACE = "/api/v1/places/%1";
 void AddressManager::attemptPlaceNameLookup(const QString& lookupString) {
     // assume this is a place name and see if we can get any info on it
     QString placeName = QUrl::toPercentEncoding(lookupString);
-    AccountManager::getInstance().authenticatedRequest(GET_PLACE.arg(placeName),
+    AccountManager::getInstance().unauthenticatedRequest(GET_PLACE.arg(placeName),
                                                        QNetworkAccessManager::GetOperation,
                                                        apiCallbackParameters());
 }
@@ -180,6 +183,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     
     if (hostnameRegex.indexIn(lookupString) != -1) {
         emit possibleDomainChangeRequired(hostnameRegex.cap(0));
+        emit lookupResultsFinished();
         return true;
     }
     
@@ -187,6 +191,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         emit possibleDomainChangeRequired(ipAddressRegex.cap(0));
+        emit lookupResultsFinished();
         return true;
     }
     
@@ -263,7 +268,7 @@ bool AddressManager::handleUsername(const QString& lookupString) {
 void AddressManager::goToUser(const QString& username) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
     // this is a username - pull the captured name and lookup that user's location
-    AccountManager::getInstance().authenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
+    AccountManager::getInstance().unauthenticatedRequest(GET_USER_LOCATION.arg(formattedUsername),
                                                        QNetworkAccessManager::GetOperation,
                                                        apiCallbackParameters());
 }
