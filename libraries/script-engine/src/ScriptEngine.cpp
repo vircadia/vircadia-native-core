@@ -48,7 +48,8 @@ EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
     QUrl soundURL = QUrl(context->argument(0).toString());
-    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL), QScriptEngine::ScriptOwnership);
+    bool isStereo = context->argument(1).toBool();
+    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL, isStereo), QScriptEngine::ScriptOwnership);
 
     return soundScriptValue;
 }
