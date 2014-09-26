@@ -28,7 +28,7 @@
         "name": "http-password",
         "label": "HTTP Password",
         "type": "password",
-        "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it",
+        "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
         "value-hidden": true
       }
     ]
