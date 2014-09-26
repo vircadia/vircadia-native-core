@@ -150,7 +150,7 @@ void HifiConfigVariantMap::addMissingValuesToExistingMap(QVariantMap& existingMa
             
             if (newMap[key].canConvert(QMetaType::QVariantMap) && existingMap[key].canConvert(QMetaType::QVariantMap)) {
                 // there's a variant map below and the existing map has one too, so we need to keep recursing
-                addMissingValuesToExistingMap(reinterpret_cast<QVariantMap&>(existingMap[key]), newMap[key].toMap());
+                addMissingValuesToExistingMap(*reinterpret_cast<QVariantMap*>(existingMap[key].data()), newMap[key].toMap());
             }
         } else {
             existingMap[key] = newMap[key];
