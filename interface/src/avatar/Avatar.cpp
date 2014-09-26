@@ -505,10 +505,11 @@ void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLeve
     {
         Glower glower(glowLevel);
         
-        if ((_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) &&
-                (postLighting || renderMode == SHADOW_RENDER_MODE)) {
-            // render the billboard until both models are loaded
-            renderBillboard();
+        if (_shouldRenderBillboard || !(_skeletonModel.isRenderable() && getHead()->getFaceModel().isRenderable())) {
+            if (postLighting || renderMode == SHADOW_RENDER_MODE) {
+                // render the billboard until both models are loaded
+                renderBillboard();
+            }
             return;
         }
         
