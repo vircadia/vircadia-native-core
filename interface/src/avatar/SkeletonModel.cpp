@@ -27,7 +27,8 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _owningAvatar(owningAvatar),
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
-    _ragdoll(NULL) {
+    _ragdoll(NULL),
+    _defaultEyeModelPosition(glm::vec3(0.f, 0.f, 0.f)) {
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -677,8 +678,6 @@ void SkeletonModel::buildShapes() {
 
         _defaultEyeModelPosition = midEyePosition - rootModelPosition;
         _defaultEyeModelPosition.z = -_defaultEyeModelPosition.z;
-    } else {
-        _defaultEyeModelPosition = glm::vec3(0.f, 0.f, 0.f);
     }
 
     // While the shapes are in their default position we disable collisions between
