@@ -67,12 +67,6 @@ $(document).ready(function(){
     badgeSidebarForDifferences($(this))
   })
   
-  $('#setup-sidebar').on('click', '.list-group-item', function() {
-    // force this list group item to be active
-    $('#setup-sidebar li').removeClass('active')
-    $(this).parent('li').addClass('active')
-  })
-  
   $('#advanced-toggle-button').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
     var advancedSelector = $('.advanced-setting') 
@@ -94,7 +88,7 @@ $(document).ready(function(){
   var sidebarTemplate = $('#list-group-template').html()
   Settings.sidebarTemplate = _.template(sidebarTemplate)
   
-  $('body').scrollspy({ target: '#setup-sidebar'})
+  // $('body').scrollspy({ target: '#setup-sidebar'})
   
   reloadSettings()
 })
@@ -105,13 +99,6 @@ function reloadSettings() {
     
     $('.nav-stacked').html(Settings.sidebarTemplate(data))
     $('#panels').html(Settings.panelsTemplate(data))
-    
-    $('.nav-stacked li').each(function(){
-      $(this).removeClass('active')
-    });
-    
-    $('.nav-stacked li:first-child').addClass('active');
-    $('body').scrollspy('refresh')
     
     Settings.initialValues = form2js('settings-form', "_", false, cleanupFormValues, true);
   });
