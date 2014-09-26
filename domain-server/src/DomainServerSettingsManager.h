@@ -28,8 +28,6 @@ public:
     
     QByteArray getJSONSettingsMap() const;
     const QVariantMap& getSettingsMap() const { return _settingsMap; }
-signals:
-    void saveRequiresRestart();
 private:
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
                                                QJsonArray descriptionArray);
