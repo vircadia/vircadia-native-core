@@ -22,7 +22,7 @@
       </ul>
       
       <button id="advanced-toggle-button" class="btn btn-info">Show advanced</button>
-      <button class="btn btn-success save-button">Save and restart</button>
+      <button class="btn btn-success save-button" disabled>Save and restart</button>
     </div>
   </div>
   
@@ -54,7 +54,7 @@
   </div>
   
   <div class="col-xs-12 hidden-sm hidden-md hidden-lg">
-    <button class="btn btn-success save-button" id="small-save-button">Save and restart</button>
+    <button class="btn btn-success save-button" id="small-save-button" disabled>Save and restart</button>
   </div>
 </div>
 
