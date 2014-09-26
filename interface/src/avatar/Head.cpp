@@ -110,7 +110,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
-        if (_averageLoudness > TALKING_LOUDNESS) {
+        if ((_averageLoudness - _longTermAverageLoudness) > TALKING_LOUDNESS) {
             _timeWithoutTalking = 0.0f;
         
         } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
@@ -118,7 +118,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
                                  
         //  Update audio attack data for facial animation (eyebrows and mouth)
-        _audioAttack = 0.9f * _audioAttack + 0.1f * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
+        const float AUDIO_ATTACK_AVERAGING_RATE = 0.9f;
+        _audioAttack = AUDIO_ATTACK_AVERAGING_RATE * _audioAttack + (1.0f - AUDIO_ATTACK_AVERAGING_RATE) * fabs((_audioLoudness - _longTermAverageLoudness) - _lastLoudness);
         _lastLoudness = (_audioLoudness - _longTermAverageLoudness);
         
         const float BROW_LIFT_THRESHOLD = 100.0f;
@@ -128,16 +129,23 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         _browAudioLift = glm::clamp(_browAudioLift *= 0.7f, 0.0f, 1.0f);
         
         const float BLINK_SPEED = 10.0f;
+        const float BLINK_SPEED_VARIABILITY = 1.0f;
+        const float BLINK_START_VARIABILITY = 0.25f;
         const float FULLY_OPEN = 0.0f;
         const float FULLY_CLOSED = 1.0f;
         if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
             // no blinking when brows are raised; blink less with increasing loudness
             const float BASE_BLINK_RATE = 15.0f / 60.0f;
             const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
+            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(fabs(_averageLoudness - _longTermAverageLoudness)) *
                     ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
-                _leftEyeBlinkVelocity = BLINK_SPEED;
-                _rightEyeBlinkVelocity = BLINK_SPEED;
+                _leftEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
+                _rightEyeBlinkVelocity = BLINK_SPEED + randFloat() * BLINK_SPEED_VARIABILITY;
+                if (randFloat() < 0.5f) {
+                    _leftEyeBlink = BLINK_START_VARIABILITY;
+                } else {
+                    _rightEyeBlink = BLINK_START_VARIABILITY;
+                }
             }
         } else {
             _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);

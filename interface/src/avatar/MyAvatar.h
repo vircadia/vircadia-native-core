@@ -106,6 +106,8 @@ public:
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
+    
+    bool isLookingAtLeftEye();
 
     virtual int parseDataAtOffset(const QByteArray& packet, int offset);
     
@@ -230,6 +232,8 @@ private:
     QList<AnimationHandlePointer> _animationHandles;
     PhysicsSimulation _physicsSimulation;
     VoxelShapeManager _voxelShapeManager;
+    
+    bool _isLookingAtLeftEye;
 
     RecorderPointer _recorder;
     

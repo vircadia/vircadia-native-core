@@ -86,7 +86,8 @@ MyAvatar::MyAvatar() :
     _shouldRender(true),
     _billboardValid(false),
     _physicsSimulation(),
-    _voxelShapeManager()
+    _voxelShapeManager(),
+    _isLookingAtLeftEye(true)
 {
     ShapeCollider::initDispatchTable();
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
@@ -978,7 +979,11 @@ void MyAvatar::updateLookAtTargetAvatar() {
                 howManyLookingAtMe++;
                 //  Have that avatar look directly at my camera
                 //  Philip TODO: correct to look at left/right eye
-                avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+                if (OculusManager::isConnected()) {
+                    avatar->getHead()->setCorrectedLookAtPosition(OculusManager::getLeftEyePosition());
+                } else {
+                    avatar->getHead()->setCorrectedLookAtPosition(Application::getInstance()->getViewFrustum()->getPosition());
+                }
             } else {
                 avatar->getHead()->clearCorrectedLookAtPosition();
             }
@@ -991,6 +996,14 @@ void MyAvatar::updateLookAtTargetAvatar() {
 
 void MyAvatar::clearLookAtTargetAvatar() {
     _lookAtTargetAvatar.clear();
+}
+
+bool MyAvatar::isLookingAtLeftEye() {
+    float const CHANCE_OF_CHANGING_EYE = 0.01f;
+    if (randFloat() < CHANCE_OF_CHANGING_EYE) {
+        _isLookingAtLeftEye = !_isLookingAtLeftEye;
+    }
+    return _isLookingAtLeftEye;
 }
 
 glm::vec3 MyAvatar::getUprightHeadPosition() const {

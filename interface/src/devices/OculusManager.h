@@ -45,7 +45,16 @@ public:
     
     static void overrideOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearVal,
         float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane);
-        
+    
+#ifdef HAVE_LIBOVR
+    static glm::vec3 getLeftEyePosition() { return _leftEyePosition; }
+    static glm::vec3 getRightEyePosition() { return _rightEyePosition; }
+#else
+    static glm::vec3 getLeftEyePosition() { return glm::vec3(); }
+    static glm::vec3 getRightEyePosition() { return glm::vec3(); }
+#endif
+
+    
 private:
 #ifdef HAVE_LIBOVR
     static void generateDistortionMesh();
@@ -96,7 +105,12 @@ private:
     static bool _programInitialized;
     static Camera* _camera;
     static int _activeEyeIndex;
+    static glm::vec3 _leftEyePosition;
+    static glm::vec3 _rightEyePosition;
+
 #endif
+    
+
 };
 
 #endif // hifi_OculusManager_h

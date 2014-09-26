@@ -55,6 +55,9 @@ bool OculusManager::_programInitialized = false;
 Camera* OculusManager::_camera = NULL;
 int OculusManager::_activeEyeIndex = -1;
 
+glm::vec3 OculusManager::_leftEyePosition;
+glm::vec3 OculusManager::_rightEyePosition;
+
 #endif
 
 void OculusManager::connect() {
@@ -348,6 +351,17 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         _camera->setTargetRotation(bodyOrientation * orientation);
         _camera->setTargetPosition(position + trackerPosition);
         
+        //  Store the latest left and right eye render locations for things that need to know
+        glm::vec3 thisEyePosition = position + trackerPosition +
+            (bodyOrientation * glm::quat(orientation.x, orientation.y, orientation.z, orientation.w) *
+             glm::vec3(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z));
+        
+        if (eyeIndex == 0) {
+            _leftEyePosition = thisEyePosition;
+        } else {
+            _rightEyePosition = thisEyePosition;
+        }
+
         _camera->update(1.0f / Application::getInstance()->getFps());
 
         Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
@@ -362,7 +376,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
-
+        
         Application::getInstance()->displaySide(*_camera);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);

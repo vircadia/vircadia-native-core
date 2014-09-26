@@ -1997,8 +1997,16 @@ void Application::updateMyAvatarLookAtPosition() {
     glm::vec3 lookAtSpot;
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         //  When I am in mirror mode, just look right at the camera (myself)
-        lookAtSpot = _myCamera.getPosition();
-
+        if (!OculusManager::isConnected()) {
+            lookAtSpot = _myCamera.getPosition();
+        } else {
+            if (_myAvatar->isLookingAtLeftEye()) {
+                lookAtSpot = OculusManager::getLeftEyePosition();
+            } else {
+                lookAtSpot = OculusManager::getRightEyePosition();
+            }
+        }
+ 
     } else {
         AvatarSharedPointer lookingAt = _myAvatar->getLookAtTargetAvatar().toStrongRef();
         if (lookingAt && _myAvatar != lookingAt.data()) {
@@ -2006,7 +2014,7 @@ void Application::updateMyAvatarLookAtPosition() {
             isLookingAtSomeone = true;
             //  If I am looking at someone else, look directly at one of their eyes
             if (tracker) {
-                //  If tracker active, look at the eye for the side my gaze is biased toward
+                //  If a face tracker is active, look at the eye for the side my gaze is biased toward
                 if (tracker->getEstimatedEyeYaw() > _myAvatar->getHead()->getFinalYaw()) {
                     // Look at their right eye
                     lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
@@ -2016,7 +2024,11 @@ void Application::updateMyAvatarLookAtPosition() {
                 }
             } else {
                 //  Need to add randomly looking back and forth between left and right eye for case with no tracker
-                lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getEyePosition();
+                if (_myAvatar->isLookingAtLeftEye()) {
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getLeftEyePosition();
+                } else {
+                    lookAtSpot = static_cast<Avatar*>(lookingAt.data())->getHead()->getRightEyePosition();
+                }
             }
         } else {
             //  I am not looking at anyone else, so just look forward
