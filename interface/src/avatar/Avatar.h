@@ -223,6 +223,7 @@ protected:
     float getSkeletonHeight() const;
     float getHeadHeight() const;
     float getPelvisFloatingHeight() const;
+    float getPelvisToHeadLength() const;
     glm::vec3 getDisplayNamePosition();
 
     void renderDisplayName();
