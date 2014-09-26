@@ -2,7 +2,7 @@ var Settings = {};
 
 var viewHelpers = {
   getFormGroup: function(groupName, setting, values){
-    setting_id = groupName + "." + setting.name
+    setting_id = groupName + "_" + setting.name
     
     form_group = "<div class='form-group'>"
     
@@ -13,8 +13,6 @@ var viewHelpers = {
     } else {
       setting_value = ""
     }
-    
-    console.log("Value for " + setting.name + " is " + setting_value)
     
     if (setting.type === 'checkbox') {
       form_group += "<label class='control-label'>" + setting.label + "</label>"
@@ -60,6 +58,12 @@ $(document).ready(function(){
       $(window).resize(resizeFn);
   });
   
+  $('#settings-form').on('change', 'input', function(){
+    // this input was changed, add the changed data attribute to it
+    $(this).attr('data-changed', true)
+    
+    badgeSidebarForDifferences($(this))
+  });
   
   var panelsSource = $('#panels-template').html()
   Settings.panelsTemplate = _.template(panelsSource)
@@ -85,6 +89,8 @@ function reloadSettings() {
     
     $('.nav-stacked li:first-child').addClass('active');
     $('body').scrollspy('refresh')
+    
+    Settings.initialValues = form2js('settings-form', "_", false, cleanupFormValues, true);
   });
 }
 
@@ -97,7 +103,7 @@ $('#settings').on('click', 'button', function(e){
   });
   
   // grab a JSON representation of the form via form2js
-  var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
+  var formJSON = form2js('settings-form', "_", false, cleanupFormValues, true);
   
   // re-enable all inputs
   $("input").each(function(){
@@ -125,10 +131,29 @@ $('#settings').on('click', 'button', function(e){
   return false;
 });
 
-$('#settings').on('change', 'input', function(){
-  // this input was changed, add the changed data attribute to it
-  $(this).attr('data-changed', true);
-});
+function badgeSidebarForDifferences(changedInput) {
+  // figure out which group this input is in
+  var panelParentID = changedInput.closest('.panel').attr('id')
+  
+  // get a JSON representation of that section
+  var rootJSON = form2js(panelParentID, "_", false, cleanupFormValues, true);
+  var panelJSON = rootJSON[panelParentID]
+  
+  var badgeValue = 0
+  
+  for (var setting in panelJSON) {
+    if (panelJSON[setting] != Settings.initialValues[panelParentID][ setting]) {
+      badgeValue += 1
+    }
+  }
+  
+  // update the list-group-item badge to have the new value
+  if (badgeValue == 0) {
+    badgeValue = ""
+  }
+  
+  $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
+}
 
 function cleanupFormValues(node) {  
   if (node.type && node.type === 'checkbox') {

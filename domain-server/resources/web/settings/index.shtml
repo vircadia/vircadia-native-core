@@ -11,6 +11,7 @@
         <% _.each(descriptions, function(group){ %>
           <li>
             <a href="#<%-group.name %>" class="list-group-item">
+              <span class="badge"></span>
               <%- group.label %>
             </a>
           </li>
