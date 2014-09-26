@@ -54,6 +54,8 @@ public:
     const Shape* _shapeA;  // pointer to shapeA in this collision
     const Shape* _shapeB;  // pointer to shapeB in this collision
 
+    void* _extraData;  // pointer to extraData for this collision, opaque to the collision info, useful for external data
+
     float _damping;           // range [0,1] of friction coeficient
     float _elasticity;        // range [0,1] of energy conservation
     glm::vec3 _contactPoint;  // world-frame point on BodyA that is deepest into BodyB

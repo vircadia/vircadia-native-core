@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <AudioRingBuffer.h>
 #include <GLMHelpers.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -59,6 +60,9 @@ int Recording::getLength() const {
 qint32 Recording::getFrameTimestamp(int i) const {
     if (i >= _timestamps.size()) {
         return getLength();
+    }
+    if (i < 0) {
+        return 0;
     }
     return _timestamps[i];
 }
@@ -781,7 +785,6 @@ RecordingPointer readRecordingFromRecFile(RecordingPointer recording, const QStr
     fileStream >> audioArray;
     
     // Cut down audio if necessary
-    int SAMPLE_RATE = 48000; // 48 kHz
     int SAMPLE_SIZE = 2; // 16 bits
     int MSEC_PER_SEC = 1000;
     int audioLength = recording->getLength() * SAMPLE_SIZE * (SAMPLE_RATE / MSEC_PER_SEC);

@@ -16,6 +16,7 @@
 
 #include <glm/glm.hpp>
 
+#include <AACubeShape.h>
 #include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
@@ -123,7 +124,9 @@ public:
     EntityTypes::EntityType getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; } /// get position in domain scale units (0.0 - 1.0)
     glm::vec3 getPositionInMeters() const { return _position * (float) TREE_SCALE; } /// get position in meters
-    void setPosition(const glm::vec3& value) { _position = value; } /// set position in domain scale units (0.0 - 1.0)
+    
+    /// set position in domain scale units (0.0 - 1.0)
+    void setPosition(const glm::vec3& value) { _position = value; recalculateCollisionShape(); }
     void setPositionInMeters(const glm::vec3& value) /// set position in meter units (0.0 - TREE_SCALE)
             { setPosition(glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f)); }
 
@@ -137,14 +140,14 @@ public:
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; }
+    void setDimensions(const glm::vec3& value) { _dimensions = value; ; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
     static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; ; recalculateCollisionShape(); }
 
     static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
@@ -207,7 +210,10 @@ public:
 
     static const glm::vec3 DEFAULT_REGISTRATION_POINT;
     const glm::vec3& getRegistrationPoint() const { return _registrationPoint; } /// registration point as ratio of entity
-    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); } /// registration point as ratio of entity
+
+    /// registration point as ratio of entity
+    void setRegistrationPoint(const glm::vec3& value) 
+            { _registrationPoint = glm::clamp(value, 0.0f, 1.0f); recalculateCollisionShape(); }
 
     static const glm::vec3 NO_ANGULAR_VELOCITY;
     static const glm::vec3 DEFAULT_ANGULAR_VELOCITY;
@@ -224,14 +230,24 @@ public:
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
+
+    static const bool DEFAULT_IGNORE_FOR_COLLISIONS;
+    bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
+    void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
+
+    static const bool DEFAULT_COLLISIONS_WILL_MOVE;
+    bool getCollisionsWillMove() const { return _collisionsWillMove; }
+    void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
     
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
     void applyHardCollision(const CollisionInfo& collisionInfo);
+    virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
+    virtual void recalculateCollisionShape();
 
     EntityTypes::EntityType _type;
     QUuid _id;
@@ -257,6 +273,8 @@ protected:
     glm::vec3 _angularVelocity;
     float _angularDamping;
     bool _visible;
+    bool _ignoreForCollisions;
+    bool _collisionsWillMove;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
@@ -264,6 +282,7 @@ protected:
     /// set radius in domain scale units (0.0 - 1.0) this will also reset dimensions to be equal for each axis
     void setRadius(float value); 
 
+    AACubeShape _collisionShape;
 };
 
 

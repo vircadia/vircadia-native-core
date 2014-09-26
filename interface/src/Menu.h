@@ -27,6 +27,7 @@
 #include "SpeechRecognizer.h"
 #endif
 
+#include "ui/AddressBarDialog.h"
 #include "ui/ChatWindow.h"
 #include "ui/DataWebDialog.h"
 #include "ui/JSConsole.h"
@@ -298,6 +299,7 @@ private:
     QPointer<PreferencesDialog> _preferencesDialog;
     QPointer<AttachmentsDialog> _attachmentsDialog;
     QPointer<AnimationsDialog> _animationsDialog;
+    QPointer<AddressBarDialog> _addressBarDialog;
     QPointer<LoginDialog> _loginDialog;
     bool _hasLoginDialogDisplayed;
     QAction* _chatAction;

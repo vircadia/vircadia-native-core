@@ -12,7 +12,8 @@
 #ifndef hifi_SphereEntityItem_h
 #define hifi_SphereEntityItem_h
 
-#include "EntityItem.h" 
+#include <SphereShape.h>
+#include "EntityItem.h"
 
 class SphereEntityItem : public EntityItem {
 public:
@@ -49,9 +50,14 @@ public:
             _color[GREEN_INDEX] = value.green;
             _color[BLUE_INDEX] = value.blue;
     }
+
+    virtual const Shape& getCollisionShapeInMeters() const { return _sphereShape; }
     
 protected:
+    virtual void recalculateCollisionShape();
+
     rgbColor _color;
+    SphereShape _sphereShape;
 };
 
 #endif // hifi_SphereEntityItem_h

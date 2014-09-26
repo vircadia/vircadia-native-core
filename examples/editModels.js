@@ -2449,6 +2449,7 @@ function Tooltip() {
             text += "Lifetime: " + properties.lifetime + "\n"
         }
         text += "Age: " + properties.ageAsText + "\n"
+        text += "Mass: " + properties.mass + "\n"
         text += "Script: " + properties.script + "\n"
 
 
@@ -2922,6 +2923,15 @@ function handeMenuEvent(menuItem) {
             array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
             index++;
 
+            array.push({ label: "Collisions:", type: "header" });
+            index++;
+            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
+            index++;
+            array.push({ label: "Ignore for Collisions:", value: properties.ignoreForCollisions });
+            index++;
+            array.push({ label: "Collisions Will Move:", value: properties.collisionsWillMove });
+            index++;
+
             array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
             index++;
 
@@ -3061,6 +3071,12 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.gravity.x = array[index++].value;
         properties.gravity.y = array[index++].value;
         properties.gravity.z = array[index++].value;
+
+        index++; // skip header
+        properties.mass = array[index++].value;
+        properties.ignoreForCollisions = array[index++].value;
+        properties.collisionsWillMove = array[index++].value;
+
         properties.lifetime = array[index++].value;
         properties.visible = array[index++].value;
 

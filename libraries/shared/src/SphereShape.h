@@ -39,4 +39,26 @@ public:
     float getVolume() const { return 1.3333333333f * PI * _boundingRadius * _boundingRadius * _boundingRadius; }
 };
 
+inline QDebug operator<<(QDebug debug, const SphereShape& shape) {
+    debug << "SphereShape[ (" 
+            << "position: "
+            << shape.getTranslation().x << ", " << shape.getTranslation().y << ", " << shape.getTranslation().z
+            << "radius: "
+            << shape.getRadius()
+            << "]";
+
+    return debug;
+}
+
+inline QDebug operator<<(QDebug debug, const SphereShape* shape) {
+    debug << "SphereShape[ (" 
+            << "center: "
+            << shape->getTranslation().x << ", " << shape->getTranslation().y << ", " << shape->getTranslation().z
+            << "radius: "
+            << shape->getRadius()
+            << "]";
+
+    return debug;
+}
+
 #endif // hifi_SphereShape_h

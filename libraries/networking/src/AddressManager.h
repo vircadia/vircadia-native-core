@@ -37,6 +37,7 @@ public slots:
     void handleAPIError(QNetworkReply& errorReply);
     void goToUser(const QString& username);
 signals:
+    void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
     void possibleDomainChangeRequired(const QString& newHostname);

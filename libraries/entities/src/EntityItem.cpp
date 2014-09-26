@@ -42,6 +42,8 @@ const glm::vec3 EntityItem::NO_ANGULAR_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
 const glm::vec3 EntityItem::DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
 const float EntityItem::DEFAULT_ANGULAR_DAMPING = 0.5f;
 const bool EntityItem::DEFAULT_VISIBLE = true;
+const bool EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS = false;
+const bool EntityItem::DEFAULT_COLLISIONS_WILL_MOVE = false;
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
@@ -70,6 +72,10 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
     _angularDamping = DEFAULT_ANGULAR_DAMPING;
     _visible = DEFAULT_VISIBLE;
+    _ignoreForCollisions = DEFAULT_IGNORE_FOR_COLLISIONS;
+    _collisionsWillMove = DEFAULT_COLLISIONS_WILL_MOVE;
+    
+    recalculateCollisionShape();
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID) {
@@ -109,6 +115,8 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_ANGULAR_VELOCITY;
     requestedProperties += PROP_ANGULAR_DAMPING;
     requestedProperties += PROP_VISIBLE;
+    requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
+    requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     
     return requestedProperties;
 }
@@ -222,6 +230,8 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, getAngularDamping());
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, getVisible());
+        APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, getIgnoreForCollisions());
+        APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -482,14 +492,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, _angularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
+        READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
+        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
 
         if (wantDebug) {
             qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
             qDebug() << "    readEntityDataFromBuffer() _visible:" << _visible;
+            qDebug() << "    readEntityDataFromBuffer() _ignoreForCollisions:" << _ignoreForCollisions;
+            qDebug() << "    readEntityDataFromBuffer() _collisionsWillMove:" << _collisionsWillMove;
         }
 
         bytesRead += readEntitySubclassDataFromBuffer(dataAt, (bytesLeftToRead - bytesRead), args, propertyFlags, overwriteLocalData);
 
+        recalculateCollisionShape();
     }
     return bytesRead;
 }
@@ -675,7 +690,7 @@ void EntityItem::update(const quint64& updateTime) {
             velocity = NO_VELOCITY;
         }
 
-        setPosition(position);
+        setPosition(position); // this will automatically recalculate our collision shape
         setVelocity(velocity);
         
         if (wantDebug) {        
@@ -731,6 +746,8 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(angularDamping, getAngularDamping);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
 
     properties._defaultSettings = false;
     
@@ -749,7 +766,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         }
     }
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters); // this will call recalculate collision shape if needed
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
@@ -763,6 +780,8 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
@@ -902,4 +921,12 @@ float EntityItem::getRadius() const {
     float radius = length / 2.0f;
     return radius;
 }
+
+void EntityItem::recalculateCollisionShape() {
+    AACube entityAACube = getMinimumAACube();
+    entityAACube.scale(TREE_SCALE); // scale to meters
+    _collisionShape.setTranslation(entityAACube.calcCenter());
+    _collisionShape.setScale(entityAACube.getScale());
+}
+
 
