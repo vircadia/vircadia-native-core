@@ -34,7 +34,11 @@
               <h3 class="panel-title"><%- group.label %></h3>
             </div>
             <div class="panel-body">
-              <% _.each(group.settings, function(setting) { %>
+              <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
+              <% _.each(split_settings[0], function(setting) { %>
+                <%= getFormGroup(group.name, setting, values) %>
+              <% }); %>
+              <% _.each(split_settings[1], function(setting) { %>
                 <%= getFormGroup(group.name, setting, values) %>
               <% }); %>
             </div>
