@@ -58,13 +58,19 @@ $(document).ready(function(){
 
       resizeFn();
       $(window).resize(resizeFn);
-  });
+  })
   
   $('#settings-form').on('change', 'input', function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
     badgeSidebarForDifferences($(this))
+  })
+  
+  $('#setup-sidebar').on('click', '.list-group-item', function() {
+    // force this list group item to be active
+    $('#setup-sidebar li').removeClass('active')
+    $(this).parent('li').addClass('active')
   })
   
   $('#advanced-toggle-button').click(function(){
@@ -78,6 +84,8 @@ $(document).ready(function(){
       advancedSelector.hide()
       $(this).html("Show advanced")
     }
+    
+    $(this).blur()
   })
 
   var panelsSource = $('#panels-template').html()
