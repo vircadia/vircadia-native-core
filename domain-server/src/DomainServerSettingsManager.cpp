@@ -40,8 +40,6 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
 void DomainServerSettingsManager::loadSettingsMap(const QStringList& argumentList) {
     _settingsMap = HifiConfigVariantMap::mergeMasterConfigWithUserConfig(argumentList);
     
-    qDebug() << _settingsMap;
-    
     // figure out where we are supposed to persist our settings to
     _settingsFilepath = HifiConfigVariantMap::userConfigFilepath(argumentList);
 }
@@ -174,8 +172,13 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                         // this is an empty value, clear it in settings variant so the default is sent
                         settingsVariant.remove(key);
                     } else {
-                        if (groupObject.contains(SETTING_DESCRIPTION_TYPE_KEY)) {
-                            // for now this means that this is a double, so set it as a double
+                        QString settingType = groupObject[SETTING_DESCRIPTION_TYPE_KEY].toString();
+                        
+                        const QString INPUT_DOUBLE_TYPE = "double";
+                        
+                        // make sure the resulting json value has the right type
+                        
+                        if (settingType == INPUT_DOUBLE_TYPE) {
                             settingsVariant[key] = rootValue.toString().toDouble();
                         } else {
                             settingsVariant[key] = rootValue.toString();

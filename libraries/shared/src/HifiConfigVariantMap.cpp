@@ -163,8 +163,6 @@ const QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath)
     
     QString firstKey = (dotIndex == -1) ? keyPath : keyPath.mid(0, dotIndex);
     
-    qDebug() << "Checking for" << firstKey;
-    
     if (variantMap.contains(firstKey)) {
         if (dotIndex == -1) {
             return &variantMap[firstKey];
