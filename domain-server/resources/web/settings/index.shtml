@@ -5,30 +5,31 @@
     <div class="alert" style="display:none;"></div>
   </div>
   
-  <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
-    <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="50">
-      
+  <div class="col-md-2 col-sm-2" id="setup-sidebar-col">
+    <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="55">
       <script id="list-group-template" type="text/template">
         <% _.each(descriptions, function(group){ %>
-          <a href="" class="list-group-item">
-            <%- group.label %>
-          </a>
+          <li>
+            <a href="#<%-group.name %>" class="list-group-item">
+              <%- group.label %>
+            </a>
+          </li>
         <% }); %>
       </script>
       
-      <div class="list-group">
-      </div>
+      <ul class="nav nav-pills nav-stacked">
+      </ul>
       
       <button id="save-button" class="btn btn-success">Save and restart</button>
     </div>
   </div>
   
-  <div class="col-md-9 col-sm-9">
+  <div class="col-md-10 col-sm-10">
     <form class="form-horizontal" id="settings-form" role="form">
   
       <script id="panels-template" type="text/template">
         <% _.each(descriptions, function(group){ %>
-          <div class="panel panel-default">
+          <div class="panel panel-default" id="<%- group.name %>">
             <div class="panel-heading">
               <h3 class="panel-title"><%- group.label %></h3>
             </div>

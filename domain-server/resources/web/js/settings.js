@@ -26,15 +26,24 @@ $(document).ready(function(){
   Settings.panelsTemplate = _.template(panelsSource);
   
   var sidebarTemplate = $('#list-group-template').html();
-  Settings.sidebarTemplate = _.template(sidebarTemplate)
+  Settings.sidebarTemplate = _.template(sidebarTemplate);
+  
+  $('body').scrollspy({ target: '#setup-sidebar', offset: 60 });
   
   reloadSettings();
 });
 
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){
-    $('.list-group').html(Settings.sidebarTemplate(data))
+    $('.nav-stacked').html(Settings.sidebarTemplate(data))
     $('#panels').html(Settings.panelsTemplate(data));
+    
+    $('.nav-stacked li').each(function(){
+      $(this).removeClass('active');
+    });
+    
+    $('.nav-stacked li:first-child').addClass('active');
+    $('body').scrollspy('refresh');
   });
 }
 
