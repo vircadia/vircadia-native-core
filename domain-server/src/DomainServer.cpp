@@ -179,7 +179,7 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     const QString CUSTOM_PORT_OPTION = "port";
     unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
     
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    QVariantMap& settingsMap = _settingsManager.getSettingsMap();
 
     if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
         domainServerPort = (unsigned short) settingsMap.value(CUSTOM_PORT_OPTION).toUInt();
@@ -206,7 +206,11 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
-    nodeList->setSessionUUID(settingsMap.value(DOMAIN_CONFIG_ID_KEY).toString());
+    const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
+    const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
+    if (idValueVariant) {
+        nodeList->setSessionUUID(idValueVariant->toString());
+    }
 
     connect(nodeList, &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList, &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
