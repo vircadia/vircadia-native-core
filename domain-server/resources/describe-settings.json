@@ -16,8 +16,8 @@
     ]
   },
   {
-    "name": "basic",
-    "label": "Basic",
+    "name": "security",
+    "label": "Security",
     "settings": [
       {
         "name": "http-username",

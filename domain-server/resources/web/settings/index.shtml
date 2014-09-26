@@ -21,6 +21,7 @@
       <ul class="nav nav-pills nav-stacked">
       </ul>
       
+      <button id="advanced-toggle-button" class="btn btn-info">Show advanced</button>
       <button id="save-button" class="btn btn-success">Save and restart</button>
     </div>
   </div>
@@ -37,10 +38,10 @@
             <div class="panel-body">
               <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
               <% _.each(split_settings[0], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values) %>
+                <%= getFormGroup(group.name, setting, values, false) %>
               <% }); %>
               <% _.each(split_settings[1], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values) %>
+                <%= getFormGroup(group.name, setting, values, true) %>
               <% }); %>
             </div>
           </div>

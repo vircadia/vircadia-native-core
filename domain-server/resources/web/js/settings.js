@@ -1,10 +1,12 @@
-var Settings = {};
+var Settings = {
+  showAdvanced: false
+};
 
 var viewHelpers = {
-  getFormGroup: function(groupName, setting, values){
+  getFormGroup: function(groupName, setting, values, isAdvanced) {
     setting_id = groupName + "_" + setting.name
     
-    form_group = "<div class='form-group'>"
+    form_group = "<div class='form-group" + (isAdvanced ? " advanced-setting" : "") + "'>"
     
     if (_.has(values, groupName) && _.has(values[groupName], setting.name)) {
       setting_value = values[groupName][setting.name] 
@@ -63,18 +65,31 @@ $(document).ready(function(){
     $(this).attr('data-changed', true)
     
     badgeSidebarForDifferences($(this))
-  });
+  })
   
+  $('#advanced-toggle-button').click(function(){
+    Settings.showAdvanced = !Settings.showAdvanced
+    var advancedSelector = $('.advanced-setting') 
+    
+    if (Settings.showAdvanced) {
+      advancedSelector.show()
+      $(this).html("Hide advanced")
+    } else {
+      advancedSelector.hide()
+      $(this).html("Show advanced")
+    }
+  })
+
   var panelsSource = $('#panels-template').html()
   Settings.panelsTemplate = _.template(panelsSource)
   
   var sidebarTemplate = $('#list-group-template').html()
   Settings.sidebarTemplate = _.template(sidebarTemplate)
   
-  $('body').scrollspy({ target: '#setup-sidebar', offset: 60 })
+  $('body').scrollspy({ target: '#setup-sidebar', offset: 75 })
   
   reloadSettings()
-});
+})
 
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){

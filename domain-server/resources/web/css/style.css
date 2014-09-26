@@ -52,12 +52,16 @@ span.port {
   color: red;
 }
 
+.advanced-setting {
+  display: none;
+}
+
 #setup-sidebar.affix {
   position: fixed;
   top: 15px;
 }
 
-#save-button {
+#setup-sidebar button {
   width: 100%;
   margin-top: 10px;
 }
