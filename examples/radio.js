@@ -10,7 +10,7 @@
 //
 
 
-var modelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/entities/radio/Speakers2_DeletedPlanes.fbx";
+var modelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/entities/radio/Speakers.fbx";
 var soundURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/FamilyStereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
@@ -31,14 +31,16 @@ function update() {
             print("Sound file downloaded");
             var position = Vec3.sum(MyAvatar.position,
                                     Vec3.multiplyQbyV(MyAvatar.orientation,
-                                                      { x: 0, y: 0.3, z: -1 }));
+                                                      { x: 0, y: -0.3, z: -2 }));
             var rotation = Quat.multiply(MyAvatar.orientation,
                                          Quat.fromPitchYawRollDegrees(0, -90, 0));
             entity = Entities.addEntity({
                                         type: "Model",
                                         position: position,
                                         rotation: rotation,
-                                        dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+                                        dimensions: { x: 0.391,
+                                                      y: 1.000,
+                                                      z: 1.701 },
                                         modelURL: modelURL
                                       });
             properties = Entities.getEntityProperties(entity);
