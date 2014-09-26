@@ -28,8 +28,16 @@ int main(int argc, char* argv[]) {
 #endif
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
-    DomainServer domainServer(argc, argv);
     
-    return domainServer.exec();
+    int currentExitCode = 0;
+    
+    // use a do-while to handle domain-server restart
+    do {
+        DomainServer domainServer(argc, argv);
+        currentExitCode = domainServer.exec();
+    } while (currentExitCode == DomainServer::EXIT_CODE_REBOOT);
+    
+    
+    return currentExitCode;
 }
 

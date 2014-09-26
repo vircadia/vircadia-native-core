@@ -27,7 +27,8 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _owningAvatar(owningAvatar),
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
-    _ragdoll(NULL) {
+    _ragdoll(NULL),
+    _defaultEyeModelPosition(glm::vec3(0.f, 0.f, 0.f)) {
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -470,28 +471,37 @@ bool SkeletonModel::getNeckParentRotationFromDefaultOrientation(glm::quat& neckP
     return success;
 }
 
-bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+bool SkeletonModel::getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
-    }
+        }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (getJointPositionInWorldFrame(geometry.leftEyeJointIndex, firstEyePosition) &&
-            getJointPositionInWorldFrame(geometry.rightEyeJointIndex, secondEyePosition)) {
+    if (getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
+        getJointPosition(geometry.rightEyeJointIndex, secondEyePosition)) {
         return true;
     }
     // no eye joints; try to estimate based on head/neck joints
     glm::vec3 neckPosition, headPosition;
-    if (getJointPositionInWorldFrame(geometry.neckJointIndex, neckPosition) &&
-            getJointPositionInWorldFrame(geometry.headJointIndex, headPosition)) {
+    if (getJointPosition(geometry.neckJointIndex, neckPosition) &&
+        getJointPosition(geometry.headJointIndex, headPosition)) {
         const float EYE_PROPORTION = 0.6f;
         glm::vec3 baseEyePosition = glm::mix(neckPosition, headPosition, EYE_PROPORTION);
         glm::quat headRotation;
-        getJointRotationInWorldFrame(geometry.headJointIndex, headRotation);
+        getJointRotation(geometry.headJointIndex, headRotation);
         const float EYES_FORWARD = 0.25f;
         const float EYE_SEPARATION = 0.1f;
         float headHeight = glm::distance(neckPosition, headPosition);
         firstEyePosition = baseEyePosition + headRotation * glm::vec3(EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
         secondEyePosition = baseEyePosition + headRotation * glm::vec3(-EYE_SEPARATION, 0.0f, EYES_FORWARD) * headHeight;
+        return true;
+    }
+    return false;
+}
+
+bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+    if (getEyeModelPositions(firstEyePosition, secondEyePosition)) {
+        firstEyePosition = _translation + _rotation * firstEyePosition;
+        secondEyePosition = _translation + _rotation * secondEyePosition;
         return true;
     }
     return false;
@@ -655,6 +665,20 @@ void SkeletonModel::buildShapes() {
 
     // This method moves the shapes to their default positions in Model frame.
     computeBoundingShape(geometry);
+
+    int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
+    if (0 <= headJointIndex && headJointIndex < _jointStates.size()) {
+        glm::vec3 leftEyePosition, rightEyePosition;
+        getEyeModelPositions(leftEyePosition, rightEyePosition);
+        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.f;
+
+        int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
+        glm::vec3 rootModelPosition;
+        getJointPosition(rootJointIndex, rootModelPosition);
+
+        _defaultEyeModelPosition = midEyePosition - rootModelPosition;
+        _defaultEyeModelPosition.z = -_defaultEyeModelPosition.z;
+    }
 
     // While the shapes are in their default position we disable collisions between
     // joints that are currently colliding.

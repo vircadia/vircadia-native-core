@@ -230,6 +230,14 @@ public:
     void setVisible(bool value) { _visible = value; }
     bool isVisible() const { return _visible; }
     bool isInvisible() const { return !_visible; }
+
+    static const bool DEFAULT_IGNORE_FOR_COLLISIONS;
+    bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
+    void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; }
+
+    static const bool DEFAULT_COLLISIONS_WILL_MOVE;
+    bool getCollisionsWillMove() const { return _collisionsWillMove; }
+    void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
     
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
@@ -265,6 +273,8 @@ protected:
     glm::vec3 _angularVelocity;
     float _angularDamping;
     bool _visible;
+    bool _ignoreForCollisions;
+    bool _collisionsWillMove;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
