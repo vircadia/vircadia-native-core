@@ -1,5 +1,34 @@
 var Settings = {};
 
+var viewHelpers = {
+  getFormGroup: function(groupName, setting, values){
+    setting_id = groupName + "." + setting.name
+    
+    var form_group = "<div class='form-group'>"
+    
+    
+    if (setting.type === 'checkbox') {
+      checked_box = _.has(values, groupName) ? values[groupName][setting.name] : setting.default
+      
+      form_group += "<label class='control-label'>" + setting.label + "</label>"
+      form_group += "<div class='checkbox'>"
+      form_group += "<label for='" + setting_id + "'>"
+      form_group += "<input type='checkbox' id='" + setting_id + "' " + (checked_box ? "checked" : "") + "/>"
+      form_group += " " + setting.help + "</label>";
+      form_group += "</div>"
+    } else {
+      form_group += "<label for='" + setting_id + "' class='control-label'>" + setting.label + "</label>";
+      form_group += "<input type='text' class='form-control' id='" + setting_id + 
+        "' placeholder='" + setting.placeholder + "' value='" + (values[groupName] || {})[setting.name] + "'/>"
+      form_group += "<span class='help-block'>" + setting.help + "</span>" 
+    }
+    
+    
+    form_group += "</div>"
+    return form_group
+  }
+}
+
 $(document).ready(function(){  
   /*
   * Clamped-width. 
@@ -22,28 +51,30 @@ $(document).ready(function(){
   });
   
   
-  var panelsSource = $('#panels-template').html();
-  Settings.panelsTemplate = _.template(panelsSource);
+  var panelsSource = $('#panels-template').html()
+  Settings.panelsTemplate = _.template(panelsSource)
   
-  var sidebarTemplate = $('#list-group-template').html();
-  Settings.sidebarTemplate = _.template(sidebarTemplate);
+  var sidebarTemplate = $('#list-group-template').html()
+  Settings.sidebarTemplate = _.template(sidebarTemplate)
   
-  $('body').scrollspy({ target: '#setup-sidebar', offset: 60 });
+  $('body').scrollspy({ target: '#setup-sidebar', offset: 60 })
   
-  reloadSettings();
+  reloadSettings()
 });
 
 function reloadSettings() {
   $.getJSON('/settings.json', function(data){
+    _.extend(data, viewHelpers)
+    
     $('.nav-stacked').html(Settings.sidebarTemplate(data))
-    $('#panels').html(Settings.panelsTemplate(data));
+    $('#panels').html(Settings.panelsTemplate(data))
     
     $('.nav-stacked li').each(function(){
-      $(this).removeClass('active');
+      $(this).removeClass('active')
     });
     
     $('.nav-stacked li:first-child').addClass('active');
-    $('body').scrollspy('refresh');
+    $('body').scrollspy('refresh')
   });
 }
 

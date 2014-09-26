@@ -25,7 +25,7 @@
   </div>
   
   <div class="col-md-10 col-sm-10">
-    <form class="form-horizontal" id="settings-form" role="form">
+    <form id="settings-form" role="form">
   
       <script id="panels-template" type="text/template">
         <% _.each(descriptions, function(group){ %>
@@ -34,30 +34,8 @@
               <h3 class="panel-title"><%- group.label %></h3>
             </div>
             <div class="panel-body">
-              <% _.each(group.settings, function(setting){ %>
-                <div class="form-group">
-                  <% var setting_id = group.name + "." + setting.name %>
-                  <label for="<%- setting_id %>" class="col-sm-2 control-label"><%- setting.label %></label>
-                  <div class="col-sm-10">
-                    <% if (setting.type === "checkbox") { %>
-                    <% var checked_box = _.has(values, group.name) ? values[group.name][setting.name] : setting.default %>
-                      <input type="checkbox" id="<%- setting_id %>" <%- checked_box ? "checked" : "" %>>
-                    <% } else { %>
-                      <% if (setting.input_addon) { %>
-                        <div class="input-group">
-                          <div class="input-group-addon"><%- setting.input_addon %></div>
-                      <% } %>
-                      <input type="text" class="form-control" id="<%- setting_id %>" 
-                        placeholder="<%- setting.placeholder %>" 
-                        value="<%- (values[group.name] || {})[setting.name] %>">
-                  
-                      <% if (setting.input_addon) { %>
-                        </div>
-                      <% } %>
-                    <% } %>
-                  </div>
-                  <p class="help-block col-sm-offset-2 col-sm-10"><%= setting.help %></p>
-                </div>
+              <% _.each(group.settings, function(setting) { %>
+                <%= getFormGroup(group.name, setting, values) %>
               <% }); %>
             </div>
           </div>
@@ -70,7 +48,7 @@
 </div>
 
 <!--#include virtual="footer.html"-->
+<script src='/js/underscore-min.js'></script>
 <script src='/js/settings.js'></script>
 <script src='/js/form2js.min.js'></script>
-<script src='/js/underscore-min.js'></script>
 <!--#include virtual="page-end.html"-->
