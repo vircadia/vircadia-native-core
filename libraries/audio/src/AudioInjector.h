@@ -29,7 +29,7 @@ public:
     
     int getCurrentSendPosition() const { return _currentSendPosition; }
 public slots:
-    void injectAudio();
+    void injectAudio(int startingPosition = 0);
     void stop() { _shouldStop = true; }
     void setOptions(AudioInjectorOptions& options);
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }

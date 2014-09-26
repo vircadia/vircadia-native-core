@@ -33,7 +33,8 @@ AudioInjector::AudioInjector(QObject* parent) :
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
     _sound(sound),
     _options(injectorOptions),
-    _shouldStop(false)
+    _shouldStop(false),
+    _currentSendPosition(0)
 {
 }
 
@@ -43,7 +44,8 @@ void AudioInjector::setOptions(AudioInjectorOptions& options) {
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
-void AudioInjector::injectAudio() {
+void AudioInjector::injectAudio(int startingPosition) {
+    _currentSendPosition = startingPosition;
     
     QByteArray soundByteArray = _sound->getByteArray();
     
