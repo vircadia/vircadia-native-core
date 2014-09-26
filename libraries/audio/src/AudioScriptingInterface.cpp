@@ -13,6 +13,9 @@
 
 AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
     
+    if (sound->isStereo()) {
+        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
+    }
     AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
     
     QThread* injectorThread = new QThread();
