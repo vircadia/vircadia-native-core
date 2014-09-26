@@ -4,22 +4,26 @@ var viewHelpers = {
   getFormGroup: function(groupName, setting, values){
     setting_id = groupName + "." + setting.name
     
-    var form_group = "<div class='form-group'>"
-    
+    form_group = "<div class='form-group'>"
+    setting_value = _.has(values, groupName) && _.has(values[groupName], setting.name) 
+        ? values[groupName][setting.name] 
+        : setting.default
+        
+    console.log("Value for " + setting.name + " is " + setting_value)
     
     if (setting.type === 'checkbox') {
-      checked_box = _.has(values, groupName) ? values[groupName][setting.name] : setting.default
+      
       
       form_group += "<label class='control-label'>" + setting.label + "</label>"
       form_group += "<div class='checkbox'>"
       form_group += "<label for='" + setting_id + "'>"
-      form_group += "<input type='checkbox' id='" + setting_id + "' " + (checked_box ? "checked" : "") + "/>"
+      form_group += "<input type='checkbox' id='" + setting_id + "' " + (setting_value ? "checked" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else {
       form_group += "<label for='" + setting_id + "' class='control-label'>" + setting.label + "</label>";
       form_group += "<input type='text' class='form-control' id='" + setting_id + 
-        "' placeholder='" + setting.placeholder + "' value='" + (values[groupName] || {})[setting.name] + "'/>"
+        "' placeholder='" + setting.placeholder + "' value='" + setting_value + "'/>"
       form_group += "<span class='help-block'>" + setting.help + "</span>" 
     }
     
