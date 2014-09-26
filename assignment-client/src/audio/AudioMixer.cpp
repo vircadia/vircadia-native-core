@@ -75,7 +75,7 @@ InboundAudioStream::Settings AudioMixer::_streamSettings;
 
 bool AudioMixer::_printStreamStats = false;
 
-bool AudioMixer::_enableFilter = false;
+bool AudioMixer::_enableFilter = true;
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
@@ -710,7 +710,9 @@ void AudioMixer::run() {
         }
 
         const QString FILTER_KEY = "J-enable-filter";
-        _enableFilter = audioGroupObject[FILTER_KEY].toBool();
+        if (audioGroupObject[FILTER_KEY].isBool()) {
+            _enableFilter = audioGroupObject[FILTER_KEY].toBool();
+        }
         if (_enableFilter) {
             qDebug() << "Filter enabled";
         }
