@@ -1850,6 +1850,28 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     }
                     normal = glm::normalize(normal);
                     center /= crossingCount;
+                    
+                    // use a sequence of Givens rotations to perform a QR decomposition
+                    // see http://www.cs.rice.edu/~jwarren/papers/techreport02408.pdf
+                    glm::mat4 r(0.0f);
+                    glm::vec4 bottom;
+                    for (int i = 0; i < crossingCount; i++) {
+                        const EdgeCrossing& crossing = crossings[i];
+                        bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point));
+                        
+                        for (int j = 0; j < 4; j++) {
+                            float angle = glm::atan(-bottom[j], r[j][j]);
+                            float sina = glm::sin(angle);
+                            float cosa = glm::cos(angle);
+                            
+                            for (int k = 0; k < 4; k++) {
+                                float tmp = bottom[k];
+                                bottom[k] = sina * r[k][j] + cosa * tmp;
+                                r[k][j] = cosa * r[k][j] - sina * tmp;
+                            }
+                        }
+                    }
+                    
                     if (totalWeight > 0.0f) {
                         materialWeights *= (EIGHT_BIT_MAXIMUM / totalWeight);
                     }
