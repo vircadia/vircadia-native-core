@@ -29,6 +29,7 @@ public:
     QByteArray getJSONSettingsMap() const;
     QVariantMap& getSettingsMap() { return _settingsMap; }
 private:
+    QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
                                                QJsonArray descriptionArray);
     void persistToFile();

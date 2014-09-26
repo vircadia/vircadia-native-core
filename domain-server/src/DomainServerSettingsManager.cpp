@@ -44,12 +44,10 @@ void DomainServerSettingsManager::loadSettingsMap(const QStringList& argumentLis
     _settingsFilepath = HifiConfigVariantMap::userConfigFilepath(argumentList);
 }
 
-const QString DESCRIPTION_SETTINGS_KEY = "settings";
-const QString SETTING_DEFAULT_KEY = "default";
-const QString SETTINGS_GROUP_KEY_NAME = "name";
+const QString SETTINGS_PATH = "/settings.json";
 
 bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == "/settings.json") {
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH) {
         // this is a GET operation for our settings
         
         // check if there is a query parameter for settings affecting a particular type of assignment
@@ -57,79 +55,22 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
         QUrlQuery settingsQuery(url);
         QString typeValue = settingsQuery.queryItemValue(SETTINGS_TYPE_QUERY_KEY);
         
-        QJsonObject responseObject;
-        
-        if (typeValue.isEmpty()) {
-            // combine the description object and our current settings map
-            responseObject["descriptions"] = _descriptionArray;
-            responseObject["values"] = QJsonDocument::fromVariant(_settingsMap).object();
+        if (!typeValue.isEmpty()) {
+            QJsonObject responseObject = responseObjectForType(typeValue);
+            
+            connection->respond(HTTPConnection::StatusCode200, QJsonDocument(responseObject).toJson(), "application/json");
+            
+            return true;
         } else {
-            // convert the string type value to a QJsonValue
-            QJsonValue queryType = QJsonValue(typeValue.toInt());
-            
-            const QString AFFECTED_TYPES_JSON_KEY = "assignment-types";
-            
-            // enumerate the groups in the description object to find which settings to pass
-            foreach(const QJsonValue& groupValue, _descriptionArray) {
-                QJsonObject groupObject = groupValue.toObject();
-                QString groupKey = groupObject[SETTINGS_GROUP_KEY_NAME].toString();
-                QJsonObject groupSettingsObject = groupObject[DESCRIPTION_SETTINGS_KEY].toObject();
-                
-                QJsonObject groupResponseObject;
-                
-                
-                foreach(const QString& settingKey, groupSettingsObject.keys()) {
-                    QJsonObject settingObject = groupSettingsObject[settingKey].toObject();
-                    
-                    QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
-                    if (affectedTypesArray.isEmpty()) {
-                        affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();
-                    }
-                    
-                    if (affectedTypesArray.contains(queryType)) {
-                        // this is a setting we should include in the responseObject
-                        
-                        // we need to check if the settings map has a value for this setting
-                        QVariant variantValue;
-                        QVariant settingsMapGroupValue = _settingsMap.value(groupObject[SETTINGS_GROUP_KEY_NAME].toString());
-                        
-                        if (!settingsMapGroupValue.isNull()) {
-                            variantValue = settingsMapGroupValue.toMap().value(settingKey);
-                        }
-                        
-                        if (variantValue.isNull()) {
-                            // no value for this setting, pass the default
-                            if (settingObject.contains(SETTING_DEFAULT_KEY)) {
-                                groupResponseObject[settingKey] = settingObject[SETTING_DEFAULT_KEY];
-                            } else {
-                                // users are allowed not to provide a default for string values
-                                // if so we set to the empty string
-                                groupResponseObject[settingKey] = QString("");
-                            }
-                            
-                        } else {
-                            groupResponseObject[settingKey] = QJsonValue::fromVariant(variantValue);
-                        }
-                    }
-                }
-                
-                if (!groupResponseObject.isEmpty()) {
-                    // set this group's object to the constructed object
-                    responseObject[groupKey] = groupResponseObject;
-                }
-            }
-            
+            return false;
         }
-        
-        connection->respond(HTTPConnection::StatusCode200, QJsonDocument(responseObject).toJson(), "application/json");
-        return true;
     }
     
     return false;
 }
 
 bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection *connection, const QUrl &url) {
-    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == "/settings.json") {
+    if (connection->requestOperation() == QNetworkAccessManager::PostOperation && url.path() == SETTINGS_PATH) {
         // this is a POST operation to change one or more settings
         QJsonDocument postedDocument = QJsonDocument::fromJson(connection->requestContent());
         QJsonObject postedObject = postedDocument.object();
@@ -149,10 +90,95 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
         
         return true;
+    } else if (connection->requestOperation() == QNetworkAccessManager::GetOperation && url.path() == SETTINGS_PATH) {
+        // setup a JSON Object with descriptions and non-omitted settings
+        const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
+        const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+        
+        QJsonObject rootObject;
+        rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
+        rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
+        
+        connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
     
     return false;
 }
+
+const QString DESCRIPTION_SETTINGS_KEY = "settings";
+const QString SETTING_DEFAULT_KEY = "default";
+const QString DESCRIPTION_NAME_KEY = "name";
+
+QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& typeValue, bool isAuthenticated) {
+    QJsonObject responseObject;
+    
+    if (!typeValue.isEmpty() || isAuthenticated) {
+        // convert the string type value to a QJsonValue
+        QJsonValue queryType = typeValue.isEmpty() ? QJsonValue() : QJsonValue(typeValue.toInt());
+        
+        const QString AFFECTED_TYPES_JSON_KEY = "assignment-types";
+        
+        // enumerate the groups in the description object to find which settings to pass
+        foreach(const QJsonValue& groupValue, _descriptionArray) {
+            QJsonObject groupObject = groupValue.toObject();
+            QString groupKey = groupObject[DESCRIPTION_NAME_KEY].toString();
+            QJsonArray groupSettingsArray = groupObject[DESCRIPTION_SETTINGS_KEY].toArray();
+            
+            QJsonObject groupResponseObject;
+            
+            foreach(const QJsonValue& settingValue, groupSettingsArray) {
+                const QString VALUE_HIDDEN_FLAG_KEY = "value-hidden";
+                
+                QJsonObject settingObject = settingValue.toObject();
+                
+                if (!settingObject[VALUE_HIDDEN_FLAG_KEY].toBool()) {
+                    QJsonArray affectedTypesArray = settingObject[AFFECTED_TYPES_JSON_KEY].toArray();
+                    if (affectedTypesArray.isEmpty()) {
+                        affectedTypesArray = groupObject[AFFECTED_TYPES_JSON_KEY].toArray();
+                    }
+                    
+                    if (affectedTypesArray.contains(queryType) ||
+                        (queryType.isNull() && isAuthenticated)) {
+                        // this is a setting we should include in the responseObject
+                        
+                        QString settingName = settingObject[DESCRIPTION_NAME_KEY].toString();
+                        
+                        // we need to check if the settings map has a value for this setting
+                        QVariant variantValue;
+                        QVariant settingsMapGroupValue = _settingsMap.value(groupObject[DESCRIPTION_NAME_KEY].toString());
+                        
+                        if (!settingsMapGroupValue.isNull()) {
+                            variantValue = settingsMapGroupValue.toMap().value(settingName);
+                        }
+                        
+                        if (variantValue.isNull()) {
+                            // no value for this setting, pass the default
+                            if (settingObject.contains(SETTING_DEFAULT_KEY)) {
+                                groupResponseObject[settingName] = settingObject[SETTING_DEFAULT_KEY];
+                            } else {
+                                // users are allowed not to provide a default for string values
+                                // if so we set to the empty string
+                                groupResponseObject[settingName] = QString("");
+                            }
+                            
+                        } else {
+                            groupResponseObject[settingName] = QJsonValue::fromVariant(variantValue);
+                        }
+                    }
+                }
+            }
+            
+            if (!groupResponseObject.isEmpty()) {
+                // set this group's object to the constructed object
+                responseObject[groupKey] = groupResponseObject;
+            }
+        }
+    }
+    
+    
+    return responseObject;
+}
+
 
 const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 
@@ -165,7 +191,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
         
         // we don't continue if this key is not present in our descriptionObject
         foreach(const QJsonValue& groupValue, descriptionArray) {
-            if (groupValue.toObject()[SETTINGS_GROUP_KEY_NAME].toString() == key) {
+            if (groupValue.toObject()[DESCRIPTION_NAME_KEY].toString() == key) {
                 QJsonObject groupObject = groupValue.toObject();
                 if (rootValue.isString()) {
                     if (rootValue.toString().isEmpty()) {
