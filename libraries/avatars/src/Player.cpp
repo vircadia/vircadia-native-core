@@ -19,10 +19,10 @@
 
 Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
+    _pausedFrame(-1),
     _timerOffset(0),
     _avatar(avatar),
     _audioThread(NULL),
-    _isPaused(false),
     _playFromCurrentPosition(true),
     _loop(false),
     _useAttachments(true),
@@ -40,7 +40,7 @@ bool Player::isPlaying() const {
 }
 
 bool Player::isPaused() const {
-    return _isPaused;
+    return (_pausedFrame != -1);
 }
 
 qint64 Player::elapsed() const {
@@ -58,7 +58,7 @@ void Player::startPlaying() {
         return;
     }
     
-    if (!_isPaused) {
+    if (!isPaused()) {
         _currentContext.globalTimestamp = usecTimestampNow();
         _currentContext.domain = NodeList::getInstance()->getDomainHandler().getHostname();
         _currentContext.position = _avatar->getPosition();
@@ -118,9 +118,9 @@ void Player::startPlaying() {
         qDebug() << "Recorder::startPlaying(): Unpause";
         setupAudioThread();
         _timer.start();
-        _isPaused = false;
         
         setCurrentFrame(_pausedFrame);
+        _pausedFrame = -1;
     }
 }
 
@@ -128,7 +128,7 @@ void Player::stopPlaying() {
     if (!isPlaying()) {
         return;
     }
-    _isPaused = false;
+    _pausedFrame = -1;
     _timer.invalidate();
     cleanupAudioThread();
     _avatar->clearJointsData();
@@ -157,7 +157,6 @@ void Player::pausePlayer() {
     _timer.invalidate();
     cleanupAudioThread();
     
-    _isPaused = true;
     _pausedFrame = _currentFrame;
     qDebug() << "Recorder::pausePlayer()";
 }
@@ -200,12 +199,12 @@ void Player::loadFromFile(const QString& file) {
     }
     readRecordingFromFile(_recording, file);
     
-    _isPaused = false;
+    _pausedFrame = -1;
 }
 
 void Player::loadRecording(RecordingPointer recording) {
     _recording = recording;
-    _isPaused = false;
+    _pausedFrame = -1;
 }
 
 void Player::play() {
@@ -262,7 +261,6 @@ void Player::setCurrentFrame(int currentFrame) {
         _timer.start();
         setAudionInjectorPosition();
     } else {
-        _isPaused = true;
         _pausedFrame = currentFrame;
     }
 }
@@ -308,7 +306,6 @@ void Player::setCurrentTime(qint64 currentTime) {
         _timer.start();
         setAudionInjectorPosition();
     } else {
-        _isPaused = true;
         _pausedFrame = lowestBound;
     }
 }

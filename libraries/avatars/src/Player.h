@@ -64,6 +64,7 @@ private:
     QElapsedTimer _timer;
     RecordingPointer _recording;
     int _currentFrame;
+    int _pausedFrame;
     qint64 _timerOffset;
     
     QSharedPointer<AudioInjector> _injector;
@@ -71,9 +72,6 @@ private:
     
     AvatarData* _avatar;
     QThread* _audioThread;
-    
-    bool _isPaused;
-    int _pausedFrame;
     
     RecordingContext _currentContext;
     bool _playFromCurrentPosition;
