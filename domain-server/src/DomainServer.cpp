@@ -1435,13 +1435,13 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             DomainServerWebSessionData sessionData = _cookieSessionHash.value(cookieUUID);
             QString profileUsername = sessionData.getUsername();
             
-            if (settingsMap.value(ADMIN_USERS_CONFIG_KEY).toJsonValue().toArray().contains(profileUsername)) {
+            if (settingsMap.value(ADMIN_USERS_CONFIG_KEY).toStringList().contains(profileUsername)) {
                 // this is an authenticated user
                 return true;
             }
             
             // loop the roles of this user and see if they are in the admin-roles array
-            QJsonArray adminRolesArray = settingsMap.value(ADMIN_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            QStringList adminRolesArray = settingsMap.value(ADMIN_ROLES_CONFIG_KEY).toStringList();
             
             if (!adminRolesArray.isEmpty()) {
                 foreach(const QString& userRole, sessionData.getRoles()) {
