@@ -40,8 +40,9 @@ int InjectedAudioStream::parseStreamProperties(PacketType type,
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
     
     packetStream >> _isStereo;
-    _ringBuffer.resizeForFrameSize(isStereo() ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO :
-                                                NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    if (isStereo()) {
+        _ringBuffer.resizeForFrameSize(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+    }
 
     // pull the loopback flag and set our boolean
     uchar shouldLoopback;
