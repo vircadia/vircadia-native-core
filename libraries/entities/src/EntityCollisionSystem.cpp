@@ -78,6 +78,11 @@ void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* enti
 }
 
 void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
+
+    if (entity->getIgnoreForCollisions() || !entity->getCollisionsWillMove()) {
+        return; // bail early if this entity is to be ignored or wont move
+    }
+
     glm::vec3 center = entity->getPosition() * (float)(TREE_SCALE);
     float radius = entity->getRadius() * (float)(TREE_SCALE);
     const float ELASTICITY = 0.4f;
@@ -218,6 +223,10 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
     // Entities that are in hand, don't collide with avatars
     if (!_avatars) {
         return;
+    }
+
+    if (entity->getIgnoreForCollisions() || !entity->getCollisionsWillMove()) {
+        return; // bail early if this entity is to be ignored or wont move
     }
 
     glm::vec3 center = entity->getPosition() * (float)(TREE_SCALE);
