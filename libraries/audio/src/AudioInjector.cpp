@@ -104,7 +104,7 @@ void AudioInjector::injectAudio() {
         quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
-            int bytesToCopy = std::min(NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
+            int bytesToCopy = std::min(((_options.isStereo()) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - currentSendPosition);
             memcpy(injectAudioPacket.data() + positionOptionOffset,
                    &_options.getPosition(),
