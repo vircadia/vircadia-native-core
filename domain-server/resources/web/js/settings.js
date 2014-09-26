@@ -193,13 +193,14 @@ function showRestartModal() {
   refreshSpan.html(numberOfSecondsToWait +  " seconds");
   
   // call ourselves every 1 second to countdown
-  window.setInterval(function(){
+  var refreshCountdown = setInterval(function(){
     secondsElapsed++;
     secondsLeft = numberOfSecondsToWait - secondsElapsed
     refreshSpan.html(secondsLeft + (secondsLeft == 1 ? " second" : " seconds"))
     
     if (secondsElapsed == numberOfSecondsToWait) {
       location.reload(true);
+      clearInterval(refreshCountdown);
     }
   }, 1000);
 }
