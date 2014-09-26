@@ -94,7 +94,7 @@ $(document).ready(function(){
   var sidebarTemplate = $('#list-group-template').html()
   Settings.sidebarTemplate = _.template(sidebarTemplate)
   
-  $('body').scrollspy({ target: '#setup-sidebar', offset: 75 })
+  $('body').scrollspy({ target: '#setup-sidebar'})
   
   reloadSettings()
 })
