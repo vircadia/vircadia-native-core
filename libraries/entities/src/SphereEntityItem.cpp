@@ -89,3 +89,10 @@ void SphereEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBi
     bool successPropertyFits = true;
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
+
+void SphereEntityItem::recalculateCollisionShape() {
+    _sphereShape.setTranslation(getCenterInMeters());
+    glm::vec3 dimensionsInMeters = getDimensionsInMeters();
+    float largestDiameter = glm::max(dimensionsInMeters.x, dimensionsInMeters.y, dimensionsInMeters.z);
+    _sphereShape.setRadius(largestDiameter / 2.0f);
+}

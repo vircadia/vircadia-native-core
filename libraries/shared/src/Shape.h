@@ -14,6 +14,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <QDebug>
 #include <QtGlobal>
 #include <QVector>
 
@@ -80,6 +81,8 @@ public:
     virtual float getVolume() const { return 1.0; }
 
     virtual void getVerletPoints(QVector<VerletPoint*>& points) {}
+    
+    virtual QDebug& dumpToDebug(QDebug& debugConext) const;
 
 protected:
     // these ctors are protected (used by derived classes only)
@@ -112,5 +115,26 @@ protected:
     glm::quat _rotation;
     float _mass;
 };
+
+inline QDebug& Shape::dumpToDebug(QDebug& debugConext) const {
+    debugConext << "Shape[ (" 
+            << "type: " << getType()
+            << "position: "
+            << getTranslation().x << ", " << getTranslation().y << ", " << getTranslation().z
+            << "radius: "
+            << getBoundingRadius()
+            << "]";
+
+    return debugConext;
+}
+
+inline QDebug operator<<(QDebug debug, const Shape& shape) {
+    return shape.dumpToDebug(debug);
+}
+
+inline QDebug operator<<(QDebug debug, const Shape* shape) {
+    return shape->dumpToDebug(debug);
+}
+
 
 #endif // hifi_Shape_h

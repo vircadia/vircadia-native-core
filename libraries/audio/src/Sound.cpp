@@ -31,7 +31,8 @@
 
 // procedural audio version of Sound
 Sound::Sound(float volume, float frequency, float duration, float decay, QObject* parent) :
-    QObject(parent)
+    QObject(parent),
+    _isStereo(false)
 {
     static char monoAudioData[MAX_PACKET_SIZE];
     static int16_t* monoAudioSamples = (int16_t*)(monoAudioData);
@@ -69,8 +70,9 @@ Sound::Sound(float volume, float frequency, float duration, float decay, QObject
     }
 }
 
-Sound::Sound(const QUrl& sampleURL, QObject* parent) :
+Sound::Sound(const QUrl& sampleURL, bool isStereo, QObject* parent) :
     QObject(parent),
+    _isStereo(isStereo),
     _hasDownloaded(false)
 {
     // assume we have a QApplication or QCoreApplication instance and use the
@@ -82,12 +84,14 @@ Sound::Sound(const QUrl& sampleURL, QObject* parent) :
     
     QNetworkReply* soundDownload = networkAccessManager.get(QNetworkRequest(sampleURL));
     connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
-    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(replyError(QNetworkReply::NetworkError)));
+    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)),
+            this, SLOT(replyError(QNetworkReply::NetworkError)));
 }
 
 Sound::Sound(const QByteArray byteArray, QObject* parent) :
     QObject(parent),
     _byteArray(byteArray),
+    _isStereo(false),
     _hasDownloaded(true)
 {
 }
@@ -149,11 +153,20 @@ void Sound::downSample(const QByteArray& rawAudioByteArray) {
     int16_t* sourceSamples = (int16_t*) rawAudioByteArray.data();
     int16_t* destinationSamples = (int16_t*) _byteArray.data();
 
-    for (int i = 1; i < numSourceSamples; i += 2) {
-        if (i + 1 >= numSourceSamples) {
-            destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
-        } else {
-            destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2) + (sourceSamples[i + 1] / 4);
+    
+    if (_isStereo) {
+        for (int i = 0; i < numSourceSamples; i += 4) {
+            destinationSamples[i / 2] = (sourceSamples[i] / 2) + (sourceSamples[i + 2] / 2);
+            destinationSamples[(i / 2) + 1] = (sourceSamples[i + 1] / 2) + (sourceSamples[i + 3] / 2);
+        }
+    } else {
+        for (int i = 1; i < numSourceSamples; i += 2) {
+            if (i + 1 >= numSourceSamples) {
+                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 2) + (sourceSamples[i] / 2);
+            } else {
+                destinationSamples[(i - 1) / 2] = (sourceSamples[i - 1] / 4) + (sourceSamples[i] / 2)
+                                                + (sourceSamples[i + 1] / 4);
+            }
         }
     }
 }

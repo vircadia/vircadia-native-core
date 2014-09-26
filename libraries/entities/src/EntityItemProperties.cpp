@@ -134,6 +134,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(velocity);
     COPY_PROPERTY_TO_QSCRIPTVALUE_VEC3(gravity);
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(mass);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable

@@ -20,6 +20,8 @@
 #include "PlaneShape.h"
 #include "SphereShape.h"
 
+#include "StreamUtils.h"
+
 // NOTE:
 //
 // * Large ListShape's are inefficient keep the lists short.
@@ -978,7 +980,112 @@ bool aaCubeVsCapsule(const Shape* shapeA, const Shape* shapeB, CollisionList& co
     return capsuleVsAACube(shapeB, shapeA, collisions);
 }
 
+// helper function
+CollisionInfo* aaCubeVsAACubeHelper(const glm::vec3& cubeCenterA, float cubeSideA, const glm::vec3& cubeCenterB, 
+        float cubeSideB, CollisionList& collisions) {
+    // cube is A
+    // cube is B
+    // BA = B - A = from center of A to center of B 
+    float halfCubeSideA = 0.5f * cubeSideA;
+    float halfCubeSideB = 0.5f * cubeSideB;
+    glm::vec3 BA = cubeCenterB - cubeCenterA;
+
+    float distance = glm::length(BA);
+
+    if (distance > EPSILON) {
+        float maxBA = glm::max(glm::max(glm::abs(BA.x), glm::abs(BA.y)), glm::abs(BA.z));
+        if (maxBA > halfCubeSideB + halfCubeSideA) {
+            // cube misses cube entirely
+            return NULL;
+        } 
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (!collision) {
+            return NULL; // no more room for collisions
+        }
+        if (maxBA > halfCubeSideB) {
+            // cube hits cube but its center is outside cube
+            // compute contact anti-pole on cube (in cube frame)
+            glm::vec3 cubeContact = glm::abs(BA);
+            if (cubeContact.x > halfCubeSideB) {
+                cubeContact.x = halfCubeSideB;
+            }
+            if (cubeContact.y > halfCubeSideB) {
+                cubeContact.y = halfCubeSideB;
+            }
+            if (cubeContact.z > halfCubeSideB) {
+                cubeContact.z = halfCubeSideB;
+            }
+            glm::vec3 signs = glm::sign(BA);
+            cubeContact.x *= signs.x;
+            cubeContact.y *= signs.y;
+            cubeContact.z *= signs.z;
+
+            // compute penetration direction
+            glm::vec3 direction = BA - cubeContact;
+            
+            float lengthDirection = glm::length(direction);
+            
+            if (lengthDirection < EPSILON) {
+                // cubeCenterA is touching cube B surface, so we can't use the difference between those two 
+                // points to compute the penetration direction.  Instead we use the unitary components of 
+                // cubeContact.
+                glm::modf(cubeContact / halfCubeSideB, direction);
+                lengthDirection = glm::length(direction);
+            } else if (lengthDirection > halfCubeSideA) {
+                collisions.deleteLastCollision();
+                return NULL;
+            }
+            direction /= lengthDirection;
+
+            // compute collision details
+            collision->_contactPoint = cubeCenterA + halfCubeSideA * direction;
+            collision->_penetration = halfCubeSideA * direction - (BA - cubeContact);
+        } else {
+            // cube center is inside cube
+            // --> push out nearest face
+            glm::vec3 direction;
+            BA /= maxBA;
+            glm::modf(BA, direction);
+            float lengthDirection = glm::length(direction);
+            direction /= lengthDirection;
+
+            // compute collision details
+            collision->_floatData = cubeSideB;
+            collision->_vecData = cubeCenterB;
+            collision->_penetration = (halfCubeSideB * lengthDirection + halfCubeSideA - maxBA * glm::dot(BA, direction)) * direction;
+            collision->_contactPoint = cubeCenterA + halfCubeSideA * direction;
+        }
+        collision->_shapeA = NULL;
+        collision->_shapeB = NULL;
+        return collision;
+    } else if (halfCubeSideA + halfCubeSideB > distance) {
+        // NOTE: for cocentric approximation we collide sphere and cube as two spheres which means 
+        // this algorithm will probably be wrong when both sphere and cube are very small (both ~EPSILON)
+        CollisionInfo* collision = collisions.getNewCollision();
+        if (collision) {
+            // the penetration and contactPoint are undefined, so we pick a penetration direction (-yAxis)
+            collision->_penetration = (halfCubeSideA + halfCubeSideB) * glm::vec3(0.0f, -1.0f, 0.0f);
+            // contactPoint is on surface of A
+            collision->_contactPoint = cubeCenterA + collision->_penetration;
+            collision->_shapeA = NULL;
+            collision->_shapeB = NULL;
+            return collision;
+        }
+    }
+    return NULL;
+}
+
 bool aaCubeVsAACube(const Shape* shapeA, const Shape* shapeB, CollisionList& collisions) {
+    // BA = B - A = from center of A to center of B 
+    const AACubeShape* cubeA = static_cast<const AACubeShape*>(shapeA);
+    const AACubeShape* cubeB = static_cast<const AACubeShape*>(shapeB);
+    CollisionInfo* collision = aaCubeVsAACubeHelper( cubeA->getTranslation(), cubeA->getScale(),
+            cubeB->getTranslation(), cubeB->getScale(), collisions);
+    if (collision) {
+        collision->_shapeA = shapeA;
+        collision->_shapeB = shapeB;
+        return true;
+    }
     return false;
 }
 

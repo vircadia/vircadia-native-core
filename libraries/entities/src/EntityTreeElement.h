@@ -142,6 +142,8 @@ public:
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;
 
+    virtual bool findShapeCollisions(const Shape* shape, CollisionList& collisions) const;
+
     const QList<EntityItem*>& getEntities() const { return *_entityItems; }
     QList<EntityItem*>& getEntities() { return *_entityItems; }
     bool hasEntities() const { return _entityItems ? _entityItems->size() > 0 : false; }
