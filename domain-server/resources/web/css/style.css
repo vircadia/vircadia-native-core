@@ -65,3 +65,8 @@ span.port {
   width: 100%;
   margin-top: 10px;
 }
+
+#small-save-button {
+  width: 100%;
+  margin-bottom: 15px;
+}

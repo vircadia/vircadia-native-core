@@ -5,7 +5,7 @@
     <div class="alert" style="display:none;"></div>
   </div>
   
-  <div class="col-md-2 col-sm-2" id="setup-sidebar-col">
+  <div class="col-md-3 col-sm-3" id="setup-sidebar-col">
     <div id="setup-sidebar" data-clampedwidth="#setup-sidebar-col" class="hidden-xs" data-spy="affix" data-offset-top="55">
       <script id="list-group-template" type="text/template">
         <% _.each(descriptions, function(group){ %>
@@ -26,7 +26,7 @@
     </div>
   </div>
   
-  <div class="col-md-10 col-sm-10">
+  <div class="col-md-9 col-sm-9 col-xs-12">
     <form id="settings-form" role="form">
   
       <script id="panels-template" type="text/template">
@@ -49,7 +49,12 @@
       </script>
 
       <div id="panels"></div>
+      
      </form>
+  </div>
+  
+  <div class="col-xs-12 hidden-sm hidden-md hidden-lg">
+    <button class="btn btn-success save-button" id="small-save-button">Save and restart</button>
   </div>
 </div>
 
