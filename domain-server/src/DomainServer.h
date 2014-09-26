@@ -35,15 +35,16 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
+    static int const EXIT_CODE_REBOOT;
+    
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
-    
-    void exit(int retCode = 0);
     
 public slots:
     /// Called by NodeList to inform us a node has been added
@@ -52,6 +53,8 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
     void transactionJSONCallback(const QJsonObject& data);
+    
+    void restart();
     
 private slots:
     void loginFailed();

@@ -30,6 +30,8 @@
 
 #include "DomainServer.h"
 
+int const DomainServer::EXIT_CODE_REBOOT = 234923;
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _shutdownEventListener(this),
@@ -56,7 +58,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
     _settingsManager.loadSettingsMap(arguments());
-
+    
     installNativeEventFilter(&_shutdownEventListener);
     connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
     
@@ -75,6 +77,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         // check if we have the flag that enables dynamic IP
         setupDynamicIPAddressUpdating();
     }
+}
+
+void DomainServer::restart() {
+    qDebug() << "domain-server is restarting.";
+    exit(DomainServer::EXIT_CODE_REBOOT);
 }
 
 bool DomainServer::optionallyReadX509KeyAndCertificate() {

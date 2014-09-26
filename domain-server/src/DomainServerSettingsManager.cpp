@@ -146,6 +146,10 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QString jsonSuccess = "{\"status\": \"success\"}";
         connection->respond(HTTPConnection::StatusCode200, jsonSuccess.toUtf8(), "application/json");
         
+        // defer a restart to the domain-server, this gives our HTTPConnection enough time to respond
+        const int DOMAIN_SERVER_RESTART_TIMER_MSECS = 1000;
+        QTimer::singleShot(DOMAIN_SERVER_RESTART_TIMER_MSECS, qApp, SLOT(restart()));
+        
         return true;
     }
     
