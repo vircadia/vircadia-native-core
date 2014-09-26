@@ -2907,8 +2907,6 @@ function handeMenuEvent(menuItem) {
             index++;
             array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
             index++;
-            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
-            index++;
             array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
             index++;
             array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
@@ -2923,6 +2921,15 @@ function handeMenuEvent(menuItem) {
             array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
             index++;
             array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
+            index++;
+
+            array.push({ label: "Collisions:", type: "header" });
+            index++;
+            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
+            index++;
+            array.push({ label: "Ignore for Collisions:", value: properties.ignoreForCollisions });
+            index++;
+            array.push({ label: "Collisions Will Move:", value: properties.collisionsWillMove });
             index++;
 
             array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
@@ -3055,7 +3062,6 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.velocity.y = array[index++].value;
         properties.velocity.z = array[index++].value;
         properties.damping = array[index++].value;
-        properties.mass = array[index++].value;
 
         properties.angularVelocity.x = array[index++].value;
         properties.angularVelocity.y = array[index++].value;
@@ -3065,6 +3071,12 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.gravity.x = array[index++].value;
         properties.gravity.y = array[index++].value;
         properties.gravity.z = array[index++].value;
+
+        index++; // skip header
+        properties.mass = array[index++].value;
+        properties.ignoreForCollisions = array[index++].value;
+        properties.collisionsWillMove = array[index++].value;
+
         properties.lifetime = array[index++].value;
         properties.visible = array[index++].value;
 
