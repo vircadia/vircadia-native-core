@@ -25,7 +25,8 @@ AudioInjector::AudioInjector(QObject* parent) :
     QObject(parent),
     _sound(NULL),
     _options(),
-    _shouldStop(false)
+    _shouldStop(false),
+    _currentSendPosition(0)
 {
 }
 
@@ -97,17 +98,15 @@ void AudioInjector::injectAudio() {
         timer.start();
         int nextFrame = 0;
         
-        int currentSendPosition = 0;
-        
         int numPreAudioDataBytes = injectAudioPacket.size();
         bool shouldLoop = _options.getLoop();
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         quint16 outgoingInjectedAudioSequenceNumber = 0;
-        while (currentSendPosition < soundByteArray.size() && !_shouldStop) {
+        while (_currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
             int bytesToCopy = std::min(((_options.isStereo()) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
-                                       soundByteArray.size() - currentSendPosition);
+                                       soundByteArray.size() - _currentSendPosition);
             memcpy(injectAudioPacket.data() + positionOptionOffset,
                    &_options.getPosition(),
                    sizeof(_options.getPosition()));
@@ -124,7 +123,7 @@ void AudioInjector::injectAudio() {
             
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes,
-                   soundByteArray.data() + currentSendPosition, bytesToCopy);
+                   soundByteArray.data() + _currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
             NodeList* nodeList = NodeList::getInstance();
@@ -134,22 +133,22 @@ void AudioInjector::injectAudio() {
             nodeList->writeDatagram(injectAudioPacket, audioMixer);
             outgoingInjectedAudioSequenceNumber++;
             
-            currentSendPosition += bytesToCopy;
+            _currentSendPosition += bytesToCopy;
             
             // send two packets before the first sleep so the mixer can start playback right away
             
-            if (currentSendPosition != bytesToCopy && currentSendPosition < soundByteArray.size()) {
+            if (_currentSendPosition != bytesToCopy && _currentSendPosition < soundByteArray.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
                 int usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000;
                 
                 if (usecToSleep > 0) {
                     usleep(usecToSleep);
-                }
+                } 
             }
 
-            if (shouldLoop && currentSendPosition == soundByteArray.size()) {
-                currentSendPosition = 0;
+            if (shouldLoop && _currentSendPosition >= soundByteArray.size()) {
+                _currentSendPosition = 0;
             }
         }
     }
