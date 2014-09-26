@@ -1402,11 +1402,12 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
     const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
     const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
     const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
-    const QString BASIC_AUTH_CONFIG_KEY = "basic-auth";
+    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http-username";
+    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http-password";
     
     const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
     
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    QVariantMap& settingsMap = _settingsManager.getSettingsMap();
     
     if (!_oauthProviderURL.isEmpty()
         && (settingsMap.contains(ADMIN_USERS_CONFIG_KEY) || settingsMap.contains(ADMIN_ROLES_CONFIG_KEY))) {
@@ -1420,7 +1421,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             cookieUUID = cookieUUIDRegex.cap(1);
         }
         
-        if (settingsMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+        if (valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)) {
             qDebug() << "Config file contains web admin settings for OAuth and basic HTTP authentication."
                 << "These cannot be combined - using OAuth for authentication.";
         }
@@ -1471,7 +1472,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // we don't know about this user yet, so they are not yet authenticated
             return false;
         }
-    } else if (settingsMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+    } else if (valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)) {
         // config file contains username and password combinations for basic auth
         const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
         
@@ -1486,21 +1487,16 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             if (!credentialString.isEmpty()) {
                 QStringList credentialList = credentialString.split(':');
                 if (credentialList.size() == 2) {
-                    QString username = credentialList[0];
-                    QString password = credentialList[1];
+                    QString headerUsername = credentialList[0];
+                    QString headerPassword = credentialList[1];
                     
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
-                    QJsonObject basicAuthObject = settingsMap.value(BASIC_AUTH_CONFIG_KEY).toJsonValue().toObject();
+                    QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
+                    const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
+                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
                     
-                    if (basicAuthObject.contains(username)) {
-                        const QString BASIC_AUTH_USER_PASSWORD_KEY = "password";
-                        QJsonObject userObject = basicAuthObject.value(username).toObject();
-                        
-                        if (userObject.contains(BASIC_AUTH_USER_PASSWORD_KEY)
-                            && userObject.value(BASIC_AUTH_USER_PASSWORD_KEY).toString() == password) {
-                            // this is username / password match - let this user in
-                            return true;
-                        }
+                    if (settingsUsername == headerUsername && headerPassword == settingsPassword) {
+                        return true;
                     }
                 }
             }

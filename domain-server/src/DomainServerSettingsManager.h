@@ -27,7 +27,7 @@ public:
     void loadSettingsMap(const QStringList& argumentList);
     
     QByteArray getJSONSettingsMap() const;
-    const QVariantMap& getSettingsMap() const { return _settingsMap; }
+    QVariantMap& getSettingsMap() { return _settingsMap; }
 private:
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
                                                QJsonArray descriptionArray);
