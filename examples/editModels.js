@@ -2449,6 +2449,7 @@ function Tooltip() {
             text += "Lifetime: " + properties.lifetime + "\n"
         }
         text += "Age: " + properties.ageAsText + "\n"
+        text += "Mass: " + properties.mass + "\n"
         text += "Script: " + properties.script + "\n"
 
 
@@ -2906,6 +2907,8 @@ function handeMenuEvent(menuItem) {
             index++;
             array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
             index++;
+            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
+            index++;
             array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
             index++;
             array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
@@ -3052,6 +3055,7 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.velocity.y = array[index++].value;
         properties.velocity.z = array[index++].value;
         properties.damping = array[index++].value;
+        properties.mass = array[index++].value;
 
         properties.angularVelocity.x = array[index++].value;
         properties.angularVelocity.y = array[index++].value;
