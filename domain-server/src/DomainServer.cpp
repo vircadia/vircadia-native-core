@@ -367,19 +367,12 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
 
         if (assignmentType < Assignment::AllTypes && !excludedTypes.contains(assignmentType)) {
             QVariant mapValue = settingsMap[variantMapKeys[configIndex]];
-            QJsonArray assignmentArray;
-
-            if (mapValue.type() == QVariant::String) {
-                QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
-                assignmentArray = deserializedDocument.array();
-            } else {
-                assignmentArray = mapValue.toJsonValue().toArray();
-            }
+            QVariantList assignmentList = mapValue.toList();
 
             if (assignmentType != Assignment::AgentType) {
-                createStaticAssignmentsForType(assignmentType, assignmentArray);
+                createStaticAssignmentsForType(assignmentType, assignmentList);
             } else {
-                createScriptedAssignmentsFromArray(assignmentArray);
+                createScriptedAssignmentsFromList(assignmentList);
             }
 
             excludedTypes.insert(assignmentType);
@@ -395,23 +388,23 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
     _allAssignments.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
 }
 
-void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configArray) {
-    foreach(const QJsonValue& jsonValue, configArray) {
-        if (jsonValue.isObject()) {
-            QJsonObject jsonObject = jsonValue.toObject();
+void DomainServer::createScriptedAssignmentsFromList(const QVariantList &configList) {
+    foreach(const QVariant& configVariant, configList) {
+        if (configVariant.canConvert(QMetaType::QVariantMap)) {
+            QVariantMap configMap = configVariant.toMap();
 
             // make sure we were passed a URL, otherwise this is an invalid scripted assignment
             const QString  ASSIGNMENT_URL_KEY = "url";
-            QString assignmentURL = jsonObject[ASSIGNMENT_URL_KEY].toString();
+            QString assignmentURL = configMap[ASSIGNMENT_URL_KEY].toString();
 
             if (!assignmentURL.isEmpty()) {
                 // check the json for a pool
                 const QString ASSIGNMENT_POOL_KEY = "pool";
-                QString assignmentPool = jsonObject[ASSIGNMENT_POOL_KEY].toString();
+                QString assignmentPool = configMap[ASSIGNMENT_POOL_KEY].toString();
 
                 // check for a number of instances, if not passed then default is 1
                 const QString ASSIGNMENT_INSTANCES_KEY = "instances";
-                int numInstances = jsonObject[ASSIGNMENT_INSTANCES_KEY].toInt();
+                int numInstances = configMap[ASSIGNMENT_INSTANCES_KEY].toInt();
                 numInstances = (numInstances == 0 ? 1 : numInstances);
 
                 qDebug() << "Adding a static scripted assignment from" << assignmentURL;
@@ -431,37 +424,34 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
     }
 }
 
-void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray) {
+void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QVariantList &configList) {
     // we have a string for config for this type
     qDebug() << "Parsing config for assignment type" << type;
 
     int configCounter = 0;
 
-    foreach(const QJsonValue& jsonValue, configArray) {
-        if (jsonValue.isObject()) {
-            QJsonObject jsonObject = jsonValue.toObject();
+    foreach(const QVariant& configVariant, configList) {
+        if (configVariant.canConvert(QMetaType::QVariantMap)) {
+            QVariantMap configMap = configVariant.toMap();
 
             // check the config string for a pool
             const QString ASSIGNMENT_POOL_KEY = "pool";
-            QString assignmentPool;
 
-            QJsonValue poolValue = jsonObject[ASSIGNMENT_POOL_KEY];
-            if (!poolValue.isUndefined()) {
-                assignmentPool = poolValue.toString();
-
-                jsonObject.remove(ASSIGNMENT_POOL_KEY);
+            QString assignmentPool = configMap.value(ASSIGNMENT_POOL_KEY).toString();
+            if (!assignmentPool.isEmpty()) {
+                configMap.remove(ASSIGNMENT_POOL_KEY);
             }
 
             ++configCounter;
-            qDebug() << "Type" << type << "config" << configCounter << "=" << jsonObject;
+            qDebug() << "Type" << type << "config" << configCounter << "=" << configMap;
 
             Assignment* configAssignment = new Assignment(Assignment::CreateCommand, type, assignmentPool);
 
             // setup the payload as a semi-colon separated list of key = value
             QStringList payloadStringList;
-            foreach(const QString& payloadKey, jsonObject.keys()) {
+            foreach(const QString& payloadKey, configMap.keys()) {
                 QString dashes = payloadKey.size() == 1 ? "-" : "--";
-                payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(jsonObject[payloadKey].toString());
+                payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(configMap[payloadKey].toString());
             }
             
             configAssignment->setPayload(payloadStringList.join(' ').toUtf8());
