@@ -1573,14 +1573,13 @@ void DomainServer::handleProfileRequestFinished() {
             // pull the user roles from the response
             QJsonArray userRolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
 
-            QJsonArray allowedRolesArray = _settingsManager.getSettingsMap()
-                .value(ALLOWED_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            QStringList allowedRolesArray = _settingsManager.getSettingsMap().value(ALLOWED_ROLES_CONFIG_KEY).toStringList();
 
             QString connectableUsername;
             QString profileUsername = profileJSON.object()["data"].toObject()["user"].toObject()["username"].toString();
 
             foreach(const QJsonValue& roleValue, userRolesArray) {
-                if (allowedRolesArray.contains(roleValue)) {
+                if (allowedRolesArray.contains(roleValue.toString())) {
                     // the user has a role that lets them in
                     // set the bool to true and break
                     connectableUsername = profileUsername;
