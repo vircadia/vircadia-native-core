@@ -42,7 +42,7 @@
         "name": "enable-filter",
         "type": "checkbox",
         "label": "Enable Positional Filter",
-        "help": "If enabled, positional audio stream uses lowpass filter",
+        "help": "positional audio stream uses lowpass filter",
         "default": true
       },
       {
@@ -55,7 +55,7 @@
         "name": "dynamic-jitter-buffer",
         "type": "checkbox",
         "label": "Dynamic Jitter Buffers",
-        "help": "Dynamically buffer client audio based on perceived jitter in packet receipt timing",
+        "help": "dynamically buffer client audio based on perceived jitter in packet receipt timing",
         "default": false,
         "advanced": true
       },
@@ -79,7 +79,7 @@
         "name": "use-stdev-for-desired-calc",
         "type": "checkbox",
         "label": "Use Stdev for Desired Jitter Frames Calc:",
-        "help": "If checked, Philip's method (stdev of timegaps) is used to calculate desired jitter frames. Otherwise, Fred's method (max timegap) is used",
+        "help": "use Philip's method (stdev of timegaps) to calculate desired jitter frames (otherwise Fred's max timegap method is used)",
         "default": false,
         "advanced": true
       },
@@ -111,7 +111,7 @@
         "name": "repetition-with-fade",
         "type": "checkbox",
         "label": "Repetition with Fade:",
-        "help": "If enabled, dropped frames and mixing during starves will repeat the last frame, eventually fading to silence",
+        "help": "dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
         "default": false,
         "advanced": true
       },
@@ -119,7 +119,7 @@
         "name": "I-print-stream-stats",
         "type": "checkbox",
         "label": "Print Stream Stats:",
-        "help": "If enabled, audio upstream and downstream stats of each agent will be printed each second to stdout",
+        "help": "audio upstream and downstream stats of each agent printed to audio-mixer stdout",
         "default": false,
         "advanced": true
       }
