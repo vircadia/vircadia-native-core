@@ -680,7 +680,7 @@ void Application::paintGL() {
         if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
             OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
         } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), whichCamera.getPosition(), whichCamera);
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), whichCamera);
         }
 
     } else if (TV3DManager::isConnected()) {

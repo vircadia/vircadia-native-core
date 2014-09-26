@@ -602,6 +602,14 @@ bool Model::getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) co
     return true;
 }
 
+bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
+        return false;
+    }
+    rotation = _jointStates[jointIndex].getRotation();
+    return true;
+}
+
 bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || jointIndex >= _jointStates.size()) {
         return false;
