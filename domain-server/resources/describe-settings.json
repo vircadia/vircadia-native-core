@@ -48,8 +48,7 @@
         "name": "unattenuated-zone",
         "label": "Unattenuated Zone",
         "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
-        "placeholder": "no zone",
-        "default": ""
+        "placeholder": "no zone"
       },
       {
         "name": "dynamic-jitter-buffer",

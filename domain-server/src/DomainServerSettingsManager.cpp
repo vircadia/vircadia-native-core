@@ -99,7 +99,14 @@ bool DomainServerSettingsManager::handlePublicHTTPRequest(HTTPConnection* connec
                         
                         if (variantValue.isNull()) {
                             // no value for this setting, pass the default
-                            groupResponseObject[settingKey] = settingObject[SETTING_DEFAULT_KEY];
+                            if (settingObject.contains(SETTING_DEFAULT_KEY)) {
+                                groupResponseObject[settingKey] = settingObject[SETTING_DEFAULT_KEY];
+                            } else {
+                                // users are allowed not to provide a default for string values
+                                // if so we set to the empty string
+                                groupResponseObject[settingKey] = QString("");
+                            }
+                            
                         } else {
                             groupResponseObject[settingKey] = QJsonValue::fromVariant(variantValue);
                         }
