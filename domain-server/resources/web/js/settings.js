@@ -64,7 +64,15 @@ $(document).ready(function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
+    $('.save-button').removeAttr('disabled')
+    
     badgeSidebarForDifferences($(this))
+    
+    if ($('span.badge:not(:empty)').length == 0) {
+      // if all badges are empty we have no changed values
+      // so we can disable the save button again
+      $('.save-button').attr('disabled', true)
+    }
   })
   
   $('#advanced-toggle-button').click(function(){
