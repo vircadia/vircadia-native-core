@@ -1657,7 +1657,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.color = colorX[0];
                                 crossing.material = materialBase[0];
                             }
-                            crossing.point = glm::vec3(qAlpha(hermite), 0.0f, 0.0f);
+                            crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
                         }
                         if (middleY) {
                             if (alpha1 != alpha3) {
@@ -1671,7 +1671,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.color = colorX[1];
                                     crossing.material = materialBase[1];
                                 }
-                                crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, qAlpha(hermite), 0.0f);
+                                crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
                             }
                             if (alpha2 != alpha3) {
                                 QRgb hermite = hermiteBase[hermiteStride];
@@ -1684,7 +1684,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.color = colorX[size];
                                     crossing.material = materialBase[size];
                                 }
-                                crossing.point = glm::vec3(qAlpha(hermite), EIGHT_BIT_MAXIMUM, 0.0f);
+                                crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
                             }
                             if (middleZ) {
                                 if (alpha3 != alpha7) {
@@ -1698,7 +1698,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                         crossing.color = colorX[offset3];
                                         crossing.material = materialBase[offset3];
                                     }
-                                    crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM, qAlpha(hermite));
+                                    crossing.point = glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                                 }
                                 if (alpha5 != alpha7) {
                                     QRgb hermite = hermiteBase[hermiteArea + VoxelHermiteData::EDGE_COUNT + 1];
@@ -1711,7 +1711,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                         crossing.color = colorX[offset5];
                                         crossing.material = materialBase[offset5];
                                     }
-                                    crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, qAlpha(hermite), EIGHT_BIT_MAXIMUM);
+                                    crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
                                 }
                                 if (alpha6 != alpha7) {
                                     QRgb hermite = hermiteBase[hermiteArea + hermiteStride];
@@ -1724,7 +1724,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                         crossing.color = colorX[offset6];
                                         crossing.material = materialBase[offset6];
                                     }
-                                    crossing.point = glm::vec3(qAlpha(hermite), EIGHT_BIT_MAXIMUM, EIGHT_BIT_MAXIMUM);
+                                    crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
                                 }
                             }
                         }
@@ -1740,7 +1740,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.color = colorX[1];
                                     crossing.material = materialBase[1];
                                 }
-                                crossing.point = glm::vec3(EIGHT_BIT_MAXIMUM, 0.0f, qAlpha(hermite));
+                                crossing.point = glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                             }
                             if (alpha4 != alpha5) {
                                 QRgb hermite = hermiteBase[hermiteArea];
@@ -1753,7 +1753,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.color = colorX[area];
                                     crossing.material = materialBase[area];
                                 }
-                                crossing.point = glm::vec3(qAlpha(hermite), 0.0f, EIGHT_BIT_MAXIMUM);
+                                crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
                             }
                         }
                     }
@@ -1769,7 +1769,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.color = colorX[0];
                                 crossing.material = materialBase[0];
                             }
-                            crossing.point = glm::vec3(0.0f, qAlpha(hermite), 0.0f);
+                            crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
                         }
                         if (middleZ) {
                             if (alpha2 != alpha6) {
@@ -1783,7 +1783,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.color = colorX[size];
                                     crossing.material = materialBase[size];
                                 }
-                                crossing.point = glm::vec3(0.0f, EIGHT_BIT_MAXIMUM, qAlpha(hermite));
+                                crossing.point = glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                             }
                             if (alpha4 != alpha6) {
                                 QRgb hermite = hermiteBase[hermiteArea + 1];
@@ -1796,7 +1796,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.color = colorX[area];
                                     crossing.material = materialBase[area];
                                 }
-                                crossing.point = glm::vec3(0.0f, qAlpha(hermite), EIGHT_BIT_MAXIMUM);
+                                crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
                             }
                         }
                     }
@@ -1811,7 +1811,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             crossing.color = colorX[0];
                             crossing.material = materialBase[0];
                         }
-                        crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite));
+                        crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                     }
                     // at present, we simply average the properties of each crossing as opposed to finding the vertex that
                     // minimizes the quadratic error function as described in the reference paper
@@ -1857,7 +1857,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     glm::vec4 bottom;
                     for (int i = 0; i < crossingCount; i++) {
                         const EdgeCrossing& crossing = crossings[i];
-                        bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point));
+                        bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point - center));
                         
                         for (int j = 0; j < 4; j++) {
                             float angle = glm::atan(-bottom[j], r[j][j]);
@@ -1872,11 +1872,130 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         }
                     }
                     
+                    // extract the submatrices, form ata
+                    glm::mat3 a(r);
+                    glm::vec3 b(r[3]);
+                    glm::mat3 atrans = glm::transpose(a);
+                    glm::mat3 ata = atrans * a;
+                    
+                    // compute the SVD of ata; first, find the eigenvalues
+                    // (see http://en.wikipedia.org/wiki/Eigenvalue_algorithm#3.C3.973_matrices)
+                    glm::vec3 eigenvalues;
+                    float p1 = ata[0][1] * ata[0][1] + ata[0][2] * ata[0][2] + ata[1][2] * ata[1][2];
+                    if (p1 < EPSILON) {
+                        eigenvalues = glm::vec3(ata[0][0], ata[1][1], ata[2][2]);
+                        if (eigenvalues[2] < eigenvalues[1]) {
+                            qSwap(eigenvalues[2], eigenvalues[1]);
+                        }
+                        if (eigenvalues[1] < eigenvalues[0]) {
+                            qSwap(eigenvalues[1], eigenvalues[0]);
+                        }
+                        if (eigenvalues[2] < eigenvalues[1]) {
+                            qSwap(eigenvalues[2], eigenvalues[1]);
+                        }
+                    } else {
+                        float q = (ata[0][0] + ata[1][1] + ata[2][2]) / 3.0f;
+                        float d1 = ata[0][0] - q, d2 = ata[1][1] - q, d3 = ata[2][2] - q;
+                        float p2 = d1 * d1 + d2 * d2 + d3 * d3 + 2.0f * p1;
+                        float p = glm::sqrt(p2 / 6.0f);
+                        glm::mat3 b = (ata - glm::mat3(q)) / p;
+                        float r = glm::determinant(b) / 2.0f;
+                        float phi;
+                        if (r <= -1.0f) {
+                            phi = PI / 3.0f;
+                        } else if (r >= 1.0f) {
+                            phi = 0.0f;
+                        } else {
+                            phi = glm::acos(r) / 3.0f;
+                        }
+                        eigenvalues[2] = q + 2.0f * p * glm::cos(phi);
+                        eigenvalues[0] = q + 2.0f * p * glm::cos(phi + (2.0f * PI / 3.0f));
+                        eigenvalues[1] = 3.0f * q - eigenvalues[0] - eigenvalues[2];
+                    }
+                    
+                    // form the singular matrix from the eigenvalues
+                    glm::mat3 d;
+                    const float MIN_SINGULAR_THRESHOLD = 0.1f;
+                    d[0][0] = (eigenvalues[0] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / eigenvalues[0];
+                    d[1][1] = (eigenvalues[1] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / eigenvalues[1];
+                    d[2][2] = (eigenvalues[2] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / eigenvalues[2];
+                    
+                    glm::mat3 m[] = { ata - glm::mat3(eigenvalues[0]), ata - glm::mat3(eigenvalues[1]),
+                        ata - glm::mat3(eigenvalues[2]) };
+                    
+                    // form the orthogonal matrix from the eigenvectors
+                    // see http://www.geometrictools.com/Documentation/EigenSymmetric3x3.pdf
+                    bool same01 = glm::abs(eigenvalues[0] - eigenvalues[1]) < EPSILON;
+                    bool same12 = glm::abs(eigenvalues[1] - eigenvalues[2]) < EPSILON;
+                    glm::mat3 u;
+                    if (!(same01 && same12)) {  
+                        if (same01 || same12) {
+                            int i = same01 ? 2 : 0;
+                            for (int j = 0; j < 3; j++) {
+                                glm::vec3 first = glm::vec3(m[i][0][j], m[i][1][j], m[i][2][j]);
+                                int j2 = (j + 1) % 3;
+                                glm::vec3 second = glm::vec3(m[i][0][j2], m[i][1][j2], m[i][2][j2]);
+                                glm::vec3 cross = glm::cross(first, second);
+                                float length = glm::length(cross);
+                                if (length > EPSILON) {
+                                    u[0][i] = cross[0] / length;
+                                    u[1][i] = cross[1] / length;
+                                    u[2][i] = cross[2] / length;
+                                    break;
+                                }
+                            }
+                            i = (i + 1) % 3;
+                            for (int j = 0; j < 3; j++) {
+                                glm::vec3 first = glm::vec3(m[i][0][j], m[i][1][j], m[i][2][j]);
+                                float length = glm::length(first);
+                                if (length > EPSILON) {
+                                    glm::vec3 second = glm::cross(first, glm::vec3(1.0f, 0.0f, 0.0f));
+                                    length = glm::length(second);
+                                    if (length < EPSILON) {
+                                        second = glm::cross(first, glm::vec3(0.0f, 1.0f, 0.0f));
+                                        length = glm::length(second);
+                                    }
+                                    u[0][i] = second[0] / length;
+                                    u[1][i] = second[1] / length;
+                                    u[2][i] = second[2] / length;
+                                    second = glm::normalize(glm::cross(second, first));
+                                    i = (i + 1) % 3;
+                                    u[0][i] = second[0];
+                                    u[1][i] = second[1];
+                                    u[2][i] = second[2];
+                                    break;
+                                }
+                            }
+                        } else {
+                            for (int i = 0; i < 3; i++) {
+                                for (int j = 0; j < 3; j++) {
+                                    glm::vec3 first = glm::vec3(m[i][0][j], m[i][1][j], m[i][2][j]);
+                                    int j2 = (j + 1) % 3;
+                                    glm::vec3 second = glm::vec3(m[i][0][j2], m[i][1][j2], m[i][2][j2]);
+                                    glm::vec3 cross = glm::cross(first, second);
+                                    float length = glm::length(cross);
+                                    if (length > EPSILON) {
+                                        u[0][i] = cross[0] / length;
+                                        u[1][i] = cross[1] / length;
+                                        u[2][i] = cross[2] / length;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // compute the pseudo-inverse, ataplus
+                    glm::mat3 ataplus = glm::transpose(u) * d * u; 
+                    
+                    glm::vec3 solution = (ataplus * atrans * b) + center;
+                    
+                    center = glm::clamp(solution, 0.0f, 1.0f);
+                    
                     if (totalWeight > 0.0f) {
                         materialWeights *= (EIGHT_BIT_MAXIMUM / totalWeight);
                     }
-                    VoxelPoint point = { info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) +
-                        center * EIGHT_BIT_MAXIMUM_RECIPROCAL) * scale,
+                    VoxelPoint point = { info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) + center) * scale,
                         { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
                         { (char)(normal.x * 127.0f), (char)(normal.y * 127.0f), (char)(normal.z * 127.0f) },
                         { materials[0], materials[1], materials[2], materials[3] },
