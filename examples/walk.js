@@ -1,58 +1,32 @@
 //
 //  walk.js
 //
-//  version 1.006b
+//  version 1.007b
 //
 //  Created by Davedub, August / September 2014
-//
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
-// Set asset paths here:
-
 // path to the animation files
-//var pathToAnimFiles = 'http://localhost/downloads/hf/scripts/animation-files/';									// loads fine (files must be present on localhost)
-//var pathToAnimFiles = 'http://highfidelity.davedub.co.uk/procedural/walk/animation-files/';         				// files present, but load with errors - weird
-var pathToAnimFiles = 'http://s3-us-west-1.amazonaws.com/highfidelity-public/procedural-animator/animation-files/';			// working (but only without https)
+var pathToAnimFiles = 'http://s3-us-west-1.amazonaws.com/highfidelity-public/procedural-animator/animation-files/';	// working (but only without https)
 
 // path to the images used for the overlays
-//var pathToOverlays = 'http://localhost/downloads/hf/scripts/overlays/';											// loads fine (files must be present on localhost)
-//var pathToOverlays = 'http://highfidelity.davedub.co.uk/procedural/walk/overlays/';								// files present, but won't load - weird
 var pathToOverlays = 'http://s3-us-west-1.amazonaws.com/highfidelity-public/procedural-animator/overlays/';			// working (but only without https)
 
 // path to the sounds used for the footsteps
 var pathToSounds = 'http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Footsteps/';
-//var pathToSounds = 'http://localhost/downloads/hf/sounds/Footsteps/';
 
-
-// load all the animation datafiles
-Script.include(pathToAnimFiles+"dd-female-cool-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-female-elderly-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-female-power-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-female-run-animation.js");
-Script.include(pathToAnimFiles+"dd-female-sexy-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-female-shuffle-animation.js");
-Script.include(pathToAnimFiles+"dd-female-random-walk-animation.js");
+// load the animation datafiles
 Script.include(pathToAnimFiles+"dd-female-strut-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-female-tough-walk-animation.js");
 Script.include(pathToAnimFiles+"dd-female-flying-up-animation.js");
 Script.include(pathToAnimFiles+"dd-female-flying-animation.js");
 Script.include(pathToAnimFiles+"dd-female-flying-down-animation.js");
 Script.include(pathToAnimFiles+"dd-female-standing-one-animation.js");
 Script.include(pathToAnimFiles+"dd-female-sidestep-left-animation.js");
 Script.include(pathToAnimFiles+"dd-female-sidestep-right-animation.js");
-Script.include(pathToAnimFiles+"dd-male-cool-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-male-elderly-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-male-power-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-male-run-animation.js");
-Script.include(pathToAnimFiles+"dd-male-sexy-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-male-shuffle-animation.js");
-Script.include(pathToAnimFiles+"dd-male-random-walk-animation.js");
 Script.include(pathToAnimFiles+"dd-male-strut-walk-animation.js");
-Script.include(pathToAnimFiles+"dd-male-tough-walk-animation.js");
 Script.include(pathToAnimFiles+"dd-male-flying-up-animation.js");
 Script.include(pathToAnimFiles+"dd-male-flying-animation.js");
 Script.include(pathToAnimFiles+"dd-male-flying-down-animation.js");
@@ -61,24 +35,8 @@ Script.include(pathToAnimFiles+"dd-male-sidestep-left-animation.js");
 Script.include(pathToAnimFiles+"dd-male-sidestep-right-animation.js");
 
 // read in the data from the animation files
-var FemaleCoolWalkFile = new FemaleCoolWalk();
-var femaleCoolWalk = FemaleCoolWalkFile.loadAnimation();
-var FemaleElderlyWalkFile = new FemaleElderlyWalk();
-var femaleElderlyWalk = FemaleElderlyWalkFile.loadAnimation();
-var FemalePowerWalkFile = new FemalePowerWalk();
-var femalePowerWalk = FemalePowerWalkFile.loadAnimation();
-var FemaleRunFile = new FemaleRun();
-var femaleRun = FemaleRunFile.loadAnimation();
-var FemaleSexyWalkFile = new FemaleSexyWalk();
-var femaleSexyWalk = FemaleSexyWalkFile.loadAnimation();
-var FemaleShuffleFile = new FemaleShuffle();
-var femaleShuffle = FemaleShuffleFile.loadAnimation();
-var FemaleRandomWalkFile = new FemaleRandomWalk();
-var femaleRandomWalk = FemaleRandomWalkFile.loadAnimation();
 var FemaleStrutWalkFile = new FemaleStrutWalk();
 var femaleStrutWalk = FemaleStrutWalkFile.loadAnimation();
-var FemaleToughWalkFile = new FemaleToughWalk();
-var femaleToughWalk = FemaleToughWalkFile.loadAnimation();
 var FemaleFlyingUpFile = new FemaleFlyingUp();
 var femaleFlyingUp = FemaleFlyingUpFile.loadAnimation();
 var FemaleFlyingFile = new FemaleFlying();
@@ -91,24 +49,8 @@ var FemaleSideStepLeftFile = new FemaleSideStepLeft();
 var femaleSideStepLeft = FemaleSideStepLeftFile.loadAnimation();
 var FemaleSideStepRightFile = new FemaleSideStepRight();
 var femaleSideStepRight = FemaleSideStepRightFile.loadAnimation();
-var MaleCoolWalkFile = new MaleCoolWalk();
-var maleCoolWalk = MaleCoolWalkFile.loadAnimation();
-var MaleElderlyWalkFile = new MaleElderlyWalk();
-var maleElderlyWalk = MaleElderlyWalkFile.loadAnimation();
-var MalePowerWalkFile = new MalePowerWalk();
-var malePowerWalk = MalePowerWalkFile.loadAnimation();
-var MaleRunFile = new MaleRun();
-var maleRun = MaleRunFile.loadAnimation();
-var MaleSexyWalkFile = new MaleSexyWalk();
-var maleSexyWalk = MaleSexyWalkFile.loadAnimation();
-var MaleShuffleFile = new MaleShuffle();
-var maleShuffle = MaleShuffleFile.loadAnimation();
-var MaleRandomWalkFile = new MaleRandomWalk();
-var maleRandomWalk = MaleRandomWalkFile.loadAnimation();
 var MaleStrutWalkFile = new MaleStrutWalk();
 var maleStrutWalk = MaleStrutWalkFile.loadAnimation();
-var MaleToughWalkFile = new MaleToughWalk();
-var maleToughWalk = MaleToughWalkFile.loadAnimation();
 var MaleFlyingUpFile = new MaleFlyingUp();
 var maleFlyingUp = MaleFlyingUpFile.loadAnimation();
 var MaleFlyingFile = new MaleFlying();
@@ -201,7 +143,6 @@ var selectedJointIndex = 0; // the index of the joint currently selected for edi
 var currentTransition = null; // used as a pointer to a Transition
 
 // walkwheel (foot / ground speed matching)
-//var walkCycleStart = 140; // 105 for female strut... best foot forwards - TODO: if found to be different for different anims, add as setting to anim files
 var sideStepCycleStartLeft = 270;
 var sideStepCycleStartRight = 90;
 var walkWheelPosition = 0;
@@ -220,7 +161,6 @@ function RecentMotion(velocity, acceleration, principleDirection, state) {
 	this.acceleration = acceleration;
 	this.principleDirection = principleDirection;
 	this.state = state;
-	// TODO: add INTERNAL_STATE so can remove 'hints' system for state changes
 }
 
 // constructor for the FramesHistory object
@@ -231,8 +171,7 @@ function FramesHistory() {
 		this.recentMotions.push(blank);
 	}
 
-	// recentDirection 'method'
-	// args: (direction enum, number of steps back to compare)
+	// recentDirection 'method' args: (direction enum, number of steps back to compare)
 	this.recentDirection = function () {
 
 		if( arguments[0] && arguments[1] ) {
@@ -244,15 +183,13 @@ function FramesHistory() {
 			for(var i = 0 ; i < arguments[1] ; i++ ) {
 				if( this.recentMotions[i].principleDirection === arguments[0] )
 					directionCount++;
-				//print('looking for '+directionAsString(arguments[0])+' directionCount '+directionCount+' count '+i+' dircetion '+directionAsString(this.recentMotions[i].principleDirection));
 			}
 			return directionCount / arguments[1] === 1 ? true : false;
 		}
 		return false;
 	}
 
-	// recentState 'method'
-	// args: (state enum, number of steps back to compare)
+	// recentState 'method' args: (state enum, number of steps back to compare)
 	this.recentState = function () {
 
 		if( arguments[0] && arguments[1] ) {
@@ -298,8 +235,6 @@ function Transition(lastAnimation, nextAnimation, reachPoses, transitionDuration
 	this.walkWheelIncrement = 3;					// how much to turn the walkwheel each frame when coming to a halt. Get's set to 0 once the feet are under the avi
 	this.walkWheelAdvance = 0;						// how many degrees the walk wheel has been advanced during the transition
 	this.walkStopAngle = 0;							// what angle should we stop the walk cycle? (calculated on the fly)
-
-	//print('Transition initiated from '+this.lastAnimation.name+' to '+this.nextAnimation.name+' duration '+transitionDuration.toFixed(2));
 }
 
 // convert a local (to the avi) translation to a global one
@@ -333,8 +268,6 @@ function translateHips(localHipsTranslation) {
 	AviTranslationOffset = Vec3.sum(AviTranslationOffset, aviFront);
 	AviTranslationOffset = Vec3.sum(AviTranslationOffset, aviRight);
 	AviTranslationOffset = Vec3.sum(AviTranslationOffset, aviUp);
-
-	//MyAvatar.addThrust(AviTranslationOffset * 10);
 	MyAvatar.position = {x: MyAvatar.position.x + AviTranslationOffset.x,
 						 y: MyAvatar.position.y + AviTranslationOffset.y,
 						 z: MyAvatar.position.z + AviTranslationOffset.z };
@@ -345,10 +278,10 @@ function resetJoints() {
 
     var avatarJointNames = MyAvatar.getJointNames();
     for (var i = 0; i < avatarJointNames.length; i++) {
-        //MyAvatar.setJointData(avatarJointNames[i], Quat.fromPitchYawRollDegrees(0,0,0));
         MyAvatar.clearJointData(avatarJointNames[i]);
     }
 }
+
 // play footstep sound
 function playFootstep(side) {
 
@@ -357,11 +290,9 @@ function playFootstep(side) {
     options.volume = 0.5;
     var walkNumber = 2; // 0 to 2
     if(side===DIRECTION_RIGHT && playFootStepSounds) {
-		//print('playing right footstep - if you can not hear sound, try turning your mic on then off again.');
 		Audio.playSound(footsteps[walkNumber+1], options);
 	}
     else if(side===DIRECTION_LEFT && playFootStepSounds) {
-		//print('playing left footstep - if you can not hear sound, try turning your mic on then off again.');
 		Audio.playSound(footsteps[walkNumber], options);
 	}
 }
@@ -387,17 +318,14 @@ function curlFingers() {
     }
 }
 
-
 // additional maths functions
-function degToRad(degreesValue) { return degreesValue * Math.PI / 180; }
-function radToDeg(radiansValue) { return radiansValue * 180 / Math.PI; }
-//function cubicRoot(x) { var y = Math.pow(Math.abs(x), 1/3); return x < 0 ? -y : y; }
+function degToRad( degreesValue ) { return degreesValue * Math.PI / 180; }
+function radToDeg( radiansValue ) { return radiansValue * 180 / Math.PI; }
 
 // animateAvatar - sine wave generators working like clockwork
-function animateAvatar(deltaTime, velocity, principleDirection) {
+function animateAvatar( deltaTime, velocity, principleDirection ) {
 
-	    // adjusting the walk speed in edit mode causes a nasty flicker
-	    // pausing the animation stops this
+	    // adjusting the walk speed in edit mode causes a nasty flicker. pausing the animation stops this
         if(paused) return;
 
 		var cycle = cumulativeTime;
@@ -441,42 +369,18 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 						currentTransition.walkWheelIncrement = 6;
 
 						// keep the walkwheel turning by setting the walkWheelIncrement until our feet are tucked nicely underneath us.
-						// fold back (reverse walk) if we just missed our stop target on the walkwheel when we stopped walking - depricated
-						//var stepIncrement = 2; // just used to set currentTransition.walkWheelIncrement in multiple locations
 						if( angleToLeftStop < angleToRightStop ) {
-
-							//if(angleToLeftStop<270) currentTransition.walkStopAngle = rightStop;
-							//else if(walkWheelPosition>angleToLeftStop) currentTransition.walkStopAngle = rightStop;
-							//else currentTransition.walkStopAngle = leftStop;
 
 							currentTransition.walkStopAngle = leftStop;
 
-							//if( leftStop > 270 && walkWheelPosition < 90 ) currentTransition.walkWheelIncrement = -stepIncrement;
-							//else if( walkWheelPosition > 270 && leftStop < 90 ) currentTransition.walkWheelIncrement = stepIncrement;
-							//else if( walkWheelPosition <  leftStop ) currentTransition.walkWheelIncrement = stepIncrement;
-							//else if( walkWheelPosition >= leftStop ) currentTransition.walkWheelIncrement = -stepIncrement;
-							//currentTransition.walkWheelIncrement = stepIncrement;
-
 						} else {
 
-							//if(angleToRightStop<270) currentTransition.walkStopAngle = leftStop;
-							//else if(walkWheelPosition>angleToRightStop) currentTransition.walkStopAngle = leftStop;
-							//else currentTransition.walkStopAngle = rightStop;
 							currentTransition.walkStopAngle = rightStop;
-
-							//currentTransition.walkStopAngle = rightStop;
-							//if( rightStop > 270 && walkWheelPosition < 90 ) currentTransition.walkWheelIncrement = -stepIncrement;
-							//else if( walkWheelPosition > 270 && rightStop < 90 ) currentTransition.walkWheelIncrement = stepIncrement;
-							//else if( walkWheelPosition <  rightStop ) currentTransition.walkWheelIncrement = stepIncrement;
-							//else if( walkWheelPosition >= rightStop ) currentTransition.walkWheelIncrement = -stepIncrement;
-							//currentTransition.walkWheelIncrement = stepIncrement;
 						}
-
-						//print('walkWheelPosition '+walkWheelPosition.toFixed(2)+' leftStop '+leftStop+' rightStop '+rightStop+' angleToLeftStop '+angleToLeftStop.toFixed(2)+' angleToRightStop '+angleToRightStop.toFixed(2)+' stop angle '+currentTransition.walkStopAngle)
 
 					} else {
 
-						// just freeze wheel for sidestepping
+						// freeze wheel for sidestepping transitions
 						currentTransition.walkWheelIncrement = 0;
 					}
 				}
@@ -500,25 +404,13 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 					if( INTERNAL_STATE !== SIDE_STEPPING ) {
 
 						// if at a stop angle, hold the walk wheel position for remainder of transition
-						var tolerance = 10;  // must be greater than the walkWheel increment
+						var tolerance = 7;  // must be greater than the walkWheel increment
 						if(( walkWheelPosition > (currentTransition.walkStopAngle - tolerance )) &&
 						   ( walkWheelPosition < (currentTransition.walkStopAngle + tolerance ))) {
 
-							//print('stop now? walkWheelAdvance '+currentTransition.walkWheelAdvance);
-
-							//if( currentTransition.walkWheelAdvance < 45 ) {
-
-							//	currentTransition.walkStopAngle += 180; // not enough of a transition - keep moving...
-							//	if( currentTransition.walkStopAngle > 360 ) currentTransition.walkStopAngle %= 360;
-
-							//	print('walkStopAngle incremented ');
-							//}
-							//else
 							currentTransition.walkWheelIncrement = 0;
 						}
 						// keep turning walk wheel until both feet are below the avi
-
-						//print('walkWheelAdvance '+currentTransition.walkWheelAdvance);
 						walkWheelPosition += currentTransition.walkWheelIncrement;
 						currentTransition.walkWheelAdvance += currentTransition.walkWheelIncrement;
 					}
@@ -540,8 +432,8 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 
 				// if the timing's right, take a snapshot of the stride max and recalibrate
 				var tolerance = 1.0; // higher the number, the higher the chance of a calibration taking place, but is traded off with lower accuracy
-				var strideOne = 40; // 130
-				var strideTwo = 220; // 300
+				var strideOne = 40;
+				var strideTwo = 220;
 
 				if( principleDirection === DIRECTION_BACKWARDS ) {
 					strideOne = 130;
@@ -556,20 +448,19 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 					var footLPos = localToGlobal(MyAvatar.getJointPosition("LeftFoot"));
 					var footOffsetZ = Math.abs(footRPos.z - footLPos.z);
 					if(footOffsetZ>1) strideLength = 2 * footOffsetZ + aviFootSize.z; // sometimes getting very low value here - just ignore for now
-					//if(statsOn) print('Stride length calibrated to '+strideLength.toFixed(4)+' metres at '+walkWheelPosition.toFixed(1)+' degrees');
+					if(statsOn) print('Stride length calibrated to '+strideLength.toFixed(4)+' metres at '+walkWheelPosition.toFixed(1)+' degrees');
 					if(principleDirection===DIRECTION_FORWARDS) {
 						currentAnimation.calibration.strideLengthForwards = strideLength;
 					} else if (principleDirection===DIRECTION_BACKWARDS) {
 						currentAnimation.calibration.strideLengthBackwards = strideLength;
 					}
-				}
-				else {
 
-					if(principleDirection===DIRECTION_FORWARDS) {
+				} else {
+
+					if(principleDirection===DIRECTION_FORWARDS)
 						strideLength = currentAnimation.calibration.strideLengthForwards;
-					} else if (principleDirection===DIRECTION_BACKWARDS) {
+					else if (principleDirection===DIRECTION_BACKWARDS)
 						strideLength = currentAnimation.calibration.strideLengthBackwards;
-					}
 				}
 			}
 			else if(( INTERNAL_STATE===SIDE_STEPPING ||
@@ -588,8 +479,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 						var footLPos = localToGlobal(MyAvatar.getJointPosition("LeftFoot"));
 						var footOffsetX = Math.abs(footRPos.x - footLPos.x);
 						strideLength = footOffsetX;
-						//if(statsOn) print('Stride width calibrated to '+strideLength.toFixed(4)+ ' metres at '+walkWheelPosition.toFixed(1)+' degrees');
-						//print('Stride width calibrated to '+strideLength.toFixed(4)+ ' metres at '+walkWheelPosition.toFixed(1)+' degrees. footRPos '+footRPos.x.toFixed(3)+' footLPos '+footLPos.x.toFixed(3)+' footOffsetX '+footOffsetX.toFixed(3));
+						if(statsOn) print('Stride width calibrated to '+strideLength.toFixed(4)+ ' metres at '+walkWheelPosition.toFixed(1)+' degrees');
 						currentAnimation.calibration.strideLengthLeft = strideLength;
 
 					} else {
@@ -606,8 +496,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 						var footLPos = localToGlobal(MyAvatar.getJointPosition("LeftFoot"));
 						var footOffsetX = Math.abs(footRPos.x - footLPos.x);
 						strideLength = footOffsetX;
-						//if(statsOn) print('Stride width calibrated to '+strideLength.toFixed(4)+ ' metres at '+walkWheelPosition.toFixed(1)+' degrees');
-						//print('Stride width calibrated to '+strideLength.toFixed(4)+ ' metres at '+walkWheelPosition.toFixed(1)+' degrees. footRPos '+footRPos.x.toFixed(3)+' footLPos '+footLPos.x.toFixed(3)+' footOffsetX '+footOffsetX.toFixed(3));
+						if(statsOn) print('Stride width calibrated to '+strideLength.toFixed(4)+ ' metres at '+walkWheelPosition.toFixed(1)+' degrees');
 						currentAnimation.calibration.strideLengthRight = strideLength;
 
 					} else {
@@ -715,7 +604,6 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
         var yawOffsetLast = 0;
         var rollOffsetLast = 0;
 
-
 		// calcualte any hips translation
 		// Note: can only apply hips translations whilst in a config (edit) mode at present, not whilst under locomotion
 		if( INTERNAL_STATE===CONFIG_WALK_STYLES ||
@@ -727,12 +615,12 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 		    INTERNAL_STATE===CONFIG_FLYING_UP ||
 		    INTERNAL_STATE===CONFIG_FLYING_DOWN ) {
 
-			// calculate hips translation TODO: get this working in normal motion!
+			// calculate hips translation
 			var motorOscillation  = Math.sin(degToRad((cycle * adjustedFrequency * 2) + currentAnimation.joints[0].thrustPhase)) + currentAnimation.joints[0].thrustOffset;
 			var swayOscillation   = Math.sin(degToRad((cycle * adjustedFrequency    ) + currentAnimation.joints[0].swayPhase)) + currentAnimation.joints[0].swayOffset;
 			var bobOscillation    = Math.sin(degToRad((cycle * adjustedFrequency * 2) + currentAnimation.joints[0].bobPhase)) + currentAnimation.joints[0].bobOffset;
 
-			// apply hips translation TODO: get this working!
+			// apply hips translation
 			translateHips({x:swayOscillation*currentAnimation.joints[0].sway, y:motorOscillation*currentAnimation.joints[0].thrust, z:bobOscillation*currentAnimation.joints[0].bob});
 		}
 
@@ -760,7 +648,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 				rollOscillationLast = (currentTransition.lastAnimation.joints[0].roll * Math.sin(degToRad(( walkWheelPosition )
 									   + currentTransition.lastAnimation.joints[0].rollPhase)) + currentTransition.lastAnimation.joints[0].rollOffset);
 
-			} else {//if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = currentAnimation.joints[0].pitch * Math.sin(degToRad((cycle * adjustedFrequency * 2)
 									   + currentAnimation.joints[0].pitchPhase)) + currentAnimation.joints[0].pitchOffset;
@@ -785,8 +673,6 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 			pitchOscillation = (transitionProgress * pitchOscillation) + ((1-transitionProgress) * pitchOscillationLast);
 			yawOscillation   = (transitionProgress * yawOscillation)   + ((1-transitionProgress) * yawOscillationLast);
 			rollOscillation  = (transitionProgress * rollOscillation)  + ((1-transitionProgress) * rollOscillationLast);
-
-			//print('Hips: '+pitchOscillation+' '+yawOscillation+' '+rollOscillation);
 
 		} else {
 
@@ -1014,7 +900,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 				yawOffsetLast = currentTransition.lastAnimation.joints[3].yawOffset;
 				rollOffsetLast = currentTransition.lastAnimation.joints[3].rollOffset;
 
-			} else { //if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = currentAnimation.joints[3].pitch * Math.sin(degToRad((cycle * adjustedFrequency ) + currentAnimation.joints[3].pitchPhase));
 				yawOscillation   = currentAnimation.joints[3].yaw   * Math.sin(degToRad((cycle * adjustedFrequency ) + currentAnimation.joints[3].yawPhase));
@@ -1064,9 +950,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 		MyAvatar.setJointData("RightFoot", Quat.fromPitchYawRollDegrees(  pitchOscillation + pitchOffset, yawOscillation + yawOffset, rollOscillation + rollOffset ));
 		MyAvatar.setJointData("LeftFoot",  Quat.fromPitchYawRollDegrees( -pitchOscillation + pitchOffset, yawOscillation - yawOffset, rollOscillation - rollOffset ));
 
-
-		// play footfall sound yet? To determine this, we take the differential of
-		// the foot's pitch curve to decide when the foot hits the ground.
+		// play footfall sound yet? To determine this, we take the differential of the foot's pitch curve to decide when the foot hits the ground.
 		if( INTERNAL_STATE===WALKING ||
 		    INTERNAL_STATE===SIDE_STEPPING ||
 		    INTERNAL_STATE===CONFIG_WALK_STYLES ||
@@ -1075,8 +959,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 		    INTERNAL_STATE===CONFIG_SIDESTEP_LEFT ||
 		    INTERNAL_STATE===CONFIG_SIDESTEP_RIGHT ) {
 
-			// As luck would have it, we're using sine waves, so finding dy/dx is as
-			// simple as determining the cosine wave for the foot's pitch function.
+			// finding dy/dx is as simple as determining the cosine wave for the foot's pitch function.
 			var feetPitchDifferential = Math.cos(degToRad((cycle * adjustedFrequency ) + currentAnimation.joints[3].pitchPhase));
 			var threshHold = 0.9; // sets the audio trigger point. with accuracy.
 			if(feetPitchDifferential<-threshHold &&
@@ -1114,7 +997,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 
 				pitchOffsetLast = currentTransition.lastAnimation.joints[4].pitchOffset;
 
-			} else { //if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = currentAnimation.joints[4].pitch * Math.sin(degToRad((cycle * adjustedFrequency) + currentAnimation.joints[4].pitchPhase));
 				yawOscillation   = currentAnimation.joints[4].yaw   * Math.sin(degToRad((cycle * adjustedFrequency) + currentAnimation.joints[4].yawPhase)) + currentAnimation.joints[4].yawOffset;
@@ -1156,7 +1039,6 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 		MyAvatar.setJointData("RightToeBase", Quat.fromPitchYawRollDegrees(-pitchOscillation + pitchOffset, yawOscillation, rollOscillation));
 		MyAvatar.setJointData("LeftToeBase",  Quat.fromPitchYawRollDegrees( pitchOscillation + pitchOffset, yawOscillation, rollOscillation));
 
-
 		// spine
 		if( currentTransition !== null ) {
 
@@ -1176,8 +1058,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 				rollOscillationLast  = currentTransition.lastAnimation.joints[5].roll
 										* Math.sin(degToRad(( walkWheelPosition ) + currentTransition.lastAnimation.joints[5].rollPhase))
 										+ currentTransition.lastAnimation.joints[5].rollOffset;
-
-			} else { //if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = currentAnimation.joints[5].pitch * Math.sin( degToRad(( cycle * adjustedFrequency * 2)
 									+ currentAnimation.joints[5].pitchPhase)) + currentAnimation.joints[5].pitchOffset;
@@ -1218,7 +1099,6 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 		// apply spine joint rotations
 		MyAvatar.setJointData("Spine", Quat.fromPitchYawRollDegrees( pitchOscillation, yawOscillation, rollOscillation ));
 
-
 		// spine 1
 		if(currentTransition!==null) {
 
@@ -1238,7 +1118,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 										* Math.sin(degToRad(( walkWheelPosition ) + currentTransition.lastAnimation.joints[6].rollPhase))
 										+ currentTransition.lastAnimation.joints[6].rollOffset;
 
-			} else { //if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = currentAnimation.joints[6].pitch * Math.sin( degToRad(( cycle * adjustedFrequency * 2)
 									+ currentAnimation.joints[6].pitchPhase)) + currentAnimation.joints[6].pitchOffset;
@@ -1298,7 +1178,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 										* Math.sin(degToRad(( walkWheelPosition ) + currentTransition.lastAnimation.joints[7].rollPhase))
 										+ currentTransition.lastAnimation.joints[7].rollOffset;
 
-			} else { //if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = currentAnimation.joints[7].pitch
 									* Math.sin( degToRad(( cycle * adjustedFrequency * 2)
@@ -1380,7 +1260,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 
 					yawOffsetLast = currentTransition.lastAnimation.joints[8].yawOffset;
 
-				} else { //if( currentTransition.walkingAtEnd ) {
+				} else {
 
 					pitchOscillation = currentAnimation.joints[8].pitch * Math.sin( degToRad(( cycle * adjustedFrequency    )
 										+ currentAnimation.joints[8].pitchPhase)) + currentAnimation.joints[8].pitchOffset;
@@ -1458,7 +1338,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 					pitchOffsetLast = currentTransition.lastAnimation.joints[9].pitchOffset;
 					yawOffsetLast = currentTransition.lastAnimation.joints[9].yawOffset;
 
-				} else { //if( currentTransition.walkingAtEnd ) {
+				} else {
 
 					pitchOscillation = currentAnimation.joints[9].pitch
 										* Math.sin( degToRad(( cycle * adjustedFrequency )
@@ -1559,7 +1439,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 					yawOffsetLast  = currentTransition.lastAnimation.joints[10].yawOffset;
 					rollOffsetLast = currentTransition.lastAnimation.joints[10].rollOffset;
 
-				} else { //if( currentTransition.walkingAtEnd ) {
+				} else {
 
 					pitchOscillation = currentAnimation.joints[10].pitch
 										* Math.sin( degToRad(( cycle * adjustedFrequency )
@@ -1621,9 +1501,6 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 				rollOffset = currentAnimation.joints[10].rollOffset;
 			}
 
-			// transitionProgress pitchOscillation yawOscillation rollOscillation
-			//print(transitionProgress+' '+pitchOscillation+' '+yawOscillation+' '+rollOscillation);
-
 			// apply forearms rotations
 			MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees( pitchOscillation,  yawOscillation + yawOffset,  rollOscillation + rollOffset ));
 			MyAvatar.setJointData("LeftForeArm",  Quat.fromPitchYawRollDegrees( pitchOscillation,  yawOscillation - yawOffset,  rollOscillation - rollOffset ));
@@ -1632,7 +1509,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 			var sideStepSign = 1;
 			if(INTERNAL_STATE===SIDE_STEPPING) {
 				sideStepSign = 1;
-			} // TODO: check status of hand rotations
+			}
 			if(currentTransition!==null) {
 
 				if(currentTransition.walkingAtStart) {
@@ -1655,7 +1532,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 					rollOffset = currentAnimation.joints[11].rollOffset;
 					rollOffsetLast = currentTransition.lastAnimation.joints[11].rollOffset;
 
-				} else { //if( currentTransition.walkingAtEnd ) {
+				} else {
 
 					pitchOscillation = currentAnimation.joints[11].pitch
 										* Math.sin( degToRad(( cycle * adjustedFrequency )
@@ -1712,7 +1589,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 
 		} // end if(!armsFree)
 
-        // head (includes neck joint) - currently zeroed out in STANDING by request
+        // head (includes neck joint) - currently zeroed out in STANDING animation files by request
         if( currentTransition !== null ) {
 
 			if(currentTransition.walkingAtStart) {
@@ -1738,7 +1615,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 										* Math.sin(degToRad(( walkWheelPosition ) + currentTransition.lastAnimation.joints[12].rollPhase))
 										+ currentTransition.lastAnimation.joints[12].rollOffset;
 
-			} else { //if( currentTransition.walkingAtEnd ) {
+			} else {
 
 				pitchOscillation = 0.5 * currentAnimation.joints[12].pitch * Math.sin(degToRad(( cycle * adjustedFrequency * 2) + currentAnimation.joints[12].pitchPhase)) + currentAnimation.joints[12].pitchOffset;
 				yawOscillation   = 0.5 * currentAnimation.joints[12].yaw   * Math.sin(degToRad(( cycle * adjustedFrequency    ) + currentAnimation.joints[12].yawPhase))   + currentAnimation.joints[12].yawOffset;
@@ -1760,7 +1637,6 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 										+ currentTransition.lastAnimation.joints[12].rollOffset;
 			}
 
-			// TODO: see if can animate separate heads in any way...
 			pitchOscillation = (transitionProgress * pitchOscillation) + ((1-transitionProgress) * pitchOscillationLast);
 			yawOscillation   = (transitionProgress * yawOscillation)   + ((1-transitionProgress) * yawOscillationLast);
 			rollOscillation  = (transitionProgress * rollOscillation)  + ((1-transitionProgress) * rollOscillationLast);
@@ -1778,7 +1654,7 @@ function animateAvatar(deltaTime, velocity, principleDirection) {
 
 
 
-// getBezier - src: Dan Pupius (www.pupius.net) http://13thparallel.com/archive/bezier-curves/
+// Bezier function for applying to transitions - src: Dan Pupius (www.pupius.net) http://13thparallel.com/archive/bezier-curves/
 Coord = function (x,y) {
 	if(!x) var x=0;
 	if(!y) var y=0;
@@ -1801,10 +1677,8 @@ function getBezier(percent,C1,C2,C3,C4) {
 var NZEROS = 8;
 var NPOLES = 8;
 var GAIN =   17.40692157;
-var xv = [0,0,0,0,0,0,0,0,0];
-//xv.length = NZEROS+1;
-var yv = [0,0,0,0,0,0,0,0,0];
-//yv.length = NPOLES+1;
+var xv = [0,0,0,0,0,0,0,0,0]; //xv.length = NZEROS+1;
+var yv = [0,0,0,0,0,0,0,0,0]; //yv.length = NPOLES+1;
 
 function filterButterworth(nextInputValue)
 {
@@ -1820,46 +1694,17 @@ function filterButterworth(nextInputValue)
 	return yv[8];
 }
 
-
 // the faster we go, the further we lean forward. the angle is calcualted here
 var leanAngles = []; // smooth out and add damping with simple averaging filter.
 leanAngles.length = 15;
 
 function getLeanPitch(velocity) {
-/*
-	// lean backwards when decelerating a lot. skid to a halt. working, but I don't like the effect - will use a reach pose later instead
 
-	var accelerationResponse = recentMotions[0].acceleration.z;
-	var accelerationResponseMax = 45; // max degrees hip pitch
-
-	if(velocity<FLYING_SPEED) accelerationResponse /= 10; // tweak here - 10 gives a big response, 50 very little
-	else accelerationResponse /= 2000;
-	if(accelerationResponse>accelerationResponseMax)
-		accelerationResponse = accelerationResponseMax;
-	else if(accelerationResponse<-accelerationResponseMax)
-		accelerationResponse = -accelerationResponseMax;
-	// apply yet another averaging filter...
-	accelerationResponseAngles.push(accelerationResponse);
-	accelerationResponseAngles.shift();
-	var finalAccelerationResponse = 0;
-    for(ea in accelerationResponseAngles) finalAccelerationResponse += accelerationResponseAngles[ea];
-    finalAccelerationResponse /= accelerationResponseAngles.length;
-
-    // calculate any skid for this frame and apply it
-    var skidDistance = -0.01 * hipsToFeetDistance * Math.sin(degToRad(finalAccelerationResponse));
-    if(Math.abs(skidDistance)>0.001 && INTERNAL_STATE===STANDING) { // show skids when stopping
-		var skidVector = localToGlobal({ x:0, y:0, z:skidDistance });
-		print('skidDistance '+skidDistance+' metres');
-		MyAvatar.position = Vec3.sum(MyAvatar.position, skidVector);
-	}
-	if(Math.abs(accelerationResponse)>0) print('accelerationResponse '+accelerationResponse.toFixed(3)+' recent acceleration '+recentMotions[0].acceleration.z.toFixed(3));
-*/
 	if(velocity>TERMINAL_VELOCITY) velocity=TERMINAL_VELOCITY;
 	var leanProgress = velocity / TERMINAL_VELOCITY;
 	var responseSharpness = 1.8;
 	if(principleDirection==DIRECTION_BACKWARDS) responseSharpness = 3.6; // lean back a bit extra when walking backwards
 	var leanProgressBezier = getBezier((1-leanProgress),{x:0,y:0},{x:0,y:responseSharpness},{x:0,y:1},{x:1,y:1}).y;
-	//var leanProgressButterworth = filterButterworth(leanProgressBezier);
 
 	// simple averaging filter seems to give best results
     leanAngles.push(leanProgressBezier);
@@ -1926,27 +1771,22 @@ function getLeanRoll(deltaTime, velocity) {
 // set up the interface components, update the internal state and kick off any transitions
 function setInternalState(newInternalState) {
 
-	var debugShowStateChanges = false;
-
-    switch(newInternalState) {
+	switch(newInternalState) {
 
         case WALKING:
 
-        	if(debugShowStateChanges) print('WALKING');
             if(!minimised) doStandardMenu();
             INTERNAL_STATE = WALKING;
             return;
 
         case FLYING:
 
-        	if(debugShowStateChanges) print('FLYING');
             if(!minimised) doStandardMenu();
             INTERNAL_STATE = FLYING;
             return;
 
         case SIDE_STEPPING:
 
-        	if(debugShowStateChanges) print('SIDE_STEPPING');
             if(!minimised) doStandardMenu();
             INTERNAL_STATE = SIDE_STEPPING;
             return;
@@ -2118,7 +1958,6 @@ function setInternalState(newInternalState) {
         case STANDING:
         default:
 
-        	if(debugShowStateChanges) print('STANDING');
             INTERNAL_STATE = STANDING;
             if(!minimised) doStandardMenu();
 
@@ -2138,9 +1977,8 @@ function setInternalState(newInternalState) {
 
 // Main loop
 
-// stabilising vars -  most state changes are preceded by a couple of hints that they are about to happen
-// rather than momentarilly switching between states (causes flicker), we count the number of hints in a row before
-// actually changing state - a system very similar to switch debouncing in electronics design
+// stabilising vars -  most state changes are preceded by a couple of hints that they are about to happen rather than
+// momentarilly switching between states (causes flicker), we count the number of hints in a row before actually changing state
 var standHints = 0;
 var walkHints = 0;
 var flyHints = 0;
@@ -2303,7 +2141,6 @@ Script.update.connect(function(deltaTime) {
 
 			// NB: this section will change significantly once we are ground plane aware
 			//     it will change even more once we have uneven surfaces to deal with
-			//     but for now, we have to deal with states like 'standing in the air'
 
 			// maybe at walking speed, but sideways?
 			if( actionToTake === WALKING &&
@@ -2361,9 +2198,9 @@ Script.update.connect(function(deltaTime) {
 							switch(currentAnimation) {
 
 								case selectedWalk:
+
 									// Walking to Standing
 									var timeWalking = new Date().getTime() - framesHistory.lastWalkStartTime;
-									//print('You were walking for '+timeWalking+' mS');
 
 									var bezierCoeffsOne = {x:0.0, y:1.0};
 									var bezierCoeffsTwo = {x:0.0, y:1.0};
@@ -2382,7 +2219,6 @@ Script.update.connect(function(deltaTime) {
 								case selectedSideStepLeft:
 								case selectedSideStepRight:
 
-									//currentTransition = new Transition(currentAnimation, selectedWalk, [], 0.3, {x:0.5,y:0.08}, {x:0.05,y:0.75});
 									break;
 
 								default:
@@ -2430,6 +2266,7 @@ Script.update.connect(function(deltaTime) {
 							switch(currentAnimation) {
 
 								case selectedStand:
+
 									// Standing to Walking
 									currentTransition = new Transition(currentAnimation, selectedWalk, [], 0.25, {x:0.5,y:0.08}, {x:0.05,y:0.75});
 									break;
@@ -2464,22 +2301,20 @@ Script.update.connect(function(deltaTime) {
 
 								if( principleDirection === DIRECTION_LEFT ) {
 
-									walkWheelPosition = sideStepCycleStartLeft;//selectedSideStep.calibration.sideStepCycleStartLeft;
+									walkWheelPosition = sideStepCycleStartLeft;
 
 								} else {
 
-									walkWheelPosition = sideStepCycleStartRight;//selectedSideStep.calibration.sideStepCycleStartRight;
+									walkWheelPosition = sideStepCycleStartRight;
 								}
 								switch(currentAnimation) {
 
 									case selectedStand:
 
-										//currentTransition = new Transition(currentAnimation, selectedSideStep, [], 0.8, {x:0.5,y:0.08}, {x:0.28,y:1});
 										break;
 
 									default:
 
-										//currentTransition = new Transition(currentAnimation, selectedSideStep, [], 0.8, {x:0.5,y:0.08}, {x:0.28,y:1});
 										break;
 								}
 								setInternalState(SIDE_STEPPING);
@@ -2607,13 +2442,6 @@ Script.update.connect(function(deltaTime) {
 		// before we go, populate the stats overlay
 		if( statsOn ) {
 
-			// quick test for the frame execution time measurement
-			// lots of console logging messes up execution times pretty well!
-			//for(var doh = 0 ; doh < 10 ; doh++) {
-			//	//var fake = doh * doh * doh;
-			//	print('faking bad coding...'+doh);
-			//}
-
 			var cumulativeTimeMS = Math.floor(cumulativeTime*1000);
 			var deltaTimeMS = deltaTime * 1000;
 			var frameExecutionTime = new Date().getTime() - frameStartTime;
@@ -2682,8 +2510,6 @@ var jointsControlOverlays = [];
 var bigButtonOverlays = [];
 
 
-// take a deep breath and...
-
 // load UI backgrounds
 var controlsBackground = Overlays.addOverlay("image", {
                     bounds: { x: backgroundX, y: backgroundY, width: backgroundWidth, height: backgroundHeight },
@@ -2730,9 +2556,6 @@ var controlsBackgroundFlyingEdit = Overlays.addOverlay("image", {
                 });
 backgroundOverlays.push(controlsBackgroundFlyingEdit);
 
-
-
-
 // minimised tab - not put in array, as is a one off
 var controlsMinimisedTab = Overlays.addOverlay("image", {
 					x: Window.innerWidth-58, y: Window.innerHeight -145, width: 50, height: 50,
@@ -2741,8 +2564,6 @@ var controlsMinimisedTab = Overlays.addOverlay("image", {
 					visible: minimised,
 					alpha: 0.9
 					});
-
-
 
 // load character joint selection control images
 var hipsJointControl = Overlays.addOverlay("image", {
@@ -3088,8 +2909,6 @@ var configWalkTweaksButtonSelected = Overlays.addOverlay("image", {
                 });
 buttonOverlays.push(configWalkTweaksButtonSelected);
 
-
-
 var configSideStepLeftButton = Overlays.addOverlay("image", {
                     bounds: { x: backgroundX+83, y: backgroundY+buttonsY, width: 60, height: 47 },
                     imageURL: pathToOverlays+"ddao-edit-sidestep-left-button.png",
@@ -3253,158 +3072,6 @@ var strutWalkBigButtonSelected = Overlays.addOverlay("image", {
                     visible: false
                 });
 bigButtonOverlays.push(strutWalkBigButtonSelected);
-
-bigButtonYOffset += 60
-var sexyWalkBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-sexy.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(sexyWalkBigButton);
-
-var sexyWalkBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-sexy-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(sexyWalkBigButtonSelected);
-
-bigButtonYOffset += 60;
-var powerWalkBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-power-walk.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(powerWalkBigButton);
-
-var powerWalkBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-power-walk-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(powerWalkBigButtonSelected);
-
-bigButtonYOffset += 60;
-var shuffleBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-shuffle.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(shuffleBigButton);
-
-var shuffleBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-shuffle-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(shuffleBigButtonSelected);
-
-bigButtonYOffset += 60;
-var runBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-run.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(runBigButton);
-
-var runBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-run-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(runBigButtonSelected);
-
-bigButtonYOffset += 60;
-var randomWalkBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-random.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(randomWalkBigButton);
-
-var randomWalkBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-random-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(randomWalkBigButtonSelected);
-
-bigButtonYOffset += 60;
-var toughWalkBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-tough.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(toughWalkBigButton);
-
-var toughWalkBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-tough-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(toughWalkBigButtonSelected);
-
-bigButtonYOffset += 60;
-var coolWalkBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-cool.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(coolWalkBigButton);
-
-var coolWalkBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-cool-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(coolWalkBigButtonSelected);
-
-bigButtonYOffset += 60;
-var elderlyWalkBigButton = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-elderly.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(elderlyWalkBigButton);
-
-var elderlyWalkBigButtonSelected = Overlays.addOverlay("image", {
-                    bounds: { x: backgroundX + backgroundWidth/2 - 115, y: backgroundY + bigButtonYOffset, width: 230, height: 36 },
-                    imageURL: pathToOverlays+"ddao-walk-select-button-elderly-selected.png",
-                    color: { red: 255, green: 255, blue: 255},
-                    alpha: 1,
-                    visible: false
-                });
-bigButtonOverlays.push(elderlyWalkBigButtonSelected);
 
 // overlays to show the walk wheel stats
 var walkWheelZLine = Overlays.addOverlay("line3d", {
@@ -3675,41 +3342,9 @@ function showWalkStyleButtons(showButtons) {
 	}
 
 	// set the currently selected one
-	if(selectedWalk === femaleSexyWalk || selectedWalk === maleSexyWalk) {
-		Overlays.editOverlay(sexyWalkBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(sexyWalkBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleStrutWalk || selectedWalk === maleStrutWalk) {
+	if(selectedWalk === femaleStrutWalk || selectedWalk === maleStrutWalk) {
 		Overlays.editOverlay(strutWalkBigButtonSelected, { visible: showButtons });
 		Overlays.editOverlay(strutWalkBigButton, {visible: false});
-	}
-	else if(selectedWalk === femalePowerWalk || selectedWalk === malePowerWalk) {
-		Overlays.editOverlay(powerWalkBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(powerWalkBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleShuffle || selectedWalk === maleShuffle) {
-		Overlays.editOverlay(shuffleBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(shuffleBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleRun || selectedWalk === maleRun) {
-		Overlays.editOverlay(runBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(runBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleRandomWalk || selectedWalk === maleRandomWalk) {
-		Overlays.editOverlay(randomWalkBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(randomWalkBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleToughWalk || selectedWalk === maleToughWalk) {
-		Overlays.editOverlay(toughWalkBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(toughWalkBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleCoolWalk || selectedWalk === maleCoolWalk) {
-		Overlays.editOverlay(coolWalkBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(coolWalkBigButton, {visible: false});
-	}
-	else if(selectedWalk === femaleElderlyWalk || selectedWalk === maleElderlyWalk) {
-		Overlays.editOverlay(elderlyWalkBigButtonSelected, { visible: showButtons });
-		Overlays.editOverlay(elderlyWalkBigButton, {visible: false});
 	}
 }
 
@@ -3809,70 +3444,6 @@ function mousePressEvent(event) {
 			showWalkStyleButtons(true);
 			return;
 
-/*		case sexyWalkBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleSexyWalk;
-			else selectedWalk = maleSexyWalk;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case powerWalkBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femalePowerWalk;
-			else selectedWalk = malePowerWalk;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case shuffleBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleShuffle;
-			else selectedWalk = maleShuffle;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case runBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleRun;
-			else selectedWalk = maleRun;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case randomWalkBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleRandomWalk;
-			else selectedWalk = maleRandomWalk;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case toughWalkBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleToughWalk;
-			else selectedWalk = maleToughWalk;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case coolWalkBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleCoolWalk;
-			else selectedWalk = maleCoolWalk;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case elderlyWalkBigButton:
-			if(avatarGender===FEMALE) selectedWalk = femaleElderlyWalk;
-			else selectedWalk = maleElderlyWalk;
-			currentAnimation = selectedWalk;
-			showWalkStyleButtons(true);
-			return;
-
-		case sexyWalkBigButtonSelected:
-		case elderlyWalkBigButtonSelected:
-		case powerWalkBigButtonSelected:
-		case shuffleBigButtonSelected:
-		case runBigButtonSelected:
-		case randomWalkBigButtonSelected:
-		case toughWalkBigButtonSelected:
-		case coolWalkBigButtonSelected:*/
 		case strutWalkBigButtonSelected:
 
 			// toggle forwards / backwards walk display
@@ -4249,33 +3820,11 @@ var sideStep = 0.002; // i.e. 2mm increments whilst sidestepping - JS movement k
 function keyPressEvent(event) {
 
 	if (event.text == "q") {
-		// export currentAnimation as json string when q key is pressed.
-		// reformat result at http://www.freeformatter.com/json-formatter.html
+		// export currentAnimation as json string when q key is pressed. reformat result at http://www.freeformatter.com/json-formatter.html
         print('\n');
         print('walk.js dumping animation: '+currentAnimation.name+'\n');
         print('\n');
         print(JSON.stringify(currentAnimation), null, '\t');
-    }
-	// advanced editing
-    else if (event.text == "r") {
-		// zero out everything
-        //for(var i= 0 ; i < currentAnimation.joints.length ; i++) {
-		//	currentAnimation.joints[i].pitch = 0;
-		//	currentAnimation.joints[i].yaw = 0;
-		//	currentAnimation.joints[i].roll = 0;
-		//	currentAnimation.joints[i].pitchPhase = 0;
-		//	currentAnimation.joints[i].yawPhase = 0;
-		//	currentAnimation.joints[i].rollPhase = 0;
-		//	currentAnimation.joints[i].pitchOffset = 0;
-		//	currentAnimation.joints[i].yawOffset = 0;
-		//	currentAnimation.joints[i].rollOffset = 0;
-		//	if(i===0) {
-		//		currentAnimation.joints[i].thrust = 0;
-		//		currentAnimation.joints[i].sway = 0;
-		//		currentAnimation.joints[i].bob = 0;
-		//	}
-			print('...');
-        //}
     }
     else if (event.text == "t") {
         statsOn = !statsOn;
@@ -4285,50 +3834,18 @@ function keyPressEvent(event) {
 		Overlays.editOverlay(walkWheelYLine,     {visible: statsOn});
 		Overlays.editOverlay(walkWheelZLine,     {visible: statsOn});
     }
-    // this is a dev tool for tweaking individual values. edit and use freely
-    else if (event.text == "[") {
-		var jointNum = 0;
-		var anim = currentAnimation;
-        var frequency = currentAnimation.settings.baseFrequency;
-        frequency-=5;
-        currentAnimation.settings.baseFrequency = frequency;
-        //print(anim.name+' thrustPhase is now '+anim.joints[jointNum].thrustPhase+' for the '+anim.joints[jointNum].name+' joint');
-    }
-    else if (event.text == "]") {
-		var jointNum = 0;
-		var anim = currentAnimation;
-        var frequency = currentAnimation.settings.baseFrequency;
-        frequency+=5;
-        currentAnimation.settings.baseFrequency = frequency;
-        //print(anim.name+' bobPhase is now '+anim.joints[jointNum].thrustPhase+' for the '+anim.joints[jointNum].name+' joint');
-    }
 }
 Controller.keyPressEvent.connect(keyPressEvent);
 
-
-
-
-
-// debug and other info
-
-// TODO: implement joint mapping using reg expressions to cover a wide range of avi bone structures
+// get the list of joint names
 var jointList = MyAvatar.getJointNames();
-var jointMappings = "\n# Avatar joint list start";
-for (var i = 0; i < jointList.length; i++) {
-    jointMappings = jointMappings + "\njointIndex = " + jointList[i] + " = " + i;
-}
-print(jointMappings + "\n# walk.js avatar joint list end");
 
 // clear the joint data so can calculate hips to feet distance
 for(var i = 0 ; i < 5 ; i++) {
     MyAvatar.setJointData(i, Quat.fromPitchYawRollDegrees(0,0,0));
-    //MyAvatar.clearJointData(jointList[i]);
 }
 // used to position the visual representation of the walkwheel only
 var hipsToFeetDistance = MyAvatar.getJointPosition("Hips").y - MyAvatar.getJointPosition("RightFoot").y;
-print('\nwalk.js: Hips to feet: '+hipsToFeetDistance);
 
-
-// This script is designed around the Finite State Machine (FSM)
-// model, so to start things up we just select the STANDING state.
+// This script is designed around the Finite State Machine (FSM) model, so to start things up we just select the STANDING state.
 setInternalState(STANDING);
