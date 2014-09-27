@@ -17,6 +17,13 @@
 class HifiConfigVariantMap {
 public:
     static QVariantMap mergeCLParametersWithJSONConfig(const QStringList& argumentList);
+    static QVariantMap mergeMasterConfigWithUserConfig(const QStringList& argumentList);
+    static QString userConfigFilepath(const QStringList& argumentList);
+private:
+    static void mergeMapWithJSONFile(QVariantMap& existingMap, const QString& filename);
+    static void addMissingValuesToExistingMap(QVariantMap& existingMap, const QVariantMap& newMap);
 };
+
+const QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath);
 
 #endif // hifi_HifiConfigVariantMap_h

@@ -35,15 +35,16 @@
 typedef QSharedPointer<Assignment> SharedAssignmentPointer;
 typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
     DomainServer(int argc, char* argv[]);
     
+    static int const EXIT_CODE_REBOOT;
+    
     bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
-    
-    void exit(int retCode = 0);
     
 public slots:
     /// Called by NodeList to inform us a node has been added
@@ -52,6 +53,8 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     
     void transactionJSONCallback(const QJsonObject& data);
+    
+    void restart();
     
 private slots:
     void loginFailed();
@@ -80,8 +83,8 @@ private:
     
     void parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes);
     void addStaticAssignmentToAssignmentHash(Assignment* newAssignment);
-    void createScriptedAssignmentsFromArray(const QJsonArray& configArray);
-    void createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray);
+    void createScriptedAssignmentsFromList(const QVariantList& configList);
+    void createStaticAssignmentsForType(Assignment::Type type, const QVariantList& configList);
     void populateDefaultStaticAssignmentsExcludingTypes(const QSet<Assignment::Type>& excludedTypes);
     
     SharedAssignmentPointer matchingQueuedAssignmentForCheckIn(const QUuid& checkInUUID, NodeType_t nodeType);
@@ -114,8 +117,6 @@ private:
     QQueue<SharedAssignmentPointer> _unfulfilledAssignments;
     QHash<QUuid, PendingAssignedNodeData*> _pendingAssignedNodes;
     TransactionHash _pendingAssignmentCredits;
-    
-    QVariantMap _argumentVariantMap;
     
     bool _isUsingDTLS;
     

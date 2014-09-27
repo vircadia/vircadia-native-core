@@ -12,6 +12,7 @@
 #ifndef hifi_DomainServerSettingsManager_h
 #define hifi_DomainServerSettingsManager_h
 
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 
 #include <HTTPManager.h>
@@ -23,14 +24,19 @@ public:
     bool handlePublicHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
+    void loadSettingsMap(const QStringList& argumentList);
+    
     QByteArray getJSONSettingsMap() const;
+    QVariantMap& getSettingsMap() { return _settingsMap; }
 private:
+    QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
-                                               QJsonObject descriptionObject);
+                                               QJsonArray descriptionArray);
     void persistToFile();
     
-    QJsonObject _descriptionObject;
+    QJsonArray _descriptionArray;
     QVariantMap _settingsMap;
+    QString _settingsFilepath;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

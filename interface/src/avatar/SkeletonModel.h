@@ -97,6 +97,10 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
+    /// Gets the default position of the mid eye point in model frame coordinates.
+    /// \return whether or not the head was found.
+    glm::vec3 getDefaultEyeModelPosition() const { return _defaultEyeModelPosition; }
+
     virtual void updateVisibleJointStates();
 
     SkeletonRagdoll* buildRagdoll();
@@ -140,12 +144,16 @@ private:
     /// \param position position of joint in model-frame
     /// \param rotation rotation of joint in model-frame
     void setHandPosition(int jointIndex, const glm::vec3& position, const glm::quat& rotation);
+
+    bool getEyeModelPositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
     Avatar* _owningAvatar;
 
     CapsuleShape _boundingShape;
     glm::vec3 _boundingShapeLocalOffset;
     SkeletonRagdoll* _ragdoll;
+
+    glm::vec3 _defaultEyeModelPosition;
 };
 
 #endif // hifi_SkeletonModel_h

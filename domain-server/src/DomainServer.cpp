@@ -30,6 +30,8 @@
 
 #include "DomainServer.h"
 
+int const DomainServer::EXIT_CODE_REBOOT = 234923;
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _shutdownEventListener(this),
@@ -48,21 +50,20 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _cookieSessionHash(),
     _settingsManager()
 {
-
     LogUtils::init();
 
     setOrganizationName("High Fidelity");
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
-
+    
+    _settingsManager.loadSettingsMap(arguments());
+    
     installNativeEventFilter(&_shutdownEventListener);
     connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
-
-    _argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
 
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
         // we either read a certificate and private key or were not passed one
@@ -78,13 +79,18 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     }
 }
 
+void DomainServer::restart() {
+    qDebug() << "domain-server is restarting.";
+    exit(DomainServer::EXIT_CODE_REBOOT);
+}
+
 bool DomainServer::optionallyReadX509KeyAndCertificate() {
     const QString X509_CERTIFICATE_OPTION = "cert";
     const QString X509_PRIVATE_KEY_OPTION = "key";
     const QString X509_KEY_PASSPHRASE_ENV = "DOMAIN_SERVER_KEY_PASSPHRASE";
 
-    QString certPath = _argumentVariantMap.value(X509_CERTIFICATE_OPTION).toString();
-    QString keyPath = _argumentVariantMap.value(X509_PRIVATE_KEY_OPTION).toString();
+    QString certPath = _settingsManager.getSettingsMap().value(X509_CERTIFICATE_OPTION).toString();
+    QString keyPath = _settingsManager.getSettingsMap().value(X509_PRIVATE_KEY_OPTION).toString();
 
     if (!certPath.isEmpty() && !keyPath.isEmpty()) {
         // the user wants to use DTLS to encrypt communication with nodes
@@ -143,10 +149,11 @@ bool DomainServer::optionallySetupOAuth() {
     const QString OAUTH_CLIENT_SECRET_ENV = "DOMAIN_SERVER_CLIENT_SECRET";
     const QString REDIRECT_HOSTNAME_OPTION = "hostname";
 
-    _oauthProviderURL = QUrl(_argumentVariantMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
-    _oauthClientID = _argumentVariantMap.value(OAUTH_CLIENT_ID_OPTION).toString();
+    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    _oauthProviderURL = QUrl(settingsMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
+    _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
-    _hostname = _argumentVariantMap.value(REDIRECT_HOSTNAME_OPTION).toString();
+    _hostname = settingsMap.value(REDIRECT_HOSTNAME_OPTION).toString();
 
     if (!_oauthClientID.isEmpty()) {
         if (_oauthProviderURL.isEmpty()
@@ -171,9 +178,11 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     const QString CUSTOM_PORT_OPTION = "port";
     unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    
+    QVariantMap& settingsMap = _settingsManager.getSettingsMap();
 
-    if (_argumentVariantMap.contains(CUSTOM_PORT_OPTION)) {
-        domainServerPort = (unsigned short) _argumentVariantMap.value(CUSTOM_PORT_OPTION).toUInt();
+    if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
+        domainServerPort = (unsigned short) settingsMap.value(CUSTOM_PORT_OPTION).toUInt();
     }
 
     unsigned short domainServerDTLSPort = 0;
@@ -183,8 +192,8 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
         const QString CUSTOM_DTLS_PORT_OPTION = "dtls-port";
 
-        if (_argumentVariantMap.contains(CUSTOM_DTLS_PORT_OPTION)) {
-            domainServerDTLSPort = (unsigned short) _argumentVariantMap.value(CUSTOM_DTLS_PORT_OPTION).toUInt();
+        if (settingsMap.contains(CUSTOM_DTLS_PORT_OPTION)) {
+            domainServerDTLSPort = (unsigned short) settingsMap.value(CUSTOM_DTLS_PORT_OPTION).toUInt();
         }
     }
 
@@ -197,7 +206,11 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
-    nodeList->setSessionUUID(_argumentVariantMap.value(DOMAIN_CONFIG_ID_KEY).toString());
+    const QString METAVERSE_DOMAIN_ID_KEY_PATH = "metaverse.id";
+    const QVariant* idValueVariant = valueForKeyPath(settingsMap, METAVERSE_DOMAIN_ID_KEY_PATH);
+    if (idValueVariant) {
+        nodeList->setSessionUUID(idValueVariant->toString());
+    }
 
     connect(nodeList, &LimitedNodeList::nodeAdded, this, &DomainServer::nodeAdded);
     connect(nodeList, &LimitedNodeList::nodeKilled, this, &DomainServer::nodeKilled);
@@ -260,9 +273,10 @@ bool DomainServer::hasOAuthProviderAndAuthInformation() {
 
 bool DomainServer::optionallySetupAssignmentPayment() {
     const QString PAY_FOR_ASSIGNMENTS_OPTION = "pay-for-assignments";
+    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
     
-    if (_argumentVariantMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
-        _argumentVariantMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
+    if (settingsMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
+        settingsMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
         hasOAuthProviderAndAuthInformation()) {
         
         qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
@@ -288,8 +302,10 @@ bool DomainServer::optionallySetupAssignmentPayment() {
 void DomainServer::setupDynamicIPAddressUpdating() {
     const QString ENABLE_DYNAMIC_IP_UPDATING_OPTION = "update-ip";
     
-    if (_argumentVariantMap.contains(ENABLE_DYNAMIC_IP_UPDATING_OPTION) &&
-        _argumentVariantMap.value(ENABLE_DYNAMIC_IP_UPDATING_OPTION).toBool() &&
+    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    
+    if (settingsMap.contains(ENABLE_DYNAMIC_IP_UPDATING_OPTION) &&
+        settingsMap.value(ENABLE_DYNAMIC_IP_UPDATING_OPTION).toBool() &&
         hasOAuthProviderAndAuthInformation()) {
         
         LimitedNodeList* nodeList = LimitedNodeList::getInstance();
@@ -338,9 +354,11 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
     // check for configs from the command line, these take precedence
     const QString ASSIGNMENT_CONFIG_REGEX_STRING = "config-([\\d]+)";
     QRegExp assignmentConfigRegex(ASSIGNMENT_CONFIG_REGEX_STRING);
+    
+    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
 
     // scan for assignment config keys
-    QStringList variantMapKeys = _argumentVariantMap.keys();
+    QStringList variantMapKeys = settingsMap.keys();
     int configIndex = variantMapKeys.indexOf(assignmentConfigRegex);
 
     while (configIndex != -1) {
@@ -348,20 +366,13 @@ void DomainServer::parseAssignmentConfigs(QSet<Assignment::Type>& excludedTypes)
         Assignment::Type assignmentType = (Assignment::Type) assignmentConfigRegex.cap(1).toInt();
 
         if (assignmentType < Assignment::AllTypes && !excludedTypes.contains(assignmentType)) {
-            QVariant mapValue = _argumentVariantMap[variantMapKeys[configIndex]];
-            QJsonArray assignmentArray;
-
-            if (mapValue.type() == QVariant::String) {
-                QJsonDocument deserializedDocument = QJsonDocument::fromJson(mapValue.toString().toUtf8());
-                assignmentArray = deserializedDocument.array();
-            } else {
-                assignmentArray = mapValue.toJsonValue().toArray();
-            }
+            QVariant mapValue = settingsMap[variantMapKeys[configIndex]];
+            QVariantList assignmentList = mapValue.toList();
 
             if (assignmentType != Assignment::AgentType) {
-                createStaticAssignmentsForType(assignmentType, assignmentArray);
+                createStaticAssignmentsForType(assignmentType, assignmentList);
             } else {
-                createScriptedAssignmentsFromArray(assignmentArray);
+                createScriptedAssignmentsFromList(assignmentList);
             }
 
             excludedTypes.insert(assignmentType);
@@ -377,23 +388,23 @@ void DomainServer::addStaticAssignmentToAssignmentHash(Assignment* newAssignment
     _allAssignments.insert(newAssignment->getUUID(), SharedAssignmentPointer(newAssignment));
 }
 
-void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configArray) {
-    foreach(const QJsonValue& jsonValue, configArray) {
-        if (jsonValue.isObject()) {
-            QJsonObject jsonObject = jsonValue.toObject();
+void DomainServer::createScriptedAssignmentsFromList(const QVariantList &configList) {
+    foreach(const QVariant& configVariant, configList) {
+        if (configVariant.canConvert(QMetaType::QVariantMap)) {
+            QVariantMap configMap = configVariant.toMap();
 
             // make sure we were passed a URL, otherwise this is an invalid scripted assignment
             const QString  ASSIGNMENT_URL_KEY = "url";
-            QString assignmentURL = jsonObject[ASSIGNMENT_URL_KEY].toString();
+            QString assignmentURL = configMap[ASSIGNMENT_URL_KEY].toString();
 
             if (!assignmentURL.isEmpty()) {
                 // check the json for a pool
                 const QString ASSIGNMENT_POOL_KEY = "pool";
-                QString assignmentPool = jsonObject[ASSIGNMENT_POOL_KEY].toString();
+                QString assignmentPool = configMap[ASSIGNMENT_POOL_KEY].toString();
 
                 // check for a number of instances, if not passed then default is 1
                 const QString ASSIGNMENT_INSTANCES_KEY = "instances";
-                int numInstances = jsonObject[ASSIGNMENT_INSTANCES_KEY].toInt();
+                int numInstances = configMap[ASSIGNMENT_INSTANCES_KEY].toInt();
                 numInstances = (numInstances == 0 ? 1 : numInstances);
 
                 qDebug() << "Adding a static scripted assignment from" << assignmentURL;
@@ -413,37 +424,34 @@ void DomainServer::createScriptedAssignmentsFromArray(const QJsonArray &configAr
     }
 }
 
-void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QJsonArray& configArray) {
+void DomainServer::createStaticAssignmentsForType(Assignment::Type type, const QVariantList &configList) {
     // we have a string for config for this type
     qDebug() << "Parsing config for assignment type" << type;
 
     int configCounter = 0;
 
-    foreach(const QJsonValue& jsonValue, configArray) {
-        if (jsonValue.isObject()) {
-            QJsonObject jsonObject = jsonValue.toObject();
+    foreach(const QVariant& configVariant, configList) {
+        if (configVariant.canConvert(QMetaType::QVariantMap)) {
+            QVariantMap configMap = configVariant.toMap();
 
             // check the config string for a pool
             const QString ASSIGNMENT_POOL_KEY = "pool";
-            QString assignmentPool;
 
-            QJsonValue poolValue = jsonObject[ASSIGNMENT_POOL_KEY];
-            if (!poolValue.isUndefined()) {
-                assignmentPool = poolValue.toString();
-
-                jsonObject.remove(ASSIGNMENT_POOL_KEY);
+            QString assignmentPool = configMap.value(ASSIGNMENT_POOL_KEY).toString();
+            if (!assignmentPool.isEmpty()) {
+                configMap.remove(ASSIGNMENT_POOL_KEY);
             }
 
             ++configCounter;
-            qDebug() << "Type" << type << "config" << configCounter << "=" << jsonObject;
+            qDebug() << "Type" << type << "config" << configCounter << "=" << configMap;
 
             Assignment* configAssignment = new Assignment(Assignment::CreateCommand, type, assignmentPool);
 
             // setup the payload as a semi-colon separated list of key = value
             QStringList payloadStringList;
-            foreach(const QString& payloadKey, jsonObject.keys()) {
+            foreach(const QString& payloadKey, configMap.keys()) {
                 QString dashes = payloadKey.size() == 1 ? "-" : "--";
-                payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(jsonObject[payloadKey].toString());
+                payloadStringList << QString("%1%2 %3").arg(dashes).arg(payloadKey).arg(configMap[payloadKey].toString());
             }
             
             configAssignment->setPayload(payloadStringList.join(' ').toUtf8());
@@ -513,7 +521,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     
     QString connectedUsername;
 
-    if (!isAssignment && !_oauthProviderURL.isEmpty() && _argumentVariantMap.contains(ALLOWED_ROLES_CONFIG_KEY)) {
+    if (!isAssignment && !_oauthProviderURL.isEmpty() && _settingsManager.getSettingsMap().contains(ALLOWED_ROLES_CONFIG_KEY)) {
         // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
         if (_sessionAuthenticationHash.contains(packetUUID)) {
             connectedUsername = _sessionAuthenticationHash.take(packetUUID);
@@ -1388,12 +1396,15 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
     const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
     const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
     const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
-    const QString BASIC_AUTH_CONFIG_KEY = "basic-auth";
+    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http-username";
+    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http-password";
     
     const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
     
+    QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    
     if (!_oauthProviderURL.isEmpty()
-        && (_argumentVariantMap.contains(ADMIN_USERS_CONFIG_KEY) || _argumentVariantMap.contains(ADMIN_ROLES_CONFIG_KEY))) {
+        && (settingsMap.contains(ADMIN_USERS_CONFIG_KEY) || settingsMap.contains(ADMIN_ROLES_CONFIG_KEY))) {
         QString cookieString = connection->requestHeaders().value(HTTP_COOKIE_HEADER_KEY);
         
         const QString COOKIE_UUID_REGEX_STRING = HIFI_SESSION_COOKIE_KEY + "=([\\d\\w-]+)($|;)";
@@ -1404,7 +1415,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             cookieUUID = cookieUUIDRegex.cap(1);
         }
         
-        if (_argumentVariantMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+        if (valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)) {
             qDebug() << "Config file contains web admin settings for OAuth and basic HTTP authentication."
                 << "These cannot be combined - using OAuth for authentication.";
         }
@@ -1414,13 +1425,13 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             DomainServerWebSessionData sessionData = _cookieSessionHash.value(cookieUUID);
             QString profileUsername = sessionData.getUsername();
             
-            if (_argumentVariantMap.value(ADMIN_USERS_CONFIG_KEY).toJsonValue().toArray().contains(profileUsername)) {
+            if (settingsMap.value(ADMIN_USERS_CONFIG_KEY).toStringList().contains(profileUsername)) {
                 // this is an authenticated user
                 return true;
             }
             
             // loop the roles of this user and see if they are in the admin-roles array
-            QJsonArray adminRolesArray = _argumentVariantMap.value(ADMIN_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            QStringList adminRolesArray = settingsMap.value(ADMIN_ROLES_CONFIG_KEY).toStringList();
             
             if (!adminRolesArray.isEmpty()) {
                 foreach(const QString& userRole, sessionData.getRoles()) {
@@ -1455,7 +1466,7 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // we don't know about this user yet, so they are not yet authenticated
             return false;
         }
-    } else if (_argumentVariantMap.contains(BASIC_AUTH_CONFIG_KEY)) {
+    } else if (valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)) {
         // config file contains username and password combinations for basic auth
         const QByteArray BASIC_AUTH_HEADER_KEY = "Authorization";
         
@@ -1470,21 +1481,16 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             if (!credentialString.isEmpty()) {
                 QStringList credentialList = credentialString.split(':');
                 if (credentialList.size() == 2) {
-                    QString username = credentialList[0];
-                    QString password = credentialList[1];
+                    QString headerUsername = credentialList[0];
+                    QString headerPassword = credentialList[1];
                     
                     // we've pulled a username and password - now check if there is a match in our basic auth hash
-                    QJsonObject basicAuthObject = _argumentVariantMap.value(BASIC_AUTH_CONFIG_KEY).toJsonValue().toObject();
+                    QString settingsUsername = valueForKeyPath(settingsMap, BASIC_AUTH_USERNAME_KEY_PATH)->toString();
+                    const QVariant* settingsPasswordVariant = valueForKeyPath(settingsMap, BASIC_AUTH_PASSWORD_KEY_PATH);
+                    QString settingsPassword = settingsPasswordVariant ? settingsPasswordVariant->toString() : "";
                     
-                    if (basicAuthObject.contains(username)) {
-                        const QString BASIC_AUTH_USER_PASSWORD_KEY = "password";
-                        QJsonObject userObject = basicAuthObject.value(username).toObject();
-                        
-                        if (userObject.contains(BASIC_AUTH_USER_PASSWORD_KEY)
-                            && userObject.value(BASIC_AUTH_USER_PASSWORD_KEY).toString() == password) {
-                            // this is username / password match - let this user in
-                            return true;
-                        }
+                    if (settingsUsername == headerUsername && headerPassword == settingsPassword) {
+                        return true;
                     }
                 }
             }
@@ -1557,13 +1563,13 @@ void DomainServer::handleProfileRequestFinished() {
             // pull the user roles from the response
             QJsonArray userRolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
 
-            QJsonArray allowedRolesArray = _argumentVariantMap.value(ALLOWED_ROLES_CONFIG_KEY).toJsonValue().toArray();
+            QStringList allowedRolesArray = _settingsManager.getSettingsMap().value(ALLOWED_ROLES_CONFIG_KEY).toStringList();
 
             QString connectableUsername;
             QString profileUsername = profileJSON.object()["data"].toObject()["user"].toObject()["username"].toString();
 
             foreach(const QJsonValue& roleValue, userRolesArray) {
-                if (allowedRolesArray.contains(roleValue)) {
+                if (allowedRolesArray.contains(roleValue.toString())) {
                     // the user has a role that lets them in
                     // set the bool to true and break
                     connectableUsername = profileUsername;

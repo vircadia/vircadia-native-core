@@ -62,8 +62,10 @@ enum EntityPropertyList {
     PROP_REGISTRATION_POINT,
     PROP_ANGULAR_VELOCITY,
     PROP_ANGULAR_DAMPING,
+    PROP_IGNORE_FOR_COLLISIONS,
+    PROP_COLLISIONS_WILL_MOVE,
 
-    PROP_LAST_ITEM = PROP_ANGULAR_DAMPING
+    PROP_LAST_ITEM = PROP_COLLISIONS_WILL_MOVE
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -221,6 +223,12 @@ public:
     bool getVisible() const { return _visible; }
     void setVisible(bool value) { _visible = value; _visibleChanged = true; }
 
+    bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
+    void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; _ignoreForCollisionsChanged = true; }
+
+    bool getCollisionsWillMove() const { return _collisionsWillMove; }
+    void setCollisionsWillMove(bool value) { _collisionsWillMove = value; _collisionsWillMoveChanged = true; }
+
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
 private:
@@ -247,6 +255,8 @@ private:
     glm::vec3 _angularVelocity;
     float _angularDamping;
     bool _visible;
+    bool _ignoreForCollisions;
+    bool _collisionsWillMove;
 
     bool _positionChanged;
     bool _dimensionsChanged;
@@ -261,6 +271,8 @@ private:
     bool _angularVelocityChanged;
     bool _angularDampingChanged;
     bool _visibleChanged;
+    bool _ignoreForCollisionsChanged;
+    bool _collisionsWillMoveChanged;
     
     // TODO: this need to be more generic. for now, we're going to have the properties class support these as
     // named getter/setters, but we want to move them to generic types...

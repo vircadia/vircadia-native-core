@@ -127,6 +127,14 @@ QScriptValue WindowScriptingInterface::getNonBlockingFormResult(QScriptValue for
     return retVal;
 }
 
+QScriptValue WindowScriptingInterface::peekNonBlockingFormResult(QScriptValue form) {
+    QScriptValue retVal;
+    QMetaObject::invokeMethod(this, "doPeekNonBlockingFormResult", Qt::BlockingQueuedConnection,
+                              Q_RETURN_ARG(QScriptValue, retVal),
+                              Q_ARG(QScriptValue, form));
+    return retVal;
+}
+
 
 /// Display an alert box
 /// \param const QString& message message to display
@@ -232,6 +240,58 @@ void WindowScriptingInterface::doReloadNonBlockingForm(QScriptValue newValues) {
 
 bool WindowScriptingInterface::nonBlockingFormActive() {
     return _nonBlockingFormActive;
+}
+
+QScriptValue WindowScriptingInterface::doPeekNonBlockingFormResult(QScriptValue array) {
+    QScriptValue retVal;
+    
+    int e = -1;
+    int d = -1;
+    int c = -1;
+    for (int i = 0; i < _form.property("length").toInt32(); ++i) {
+        QScriptValue item = _form.property(i);
+        QScriptValue value = item.property("value");
+
+        if (item.property("button").toString() != "") {
+            // Nothing to do
+        } else if (item.property("type").toString() == "inlineButton") {
+            // Nothing to do
+        } else if (item.property("type").toString() == "header") {
+            // Nothing to do
+        } else if (item.property("directory").toString() != "") {
+            d += 1;
+            value = _directories.at(d)->property("path").toString();
+            item.setProperty("directory", value);
+            _form.setProperty(i, item);
+        } else if (item.property("options").isArray()) {
+            c += 1;
+            item.setProperty("value", _combos.at(c)->currentText());
+            _form.setProperty(i, item);
+        } else {
+            e += 1;
+            bool ok = true;
+            if (value.isNumber()) {
+                value = _edits.at(e)->text().toDouble(&ok);
+            } else if (value.isString()) {
+                value = _edits.at(e)->text();
+            } else if (value.isBool()) {
+                if (_edits.at(e)->text() == "true") {
+                    value = true;
+                } else if (_edits.at(e)->text() == "false") {
+                    value = false;
+                } else {
+                    ok = false;
+                }
+            }
+            if (ok) {
+                item.setProperty("value", value);
+                _form.setProperty(i, item);
+            }
+        }
+    }
+    
+    array = _form;
+    return (_formResult == QDialog::Accepted);    
 }
 
 QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue array) {

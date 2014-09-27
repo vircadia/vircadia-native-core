@@ -2794,6 +2794,7 @@ var editModelID = -1;
 var dimensionX;
 var dimensionY;
 var dimensionZ;
+var rescalePercentage;
 
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
@@ -2896,6 +2897,11 @@ function handeMenuEvent(menuItem) {
             index++;
             array.push({ label: "", type: "inlineButton", buttonLabel: "Reset to Natural Dimensions", name: "resetDimensions" });
             index++;
+            array.push({ label: "Rescale Percentage:", value: 100 });
+            rescalePercentage = index;
+            index++;
+            array.push({ label: "", type: "inlineButton", buttonLabel: "Rescale", name: "rescaleDimensions" });
+            index++;
 
             array.push({ label: "Velocity:", type: "header" });
             index++;
@@ -2906,8 +2912,6 @@ function handeMenuEvent(menuItem) {
             array.push({ label: "Linear Z:", value: properties.velocity.z.toFixed(decimals) });
             index++;
             array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
-            index++;
-            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
             index++;
             array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
             index++;
@@ -2923,6 +2927,15 @@ function handeMenuEvent(menuItem) {
             array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
             index++;
             array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
+            index++;
+
+            array.push({ label: "Collisions:", type: "header" });
+            index++;
+            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
+            index++;
+            array.push({ label: "Ignore for Collisions:", value: properties.ignoreForCollisions });
+            index++;
+            array.push({ label: "Collisions Will Move:", value: properties.collisionsWillMove });
             index++;
 
             array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
@@ -3016,6 +3029,27 @@ Window.inlineButtonClicked.connect(function (name) {
             { value: propertiesForEditedEntity.naturalDimensions.z.toFixed(decimals), oldIndex: dimensionZ }
         ]);
     }
+
+    if (name == "rescaleDimensions") {
+        var decimals = 3;
+        var peekValues = editEntityFormArray;
+        Window.peekNonBlockingFormResult(peekValues);
+        var peekX = peekValues[dimensionX].value;
+        var peekY = peekValues[dimensionY].value;
+        var peekZ = peekValues[dimensionZ].value;
+        var peekRescale = peekValues[rescalePercentage].value;
+        var rescaledX = peekX * peekRescale / 100.0;
+        var rescaledY = peekY * peekRescale / 100.0;
+        var rescaledZ = peekZ * peekRescale / 100.0;
+        
+        Window.reloadNonBlockingForm([
+            { value: rescaledX.toFixed(decimals), oldIndex: dimensionX },
+            { value: rescaledY.toFixed(decimals), oldIndex: dimensionY },
+            { value: rescaledZ.toFixed(decimals), oldIndex: dimensionZ },
+            { value: 100, oldIndex: rescalePercentage }
+        ]);
+    }
+
 });
 Window.nonBlockingFormClosed.connect(function() {
     array = editEntityFormArray;
@@ -3049,13 +3083,14 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.dimensions.y = array[index++].value;
         properties.dimensions.z = array[index++].value;
         index++; // skip reset button
+        index++; // skip rescale percentage
+        index++; // skip rescale button
 
         index++; // skip header
         properties.velocity.x = array[index++].value;
         properties.velocity.y = array[index++].value;
         properties.velocity.z = array[index++].value;
         properties.damping = array[index++].value;
-        properties.mass = array[index++].value;
 
         properties.angularVelocity.x = array[index++].value;
         properties.angularVelocity.y = array[index++].value;
@@ -3065,6 +3100,12 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.gravity.x = array[index++].value;
         properties.gravity.y = array[index++].value;
         properties.gravity.z = array[index++].value;
+
+        index++; // skip header
+        properties.mass = array[index++].value;
+        properties.ignoreForCollisions = array[index++].value;
+        properties.collisionsWillMove = array[index++].value;
+
         properties.lifetime = array[index++].value;
         properties.visible = array[index++].value;
 

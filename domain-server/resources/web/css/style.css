@@ -1,8 +1,12 @@
-#nodes-lead, #settings-lead {
+body {
+  position: relative;
+}
+
+.table-lead {
   color: #66CCCC;
 }
 
-#nodes-lead .lead-line, #settings-lead .lead-line {
+.table-lead .lead-line {
   background-color: #66CCCC;
 }
 
@@ -46,4 +50,23 @@ span.port {
 
 .stale {
   color: red;
+}
+
+.advanced-setting {
+  display: none;
+}
+
+#setup-sidebar.affix {
+  position: fixed;
+  top: 15px;
+}
+
+#setup-sidebar button {
+  width: 100%;
+  margin-top: 10px;
+}
+
+#small-save-button {
+  width: 100%;
+  margin-bottom: 15px;
 }

@@ -41,6 +41,8 @@ EntityItemProperties::EntityItemProperties() :
     _angularVelocity(EntityItem::DEFAULT_ANGULAR_VELOCITY),
     _angularDamping(EntityItem::DEFAULT_ANGULAR_DAMPING),
     _visible(EntityItem::DEFAULT_VISIBLE),
+    _ignoreForCollisions(EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS),
+    _collisionsWillMove(EntityItem::DEFAULT_COLLISIONS_WILL_MOVE),
 
     _positionChanged(false),
     _dimensionsChanged(false),
@@ -55,6 +57,8 @@ EntityItemProperties::EntityItemProperties() :
     _angularVelocityChanged(false),
     _angularDampingChanged(false),
     _visibleChanged(false),
+    _ignoreForCollisionsChanged(false),
+    _collisionsWillMoveChanged(false),
 
     _color(),
     _modelURL(""),
@@ -112,6 +116,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
+    CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
+    CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
 
     return changedProperties;
 }
@@ -150,6 +156,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
     COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -194,6 +202,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(collisionsWillMove, setCollisionsWillMove);
 
     _lastEdited = usecTimestampNow();
 }
@@ -342,6 +352,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
+            APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, properties.getIgnoreForCollisions());
+            APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -538,6 +550,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
 
     return valid;
 }

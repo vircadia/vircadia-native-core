@@ -13,16 +13,16 @@
 #define hifi_StdDev_h
 
 class StDev {
-    public:
-        StDev();
-        void reset();
-        void addValue(float v);
-        float getAverage() const;
-        float getStDev() const;
-        int getSamples() const { return sampleCount; }
-    private:
-        float * data;
-        int sampleCount;
+public:
+    StDev();
+    void reset();
+    void addValue(float v);
+    float getAverage() const;
+    float getStDev() const;
+    int getSamples() const { return _sampleCount; }
+private:
+    float* _data;
+    int _sampleCount;
 };
 
 #endif // hifi_StdDev_h
