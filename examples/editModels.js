@@ -2794,6 +2794,7 @@ var editModelID = -1;
 var dimensionX;
 var dimensionY;
 var dimensionZ;
+var rescalePercentage;
 
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
@@ -2895,6 +2896,11 @@ function handeMenuEvent(menuItem) {
             dimensionZ = index;
             index++;
             array.push({ label: "", type: "inlineButton", buttonLabel: "Reset to Natural Dimensions", name: "resetDimensions" });
+            index++;
+            array.push({ label: "Rescale Percentage:", value: 100 });
+            rescalePercentage = index;
+            index++;
+            array.push({ label: "", type: "inlineButton", buttonLabel: "Rescale", name: "rescaleDimensions" });
             index++;
 
             array.push({ label: "Velocity:", type: "header" });
@@ -3023,6 +3029,27 @@ Window.inlineButtonClicked.connect(function (name) {
             { value: propertiesForEditedEntity.naturalDimensions.z.toFixed(decimals), oldIndex: dimensionZ }
         ]);
     }
+
+    if (name == "rescaleDimensions") {
+        var decimals = 3;
+        var peekValues = editEntityFormArray;
+        Window.peekNonBlockingFormResult(peekValues);
+        var peekX = peekValues[dimensionX].value;
+        var peekY = peekValues[dimensionY].value;
+        var peekZ = peekValues[dimensionZ].value;
+        var peekRescale = peekValues[rescalePercentage].value;
+        var rescaledX = peekX * peekRescale / 100.0;
+        var rescaledY = peekY * peekRescale / 100.0;
+        var rescaledZ = peekZ * peekRescale / 100.0;
+        
+        Window.reloadNonBlockingForm([
+            { value: rescaledX.toFixed(decimals), oldIndex: dimensionX },
+            { value: rescaledY.toFixed(decimals), oldIndex: dimensionY },
+            { value: rescaledZ.toFixed(decimals), oldIndex: dimensionZ },
+            { value: 100, oldIndex: rescalePercentage }
+        ]);
+    }
+
 });
 Window.nonBlockingFormClosed.connect(function() {
     array = editEntityFormArray;
@@ -3056,6 +3083,8 @@ Window.nonBlockingFormClosed.connect(function() {
         properties.dimensions.y = array[index++].value;
         properties.dimensions.z = array[index++].value;
         index++; // skip reset button
+        index++; // skip rescale percentage
+        index++; // skip rescale button
 
         index++; // skip header
         properties.velocity.x = array[index++].value;

@@ -46,6 +46,7 @@ public slots:
     void nonBlockingForm(const QString& title, QScriptValue array);
     void reloadNonBlockingForm(QScriptValue array);
     QScriptValue getNonBlockingFormResult(QScriptValue array);
+    QScriptValue peekNonBlockingFormResult(QScriptValue array);
 
 signals:
     void inlineButtonClicked(const QString& name);
@@ -64,6 +65,7 @@ private slots:
     void doReloadNonBlockingForm(QScriptValue array);
     bool nonBlockingFormActive();
     QScriptValue doGetNonBlockingFormResult(QScriptValue array);
+    QScriptValue doPeekNonBlockingFormResult(QScriptValue array);
 
     void chooseDirectory();
     void inlineButtonClicked();

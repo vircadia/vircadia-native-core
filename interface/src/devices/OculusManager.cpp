@@ -55,10 +55,10 @@ bool OculusManager::_programInitialized = false;
 Camera* OculusManager::_camera = NULL;
 int OculusManager::_activeEyeIndex = -1;
 
-glm::vec3 OculusManager::_leftEyePosition;
-glm::vec3 OculusManager::_rightEyePosition;
-
 #endif
+
+glm::vec3 OculusManager::_leftEyePosition = glm::vec3();
+glm::vec3 OculusManager::_rightEyePosition = glm::vec3();
 
 void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
