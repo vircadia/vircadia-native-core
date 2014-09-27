@@ -231,7 +231,7 @@ Menu::Menu() :
 #ifdef HAVE_QXMPP
     _chatAction = addActionToQMenuAndActionHash(toolsMenu,
                                                 MenuOption::Chat,
-                                                0,
+                                                Qt::Key_Backslash,
                                                 this,
                                                 SLOT(showChat()));
 
