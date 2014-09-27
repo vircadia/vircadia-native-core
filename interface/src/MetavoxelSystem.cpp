@@ -1985,11 +1985,11 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         }
                     }
                     
-                    // compute the pseudo-inverse, ataplus
+                    // compute the pseudo-inverse, ataplus, and use to find the minimizing solution
                     glm::mat3 ataplus = glm::transpose(u) * d * u; 
-                    
                     glm::vec3 solution = (ataplus * atrans * b) + center;
                     
+                    // make sure it doesn't fall beyond the cell boundaries
                     center = glm::clamp(solution, 0.0f, 1.0f);
                     
                     if (totalWeight > 0.0f) {
