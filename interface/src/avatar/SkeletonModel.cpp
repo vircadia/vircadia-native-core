@@ -36,8 +36,29 @@ SkeletonModel::~SkeletonModel() {
     _ragdoll = NULL;
 }
 
+const float MODEL_SCALE = 0.0006f;
+
 void SkeletonModel::setJointStates(QVector<JointState> states) {
     Model::setJointStates(states);
+
+    // Determine the default eye position for avatar scale = 1.0
+    int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
+    if (0 <= headJointIndex && headJointIndex < _jointStates.size()) {
+
+        glm::vec3 leftEyePosition, rightEyePosition;
+        getEyeModelPositions(leftEyePosition, rightEyePosition);
+        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.f;
+
+        int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
+        glm::vec3 rootModelPosition;
+        getJointPosition(rootJointIndex, rootModelPosition);
+
+        _defaultEyeModelPosition = midEyePosition - rootModelPosition;
+        _defaultEyeModelPosition.z = -_defaultEyeModelPosition.z;
+
+        // Skeleton may have already been scaled so unscale it
+        _defaultEyeModelPosition = MODEL_SCALE * _defaultEyeModelPosition / _scale;
+    }
 
     // the SkeletonModel override of updateJointState() will clear the translation part
     // of its root joint and we need that done before we try to build shapes hence we
@@ -59,7 +80,6 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
-    const float MODEL_SCALE = 0.0006f;
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
     
@@ -507,6 +527,10 @@ bool SkeletonModel::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& seco
     return false;
 }
 
+glm::vec3 SkeletonModel::getDefaultEyeModelPosition() const {
+    return _owningAvatar->getScale() * _defaultEyeModelPosition;
+}
+
 void SkeletonModel::renderRagdoll() {
     if (!_ragdoll) {
         return;
@@ -665,20 +689,6 @@ void SkeletonModel::buildShapes() {
 
     // This method moves the shapes to their default positions in Model frame.
     computeBoundingShape(geometry);
-
-    int headJointIndex = _geometry->getFBXGeometry().headJointIndex;
-    if (0 <= headJointIndex && headJointIndex < _jointStates.size()) {
-        glm::vec3 leftEyePosition, rightEyePosition;
-        getEyeModelPositions(leftEyePosition, rightEyePosition);
-        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.f;
-
-        int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
-        glm::vec3 rootModelPosition;
-        getJointPosition(rootJointIndex, rootModelPosition);
-
-        _defaultEyeModelPosition = midEyePosition - rootModelPosition;
-        _defaultEyeModelPosition.z = -_defaultEyeModelPosition.z;
-    }
 
     // While the shapes are in their default position we disable collisions between
     // joints that are currently colliding.
