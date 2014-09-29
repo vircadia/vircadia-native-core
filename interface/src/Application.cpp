@@ -650,7 +650,7 @@ void Application::paintGL() {
     // Why have two cameras? Well, one reason is that because in the case of the renderViewFrustum()
     // code, we want to keep the state of "myCamera" intact, so we can render what the view frustum of
     // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
-    Camera whichCamera = _myCamera;
+    Camera* whichCamera = &_myCamera;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
 
@@ -664,7 +664,7 @@ void Application::paintGL() {
         _viewFrustumOffsetCamera.setDistance(viewFrustumOffset.distance);
         _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
         _viewFrustumOffsetCamera.update(1.f/_fps);
-        whichCamera = _viewFrustumOffsetCamera;
+        whichCamera = &_viewFrustumOffsetCamera;
     }
 
     if (Menu::getInstance()->getShadowsEnabled()) {
@@ -677,15 +677,15 @@ void Application::paintGL() {
         glClear(GL_COLOR_BUFFER_BIT);
         
         //When in mirror mode, use camera rotation. Otherwise, use body rotation
-        if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
-            OculusManager::display(whichCamera.getRotation(), whichCamera.getPosition(), whichCamera);
+        if (whichCamera->getMode() == CAMERA_MODE_MIRROR) {
+            OculusManager::display(whichCamera->getRotation(), whichCamera->getPosition(), *whichCamera);
         } else {
-            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), whichCamera);
+            OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), *whichCamera);
         }
 
     } else if (TV3DManager::isConnected()) {
        
-        TV3DManager::display(whichCamera);
+        TV3DManager::display(*whichCamera);
 
     } else {
         _glowEffect.prepare();
@@ -693,7 +693,7 @@ void Application::paintGL() {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(whichCamera);
+        displaySide(*whichCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
