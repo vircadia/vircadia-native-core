@@ -520,20 +520,18 @@ void Avatar::renderBody(RenderMode renderMode, bool postLighting, float glowLeve
             renderAttachments(renderMode);
         }
     }
-    if (!postLighting) {
-        getHead()->render(1.0f, modelRenderMode);
+    getHead()->render(1.0f, modelRenderMode, postLighting);
     
-        if (Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
-            // Render Hair
-            glPushMatrix();
-            glm::vec3 headPosition = getHead()->getPosition();
-            glTranslatef(headPosition.x, headPosition.y, headPosition.z);
-            const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-            _hair.render();
-            glPopMatrix();
-        }
+    if (!postLighting && Menu::getInstance()->isOptionChecked(MenuOption::StringHair)) {
+        // Render Hair
+        glPushMatrix();
+        glm::vec3 headPosition = getHead()->getPosition();
+        glTranslatef(headPosition.x, headPosition.y, headPosition.z);
+        const glm::quat& rotation = getHead()->getFinalOrientationInWorldFrame();
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        _hair.render();
+        glPopMatrix();
     }
 }
 

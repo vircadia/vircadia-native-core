@@ -302,9 +302,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // connect to the domainChangeRequired signal on AddressManager
     connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
             this, &Application::changeDomainHostname);
-    
-    // when -url in command line, teleport to location
-    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -1790,7 +1787,14 @@ void Application::init() {
     Menu::getInstance()->loadSettings();
     _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
 
-    qDebug("Loaded settings");
+    qDebug() << "Loaded settings";
+    
+    // when --url in command line, teleport to location
+    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    if (urlIndex != -1) {
+        AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
+    }
     
 #ifdef __APPLE__
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
