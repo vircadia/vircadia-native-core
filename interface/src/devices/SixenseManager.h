@@ -18,6 +18,11 @@
     #include <glm/glm.hpp>
     #include <glm/gtc/quaternion.hpp>
     #include "sixense.h"
+
+#ifdef __APPLE__
+    #include <qlibrary.h>
+#endif
+
 #endif
 
 const unsigned int BUTTON_0 = 1U << 0; // the skinny button between 1 and 2
@@ -38,9 +43,12 @@ const bool DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS = false;
 class SixenseManager : public QObject {
     Q_OBJECT
 public:
+    static SixenseManager& getInstance();
     
-    SixenseManager();
-    ~SixenseManager();
+    void initialize();
+    bool isInitialized() const { return _isInitialized; }
+    
+    void setIsEnabled(bool isEnabled) { _isEnabled = isEnabled; }
     
     void update(float deltaTime);
     float getCursorPixelRangeMult() const;
@@ -51,6 +59,9 @@ public slots:
     void setLowVelocityFilter(bool lowVelocityFilter) { _lowVelocityFilter = lowVelocityFilter; };
 
 private:
+    SixenseManager();
+    ~SixenseManager();
+    
 #ifdef HAVE_SIXENSE
     void updateCalibration(const sixenseControllerData* controllers);
     void emulateMouse(PalmData* palm, int index);
@@ -72,7 +83,13 @@ private:
     glm::vec3 _reachForward;
     float _lastDistance;
     
+#ifdef __APPLE__
+    QLibrary* _sixenseLibrary;
 #endif
+    
+#endif
+    bool _isInitialized;
+    bool _isEnabled;
     bool _hydrasConnected;
     quint64 _lastMovement;
     glm::vec3 _amountMoved;

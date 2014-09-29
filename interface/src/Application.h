@@ -219,7 +219,6 @@ public:
     DdeFaceTracker* getDDE() { return &_dde; }
     CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
-    SixenseManager* getSixenseManager() { return &_sixenseManager; }
     PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QUndoStack* getUndoStack() { return &_undoStack; }
@@ -510,7 +509,6 @@ private:
     CaraFaceTracker _cara;
     DdeFaceTracker _dde;
 
-    SixenseManager _sixenseManager;
     PrioVR _prioVR;
 
     Camera _myCamera;                  // My view onto the world
