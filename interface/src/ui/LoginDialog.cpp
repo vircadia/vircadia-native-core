@@ -21,7 +21,7 @@
 
 #include "LoginDialog.h"
 
-const QString FORGOT_PASSWORD_URL = "https://data.highfidelity.io/password/new";
+const QString FORGOT_PASSWORD_URL = "https://data.highfidelity.io/users/password/new";
 
 LoginDialog::LoginDialog(QWidget* parent) :
     FramelessDialog(parent, 0, FramelessDialog::POSITION_TOP),
