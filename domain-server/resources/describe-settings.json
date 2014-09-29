@@ -116,7 +116,7 @@
         "advanced": true
       },
       {
-        "name": "I-print-stream-stats",
+        "name": "print-stream-stats",
         "type": "checkbox",
         "label": "Print Stream Stats:",
         "help": "audio upstream and downstream stats of each agent printed to audio-mixer stdout",

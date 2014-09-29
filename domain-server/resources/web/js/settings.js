@@ -3,8 +3,10 @@ var Settings = {
 };
 
 var viewHelpers = {
-  getFormGroup: function(groupName, setting, values, isAdvanced) {
+  getFormGroup: function(groupName, setting, values, isAdvanced, isLocked) {
     setting_id = groupName + "_" + setting.name
+    
+    console.log(setting.name + " in " + groupName + " is " + isLocked)
     
     form_group = "<div class='form-group" + (isAdvanced ? " advanced-setting" : "") + "'>"
     
@@ -18,9 +20,10 @@ var viewHelpers = {
     
     if (setting.type === 'checkbox') {
       form_group += "<label class='control-label'>" + setting.label + "</label>"
-      form_group += "<div class='checkbox'>"
+      form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_id + "'>"
-      form_group += "<input type='checkbox' id='" + setting_id + "' " + (setting_value ? "checked" : "") + "/>"
+      form_group += "<input type='checkbox' id='" + setting_id + "' " + 
+        (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else {
@@ -29,7 +32,7 @@ var viewHelpers = {
       form_group += "<label for='" + setting_id + "' class='control-label'>" + setting.label + "</label>";
       form_group += "<input type='" + input_type + "' class='form-control' id='" + setting_id + 
         "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-        "' value='" + setting_value + "'/>"
+        "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       form_group += "<span class='help-block'>" + setting.help + "</span>" 
     }
     
@@ -101,6 +104,7 @@ function reloadSettings() {
     $('#panels').html(Settings.panelsTemplate(data))
     
     Settings.initialValues = form2js('settings-form', "_", false, cleanupFormValues, true);
+    $('[data-target=tooltip]').tooltip()
   });
 }
 
