@@ -19,6 +19,8 @@
 
 Player::Player(AvatarData* avatar) :
     _recording(new Recording()),
+    _currentFrame(-1),
+    _frameInterpolationFactor(0.0f),
     _pausedFrame(-1),
     _timerOffset(0),
     _avatar(avatar),
@@ -267,7 +269,7 @@ void Player::play() {
         float leanForward = glm::mix(currentFrame.getLeanForward(),
                                      nextFrame.getLeanForward(),
                                      _frameInterpolationFactor);
-        head->setLeanForward(currentFrame.getLeanForward());
+        head->setLeanForward(leanForward);
         
         glm::quat headRotation = safeMix(currentFrame.getHeadRotation(),
                                          nextFrame.getHeadRotation(),
