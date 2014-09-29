@@ -93,7 +93,8 @@ void SixenseManager::initialize() {
 #ifdef __APPLE__
         
         if (!_sixenseLibrary) {
-            _sixenseLibrary = new QLibrary("libsixense_x64.dylib");
+            const QString SIXENSE_LIBRARY_NAME = "libsixense_x64.dylib";
+            _sixenseLibrary = new QLibrary(SIXENSE_LIBRARY_NAME);
         }
         
         SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
