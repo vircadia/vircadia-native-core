@@ -223,22 +223,65 @@ void Player::play() {
         context = &_currentContext;
     }
     const RecordingFrame& currentFrame = _recording->getFrame(_currentFrame);
+    const RecordingFrame& nextFrame = _recording->getFrame(_currentFrame + 1);
     
-    _avatar->setPosition(context->position + context->orientation * currentFrame.getTranslation());
-    _avatar->setOrientation(context->orientation * currentFrame.getRotation());
-    _avatar->setTargetScale(context->scale * currentFrame.getScale());
-    _avatar->setJointRotations(currentFrame.getJointRotations());
+    glm::vec3 translation = glm::mix(currentFrame.getTranslation(),
+                                     nextFrame.getTranslation(),
+                                     _frameInterpolationFactor);
+    _avatar->setPosition(context->position + context->orientation * translation);
+    
+    glm::quat rotation = safeMix(currentFrame.getRotation(),
+                                 nextFrame.getRotation(),
+                                 _frameInterpolationFactor);
+    _avatar->setOrientation(context->orientation * rotation);
+    
+    float scale = glm::mix(currentFrame.getScale(),
+                           nextFrame.getScale(),
+                           _frameInterpolationFactor);
+    _avatar->setTargetScale(context->scale * scale);
+    
+    
+    QVector<glm::quat> jointRotations(currentFrame.getJointRotations().size());
+    for (int i = 0; i < currentFrame.getJointRotations().size(); ++i) {
+        jointRotations[i] = safeMix(currentFrame.getJointRotations()[i],
+                                    nextFrame.getJointRotations()[i],
+                                    _frameInterpolationFactor);
+    }
+    _avatar->setJointRotations(jointRotations);
     
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
-        head->setBlendshapeCoefficients(currentFrame.getBlendshapeCoefficients());
-        head->setLeanSideways(currentFrame.getLeanSideways());
+        QVector<float> blendCoef(currentFrame.getBlendshapeCoefficients().size());
+        for (int i = 0; i < currentFrame.getBlendshapeCoefficients().size(); ++i) {
+            blendCoef[i] = glm::mix(currentFrame.getBlendshapeCoefficients()[i],
+                                    nextFrame.getBlendshapeCoefficients()[i],
+                                    _frameInterpolationFactor);
+        }
+        head->setBlendshapeCoefficients(blendCoef);
+        
+        float leanSideways = glm::mix(currentFrame.getLeanSideways(),
+                                      nextFrame.getLeanSideways(),
+                                      _frameInterpolationFactor);
+        head->setLeanSideways(leanSideways);
+        
+        float leanForward = glm::mix(currentFrame.getLeanForward(),
+                                     nextFrame.getLeanForward(),
+                                     _frameInterpolationFactor);
         head->setLeanForward(currentFrame.getLeanForward());
-        glm::vec3 eulers = glm::degrees(safeEulerAngles(currentFrame.getHeadRotation()));
+        
+        glm::quat headRotation = safeMix(currentFrame.getHeadRotation(),
+                                         nextFrame.getHeadRotation(),
+                                         _frameInterpolationFactor);
+        glm::vec3 eulers = glm::degrees(safeEulerAngles(headRotation));
         head->setFinalPitch(eulers.x);
         head->setFinalYaw(eulers.y);
         head->setFinalRoll(eulers.z);
-        head->setLookAtPosition(context->position + context->orientation * currentFrame.getLookAtPosition());
+        
+        
+        glm::vec3 lookAt = glm::mix(currentFrame.getLookAtPosition(),
+                                    nextFrame.getLookAtPosition(),
+                                    _frameInterpolationFactor);
+        head->setLookAtPosition(context->position + context->orientation * lookAt);
     } else {
         qDebug() << "WARNING: Player couldn't find head data.";
     }
@@ -332,10 +375,26 @@ bool Player::computeCurrentFrame() {
         _currentFrame = 0;
     }
     
-    while (_currentFrame < _recording->getFrameNumber() - 1 &&
-           _recording->getFrameTimestamp(_currentFrame) < elapsed()) {
+    qint64 elapsed = Player::elapsed();
+    while (_currentFrame < _recording->getFrameNumber() &&
+           _recording->getFrameTimestamp(_currentFrame) < elapsed) {
         ++_currentFrame;
     }
+    --_currentFrame;
     
+    if (_currentFrame == _recording->getFrameNumber() - 1) {
+        --_currentFrame;
+        _frameInterpolationFactor = 1.0f;
+    } else {
+        qint64 currentTimestamps = _recording->getFrameTimestamp(_currentFrame);
+        qint64 nextTimestamps = _recording->getFrameTimestamp(_currentFrame + 1);
+        _frameInterpolationFactor = (float)(elapsed - currentTimestamps) /
+                                    (float)(nextTimestamps - currentTimestamps);
+    }
+    
+    if (_frameInterpolationFactor < 0.0f || _frameInterpolationFactor > 1.0f) {
+        _frameInterpolationFactor = 0.0f;
+        qDebug() << "Invalid frame interpolation value: overriding";
+    }
     return true;
 }

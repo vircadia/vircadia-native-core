@@ -64,6 +64,7 @@ private:
     QElapsedTimer _timer;
     RecordingPointer _recording;
     int _currentFrame;
+    float _frameInterpolationFactor;
     int _pausedFrame;
     qint64 _timerOffset;
     
