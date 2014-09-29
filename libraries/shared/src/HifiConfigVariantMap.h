@@ -17,11 +17,25 @@
 class HifiConfigVariantMap {
 public:
     static QVariantMap mergeCLParametersWithJSONConfig(const QStringList& argumentList);
-    static QVariantMap mergeMasterConfigWithUserConfig(const QStringList& argumentList);
-    static QString userConfigFilepath(const QStringList& argumentList);
+    
+    HifiConfigVariantMap(const QStringList& argumentList);
+    
+    const QVariantMap& getMasterConfig() const { return _masterConfig; }
+    QVariantMap& getUserConfig() { return _userConfig; }
+    QVariantMap& getMergedConfig() { return _mergedConfig; }
+    
+    const QString& userConfigFilepath() const { return _userConfigPath; }
 private:
-    static void mergeMapWithJSONFile(QVariantMap& existingMap, const QString& filename);
-    static void addMissingValuesToExistingMap(QVariantMap& existingMap, const QVariantMap& newMap);
+    QString _masterConfigPath;
+    QString _userConfigPath;
+    
+    QVariantMap _masterConfig;
+    QVariantMap _userConfig;
+    QVariantMap _mergedConfig;
+    
+    QVariantMap mergeMasterConfigWithUserConfig(const QStringList& argumentList);
+    void loadMapFromJSONFile(QVariantMap& existingMap, const QString& filename);
+    void addMissingValuesToExistingMap(QVariantMap& existingMap, const QVariantMap& newMap);
 };
 
 const QVariant* valueForKeyPath(QVariantMap& variantMap, const QString& keyPath);
