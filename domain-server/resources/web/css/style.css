@@ -52,6 +52,10 @@ span.port {
   color: red;
 }
 
+.locked {
+  color: blue;
+}
+
 .advanced-setting {
   display: none;
 }
