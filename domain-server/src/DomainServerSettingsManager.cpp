@@ -87,10 +87,12 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         // setup a JSON Object with descriptions and non-omitted settings
         const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
         const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+        const QString SETTINGS_RESPONSE_LOCKED_VALUES_KEY = "locked";
         
         QJsonObject rootObject;
         rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
+        rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
         
         
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
