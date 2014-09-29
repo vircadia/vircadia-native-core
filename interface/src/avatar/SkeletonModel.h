@@ -99,7 +99,7 @@ public:
 
     /// Gets the default position of the mid eye point in model frame coordinates.
     /// \return whether or not the head was found.
-    glm::vec3 getDefaultEyeModelPosition() const { return _defaultEyeModelPosition; }
+    glm::vec3 getDefaultEyeModelPosition() const;
 
     virtual void updateVisibleJointStates();
 

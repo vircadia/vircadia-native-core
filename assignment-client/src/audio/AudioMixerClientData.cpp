@@ -89,10 +89,13 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
             // grab the stream identifier for this injected audio
             int bytesBeforeStreamIdentifier = numBytesForPacketHeader(packet) + sizeof(quint16);
             QUuid streamIdentifier = QUuid::fromRfc4122(packet.mid(bytesBeforeStreamIdentifier, NUM_BYTES_RFC4122_UUID));
+            int bytesBeforeStereoIdentifier = bytesBeforeStreamIdentifier + NUM_BYTES_RFC4122_UUID;
+            bool isStereo;
+            QDataStream(packet.mid(bytesBeforeStereoIdentifier)) >> isStereo;
 
             if (!_audioStreams.contains(streamIdentifier)) {
                 // we don't have this injected stream yet, so add it
-                _audioStreams.insert(streamIdentifier, matchingStream = new InjectedAudioStream(streamIdentifier, AudioMixer::getStreamSettings()));
+                _audioStreams.insert(streamIdentifier, matchingStream = new InjectedAudioStream(streamIdentifier, isStereo, AudioMixer::getStreamSettings()));
             } else {
                 matchingStream = _audioStreams.value(streamIdentifier);
             }

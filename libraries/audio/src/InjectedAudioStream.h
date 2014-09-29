@@ -18,7 +18,7 @@
 
 class InjectedAudioStream : public PositionalAudioStream {
 public:
-    InjectedAudioStream(const QUuid& streamIdentifier, const InboundAudioStream::Settings& settings);
+    InjectedAudioStream(const QUuid& streamIdentifier, const bool isStereo, const InboundAudioStream::Settings& settings);
 
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }

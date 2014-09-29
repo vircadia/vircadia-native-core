@@ -19,8 +19,8 @@
 
 #include "InjectedAudioStream.h"
 
-InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, const InboundAudioStream::Settings& settings) :
-    PositionalAudioStream(PositionalAudioStream::Injector, false, settings),
+InjectedAudioStream::InjectedAudioStream(const QUuid& streamIdentifier, const bool isStereo, const InboundAudioStream::Settings& settings) :
+    PositionalAudioStream(PositionalAudioStream::Injector, isStereo, settings),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)
@@ -39,9 +39,14 @@ int InjectedAudioStream::parseStreamProperties(PacketType type,
     // skip the stream identifier
     packetStream.skipRawData(NUM_BYTES_RFC4122_UUID);
     
-    packetStream >> _isStereo;
-    if (isStereo()) {
-        _ringBuffer.resizeForFrameSize(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO);
+    // read the channel flag
+    bool isStereo;
+    packetStream >> isStereo;
+    
+    // if isStereo value has changed, restart the ring buffer with new frame size
+    if (isStereo != _isStereo) {
+        _ringBuffer.resizeForFrameSize(isStereo ? NETWORK_BUFFER_LENGTH_SAMPLES_STEREO : NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        _isStereo = isStereo;
     }
 
     // pull the loopback flag and set our boolean
