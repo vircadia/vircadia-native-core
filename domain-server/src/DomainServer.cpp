@@ -48,7 +48,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _sessionAuthenticationHash(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
-    _settingsManager(arguments())
+    _settingsManager()
 {
     LogUtils::init();
 
@@ -56,6 +56,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setOrganizationDomain("highfidelity.io");
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
+    
+    _settingsManager.setupConfigMap(arguments());
     
     installNativeEventFilter(&_shutdownEventListener);
     connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));

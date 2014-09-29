@@ -21,9 +21,11 @@
 class DomainServerSettingsManager : public QObject {
     Q_OBJECT
 public:
-    DomainServerSettingsManager(const QStringList& argumentList);
+    DomainServerSettingsManager();
     bool handlePublicHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    
+    void setupConfigMap(const QStringList& argumentList);
     
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 private:
@@ -34,7 +36,6 @@ private:
     
     QJsonArray _descriptionArray;
     HifiConfigVariantMap _configMap;
-    QString _settingsFilepath;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

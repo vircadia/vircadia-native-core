@@ -87,13 +87,16 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
     return mergedMap;
 }
 
-HifiConfigVariantMap::HifiConfigVariantMap(const QStringList& argumentList) :
-    _masterConfigPath(),
-    _userConfigPath(),
+HifiConfigVariantMap::HifiConfigVariantMap() :
+    _userConfigFilename(),
     _masterConfig(),
     _userConfig(),
     _mergedConfig()
 {
+    
+}
+
+void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentList) {
     // check if there is a master config file
     const QString MASTER_CONFIG_FILE_OPTION = "--master-config";
     
@@ -108,16 +111,15 @@ HifiConfigVariantMap::HifiConfigVariantMap(const QStringList& argumentList) :
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
     
     int userConfigIndex = argumentList.indexOf(USER_CONFIG_FILE_OPTION);
-    QString userConfigFilepath;
     if (userConfigIndex != -1) {
-        _userConfigPath = argumentList[userConfigIndex + 1];
+        _userConfigFilename = argumentList[userConfigIndex + 1];
     } else {
-        _userConfigPath = QString("%1%2/%3/config.json").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
-                                                              QCoreApplication::organizationName(),
-                                                              QCoreApplication::applicationName());
+        _userConfigFilename = QString("%1/%2/%3/config.json").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
+                                                                  QCoreApplication::organizationName(),
+                                                                  QCoreApplication::applicationName());
     }
     
-    loadMapFromJSONFile(_userConfig, _userConfigPath);
+    loadMapFromJSONFile(_userConfig, _userConfigFilename);
     
     // the merged config is initially matched to the master config
     _mergedConfig = _masterConfig;

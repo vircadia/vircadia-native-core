@@ -26,15 +26,19 @@
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
-DomainServerSettingsManager::DomainServerSettingsManager(const QStringList& argumentList) :
+DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
-    _configMap(argumentList)
+    _configMap()
 {
     // load the description object from the settings description
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
     descriptionFile.open(QIODevice::ReadOnly);
     
     _descriptionArray = QJsonDocument::fromJson(descriptionFile.readAll()).array();
+}
+
+void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
+    _configMap.loadMasterAndUserConfig(argumentList);
 }
 
 const QString SETTINGS_PATH = "/settings.json";
@@ -239,13 +243,13 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 void DomainServerSettingsManager::persistToFile() {
     
     // make sure we have the dir the settings file is supposed to live in
-    QFileInfo settingsFileInfo(_settingsFilepath);
+    QFileInfo settingsFileInfo(_configMap.getUserConfigFilename());
     
     if (!settingsFileInfo.dir().exists()) {
         settingsFileInfo.dir().mkpath(".");
     }
     
-    QFile settingsFile(_settingsFilepath);
+    QFile settingsFile(_configMap.getUserConfigFilename());
     
     if (settingsFile.open(QIODevice::WriteOnly)) {
         settingsFile.write(QJsonDocument::fromVariant(_configMap.getUserConfig()).toJson());
