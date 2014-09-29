@@ -63,6 +63,7 @@ SixenseManager::SixenseManager() :
 }
 
 SixenseManager::~SixenseManager() {
+#ifdef HAVE_SIXENSE_
     
     if (_isInitialized) {
 #ifdef __APPLE__
@@ -74,6 +75,8 @@ SixenseManager::~SixenseManager() {
     
 #ifdef __APPLE__
     delete _sixenseLibrary;
+#endif
+    
 #endif
 }
 
