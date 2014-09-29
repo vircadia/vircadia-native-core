@@ -304,8 +304,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
             this, &Application::changeDomainHostname);
     
-    // when -url in command line, teleport to location
-    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
+    // when --url in command line, teleport to location
+    addressManager.handleLookupString(getCmdOption(argc, constArgv, "--url"));
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
