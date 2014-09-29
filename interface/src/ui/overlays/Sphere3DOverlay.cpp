@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"
+#include "renderer/GlowEffect.h"
 
 Sphere3DOverlay::Sphere3DOverlay() {
 }
@@ -27,22 +28,46 @@ void Sphere3DOverlay::render() {
         return; // do nothing if we're not visible
     }
 
+    const int slices = 15;
+    float alpha = getAlpha();
+    xColor color = getColor();
     const float MAX_COLOR = 255;
-    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
+    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
 
     glDisable(GL_LIGHTING);
-    glPushMatrix();
-    glTranslatef(_position.x,
-                 _position.y,
-                 _position.z);
-    glLineWidth(_lineWidth);
-    const int slices = 15;
-    if (_isSolid) {
-        glutSolidSphere(_size, slices, slices);
-    } else {
-        glutWireSphere(_size, slices, slices);
+    
+    glm::vec3 position = getPosition();
+    glm::vec3 center = getCenter();
+    glm::vec3 dimensions = getDimensions();
+    //glm::vec3 halfDimensions = dimensions / 2.0f;
+    glm::quat rotation = getRotation();
+
+    float glowLevel = getGlowLevel();
+    Glower* glower = NULL;
+    if (glowLevel > 0.0f) {
+        glower = new Glower(glowLevel);
     }
+
+    glPushMatrix();
+        glTranslatef(position.x, position.y, position.z);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        glPushMatrix();
+            glm::vec3 positionToCenter = center - position;
+            glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
+            glScalef(dimensions.x, dimensions.y, dimensions.z);
+            //Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+            if (_isSolid) {
+                glutSolidSphere(1.0f, slices, slices);
+            } else {
+                glutWireSphere(1.0f, slices, slices);
+            }
+        glPopMatrix();
     glPopMatrix();
+    
+    if (glower) {
+        delete glower;
+    }
 
 }

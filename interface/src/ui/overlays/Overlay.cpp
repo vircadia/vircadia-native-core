@@ -23,6 +23,16 @@ Overlay::Overlay() :
     _parent(NULL),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
+    _glowLevel(0.0f),
+    _pulse(0.0f),
+    _pulseMax(0.0f),
+    _pulseMin(0.0f),
+    _pulsePeriod(1.0f),
+    _pulseDirection(1.0f),
+    _lastPulseUpdate(usecTimestampNow()),
+    _glowLevelPulse(0.0f),
+    _alphaPulse(0.0f),
+    _colorPulse(0.0f),
     _color(DEFAULT_OVERLAY_COLOR),
     _visible(true),
     _anchor(NO_ANCHOR)
@@ -54,6 +64,34 @@ void Overlay::setProperties(const QScriptValue& properties) {
         setAlpha(properties.property("alpha").toVariant().toFloat());
     }
     
+    if (properties.property("glowLevel").isValid()) {
+        setGlowLevel(properties.property("glowLevel").toVariant().toFloat());
+    }
+
+    if (properties.property("pulseMax").isValid()) {
+        setPulseMax(properties.property("pulseMax").toVariant().toFloat());
+    }
+
+    if (properties.property("pulseMin").isValid()) {
+        setPulseMin(properties.property("pulseMin").toVariant().toFloat());
+    }
+
+    if (properties.property("pulsePeriod").isValid()) {
+        setPulsePeriod(properties.property("pulsePeriod").toVariant().toFloat());
+    }
+    
+    if (properties.property("glowLevelPulse").isValid()) {
+        setGlowLevelPulse(properties.property("glowLevelPulse").toVariant().toFloat());
+    }
+    
+    if (properties.property("alphaPulse").isValid()) {
+        setAlphaPulse(properties.property("alphaPulse").toVariant().toFloat());
+    }
+
+    if (properties.property("colorPulse").isValid()) {
+        setColorPulse(properties.property("colorPulse").toVariant().toFloat());
+    }
+
     if (properties.property("visible").isValid()) {
         setVisible(properties.property("visible").toVariant().toBool());
     }
@@ -64,4 +102,90 @@ void Overlay::setProperties(const QScriptValue& properties) {
             setAnchor(MY_AVATAR);
         }
     }
+}
+
+xColor Overlay::getColor() { 
+    if (_colorPulse == 0.0f) {
+        return _color; 
+    }
+
+    float pulseLevel = updatePulse();
+    xColor result = _color;
+    if (_colorPulse < 0.0f) {
+        result.red *= (1.0f - pulseLevel);
+        result.green *= (1.0f - pulseLevel);
+        result.blue *= (1.0f - pulseLevel);
+    } else {
+        result.red *= pulseLevel;
+        result.green *= pulseLevel;
+        result.blue *= pulseLevel;
+    }
+    return result;
+}
+
+float Overlay::getAlpha() {
+    if (_alphaPulse == 0.0f) {
+        return _alpha; 
+    }
+    float pulseLevel = updatePulse();
+    return (_alphaPulse >= 0.0f) ? _alpha * pulseLevel : _alpha * (1.0f - pulseLevel);
+}
+
+float Overlay::getGlowLevel() { 
+    if (_glowLevelPulse == 0.0f) {
+        return _glowLevel; 
+    }
+    float pulseLevel = updatePulse();
+    return (_glowLevelPulse >= 0.0f) ? _glowLevel * pulseLevel : _glowLevel * (1.0f - pulseLevel);
+}
+
+
+// glow level travels from min to max, then max to min in one period.
+float Overlay::updatePulse() {
+    if (_pulsePeriod <= 0.0f) {
+        return _pulse;
+    }
+    quint64 now = usecTimestampNow();
+    quint64 elapsedUSecs = (now - _lastPulseUpdate);
+    float elapsedSeconds =  (float)elapsedUSecs / (float)USECS_PER_SECOND;
+    float elapsedPeriods = elapsedSeconds / _pulsePeriod;
+
+    // we can safely remove any "full" periods, since those just rotate us back
+    // to our final glow level
+    while (elapsedPeriods > 1.0f) {
+        elapsedPeriods -= 1.0f;
+    }
+    _lastPulseUpdate = now;
+
+    
+    float glowDistance =  (_pulseMax - _pulseMin);
+    float glowDistancePerPeriod = glowDistance * 2.0f;
+    
+    // if we're currently traveling from min to max
+    if (_pulseDirection > 0.0f) {
+        float glowDelta = glowDistancePerPeriod * elapsedPeriods;
+        
+        // if by adding the glowDelta, we would pass our max, then calculate
+        // the distance from the max back to where we'd land...
+        if (_pulse + glowDelta >= _pulseMax) {
+            float glowDeltaToMax = (_pulse + glowDelta) - _pulseMax;
+            float glowDeltaFromMaxBack = glowDelta - glowDeltaToMax;
+            glowDelta = -glowDeltaFromMaxBack;
+            _pulseDirection = -1.0f;
+        }
+        _pulse += glowDelta;
+    } else {
+        float glowDelta = _pulseDirection * glowDistancePerPeriod * elapsedPeriods;
+        
+        // if by subtracting the glowDelta, we would pass our min, then calculate
+        // the distance from the min back to where we'd land...
+        if (_pulse + glowDelta <= _pulseMin) {
+            float glowDeltaToMin = (_pulse + glowDelta) - _pulseMin;
+            float glowDeltaFromMinBack = glowDelta - glowDeltaToMin;
+            glowDelta = -glowDeltaFromMinBack;
+            _pulseDirection = 1.0f;
+        }
+        _pulse += glowDelta;
+    }
+    return _pulse;
 }

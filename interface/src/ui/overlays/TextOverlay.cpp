@@ -28,13 +28,36 @@ TextOverlay::TextOverlay() :
 TextOverlay::~TextOverlay() {
 }
 
+xColor TextOverlay::getBackgroundColor() {
+    if (_colorPulse == 0.0f) {
+        return _backgroundColor; 
+    }
+
+    float pulseLevel = updatePulse();
+    xColor result = _backgroundColor;
+    if (_colorPulse < 0.0f) {
+        result.red *= (1.0f - pulseLevel);
+        result.green *= (1.0f - pulseLevel);
+        result.blue *= (1.0f - pulseLevel);
+    } else {
+        result.red *= pulseLevel;
+        result.green *= pulseLevel;
+        result.blue *= pulseLevel;
+    }
+    return result;
+}
+
+
 void TextOverlay::render() {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
 
+
     const float MAX_COLOR = 255;
-    glColor4f(_backgroundColor.red / MAX_COLOR, _backgroundColor.green / MAX_COLOR, _backgroundColor.blue / MAX_COLOR, _alpha);
+    xColor backgroundColor = getBackgroundColor();
+    float alpha = getAlpha();
+    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
 
     glBegin(GL_QUADS);
         glVertex2f(_bounds.left(), _bounds.top());
@@ -64,7 +87,6 @@ void TextOverlay::render() {
         const int lineGap = 2;
         lineOffset += lineGap;
     }
-
 }
 
 void TextOverlay::setProperties(const QScriptValue& properties) {

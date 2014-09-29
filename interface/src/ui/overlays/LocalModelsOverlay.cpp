@@ -27,6 +27,13 @@ void LocalModelsOverlay::update(float deltatime) {
 
 void LocalModelsOverlay::render() {
     if (_visible) {
+
+        float glowLevel = getGlowLevel();
+        Glower* glower = NULL;
+        if (glowLevel > 0.0f) {
+            glower = new Glower(glowLevel);
+        }
+
         glPushMatrix(); {
             Application* app = Application::getInstance();
             glm::vec3 oldTranslation = app->getViewMatrixTranslation();
@@ -34,5 +41,10 @@ void LocalModelsOverlay::render() {
             _entityTreeRenderer->render();
             Application::getInstance()->setViewMatrixTranslation(oldTranslation);
         } glPopMatrix();
+
+        if (glower) {
+            delete glower;
+        }
+
     }
 }
