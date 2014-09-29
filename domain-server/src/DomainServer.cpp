@@ -57,7 +57,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
-    _settingsManager.loadSettingsMap(arguments());
+    _settingsManager.setupConfigMap(arguments());
     
     installNativeEventFilter(&_shutdownEventListener);
     connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
