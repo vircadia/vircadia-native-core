@@ -33,7 +33,6 @@ private:
     QVariantMap _userConfig;
     QVariantMap _mergedConfig;
     
-    QVariantMap mergeMasterConfigWithUserConfig(const QStringList& argumentList);
     void loadMapFromJSONFile(QVariantMap& existingMap, const QString& filename);
     void addMissingValuesToExistingMap(QVariantMap& existingMap, const QVariantMap& newMap);
 };
