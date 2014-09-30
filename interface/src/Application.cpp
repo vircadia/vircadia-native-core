@@ -232,6 +232,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // put the NodeList and datagram processing on the node thread
     NodeList* nodeList = NodeList::createInstance(NodeType::Agent, listenPort);
+    
+    qDebug() << "NL pointer is" << nodeList;
 
     nodeList->moveToThread(_nodeThread);
     _datagramProcessor.moveToThread(_nodeThread);

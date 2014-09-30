@@ -24,30 +24,25 @@
 #include "SharedUtil.h"
 #include "UUID.h"
 
-NodeList* NodeList::_sharedInstance = NULL;
-
 NodeList* NodeList::createInstance(char ownerType, unsigned short socketListenPort, unsigned short dtlsPort) {
-    if (!_sharedInstance) {
-        NodeType::init();
-        
-        _sharedInstance = new NodeList(ownerType, socketListenPort, dtlsPort);
-        LimitedNodeList::_sharedInstance = _sharedInstance;
-
-        // register the SharedNodePointer meta-type for signals/slots
-        qRegisterMetaType<SharedNodePointer>();
-    } else {
-        qDebug("NodeList createInstance called with existing instance.");
-    }
-
-    return _sharedInstance;
+    
+    NodeType::init();
+    
+    delete _sharedInstance.release();
+    _sharedInstance = std::auto_ptr<LimitedNodeList>(new NodeList(ownerType, socketListenPort, dtlsPort));
+    
+    // register the SharedNodePointer meta-type for signals/slots
+    qRegisterMetaType<SharedNodePointer>();
+    
+    return static_cast<NodeList*>(_sharedInstance.get());
 }
 
 NodeList* NodeList::getInstance() {
-    if (!_sharedInstance) {
+    if (!_sharedInstance.get()) {
         qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
     }
 
-    return _sharedInstance;
+    return static_cast<NodeList*>(_sharedInstance.get());
 }
 
 NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned short dtlsListenPort) :

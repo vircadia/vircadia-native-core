@@ -118,7 +118,7 @@ signals:
     void nodeKilled(SharedNodePointer);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 protected:
-    static LimitedNodeList* _sharedInstance;
+    static std::auto_ptr<LimitedNodeList> _sharedInstance;
 
     LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton
