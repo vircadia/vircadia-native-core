@@ -32,6 +32,11 @@ void Circle3DOverlay::render() {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
+    
+    float PI_OVER_180 = 3.14159265358979f / 180.0f;
+    float FULL_CIRCLE = 360.0f;
+    float SLICES = 180.0f;  // The amount of segment to create the circle
+    float SLICE_ANGLE = FULL_CIRCLE / SLICES;
 
     //const int slices = 15;
     float alpha = getAlpha();
@@ -63,48 +68,81 @@ void Circle3DOverlay::render() {
             glScalef(dimensions.x, dimensions.y, dimensions.z);
 
             // Create the circle in the coordinates origin
-            float outerRadius = getOuterRadius();
-            float innerRadius = getInnerRadius();
-
-            glLineWidth(_lineWidth);
-            glBegin(GL_QUAD_STRIP);
-
-            const float PI_OVER_180 = 3.14159265358979f / 180.0f;
-            const float FULL_CIRCLE = 360.0f;
-            const float SLICES = 180.0f;  // The amount of segment to create the circle
-            const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
-
+            float outerRadius = getOuterRadius(); 
+            float innerRadius = getInnerRadius(); // only used in solid case
             float startAt = getStartAt();
             float endAt = getEndAt();
-            float angle = startAt;
-            float angleInRadians = angle * PI_OVER_180;
-            glm::vec2 firstInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
-            glm::vec2 firstOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
 
-            glVertex2f(firstInnerPoint.x, firstInnerPoint.y);
-            glVertex2f(firstOuterPoint.x, firstOuterPoint.y);
+            glLineWidth(_lineWidth);
+            
+            // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
+            // we just draw a line...
+            if (getIsSolid()) {
+                glBegin(GL_QUAD_STRIP);
 
-            while (angle < endAt) {
-                angleInRadians = angle * PI_OVER_180;
-                glm::vec2 thisInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
-                glm::vec2 thisOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+                float angle = startAt;
+                float angleInRadians = angle * PI_OVER_180;
+                glm::vec2 firstInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
+                glm::vec2 firstOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
 
-                glVertex2f(thisOuterPoint.x, thisOuterPoint.y);
-                glVertex2f(thisInnerPoint.x, thisInnerPoint.y);
+                glVertex2f(firstInnerPoint.x, firstInnerPoint.y);
+                glVertex2f(firstOuterPoint.x, firstOuterPoint.y);
+
+                while (angle < endAt) {
+                    angleInRadians = angle * PI_OVER_180;
+                    glm::vec2 thisInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
+                    glm::vec2 thisOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+
+                    glVertex2f(thisOuterPoint.x, thisOuterPoint.y);
+                    glVertex2f(thisInnerPoint.x, thisInnerPoint.y);
                 
-                angle += SLICE_ANGLE;
-            }
+                    angle += SLICE_ANGLE;
+                }
             
-            // get the last slice portion....
-            angle = endAt;
-            angleInRadians = angle * PI_OVER_180;
-            glm::vec2 lastInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
-            glm::vec2 lastOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+                // get the last slice portion....
+                angle = endAt;
+                angleInRadians = angle * PI_OVER_180;
+                glm::vec2 lastInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
+                glm::vec2 lastOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
             
-            glVertex2f(lastOuterPoint.x, lastOuterPoint.y);
-            glVertex2f(lastInnerPoint.x, lastInnerPoint.y);
+                glVertex2f(lastOuterPoint.x, lastOuterPoint.y);
+                glVertex2f(lastInnerPoint.x, lastInnerPoint.y);
 
-            glEnd();
+                glEnd();
+            } else {
+                if (getIsDashedLine()) {
+                    glBegin(GL_LINES);
+                } else {
+                    glBegin(GL_LINE_STRIP);
+                }
+                
+
+                float angle = startAt;
+                float angleInRadians = angle * PI_OVER_180;
+                glm::vec2 firstPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+                glVertex2f(firstPoint.x, firstPoint.y);
+
+                while (angle < endAt) {
+                    angle += SLICE_ANGLE;
+                    angleInRadians = angle * PI_OVER_180;
+                    glm::vec2 thisPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+                    glVertex2f(thisPoint.x, thisPoint.y);
+
+                    if (getIsDashedLine()) {
+                        angle += SLICE_ANGLE / 2.0f; // short gap
+                        angleInRadians = angle * PI_OVER_180;
+                        glm::vec2 dashStartPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+                        glVertex2f(dashStartPoint.x, dashStartPoint.y);
+                    }
+                }
+            
+                // get the last slice portion....
+                angle = endAt;
+                angleInRadians = angle * PI_OVER_180;
+                glm::vec2 lastOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
+                glVertex2f(lastOuterPoint.x, lastOuterPoint.y);
+                glEnd();
+            }
  
         glPopMatrix();
     glPopMatrix();
@@ -141,6 +179,8 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     qDebug() << "endAt:" << getEndAt();
     qDebug() << "outerRadius:" << getOuterRadius();
     qDebug() << "innerRadius:" << getInnerRadius();
+    qDebug() << "getIsSolid:" << getIsSolid();
+    qDebug() << "getIsDashedLine:" << getIsDashedLine();
 }
 
 

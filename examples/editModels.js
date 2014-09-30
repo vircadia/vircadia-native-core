@@ -1589,7 +1589,7 @@ var SelectionDisplay = function (opts) {
                     size: 1,
                     color: { red: 0, green: 195, blue: 255},
                     alpha: 0.1,
-                    solid: false,
+                    solid: true,
                     visible: false,
                     rotation: yawOverlayRotation
                 });
@@ -1599,7 +1599,7 @@ var SelectionDisplay = function (opts) {
                     size: 1,
                     color: { red: 0, green: 195, blue: 215},
                     alpha: 0.1,
-                    solid: false,
+                    solid: true,
                     visible: false,
                     rotation: yawOverlayRotation
                 });
@@ -1610,8 +1610,9 @@ var SelectionDisplay = function (opts) {
                     color: { red: 255, green: 190, blue: 190},
                     alpha: 1,
                     solid: false,
+                    isDashedLine: true,
                     visible: false,
-                    rotation: yawOverlayRotation
+                    rotation: yawOverlayRotation,
                 });
 
     var yawHandleAngles = { x: 90, y: 90, z: 0 };
@@ -1619,7 +1620,6 @@ var SelectionDisplay = function (opts) {
     var yawHandle = Overlays.addOverlay("billboard", {
                                         url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
                                         position: { x:0, y: 0, z: 0},
-                                        solid: true,
                                         color: { red: 0, green: 0, blue: 255 },
                                         alpha: 0.3,
                                         visible: false,
@@ -1636,7 +1636,6 @@ var SelectionDisplay = function (opts) {
                     size: 1,
                     color: { red: 0, green: 255, blue: 0},
                     alpha: 1,
-                    solid: false,
                     visible: false,
                     rotation: pitchOverlayRotation
                 });
@@ -1646,7 +1645,6 @@ var SelectionDisplay = function (opts) {
     var pitchHandle = Overlays.addOverlay("billboard", {
                                         url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
                                         position: { x:0, y: 0, z: 0},
-                                        solid: true,
                                         color: { red: 0, green: 0, blue: 255 },
                                         alpha: 0.3,
                                         visible: false,
@@ -1663,7 +1661,6 @@ var SelectionDisplay = function (opts) {
                     size: 1,
                     color: { red: 255, green: 0, blue: 0},
                     alpha: 1,
-                    solid: false,
                     visible: false,
                     rotation: rollOverlayRotation
                 });
@@ -1673,7 +1670,6 @@ var SelectionDisplay = function (opts) {
     var rollHandle = Overlays.addOverlay("billboard", {
                                         url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
                                         position: { x:0, y: 0, z: 0},
-                                        solid: true,
                                         color: { red: 0, green: 0, blue: 255 },
                                         alpha: 0.3,
                                         visible: false,
@@ -1725,7 +1721,6 @@ var SelectionDisplay = function (opts) {
         Overlays.editOverlay(yawOverlayInner, 
                             { 
                                 visible: true,
-                                solid:false,
                                 lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
@@ -1738,7 +1733,6 @@ var SelectionDisplay = function (opts) {
         Overlays.editOverlay(yawOverlayOuter, 
                             { 
                                 visible: true,
-                                solid:false,
                                 lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
@@ -1753,7 +1747,6 @@ var SelectionDisplay = function (opts) {
         Overlays.editOverlay(yawOverlayCurrent, 
                             { 
                                 visible: true,
-                                solid:false,
                                 lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
@@ -1779,7 +1772,6 @@ var SelectionDisplay = function (opts) {
         Overlays.editOverlay(pitchOverlay, 
                             { 
                                 visible: false,
-                                solid:false,
                                 lineWidth: 5.0,
                                 position: { x: properties.position.x + (properties.dimensions.x / 2),
                                             y: properties.position.y,
@@ -1802,7 +1794,6 @@ var SelectionDisplay = function (opts) {
         Overlays.editOverlay(rollOverlay, 
                             { 
                                 visible: false,
-                                solid:false,
                                 lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y,

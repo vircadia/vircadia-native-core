@@ -115,4 +115,11 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
     if (properties.property("wire").isValid()) {
         setIsSolid(!properties.property("wire").toVariant().toBool());
     }
+
+    if (properties.property("isDashedLine").isValid()) {
+        setIsDashedLine(properties.property("isDashedLine").toVariant().toBool());
+    }
+    if (properties.property("dashed").isValid()) {
+        setIsDashedLine(!properties.property("dashed").toVariant().toBool());
+    }
 }

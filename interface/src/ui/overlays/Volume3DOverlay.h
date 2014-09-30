@@ -32,14 +32,17 @@ public:
 
     // getters
     bool getIsSolid() const { return _isSolid; }
+    bool getIsDashedLine() const { return _isDashedLine; }
+    bool getIsSolidLine() const { return !_isDashedLine; }
     const glm::vec3& getPosition() const { return _position; }
-    const glm::vec3& getCenter() const { return _position; } // TODO: registration point!!
+    const glm::vec3& getCenter() const { return _position; } // TODO: consider adding registration point!!
     const glm::vec3& getDimensions() const { return _dimensions; }
     const glm::quat& getRotation() const { return _rotation; }
 
     // setters
     void setSize(float size) { _dimensions = glm::vec3(size, size, size); }
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
+    void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setDimensions(const glm::vec3& value) { _dimensions = value; }
     void setRotation(const glm::quat& value) { _rotation = value; }
 
@@ -49,6 +52,7 @@ protected:
     glm::vec3 _dimensions;
     glm::quat _rotation;
     bool _isSolid;
+    bool _isDashedLine;
 };
 
  
