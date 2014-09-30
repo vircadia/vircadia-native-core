@@ -512,7 +512,7 @@ QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue
         } else if (item.property("options").isArray()) {
             QComboBox* combo = new QComboBox();
             combo->setMinimumWidth(200);
-            qint32 options_count = item.property("options").property("length").toInt32();// .toJsonArray();
+            qint32 options_count = item.property("options").property("length").toInt32();
             for (qint32 i = 0; i < options_count; i++) {
                 combo->addItem(item.property("options").property(i).toString());
             }
