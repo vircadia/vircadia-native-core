@@ -434,7 +434,7 @@ Menu::Menu() :
 #ifdef __APPLE__
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::SixenseEnabled,
-                                           0, true,
+                                           0, false,
                                            this,
                                            SLOT(toggleSixense(bool)));
 #endif
