@@ -1899,12 +1899,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         int largestI = (largestIndex == 0) ? 1 : 2; 
                         float sjj = d[largestJ][largestJ];
                         float sii = d[largestI][largestI];
-                        float angle = (sii == sjj ? PI_OVER_TWO : glm::atan(2.0f * d[largestJ][largestI], sjj - sii)) / 2.0f;
+                        float angle = glm::atan(2.0f * d[largestJ][largestI], sjj - sii) / 2.0f;
                         glm::quat rotation = glm::angleAxis(angle, largestIndex == 0 ? glm::vec3(0.0f, 0.0f, -1.0f) :
                             (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
-                        if (rotation.w == 0.0f) {
-                            break;
-                        }
                         combinedRotation = glm::normalize(rotation * combinedRotation);
                         glm::mat3 matrix = glm::mat3_cast(combinedRotation);
                         d = matrix * ata * glm::transpose(matrix);
