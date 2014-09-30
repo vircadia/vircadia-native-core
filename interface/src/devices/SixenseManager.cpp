@@ -45,7 +45,7 @@ SixenseManager& SixenseManager::getInstance() {
 }
 
 SixenseManager::SixenseManager() :
-#ifdef __APPLE__
+#if defined(HAVE_SIXENSE) && defined(__APPLE__)
     _sixenseLibrary(NULL),
 #endif
     _isInitialized(false),
