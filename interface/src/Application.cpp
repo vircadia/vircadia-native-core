@@ -609,8 +609,11 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
-        _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+        if (!OculusManager::isConnected()) {
+            _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
+            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+        }
+        // OculusManager::display() updates camera position and rotation a bit further on.
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
@@ -640,7 +643,9 @@ void Application::paintGL() {
     }
 
     // Update camera position
-    _myCamera.update( 1.f/_fps );
+    if (!OculusManager::isConnected()) {
+        _myCamera.update(1.f / _fps);
+    }
 
     // Note: whichCamera is used to pick between the normal camera myCamera for our
     // main camera, vs, an alternate camera. The alternate camera we support right now
@@ -682,6 +687,7 @@ void Application::paintGL() {
         } else {
             OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), *whichCamera);
         }
+        _myCamera.update(1.f / _fps);
 
     } else if (TV3DManager::isConnected()) {
        

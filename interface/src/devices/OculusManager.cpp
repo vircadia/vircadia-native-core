@@ -412,6 +412,10 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     
     glBindTexture(GL_TEXTURE_2D, 0);
     
+    // Update camera for use by rest of Interface.
+    whichCamera.setTargetPosition((_leftEyePosition + _rightEyePosition) / 2.f);
+    whichCamera.setTargetRotation(_camera->getTargetRotation());
+
 #endif
 }
 
