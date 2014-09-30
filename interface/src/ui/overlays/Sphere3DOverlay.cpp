@@ -40,7 +40,6 @@ void Sphere3DOverlay::render() {
     glm::vec3 position = getPosition();
     glm::vec3 center = getCenter();
     glm::vec3 dimensions = getDimensions();
-    //glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
 
     float glowLevel = getGlowLevel();

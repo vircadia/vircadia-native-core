@@ -11,6 +11,7 @@
 #include <Application.h>
 
 #include "BillboardOverlay.h"
+#include "Circle3DOverlay.h"
 #include "Cube3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
@@ -143,6 +144,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         is3D = true;
     } else if (type == "sphere") {
         thisOverlay = new Sphere3DOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "circle3d") {
+        thisOverlay = new Circle3DOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;
