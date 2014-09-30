@@ -81,6 +81,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::restart() {
     qDebug() << "domain-server is restarting.";
+    
+    // make sure all static instances are reset
+    LimitedNodeList::getInstance()->reset();
+    AccountManager::getInstance(true);
+    
     exit(DomainServer::EXIT_CODE_REBOOT);
 }
 

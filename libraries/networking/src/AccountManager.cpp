@@ -25,9 +25,14 @@
 
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
-AccountManager& AccountManager::getInstance() {
-    static AccountManager sharedInstance;
-    return sharedInstance;
+AccountManager& AccountManager::getInstance(bool forceReset) {
+    static std::auto_ptr<AccountManager> sharedInstance(new AccountManager());
+    
+    if (forceReset) {
+        sharedInstance.reset(new AccountManager());
+    }
+    
+    return *sharedInstance;
 }
 
 Q_DECLARE_METATYPE(OAuthAccessToken)
