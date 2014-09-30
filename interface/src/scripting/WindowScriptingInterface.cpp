@@ -266,10 +266,10 @@ QScriptValue WindowScriptingInterface::doPeekNonBlockingFormResult(QScriptValue 
         } else if (item.property("options").isArray()) {
             c += 1;
             item.setProperty("value",
-                    _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
-                    item.property("options").property(_combos.at(c)->currentIndex()) :
-                    array.engine()->undefinedValue()
-                );
+                _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
+                item.property("options").property(_combos.at(c)->currentIndex()) :
+                array.engine()->undefinedValue()
+            );
             _form.setProperty(i, item);
         } else {
             e += 1;
@@ -323,10 +323,10 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
             } else if (item.property("options").isArray()) {
                 c += 1;
                 item.setProperty("value",
-                        _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
-                        item.property("options").property(_combos.at(c)->currentIndex()) :
-                        array.engine()->undefinedValue()
-                    );
+                    _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
+                    item.property("options").property(_combos.at(c)->currentIndex()) :
+                    array.engine()->undefinedValue()
+                );
                 _form.setProperty(i, item);
             } else {
                 e += 1;
@@ -401,10 +401,10 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
             } else if (item.property("options").isArray()) {
                 c += 1;
                 item.setProperty("value", 
-                        _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
-                        item.property("options").property(_combos.at(c)->currentIndex()) :
-                        form.engine()->undefinedValue()
-                    );
+                    _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
+                    item.property("options").property(_combos.at(c)->currentIndex()) :
+                    form.engine()->undefinedValue()
+                );
                 form.setProperty(i, item);
             } else {
                 e += 1;
