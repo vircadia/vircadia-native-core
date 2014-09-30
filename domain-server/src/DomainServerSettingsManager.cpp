@@ -39,6 +39,28 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
 
 void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
     _configMap.loadMasterAndUserConfig(argumentList);
+    
+    // for now we perform a temporary transition from http-username and http-password to http_username and http_password
+    const QVariant* oldUsername = valueForKeyPath(_configMap.getUserConfig(), "security.http-username");
+    const QVariant* oldPassword = valueForKeyPath(_configMap.getUserConfig(), "security.http-password");
+    
+    if (oldUsername || oldPassword) {
+        QVariantMap& settingsMap = *reinterpret_cast<QVariantMap*>(_configMap.getUserConfig()["security"].data());
+        
+        // remove old keys, move to new format
+        if (oldUsername) {
+            settingsMap["http_username"] = oldUsername->toString();
+            settingsMap.remove("http-username");
+        }
+        
+        if (oldPassword) {
+            settingsMap["http_password"] = oldPassword->toString();
+            settingsMap.remove("http-password");
+        }
+        
+        // save the updated settings
+        persistToFile();
+    }
 }
 
 const QString SETTINGS_PATH = "/settings.json";
