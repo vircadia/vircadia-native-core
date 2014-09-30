@@ -100,6 +100,8 @@ void SixenseManager::initialize() {
             _sixenseLibrary = new QLibrary(SIXENSE_LIBRARY_NAME);
         }
         
+        qDebug() << "Initializing sixense library for hydra support - libsixense_x64.dylib load state is"
+            << _sixenseLibrary->isLoaded();
         SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
 #endif
         
