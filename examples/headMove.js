@@ -43,7 +43,7 @@ var noFly = true;
 var fixedWalkVelocity = true;
 
 //var roomLimits = { xMin: 618, xMax: 635.5, zMin: 528, zMax: 552.5 };
-var roomLimits = { xMin: 100.0, xMax: 206.5, zMin: 251.4, zMax: 269.5 };
+var roomLimits = { xMin: -1.0, xMax: -1.0, zMin: -1.0, zMax: -1.0 };
 
 function isInRoom(position) {
     var BUFFER = 2.0;

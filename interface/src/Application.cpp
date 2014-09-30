@@ -182,7 +182,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow())
 {
-
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -303,9 +302,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // connect to the domainChangeRequired signal on AddressManager
     connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
             this, &Application::changeDomainHostname);
-    
-    // when -url in command line, teleport to location
-    addressManager.handleLookupString(getCmdOption(argc, constArgv, "-url"));
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -380,12 +376,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // allow you to move a particle around in your hand
     _particleEditSender.setPacketsPerSecond(3000); // super high!!
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
-
-    // Set the sixense filtering
-    _sixenseManager.setFilter(Menu::getInstance()->isOptionChecked(MenuOption::FilterSixense));
-    
-    // Set hand controller velocity filtering
-    _sixenseManager.setLowVelocityFilter(Menu::getInstance()->isOptionChecked(MenuOption::LowVelocityFilter));
 
     checkVersion();
 
@@ -1484,7 +1474,7 @@ void Application::setRenderVoxels(bool voxelRender) {
 }
 
 void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    getSixenseManager()->setLowVelocityFilter(lowVelocityFilter);
+    SixenseManager::getInstance().setLowVelocityFilter(lowVelocityFilter);
 }
 
 void Application::doKillLocalVoxels() {
@@ -1797,7 +1787,25 @@ void Application::init() {
     Menu::getInstance()->loadSettings();
     _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
 
-    qDebug("Loaded settings");
+    qDebug() << "Loaded settings";
+    
+    // when --url in command line, teleport to location
+    const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
+    int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
+    if (urlIndex != -1) {
+        AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
+    }
+    
+#ifdef __APPLE__
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
+        // on OS X we only setup sixense if the user wants it on - this allows running without the hid_init crash
+        // if hydra support is temporarily not required
+        Menu::getInstance()->toggleSixense(true);
+    }
+#else
+    // setup sixense
+    Menu::getInstance()->toggleSixense(true);
+#endif
 
     // initialize our face trackers after loading the menu settings
     _faceshift.init();
@@ -2174,7 +2182,7 @@ void Application::update(float deltaTime) {
         DeviceTracker::updateAll();
         updateFaceshift();
         updateVisage();
-        _sixenseManager.update(deltaTime);
+        SixenseManager::getInstance().update(deltaTime);
         JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
 

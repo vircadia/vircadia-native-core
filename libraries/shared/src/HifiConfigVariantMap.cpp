@@ -87,43 +87,48 @@ QVariantMap HifiConfigVariantMap::mergeCLParametersWithJSONConfig(const QStringL
     return mergedMap;
 }
 
-QVariantMap HifiConfigVariantMap::mergeMasterConfigWithUserConfig(const QStringList& argumentList) {
+HifiConfigVariantMap::HifiConfigVariantMap() :
+    _userConfigFilename(),
+    _masterConfig(),
+    _userConfig(),
+    _mergedConfig()
+{
+    
+}
+
+void HifiConfigVariantMap::loadMasterAndUserConfig(const QStringList& argumentList) {
     // check if there is a master config file
     const QString MASTER_CONFIG_FILE_OPTION = "--master-config";
-    
-    QVariantMap configVariantMap;
     
     int masterConfigIndex = argumentList.indexOf(MASTER_CONFIG_FILE_OPTION);
     if (masterConfigIndex != -1) {
         QString masterConfigFilepath = argumentList[masterConfigIndex + 1];
         
-        mergeMapWithJSONFile(configVariantMap, masterConfigFilepath);
+        loadMapFromJSONFile(_masterConfig, masterConfigFilepath);
     }
     
-    // merge the existing configVariantMap with the user config file
-    mergeMapWithJSONFile(configVariantMap, userConfigFilepath(argumentList));
-    
-    return configVariantMap;
-}
-
-QString HifiConfigVariantMap::userConfigFilepath(const QStringList& argumentList) {
-    // we've loaded up the master config file, now fill in anything it didn't have with the user config file
+    // load the user config
     const QString USER_CONFIG_FILE_OPTION = "--user-config";
     
     int userConfigIndex = argumentList.indexOf(USER_CONFIG_FILE_OPTION);
-    QString userConfigFilepath;
     if (userConfigIndex != -1) {
-        userConfigFilepath = argumentList[userConfigIndex + 1];
+        _userConfigFilename = argumentList[userConfigIndex + 1];
     } else {
-        userConfigFilepath = QString("%1/%2/%3/config.json").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
-                                                                 QCoreApplication::organizationName(),
-                                                                 QCoreApplication::applicationName());
+        _userConfigFilename = QString("%1/%2/%3/config.json").arg(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation),
+                                                                  QCoreApplication::organizationName(),
+                                                                  QCoreApplication::applicationName());
     }
     
-    return userConfigFilepath;
+    loadMapFromJSONFile(_userConfig, _userConfigFilename);
+    
+    // the merged config is initially matched to the master config
+    _mergedConfig = _masterConfig;
+    
+    // then we merge in anything missing from the user config
+    addMissingValuesToExistingMap(_mergedConfig, _userConfig);
 }
 
-void HifiConfigVariantMap::mergeMapWithJSONFile(QVariantMap& existingMap, const QString& filename) {
+void HifiConfigVariantMap::loadMapFromJSONFile(QVariantMap& existingMap, const QString& filename) {
     QFile configFile(filename);
     
     if (configFile.exists()) {
@@ -131,12 +136,7 @@ void HifiConfigVariantMap::mergeMapWithJSONFile(QVariantMap& existingMap, const 
         configFile.open(QIODevice::ReadOnly);
         
         QJsonDocument configDocument = QJsonDocument::fromJson(configFile.readAll());
-        
-        if (existingMap.isEmpty()) {
-            existingMap = configDocument.toVariant().toMap();
-        } else {
-            addMissingValuesToExistingMap(existingMap, configDocument.toVariant().toMap());
-        }
+        existingMap = configDocument.toVariant().toMap();
         
     } else {
         qDebug() << "Could not find JSON config file at" << filename;
