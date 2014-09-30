@@ -1345,7 +1345,8 @@ VoxelMaterialBoxTool::VoxelMaterialBoxTool(MetavoxelEditor* editor) :
     _snapToGrid->setChecked(true);
     
     QHBoxLayout* colorLayout = new QHBoxLayout();
-    form->addRow("Color:", colorLayout);
+    form->addRow(colorLayout);
+    colorLayout->addWidget(new QLabel("Color:"));
     colorLayout->addWidget(_color = new QColorEditor(this), 1);
     connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialBoxTool::clearTexture);
     QPushButton* eraseButton = new QPushButton("Erase");
@@ -1477,7 +1478,8 @@ VoxelMaterialSphereTool::VoxelMaterialSphereTool(MetavoxelEditor* editor) :
     SphereTool(editor, "Set Voxel Material (Sphere)") {
     
     QHBoxLayout* colorLayout = new QHBoxLayout();
-    _form->addRow("Color:", colorLayout);
+    _form->addRow(colorLayout);
+    colorLayout->addWidget(new QLabel("Color:"));
     colorLayout->addWidget(_color = new QColorEditor(this), 1);
     connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialSphereTool::clearTexture);
     QPushButton* eraseButton = new QPushButton("Erase");
