@@ -96,6 +96,7 @@ void AudioInjector::injectAudio() {
         packetStream << radius;
         
         // pack 255 for attenuation byte
+        int volumeOptionOffset = injectAudioPacket.size();
         quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         packetStream << volume;
         
@@ -118,6 +119,8 @@ void AudioInjector::injectAudio() {
             memcpy(injectAudioPacket.data() + orientationOptionOffset,
                    &_options.getOrientation(),
                    sizeof(_options.getOrientation()));
+            volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+            memcpy(injectAudioPacket.data() + volumeOptionOffset, &volume, sizeof(volume));
             
             // resize the QByteArray to the right size
             injectAudioPacket.resize(numPreAudioDataBytes + bytesToCopy);
