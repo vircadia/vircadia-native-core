@@ -86,6 +86,15 @@ $(document).ready(function(){
     
     $(this).blur()
   })
+  
+  $('#settings-form').on('click', '#choose-domain-btn', function(){
+    // setup the modal to help user pick their domain
+    if (Settings.initialValues.metaverse["access-token"]) {
+      
+    } else {
+      
+    }
+  })
 
   var panelsSource = $('#panels-template').html()
   Settings.panelsTemplate = _.template(panelsSource)
@@ -112,7 +121,15 @@ function reloadSettings() {
       placement: 'right',
       title: 'This setting is in the master config file and cannot be changed'
     })
+    
+    appendDomainSelectionModal()
   });
+}
+
+function appendDomainSelectionModal() {
+  var metaverseFormGroup = $('#metaverse_id').parent('.form-group');
+  var chooseButton = "<button type='button' id='choose-domain-btn' class='btn btn-primary'>Choose from my domains</button>";
+  metaverseFormGroup.append(chooseButton);
 }
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
