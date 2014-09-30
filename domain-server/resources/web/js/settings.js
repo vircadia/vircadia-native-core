@@ -6,8 +6,6 @@ var viewHelpers = {
   getFormGroup: function(groupName, setting, values, isAdvanced, isLocked) {
     setting_id = groupName + "_" + setting.name
     
-    console.log(setting.name + " in " + groupName + " is " + isLocked)
-    
     form_group = "<div class='form-group" + (isAdvanced ? " advanced-setting" : "") + "'>"
     
     if (_.has(values, groupName) && _.has(values[groupName], setting.name)) {
@@ -40,7 +38,6 @@ var viewHelpers = {
         "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       form_group += "<span class='help-block'>" + setting.help + "</span>" 
     }
-    
     
     form_group += "</div>"
     return form_group
