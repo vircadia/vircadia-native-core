@@ -100,8 +100,6 @@ enum KeyState {
     DELETE_KEY_DOWN
 };
 
-const glm::vec3 vec3Zero(0.0f);
-
 class QDataStream;
 
 class AttachmentData;
@@ -304,6 +302,8 @@ public slots:
     
     void loadRecording(QString filename);
     void startPlaying();
+    void setPlayerVolume(float volume);
+    void setPlayerAudioOffset(qint64 audioOffset);
     void setPlayerFrame(int frame);
     void setPlayerTime(qint64 time);
     void setPlayFromCurrentLocation(bool playFromCurrentLocation);

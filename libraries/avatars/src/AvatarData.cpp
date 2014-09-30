@@ -652,6 +652,18 @@ void AvatarData::startPlaying() {
     _player->startPlaying();
 }
 
+void AvatarData::setPlayerVolume(float volume) {
+    if (_player) {
+        _player->setVolume(volume);
+    }
+}
+
+void AvatarData::setPlayerAudioOffset(qint64 audioOffset) {
+    if (_player) {
+        _player->setAudioOffset(audioOffset);
+    }
+}
+
 void AvatarData::setPlayerFrame(int frame) {
     if (_player) {
         _player->setCurrentFrame(frame);
