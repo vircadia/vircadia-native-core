@@ -1396,8 +1396,8 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
     const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
     const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
     const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
-    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http-username";
-    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http-password";
+    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http_username";
+    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http_password";
     
     const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
     
