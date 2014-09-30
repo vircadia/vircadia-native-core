@@ -1878,114 +1878,42 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     glm::mat3 atrans = glm::transpose(a);
                     glm::mat3 ata = atrans * a;
                     
-                    // compute the SVD of ata; first, find the eigenvalues
-                    // (see http://en.wikipedia.org/wiki/Eigenvalue_algorithm#3.C3.973_matrices)
-                    glm::vec3 eigenvalues;
-                    float p1 = ata[0][1] * ata[0][1] + ata[0][2] * ata[0][2] + ata[1][2] * ata[1][2];
-                    if (p1 < EPSILON) {
-                        eigenvalues = glm::vec3(ata[0][0], ata[1][1], ata[2][2]);
-                        if (eigenvalues[2] < eigenvalues[1]) {
-                            qSwap(eigenvalues[2], eigenvalues[1]);
+                    // find the eigenvalues and eigenvectors of ata
+                    // (see http://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm)
+                    glm::mat3 d = ata;
+                    glm::quat combinedRotation;
+                    const int MAX_ITERATIONS = 20;
+                    for (int i = 0; i < MAX_ITERATIONS; i++) {
+                        glm::vec3 offDiagonals = glm::abs(glm::vec3(d[1][0], d[2][0], d[2][1]));
+                        int largestIndex = (offDiagonals[0] > offDiagonals[1]) ? (offDiagonals[0] > offDiagonals[2] ? 0 : 2) :
+                            (offDiagonals[1] > offDiagonals[2] ? 1 : 2);
+                        const float DESIRED_PRECISION = 0.00001f;
+                        if (offDiagonals[largestIndex] < DESIRED_PRECISION) {
+                            break;
                         }
-                        if (eigenvalues[1] < eigenvalues[0]) {
-                            qSwap(eigenvalues[1], eigenvalues[0]);
+                        int largestJ = (largestIndex == 2) ? 1 : 0;
+                        int largestI = (largestIndex == 0) ? 1 : 2; 
+                        float sjj = d[largestJ][largestJ];
+                        float sii = d[largestI][largestI];
+                        float angle = (sii == sjj ? PI_OVER_TWO : glm::atan(2.0f * d[largestJ][largestI], sjj - sii)) / 2.0f;
+                        glm::quat rotation = glm::angleAxis(angle, largestIndex == 0 ? glm::vec3(0.0f, 0.0f, -1.0f) :
+                            (largestIndex == 1 ? glm::vec3(0.0f, 1.0f, 0.0f) : glm::vec3(-1.0f, 0.0f, 0.0f)));
+                        if (rotation.w == 0.0f) {
+                            break;
                         }
-                        if (eigenvalues[2] < eigenvalues[1]) {
-                            qSwap(eigenvalues[2], eigenvalues[1]);
-                        }
-                    } else {
-                        float q = (ata[0][0] + ata[1][1] + ata[2][2]) / 3.0f;
-                        float d1 = ata[0][0] - q, d2 = ata[1][1] - q, d3 = ata[2][2] - q;
-                        float p2 = d1 * d1 + d2 * d2 + d3 * d3 + 2.0f * p1;
-                        float p = glm::sqrt(p2 / 6.0f);
-                        glm::mat3 b = (ata - glm::mat3(q)) / p;
-                        float r = glm::determinant(b) / 2.0f;
-                        float phi;
-                        if (r <= -1.0f) {
-                            phi = PI / 3.0f;
-                        } else if (r >= 1.0f) {
-                            phi = 0.0f;
-                        } else {
-                            phi = glm::acos(r) / 3.0f;
-                        }
-                        eigenvalues[2] = q + 2.0f * p * glm::cos(phi);
-                        eigenvalues[0] = q + 2.0f * p * glm::cos(phi + (2.0f * PI / 3.0f));
-                        eigenvalues[1] = 3.0f * q - eigenvalues[0] - eigenvalues[2];
+                        combinedRotation = glm::normalize(rotation * combinedRotation);
+                        glm::mat3 matrix = glm::mat3_cast(combinedRotation);
+                        d = matrix * ata * glm::transpose(matrix);
                     }
                     
                     // form the singular matrix from the eigenvalues
-                    glm::mat3 d;
                     const float MIN_SINGULAR_THRESHOLD = 0.1f;
-                    d[0][0] = (eigenvalues[0] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / eigenvalues[0];
-                    d[1][1] = (eigenvalues[1] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / eigenvalues[1];
-                    d[2][2] = (eigenvalues[2] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / eigenvalues[2];
-                    
-                    glm::mat3 m[] = { ata - glm::mat3(eigenvalues[0]), ata - glm::mat3(eigenvalues[1]),
-                        ata - glm::mat3(eigenvalues[2]) };
-                    
-                    // form the orthogonal matrix from the eigenvectors
-                    // see http://www.geometrictools.com/Documentation/EigenSymmetric3x3.pdf
-                    bool same01 = glm::abs(eigenvalues[0] - eigenvalues[1]) < EPSILON;
-                    bool same12 = glm::abs(eigenvalues[1] - eigenvalues[2]) < EPSILON;
-                    glm::mat3 u;
-                    if (!(same01 && same12)) {  
-                        if (same01 || same12) {
-                            int i = same01 ? 2 : 0;
-                            for (int j = 0; j < 3; j++) {
-                                glm::vec3 first = glm::vec3(m[i][0][j], m[i][1][j], m[i][2][j]);
-                                int j2 = (j + 1) % 3;
-                                glm::vec3 second = glm::vec3(m[i][0][j2], m[i][1][j2], m[i][2][j2]);
-                                glm::vec3 cross = glm::cross(first, second);
-                                float length = glm::length(cross);
-                                if (length > EPSILON) {
-                                    u[0][i] = cross[0] / length;
-                                    u[1][i] = cross[1] / length;
-                                    u[2][i] = cross[2] / length;
-                                    break;
-                                }
-                            }
-                            i = (i + 1) % 3;
-                            for (int j = 0; j < 3; j++) {
-                                glm::vec3 first = glm::vec3(m[i][0][j], m[i][1][j], m[i][2][j]);
-                                float length = glm::length(first);
-                                if (length > EPSILON) {
-                                    glm::vec3 second = glm::cross(first, glm::vec3(1.0f, 0.0f, 0.0f));
-                                    length = glm::length(second);
-                                    if (length < EPSILON) {
-                                        second = glm::cross(first, glm::vec3(0.0f, 1.0f, 0.0f));
-                                        length = glm::length(second);
-                                    }
-                                    u[0][i] = second[0] / length;
-                                    u[1][i] = second[1] / length;
-                                    u[2][i] = second[2] / length;
-                                    second = glm::normalize(glm::cross(second, first));
-                                    i = (i + 1) % 3;
-                                    u[0][i] = second[0];
-                                    u[1][i] = second[1];
-                                    u[2][i] = second[2];
-                                    break;
-                                }
-                            }
-                        } else {
-                            for (int i = 0; i < 3; i++) {
-                                for (int j = 0; j < 3; j++) {
-                                    glm::vec3 first = glm::vec3(m[i][0][j], m[i][1][j], m[i][2][j]);
-                                    int j2 = (j + 1) % 3;
-                                    glm::vec3 second = glm::vec3(m[i][0][j2], m[i][1][j2], m[i][2][j2]);
-                                    glm::vec3 cross = glm::cross(first, second);
-                                    float length = glm::length(cross);
-                                    if (length > EPSILON) {
-                                        u[0][i] = cross[0] / length;
-                                        u[1][i] = cross[1] / length;
-                                        u[2][i] = cross[2] / length;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    d[0][0] = (d[0][0] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[0][0];
+                    d[1][1] = (d[1][1] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[1][1];
+                    d[2][2] = (d[2][2] < MIN_SINGULAR_THRESHOLD) ? 0.0f : 1.0f / d[2][2];
                     
                     // compute the pseudo-inverse, ataplus, and use to find the minimizing solution
+                    glm::mat3 u = glm::mat3_cast(combinedRotation);
                     glm::mat3 ataplus = glm::transpose(u) * d * u; 
                     glm::vec3 solution = (ataplus * atrans * b) + center;
                     
