@@ -2395,7 +2395,7 @@ function Tooltip() {
     this.x = 285;
     this.y = 115;
     this.width = 500;
-    this.height = 180; // 145;
+    this.height = 300; // 145;
     this.margin = 5;
     this.decimals = 3;
 
@@ -2406,8 +2406,8 @@ function Tooltip() {
         height: this.height,
         margin: this.margin,
         text: "",
-        color: { red: 128, green: 128, blue: 128 },
-        alpha: 0.2,
+        color: { red: 228, green: 228, blue: 228 },
+        alpha: 0.5,
         visible: false
     });
     this.show = function (doShow) {
