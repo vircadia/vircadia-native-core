@@ -92,7 +92,11 @@ $(document).ready(function(){
     if (Settings.initialValues.metaverse["access-token"]) {
       
     } else {
-      
+      bootbox.alert({
+        message: "You must have an access token to query your High Fidelity domains.<br><br>" + 
+          "Please follow the instructions on the settings page to add an access token.",
+        title: "Access token required"
+      })
     }
   })
 
