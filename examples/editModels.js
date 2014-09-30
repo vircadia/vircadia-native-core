@@ -2964,7 +2964,7 @@ function handeMenuEvent(menuItem) {
         if (Window.form("Model List", form)) {
             var selectedModel = form[0].value;
             if (form[1].value == "Properties") {
-			    editModelID = selectedModel;
+                editModelID = selectedModel;
                 showPropertiesForm();
             } else if (form[1].value == "Delete") {
                 Entities.deleteEntity(selectedModel);
