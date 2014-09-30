@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <iterator>
+#include <memory>
 
 #ifndef _WIN32
 #include <unistd.h> // not on windows, not needed for mac or windows
