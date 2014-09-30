@@ -27,6 +27,7 @@ public:
     DataServerAccountInfo& operator=(const DataServerAccountInfo& otherInfo);
 
     const OAuthAccessToken& getAccessToken() const { return _accessToken; }
+    void setAccessToken(const OAuthAccessToken& accessToken) { _accessToken = accessToken; }
     void setAccessTokenFromJSON(const QJsonObject& jsonObject);
 
     const QString& getUsername() const { return _username; }

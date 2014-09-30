@@ -52,7 +52,8 @@ JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, co
 AccountManager::AccountManager() :
     _authURL(),
     _pendingCallbackMap(),
-    _accountInfo()
+    _accountInfo(),
+    _shouldPersistToSettingsFile(false)
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
@@ -76,14 +77,18 @@ void AccountManager::logout() {
 
     emit balanceChanged(0);
     connect(&_accountInfo, &DataServerAccountInfo::balanceChanged, this, &AccountManager::accountInfoBalanceChanged);
-
-    QSettings settings;
-    settings.beginGroup(ACCOUNTS_GROUP);
-
-    QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
-    settings.remove(keyURLString);
-
-    qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
+    
+    if (_shouldPersistToSettingsFile) {
+        QSettings settings;
+        settings.beginGroup(ACCOUNTS_GROUP);
+        
+        QString keyURLString(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE));
+        settings.remove(keyURLString);
+        
+        qDebug() << "Removed account info for" << _authURL << "from in-memory accounts and .ini file";
+    } else {
+        qDebug() << "Cleared data server account info in account manager.";
+    }
 
     emit logoutComplete();
     // the username has changed to blank
@@ -109,28 +114,29 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
     if (_authURL != authURL) {
         _authURL = authURL;
 
-        qDebug() << "URL for node authentication has been changed to" << qPrintable(_authURL.toString());
-        qDebug() << "Re-setting authentication flow.";
-
-        // check if there are existing access tokens to load from settings
-        QSettings settings;
-        settings.beginGroup(ACCOUNTS_GROUP);
-
-        foreach(const QString& key, settings.allKeys()) {
-            // take a key copy to perform the double slash replacement
-            QString keyCopy(key);
-            QUrl keyURL(keyCopy.replace("slashslash", "//"));
-
-            if (keyURL == _authURL) {
-                // pull out the stored access token and store it in memory
-                _accountInfo = settings.value(key).value<DataServerAccountInfo>();
-                qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
-
-                // profile info isn't guaranteed to be saved too
-                if (_accountInfo.hasProfile()) {
-                    emit profileChanged();
-                } else {
-                    requestProfile();
+        qDebug() << "AccountManager URL for authenticated requests has been changed to" << qPrintable(_authURL.toString());
+        
+        if (_shouldPersistToSettingsFile) {
+            // check if there are existing access tokens to load from settings
+            QSettings settings;
+            settings.beginGroup(ACCOUNTS_GROUP);
+            
+            foreach(const QString& key, settings.allKeys()) {
+                // take a key copy to perform the double slash replacement
+                QString keyCopy(key);
+                QUrl keyURL(keyCopy.replace("slashslash", "//"));
+                
+                if (keyURL == _authURL) {
+                    // pull out the stored access token and store it in memory
+                    _accountInfo = settings.value(key).value<DataServerAccountInfo>();
+                    qDebug() << "Found a data-server access token for" << qPrintable(keyURL.toString());
+                    
+                    // profile info isn't guaranteed to be saved too
+                    if (_accountInfo.hasProfile()) {
+                        emit profileChanged();
+                    } else {
+                        requestProfile();
+                    }
                 }
             }
         }
@@ -307,8 +313,9 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
 }
 
 bool AccountManager::hasValidAccessToken() {
-
+    
     if (_accountInfo.getAccessToken().token.isEmpty() || _accountInfo.getAccessToken().isExpired()) {
+        
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "An access token is required for requests to" << qPrintable(_authURL.toString());
         }
@@ -328,6 +335,19 @@ bool AccountManager::checkAndSignalForAccessToken() {
     }
 
     return hasToken;
+}
+
+void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken) {
+    // clear our current DataServerAccountInfo
+    _accountInfo = DataServerAccountInfo();
+    
+    // start the new account info with a new OAuthAccessToken
+    OAuthAccessToken newOAuthToken;
+    newOAuthToken.token = accessToken;
+    
+    qDebug() << "Setting new account manager access token to" << accessToken;
+    
+    _accountInfo.setAccessToken(newOAuthToken);
 }
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
@@ -380,12 +400,14 @@ void AccountManager::requestAccessTokenFinished() {
             _accountInfo.setAccessTokenFromJSON(rootObject);
 
             emit loginComplete(rootURL);
-
-            // store this access token into the local settings
-            QSettings localSettings;
-            localSettings.beginGroup(ACCOUNTS_GROUP);
-            localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                                   QVariant::fromValue(_accountInfo));
+            
+            if (_shouldPersistToSettingsFile) {
+                // store this access token into the local settings
+                QSettings localSettings;
+                localSettings.beginGroup(ACCOUNTS_GROUP);
+                localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
+                                       QVariant::fromValue(_accountInfo));
+            }
 
             requestProfile();
         }
@@ -429,13 +451,16 @@ void AccountManager::requestProfileFinished() {
         // the username has changed to whatever came back
         emit usernameChanged(_accountInfo.getUsername());
 
-        // store the whole profile into the local settings
-        QUrl rootURL = profileReply->url();
-        rootURL.setPath("");
-        QSettings localSettings;
-        localSettings.beginGroup(ACCOUNTS_GROUP);
-        localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                               QVariant::fromValue(_accountInfo));
+        if (_shouldPersistToSettingsFile) {
+            // store the whole profile into the local settings
+            QUrl rootURL = profileReply->url();
+            rootURL.setPath("");
+            QSettings localSettings;
+            localSettings.beginGroup(ACCOUNTS_GROUP);
+            localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
+                                   QVariant::fromValue(_accountInfo));
+        }
+        
     } else {
         // TODO: error handling
         qDebug() << "Error in response for profile";

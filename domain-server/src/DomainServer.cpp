@@ -64,7 +64,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
-
+    
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -75,7 +75,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         loadExistingSessionsFromSettings();
         
         // check if we have the flag that enables dynamic IP
-        setupDynamicIPAddressUpdating();
+        setupDynamicSocketUpdating();
     }
 }
 
@@ -151,6 +151,17 @@ bool DomainServer::optionallySetupOAuth() {
 
     const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
     _oauthProviderURL = QUrl(settingsMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
+    
+    // if we don't have an oauth provider URL then we default to the default node auth url
+    if (_oauthProviderURL.isEmpty()) {
+        _oauthProviderURL = DEFAULT_NODE_AUTH_URL;
+    }
+    
+    // setup our account manager with that _oauthProviderURL
+    AccountManager& accountManager = AccountManager::getInstance();
+    accountManager.disableSettingsFilePersistence();
+    accountManager.setAuthURL(_oauthProviderURL);
+    
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     _hostname = settingsMap.value(REDIRECT_HOSTNAME_OPTION).toString();
@@ -225,40 +236,36 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     addStaticAssignmentsToQueue();
 }
 
-const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
-const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
-
-bool DomainServer::hasOAuthProviderAndAuthInformation() {
+bool DomainServer::didSetupAccountManagerWithAccessToken() {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.hasValidAccessToken()) {
+        // we already gave the account manager a valid access token
+        return true;
+    }
     
     if (!_oauthProviderURL.isEmpty()) {
+        // check for an access-token in our settings, can optionally be overidden by env value
+        const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
+        const QString ENV_ACCESS_TOKEN_KEY = "DOMAIN_SERVER_ACCESS_TOKEN";
         
-        static bool hasAttemptedAuthWithOAuthProvider = false;
+        QString accessToken = QProcessEnvironment::systemEnvironment().value(ENV_ACCESS_TOKEN_KEY);
         
-        if (!hasAttemptedAuthWithOAuthProvider) {
-            AccountManager& accountManager = AccountManager::getInstance();
-            accountManager.setAuthURL(_oauthProviderURL);
+        if (accessToken.isEmpty()) {
+            const QVariant* accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
             
-            if (!accountManager.hasValidAccessToken()) {
-                // we don't have a valid access token so we need to get one
-                // check if we have a username and password set via env
-                QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
-                QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
-                
-                if (!username.isEmpty() && !password.isEmpty()) {
-                    
-                    accountManager.requestAccessToken(username, password);
-                    
-                    // connect to loginFailed signal from AccountManager so we can quit if that is the case
-                    connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
-                } else {
-                    qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
-                    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-                    return false;
-                }
+            if (accessTokenVariant->canConvert(QMetaType::QString)) {
+                accessToken = accessTokenVariant->toString();
+            } else {
+                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present."
+                    << "Set an access token via the web interface, in your user or master config"
+                    << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
+                return false;
             }
-            
-            hasAttemptedAuthWithOAuthProvider = true;
         }
+        
+        // give this access token to the AccountManager
+        accountManager.setAccessTokenForCurrentAuthURL(accessToken);
         
         return true;
 
@@ -277,7 +284,7 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     
     if (settingsMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
         settingsMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
-        hasOAuthProviderAndAuthInformation()) {
+        didSetupAccountManagerWithAccessToken()) {
         
         qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
         
@@ -299,20 +306,20 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     return true;
 }
 
-void DomainServer::setupDynamicIPAddressUpdating() {
-    const QString ENABLE_DYNAMIC_IP_UPDATING_OPTION = "update-ip";
+void DomainServer::setupDynamicSocketUpdating() {
+    const QString ENABLE_DYNAMIC_SOCKET_UPDATING_KEY_PATH = "metaverse.update_sockets";
     
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    const QVariant* updateSocketValue = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                        ENABLE_DYNAMIC_SOCKET_UPDATING_KEY_PATH);
     
-    if (settingsMap.contains(ENABLE_DYNAMIC_IP_UPDATING_OPTION) &&
-        settingsMap.value(ENABLE_DYNAMIC_IP_UPDATING_OPTION).toBool() &&
-        hasOAuthProviderAndAuthInformation()) {
+    if (updateSocketValue && updateSocketValue->canConvert(QMetaType::Bool) && updateSocketValue->toBool()
+        && didSetupAccountManagerWithAccessToken()) {
         
         LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
-            qDebug() << "domain-server IP address will be updated for domain with ID"
+            qDebug() << "domain-server socket will be updated for domain with ID"
                 << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
             const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
