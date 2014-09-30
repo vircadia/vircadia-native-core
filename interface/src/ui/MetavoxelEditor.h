@@ -422,6 +422,7 @@ protected:
 
 private slots:
     
+    void clearColor();
     void clearTexture();
     void updateTexture();
     void textureLoaded();
@@ -476,6 +477,7 @@ protected:
     
 private slots:
     
+    void clearColor();
     void clearTexture();
     void updateTexture();
     void textureLoaded();

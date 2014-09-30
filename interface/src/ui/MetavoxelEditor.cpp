@@ -1344,8 +1344,14 @@ VoxelMaterialBoxTool::VoxelMaterialBoxTool(MetavoxelEditor* editor) :
     form->addRow(gridLayout);
     _snapToGrid->setChecked(true);
     
-    form->addRow("Color:", _color = new QColorEditor(this));
+    QHBoxLayout* colorLayout = new QHBoxLayout();
+    form->addRow("Color:", colorLayout);
+    colorLayout->addWidget(_color = new QColorEditor(this), 1);
     connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialBoxTool::clearTexture);
+    QPushButton* eraseButton = new QPushButton("Erase");
+    colorLayout->addWidget(eraseButton);
+    connect(eraseButton, &QPushButton::clicked, this, &VoxelMaterialBoxTool::clearColor);
+    
     form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
     connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialBoxTool::updateTexture);
 }
@@ -1374,6 +1380,11 @@ void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3&
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialBoxEdit(Box(minimum, maximum),
         _editor->getGridSpacing(), material, color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+void VoxelMaterialBoxTool::clearColor() {
+    _color->setColor(QColor(0, 0, 0, 0));
+    clearTexture();
 }
 
 void VoxelMaterialBoxTool::clearTexture() {
@@ -1465,8 +1476,14 @@ bool SphereTool::eventFilter(QObject* watched, QEvent* event) {
 VoxelMaterialSphereTool::VoxelMaterialSphereTool(MetavoxelEditor* editor) :
     SphereTool(editor, "Set Voxel Material (Sphere)") {
     
-    _form->addRow("Color:", _color = new QColorEditor(this));
+    QHBoxLayout* colorLayout = new QHBoxLayout();
+    _form->addRow("Color:", colorLayout);
+    colorLayout->addWidget(_color = new QColorEditor(this), 1);
     connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialSphereTool::clearTexture);
+    QPushButton* eraseButton = new QPushButton("Erase");
+    colorLayout->addWidget(eraseButton);
+    connect(eraseButton, &QPushButton::clicked, this, &VoxelMaterialSphereTool::clearColor);
+    
     _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
     connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialSphereTool::updateTexture);
 }
@@ -1491,6 +1508,11 @@ void VoxelMaterialSphereTool::applyValue(const glm::vec3& position, float radius
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSphereEdit(position, radius,
         _editor->getGridSpacing(), material, color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+}
+
+void VoxelMaterialSphereTool::clearColor() {
+    _color->setColor(QColor(0, 0, 0, 0));
+    clearTexture();
 }
 
 void VoxelMaterialSphereTool::clearTexture() {
