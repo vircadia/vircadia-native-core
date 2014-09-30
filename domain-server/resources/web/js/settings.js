@@ -236,6 +236,8 @@ function chooseFromHighFidelityDomains(clickedButton) {
   if (Settings.initialValues.metaverse.access_token) {
     
     // add a spinner to the choose button
+    clickedButton.html("Loading domains...")
+    clickedButton.attr('disabled', 'disabled')
     
     // get a list of user domains from data-web
     data_web_domains_url = "https://data.highfidelity.io/api/v1/domains?access_token="
@@ -281,6 +283,10 @@ function chooseFromHighFidelityDomains(clickedButton) {
         message: modal_body,
         buttons: modal_buttons
       })
+      
+      // remove the spinner from the choose button
+      clickedButton.html("Choose from my domains")
+      clickedButton.removeAttr('disabled')
     })
     
   } else {
