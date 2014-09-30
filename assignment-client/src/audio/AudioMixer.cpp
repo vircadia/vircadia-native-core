@@ -743,12 +743,9 @@ void AudioMixer::run() {
         }
         
         const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation-per-doubling-in-distance";
-        qDebug() << "contains:" << audioGroupObject.contains(ATTENATION_PER_DOULING_IN_DISTANCE);
         if (audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {
-            qDebug() << "isString";
             bool ok = false;
             float attenuation = audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].toString().toFloat(&ok);
-            
             if (ok) {
                 _attenuationPerDoublingInDistance = attenuation;
                 qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
