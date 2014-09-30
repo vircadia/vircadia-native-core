@@ -14,6 +14,8 @@
 var leapHands = (function () {
 
     var isOnHMD,
+        LEAP_OFFSET = 0.019,  // Thickness of Leap Motion plus HMD clip
+        HMD_OFFSET = 0.100,  // Eyeballs to front surface of Oculus DK2  TODO: Confirm and make depend on device and eye relief
         hands,
         wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right
@@ -269,8 +271,9 @@ var leapHands = (function () {
         if (isOnHMD) {
             print("Leap Motion is on HMD");
 
-            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: 0.0 };
-            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: 0.0 };
+            // Offset of Leap Motion origin from physical eye position
+            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
+            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
 
             calibrationStatus = CALIBRATED;
         } else {
@@ -290,7 +293,9 @@ var leapHands = (function () {
             handYaw,
             handRotation,
             wristAbsRotation,
-            locRotation;
+            locRotation,
+            cameraOrientation,
+            inverseAvatarOrientation;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
             side = h === 0 ? -1.0 : 1.0;
@@ -303,35 +308,82 @@ var leapHands = (function () {
                 }
 
                 // Hand position ...
-                handOffset = hands[h].controller.getAbsTranslation();
-                handOffset = {
-                    x: -handOffset.x,
-                    y: hands[h].zeroPosition.y + handOffset.y,
-                    z: hands[h].zeroPosition.z - handOffset.z
-                };
+                if (isOnHMD) {
 
-                // TODO: 2.0* scale factor should not be necessary; Leap Motion controller code needs investigating.
-                handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
-                wristAbsRotation = wrists[h].controller.getAbsRotation();
-                handPitch = 2.0 * -wristAbsRotation.x;
-                handYaw = 2.0 * wristAbsRotation.y;
+                    // Hand offset in camera coordinates ...
+                    handOffset = hands[h].controller.getAbsTranslation();
+                    handOffset = {
+                        x: hands[h].zeroPosition.x - handOffset.x,
+                        y: hands[h].zeroPosition.y - handOffset.z,
+                        z: hands[h].zeroPosition.z + handOffset.y
+                    };
+                    handOffset.z = -handOffset.z;
 
-                // TODO: Leap Motion controller's right-hand roll calculation only works if physical hand is upside down.
-                // Approximate fix is to add a fudge factor.
-                if (h === 1 && isWindows) {
-                    handRoll = handRoll + 0.6 * PI;
-                }
+                    // Hand offset in world coordinates ...
+                    cameraOrientation = Camera.getOrientation();
+                    handOffset = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(cameraOrientation, handOffset));
 
-                // Hand position and orientation ...
-                if (h === 0) {
-                    handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
-                        Quat.fromVec3Radians({ x: handRoll, y: handYaw, z: -handPitch }));
+                    // Hand offset  in avatar coordinates ...
+                    inverseAvatarOrientation = Quat.inverse(MyAvatar.orientation);
+                    handOffset = Vec3.subtract(handOffset, MyAvatar.position);
+                    handOffset = Vec3.multiplyQbyV(inverseAvatarOrientation, handOffset);
+                    handOffset.z = -handOffset.z;
+                    handOffset.x = -handOffset.x;
 
+                    // Hand rotation in camera coordinates ...
+                    // TODO: 2.0* scale factors should not be necessary; Leap Motion controller code needs investigating.
+                    handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
+                    wristAbsRotation = wrists[h].controller.getAbsRotation();
+                    handPitch = 2.0 * wristAbsRotation.x - PI / 2.0;
+                    handYaw = 2.0 * -wristAbsRotation.y;
+                    // TODO: Roll values only work if hand is upside down; Leap Motion controller code needs investigating.
+                    handRoll = PI + handRoll;
+
+                    if (h === 0) {
+                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
+                            Quat.fromVec3Radians({ x: handRoll, y: handYaw, z: -handPitch }));
+                    } else {
+                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
+                            Quat.fromVec3Radians({ x: -handRoll, y: handYaw, z: handPitch }));
+                    }
+
+                    // Hand rotation in avatar coordinates ...
+                    cameraOrientation.x = -cameraOrientation.x;
+                    cameraOrientation.z = -cameraOrientation.z;
+                    handRotation = Quat.multiply(cameraOrientation, handRotation);
+                    handRotation = Quat.multiply(inverseAvatarOrientation, handRotation);
 
                 } else {
-                    handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
-                        Quat.fromVec3Radians({ x: -handRoll, y: handYaw, z: handPitch }));
+
+                    handOffset = hands[h].controller.getAbsTranslation();
+                    handOffset = {
+                        x: -handOffset.x,
+                        y: hands[h].zeroPosition.y + handOffset.y,
+                        z: hands[h].zeroPosition.z - handOffset.z
+                    };
+
+                    // TODO: 2.0* scale factors should not be necessary; Leap Motion controller code needs investigating.
+                    handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
+                    wristAbsRotation = wrists[h].controller.getAbsRotation();
+                    handPitch = 2.0 * -wristAbsRotation.x;
+                    handYaw = 2.0 * wristAbsRotation.y;
+
+                    // TODO: Leap Motion controller's right-hand roll calculation only works if physical hand is upside down.
+                    // Approximate fix is to add a fudge factor.
+                    if (h === 1 && isWindows) {
+                        handRoll = handRoll + 0.6 * PI;
+                    }
+
+                    // Hand position and orientation ...
+                    if (h === 0) {
+                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
+                            Quat.fromVec3Radians({ x: handRoll, y: handYaw, z: -handPitch }));
+                    } else {
+                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
+                            Quat.fromVec3Radians({ x: -handRoll, y: handYaw, z: handPitch }));
+                    }
                 }
+
                 MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, handRotation, true);
 
                 // Finger joints ...
