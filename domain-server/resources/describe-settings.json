@@ -52,6 +52,14 @@
         "placeholder": "no zone"
       },
       {
+        "name": "attenuation-per-doubling-in-distance",
+        "label": "Attenuattion per doubling in distance",
+        "help": "Factor between 0.0 and 1.0",
+        "placeholder": "0.18",
+        "default": "0.18",
+        "advanced": true
+      },
+      {
         "name": "dynamic-jitter-buffer",
         "type": "checkbox",
         "label": "Dynamic Jitter Buffers",

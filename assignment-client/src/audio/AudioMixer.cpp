@@ -62,6 +62,7 @@
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
+const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 
@@ -82,6 +83,7 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _trailingSleepRatio(1.0f),
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
     _performanceThrottlingRatio(0.0f),
+    _attenuationPerDoublingInDistance(DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE),
     _numStatFrames(0),
     _sumListeners(0),
     _sumMixes(0),
@@ -104,7 +106,6 @@ AudioMixer::~AudioMixer() {
 }
 
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
-const float ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE = 0.18f;
 const float RADIUS_OF_HEAD = 0.076f;
 
 int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
@@ -210,7 +211,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     if (shouldDistanceAttenuate && (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE)) {
         // calculate the distance coefficient using the distance to this node
         float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                         * ATTENUATION_AMOUNT_PER_DOUBLING_IN_DISTANCE);
+                                         * _attenuationPerDoublingInDistance);
         
         if (distanceCoefficient < 0) {
             distanceCoefficient = 0;
@@ -739,6 +740,19 @@ void AudioMixer::run() {
                 << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
             qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
                 << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
+        }
+        
+        const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation-per-doubling-in-distance";
+        qDebug() << "contains:" << audioGroupObject.contains(ATTENATION_PER_DOULING_IN_DISTANCE);
+        if (audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {
+            qDebug() << "isString";
+            bool ok = false;
+            float attenuation = audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].toString().toFloat(&ok);
+            
+            if (ok) {
+                _attenuationPerDoublingInDistance = attenuation;
+                qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
+            }
         }
     }
     
