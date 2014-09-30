@@ -1204,7 +1204,8 @@ int PointAugmentVisitor::visit(MetavoxelInfo& info) {
             _points.swap(swapPoints);
             buffer = new PointBuffer(swapPoints);
         }
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+        BufferDataPointer pointer(buffer);
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     }
     return STOP_RECURSION;
 }
@@ -1219,7 +1220,8 @@ bool PointAugmentVisitor::postVisit(MetavoxelInfo& info) {
         _points.swap(swapPoints);
         buffer = new PointBuffer(swapPoints);
     }
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+    BufferDataPointer pointer(buffer);
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     return true;
 }
 
@@ -1446,7 +1448,8 @@ int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
             _data->guide(_fetchVisitor);
         }
     }
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+    BufferDataPointer pointer(buffer);
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     return STOP_RECURSION;
 }
 
@@ -1505,7 +1508,8 @@ int HeightfieldUpdateVisitor::visit(MetavoxelInfo& info) {
         buffer->getHeight(), buffer->getColor(), buffer->getMaterial(), buffer->getMaterials());
     _fetchVisitor.init(newBuffer);
     _data->guide(_fetchVisitor);
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(newBuffer)));
+    BufferDataPointer pointer(newBuffer);
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     return STOP_RECURSION;
 }
 
@@ -2006,7 +2010,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         
         buffer = new VoxelBuffer(vertices, indices, material->getMaterials());
     }
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(BufferDataPointer(buffer)));
+    BufferDataPointer pointer(buffer);
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     return STOP_RECURSION;
 }
 

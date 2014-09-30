@@ -431,11 +431,18 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::ShowIKConstraints, 0, false);
     
     QMenu* sixenseOptionsMenu = handOptionsMenu->addMenu("Sixense");
+#ifdef __APPLE__
+    addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
+                                           MenuOption::SixenseEnabled,
+                                           0, false,
+                                           this,
+                                           SLOT(toggleSixense(bool)));
+#endif
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::FilterSixense,
                                            0,
                                            true,
-                                           appInstance->getSixenseManager(),
+                                           &SixenseManager::getInstance(),
                                            SLOT(setFilter(bool)));
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu,
                                            MenuOption::LowVelocityFilter,
@@ -1132,6 +1139,18 @@ void Menu::editAnimations() {
     } else {
         _animationsDialog->close();
     }
+}
+
+void Menu::toggleSixense(bool shouldEnable) {
+    SixenseManager& sixenseManager = SixenseManager::getInstance();
+    
+    if (shouldEnable && !sixenseManager.isInitialized()) {
+        sixenseManager.initialize();
+        sixenseManager.setFilter(isOptionChecked(MenuOption::FilterSixense));
+        sixenseManager.setLowVelocityFilter(isOptionChecked(MenuOption::LowVelocityFilter));
+    }
+    
+    sixenseManager.setIsEnabled(shouldEnable);
 }
 
 void Menu::changePrivateKey() {
