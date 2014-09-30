@@ -122,9 +122,9 @@ function reloadSettings() {
 }
 
 function appendDomainSelectionModal() {
-  var metaverseFormGroup = $("[name='metaverse.id']").parent('.form-group');
-  var chooseButton = "<button type='button' id='choose-domain-btn' class='btn btn-primary'>Choose from my domains</button>";
-  metaverseFormGroup.append(chooseButton);
+  var metaverseInput = $("[name='metaverse.id']");
+  var chooseButton = $("<button type='button' id='choose-domain-btn' class='btn btn-primary' style='margin-top:10px'>Choose ID from my domains</button>");
+  metaverseInput.after(chooseButton);
 }
 
 var SETTINGS_ERROR_MESSAGE = "There was a problem saving domain settings. Please try again!";
