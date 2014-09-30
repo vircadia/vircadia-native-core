@@ -408,12 +408,6 @@ void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObje
     data.guide(visitor);
 }
 
-PaintHeightfieldColorEdit::PaintHeightfieldColorEdit(const glm::vec3& position, float radius, const QColor& color) :
-    position(position),
-    radius(radius),
-    color(color) {
-}
-
 class PaintHeightfieldMaterialEditVisitor : public MetavoxelVisitor {
 public:
     
@@ -599,11 +593,6 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-void PaintHeightfieldColorEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintHeightfieldMaterialEditVisitor visitor(position, radius, SharedObjectPointer(), color);
-    data.guide(visitor);
-}
-
 PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& averageColor) :
     position(position),
@@ -615,12 +604,6 @@ PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& posi
 void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     PaintHeightfieldMaterialEditVisitor visitor(position, radius, material, averageColor);
     data.guide(visitor);
-}
-
-VoxelColorBoxEdit::VoxelColorBoxEdit(const Box& region, float granularity, const QColor& color) :
-    region(region),
-    granularity(granularity),
-    color(color) {
 }
 
 const int VOXEL_BLOCK_SIZE = 16;
@@ -849,15 +832,6 @@ int VoxelMaterialBoxEditVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-void VoxelColorBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    // expand to fit the entire edit
-    while (!data.getBounds().contains(region)) {
-        data.expand();
-    }
-    VoxelMaterialBoxEditVisitor visitor(region, granularity, SharedObjectPointer(), color);
-    data.guide(visitor);
-}
-
 VoxelMaterialBoxEdit::VoxelMaterialBoxEdit(const Box& region, float granularity,
         const SharedObjectPointer& material, const QColor& averageColor) :
     region(region),
@@ -875,13 +849,6 @@ void VoxelMaterialBoxEdit::apply(MetavoxelData& data, const WeakSharedObjectHash
     data.guide(visitor);
 }
 
-VoxelColorSphereEdit::VoxelColorSphereEdit(const glm::vec3& center, float radius, float granularity, const QColor& color) :
-    center(center),
-    radius(radius),
-    granularity(granularity),
-    color(color) {
-}
-    
 class VoxelMaterialSphereEditVisitor : public MetavoxelVisitor {
 public:
     
@@ -1147,17 +1114,6 @@ int VoxelMaterialSphereEditVisitor::visit(MetavoxelInfo& info) {
     info.outputValues[2] = AttributeValue(_inputs.at(2), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
     
     return STOP_RECURSION;
-}
-
-void VoxelColorSphereEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    // expand to fit the entire edit
-    glm::vec3 extents(radius, radius, radius);
-    Box bounds(center - extents, center + extents);
-    while (!data.getBounds().contains(bounds)) {
-        data.expand();
-    }
-    VoxelMaterialSphereEditVisitor visitor(center, radius, bounds, granularity, SharedObjectPointer(), color);
-    data.guide(visitor);
 }
  
 VoxelMaterialSphereEdit::VoxelMaterialSphereEdit(const glm::vec3& center, float radius, float granularity,

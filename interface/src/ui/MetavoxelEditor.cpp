@@ -1284,7 +1284,7 @@ HeightfieldColorBrushTool::HeightfieldColorBrushTool(MetavoxelEditor* editor) :
 }
 
 QVariant HeightfieldColorBrushTool::createEdit(bool alternate) {
-    return QVariant::fromValue(PaintHeightfieldColorEdit(_position, _radius->value(),
+    return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), SharedObjectPointer(),
         alternate ? QColor() : _color->getColor()));
 }
 
@@ -1334,8 +1334,8 @@ void VoxelColorBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& ma
     // ensure that color is either 100% transparent or 100% opaque
     QColor color = _color->getColor();
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorBoxEdit(Box(minimum, maximum),
-        _editor->getGridSpacing(), color)) };
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialBoxEdit(Box(minimum, maximum),
+        _editor->getGridSpacing(), SharedObjectPointer(), color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1454,8 +1454,8 @@ void VoxelColorSphereTool::applyValue(const glm::vec3& position, float radius) {
     // ensure that color is either 100% transparent or 100% opaque
     QColor color = _color->getColor();
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelColorSphereEdit(position, radius,
-        _editor->getGridSpacing(), color)) };
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSphereEdit(position, radius,
+        _editor->getGridSpacing(), SharedObjectPointer(), color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
