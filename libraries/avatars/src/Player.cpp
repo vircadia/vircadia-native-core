@@ -297,7 +297,7 @@ void Player::play() {
     _injector->setOptions(_options);
 }
 
-void Player::setCurrentFrame(quint64 currentFrame) {
+void Player::setCurrentFrame(unsigned int currentFrame) {
     if (_recording && currentFrame >= _recording->getFrameNumber()) {
         stopPlaying();
         return;
@@ -314,7 +314,7 @@ void Player::setCurrentFrame(quint64 currentFrame) {
     }
 }
 
-void Player::setCurrentTime(quint64 currentTime) {
+void Player::setCurrentTime(unsigned int currentTime) {
     if (currentTime >= _recording->getLength()) {
         stopPlaying();
         return;

@@ -44,8 +44,8 @@ public slots:
     void loadRecording(RecordingPointer recording);
     void play();
     
-    void setCurrentFrame(quint64 currentFrame);
-    void setCurrentTime(quint64 currentTime);
+    void setCurrentFrame(unsigned int currentFrame);
+    void setCurrentTime(unsigned int currentTime);
 
     void setVolume(float volume);
     void setAudioOffset(int audioOffset);
@@ -71,8 +71,8 @@ private:
     int _pausedFrame;
 
     QElapsedTimer _timer;
-    qint64 _timerOffset;
-    qint64 _audioOffset;
+    int _timerOffset;
+    int _audioOffset;
     
     QThread* _audioThread;
     QSharedPointer<AudioInjector> _injector;
