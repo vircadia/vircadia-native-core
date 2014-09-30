@@ -40,7 +40,13 @@ std::auto_ptr<LimitedNodeList> LimitedNodeList::_sharedInstance;
 LimitedNodeList* LimitedNodeList::createInstance(unsigned short socketListenPort, unsigned short dtlsPort) {
     NodeType::init();
     
-    delete _sharedInstance.release();
+    if (_sharedInstance.get()) {
+        qDebug() << "LimitedNodeList called with existing instance." <<
+            "Releasing auto_ptr, deleting existing instance and creating a new one.";
+        
+        delete _sharedInstance.release();
+    }
+    
     _sharedInstance = std::auto_ptr<LimitedNodeList>(new LimitedNodeList(socketListenPort, dtlsPort));
     
     // register the SharedNodePointer meta-type for signals/slots

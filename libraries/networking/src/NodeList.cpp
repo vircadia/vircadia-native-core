@@ -28,7 +28,13 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short socketListenPo
     
     NodeType::init();
     
-    delete _sharedInstance.release();
+    if (_sharedInstance.get()) {
+        qDebug() << "NodeList called with existing instance." <<
+        "Releasing auto_ptr, deleting existing instance and creating a new one.";
+        
+        delete _sharedInstance.release();
+    }
+    
     _sharedInstance = std::auto_ptr<LimitedNodeList>(new NodeList(ownerType, socketListenPort, dtlsPort));
     
     // register the SharedNodePointer meta-type for signals/slots
