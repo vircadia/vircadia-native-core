@@ -49,7 +49,7 @@ void Circle3DOverlay::render() {
     
     glm::vec3 position = getPosition();
     glm::vec3 center = getCenter();
-    glm::vec3 dimensions = getDimensions();
+    glm::vec2 dimensions = getDimensions();
     glm::quat rotation = getRotation();
 
     float glowLevel = getGlowLevel();
@@ -65,7 +65,7 @@ void Circle3DOverlay::render() {
         glPushMatrix();
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
+            glScalef(dimensions.x, dimensions.y, 1.0f);
 
             // Create the circle in the coordinates origin
             float outerRadius = getOuterRadius(); 
@@ -153,7 +153,7 @@ void Circle3DOverlay::render() {
 }
 
 void Circle3DOverlay::setProperties(const QScriptValue &properties) {
-    Volume3DOverlay::setProperties(properties);
+    Planar3DOverlay::setProperties(properties);
     
     QScriptValue startAt = properties.property("startAt");
     if (startAt.isValid()) {

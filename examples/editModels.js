@@ -1582,13 +1582,37 @@ var SelectionDisplay = function (opts) {
                     visible: false
                 });
 
+    var baseOverlayAngles = { x: 0, y: 0, z: 0 };
+    var baseOverlayRotation = Quat.fromVec3Degrees(baseOverlayAngles);
+
+    var baseOfEntityOverlay = Overlays.addOverlay("rectangle3d", {
+                    position: { x:0, y: 0, z: 0},
+                    size: 1,
+                    color: { red: 0, green: 0, blue: 0},
+                    alpha: 1,
+                    solid: false,
+                    visible: false,
+                    rotation: baseOverlayRotation
+                });
+
+    var baseOfEntityProjectionOverlay = Overlays.addOverlay("rectangle3d", {
+                    position: { x:0, y: 0, z: 0},
+                    size: 1,
+                    color: { red: 51, green: 152, blue: 203 },
+                    alpha: 0.5,
+                    solid: true,
+                    visible: false,
+                    rotation: baseOverlayRotation
+                });
+
+
     var yawOverlayAngles = { x: 90, y: 0, z: 0 };
     var yawOverlayRotation = Quat.fromVec3Degrees(yawOverlayAngles);
     var yawOverlayInner = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 0, green: 195, blue: 255},
-                    alpha: 0.1,
+                    color: { red: 51, green: 152, blue: 203 },
+                    alpha: 0.2,
                     solid: true,
                     visible: false,
                     rotation: yawOverlayRotation
@@ -1597,8 +1621,8 @@ var SelectionDisplay = function (opts) {
     var yawOverlayOuter = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 0, green: 195, blue: 215},
-                    alpha: 0.1,
+                    color: { red: 51, green: 152, blue: 203 },
+                    alpha: 0.2,
                     solid: true,
                     visible: false,
                     rotation: yawOverlayRotation
@@ -1607,10 +1631,9 @@ var SelectionDisplay = function (opts) {
     var yawOverlayCurrent = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 255, green: 190, blue: 190},
-                    alpha: 1,
-                    solid: false,
-                    isDashedLine: true,
+                    color: { red: 224, green: 67, blue: 36},
+                    alpha: 0.8,
+                    solid: true,
                     visible: false,
                     rotation: yawOverlayRotation,
                 });
@@ -1681,6 +1704,8 @@ var SelectionDisplay = function (opts) {
 
     this.cleanup = function () {
         Overlays.deleteOverlay(selectionBox);
+        Overlays.deleteOverlay(baseOfEntityOverlay);
+        Overlays.deleteOverlay(baseOfEntityProjectionOverlay);
         Overlays.deleteOverlay(yawOverlayInner);
         Overlays.deleteOverlay(yawOverlayOuter);
         Overlays.deleteOverlay(yawOverlayCurrent);
@@ -1694,12 +1719,21 @@ var SelectionDisplay = function (opts) {
     this.showSelection = function (properties) {
     
         var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
+        var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
         var innerRadius = diagonal;
         var outerRadius = diagonal * 1.15;
+        var innerActive = false;
+        var innerAlpha = 0.2;
+        var outerAlpha = 0.2;
+        if (innerActive) {
+            innerAlpha = 0.5;
+        } else {
+            outerAlpha = 0.5;
+        }
         
         Overlays.editOverlay(selectionBox, 
                             { 
-                                visible: true,
+                                visible: false,
                                 solid:false,
                                 lineWidth: 2.0,
                                 position: { x: properties.position.x,
@@ -1715,25 +1749,51 @@ var SelectionDisplay = function (opts) {
                                 glowLevelPulse: 1.0,
                                 alphaPulse: 0.5,
                                 colorPulse: -0.5
-                            
                             });
+
+        Overlays.editOverlay(baseOfEntityOverlay, 
+                            { 
+                                visible: true,
+                                solid:false,
+                                lineWidth: 2.0,
+                                position: { x: properties.position.x,
+                                            y: properties.position.y - halfDimensions.y,
+                                            z: properties.position.z },
+
+                                dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
+                                rotation: properties.rotation,
+                            });
+
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, 
+                            { 
+                                visible: true,
+                                solid:true,
+                                lineWidth: 2.0,
+                                position: { x: properties.position.x,
+                                            y: 0,
+                                            z: properties.position.z },
+
+                                dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
+                                rotation: properties.rotation,
+                            });
+
+                            
 
         Overlays.editOverlay(yawOverlayInner, 
                             { 
                                 visible: true,
-                                lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
                                             z: properties.position.z},
 
                                 size: innerRadius,
-                                innerRadius: 0.9
+                                innerRadius: 0.9,
+                                alpha: innerAlpha
                             });
 
         Overlays.editOverlay(yawOverlayOuter, 
                             { 
                                 visible: true,
-                                lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
                                             z: properties.position.z},
@@ -1742,12 +1802,12 @@ var SelectionDisplay = function (opts) {
                                 innerRadius: 0.9,
                                 startAt: 90,
                                 endAt: 405,
+                                alpha: outerAlpha
                             });
 
         Overlays.editOverlay(yawOverlayCurrent, 
                             { 
                                 visible: true,
-                                lineWidth: 5.0,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
                                             z: properties.position.z},
@@ -1817,6 +1877,8 @@ var SelectionDisplay = function (opts) {
 
     this.hideSelection = function () {
         Overlays.editOverlay(selectionBox, { visible: false });
+        Overlays.editOverlay(baseOfEntityOverlay, { visible: false });
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { visible: false });
         Overlays.editOverlay(yawOverlayInner, { visible: false });
         Overlays.editOverlay(yawOverlayOuter, { visible: false });
         Overlays.editOverlay(yawOverlayCurrent, { visible: false });

@@ -11,9 +11,9 @@
 #ifndef hifi_Circle3DOverlay_h
 #define hifi_Circle3DOverlay_h
 
-#include "Volume3DOverlay.h"
+#include "Planar3DOverlay.h"
 
-class Circle3DOverlay : public Volume3DOverlay {
+class Circle3DOverlay : public Planar3DOverlay {
     Q_OBJECT
     
 public:

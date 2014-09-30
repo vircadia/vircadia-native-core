@@ -18,10 +18,15 @@
 
 const glm::vec3 DEFAULT_POSITION = glm::vec3(0.0f, 0.0f, 0.0f);
 const float DEFAULT_LINE_WIDTH = 1.0f;
+const bool DEFAULT_IS_SOLID = false;
+const bool DEFAULT_IS_DASHED_LINE = false;
 
 Base3DOverlay::Base3DOverlay() :
     _position(DEFAULT_POSITION),
-    _lineWidth(DEFAULT_LINE_WIDTH)
+    _lineWidth(DEFAULT_LINE_WIDTH),
+    _isSolid(DEFAULT_IS_SOLID),
+    _isDashedLine(DEFAULT_IS_DASHED_LINE),
+    _rotation()
 {
 }
 
@@ -59,5 +64,52 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
 
     if (properties.property("lineWidth").isValid()) {
         setLineWidth(properties.property("lineWidth").toVariant().toFloat());
+    }
+
+    QScriptValue rotation = properties.property("rotation");
+
+    if (rotation.isValid()) {
+        glm::quat newRotation;
+
+        // size, scale, dimensions is special, it might just be a single scalar, or it might be a vector, check that here
+        QScriptValue x = rotation.property("x");
+        QScriptValue y = rotation.property("y");
+        QScriptValue z = rotation.property("z");
+        QScriptValue w = rotation.property("w");
+
+
+        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
+            newRotation.x = x.toVariant().toFloat();
+            newRotation.y = y.toVariant().toFloat();
+            newRotation.z = z.toVariant().toFloat();
+            newRotation.w = w.toVariant().toFloat();
+            setRotation(newRotation);
+        }
+    }
+
+    if (properties.property("isSolid").isValid()) {
+        setIsSolid(properties.property("isSolid").toVariant().toBool());
+    }
+    if (properties.property("isFilled").isValid()) {
+        setIsSolid(properties.property("isSolid").toVariant().toBool());
+    }
+    if (properties.property("isWire").isValid()) {
+        setIsSolid(!properties.property("isWire").toVariant().toBool());
+    }
+    if (properties.property("solid").isValid()) {
+        setIsSolid(properties.property("solid").toVariant().toBool());
+    }
+    if (properties.property("filled").isValid()) {
+        setIsSolid(properties.property("filled").toVariant().toBool());
+    }
+    if (properties.property("wire").isValid()) {
+        setIsSolid(!properties.property("wire").toVariant().toBool());
+    }
+
+    if (properties.property("isDashedLine").isValid()) {
+        setIsDashedLine(properties.property("isDashedLine").toVariant().toBool());
+    }
+    if (properties.property("dashed").isValid()) {
+        setIsDashedLine(!properties.property("dashed").toVariant().toBool());
     }
 }

@@ -19,6 +19,7 @@
 #include "LocalVoxelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Overlays.h"
+#include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
 
@@ -150,6 +151,12 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         is3D = true;
     } else if (type == "circle3d") {
         thisOverlay = new Circle3DOverlay();
+        thisOverlay->init(_parent);
+        thisOverlay->setProperties(properties);
+        created = true;
+        is3D = true;
+    } else if (type == "rectangle3d") {
+        thisOverlay = new Rectangle3DOverlay();
         thisOverlay->init(_parent);
         thisOverlay->setProperties(properties);
         created = true;

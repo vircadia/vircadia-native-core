@@ -39,8 +39,7 @@ private:
     QScopedPointer<Texture> _billboardTexture;
     
     QRect _fromImage; // where from in the image to sample
-    
-    glm::quat _rotation;
+
     float _scale;
     bool _isFacingAvatar;
 };
