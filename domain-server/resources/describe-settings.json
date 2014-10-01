@@ -12,7 +12,28 @@
         "name": "id",
         "label": "Domain ID",
         "help": "This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank."
-      } 
+      },
+      {
+        "name": "automatic_networking",
+        "label": "Automatic Networking",
+        "help": "This defines how other nodes in the High Fidelity metaverse will be able to reach your domain-server.<br/>If you don't want to deal with any network settings, use full automatic networking.",
+        "default": "full",
+        "type": "select",
+        "options": [
+          {
+            "value": "full",
+            "label": "Full: update both the IP address and port to reach my server"
+          },
+          {
+            "value": "ip",
+            "label": "IP Only: update just my IP address, I will open the port manually"
+          },
+          {
+            "value": "none",
+            "label": "None: use the network information I have entered for this domain at data.highfidelity.io"
+          }
+        ]
+      }
     ]
   },
   {
