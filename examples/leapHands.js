@@ -30,7 +30,9 @@ var leapHands = (function () {
         CALIBRATED = 2,
         CALIBRATION_TIME = 1000,  // milliseconds
         PI = 3.141593,
-        isWindows;
+        isWindows,
+        avatarScale,
+        settingsTimer;
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -164,6 +166,8 @@ var leapHands = (function () {
 
         calibrationStatus = CALIBRATING;
 
+        avatarScale = MyAvatar.scale;
+
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
         MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
         MyAvatar.setJointData("LeftForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
@@ -187,6 +191,13 @@ var leapHands = (function () {
         }
 
         return false;
+    }
+
+    function checkSettings() {
+        if (!isOnHMD && calibrationStatus && MyAvatar.scale !== avatarScale) {
+            print("Leap Motion: Recalibrate because avatar scale changed");
+            calibrationStatus = UNCALIBRATED;
+        }
     }
 
     function setUp() {
@@ -280,6 +291,8 @@ var leapHands = (function () {
             print("Leap Motion is on desk");
             calibrationStatus = UNCALIBRATED;
         }
+
+        settingsTimer = Script.setInterval(checkSettings, 2000);
     }
 
     function moveHands() {
@@ -302,7 +315,7 @@ var leapHands = (function () {
 
             if (hands[h].controller.isActive()) {
 
-                // Calibrate when and if a controller is first active.
+                // Calibrate if necessary.
                 if (!checkCalibration()) {
                     return;
                 }
@@ -429,6 +442,8 @@ var leapHands = (function () {
         var h,
             i,
             j;
+
+        Script.clearInterval(settingsTimer);
 
         for (h = 0; h < NUM_HANDS; h += 1) {
             Controller.releaseInputController(hands[h].controller);
