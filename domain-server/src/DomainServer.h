@@ -62,8 +62,8 @@ private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
     
-    void requestCurrentIPAddressViaSTUN();
-    void sendNewPublicSocketToDataServer(const HifiSockAddr& newPublicSockAddr);
+    void requestCurrentPublicSocketViaSTUN();
+    void sendNewSocketsToDataServer(const HifiSockAddr& newPublicSockAddr);
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
@@ -130,7 +130,10 @@ private:
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
     
+    HifiSockAddr _localSockAddr;
+    
     DomainServerSettingsManager _settingsManager;
 };
+
 
 #endif // hifi_DomainServer_h

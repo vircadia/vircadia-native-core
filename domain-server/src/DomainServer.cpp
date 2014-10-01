@@ -157,7 +157,6 @@ bool DomainServer::optionallySetupOAuth() {
         _oauthProviderURL = DEFAULT_NODE_AUTH_URL;
     }
     
-    // setup our account manager with that _oauthProviderURL
     AccountManager& accountManager = AccountManager::getInstance();
     accountManager.disableSettingsFilePersistence();
     accountManager.setAuthURL(_oauthProviderURL);
@@ -326,21 +325,14 @@ void DomainServer::setupDynamicSocketUpdating() {
             
             // setup our timer to check our IP via stun every 30 seconds
             QTimer* dynamicIPTimer = new QTimer(this);
-            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentIPAddressViaSTUN);
+            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
             dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
             
             // send public socket changes to the data server so nodes can find us at our new IP
-            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewPublicSocketToDataServer);
+            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewSocketsToDataServer);
             
-            if (!AccountManager::getInstance().hasValidAccessToken()) {
-                // we don't have an access token to talk to data-web yet, so
-                // check our IP address as soon as we get an AccountManager access token
-                connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
-                        this, &DomainServer::requestCurrentIPAddressViaSTUN);
-            } else {
-                // access token good to go, attempt to update our IP now
-                requestCurrentIPAddressViaSTUN();
-            }
+            // attempt to update our sockets now
+            requestCurrentPublicSocketViaSTUN();
             
         } else {
             qDebug() << "Cannot enable dynamic domain-server IP address updating without a domain ID."
@@ -914,18 +906,40 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
     }
 }
 
-void DomainServer::requestCurrentIPAddressViaSTUN() {
+void DomainServer::requestCurrentPublicSocketViaSTUN() {
     LimitedNodeList::getInstance()->sendSTUNRequest();
 }
 
-void DomainServer::sendNewPublicSocketToDataServer(const HifiSockAddr& newPublicSockAddr) {
+QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
+    const QString SOCKET_NETWORK_ADDRESS_KEY = "network_address";
+    const QString SOCKET_PORT_KEY = "port";
+    
+    QJsonObject socketObject;
+    socketObject[SOCKET_NETWORK_ADDRESS_KEY] = socket.getAddress().toString();
+    socketObject[SOCKET_PORT_KEY] = socket.getPort();
+    
+    return socketObject;
+}
+
+void DomainServer::sendNewSocketsToDataServer(const HifiSockAddr& newPublicSockAddr) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
-    // setup the domain object to send to the data server
-    const QString DOMAIN_JSON_OBJECT = "{\"domain\":{\"network_address\":\"%1\"}}";
+    // we're not mointoring for local socket changes yet
+    // the first time this is called grab whatever it is and assume it'll stay the same
+    static HifiSockAddr localSockAddr = HifiSockAddr(QHostAddress(getHostOrderLocalAddress()),
+                                                     LimitedNodeList::getInstance()->getNodeSocket().localPort());
     
-    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(newPublicSockAddr.getAddress().toString());
+    // setup the domain object to send to the data server
+    const QString PUBLIC_SOCKET_ATTRIBUTES_KEY = "public_socket_attributes";
+    const QString LOCAL_SOCKET_ATTRIBUTES_KEY = "local_socket_attributes";
+    
+    QJsonObject domainObject;
+    domainObject[PUBLIC_SOCKET_ATTRIBUTES_KEY] = jsonForDomainSocketUpdate(newPublicSockAddr);
+    domainObject[LOCAL_SOCKET_ATTRIBUTES_KEY] = jsonForDomainSocketUpdate(localSockAddr);
+    
+    const QString DOMAIN_JSON_OBJECT = "{\"domain\":%1}";
+    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(QString(QJsonDocument(domainObject).toJson()));
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,
