@@ -658,19 +658,19 @@ void AvatarData::setPlayerVolume(float volume) {
     }
 }
 
-void AvatarData::setPlayerAudioOffset(qint64 audioOffset) {
+void AvatarData::setPlayerAudioOffset(int audioOffset) {
     if (_player) {
         _player->setAudioOffset(audioOffset);
     }
 }
 
-void AvatarData::setPlayerFrame(int frame) {
+void AvatarData::setPlayerFrame(unsigned int frame) {
     if (_player) {
         _player->setCurrentFrame(frame);
     }
 }
 
-void AvatarData::setPlayerTime(qint64 time) {
+void AvatarData::setPlayerTime(unsigned int time) {
     if (_player) {
         _player->setCurrentTime(time);
     }
