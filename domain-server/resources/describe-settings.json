@@ -4,9 +4,9 @@
     "label": "Metaverse Registration",
     "settings": [
       {
-        "name": "access-token",
+        "name": "access_token",
         "label": "Access Token",
-        "help": "This is an access token generated on the <a href='https://data.highfidelity.io/tokens'>My Tokens</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
+        "help": "This is an access token generated on the <a href='https://data.highfidelity.io/tokens' target='_blank'>My Tokens</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
       },
       {
         "name": "id",
@@ -20,12 +20,12 @@
     "label": "Security",
     "settings": [
       {
-        "name": "http-username",
+        "name": "http_username",
         "label": "HTTP Username",
         "help": "Username used for basic HTTP authentication."
       },
       {
-        "name": "http-password",
+        "name": "http_password",
         "label": "HTTP Password",
         "type": "password",
         "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
@@ -39,20 +39,20 @@
     "assignment-types": [0],
     "settings": [
       {
-        "name": "enable-filter",
+        "name": "enable_filter",
         "type": "checkbox",
         "label": "Enable Positional Filter",
         "help": "positional audio stream uses lowpass filter",
         "default": true
       },
       {
-        "name": "unattenuated-zone",
+        "name": "unattenuated_zone",
         "label": "Unattenuated Zone",
         "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
         "placeholder": "no zone"
       },
       {
-        "name": "attenuation-per-doubling-in-distance",
+        "name": "attenuation_per_doubling_in_distance",
         "label": "Attenuattion per doubling in distance",
         "help": "Factor between 0.0 and 1.0 (0.0: No attenuation, 1.0: extreme attenuation)",
         "placeholder": "0.18",
@@ -60,7 +60,7 @@
         "advanced": true
       },
       {
-        "name": "dynamic-jitter-buffer",
+        "name": "dynamic_jitter_buffer",
         "type": "checkbox",
         "label": "Dynamic Jitter Buffers",
         "help": "dynamically buffer client audio based on perceived jitter in packet receipt timing",
@@ -68,7 +68,7 @@
         "advanced": true
       },
       {
-        "name": "static-desired-jitter-buffer-frames",
+        "name": "static_desired_jitter_buffer_frames",
         "label": "Static Desired Jitter Buffer Frames",
         "help": "If dynamic jitter buffers is disabled, this determines the target number of frames maintained by the AudioMixer's jitter buffers",
         "placeholder": "1",
@@ -76,7 +76,7 @@
         "advanced": true
       },
       {
-        "name": "max-frames-over-desired",
+        "name": "max_frames_over_desired",
         "label": "Max Frames Over Desired",
         "help": "The highest number of frames an AudioMixer's ringbuffer can exceed the desired jitter buffer frames by",
         "placeholder": "10",
@@ -84,7 +84,7 @@
         "advanced": true
       },
       {
-        "name": "use-stdev-for-desired-calc",
+        "name": "use_stdev_for_desired_calc",
         "type": "checkbox",
         "label": "Use Stdev for Desired Jitter Frames Calc:",
         "help": "use Philip's method (stdev of timegaps) to calculate desired jitter frames (otherwise Fred's max timegap method is used)",
@@ -92,7 +92,7 @@
         "advanced": true
       },
       {
-        "name": "window-starve-threshold",
+        "name": "window_starve_threshold",
         "label": "Window Starve Threshold",
         "help": "If this many starves occur in an N-second window (N is the number in the next field), then the desired jitter frames will be re-evaluated using Window A.",
         "placeholder": "3",
@@ -100,7 +100,7 @@
         "advanced": true
       },
       {
-        "name": "window-seconds-for-desired-calc-on-too-many-starves",
+        "name": "window_seconds_for_desired_calc_on_too_many_starves",
         "label": "Timegaps Window (A) Seconds:",
         "help": "Window A contains a history of timegaps. Its max timegap is used to re-evaluate the desired jitter frames when too many starves occur within it.",
         "placeholder": "50",
@@ -108,7 +108,7 @@
         "advanced": true
       },
       {
-        "name": "window-seconds-for-desired-reduction",
+        "name": "window_seconds_for_desired_reduction",
         "label": "Timegaps Window (B) Seconds:",
         "help": "Window B contains a history of timegaps. Its max timegap is used as a ceiling for the desired jitter frames value.",
         "placeholder": "10",
@@ -116,7 +116,7 @@
         "advanced": true
       },
       {
-        "name": "repetition-with-fade",
+        "name": "repetition_with_fade",
         "type": "checkbox",
         "label": "Repetition with Fade:",
         "help": "dropped frames and mixing during starves repeat the last frame, eventually fading to silence",
@@ -124,7 +124,7 @@
         "advanced": true
       },
       {
-        "name": "print-stream-stats",
+        "name": "print_stream_stats",
         "type": "checkbox",
         "label": "Print Stream Stats:",
         "help": "audio upstream and downstream stats of each agent printed to audio-mixer stdout",
