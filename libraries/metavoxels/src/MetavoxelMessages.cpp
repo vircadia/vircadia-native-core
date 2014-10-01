@@ -1135,3 +1135,23 @@ void VoxelMaterialSphereEdit::apply(MetavoxelData& data, const WeakSharedObjectH
     VoxelMaterialSphereEditVisitor visitor(center, radius, bounds, granularity, material, averageColor);
     data.guide(visitor);
 }
+
+MetavoxelShape::MetavoxelShape(const glm::vec3& translation, const glm::quat& rotation, float scale) :
+    translation(translation),
+    rotation(rotation),
+    scale(scale) {
+}
+
+MetavoxelShape::~MetavoxelShape() {
+}
+
+MetavoxelSphere::MetavoxelSphere(const glm::vec3& translation, const glm::quat& rotation, float scale) :
+    MetavoxelShape(translation, rotation, scale) {
+}
+
+MetavoxelBox::MetavoxelBox(const glm::vec3& translation, const glm::quat& rotation, float scale,
+        float aspectXY, float aspectXZ) :
+    MetavoxelShape(translation, rotation, scale),
+    aspectXY(aspectXY),
+    aspectXZ(aspectXZ) {
+}

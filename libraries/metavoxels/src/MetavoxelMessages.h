@@ -282,4 +282,46 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(VoxelMaterialSphereEdit)
 
+/// Abstract base class for shapes.
+class MetavoxelShape {
+    STREAMABLE
+    
+public:
+
+    STREAM glm::vec3 translation;
+    STREAM glm::quat rotation;
+    STREAM float scale;
+
+    MetavoxelShape(const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f);
+    virtual ~MetavoxelShape();
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelShape)
+
+// A sphere shape.
+class MetavoxelSphere : public MetavoxelShape {
+    STREAMABLE
+    
+public:
+    
+    MetavoxelSphere(const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f);
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelSphere)
+
+// A box shape.
+class MetavoxelBox : public MetavoxelShape {
+    STREAMABLE
+    
+public:
+    
+    STREAM float aspectXY;
+    STREAM float aspectXZ;
+    
+    MetavoxelBox(const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
+        float aspectXY = 1.0f, float aspectXZ = 1.0f);
+};
+
+DECLARE_STREAMABLE_METATYPE(MetavoxelBox)
+
 #endif // hifi_MetavoxelMessages_h
