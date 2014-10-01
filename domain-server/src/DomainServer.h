@@ -63,14 +63,14 @@ private slots:
     void sendPendingTransactionsToServer();
     
     void requestCurrentPublicSocketViaSTUN();
-    void sendNewSocketsToDataServer(const HifiSockAddr& newPublicSockAddr);
+    void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
     bool didSetupAccountManagerWithAccessToken();
     bool optionallySetupAssignmentPayment();
-    void setupDynamicSocketUpdating();
+    void setupAutomaticNetworking();
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     

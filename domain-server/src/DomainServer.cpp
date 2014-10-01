@@ -75,7 +75,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         loadExistingSessionsFromSettings();
         
         // check if we have the flag that enables dynamic IP
-        setupDynamicSocketUpdating();
+        setupAutomaticNetworking();
     }
 }
 
@@ -305,54 +305,48 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     return true;
 }
 
-void DomainServer::setupDynamicSocketUpdating() {
+void DomainServer::setupAutomaticNetworking() {
     const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
-    
-    const QVariant* automaticNetworkVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                            METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH);
     
     const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
     const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
     
-    if (automaticNetworkVariant) {
+    QString automaticNetworkValue =
+        _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
+    
+    if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+        if (!didSetupAccountManagerWithAccessToken()) {
+            qDebug() << "Cannot enable domain-server automatic networking without an access token.";
+            qDebug() << "Please add an access token to your config file or via the web interface.";
+            
+            return;
+        }
         
-        QString automaticNetworkValue = automaticNetworkVariant->toString();
-        if ((automaticNetworkValue == FULL_AUTOMATIC_NETWORKING_VALUE
-             || automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE)) {
+        LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+        const QUuid& domainID = nodeList->getSessionUUID();
+        
+        if (!domainID.isNull()) {
+            qDebug() << "domain-server" << automaticNetworkValue << "automatic networking enabled for ID"
+            << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
-            if (!didSetupAccountManagerWithAccessToken()) {
-                qDebug() << "Cannot enable domain-server automatic networking without an access token.";
-                qDebug() << "Please add an access token to your config file or via the web interface.";
-                
-                return;
-            }
+            const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
             
-            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-            const QUuid& domainID = nodeList->getSessionUUID();
+            // setup our timer to check our IP via stun every 30 seconds
+            QTimer* dynamicIPTimer = new QTimer(this);
+            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
+            dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
             
-            if (!domainID.isNull()) {
-                qDebug() << "domain-server" << automaticNetworkValue << "automatic networking enabled for ID"
-                    << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
-                
-                const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
-                
-                // setup our timer to check our IP via stun every 30 seconds
-                QTimer* dynamicIPTimer = new QTimer(this);
-                connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
-                dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
-                
-                // send public socket changes to the data server so nodes can find us at our new IP
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewSocketsToDataServer);
-                
-                // attempt to update our sockets now
-                requestCurrentPublicSocketViaSTUN();
-                
-            } else {
-                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
-                    << "Please add an ID to your config file or via the web interface.";
-                
-                return;
-            }
+            // send public socket changes to the data server so nodes can find us at our new IP
+            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+            
+            // attempt to update our sockets now
+            requestCurrentPublicSocketViaSTUN();
+            
+        } else {
+            qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+            << "Please add an ID to your config file or via the web interface.";
+            
+            return;
         }
     }
 }
@@ -934,25 +928,16 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
     return socketObject;
 }
 
-void DomainServer::sendNewSocketsToDataServer(const HifiSockAddr& newPublicSockAddr) {
+void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
-    // we're not mointoring for local socket changes yet
-    // the first time this is called grab whatever it is and assume it'll stay the same
-    static HifiSockAddr localSockAddr = HifiSockAddr(QHostAddress(getHostOrderLocalAddress()),
-                                                     LimitedNodeList::getInstance()->getNodeSocket().localPort());
-    
     // setup the domain object to send to the data server
-    const QString PUBLIC_SOCKET_ATTRIBUTES_KEY = "public_socket_attributes";
-    const QString LOCAL_SOCKET_ATTRIBUTES_KEY = "local_socket_attributes";
+    const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
+    const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     
-    QJsonObject domainObject;
-    domainObject[PUBLIC_SOCKET_ATTRIBUTES_KEY] = jsonForDomainSocketUpdate(newPublicSockAddr);
-    domainObject[LOCAL_SOCKET_ATTRIBUTES_KEY] = jsonForDomainSocketUpdate(localSockAddr);
-    
-    const QString DOMAIN_JSON_OBJECT = "{\"domain\":%1}";
-    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(QString(QJsonDocument(domainObject).toJson()));
+    const QString DOMAIN_JSON_OBJECT = "{\"domain\": { \"network_address\": \"%1\", \"automatic_networking\": \"ip\" }";
+    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(newPublicSockAddr.getAddress().toString());
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,
