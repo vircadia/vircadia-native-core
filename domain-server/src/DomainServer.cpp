@@ -306,40 +306,53 @@ bool DomainServer::optionallySetupAssignmentPayment() {
 }
 
 void DomainServer::setupDynamicSocketUpdating() {
-    const QString ENABLE_DYNAMIC_SOCKET_UPDATING_KEY_PATH = "metaverse.update_sockets";
+    const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
     
-    const QVariant* updateSocketValue = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                        ENABLE_DYNAMIC_SOCKET_UPDATING_KEY_PATH);
+    const QVariant* automaticNetworkVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                            METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH);
     
-    if (updateSocketValue && updateSocketValue->canConvert(QMetaType::Bool) && updateSocketValue->toBool()
-        && didSetupAccountManagerWithAccessToken()) {
+    const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
+    const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
+    
+    if (automaticNetworkVariant) {
         
-        LimitedNodeList* nodeList = LimitedNodeList::getInstance();
-        const QUuid& domainID = nodeList->getSessionUUID();
-        
-        if (!domainID.isNull()) {
-            qDebug() << "domain-server socket will be updated for domain with ID"
-                << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+        QString automaticNetworkValue = automaticNetworkVariant->toString();
+        if ((automaticNetworkValue == FULL_AUTOMATIC_NETWORKING_VALUE
+             || automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE)) {
             
-            const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+            if (!didSetupAccountManagerWithAccessToken()) {
+                qDebug() << "Cannot enable domain-server automatic networking without an access token.";
+                qDebug() << "Please add an access token to your config file or via the web interface.";
+                
+                return;
+            }
             
-            // setup our timer to check our IP via stun every 30 seconds
-            QTimer* dynamicIPTimer = new QTimer(this);
-            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
-            dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+            LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+            const QUuid& domainID = nodeList->getSessionUUID();
             
-            // send public socket changes to the data server so nodes can find us at our new IP
-            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewSocketsToDataServer);
-            
-            // attempt to update our sockets now
-            requestCurrentPublicSocketViaSTUN();
-            
-        } else {
-            qDebug() << "Cannot enable dynamic domain-server IP address updating without a domain ID."
-                << "Please add an id to your config.json or pass it with the command line argument --id.";
-            qDebug() << "Failed dynamic IP address update setup. domain-server will now quit.";
-            
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+            if (!domainID.isNull()) {
+                qDebug() << "domain-server" << automaticNetworkValue << "automatic networking enabled for ID"
+                    << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+                
+                const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+                
+                // setup our timer to check our IP via stun every 30 seconds
+                QTimer* dynamicIPTimer = new QTimer(this);
+                connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
+                dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+                
+                // send public socket changes to the data server so nodes can find us at our new IP
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewSocketsToDataServer);
+                
+                // attempt to update our sockets now
+                requestCurrentPublicSocketViaSTUN();
+                
+            } else {
+                qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+                    << "Please add an ID to your config file or via the web interface.";
+                
+                return;
+            }
         }
     }
 }
