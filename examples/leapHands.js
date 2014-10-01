@@ -14,6 +14,7 @@
 var leapHands = (function () {
 
     var isOnHMD,
+        LEAP_ON_HMD_MENU_ITEM = "Leap Motion on HMD",
         LEAP_OFFSET = 0.019,  // Thickness of Leap Motion plus HMD clip
         HMD_OFFSET = 0.100,  // Eyeballs to front surface of Oculus DK2  TODO: Confirm and make depend on device and eye relief
         hands,
@@ -193,10 +194,32 @@ var leapHands = (function () {
         return false;
     }
 
+    function setIsOnHMD() {
+        isOnHMD = Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM);
+        if (isOnHMD) {
+            print("Leap Motion: Is on HMD");
+
+            // Offset of Leap Motion origin from physical eye position
+            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
+            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
+
+            calibrationStatus = CALIBRATED;
+        } else {
+            print("Leap Motion: Is on desk");
+            calibrationStatus = UNCALIBRATED;
+        }
+    }
+
     function checkSettings() {
+        // There is no "scale changed" event so we need check periodically.
         if (!isOnHMD && calibrationStatus && MyAvatar.scale !== avatarScale) {
             print("Leap Motion: Recalibrate because avatar scale changed");
             calibrationStatus = UNCALIBRATED;
+        }
+
+        // There is a "menu changed" event but we may as well check here.
+        if (isOnHMD !== Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM)) {
+            setIsOnHMD();
         }
     }
 
@@ -278,19 +301,7 @@ var leapHands = (function () {
             ]
         ];
 
-        isOnHMD = Menu.isOptionChecked("Leap Motion on HMD");
-        if (isOnHMD) {
-            print("Leap Motion is on HMD");
-
-            // Offset of Leap Motion origin from physical eye position
-            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
-            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
-
-            calibrationStatus = CALIBRATED;
-        } else {
-            print("Leap Motion is on desk");
-            calibrationStatus = UNCALIBRATED;
-        }
+        setIsOnHMD();
 
         settingsTimer = Script.setInterval(checkSettings, 2000);
     }
