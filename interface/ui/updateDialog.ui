@@ -60,10 +60,7 @@
     </property>
     <property name="font">
      <font>
-      <family>Arial</family>
-      <pointsize>36</pointsize>
-      <stylestrategy>PreferAntialias</stylestrategy>
-      <kerning>false</kerning>
+      <pointsize>20</pointsize>
      </font>
     </property>
     <property name="styleSheet">
@@ -77,10 +74,10 @@
   <widget class="QLabel" name="updateContent">
    <property name="geometry">
     <rect>
-     <x>100</x>
-     <y>110</y>
-     <width>561</width>
-     <height>61</height>
+     <x>50</x>
+     <y>90</y>
+     <width>641</width>
+     <height>141</height>
     </rect>
    </property>
    <property name="font">
@@ -103,8 +100,8 @@
     <rect>
      <x>360</x>
      <y>240</y>
-     <width>364</width>
-     <height>40</height>
+     <width>374</width>
+     <height>42</height>
     </rect>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -115,15 +112,15 @@
       </property>
       <property name="styleSheet">
        <string notr="true">    background-color: #333333;
-    border-width: 0;
-    border-radius: 9px;
-    border-radius: 9px;
-    font-family: Arial;
-    font-size: 18px;
-    font-weight: 100;
-    color: #b7b7b7;
-    width: 120px;
-    height: 40px;</string>
+border-width: 0;
+border-radius: 9px;
+border-radius: 9px;
+font-family: Arial;
+font-size: 18px;
+font-weight: 100;
+color: #b7b7b7;
+width: 120px;
+height: 40px;</string>
       </property>
       <property name="text">
        <string>Download</string>
@@ -137,15 +134,15 @@
       </property>
       <property name="styleSheet">
        <string notr="true">    background-color: #333333;
-    border-width: 0;
-    border-radius: 9px;
-    border-radius: 9px;
-    font-family: Arial;
-    font-size: 18px;
-    font-weight: 100;
-    color: #b7b7b7;
-    width: 120px;
-    height: 40px;</string>
+border-width: 0;
+border-radius: 9px;
+border-radius: 9px;
+font-family: Arial;
+font-size: 18px;
+font-weight: 100;
+color: #b7b7b7;
+width: 120px;
+height: 40px;</string>
       </property>
       <property name="text">
        <string>Skip Version</string>
@@ -159,15 +156,15 @@
       </property>
       <property name="styleSheet">
        <string notr="true">    background-color: #333333;
-    border-width: 0;
-    border-radius: 9px;
-    border-radius: 9px;
-    font-family: Arial;
-    font-size: 18px;
-    font-weight: 100;
-    color: #b7b7b7;
-    width: 120px;
-    height: 40px;</string>
+border-width: 0;
+border-radius: 9px;
+border-radius: 9px;
+font-family: Arial;
+font-size: 18px;
+font-weight: 100;
+color: #b7b7b7;
+width: 120px;
+height: 40px;</string>
       </property>
       <property name="text">
        <string>Close</string>
