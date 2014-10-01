@@ -23,6 +23,8 @@
 //
 
 Script.include("toolBars.js");
+Script.include("entitySelectionTool.js");
+var selectionDisplay = SelectionDisplay;
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
@@ -1571,327 +1573,7 @@ var ExportMenu = function (opts) {
     Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
 };
 
-var SelectionDisplay = function (opts) {
-    var self = this;
-    var selectionBox = Overlays.addOverlay("cube", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 180, green: 180, blue: 180},
-                    alpha: 1,
-                    solid: false,
-                    visible: false
-                });
 
-    var baseOverlayAngles = { x: 0, y: 0, z: 0 };
-    var baseOverlayRotation = Quat.fromVec3Degrees(baseOverlayAngles);
-
-    var baseOfEntityOverlay = Overlays.addOverlay("rectangle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 0, green: 0, blue: 0},
-                    alpha: 1,
-                    solid: false,
-                    visible: false,
-                    rotation: baseOverlayRotation
-                });
-
-    var baseOfEntityProjectionOverlay = Overlays.addOverlay("rectangle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 51, green: 152, blue: 203 },
-                    alpha: 0.5,
-                    solid: true,
-                    visible: false,
-                    rotation: baseOverlayRotation
-                });
-
-
-    var yawOverlayAngles = { x: 90, y: 0, z: 0 };
-    var yawOverlayRotation = Quat.fromVec3Degrees(yawOverlayAngles);
-    var yawOverlayInner = Overlays.addOverlay("circle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 51, green: 152, blue: 203 },
-                    alpha: 0.2,
-                    solid: true,
-                    visible: false,
-                    rotation: yawOverlayRotation
-                });
-
-    var yawOverlayOuter = Overlays.addOverlay("circle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 51, green: 152, blue: 203 },
-                    alpha: 0.2,
-                    solid: true,
-                    visible: false,
-                    rotation: yawOverlayRotation
-                });
-
-    var yawOverlayCurrent = Overlays.addOverlay("circle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 224, green: 67, blue: 36},
-                    alpha: 0.8,
-                    solid: true,
-                    visible: false,
-                    rotation: yawOverlayRotation,
-                });
-
-    var yawHandleAngles = { x: 90, y: 90, z: 0 };
-    var yawHandleRotation = Quat.fromVec3Degrees(yawHandleAngles);
-    var yawHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
-                                        position: { x:0, y: 0, z: 0},
-                                        color: { red: 0, green: 0, blue: 255 },
-                                        alpha: 0.3,
-                                        visible: false,
-                                        size: 0.1,
-                                        scale: 0.1,
-                                        rotation: yawHandleRotation,
-                                        isFacingAvatar: false
-                                      });
-
-    var pitchOverlayAngles = { x: 0, y: 90, z: 0 };
-    var pitchOverlayRotation = Quat.fromVec3Degrees(pitchOverlayAngles);
-    var pitchOverlay = Overlays.addOverlay("circle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 0, green: 255, blue: 0},
-                    alpha: 1,
-                    visible: false,
-                    rotation: pitchOverlayRotation
-                });
-
-    var pitchHandleAngles = { x: 90, y: 0, z: 90 };
-    var pitchHandleRotation = Quat.fromVec3Degrees(pitchHandleAngles);
-    var pitchHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
-                                        position: { x:0, y: 0, z: 0},
-                                        color: { red: 0, green: 0, blue: 255 },
-                                        alpha: 0.3,
-                                        visible: false,
-                                        size: 0.1,
-                                        scale: 0.1,
-                                        rotation: pitchHandleRotation,
-                                        isFacingAvatar: false
-                                      });
-
-    var rollOverlayAngles = { x: 0, y: 180, z: 0 };
-    var rollOverlayRotation = Quat.fromVec3Degrees(rollOverlayAngles);
-    var rollOverlay = Overlays.addOverlay("circle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
-                    color: { red: 255, green: 0, blue: 0},
-                    alpha: 1,
-                    visible: false,
-                    rotation: rollOverlayRotation
-                });
-
-    var rollHandleAngles = { x: 0, y: 0, z: 180 };
-    var rollHandleRotation = Quat.fromVec3Degrees(rollHandleAngles);
-    var rollHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
-                                        position: { x:0, y: 0, z: 0},
-                                        color: { red: 0, green: 0, blue: 255 },
-                                        alpha: 0.3,
-                                        visible: false,
-                                        size: 0.1,
-                                        scale: 0.1,
-                                        rotation: rollHandleRotation,
-                                        isFacingAvatar: false
-                                      });
-
-    this.cleanup = function () {
-        Overlays.deleteOverlay(selectionBox);
-        Overlays.deleteOverlay(baseOfEntityOverlay);
-        Overlays.deleteOverlay(baseOfEntityProjectionOverlay);
-        Overlays.deleteOverlay(yawOverlayInner);
-        Overlays.deleteOverlay(yawOverlayOuter);
-        Overlays.deleteOverlay(yawOverlayCurrent);
-        Overlays.deleteOverlay(pitchOverlay);
-        Overlays.deleteOverlay(rollOverlay);
-        Overlays.deleteOverlay(yawHandle);
-        Overlays.deleteOverlay(pitchHandle);
-        Overlays.deleteOverlay(rollHandle);
-    };
-
-    this.showSelection = function (properties) {
-    
-        var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
-        var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
-        var innerRadius = diagonal;
-        var outerRadius = diagonal * 1.15;
-        var innerActive = false;
-        var innerAlpha = 0.2;
-        var outerAlpha = 0.2;
-        if (innerActive) {
-            innerAlpha = 0.5;
-        } else {
-            outerAlpha = 0.5;
-        }
-        
-        Overlays.editOverlay(selectionBox, 
-                            { 
-                                visible: false,
-                                solid:false,
-                                lineWidth: 2.0,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y,
-                                            z: properties.position.z },
-
-                                dimensions: properties.dimensions,
-                                rotation: properties.rotation,
-
-                                pulseMin: 0.1,
-                                pulseMax: 1.0,
-                                pulsePeriod: 4.0,
-                                glowLevelPulse: 1.0,
-                                alphaPulse: 0.5,
-                                colorPulse: -0.5
-                            });
-
-        Overlays.editOverlay(baseOfEntityOverlay, 
-                            { 
-                                visible: true,
-                                solid:false,
-                                lineWidth: 2.0,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y - halfDimensions.y,
-                                            z: properties.position.z },
-
-                                dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
-                                rotation: properties.rotation,
-                            });
-
-        Overlays.editOverlay(baseOfEntityProjectionOverlay, 
-                            { 
-                                visible: true,
-                                solid:true,
-                                lineWidth: 2.0,
-                                position: { x: properties.position.x,
-                                            y: 0,
-                                            z: properties.position.z },
-
-                                dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
-                                rotation: properties.rotation,
-                            });
-
-                            
-
-        Overlays.editOverlay(yawOverlayInner, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y - (properties.dimensions.y / 2),
-                                            z: properties.position.z},
-
-                                size: innerRadius,
-                                innerRadius: 0.9,
-                                alpha: innerAlpha
-                            });
-
-        Overlays.editOverlay(yawOverlayOuter, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y - (properties.dimensions.y / 2),
-                                            z: properties.position.z},
-
-                                size: outerRadius,
-                                innerRadius: 0.9,
-                                startAt: 90,
-                                endAt: 405,
-                                alpha: outerAlpha
-                            });
-
-        Overlays.editOverlay(yawOverlayCurrent, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y - (properties.dimensions.y / 2),
-                                            z: properties.position.z},
-
-                                size: outerRadius,
-                                startAt: 45,
-                                endAt: 90,
-                                innerRadius: 0.9
-                            });
-
-        Overlays.editOverlay(yawHandle, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x - (properties.dimensions.x / 2),
-                                            y: properties.position.y - (properties.dimensions.y / 2),
-                                            z: properties.position.z - (properties.dimensions.z / 2)},
-
-                                //dimensions: properties.dimensions,
-                                //rotation: properties.rotation
-                            });
-
-        Overlays.editOverlay(pitchOverlay, 
-                            { 
-                                visible: false,
-                                lineWidth: 5.0,
-                                position: { x: properties.position.x + (properties.dimensions.x / 2),
-                                            y: properties.position.y,
-                                            z: properties.position.z },
-
-                                //dimensions: properties.dimensions,
-                                size: diagonal,
-                                //rotation: properties.rotation
-                                alpha: 0.5,
-                            });
-
-        Overlays.editOverlay(pitchHandle, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x + (properties.dimensions.x / 2),
-                                            y: properties.position.y + (properties.dimensions.y / 2),
-                                            z: properties.position.z - (properties.dimensions.z / 2)},
-                            });
-
-        Overlays.editOverlay(rollOverlay, 
-                            { 
-                                visible: false,
-                                lineWidth: 5.0,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y,
-                                            z: properties.position.z + (properties.dimensions.z / 2) },
-
-                                //dimensions: properties.dimensions,
-                                size: diagonal,
-                                //rotation: properties.rotation
-                                alpha: 0.5,
-                            });
-
-        Overlays.editOverlay(rollHandle, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x - (properties.dimensions.x / 2),
-                                            y: properties.position.y + (properties.dimensions.y / 2),
-                                            z: properties.position.z + (properties.dimensions.z / 2)},
-                            });
-
-    };
-
-    this.hideSelection = function () {
-        Overlays.editOverlay(selectionBox, { visible: false });
-        Overlays.editOverlay(baseOfEntityOverlay, { visible: false });
-        Overlays.editOverlay(baseOfEntityProjectionOverlay, { visible: false });
-        Overlays.editOverlay(yawOverlayInner, { visible: false });
-        Overlays.editOverlay(yawOverlayOuter, { visible: false });
-        Overlays.editOverlay(yawOverlayCurrent, { visible: false });
-        Overlays.editOverlay(pitchOverlay, { visible: false });
-        Overlays.editOverlay(rollOverlay, { visible: false });
-        Overlays.editOverlay(yawHandle, { visible: false });
-        Overlays.editOverlay(pitchHandle, { visible: false });
-        Overlays.editOverlay(rollHandle, { visible: false });
-    };
-
-};
-
-var selectionDisplay = new SelectionDisplay();
 
 var ModelImporter = function (opts) {
     var self = this;
@@ -2340,8 +2022,8 @@ function controller(wichSide) {
 
         if (this.glowedIntersectingModel.isKnownID) {
             Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.0 });
+            selectionDisplay.hideSelection(this.glowedIntersectingModel);
             this.glowedIntersectingModel.isKnownID = false;
-            selectionDisplay.hideSelection();
         }
         if (!this.grabbing) {
             var intersection = Entities.findRayIntersection({
@@ -2360,7 +2042,7 @@ function controller(wichSide) {
                 if (wantEntityGlow) {
                     Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.25 });
                 }
-                selectionDisplay.showSelection(intersection.properties);
+                selectionDisplay.showSelection(this.glowedIntersectingModel, intersection.properties);
             }
         }
     }
@@ -2431,7 +2113,7 @@ function controller(wichSide) {
                              });
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
-            selectionDisplay.showSelection(Entities.getEntityProperties(this.entityID));
+            selectionDisplay.showSelection(this.entityID, Entities.getEntityProperties(this.entityID));
 
             var indicesToRemove = [];
             for (var i = 0; i < this.jointsIntersectingFromStart.length; ++i) {
@@ -2660,7 +2342,7 @@ function moveEntities() {
 
 
                          });
-        selectionDisplay.showSelection(Entities.getEntityProperties(leftController.entityID));
+        selectionDisplay.showSelection(leftController.entityID, Entities.getEntityProperties(leftController.entityID));
         leftController.oldModelPosition = newPosition;
         leftController.oldModelRotation = rotation;
         leftController.oldModelHalfDiagonal *= ratio;
@@ -2890,7 +2572,7 @@ function mousePressEvent(event) {
         print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
         tooltip.updateText(selectedEntityProperties);
         tooltip.show(true);
-        selectionDisplay.showSelection(selectedEntityProperties);
+        selectionDisplay.showSelection(selectedEntityID, selectedEntityProperties);
     }
 }
 
@@ -2909,9 +2591,9 @@ function mouseMoveEvent(event) {
         if (entityIntersection.accurate) {
             if(glowedEntityID.isKnownID && glowedEntityID.id != entityIntersection.entityID.id) {
                 Entities.editEntity(glowedEntityID, { glowLevel: 0.0 });
+                selectionDisplay.hideSelection(glowedEntityID);
                 glowedEntityID.id = -1;
                 glowedEntityID.isKnownID = false;
-                selectionDisplay.hideSelection();
             }
 
             var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
@@ -2927,7 +2609,7 @@ function mouseMoveEvent(event) {
                     Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
                 }
                 glowedEntityID = entityIntersection.entityID;
-                selectionDisplay.showSelection(entityIntersection.properties);
+                selectionDisplay.showSelection(entityIntersection.entityID, entityIntersection.properties);
             }
             
         }
@@ -3050,7 +2732,7 @@ function mouseMoveEvent(event) {
     
     Entities.editEntity(selectedEntityID, selectedEntityProperties);
     tooltip.updateText(selectedEntityProperties);
-    selectionDisplay.showSelection(selectedEntityProperties);
+    selectionDisplay.showSelection(selectedEntityID, selectedEntityProperties);
 }
 
 
@@ -3355,7 +3037,7 @@ Controller.keyPressEvent.connect(function (event) {
         Entities.editEntity(selectedEntityID, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
         somethingChanged = true;
-        selectionDisplay.showSelection(selectedEntityProperties);
+        selectionDisplay.showSelection(selectedEntityID, selectedEntityProperties);
     }
 });
 
@@ -3473,7 +3155,7 @@ Window.nonBlockingFormClosed.connect(function() {
             properties.color.blue = array[index++].value;
         }
         Entities.editEntity(editModelID, properties);
-        selectionDisplay.showSelection(propeties);
+        selectionDisplay.showSelection(editModelID, propeties);
     }
     modelSelected = false;
 });
