@@ -29,7 +29,7 @@
             "label": "IP Only: update just my IP address, I will open the port manually"
           },
           {
-            "value": "none",
+            "value": "disabled",
             "label": "None: use the network information I have entered for this domain at data.highfidelity.io"
           }
         ]

@@ -74,7 +74,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         
         loadExistingSessionsFromSettings();
         
-        // check if we have the flag that enables dynamic IP
+        // setup automatic networking settings with data server
         setupAutomaticNetworking();
     }
 }
@@ -310,22 +310,24 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     return true;
 }
 
+const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
+const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
+const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
+
 void DomainServer::setupAutomaticNetworking() {
     const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
     
-    const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
-    const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
+    if (!didSetupAccountManagerWithAccessToken()) {
+        qDebug() << "Cannot setup domain-server automatic networking without an access token.";
+        qDebug() << "Please add an access token to your config file or via the web interface.";
+        
+        return;
+    }
     
     QString automaticNetworkValue =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
     
     if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
-        if (!didSetupAccountManagerWithAccessToken()) {
-            qDebug() << "Cannot enable domain-server automatic networking without an access token.";
-            qDebug() << "Please add an access token to your config file or via the web interface.";
-            
-            return;
-        }
         
         LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
@@ -353,6 +355,8 @@ void DomainServer::setupAutomaticNetworking() {
             
             return;
         }
+    } else {
+        updateNetworkingInfoWithDataServer(automaticNetworkValue);
     }
 }
 
@@ -933,7 +937,13 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
     return socketObject;
 }
 
+const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
+
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
+    updateNetworkingInfoWithDataServer(IP_ONLY_AUTOMATIC_NETWORKING_VALUE, newPublicSockAddr.getAddress().toString());
+}
+
+void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
@@ -941,8 +951,16 @@ void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr)
     const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
     const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     
-    const QString DOMAIN_JSON_OBJECT = "{\"domain\": { \"network_address\": \"%1\", \"automatic_networking\": \"ip\" }";
-    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(newPublicSockAddr.getAddress().toString());
+    QJsonObject domainObject;
+    if (!networkAddress.isEmpty()) {
+        domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
+    }
+    
+    qDebug() << "Updating automatic networking setting in domain-server to" << newSetting;
+    
+    domainObject[AUTOMATIC_NETWORKING_KEY] = newSetting;
+    
+    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,

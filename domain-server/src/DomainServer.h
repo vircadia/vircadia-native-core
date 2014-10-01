@@ -70,7 +70,9 @@ private:
     bool optionallyReadX509KeyAndCertificate();
     bool didSetupAccountManagerWithAccessToken();
     bool optionallySetupAssignmentPayment();
+    
     void setupAutomaticNetworking();
+    void updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress = QString());
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
