@@ -644,7 +644,7 @@ void AudioMixer::run() {
         QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
 
         // check the payload to see if we have asked for dynamicJitterBuffer support
-        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic-jitter-buffer";
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
         _streamSettings._dynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
         if (_streamSettings._dynamicJitterBuffers) {
             qDebug() << "Enable dynamic jitter buffers.";
@@ -653,21 +653,21 @@ void AudioMixer::run() {
         }
         
         bool ok;
-        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static-desired-jitter-buffer-frames";
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
         _streamSettings._staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
         if (!ok) {
             _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
         }
         qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
 
-        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max-frames-over-desired";
+        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max_frames_over_desired";
         _streamSettings._maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
             _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
         }
         qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
         
-        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use-stdev-for-desired-calc";
+        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use_stdev_for_desired_calc";
         _streamSettings._useStDevForJitterCalc = audioGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
         if (_streamSettings._useStDevForJitterCalc) {
             qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
@@ -675,28 +675,28 @@ void AudioMixer::run() {
             qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
         }
 
-        const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window-starve-threshold";
+        const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window_starve_threshold";
         _streamSettings._windowStarveThreshold = audioGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
             _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
         }
         qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
 
-        const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "window-seconds-for-desired-calc-on-too-many-starves";
+        const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "window_seconds_for_desired_calc_on_too_many_starves";
         _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
             _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
         }
         qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
 
-        const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "window-seconds-for-desired-reduction";
+        const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "window_seconds_for_desired_reduction";
         _streamSettings._windowSecondsForDesiredReduction = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
         if (!ok) {
             _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
         }
         qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
 
-        const QString REPETITION_WITH_FADE_JSON_KEY = "repetition-with-fade";
+        const QString REPETITION_WITH_FADE_JSON_KEY = "repetition_with_fade";
         _streamSettings._repetitionWithFade = audioGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
         if (_streamSettings._repetitionWithFade) {
             qDebug() << "Repetition with fade enabled";
@@ -704,13 +704,13 @@ void AudioMixer::run() {
             qDebug() << "Repetition with fade disabled";
         }
         
-        const QString PRINT_STREAM_STATS_JSON_KEY = "print-stream-stats";
+        const QString PRINT_STREAM_STATS_JSON_KEY = "print_stream_stats";
         _printStreamStats = audioGroupObject[PRINT_STREAM_STATS_JSON_KEY].toBool();
         if (_printStreamStats) {
             qDebug() << "Stream stats will be printed to stdout";
         }
 
-        const QString FILTER_KEY = "enable-filter";
+        const QString FILTER_KEY = "enable_filter";
         if (audioGroupObject[FILTER_KEY].isBool()) {
             _enableFilter = audioGroupObject[FILTER_KEY].toBool();
         }
@@ -718,7 +718,7 @@ void AudioMixer::run() {
             qDebug() << "Filter enabled";
         }
         
-        const QString UNATTENUATED_ZONE_KEY = "unattenuated-zone";
+        const QString UNATTENUATED_ZONE_KEY = "unattenuated_zone";
 
         QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
         if (!unattenuatedZoneString.isEmpty()) {
@@ -742,7 +742,7 @@ void AudioMixer::run() {
                 << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
         }
         
-        const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation-per-doubling-in-distance";
+        const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
         if (audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {
             bool ok = false;
             float attenuation = audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].toString().toFloat(&ok);

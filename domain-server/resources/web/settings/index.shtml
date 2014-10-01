@@ -75,6 +75,7 @@
 
 <!--#include virtual="footer.html"-->
 <script src='/js/underscore-min.js'></script>
+<script src='/js/bootbox.min.js'></script>
 <script src='/js/settings.js'></script>
 <script src='/js/form2js.min.js'></script>
 <!--#include virtual="page-end.html"-->

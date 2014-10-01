@@ -42,7 +42,7 @@ const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
 class AccountManager : public QObject {
     Q_OBJECT
 public:
-    static AccountManager& getInstance();
+    static AccountManager& getInstance(bool forceReset = false);
 
     void authenticatedRequest(const QString& path,
                               QNetworkAccessManager::Operation operation = QNetworkAccessManager::GetOperation,

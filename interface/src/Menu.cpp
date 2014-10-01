@@ -453,6 +453,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseMouseInput, 0, true);
     addCheckableActionToQMenuAndActionHash(sixenseOptionsMenu, MenuOption::SixenseLasers, 0, false);
 
+    QMenu* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
+    addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
+
     QMenu* networkMenu = developerMenu->addMenu("Network");
     addCheckableActionToQMenuAndActionHash(networkMenu, MenuOption::DisableNackPackets, 0, false);
     addCheckableActionToQMenuAndActionHash(networkMenu,
