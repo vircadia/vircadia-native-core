@@ -33,18 +33,18 @@ void AddressBarDialog::setupUI() {
     
     const int ADDRESSBAR_MIN_WIDTH = 200;
     const int ADDRESSBAR_MAX_WIDTH = 615;
-    const int ADDRESSBAR_HEIGHT = 54;
+    const int ADDRESSBAR_HEIGHT = 42;
     const int ADDRESSBAR_STRETCH = 60;
     
-    const int BUTTON_SPACER_SIZE = 10;
+    const int BUTTON_SPACER_SIZE = 5;
     const int DEFAULT_SPACER_SIZE = 20;
     const int ADDRESS_LAYOUT_RIGHT_MARGIN = 10;
     
-    const int GO_BUTTON_SIZE = 55;
+    const int GO_BUTTON_SIZE = 42;
     const int CLOSE_BUTTON_SIZE = 16;
     const QString CLOSE_BUTTON_ICON = "styles/close.svg";
     
-    const int DIALOG_HEIGHT = 100;
+    const int DIALOG_HEIGHT = 62;
     const int DIALOG_INITIAL_WIDTH = 560;
     
     setModal(true);
@@ -53,9 +53,11 @@ void AddressBarDialog::setupUI() {
     QSizePolicy sizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setSizePolicy(sizePolicy);
     setMinimumSize(QSize(DIALOG_INITIAL_WIDTH, DIALOG_HEIGHT));
+    setMaximumHeight(DIALOG_HEIGHT);
     setStyleSheet(DIALOG_STYLESHEET);
 
     _verticalLayout = new QVBoxLayout(this);
+    _verticalLayout->setContentsMargins(0, 0, 0, 0);
     
     _addressLayout = new QHBoxLayout();
     _addressLayout->setContentsMargins(0, 0, ADDRESS_LAYOUT_RIGHT_MARGIN, 0);
@@ -68,6 +70,7 @@ void AddressBarDialog::setupUI() {
     _addressLayout->addItem(_leftSpacer);
     
     _addressLineEdit = new QLineEdit(this);
+    _addressLineEdit->setAttribute(Qt::WA_MacShowFocusRect, 0);
     _addressLineEdit->setPlaceholderText(ADDRESSBAR_PLACEHOLDER);
     QSizePolicy sizePolicyLineEdit(QSizePolicy::Preferred, QSizePolicy::Fixed);
     sizePolicyLineEdit.setHorizontalStretch(ADDRESSBAR_STRETCH);
@@ -117,6 +120,7 @@ void AddressBarDialog::setupUI() {
 void AddressBarDialog::showEvent(QShowEvent* event) {
     _goButton->setIcon(QIcon(Application::resourcesPath() + ADDRESSBAR_GO_BUTTON_ICON));
     _addressLineEdit->setText(QString());
+    _addressLineEdit->setFocus();
     FramelessDialog::showEvent(event);
 }
 
