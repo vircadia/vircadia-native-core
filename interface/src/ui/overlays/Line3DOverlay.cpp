@@ -40,10 +40,14 @@ void Line3DOverlay::render() {
     const float MAX_COLOR = 255;
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
-    glBegin(GL_LINES);
+    if (getIsDashedLine()) {
+        drawDashedLine(_position, _end);
+    } else {
+        glBegin(GL_LINES);
         glVertex3f(_position.x, _position.y, _position.z);
         glVertex3f(_end.x, _end.y, _end.z);
-    glEnd();
+        glEnd();
+    }
     glEnable(GL_LIGHTING);
 
     if (glower) {

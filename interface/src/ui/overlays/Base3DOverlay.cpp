@@ -110,6 +110,38 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
         setIsDashedLine(properties.property("isDashedLine").toVariant().toBool());
     }
     if (properties.property("dashed").isValid()) {
-        setIsDashedLine(!properties.property("dashed").toVariant().toBool());
+        setIsDashedLine(properties.property("dashed").toVariant().toBool());
     }
 }
+
+void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end) {
+
+    glBegin(GL_LINES);
+
+    // draw each line segment with appropriate gaps
+    const float dashLength = 0.05f;
+    const float gapLength = 0.025f;
+    const float segmentLength = dashLength + gapLength;
+    float length = glm::distance(start, end);
+    float segmentCount = length / segmentLength;
+    int segmentCountFloor = (int)glm::floor(segmentCount);
+
+    glm::vec3 segmentVector = (end - start) / segmentCount;
+    glm::vec3 dashVector = segmentVector / segmentLength * dashLength;
+    glm::vec3 gapVector = segmentVector / segmentLength * gapLength;
+
+    glm::vec3 point = start;
+    glVertex3f(point.x, point.y, point.z);
+    for (int i = 0; i < segmentCountFloor; i++) {
+        point += dashVector;
+        glVertex3f(point.x, point.y, point.z);
+
+        point += gapVector;
+        glVertex3f(point.x, point.y, point.z);
+    }
+    glVertex3f(end.x, end.y, end.z);
+
+    glEnd();
+
+}
+

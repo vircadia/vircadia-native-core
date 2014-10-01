@@ -70,17 +70,17 @@ void Rectangle3DOverlay::render() {
                 glEnd();
             } else {
                 if (getIsDashedLine()) {
-                
-                    // TODO: change this to be dashed!
-                    glBegin(GL_LINE_STRIP);
 
-                    glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glVertex3f(halfDimensions.x, 0.0f, -halfDimensions.y);
-                    glVertex3f(halfDimensions.x, 0.0f, halfDimensions.y);
-                    glVertex3f(-halfDimensions.x, 0.0f, halfDimensions.y);
-                    glVertex3f(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                    glm::vec3 point1(-halfDimensions.x, 0.0f, -halfDimensions.y);
+                    glm::vec3 point2(halfDimensions.x, 0.0f, -halfDimensions.y);
+                    glm::vec3 point3(halfDimensions.x, 0.0f, halfDimensions.y);
+                    glm::vec3 point4(-halfDimensions.x, 0.0f, halfDimensions.y);
                 
-                    glEnd();
+                    drawDashedLine(point1, point2);
+                    drawDashedLine(point2, point3);
+                    drawDashedLine(point3, point4);
+                    drawDashedLine(point4, point1);
+
                 } else {
                     glBegin(GL_LINE_STRIP);
 
@@ -105,7 +105,6 @@ void Rectangle3DOverlay::render() {
 void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
 }
-
 
 
 
