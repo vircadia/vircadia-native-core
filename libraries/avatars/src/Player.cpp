@@ -17,13 +17,16 @@
 #include "AvatarData.h"
 #include "Player.h"
 
+static const int INVALID_FRAME = -1;
+
 Player::Player(AvatarData* avatar) :
-    _recording(new Recording()),
-    _currentFrame(-1),
-    _frameInterpolationFactor(0.0f),
-    _pausedFrame(-1),
-    _timerOffset(0),
     _avatar(avatar),
+    _recording(new Recording()),
+    _currentFrame(INVALID_FRAME),
+    _frameInterpolationFactor(0.0f),
+    _pausedFrame(INVALID_FRAME),
+    _timerOffset(0),
+    _audioOffset(0),
     _audioThread(NULL),
     _playFromCurrentPosition(true),
     _loop(false),
@@ -33,8 +36,6 @@ Player::Player(AvatarData* avatar) :
     _useSkeletonURL(true)
 {
     _timer.invalidate();
-    _options.setLoop(false);
-    _options.setVolume(1.0f);
 }
 
 bool Player::isPlaying() const {
@@ -42,7 +43,7 @@ bool Player::isPlaying() const {
 }
 
 bool Player::isPaused() const {
-    return (_pausedFrame != -1);
+    return (_pausedFrame != INVALID_FRAME);
 }
 
 qint64 Player::elapsed() const {
@@ -122,7 +123,7 @@ void Player::startPlaying() {
         _timer.start();
         
         setCurrentFrame(_pausedFrame);
-        _pausedFrame = -1;
+        _pausedFrame = INVALID_FRAME;
     }
 }
 
@@ -130,7 +131,7 @@ void Player::stopPlaying() {
     if (!isPlaying()) {
         return;
     }
-    _pausedFrame = -1;
+    _pausedFrame = INVALID_FRAME;
     _timer.invalidate();
     cleanupAudioThread();
     _avatar->clearJointsData();
@@ -201,12 +202,12 @@ void Player::loadFromFile(const QString& file) {
     }
     readRecordingFromFile(_recording, file);
     
-    _pausedFrame = -1;
+    _pausedFrame = INVALID_FRAME;
 }
 
 void Player::loadRecording(RecordingPointer recording) {
     _recording = recording;
-    _pausedFrame = -1;
+    _pausedFrame = INVALID_FRAME;
 }
 
 void Player::play() {
@@ -253,6 +254,9 @@ void Player::play() {
     
     HeadData* head = const_cast<HeadData*>(_avatar->getHeadData());
     if (head) {
+        // Make sure fake faceshift connection doesn't get turned off
+        _avatar->setForceFaceshiftConnected(true);
+        
         QVector<float> blendCoef(currentFrame.getBlendshapeCoefficients().size());
         for (int i = 0; i < currentFrame.getBlendshapeCoefficients().size(); ++i) {
             blendCoef[i] = glm::mix(currentFrame.getBlendshapeCoefficients()[i],
@@ -293,8 +297,8 @@ void Player::play() {
     _injector->setOptions(_options);
 }
 
-void Player::setCurrentFrame(int currentFrame) {
-    if (_recording && (currentFrame < 0 || currentFrame >= _recording->getFrameNumber())) {
+void Player::setCurrentFrame(unsigned int currentFrame) {
+    if (_recording && currentFrame >= _recording->getFrameNumber()) {
         stopPlaying();
         return;
     }
@@ -306,12 +310,12 @@ void Player::setCurrentFrame(int currentFrame) {
         _timer.start();
         setAudionInjectorPosition();
     } else {
-        _pausedFrame = currentFrame;
+        _pausedFrame = _currentFrame;
     }
 }
 
-void Player::setCurrentTime(qint64 currentTime) {
-    if (currentTime < 0 || currentTime >= _recording->getLength()) {
+void Player::setCurrentTime(unsigned int currentTime) {
+    if (currentTime >= _recording->getLength()) {
         stopPlaying();
         return;
     }
@@ -355,6 +359,18 @@ void Player::setCurrentTime(qint64 currentTime) {
     }
 }
 
+void Player::setVolume(float volume) {
+    _options.setVolume(volume);
+    if (_injector) {
+        _injector->setOptions(_options);
+    }
+    qDebug() << "New volume: " << volume;
+}
+
+void Player::setAudioOffset(int audioOffset) {
+    _audioOffset = audioOffset;
+}
+
 void Player::setAudionInjectorPosition() {
     int MSEC_PER_SEC = 1000;
     int SAMPLE_SIZE = 2; // 16 bits
@@ -370,14 +386,19 @@ void Player::setPlayFromCurrentLocation(bool playFromCurrentLocation) {
 
 bool Player::computeCurrentFrame() {
     if (!isPlaying()) {
-        _currentFrame = -1;
+        _currentFrame = INVALID_FRAME;
         return false;
     }
     if (_currentFrame < 0) {
         _currentFrame = 0;
     }
     
-    qint64 elapsed = Player::elapsed();
+    quint64 elapsed = glm::clamp(Player::elapsed() - _audioOffset, (qint64)0, (qint64)_recording->getLength());
+    while(_currentFrame >= 0 &&
+          _recording->getFrameTimestamp(_currentFrame) > elapsed) {
+        --_currentFrame;
+    }
+    
     while (_currentFrame < _recording->getFrameNumber() &&
            _recording->getFrameTimestamp(_currentFrame) < elapsed) {
         ++_currentFrame;
