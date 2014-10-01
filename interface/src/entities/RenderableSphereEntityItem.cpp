@@ -36,7 +36,10 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     glm::quat rotation = getRotation();
 
-    glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
+    const float MAX_COLOR = 255;
+    glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
+                    getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
+                    
     glPushMatrix();
         glTranslatef(position.x, position.y, position.z);
         glm::vec3 axis = glm::axis(rotation);

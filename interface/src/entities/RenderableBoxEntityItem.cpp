@@ -39,9 +39,12 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
 
     const bool useGlutCube = true;
-    
+    const float MAX_COLOR = 255;
+
     if (useGlutCube) {
-        glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
+        glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
+                        getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
+
         glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
@@ -84,7 +87,8 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
         glNormalPointer(GL_FLOAT, 0, normals);
         glVertexPointer(3, GL_FLOAT, 0, vertices);
 
-        glColor3ub(getColor()[RED_INDEX], getColor()[GREEN_INDEX], getColor()[BLUE_INDEX]);
+        glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
+                        getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
         
         Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
         
