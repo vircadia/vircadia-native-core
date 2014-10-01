@@ -15,6 +15,7 @@
 #include <QtCore/QJsonArray>
 #include <QtCore/QJsonDocument>
 
+#include <HifiConfigVariantMap.h>
 #include <HTTPManager.h>
 
 class DomainServerSettingsManager : public QObject {
@@ -24,10 +25,9 @@ public:
     bool handlePublicHTTPRequest(HTTPConnection* connection, const QUrl& url);
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
-    void loadSettingsMap(const QStringList& argumentList);
+    void setupConfigMap(const QStringList& argumentList);
     
-    QByteArray getJSONSettingsMap() const;
-    QVariantMap& getSettingsMap() { return _settingsMap; }
+    QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
@@ -35,8 +35,7 @@ private:
     void persistToFile();
     
     QJsonArray _descriptionArray;
-    QVariantMap _settingsMap;
-    QString _settingsFilepath;
+    HifiConfigVariantMap _configMap;
 };
 
 #endif // hifi_DomainServerSettingsManager_h

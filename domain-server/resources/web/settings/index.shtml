@@ -38,10 +38,12 @@
             <div class="panel-body">
               <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
               <% _.each(split_settings[0], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values, false) %>
+                <%= getFormGroup(group.name, setting, values, false, 
+                  (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
               <% }); %>
               <% _.each(split_settings[1], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values, true) %>
+                <%= getFormGroup(group.name, setting, values, true, 
+                  (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
               <% }); %>
             </div>
           </div>
@@ -73,6 +75,7 @@
 
 <!--#include virtual="footer.html"-->
 <script src='/js/underscore-min.js'></script>
+<script src='/js/bootbox.min.js'></script>
 <script src='/js/settings.js'></script>
 <script src='/js/form2js.min.js'></script>
 <!--#include virtual="page-end.html"-->

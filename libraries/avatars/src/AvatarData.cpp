@@ -652,13 +652,25 @@ void AvatarData::startPlaying() {
     _player->startPlaying();
 }
 
-void AvatarData::setPlayerFrame(int frame) {
+void AvatarData::setPlayerVolume(float volume) {
+    if (_player) {
+        _player->setVolume(volume);
+    }
+}
+
+void AvatarData::setPlayerAudioOffset(int audioOffset) {
+    if (_player) {
+        _player->setAudioOffset(audioOffset);
+    }
+}
+
+void AvatarData::setPlayerFrame(unsigned int frame) {
     if (_player) {
         _player->setCurrentFrame(frame);
     }
 }
 
-void AvatarData::setPlayerTime(qint64 time) {
+void AvatarData::setPlayerTime(unsigned int time) {
     if (_player) {
         _player->setCurrentTime(time);
     }
