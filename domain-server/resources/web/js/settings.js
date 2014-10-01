@@ -158,6 +158,8 @@ $('body').on('click', '.save-button', function(e){
   // grab a JSON representation of the form via form2js
   var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
   
+  console.log(formJSON);
+  
   // re-enable all inputs
   $("input").each(function(){
     $(this).prop('disabled', false);
@@ -237,7 +239,7 @@ function showRestartModal() {
 
 function cleanupFormValues(node) {  
   if (node.type && node.type === 'checkbox') {
-    return { name: node.id, value: node.checked ? true : false };
+    return { name: node.name, value: node.checked ? true : false };
   } else {
     return false;
   }

@@ -84,8 +84,6 @@ public slots:
 signals:
     void limitOfSilentDomainCheckInsReached();
 private:
-    static NodeList* _sharedInstance;
-
     NodeList(char ownerType, unsigned short socketListenPort, unsigned short dtlsListenPort);
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton

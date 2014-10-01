@@ -265,7 +265,11 @@ QScriptValue WindowScriptingInterface::doPeekNonBlockingFormResult(QScriptValue 
             _form.setProperty(i, item);
         } else if (item.property("options").isArray()) {
             c += 1;
-            item.setProperty("value", _combos.at(c)->currentText());
+            item.setProperty("value",
+                _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
+                item.property("options").property(_combos.at(c)->currentIndex()) :
+                array.engine()->undefinedValue()
+            );
             _form.setProperty(i, item);
         } else {
             e += 1;
@@ -318,7 +322,11 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
                 _form.setProperty(i, item);
             } else if (item.property("options").isArray()) {
                 c += 1;
-                item.setProperty("value", _combos.at(c)->currentText());
+                item.setProperty("value",
+                    _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
+                    item.property("options").property(_combos.at(c)->currentIndex()) :
+                    array.engine()->undefinedValue()
+                );
                 _form.setProperty(i, item);
             } else {
                 e += 1;
@@ -349,6 +357,7 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
     _form = QScriptValue();
     _edits.clear();
     _directories.clear();
+    _combos.clear();
     
     array = _form;
     return (_formResult == QDialog::Accepted);    
@@ -391,8 +400,12 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
                 form.setProperty(i, item);
             } else if (item.property("options").isArray()) {
                 c += 1;
-                item.setProperty("value", _combos.at(c)->currentText());
-                _form.setProperty(i, item);
+                item.setProperty("value", 
+                    _combos.at(c)->currentIndex() < item.property("options").property("length").toInt32() ?
+                    item.property("options").property(_combos.at(c)->currentIndex()) :
+                    form.engine()->undefinedValue()
+                );
+                form.setProperty(i, item);
             } else {
                 e += 1;
                 bool ok = true;
@@ -418,6 +431,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
     }
     
     delete editDialog;
+    _combos.clear();
     _edits.clear();
     _directories.clear();
     return (result == QDialog::Accepted);
@@ -498,9 +512,9 @@ QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue
         } else if (item.property("options").isArray()) {
             QComboBox* combo = new QComboBox();
             combo->setMinimumWidth(200);
-            QStringList options = item.property("options").toVariant().toStringList();
-            for (QStringList::const_iterator it = options.begin(); it != options.end(); it += 1) {
-                combo->addItem(*it);
+            qint32 options_count = item.property("options").property("length").toInt32();
+            for (qint32 i = 0; i < options_count; i++) {
+                combo->addItem(item.property("options").property(i).toString());
             }
             _combos.push_back(combo);
             formLayout->addRow(new QLabel(item.property("label").toString()), combo);
