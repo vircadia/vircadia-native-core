@@ -1211,19 +1211,42 @@ var toolBar = (function () {
         Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
 
+    var RESIZE_INTERVAL = 50;
+    var RESIZE_TIMEOUT = 20000;
+    var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
         var position;
 
         position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Entities.addEntity({
+            var entityId = Entities.addEntity({
                 type: "Model",
                 position: position,
                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
                 modelURL: url
             });
             print("Model added: " + url);
+
+            var checkCount = 0;
+            function resize() {
+                var entityProperties = Entities.getEntityProperties(entityId);
+                var naturalDimensions = entityProperties.naturalDimensions;
+
+                if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                    if (checkCount < RESIZE_TIMEOUT / RESIZE_INTERVAL) {
+                        Script.setTimeout(resize, RESIZE_INTERVAL);
+                    } else {
+                        print("Resize failed: timed out waiting for model (" + url + ") to load");
+                    }
+                } else {
+                    entityProperties.dimensions = naturalDimensions;
+                    Entities.editEntity(entityId, entityProperties);
+                }
+            }
+
+            Script.setTimeout(resize, 50);
+
         } else {
             print("Can't add model: Model would be out of bounds.");
         }
