@@ -1089,7 +1089,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
                                       + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
                     
-                    qDebug() << "Serving" << scriptURL << "for assignment with ID" << matchingUUID;
+                    qDebug() << "Serving" << scriptURL.toString() << "for assignment with ID"
+                        << uuidStringWithoutCurlyBraces(matchingUUID);
                     
                     // have the HTTPManager serve the appropriate script file
                     return _httpManager.handleHTTPRequest(connection, scriptURL);
