@@ -1233,6 +1233,8 @@ var toolBar = (function () {
                 var entityProperties = Entities.getEntityProperties(entityId);
                 var naturalDimensions = entityProperties.naturalDimensions;
 
+                checkCount++;
+
                 if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
                     if (checkCount < RESIZE_TIMEOUT / RESIZE_INTERVAL) {
                         Script.setTimeout(resize, RESIZE_INTERVAL);
