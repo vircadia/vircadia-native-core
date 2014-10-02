@@ -250,7 +250,7 @@ void NodeList::sendDomainServerCheckIn() {
             bool isUsingDTLS = false;
             
             PacketType domainPacketType = !_domainHandler.isConnected()
-            ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+                ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
             
             if (!_domainHandler.isConnected()) {
                 qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
@@ -303,7 +303,10 @@ void NodeList::sendDomainServerCheckIn() {
 }
 
 void NodeList::sendICERequestForDomainConnection() {
-    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat);
+    
+    static QUuid iceUUID = QUuid::createUuid();
+    
+    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, iceUUID);
     QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
     
     iceDataStream << _publicSockAddr << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort());

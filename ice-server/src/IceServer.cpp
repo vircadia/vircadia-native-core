@@ -53,13 +53,15 @@ void IceServer::processDatagrams() {
             if (!matchingPeer) {
                 // if we don't have this sender we need to create them now
                 matchingPeer = SharedNetworkPeer(new NetworkPeer(senderUUID, publicSocket, localSocket));
+                _activePeers.insert(senderUUID, matchingPeer);
                 
                 qDebug() << "Added a new network peer" << *matchingPeer;
-                
             } else {
                 // we already had the peer so just potentially update their sockets
                 matchingPeer->setPublicSocket(publicSocket);
                 matchingPeer->setLocalSocket(localSocket);
+                
+                qDebug() << "Matched hearbeat to existing network peer" << *matchingPeer;
             }
             
             // check if this node also included a UUID that they would like to connect to
