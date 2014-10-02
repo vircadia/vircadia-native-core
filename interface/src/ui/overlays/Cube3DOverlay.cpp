@@ -57,12 +57,43 @@ void Cube3DOverlay::render() {
         glPushMatrix();
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
-            glScalef(dimensions.x, dimensions.y, dimensions.z);
             if (_isSolid) {
+                glScalef(dimensions.x, dimensions.y, dimensions.z);
                 Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             } else {
                 glLineWidth(_lineWidth);
-                Application::getInstance()->getDeferredLightingEffect()->renderWireCube(1.0f);
+
+                if (getIsDashedLine()) {
+                    glm::vec3 halfDimensions = dimensions / 2.0f;
+                    glm::vec3 bottomLeftNear(-halfDimensions.x, -halfDimensions.y, -halfDimensions.z);
+                    glm::vec3 bottomRightNear(halfDimensions.x, -halfDimensions.y, -halfDimensions.z);
+                    glm::vec3 topLeftNear(-halfDimensions.x, halfDimensions.y, -halfDimensions.z);
+                    glm::vec3 topRightNear(halfDimensions.x, halfDimensions.y, -halfDimensions.z);
+
+                    glm::vec3 bottomLeftFar(-halfDimensions.x, -halfDimensions.y, halfDimensions.z);
+                    glm::vec3 bottomRightFar(halfDimensions.x, -halfDimensions.y, halfDimensions.z);
+                    glm::vec3 topLeftFar(-halfDimensions.x, halfDimensions.y, halfDimensions.z);
+                    glm::vec3 topRightFar(halfDimensions.x, halfDimensions.y, halfDimensions.z);
+                
+                    drawDashedLine(bottomLeftNear, bottomRightNear);
+                    drawDashedLine(bottomRightNear, bottomRightFar);
+                    drawDashedLine(bottomRightFar, bottomLeftFar);
+                    drawDashedLine(bottomLeftFar, bottomLeftNear);
+
+                    drawDashedLine(topLeftNear, topRightNear);
+                    drawDashedLine(topRightNear, topRightFar);
+                    drawDashedLine(topRightFar, topLeftFar);
+                    drawDashedLine(topLeftFar, topLeftNear);
+
+                    drawDashedLine(bottomLeftNear, topLeftNear);
+                    drawDashedLine(bottomRightNear, topRightNear);
+                    drawDashedLine(bottomLeftFar, topLeftFar);
+                    drawDashedLine(bottomRightFar, topRightFar);
+
+                } else {
+                    glScalef(dimensions.x, dimensions.y, dimensions.z);
+                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(1.0f);
+                }
             }
         glPopMatrix();
     glPopMatrix();
