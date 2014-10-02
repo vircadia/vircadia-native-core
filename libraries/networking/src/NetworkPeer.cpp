@@ -70,6 +70,15 @@ void NetworkPeer::activateSymmetricSocket() {
     _activeSocket = &_symmetricSocket;
 }
 
+QByteArray NetworkPeer::toByteArray() const {
+    QByteArray peerByteArray;
+
+    QDataStream peerStream(&peerByteArray, QIODevice::Append);
+    peerStream << *this;
+    
+    return peerByteArray;
+}
+
 QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer) {
     out << peer._uuid;
     out << peer._publicSocket;

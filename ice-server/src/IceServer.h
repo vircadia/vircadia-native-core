@@ -27,9 +27,13 @@ private slots:
     void processDatagrams();
     void clearInactivePeers();
 private:
+    
+    void sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, QSet<QUuid>& connections);
+    
     QUuid _id;
-    NetworkPeerHash _activePeers;
     QUdpSocket _serverSocket;
+    NetworkPeerHash _activePeers;
+    QHash<QUuid, QSet<QUuid> > _currentConnections;
 };
 
 #endif // hifi_IceServer_h

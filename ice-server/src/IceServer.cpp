@@ -11,6 +11,7 @@
 
 #include <QTimer>
 
+#include <LimitedNodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -22,7 +23,8 @@ const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 IceServer::IceServer(int argc, char* argv[]) :
 	QCoreApplication(argc, argv),
     _id(QUuid::createUuid()),
-    _serverSocket()
+    _serverSocket(),
+    _activePeers()
 {
     // start the ice-server socket
     qDebug() << "ice-server socket is listening on" << ICE_SERVER_DEFAULT_PORT;
@@ -84,22 +86,65 @@ void IceServer::processDatagrams() {
             QUuid connectRequestID;
             hearbeatStream >> connectRequestID;
             
+            // get the peers asking for connections with this peer
+            QSet<QUuid>& requestingConnections = _currentConnections[senderUUID];
+            
             if (!connectRequestID.isNull()) {
                 qDebug() << "Peer wants to connect to peer with ID" << uuidStringWithoutCurlyBraces(connectRequestID);
                 
-                // check if we have that ID - if we do we can respond with their info, otherwise nothing we can do
-                SharedNetworkPeer matchingConectee = _activePeers.value(connectRequestID);
-                if (matchingConectee) {
-                    QByteArray heartbeatResponse =  byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeatResponse, _id);
-                    QDataStream responseStream(&heartbeatResponse, QIODevice::Append);
-                    
-                    responseStream << matchingConectee;
-                    
-                    _serverSocket.writeDatagram(heartbeatResponse, sendingSockAddr.getAddress(), sendingSockAddr.getPort());
-                }
+                // ensure this peer is in the set of current connections for the peer with ID it wants to connect with
+                _currentConnections[connectRequestID].insert(senderUUID);
+                
+                // add the ID of the node they have said they would like to connect to
+                requestingConnections.insert(connectRequestID);
+            }
+            
+            if (requestingConnections.size() > 0) {
+                // send a heartbeart response based on the set of connections
+                qDebug() << "Sending a heartbeat response to" << senderUUID << "who has" << requestingConnections.size()
+                << "potential connections";
+                sendHeartbeatResponse(sendingSockAddr, requestingConnections);
             }
         }
     }
+}
+
+void IceServer::sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, QSet<QUuid>& connections) {
+    QSet<QUuid>::iterator peerID = connections.begin();
+    
+    QByteArray outgoingPacket(MAX_PACKET_SIZE, 0);
+    int currentPacketSize = populatePacketHeader(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
+    
+    // go through the connections, sending packets containing connection information for those nodes
+    while (peerID != connections.end()) {
+        SharedNetworkPeer matchingPeer = _activePeers.value(*peerID);
+        // if this node is inactive we remove it from the set
+        if (!matchingPeer) {
+            peerID = connections.erase(peerID);
+        } else {
+            // get the byte array for this peer
+            QByteArray peerBytes = matchingPeer->toByteArray();
+            
+            if (currentPacketSize + peerBytes.size() > MAX_PACKET_SIZE) {
+                // write the current packet
+                _serverSocket.writeDatagram(outgoingPacket.data(), currentPacketSize,
+                                            destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+                
+                // reset the packet size to our number of header bytes
+                currentPacketSize = populatePacketHeader(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
+            }
+            
+            // append the current peer bytes
+            outgoingPacket.insert(currentPacketSize, peerBytes);
+            currentPacketSize += peerBytes.size();
+            
+            ++peerID;
+        }
+    }
+    
+    // write the last packet
+    _serverSocket.writeDatagram(outgoingPacket.data(), currentPacketSize,
+                                destinationSockAddr.getAddress(), destinationSockAddr.getPort());
 }
 
 void IceServer::clearInactivePeers() {
