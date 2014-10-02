@@ -65,6 +65,22 @@ void NetworkPeer::activateSymmetricSocket() {
     _activeSocket = &_symmetricSocket;
 }
 
+QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer) {
+    out << peer._uuid;
+    out << peer._publicSocket;
+    out << peer._localSocket;
+    
+    return out;
+}
+
+QDataStream& operator>>(QDataStream& in, NetworkPeer& peer) {
+    in >> peer._uuid;
+    in >> peer._publicSocket;
+    in >> peer._localSocket;
+    
+    return in;
+}
+
 QDebug operator<<(QDebug debug, const NetworkPeer &peer) {
     debug << uuidStringWithoutCurlyBraces(peer.getUUID())
         << "- public:" << peer.getPublicSocket()

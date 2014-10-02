@@ -41,6 +41,8 @@ public:
     void activateLocalSocket();
     void activateSymmetricSocket();
     
+    friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
+    friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
 protected:
     QUuid _uuid;
     

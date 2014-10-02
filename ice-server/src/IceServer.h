@@ -24,6 +24,7 @@ public:
 private slots:
     void processDatagrams();
 private:
+    QUuid _id;
     QHash<QUuid, SharedNetworkPeer> _activePeers;
     QUdpSocket _serverSocket;
 };

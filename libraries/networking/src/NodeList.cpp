@@ -123,6 +123,10 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
+        case PacketTypeIceServerHeartbeatResponse: {
+            
+            break;
+        }
         case PacketTypePing: {
             // send back a reply
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);

@@ -15,6 +15,7 @@
 
 IceServer::IceServer(int argc, char* argv[]) :
 	QCoreApplication(argc, argv),
+    _id(QUuid::createUuid()),
     _serverSocket()
 {
     // start the ice-server socket
@@ -65,11 +66,22 @@ void IceServer::processDatagrams() {
             }
             
             // check if this node also included a UUID that they would like to connect to
-            QUuid connectRequestUUID;
-            hearbeatStream >> connectRequestUUID;
+            QUuid connectRequestID;
+            hearbeatStream >> connectRequestID;
             
-            if (!connectRequestUUID.isNull()) {
-                qDebug() << "Peer wants to connect to peer with ID" << uuidStringWithoutCurlyBraces(connectRequestUUID);
+            if (!connectRequestID.isNull()) {
+                qDebug() << "Peer wants to connect to peer with ID" << uuidStringWithoutCurlyBraces(connectRequestID);
+                
+                // check if we have that ID - if we do we can respond with their info, otherwise nothing we can do
+                SharedNetworkPeer matchingConectee = _activePeers.value(connectRequestID);
+                if (matchingConectee) {
+                    QByteArray heartbeatResponse =  byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeatResponse, _id);
+                    QDataStream responseStream(&heartbeatResponse, QIODevice::Append);
+                    
+                    responseStream << matchingConectee;
+                    
+                    _serverSocket.writeDatagram(heartbeatResponse, sendingSockAddr.getAddress(), sendingSockAddr.getPort());
+                }
             }
         }
     }

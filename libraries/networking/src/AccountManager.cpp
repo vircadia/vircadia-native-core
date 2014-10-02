@@ -60,7 +60,7 @@ AccountManager::AccountManager() :
     _authURL(),
     _pendingCallbackMap(),
     _accountInfo(),
-    _shouldPersistToSettingsFile(false)
+    _shouldPersistToSettingsFile(true)
 {
     qRegisterMetaType<OAuthAccessToken>("OAuthAccessToken");
     qRegisterMetaTypeStreamOperators<OAuthAccessToken>("OAuthAccessToken");
