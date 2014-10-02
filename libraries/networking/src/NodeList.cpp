@@ -124,7 +124,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             break;
         }
         case PacketTypeIceServerHeartbeatResponse: {
-            
+            _domainHandler.processICEResponsePacket(packet);
             break;
         }
         case PacketTypePing: {

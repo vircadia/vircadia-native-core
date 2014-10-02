@@ -23,23 +23,22 @@ const int ICE_HEARBEAT_INTERVAL_MSECS = 2 * 1000;
 
 class NetworkPeer : public QObject {
 public:
+    NetworkPeer();
     NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    
+    // privatize copy and assignment operator to disallow peer copying
+    NetworkPeer(const NetworkPeer &otherPeer);
+    NetworkPeer& operator=(const NetworkPeer& otherPeer);
     
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     
+    void reset();
+    
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
-    void setPublicSocket(const HifiSockAddr& publicSocket);
+    virtual void setPublicSocket(const HifiSockAddr& publicSocket) { _publicSocket = publicSocket; }
     const HifiSockAddr& getLocalSocket() const { return _localSocket; }
-    void setLocalSocket(const HifiSockAddr& localSocket);
-    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
-    void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
-    
-    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
-    
-    void activatePublicSocket();
-    void activateLocalSocket();
-    void activateSymmetricSocket();
+    virtual void setLocalSocket(const HifiSockAddr& localSocket) { _localSocket = localSocket; }
     
     quint64 getWakeTimestamp() const { return _wakeTimestamp; }
     void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
@@ -56,11 +55,11 @@ protected:
     
     HifiSockAddr _publicSocket;
     HifiSockAddr _localSocket;
-    HifiSockAddr _symmetricSocket;
-    HifiSockAddr* _activeSocket;
     
     quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
+private:
+    void swap(NetworkPeer& otherPeer);
 };
 
 QDebug operator<<(QDebug debug, const NetworkPeer &peer);

@@ -26,6 +26,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
     _iceServerSockAddr(),
+    _icePeer(),
     _isConnected(false),
     _handshakeTimer(NULL),
     _settingsObject(),
@@ -36,8 +37,12 @@ DomainHandler::DomainHandler(QObject* parent) :
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
+    
     _iceServerSockAddr = HifiSockAddr();
+    _icePeer = NetworkPeer();
+    
     _isConnected = false;
+    
     emit disconnectedFromDomain();
     
     if (_handshakeTimer) {
@@ -230,4 +235,21 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
     _sockAddr.setPort(dtlsPort);
     
 //    initializeDTLSSession();
+}
+
+void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
+    QDataStream iceResponseStream(icePacket);
+    iceResponseStream.skipRawData(numBytesForPacketHeader(icePacket));
+    
+    NetworkPeer packetPeer;
+    iceResponseStream >> packetPeer;
+    
+    if (packetPeer.getUUID() != _uuid) {
+        qDebug() << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
+    } else {
+        qDebug() << "Received network peer object for domain -" << packetPeer;
+        _icePeer = packetPeer;
+        
+        emit requestICEConnectionAttempt();
+    }
 }

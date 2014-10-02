@@ -77,6 +77,17 @@ public:
     void updateClockSkewUsec(int clockSkewSample);
     QMutex& getMutex() { return _mutex; }
     
+    virtual void setPublicSocket(const HifiSockAddr& publicSocket);
+    virtual void setLocalSocket(const HifiSockAddr& localSocket);
+    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
+    virtual void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
+    
+    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
+    
+    void activatePublicSocket();
+    void activateLocalSocket();
+    void activateSymmetricSocket();
+    
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
@@ -87,6 +98,8 @@ private:
 
     NodeType_t _type;
     
+    HifiSockAddr* _activeSocket;
+    HifiSockAddr _symmetricSocket;
     
     QUuid _connectionSecret;
     SimpleMovingAverage* _bytesReceivedMovingAverage;

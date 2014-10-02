@@ -12,6 +12,8 @@
 #include <cstring>
 #include <stdio.h>
 
+#include <UUID.h>
+
 #include "Node.h"
 #include "SharedUtil.h"
 
@@ -45,6 +47,8 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
 	NetworkPeer(uuid, publicSocket, localSocket),
     _type(type),
+    _activeSocket(NULL),
+    _symmetricSocket(),
     _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
@@ -88,6 +92,48 @@ float Node::getAverageKilobitsPerSecond() {
 void Node::updateClockSkewUsec(int clockSkewSample) {
     _clockSkewMovingPercentile.updatePercentile((float)clockSkewSample);
     _clockSkewUsec = (int)_clockSkewMovingPercentile.getValueAtPercentile();
+}
+
+void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
+    if (_activeSocket == &_publicSocket) {
+        // if the active socket was the public socket then reset it to NULL
+        _activeSocket = NULL;
+    }
+    
+    _publicSocket = publicSocket;
+}
+
+void Node::setLocalSocket(const HifiSockAddr& localSocket) {
+    if (_activeSocket == &_localSocket) {
+        // if the active socket was the local socket then reset it to NULL
+        _activeSocket = NULL;
+    }
+    
+    _localSocket = localSocket;
+}
+
+void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
+    if (_activeSocket == &_symmetricSocket) {
+        // if the active socket was the symmetric socket then reset it to NULL
+        _activeSocket = NULL;
+    }
+    
+    _symmetricSocket = symmetricSocket;
+}
+
+void Node::activateLocalSocket() {
+    qDebug() << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+    _activeSocket = &_localSocket;
+}
+
+void Node::activatePublicSocket() {
+    qDebug() << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+    _activeSocket = &_publicSocket;
+}
+
+void Node::activateSymmetricSocket() {
+    qDebug() << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
+    _activeSocket = &_symmetricSocket;
 }
 
 QDataStream& operator<<(QDataStream& out, const Node& node) {

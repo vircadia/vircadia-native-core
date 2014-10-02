@@ -16,58 +16,50 @@
 
 #include "NetworkPeer.h"
 
-NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
-    _uuid(uuid),
-    _publicSocket(publicSocket),
-    _localSocket(localSocket),
-    _symmetricSocket(),
-    _activeSocket(NULL),
+NetworkPeer::NetworkPeer() :
+    _uuid(),
+    _publicSocket(),
+    _localSocket(),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _lastHeardMicrostamp(usecTimestampNow())
 {
     
 }
 
-void NetworkPeer::setPublicSocket(const HifiSockAddr& publicSocket) {
-    if (_activeSocket == &_publicSocket) {
-        // if the active socket was the public socket then reset it to NULL
-        _activeSocket = NULL;
-    }
+NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
+    _uuid(uuid),
+    _publicSocket(publicSocket),
+    _localSocket(localSocket),
+    _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
+    _lastHeardMicrostamp(usecTimestampNow())
+{
     
-    _publicSocket = publicSocket;
 }
 
-void NetworkPeer::setLocalSocket(const HifiSockAddr& localSocket) {
-    if (_activeSocket == &_localSocket) {
-        // if the active socket was the local socket then reset it to NULL
-        _activeSocket = NULL;
-    }
+NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) {
     
-    _localSocket = localSocket;
-}
-
-void NetworkPeer::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
-    if (_activeSocket == &_symmetricSocket) {
-        // if the active socket was the symmetric socket then reset it to NULL
-        _activeSocket = NULL;
-    }
+    _uuid = otherPeer._uuid;
+    _publicSocket = otherPeer._publicSocket;
+    _localSocket = otherPeer._localSocket;
     
-    _symmetricSocket = symmetricSocket;
+    _wakeTimestamp = otherPeer._wakeTimestamp;
+    _lastHeardMicrostamp = otherPeer._lastHeardMicrostamp;
 }
 
-void NetworkPeer::activateLocalSocket() {
-    qDebug() << "Activating local socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    _activeSocket = &_localSocket;
+NetworkPeer& NetworkPeer::operator=(const NetworkPeer& otherPeer) {
+    NetworkPeer temp(otherPeer);
+    swap(temp);
+    return *this;
 }
 
-void NetworkPeer::activatePublicSocket() {
-    qDebug() << "Activating public socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    _activeSocket = &_publicSocket;
-}
-
-void NetworkPeer::activateSymmetricSocket() {
-    qDebug() << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
-    _activeSocket = &_symmetricSocket;
+void NetworkPeer::swap(NetworkPeer& otherPeer) {
+    using std::swap;
+    
+    swap(_uuid, otherPeer._uuid);
+    swap(_publicSocket, otherPeer._publicSocket);
+    swap(_localSocket, otherPeer._localSocket);
+    swap(_wakeTimestamp, otherPeer._wakeTimestamp);
+    swap(_lastHeardMicrostamp, otherPeer._lastHeardMicrostamp);
 }
 
 QByteArray NetworkPeer::toByteArray() const {

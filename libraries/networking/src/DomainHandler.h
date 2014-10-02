@@ -20,6 +20,7 @@
 #include <QtNetwork/QHostInfo>
 
 #include "HifiSockAddr.h"
+#include "NetworkPeer.h"
 
 const QString DEFAULT_DOMAIN_HOSTNAME = "sandbox.highfidelity.io";
 
@@ -55,6 +56,7 @@ public:
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     
     bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
+    NetworkPeer& getICEPeer() { return _icePeer; }
     
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
@@ -64,6 +66,7 @@ public:
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
     
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
+    void processICEResponsePacket(const QByteArray& icePacket);
     
     void softReset();
 public slots:
@@ -77,6 +80,7 @@ signals:
     void hostnameChanged(const QString& hostname);
     void connectedToDomain(const QString& hostname);
     void disconnectedFromDomain();
+    void requestICEConnectionAttempt();
     
     void settingsReceived(const QJsonObject& domainSettingsObject);
     void settingsReceiveFail();
@@ -89,6 +93,7 @@ private:
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
     HifiSockAddr _iceServerSockAddr;
+    NetworkPeer _icePeer;
     bool _isConnected;
     QTimer* _handshakeTimer;
     QJsonObject _settingsObject;
