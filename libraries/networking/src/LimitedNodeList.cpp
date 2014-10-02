@@ -459,6 +459,35 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
     return n;
 }
 
+QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType) {
+    QByteArray pingPacket = byteArrayWithPopulatedHeader(PacketTypePing);
+    
+    QDataStream packetStream(&pingPacket, QIODevice::Append);
+    
+    packetStream << pingType;
+    packetStream << usecTimestampNow();
+    
+    return pingPacket;
+}
+
+QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
+    QDataStream pingPacketStream(pingPacket);
+    pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
+    
+    PingType_t typeFromOriginalPing;
+    pingPacketStream >> typeFromOriginalPing;
+    
+    quint64 timeFromOriginalPing;
+    pingPacketStream >> timeFromOriginalPing;
+    
+    QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
+    QDataStream packetStream(&replyPacket, QIODevice::Append);
+    
+    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
+    
+    return replyPacket;
+}
+
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
 
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
@@ -619,7 +648,8 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     return false;
 }
 
-void LimitedNodeList::sendHeartbeatToIceServer(QUuid headerID, const QUuid& connectionRequestID) {
+void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
+                                               QUuid headerID, const QUuid& connectionRequestID) {
     
     if (headerID.isNull()) {
         headerID = _sessionUUID;
@@ -637,5 +667,5 @@ void LimitedNodeList::sendHeartbeatToIceServer(QUuid headerID, const QUuid& conn
             << uuidStringWithoutCurlyBraces(connectionRequestID);
     }
     
-    _nodeSocket.writeDatagram(iceRequestByteArray, QHostAddress::LocalHost, ICE_SERVER_DEFAULT_PORT);
+    writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
 }

@@ -37,14 +37,6 @@ const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
 class Assignment;
 
-typedef quint8 PingType_t;
-namespace PingType {
-    const PingType_t Agnostic = 0;
-    const PingType_t Local = 1;
-    const PingType_t Public = 2;
-    const PingType_t Symmetric = 3;
-}
-
 class NodeList : public LimitedNodeList {
     Q_OBJECT
 public:
@@ -69,9 +61,6 @@ public:
 
     void setAssignmentServerSocket(const HifiSockAddr& serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
-
-    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic);
-    QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
     
     void pingPunchForInactiveNode(const SharedNodePointer& node);
     
@@ -91,7 +80,7 @@ private:
     void sendSTUNRequest();
     bool processSTUNResponse(const QByteArray& packet);
     
-    void sendICERequestForDomainConnection();
+    void handleICEConnectionToDomainServer();
     
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();

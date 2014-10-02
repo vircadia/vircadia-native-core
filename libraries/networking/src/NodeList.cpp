@@ -64,6 +64,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::hostnameChanged, this, &NodeList::reset);
     
+    // handle ICE signal from DS so connection is attempted immediately
+    connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
+    
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
@@ -158,6 +161,8 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 
                 // set the ping time for this node for stat collection
                 timePingReply(packet, sendingNode);
+            } else if (uuidFromPacketHeader(packet) == _domainHandler.getUUID()) {
+                qDebug() << "RECEIVED A REPLY FROM DOMAIN";
             }
             
             break;
@@ -247,7 +252,7 @@ void NodeList::sendDomainServerCheckIn() {
         // send a STUN request to figure it out
         sendSTUNRequest();
     } else if (!_domainHandler.isConnected() && _domainHandler.requiresICE()) {
-        sendICERequestForDomainConnection();
+        handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
         
         bool isUsingDTLS = false;
@@ -304,11 +309,22 @@ void NodeList::sendDomainServerCheckIn() {
     }
 }
 
-void NodeList::sendICERequestForDomainConnection() {
-    
+void NodeList::handleICEConnectionToDomainServer() {
     static QUuid iceUUID = QUuid::createUuid();
     
-    LimitedNodeList::sendHeartbeatToIceServer(iceUUID, _domainHandler.getUUID());
+    if (_domainHandler.getICEPeer().isNull()) {
+        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(), iceUUID, _domainHandler.getUUID());
+    } else {
+        qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
+            << uuidStringWithoutCurlyBraces(_domainHandler.getUUID());
+        
+        // send the ping packet to the local and public sockets for this node
+        QByteArray localPingPacket = constructPingPacket(PingType::Local);
+        writeDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket(), iceUUID);
+        
+        QByteArray publicPingPacket = constructPingPacket(PingType::Public);
+        writeDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket(), iceUUID);
+    }
 }
 
 int NodeList::processDomainServerList(const QByteArray& packet) {
@@ -380,35 +396,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
         : &_assignmentServerSocket;
 
     _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
-}
-
-QByteArray NodeList::constructPingPacket(PingType_t pingType) {
-    QByteArray pingPacket = byteArrayWithPopulatedHeader(PacketTypePing);
-    
-    QDataStream packetStream(&pingPacket, QIODevice::Append);
-    
-    packetStream << pingType;
-    packetStream << usecTimestampNow();
-    
-    return pingPacket;
-}
-
-QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
-    QDataStream pingPacketStream(pingPacket);
-    pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
-    
-    PingType_t typeFromOriginalPing;
-    pingPacketStream >> typeFromOriginalPing;
-    
-    quint64 timeFromOriginalPing;
-    pingPacketStream >> timeFromOriginalPing;
-    
-    QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
-    QDataStream packetStream(&replyPacket, QIODevice::Append);
-    
-    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
-    
-    return replyPacket;
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {

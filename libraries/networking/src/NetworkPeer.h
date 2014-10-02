@@ -30,6 +30,8 @@ public:
     NetworkPeer(const NetworkPeer &otherPeer);
     NetworkPeer& operator=(const NetworkPeer& otherPeer);
     
+    bool isNull() const { return _uuid.isNull(); }
+    
     const QUuid& getUUID() const { return _uuid; }
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     

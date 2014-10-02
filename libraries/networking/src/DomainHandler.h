@@ -56,7 +56,8 @@ public:
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     
     bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
-    NetworkPeer& getICEPeer() { return _icePeer; }
+    const HifiSockAddr& getICEServerSockAddr() const { return _iceServerSockAddr; }
+    const NetworkPeer& getICEPeer() const { return _icePeer; }
     
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);

@@ -1028,6 +1028,12 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
             case PacketTypeStunResponse:
                 nodeList->processSTUNResponse(receivedPacket);
                 break;
+            case PacketTypePing: {
+                QByteArray pingReplyPacket = nodeList->constructPingReplyPacket(receivedPacket);
+                nodeList->writeUnverifiedDatagram(pingReplyPacket, senderSockAddr);
+                
+                break;
+            }
             default:
                 break;
         }

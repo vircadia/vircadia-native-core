@@ -135,7 +135,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         // re-set the domain info to connect to new domain
         hardReset();
         
-        _uuid = id;
+        setUUID(id);
         _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
         
         qDebug() << "Domain ID changed to" << uuidStringWithoutCurlyBraces(_uuid)
