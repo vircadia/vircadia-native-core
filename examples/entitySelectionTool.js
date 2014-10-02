@@ -13,28 +13,108 @@
 
 SelectionDisplay = (function () {
     var that = {};
+
+    var handleHoverColor = { red: 224, green: 67, blue: 36 };
+    var handleHoverAlpha = 1.0;
+
+    var rotateHandleColor = { red: 0, green: 0, blue: 0 };
+    var rotateHandleAlpha = 0.7;
+
+    
+    var grabberSizeCorner = 0.025;
+    var grabberSizeEdge = 0.015;
+    var grabberSizeFace = 0.025;
+    var grabberColorCorner = { red: 120, green: 120, blue: 120 };
+    var grabberColorEdge = { red: 0, green: 0, blue: 0 };
+    var grabberColorFace = { red: 120, green: 120, blue: 120 };
+    var grabberLineWidth = 0.5;
+    var grabberSolid = true;
+
+    var grabberPropertiesCorner = {
+                position: { x:0, y: 0, z: 0},
+                size: grabberSizeCorner,
+                color: grabberColorCorner,
+                alpha: 1,
+                solid: grabberSolid,
+                visible: false,
+                dashed: false,
+                lineWidth: grabberLineWidth,
+            };
+
+    var grabberPropertiesEdge = {
+                position: { x:0, y: 0, z: 0},
+                size: grabberSizeEdge,
+                color: grabberColorEdge,
+                alpha: 1,
+                solid: grabberSolid,
+                visible: false,
+                dashed: false,
+                lineWidth: grabberLineWidth,
+            };
+
+    var grabberPropertiesFace = {
+                position: { x:0, y: 0, z: 0},
+                size: grabberSizeFace,
+                color: grabberColorFace,
+                alpha: 1,
+                solid: grabberSolid,
+                visible: false,
+                dashed: false,
+                lineWidth: grabberLineWidth,
+            };
+    
     var selectionBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
                     color: { red: 180, green: 180, blue: 180},
                     alpha: 1,
                     solid: false,
-                    visible: false
+                    visible: false,
+                    dashed: true,
+                    lineWidth: 1.0,
+                    
+                    /*
+                    pulseMin: 0.0,
+                    pulseMax: 1.0,
+                    pulsePeriod: 2.0,
+                    //glowLevelPulse: 1.0,
+                    //alphaPulse: 0.5,
+                    colorPulse: 1.0
+                    */
                 });
+
+    var grabberLBN = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberRBN = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberLBF = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberRBF = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberLTN = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberRTN = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberLTF = Overlays.addOverlay("cube", grabberPropertiesCorner);
+    var grabberRTF = Overlays.addOverlay("cube", grabberPropertiesCorner);
+
+    var grabberTOP = Overlays.addOverlay("cube", grabberPropertiesFace);
+    var grabberBOTTOM = Overlays.addOverlay("cube", grabberPropertiesFace);
+    var grabberLEFT = Overlays.addOverlay("cube", grabberPropertiesFace);
+    var grabberRIGHT = Overlays.addOverlay("cube", grabberPropertiesFace);
+    var grabberNEAR = Overlays.addOverlay("cube", grabberPropertiesFace);
+    var grabberFAR = Overlays.addOverlay("cube", grabberPropertiesFace);
+
+    var grabberEdgeTR = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeTL = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeTF = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeTN = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeBR = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeBL = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeBF = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeBN = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeNR = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeNL = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeFR = Overlays.addOverlay("cube", grabberPropertiesEdge);
+    var grabberEdgeFL = Overlays.addOverlay("cube", grabberPropertiesEdge);
+
 
     var baseOverlayAngles = { x: 0, y: 0, z: 0 };
     var baseOverlayRotation = Quat.fromVec3Degrees(baseOverlayAngles);
-
-    var baseOfEntityOverlay = Overlays.addOverlay("rectangle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    color: { red: 0, green: 0, blue: 0},
-                    alpha: 1,
-                    solid: false,
-                    visible: false,
-                    lineWidth: 2.0,
-                    isDashedLine: true
-                });
-
     var baseOfEntityProjectionOverlay = Overlays.addOverlay("rectangle3d", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
@@ -45,6 +125,16 @@ SelectionDisplay = (function () {
                     rotation: baseOverlayRotation
                 });
 
+    /* NOTE: not currently in use
+    var baseOfEntityOverlay = Overlays.addOverlay("rectangle3d", {
+                    position: { x:0, y: 0, z: 0},
+                    color: { red: 0, green: 0, blue: 0},
+                    alpha: 1,
+                    solid: false,
+                    visible: false,
+                    lineWidth: 2.0,
+                    isDashedLine: true
+                });
     var heightOfEntityOverlay = Overlays.addOverlay("line3d", {
                     position: { x:0, y: 0, z: 0},
                     end: { x:0, y: 0, z: 0},
@@ -55,8 +145,7 @@ SelectionDisplay = (function () {
                     lineWidth: 2.0,
                     isDashedLine: true
                 });
-
-
+    */
 
     var yawOverlayAngles = { x: 90, y: 0, z: 0 };
     var yawOverlayRotation = Quat.fromVec3Degrees(yawOverlayAngles);
@@ -96,55 +185,76 @@ SelectionDisplay = (function () {
                     rotation: yawOverlayRotation,
                 });
 
-    var yawHandleAngles = { x: 90, y: 90, z: 0 };
-    var yawHandleRotation = Quat.fromVec3Degrees(yawHandleAngles);
     var yawHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
+                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/HRRhkMk8ueLk8ku/rotate-arrow.png",
                                         position: { x:0, y: 0, z: 0},
-                                        color: { red: 0, green: 0, blue: 255 },
-                                        alpha: 0.3,
+                                        color: rotateHandleColor,
+                                        alpha: rotateHandleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        rotation: yawHandleRotation,
                                         isFacingAvatar: false
                                       });
 
 
-    var pitchHandleAngles = { x: 90, y: 0, z: 90 };
-    var pitchHandleRotation = Quat.fromVec3Degrees(pitchHandleAngles);
     var pitchHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
+                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/HRRhkMk8ueLk8ku/rotate-arrow.png",
                                         position: { x:0, y: 0, z: 0},
-                                        color: { red: 0, green: 0, blue: 255 },
-                                        alpha: 0.3,
+                                        color: rotateHandleColor,
+                                        alpha: rotateHandleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        rotation: pitchHandleRotation,
                                         isFacingAvatar: false
                                       });
 
 
-    var rollHandleAngles = { x: 0, y: 0, z: 180 };
-    var rollHandleRotation = Quat.fromVec3Degrees(rollHandleAngles);
     var rollHandle = Overlays.addOverlay("billboard", {
-                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/oocBjCwXpWlHpF9/rotate_arrow_black.png",
+                                        url: "https://s3.amazonaws.com/uploads.hipchat.com/33953/231323/HRRhkMk8ueLk8ku/rotate-arrow.png",
                                         position: { x:0, y: 0, z: 0},
-                                        color: { red: 0, green: 0, blue: 255 },
-                                        alpha: 0.3,
+                                        color: rotateHandleColor,
+                                        alpha: rotateHandleAlpha,
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        rotation: rollHandleRotation,
                                         isFacingAvatar: false
                                       });
 
     that.cleanup = function () {
         Overlays.deleteOverlay(selectionBox);
-        Overlays.deleteOverlay(baseOfEntityOverlay);
         Overlays.deleteOverlay(baseOfEntityProjectionOverlay);
-        Overlays.deleteOverlay(heightOfEntityOverlay);
+        Overlays.deleteOverlay(grabberLBN);
+        Overlays.deleteOverlay(grabberLBF);
+        Overlays.deleteOverlay(grabberRBN);
+        Overlays.deleteOverlay(grabberRBF);
+        Overlays.deleteOverlay(grabberLTN);
+        Overlays.deleteOverlay(grabberLTF);
+        Overlays.deleteOverlay(grabberRTN);
+        Overlays.deleteOverlay(grabberRTF);
+
+        Overlays.deleteOverlay(grabberTOP);
+        Overlays.deleteOverlay(grabberBOTTOM);
+        Overlays.deleteOverlay(grabberLEFT);
+        Overlays.deleteOverlay(grabberRIGHT);
+        Overlays.deleteOverlay(grabberNEAR);
+        Overlays.deleteOverlay(grabberFAR);
+
+        Overlays.deleteOverlay(grabberEdgeTR);
+        Overlays.deleteOverlay(grabberEdgeTL);
+        Overlays.deleteOverlay(grabberEdgeTF);
+        Overlays.deleteOverlay(grabberEdgeTN);
+        Overlays.deleteOverlay(grabberEdgeBR);
+        Overlays.deleteOverlay(grabberEdgeBL);
+        Overlays.deleteOverlay(grabberEdgeBF);
+        Overlays.deleteOverlay(grabberEdgeBN);
+        Overlays.deleteOverlay(grabberEdgeNR);
+        Overlays.deleteOverlay(grabberEdgeNL);
+        Overlays.deleteOverlay(grabberEdgeFR);
+        Overlays.deleteOverlay(grabberEdgeFL);
+        
+
+        //Overlays.deleteOverlay(baseOfEntityOverlay);
+        //Overlays.deleteOverlay(heightOfEntityOverlay);
 
         Overlays.deleteOverlay(yawHandle);
         Overlays.deleteOverlay(pitchHandle);
@@ -170,37 +280,161 @@ SelectionDisplay = (function () {
         } else {
             outerAlpha = 0.5;
         }
+
+        var rotateHandleOffset = 0.05;
+        
+        var left = properties.position.x - halfDimensions.x;
+        var right = properties.position.x + halfDimensions.x;
+        var bottom = properties.position.y - halfDimensions.y;
+        var top = properties.position.y + halfDimensions.y;
+        var near = properties.position.z - halfDimensions.z;
+        var far = properties.position.z + halfDimensions.z;
+        var center = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
+
+        var BLN = { x: left, y: bottom, z: near };
+        var BRN = { x: right, y: bottom, z: near };
+        var BLF = { x: left, y: bottom, z: far };
+        var BRF = { x: right, y: bottom, z: far };
+        var TLN = { x: left, y: top, z: near };
+        var TRN = { x: right, y: top, z: near };
+        var TLF = { x: left, y: top, z: far };
+        var TRF = { x: right, y: top, z: far };
+
+        var yawCorner;
+        var pitchCorner;
+        var rollCorner;
+
+        var yawHandleRotation;
+        var pitchHandleRotation;
+        var rollHandleRotation;
+
+        // determine which bottom corner we are closest to
+        /*------------------------------
+          example:
+          
+            BRF +--------+ BLF
+                |        |
+                |        |
+            BRN +--------+ BLN
+                   
+                   *
+                
+        ------------------------------*/
+        
+        if (MyAvatar.position.x > center.x) {
+            // must be BRF or BRN
+            if (MyAvatar.position.z < center.z) {
+                yawHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 });
+                pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 });
+                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 180 });
+
+                yawCorner = { x: right + rotateHandleOffset,
+                              y: bottom - rotateHandleOffset,
+                              z: near - rotateHandleOffset };
+
+                pitchCorner = { x: right + rotateHandleOffset,
+                                y: top + rotateHandleOffset,
+                                z: far + rotateHandleOffset };
+
+                rollCorner = { x: left - rotateHandleOffset,
+                               y: top + rotateHandleOffset,
+                               z: near - rotateHandleOffset};
+
+            } else {
+                yawHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 270, z: 0 });
+                pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
+                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
+
+                yawCorner = { x: right + rotateHandleOffset,
+                              y: bottom - rotateHandleOffset,
+                              z: far + rotateHandleOffset };
+
+                pitchCorner = { x: left - rotateHandleOffset,
+                                y: top + rotateHandleOffset,
+                                z: far + rotateHandleOffset };
+
+                rollCorner = { x: right + rotateHandleOffset,
+                               y: top + rotateHandleOffset,
+                               z: near - rotateHandleOffset};
+
+            }
+        } else {
+            // must be BLF or BLN
+            if (MyAvatar.position.z < center.z) {
+                yawHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 90, z: 0 });
+                pitchHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 90 });
+                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
+
+                yawCorner = { x: left - rotateHandleOffset,
+                              y: bottom - rotateHandleOffset,
+                              z: near - rotateHandleOffset };
+
+                pitchCorner = { x: right + rotateHandleOffset,
+                                y: top + rotateHandleOffset,
+                                z: near - rotateHandleOffset };
+
+                rollCorner = { x: left - rotateHandleOffset,
+                               y: top + rotateHandleOffset,
+                               z: far + rotateHandleOffset};
+
+                
+            } else {
+                yawHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 180, z: 0 });
+                pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
+                rollHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
+
+                yawCorner = { x: left - rotateHandleOffset,
+                              y: bottom - rotateHandleOffset,
+                              z: far + rotateHandleOffset };
+
+                pitchCorner = { x: left - rotateHandleOffset,
+                                y: top + rotateHandleOffset,
+                                z: near - rotateHandleOffset };
+
+                rollCorner = { x: right + rotateHandleOffset,
+                               y: top + rotateHandleOffset,
+                               z: far + rotateHandleOffset};
+            }
+        }
         
         Overlays.editOverlay(selectionBox, 
                             { 
-                                visible: false,
-                                solid:false,
-                                lineWidth: 2.0,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y,
-                                            z: properties.position.z },
-
+                                visible: true,
+                                position: center,
                                 dimensions: properties.dimensions,
                                 rotation: properties.rotation,
-
-                                pulseMin: 0.1,
-                                pulseMax: 1.0,
-                                pulsePeriod: 4.0,
-                                glowLevelPulse: 1.0,
-                                alphaPulse: 0.5,
-                                colorPulse: -0.5
                             });
 
-        Overlays.editOverlay(baseOfEntityOverlay, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x,
-                                            y: properties.position.y - halfDimensions.y,
-                                            z: properties.position.z },
+        Overlays.editOverlay(grabberLBN, { visible: true, position: { x: left, y: bottom, z: near } });
+        Overlays.editOverlay(grabberRBN, { visible: true, position: { x: right, y: bottom, z: near } });
+        Overlays.editOverlay(grabberLBF, { visible: true, position: { x: left, y: bottom, z: far } });
+        Overlays.editOverlay(grabberRBF, { visible: true, position: { x: right, y: bottom, z: far } });
+        Overlays.editOverlay(grabberLTN, { visible: true, position: { x: left, y: top, z: near } });
+        Overlays.editOverlay(grabberRTN, { visible: true, position: { x: right, y: top, z: near } });
+        Overlays.editOverlay(grabberLTF, { visible: true, position: { x: left, y: top, z: far } });
+        Overlays.editOverlay(grabberRTF, { visible: true, position: { x: right, y: top, z: far } });
 
-                                dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
-                                rotation: properties.rotation,
-                            });
+
+        Overlays.editOverlay(grabberTOP, { visible: true, position: { x: center.x, y: top, z: center.z } });
+        Overlays.editOverlay(grabberBOTTOM, { visible: true, position: { x: center.x, y: bottom, z: center.z } });
+        Overlays.editOverlay(grabberLEFT, { visible: true, position: { x: left, y: center.y, z: center.z } });
+        Overlays.editOverlay(grabberRIGHT, { visible: true, position: { x: right, y: center.y, z: center.z } });
+        Overlays.editOverlay(grabberNEAR, { visible: true, position: { x: center.x, y: center.y, z: near } });
+        Overlays.editOverlay(grabberFAR, { visible: true, position: { x: center.x, y: center.y, z: far } });
+
+        Overlays.editOverlay(grabberEdgeTR, { visible: true, position: { x: right, y: top, z: center.z } });
+        Overlays.editOverlay(grabberEdgeTL, { visible: true, position: { x: left, y: top, z: center.z } });
+        Overlays.editOverlay(grabberEdgeTF, { visible: true, position: { x: center.x, y: top, z: far } });
+        Overlays.editOverlay(grabberEdgeTN, { visible: true, position: { x: center.x, y: top, z: near } });
+        Overlays.editOverlay(grabberEdgeBR, { visible: true, position: { x: right, y: bottom, z: center.z } });
+        Overlays.editOverlay(grabberEdgeBL, { visible: true, position: { x: left, y: bottom, z: center.z } });
+        Overlays.editOverlay(grabberEdgeBF, { visible: true, position: { x: center.x, y: bottom, z: far } });
+        Overlays.editOverlay(grabberEdgeBN, { visible: true, position: { x: center.x, y: bottom, z: near } });
+        Overlays.editOverlay(grabberEdgeNR, { visible: true, position: { x: right, y: center.y, z: near } });
+        Overlays.editOverlay(grabberEdgeNL, { visible: true, position: { x: left, y: center.y, z: near } });
+        Overlays.editOverlay(grabberEdgeFR, { visible: true, position: { x: right, y: center.y, z: far } });
+        Overlays.editOverlay(grabberEdgeFL, { visible: true, position: { x: left, y: center.y, z: far } });
+
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, 
                             { 
@@ -215,24 +449,10 @@ SelectionDisplay = (function () {
                                 rotation: properties.rotation,
                             });
 
-        Overlays.editOverlay(heightOfEntityOverlay, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x - halfDimensions.x,
-                                            y: properties.position.y - halfDimensions.y,
-                                            z: properties.position.z - halfDimensions.z},
-
-                                end:      { x: properties.position.x - halfDimensions.x,
-                                            y: properties.position.y + halfDimensions.y,
-                                            z: properties.position.z - halfDimensions.z},
-
-                                rotation: properties.rotation,
-                            });
-                            
 
         Overlays.editOverlay(rotateOverlayInner, 
                             { 
-                                visible: true,
+                                visible: false,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
                                             z: properties.position.z},
@@ -244,67 +464,73 @@ SelectionDisplay = (function () {
 
         Overlays.editOverlay(rotateOverlayOuter, 
                             { 
-                                visible: true,
+                                visible: false,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
                                             z: properties.position.z},
 
                                 size: outerRadius,
                                 innerRadius: 0.9,
-                                startAt: 90,
-                                endAt: 405,
+                                startAt: 0,
+                                endAt: 360,
                                 alpha: outerAlpha
                             });
 
         Overlays.editOverlay(rotateOverlayCurrent, 
                             { 
-                                visible: true,
+                                visible: false,
                                 position: { x: properties.position.x,
                                             y: properties.position.y - (properties.dimensions.y / 2),
                                             z: properties.position.z},
 
                                 size: outerRadius,
-                                startAt: 45,
-                                endAt: 90,
+                                startAt: 0,
+                                endAt: 0,
                                 innerRadius: 0.9
                             });
 
-        Overlays.editOverlay(yawHandle, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x - (properties.dimensions.x / 2),
-                                            y: properties.position.y - (properties.dimensions.y / 2),
-                                            z: properties.position.z - (properties.dimensions.z / 2)},
-
-                                //dimensions: properties.dimensions,
-                                //rotation: properties.rotation
-                            });
-
-        Overlays.editOverlay(pitchHandle, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x + (properties.dimensions.x / 2),
-                                            y: properties.position.y + (properties.dimensions.y / 2),
-                                            z: properties.position.z - (properties.dimensions.z / 2)},
-                            });
-
-        Overlays.editOverlay(rollHandle, 
-                            { 
-                                visible: true,
-                                position: { x: properties.position.x - (properties.dimensions.x / 2),
-                                            y: properties.position.y + (properties.dimensions.y / 2),
-                                            z: properties.position.z + (properties.dimensions.z / 2)},
-                            });
-
+        Overlays.editOverlay(yawHandle, { visible: true, position: yawCorner, rotation: yawHandleRotation});
+        Overlays.editOverlay(pitchHandle, { visible: true, position: pitchCorner, rotation: pitchHandleRotation});
+        Overlays.editOverlay(rollHandle, { visible: true, position: rollCorner, rotation: rollHandleRotation});
 
         Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
     };
 
     that.hideSelection = function (entityID) {
         Overlays.editOverlay(selectionBox, { visible: false });
-        Overlays.editOverlay(baseOfEntityOverlay, { visible: false });
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { visible: false });
-        Overlays.editOverlay(heightOfEntityOverlay, { visible: false });
+        Overlays.editOverlay(grabberLBN, { visible: false });
+        Overlays.editOverlay(grabberLBF, { visible: false });
+        Overlays.editOverlay(grabberRBN, { visible: false });
+        Overlays.editOverlay(grabberRBF, { visible: false });
+        Overlays.editOverlay(grabberLTN, { visible: false });
+        Overlays.editOverlay(grabberLTF, { visible: false });
+        Overlays.editOverlay(grabberRTN, { visible: false });
+        Overlays.editOverlay(grabberRTF, { visible: false });
+
+        Overlays.editOverlay(grabberTOP, { visible: false });
+        Overlays.editOverlay(grabberBOTTOM, { visible: false });
+        Overlays.editOverlay(grabberLEFT, { visible: false });
+        Overlays.editOverlay(grabberRIGHT, { visible: false });
+        Overlays.editOverlay(grabberNEAR, { visible: false });
+        Overlays.editOverlay(grabberFAR, { visible: false });
+
+        Overlays.editOverlay(grabberEdgeTR, { visible: false });
+        Overlays.editOverlay(grabberEdgeTL, { visible: false });
+        Overlays.editOverlay(grabberEdgeTF, { visible: false });
+        Overlays.editOverlay(grabberEdgeTN, { visible: false });
+        Overlays.editOverlay(grabberEdgeBR, { visible: false });
+        Overlays.editOverlay(grabberEdgeBL, { visible: false });
+        Overlays.editOverlay(grabberEdgeBF, { visible: false });
+        Overlays.editOverlay(grabberEdgeBN, { visible: false });
+        Overlays.editOverlay(grabberEdgeNR, { visible: false });
+        Overlays.editOverlay(grabberEdgeNL, { visible: false });
+        Overlays.editOverlay(grabberEdgeFR, { visible: false });
+        Overlays.editOverlay(grabberEdgeFL, { visible: false });
+
+        // Not currently in use
+        //Overlays.editOverlay(baseOfEntityOverlay, { visible: false });
+        //Overlays.editOverlay(heightOfEntityOverlay, { visible: false });
 
         Overlays.editOverlay(yawHandle, { visible: false });
         Overlays.editOverlay(pitchHandle, { visible: false });
