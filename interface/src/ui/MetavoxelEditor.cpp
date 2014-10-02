@@ -128,7 +128,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new ImportHeightfieldTool(this));
     addTool(new EraseHeightfieldTool(this));
     addTool(new VoxelMaterialBoxTool(this));
-    addTool(new VoxelMaterialSphereTool(this));
+    addTool(new VoxelMaterialSpannerTool(this));
     
     updateAttributes();
     
@@ -582,20 +582,21 @@ void GlobalSetTool::apply() {
     Application::getInstance()->getMetavoxels()->applyEdit(message);
 }
 
-PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText) :
-    MetavoxelTool(editor, name) {
+PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText, bool usesValue) :
+    MetavoxelTool(editor, name, usesValue) {
     
-    QPushButton* button = new QPushButton(placeText);
-    layout()->addWidget(button);
-    connect(button, SIGNAL(clicked()), SLOT(place()));
+    if (!placeText.isEmpty()) {
+        QPushButton* button = new QPushButton(placeText);
+        layout()->addWidget(button);
+        connect(button, SIGNAL(clicked()), SLOT(place()));
+    }
 }
 
 void PlaceSpannerTool::simulate(float deltaTime) {
     if (Application::getInstance()->isMouseHidden()) {
         return;
     }
-    _editor->detachValue();
-    Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
+    Spanner* spanner = static_cast<Spanner*>(getSpanner(true).data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
     if (transformable) {
         // find the intersection of the mouse ray with the grid and place the transformable there
@@ -615,9 +616,11 @@ void PlaceSpannerTool::render() {
     if (Application::getInstance()->isMouseHidden()) {
         return;
     }
-    Spanner* spanner = static_cast<Spanner*>(_editor->getValue().value<SharedObjectPointer>().data());
+    Spanner* spanner = static_cast<Spanner*>(getSpanner().data());
     const float SPANNER_ALPHA = 0.25f;
-    spanner->getRenderer()->render(SPANNER_ALPHA, SpannerRenderer::DEFAULT_MODE, glm::vec3(), 0.0f);
+    QColor color = getColor();
+    spanner->getRenderer()->render(glm::vec4(color.redF(), color.greenF(), color.blueF(), SPANNER_ALPHA),
+        SpannerRenderer::DEFAULT_MODE, glm::vec3(), 0.0f);
 }
 
 bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
@@ -632,10 +635,21 @@ bool PlaceSpannerTool::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
+SharedObjectPointer PlaceSpannerTool::getSpanner(bool detach) {
+    if (detach) {
+        _editor->detachValue();
+    }
+    return _editor->getValue().value<SharedObjectPointer>();
+}
+
+QColor PlaceSpannerTool::getColor() {
+    return Qt::white;
+}
+
 void PlaceSpannerTool::place() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
     if (attribute) {
-        applyEdit(attribute, _editor->getValue().value<SharedObjectPointer>());
+        applyEdit(attribute, getSpanner());
     }
 }
 
@@ -904,7 +918,8 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         
         Application::getInstance()->updateUntranslatedViewMatrix();
         
-        spannerData->getRenderer()->render(1.0f, SpannerRenderer::DIFFUSE_MODE, glm::vec3(), 0.0f);
+        const glm::vec4 OPAQUE_WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+        spannerData->getRenderer()->render(OPAQUE_WHITE, SpannerRenderer::DIFFUSE_MODE, glm::vec3(), 0.0f);
         
         DirectionImages images = { QImage(width, height, QImage::Format_ARGB32),
             QVector<float>(width * height), minima, maxima, glm::vec3(width / (maxima.x - minima.x),
@@ -1415,90 +1430,52 @@ void VoxelMaterialBoxTool::textureLoaded() {
     _color->setColor(_texture->getAverageColor());
 }
 
-SphereTool::SphereTool(MetavoxelEditor* editor, const QString& name) :
-    MetavoxelTool(editor, name, false, true) {
+VoxelMaterialSpannerTool::VoxelMaterialSpannerTool(MetavoxelEditor* editor) :
+    PlaceSpannerTool(editor, "Set Voxel Material (Spanner)", QString(), false) {
     
     QWidget* widget = new QWidget();
-    widget->setLayout(_form = new QFormLayout());
+    QFormLayout* form = new QFormLayout();
+    widget->setLayout(form);
     layout()->addWidget(widget);
     
-    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
-    _radius->setSingleStep(0.01);
-    _radius->setMaximum(FLT_MAX);
-    _radius->setValue(1.0);
-}
-
-void SphereTool::render() {
-    if (Application::getInstance()->isMouseHidden()) {
-        return;
-    }
-    glm::quat rotation = _editor->getGridRotation();
-    glm::quat inverseRotation = glm::inverse(rotation);
-    glm::vec3 rayOrigin = inverseRotation * Application::getInstance()->getMouseRayOrigin();
-    glm::vec3 rayDirection = inverseRotation * Application::getInstance()->getMouseRayDirection();
-    float position = _editor->getGridPosition();
-    if (glm::abs(rayDirection.z) < EPSILON) {
-        return;
-    }
-    float distance = (position - rayOrigin.z) / rayDirection.z;
-    _position = Application::getInstance()->getMouseRayOrigin() +
-        Application::getInstance()->getMouseRayDirection() * distance;
-    
-    glPushMatrix();
-    glTranslatef(_position.x, _position.y, _position.z);
-    
-    const float CURSOR_ALPHA = 0.5f;
-    QColor color = getColor();
-    glColor4f(color.redF(), color.greenF(), color.blueF(), CURSOR_ALPHA);
-    
-    glEnable(GL_CULL_FACE);
-    
-    glutSolidSphere(_radius->value(), 10, 10);
-    
-    glDisable(GL_CULL_FACE);
-    
-    glPopMatrix();
-}
-
-bool SphereTool::eventFilter(QObject* watched, QEvent* event) {
-    if (event->type() == QEvent::Wheel) {
-        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
-        const float ANGLE_SCALE = 1.0f / 1000.0f;
-        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
-        return true;
-    
-    } else if (event->type() == QEvent::MouseButtonPress) {
-        applyValue(_position, _radius->value());
-        return true;
-    }
-    return false;
-}
-
-VoxelMaterialSphereTool::VoxelMaterialSphereTool(MetavoxelEditor* editor) :
-    SphereTool(editor, "Set Voxel Material (Sphere)") {
+    form->addRow(_spannerEditor = new SharedObjectEditor(&Spanner::staticMetaObject, false, this));
+    _spannerEditor->setObject(new Sphere());
     
     QHBoxLayout* colorLayout = new QHBoxLayout();
-    _form->addRow(colorLayout);
+    form->addRow(colorLayout);
     colorLayout->addWidget(new QLabel("Color:"));
     colorLayout->addWidget(_color = new QColorEditor(this), 1);
-    connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialSphereTool::clearTexture);
+    connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialSpannerTool::clearTexture);
     QPushButton* eraseButton = new QPushButton("Erase");
     colorLayout->addWidget(eraseButton);
-    connect(eraseButton, &QPushButton::clicked, this, &VoxelMaterialSphereTool::clearColor);
+    connect(eraseButton, &QPushButton::clicked, this, &VoxelMaterialSpannerTool::clearColor);
     
-    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
-    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialSphereTool::updateTexture);
+    form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialSpannerTool::updateTexture);
+    
+    QPushButton* place = new QPushButton("Set");
+    layout()->addWidget(place);
+    connect(place, &QPushButton::clicked, this, &VoxelMaterialSpannerTool::place);
 }
 
-bool VoxelMaterialSphereTool::appliesTo(const AttributePointer& attribute) const {
+bool VoxelMaterialSpannerTool::appliesTo(const AttributePointer& attribute) const {
     return attribute->inherits("VoxelColorAttribute");
 }
 
-QColor VoxelMaterialSphereTool::getColor() {
+SharedObjectPointer VoxelMaterialSpannerTool::getSpanner(bool detach) {
+    if (detach) {
+        _spannerEditor->detachObject();
+    }
+    return _spannerEditor->getObject();
+}
+
+QColor VoxelMaterialSpannerTool::getColor() {
     return _color->getColor();
 }
 
-void VoxelMaterialSphereTool::applyValue(const glm::vec3& position, float radius) {
+void VoxelMaterialSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    _spannerEditor->detachObject();
+    
     SharedObjectPointer material = _materialEditor->getObject();
     if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
         _materialEditor->detachObject();
@@ -1507,21 +1484,20 @@ void VoxelMaterialSphereTool::applyValue(const glm::vec3& position, float radius
     }
     QColor color = _color->getColor();
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSphereEdit(position, radius,
-        _editor->getGridSpacing(), material, color)) };
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material, color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
-void VoxelMaterialSphereTool::clearColor() {
+void VoxelMaterialSpannerTool::clearColor() {
     _color->setColor(QColor(0, 0, 0, 0));
     clearTexture();
 }
 
-void VoxelMaterialSphereTool::clearTexture() {
+void VoxelMaterialSpannerTool::clearTexture() {
     _materialEditor->setObject(new MaterialObject());
 }
 
-void VoxelMaterialSphereTool::updateTexture() {
+void VoxelMaterialSpannerTool::updateTexture() {
     if (_texture) {
         _texture->disconnect(this);
     }
@@ -1535,11 +1511,11 @@ void VoxelMaterialSphereTool::updateTexture() {
         if (_texture->isLoaded()) {
             textureLoaded();
         } else {
-            connect(_texture.data(), &Resource::loaded, this, &VoxelMaterialSphereTool::textureLoaded);
+            connect(_texture.data(), &Resource::loaded, this, &VoxelMaterialSpannerTool::textureLoaded);
         }
     }
 }
 
-void VoxelMaterialSphereTool::textureLoaded() {
+void VoxelMaterialSpannerTool::textureLoaded() {
     _color->setColor(_texture->getAverageColor());
 }

@@ -33,6 +33,7 @@
 
 REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
+REGISTER_META_OBJECT(CuboidRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
 static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
@@ -2116,7 +2117,8 @@ int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
 }
 
 bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    spanner->getRenderer()->render(1.0f, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
+    const glm::vec4 OPAQUE_WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+    spanner->getRenderer()->render(OPAQUE_WHITE, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
     return true;
 }
 
@@ -2282,9 +2284,9 @@ static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     glEnable(plane);
 }
 
-void ClippedRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
+void ClippedRenderer::render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     if (clipSize == 0.0f) {
-        renderUnclipped(alpha, mode);
+        renderUnclipped(color, mode);
         return;
     }
     enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipSize);
@@ -2294,7 +2296,7 @@ void ClippedRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimu
     enableClipPlane(GL_CLIP_PLANE4, 0.0f, 0.0f, -1.0f, clipMinimum.z + clipSize);
     enableClipPlane(GL_CLIP_PLANE5, 0.0f, 0.0f, 1.0f, -clipMinimum.z);
     
-    renderUnclipped(alpha, mode);
+    renderUnclipped(color, mode);
     
     glDisable(GL_CLIP_PLANE0);
     glDisable(GL_CLIP_PLANE1);
@@ -2307,9 +2309,9 @@ void ClippedRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimu
 SphereRenderer::SphereRenderer() {
 }
 
-void SphereRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
+void SphereRenderer::render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     if (clipSize == 0.0f) {
-        renderUnclipped(alpha, mode);
+        renderUnclipped(color, mode);
         return;
     }
     // slight performance optimization: don't render if clip bounds are entirely within sphere
@@ -2318,25 +2320,45 @@ void SphereRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum
     for (int i = 0; i < Box::VERTEX_COUNT; i++) {
         const float CLIP_PROPORTION = 0.95f;
         if (glm::distance(sphere->getTranslation(), clipBox.getVertex(i)) >= sphere->getScale() * CLIP_PROPORTION) {
-            ClippedRenderer::render(alpha, mode, clipMinimum, clipSize);
+            ClippedRenderer::render(color, mode, clipMinimum, clipSize);
             return;
         }
     }
 }
 
-void SphereRenderer::renderUnclipped(float alpha, Mode mode) {
+void SphereRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
-    const QColor& color = sphere->getColor();
-    glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF() * alpha);
+    const QColor& ownColor = sphere->getColor();
+    glColor4f(ownColor.redF() * color.r, ownColor.greenF() * color.g, ownColor.blueF() * color.b, ownColor.alphaF() * color.a);
     
     glPushMatrix();
     const glm::vec3& translation = sphere->getTranslation();
     glTranslatef(translation.x, translation.y, translation.z);
     glm::quat rotation = sphere->getRotation();
     glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
     glutSolidSphere(sphere->getScale(), 10, 10);
+    
+    glPopMatrix();
+}
+
+CuboidRenderer::CuboidRenderer() {
+}
+
+void CuboidRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
+    Cuboid* cuboid = static_cast<Cuboid*>(_spanner);
+    const QColor& ownColor = cuboid->getColor();
+    glColor4f(ownColor.redF() * color.r, ownColor.greenF() * color.g, ownColor.blueF() * color.b, ownColor.alphaF() * color.a);
+    
+    glPushMatrix();
+    const glm::vec3& translation = cuboid->getTranslation();
+    glTranslatef(translation.x, translation.y, translation.z);
+    glm::quat rotation = cuboid->getRotation();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    
+    glutSolidCube(cuboid->getScale() * 2.0f);
     
     glPopMatrix();
 }
@@ -2374,21 +2396,21 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::renderUnclipped(float alpha, Mode mode) {
+void StaticModelRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
     switch (mode) {
         case DIFFUSE_MODE:
-            _model->render(alpha, Model::DIFFUSE_RENDER_MODE);
+            _model->render(color.a, Model::DIFFUSE_RENDER_MODE);
             break;
             
         case NORMAL_MODE:
-            _model->render(alpha, Model::NORMAL_RENDER_MODE);
+            _model->render(color.a, Model::NORMAL_RENDER_MODE);
             break;
             
         default:
-            _model->render(alpha);
+            _model->render(color.a);
             break;
     }
-    _model->render(alpha);
+    _model->render(color.a);
 }
 
 bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

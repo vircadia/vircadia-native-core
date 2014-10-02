@@ -179,7 +179,8 @@ class PlaceSpannerTool : public MetavoxelTool {
 
 public:
     
-    PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText);
+    PlaceSpannerTool(MetavoxelEditor* editor, const QString& name,
+        const QString& placeText = QString(), bool usesValue = true);
 
     virtual void simulate(float deltaTime);
 
@@ -191,9 +192,11 @@ public:
 
 protected:
 
+    virtual QColor getColor();
+    virtual SharedObjectPointer getSpanner(bool detach = false);
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
-private slots:
+protected slots:
     
     void place();
 };
@@ -435,45 +438,21 @@ private:
     QSharedPointer<NetworkTexture> _texture;
 };
 
-/// Base class for tools based on a sphere brush.
-class SphereTool : public MetavoxelTool {
+/// Allows setting voxel materials by placing a spanner.
+class VoxelMaterialSpannerTool : public PlaceSpannerTool {
     Q_OBJECT
 
 public:
     
-    SphereTool(MetavoxelEditor* editor, const QString& name);
-    
-    virtual void render();
-
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-    
-protected:
-
-    virtual QColor getColor() = 0;
-    
-    virtual void applyValue(const glm::vec3& position, float radius) = 0;
-    
-    QFormLayout* _form;
-    QDoubleSpinBox* _radius;
-    
-    glm::vec3 _position;
-};
-
-/// Allows setting voxel materials by moving a sphere around.
-class VoxelMaterialSphereTool : public SphereTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelMaterialSphereTool(MetavoxelEditor* editor);
+    VoxelMaterialSpannerTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
 protected:
 
+    virtual SharedObjectPointer getSpanner(bool detach = false);
     virtual QColor getColor();
-    
-    virtual void applyValue(const glm::vec3& position, float radius);
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
     
 private slots:
     
@@ -484,6 +463,7 @@ private slots:
     
 private:
     
+    SharedObjectEditor* _spannerEditor;
     QColorEditor* _color;
     SharedObjectEditor* _materialEditor;
     QSharedPointer<NetworkTexture> _texture;

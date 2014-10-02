@@ -262,66 +262,22 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(VoxelMaterialBoxEdit)
 
-/// An edit that sets the materials of voxels within a sphere to a value.
-class VoxelMaterialSphereEdit : public MetavoxelEdit {
+/// An edit that sets the materials of voxels within a spanner to a value.
+class VoxelMaterialSpannerEdit : public MetavoxelEdit {
     STREAMABLE
 
 public:
 
-    STREAM glm::vec3 center;
-    STREAM float radius;
-    STREAM float granularity;
+    STREAM SharedObjectPointer spanner;
     STREAM SharedObjectPointer material;
     STREAM QColor averageColor;
     
-    VoxelMaterialSphereEdit(const glm::vec3& center = glm::vec3(), float radius = 0.0f, float granularity = 0.0f,
+    VoxelMaterialSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer(),
         const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
     
     virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
-DECLARE_STREAMABLE_METATYPE(VoxelMaterialSphereEdit)
-
-/// Abstract base class for shapes.
-class MetavoxelShape {
-    STREAMABLE
-    
-public:
-
-    STREAM glm::vec3 translation;
-    STREAM glm::quat rotation;
-    STREAM float scale;
-
-    MetavoxelShape(const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f);
-    virtual ~MetavoxelShape();
-};
-
-DECLARE_STREAMABLE_METATYPE(MetavoxelShape)
-
-// A sphere shape.
-class MetavoxelSphere : public MetavoxelShape {
-    STREAMABLE
-    
-public:
-    
-    MetavoxelSphere(const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f);
-};
-
-DECLARE_STREAMABLE_METATYPE(MetavoxelSphere)
-
-// A box shape.
-class MetavoxelBox : public MetavoxelShape {
-    STREAMABLE
-    
-public:
-    
-    STREAM float aspectXY;
-    STREAM float aspectXZ;
-    
-    MetavoxelBox(const glm::vec3& translation = glm::vec3(), const glm::quat& rotation = glm::quat(), float scale = 1.0f,
-        float aspectXY = 1.0f, float aspectXZ = 1.0f);
-};
-
-DECLARE_STREAMABLE_METATYPE(MetavoxelBox)
+DECLARE_STREAMABLE_METATYPE(VoxelMaterialSpannerEdit)
 
 #endif // hifi_MetavoxelMessages_h

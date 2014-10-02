@@ -639,6 +639,12 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 
+    /// Checks whether the spanner contains the specified point.
+    virtual bool contains(const glm::vec3& point);
+
+    /// Finds the intersection, if any, between the specified line segment and the spanner.
+    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
+
 signals:
 
     void boundsWillChange();
@@ -675,7 +681,7 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 
@@ -717,17 +723,34 @@ private:
     float _scale;
 };
 
-/// A sphere.
-class Sphere : public Transformable {
+/// A transformable object with a color.
+class ColorTransformable : public Transformable {
     Q_OBJECT
-    Q_PROPERTY(QColor color MEMBER _color WRITE setColor NOTIFY colorChanged)
+    Q_PROPERTY(QColor color MEMBER _color WRITE setColor NOTIFY colorChanged DESIGNABLE false)
+    
+public:
+   
+    ColorTransformable();
+    
+    void setColor(const QColor& color);
+    const QColor& getColor() const { return _color; }
 
+signals:
+
+    void colorChanged(const QColor& color);
+    
+protected:
+    
+    QColor _color;
+};
+
+/// A sphere.
+class Sphere : public ColorTransformable {
+    Q_OBJECT
+    
 public:
     
     Q_INVOKABLE Sphere();
-
-    void setColor(const QColor& color);
-    const QColor& getColor() const { return _color; }
 
     virtual const QVector<AttributePointer>& getAttributes() const;
     virtual const QVector<AttributePointer>& getVoxelizedAttributes() const;
@@ -735,11 +758,9 @@ public:
     virtual bool blendAttributeValues(MetavoxelInfo& info, bool force = false) const;
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
-
-signals:
-
-    void colorChanged(const QColor& color);
-
+    virtual bool contains(const glm::vec3& point);
+    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
+    
 protected:
     
     virtual QByteArray getRendererClassName() const;
@@ -751,8 +772,26 @@ private slots:
 private:
     
     AttributeValue getNormal(MetavoxelInfo& info, int alpha) const;
+};
+
+/// A cuboid.
+class Cuboid : public ColorTransformable {
+    Q_OBJECT
+
+public:
     
-    QColor _color;
+    Q_INVOKABLE Cuboid();
+
+    virtual bool contains(const glm::vec3& point);
+    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
+    
+protected:
+    
+    virtual QByteArray getRendererClassName() const;
+
+private slots:
+    
+    void updateBounds();
 };
 
 /// A static 3D model loaded from the network.
