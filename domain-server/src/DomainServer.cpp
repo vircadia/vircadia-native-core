@@ -1298,16 +1298,21 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 // create a file with the GUID of the assignment in the script host location
                 QFile scriptFile(newPath);
-                scriptFile.open(QIODevice::WriteOnly);
-                scriptFile.write(formData[0].second);
-
-                qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
-                                       .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
-
-                // add the script assigment to the assignment queue
-                SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
-                _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
-                _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
+                if (scriptFile.open(QIODevice::WriteOnly)) {
+                    scriptFile.write(formData[0].second);
+                    
+                    qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
+                                           .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
+                    
+                    // add the script assigment to the assignment queue
+                    SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
+                    _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
+                    _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
+                } else {
+                    // unable to save script for assignment - we shouldn't be here but debug it out
+                    qDebug() << "Unable to save a script for assignment at" << newPath;
+                    qDebug() << "Script will not be added to queue";
+                }
             }
 
             // respond with a 200 code for successful upload
