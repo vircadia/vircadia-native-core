@@ -25,6 +25,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _requiresICE(true),
     _isConnected(false),
     _handshakeTimer(NULL),
     _settingsObject(),
@@ -35,6 +36,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
+    _requiresICE = true;
     _isConnected = false;
     emit disconnectedFromDomain();
     

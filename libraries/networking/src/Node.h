@@ -57,9 +57,6 @@ public:
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
 
-    const QUuid& getUUID() const { return _uuid; }
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
-
     quint64 getWakeTimestamp() const { return _wakeTimestamp; }
     void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
 

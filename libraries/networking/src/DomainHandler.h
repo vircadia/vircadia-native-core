@@ -54,6 +54,8 @@ public:
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     
+    bool requiresICE() const { return _requiresICE; }
+    
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     
@@ -85,6 +87,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
+    bool _requiresICE;
     bool _isConnected;
     QTimer* _handshakeTimer;
     QJsonObject _settingsObject;

@@ -91,6 +91,8 @@ private:
     void sendSTUNRequest();
     bool processSTUNResponse(const QByteArray& packet);
     
+    void sendICERequestForDomainConnection();
+    
     void processDomainServerAuthRequest(const QByteArray& packet);
     void requestAuthForDomainServer();
     void activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode);

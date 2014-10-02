@@ -17,9 +17,15 @@
 
 #include "HifiSockAddr.h"
 
+const QString ICE_SERVER_HOSTNAME = "localhost";
+const int ICE_SERVER_DEFAULT_PORT = 7337;
+
 class NetworkPeer : public QObject {
 public:
     NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
+    
+    const QUuid& getUUID() const { return _uuid; }
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
     
     const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
     void setPublicSocket(const HifiSockAddr& publicSocket);
@@ -42,5 +48,8 @@ protected:
     HifiSockAddr _symmetricSocket;
     HifiSockAddr* _activeSocket;
 };
+
+QDebug operator<<(QDebug debug, const NetworkPeer &peer);
+typedef QSharedPointer<NetworkPeer> SharedNetworkPeer;
 
 #endif // hifi_NetworkPeer_h

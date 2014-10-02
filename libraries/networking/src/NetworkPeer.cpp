@@ -64,3 +64,10 @@ void NetworkPeer::activateSymmetricSocket() {
     qDebug() << "Activating symmetric socket for network peer with ID" << uuidStringWithoutCurlyBraces(_uuid);
     _activeSocket = &_symmetricSocket;
 }
+
+QDebug operator<<(QDebug debug, const NetworkPeer &peer) {
+    debug << uuidStringWithoutCurlyBraces(peer.getUUID())
+        << "- public:" << peer.getPublicSocket()
+        << "- local:" << peer.getLocalSocket();
+    return debug;
+}

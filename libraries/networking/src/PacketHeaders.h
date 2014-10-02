@@ -70,7 +70,8 @@ enum PacketType {
     PacketTypeVoxelEditNack,
     PacketTypeParticleEditNack,
     PacketTypeEntityEditNack, // 48
-    PacketTypeSignedTransactionPayment
+    PacketTypeSignedTransactionPayment,
+    PacketTypeIceServerHeartbeat
 };
 
 typedef char PacketVersion;

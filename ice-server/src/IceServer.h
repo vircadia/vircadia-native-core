@@ -12,11 +12,20 @@
 #ifndef hifi_IceServer_h
 #define hifi_IceServer_h
 
-#include <QCoreApplication>
+#include <qcoreapplication.h>
+#include <qsharedpointer.h>
+#include <qudpsocket.h>
+
+#include <NetworkPeer.h>
 
 class IceServer : public QCoreApplication {
 public:
     IceServer(int argc, char* argv[]);
+private slots:
+    void processDatagrams();
+private:
+    QHash<QUuid, SharedNetworkPeer> _activePeers;
+    QUdpSocket _serverSocket;
 };
 
 #endif // hifi_IceServer_h
