@@ -2246,11 +2246,28 @@ AttributeValue Sphere::getNormal(MetavoxelInfo& info, int alpha) const {
     return AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
 }
 
-Cuboid::Cuboid() {
+Cuboid::Cuboid() :
+    _aspectY(1.0f),
+    _aspectZ(1.0f) {
+    
     connect(this, &Cuboid::translationChanged, this, &Cuboid::updateBoundsAndPlanes);
     connect(this, &Cuboid::rotationChanged, this, &Cuboid::updateBoundsAndPlanes);
     connect(this, &Cuboid::scaleChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::aspectYChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::aspectZChanged, this, &Cuboid::updateBoundsAndPlanes);
     updateBoundsAndPlanes();
+}
+
+void Cuboid::setAspectY(float aspectY) {
+    if (_aspectY != aspectY) {
+        emit aspectYChanged(_aspectY = aspectY);
+    }
+}
+
+void Cuboid::setAspectZ(float aspectZ) {
+    if (_aspectZ != aspectZ) {
+        emit aspectZChanged(_aspectZ = aspectZ);
+    }
 }
 
 bool Cuboid::contains(const glm::vec3& point) {
@@ -2299,17 +2316,17 @@ QByteArray Cuboid::getRendererClassName() const {
 }
 
 void Cuboid::updateBoundsAndPlanes() {
-    glm::vec3 extent(getScale(), getScale(), getScale());
+    glm::vec3 extent(getScale(), getScale() * _aspectY, getScale() * _aspectZ);
     glm::mat4 rotationMatrix = glm::mat4_cast(getRotation());
     setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(-extent, extent));
     
     glm::vec4 translation4 = glm::vec4(getTranslation(), 1.0f);
     _planes[0] = glm::vec4(glm::vec3(rotationMatrix[0]), -glm::dot(rotationMatrix[0], translation4) - getScale());
     _planes[1] = glm::vec4(glm::vec3(-rotationMatrix[0]), glm::dot(rotationMatrix[0], translation4) - getScale());
-    _planes[2] = glm::vec4(glm::vec3(rotationMatrix[1]), -glm::dot(rotationMatrix[1], translation4) - getScale());
-    _planes[3] = glm::vec4(glm::vec3(-rotationMatrix[1]), glm::dot(rotationMatrix[1], translation4) - getScale());
-    _planes[4] = glm::vec4(glm::vec3(rotationMatrix[2]), -glm::dot(rotationMatrix[2], translation4) - getScale());
-    _planes[5] = glm::vec4(glm::vec3(-rotationMatrix[2]), glm::dot(rotationMatrix[2], translation4) - getScale());
+    _planes[2] = glm::vec4(glm::vec3(rotationMatrix[1]), -glm::dot(rotationMatrix[1], translation4) - getScale() * _aspectY);
+    _planes[3] = glm::vec4(glm::vec3(-rotationMatrix[1]), glm::dot(rotationMatrix[1], translation4) - getScale() * _aspectY);
+    _planes[4] = glm::vec4(glm::vec3(rotationMatrix[2]), -glm::dot(rotationMatrix[2], translation4) - getScale() * _aspectZ);
+    _planes[5] = glm::vec4(glm::vec3(-rotationMatrix[2]), glm::dot(rotationMatrix[2], translation4) - getScale() * _aspectZ);
 }
 
 StaticModel::StaticModel() {

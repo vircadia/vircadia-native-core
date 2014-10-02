@@ -2357,6 +2357,7 @@ void CuboidRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
     glm::quat rotation = cuboid->getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    glScalef(1.0f, cuboid->getAspectY(), cuboid->getAspectZ());
     
     glutSolidCube(cuboid->getScale() * 2.0f);
     

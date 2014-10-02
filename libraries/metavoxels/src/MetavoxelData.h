@@ -777,14 +777,27 @@ private:
 /// A cuboid.
 class Cuboid : public ColorTransformable {
     Q_OBJECT
-
+    Q_PROPERTY(float aspectY MEMBER _aspectY WRITE setAspectY NOTIFY aspectYChanged)
+    Q_PROPERTY(float aspectZ MEMBER _aspectZ WRITE setAspectZ NOTIFY aspectZChanged)
+    
 public:
     
     Q_INVOKABLE Cuboid();
 
+    void setAspectY(float aspectY);
+    float getAspectY() const { return _aspectY; }
+    
+    void setAspectZ(float aspectZ);
+    float getAspectZ() const { return _aspectZ; }
+
     virtual bool contains(const glm::vec3& point);
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
-    
+
+signals:
+
+    void aspectYChanged(float aspectY);
+    void aspectZChanged(float aspectZ);
+
 protected:
     
     virtual QByteArray getRendererClassName() const;
@@ -794,6 +807,9 @@ private slots:
     void updateBoundsAndPlanes();
     
 private:
+
+    float _aspectY;
+    float _aspectZ;
     
     static const int PLANE_COUNT = 6;
     glm::vec4 _planes[PLANE_COUNT];
