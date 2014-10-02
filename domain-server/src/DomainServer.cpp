@@ -1053,10 +1053,11 @@ QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     return newPath;
 }
 
-bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
+bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
+    const QString URI_ASSIGNMENT_SCRIPTS = URI_ASSIGNMENT + "/scripts";
     const QString URI_NODES = "/nodes";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -1067,7 +1068,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
     
     // check if this is a request for a scripted assignment (with a temp unique UUID)
-    const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+    const QString ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
     QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
     
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
@@ -1090,7 +1091,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                                       + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
                     
                     // have the HTTPManager serve the appropriate script file
-                    return _httpManager.handleHTTPRequest(connection, scriptURL);
+                    return _httpManager.handleHTTPRequest(connection, scriptURL, true);
                 }
             }
         }
@@ -1324,7 +1325,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
 
-bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
+bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
     const QString URI_OAUTH = "/oauth";
     qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
