@@ -302,7 +302,7 @@ void OctreeServer::initHTTPManager(int port) {
     _httpManager = new HTTPManager(port, documentRoot, this, this);
 }
 
-bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
+bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
 
 #ifdef FORCE_CRASH
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
