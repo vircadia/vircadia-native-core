@@ -73,7 +73,10 @@ void BillboardOverlay::render() {
             float x = _fromImage.width() / (2.0f * maxSize);
             float y = -_fromImage.height() / (2.0f * maxSize);
             
-            glColor3f(1.0f, 1.0f, 1.0f);
+            const float MAX_COLOR = 255;
+            xColor color = getColor();
+            float alpha = getAlpha();
+            glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
             glBegin(GL_QUADS); {
                 glTexCoord2f((float)_fromImage.x() / (float)_size.width(),
                              (float)_fromImage.y() / (float)_size.height());
