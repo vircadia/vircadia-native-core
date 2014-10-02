@@ -13,6 +13,8 @@
 
 SelectionDisplay = (function () {
     var that = {};
+    
+    var currentSelection = { id: -1, isKnownID: false };
 
     var handleHoverColor = { red: 224, green: 67, blue: 36 };
     var handleHoverAlpha = 1.0;
@@ -63,6 +65,18 @@ SelectionDisplay = (function () {
                 lineWidth: grabberLineWidth,
             };
     
+    
+    var highlightBox = Overlays.addOverlay("cube", {
+                    position: { x:0, y: 0, z: 0},
+                    size: 1,
+                    color: { red: 180, green: 180, blue: 180},
+                    alpha: 1,
+                    solid: false,
+                    visible: false,
+                    dashed: true,
+                    lineWidth: 1.0,
+                });
+
     var selectionBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
@@ -72,15 +86,6 @@ SelectionDisplay = (function () {
                     visible: false,
                     dashed: true,
                     lineWidth: 1.0,
-                    
-                    /*
-                    pulseMin: 0.0,
-                    pulseMax: 1.0,
-                    pulsePeriod: 2.0,
-                    //glowLevelPulse: 1.0,
-                    //alphaPulse: 0.5,
-                    colorPulse: 1.0
-                    */
                 });
 
     var grabberLBN = Overlays.addOverlay("cube", grabberPropertiesCorner);
@@ -124,28 +129,6 @@ SelectionDisplay = (function () {
                     visible: false,
                     rotation: baseOverlayRotation
                 });
-
-    /* NOTE: not currently in use
-    var baseOfEntityOverlay = Overlays.addOverlay("rectangle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    color: { red: 0, green: 0, blue: 0},
-                    alpha: 1,
-                    solid: false,
-                    visible: false,
-                    lineWidth: 2.0,
-                    isDashedLine: true
-                });
-    var heightOfEntityOverlay = Overlays.addOverlay("line3d", {
-                    position: { x:0, y: 0, z: 0},
-                    end: { x:0, y: 0, z: 0},
-                    color: { red: 0, green: 0, blue: 0},
-                    alpha: 1,
-                    solid: false,
-                    visible: false,
-                    lineWidth: 2.0,
-                    isDashedLine: true
-                });
-    */
 
     var yawOverlayAngles = { x: 90, y: 0, z: 0 };
     var yawOverlayRotation = Quat.fromVec3Degrees(yawOverlayAngles);
@@ -221,6 +204,7 @@ SelectionDisplay = (function () {
                                       });
 
     that.cleanup = function () {
+        Overlays.deleteOverlay(highlightBox);
         Overlays.deleteOverlay(selectionBox);
         Overlays.deleteOverlay(baseOfEntityProjectionOverlay);
         Overlays.deleteOverlay(grabberLBN);
@@ -252,10 +236,6 @@ SelectionDisplay = (function () {
         Overlays.deleteOverlay(grabberEdgeFR);
         Overlays.deleteOverlay(grabberEdgeFL);
         
-
-        //Overlays.deleteOverlay(baseOfEntityOverlay);
-        //Overlays.deleteOverlay(heightOfEntityOverlay);
-
         Overlays.deleteOverlay(yawHandle);
         Overlays.deleteOverlay(pitchHandle);
         Overlays.deleteOverlay(rollHandle);
@@ -266,8 +246,29 @@ SelectionDisplay = (function () {
 
     };
 
-    that.showSelection = function (entityID, properties) {
-    
+    that.highlightSelectable = function(entityID) {
+        var properties = Entities.getEntityProperties(entityID);
+        var center = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
+        Overlays.editOverlay(highlightBox, 
+                            { 
+                                visible: true,
+                                position: center,
+                                dimensions: properties.dimensions,
+                                rotation: properties.rotation,
+                            });
+    };
+
+    that.unhighlightSelectable = function(entityID) {
+        Overlays.editOverlay(highlightBox,{ visible: false});
+    };
+
+    that.select = function(entityID) {
+        var properties = Entities.getEntityProperties(entityID);
+        if (currentSelection.isKnownID == true) {
+            that.unselect(currentSelection);
+        }
+        currentSelection = entityID;
+
         var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
         var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
         var innerRadius = diagonal;
@@ -496,7 +497,14 @@ SelectionDisplay = (function () {
         Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
     };
 
-    that.hideSelection = function (entityID) {
+    that.unselectAll = function () {
+        if (currentSelection.isKnownID == true) {
+            that.unselect(currentSelection);
+        }
+        currentSelection = { id: -1, isKnownID: false };
+    };
+
+    that.unselect = function (entityID) {
         Overlays.editOverlay(selectionBox, { visible: false });
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { visible: false });
         Overlays.editOverlay(grabberLBN, { visible: false });
@@ -528,10 +536,6 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(grabberEdgeFR, { visible: false });
         Overlays.editOverlay(grabberEdgeFL, { visible: false });
 
-        // Not currently in use
-        //Overlays.editOverlay(baseOfEntityOverlay, { visible: false });
-        //Overlays.editOverlay(heightOfEntityOverlay, { visible: false });
-
         Overlays.editOverlay(yawHandle, { visible: false });
         Overlays.editOverlay(pitchHandle, { visible: false });
         Overlays.editOverlay(rollHandle, { visible: false });
@@ -542,6 +546,20 @@ SelectionDisplay = (function () {
 
         Entities.editEntity(entityID, { localRenderAlpha: 1.0 });
     };
+
+
+    that.mousePressEvent = function(event) {
+    };
+
+    that.mouseMoveEvent = function(event) {
+    };
+
+    that.mouseReleaseEvent = function(event) {
+    };
+
+    Controller.mousePressEvent.connect(that.mousePressEvent);
+    Controller.mouseMoveEvent.connect(that.mouseMoveEvent);
+    Controller.mouseReleaseEvent.connect(that.mouseReleaseEvent);
     
     return that;
 
