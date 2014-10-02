@@ -1084,7 +1084,7 @@ const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-    newPath += "/";
+    newPath += "/scripts/";
     // append the UUID for this script as the new filename, remove the curly braces
     newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
     return newPath;
@@ -1123,7 +1123,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     // via correct URL for the script so the client can download
                     
                     QUrl scriptURL = url;
-                    scriptURL.setPath(URI_ASSIGNMENT + "/"
+                    scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
                                       + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
                     
                     // have the HTTPManager serve the appropriate script file
