@@ -327,24 +327,39 @@ void DomainServer::setupAutomaticNetworking() {
     QString automaticNetworkValue =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
     
-    if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+    if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
+        automaticNetworkValue == FULL_AUTOMATIC_NETWORKING_VALUE) {
         
         LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
             qDebug() << "domain-server" << automaticNetworkValue << "automatic networking enabled for ID"
-            << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
+                << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
             const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+            const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
             
-            // setup our timer to check our IP via stun every 30 seconds
+            // setup our timer to check our IP via stun every X seconds
             QTimer* dynamicIPTimer = new QTimer(this);
             connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
-            dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
             
-            // send public socket changes to the data server so nodes can find us at our new IP
-            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+            if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+                dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+                
+                // send public socket changes to the data server so nodes can find us at our new IP
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+            } else {
+                dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
+                
+                // setup a timer to heartbeat with the ice-server every so often
+                QTimer* iceHeartbeatTimer = new QTimer(this);
+                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHearbeatToIceServer);
+                iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+                
+                // call our sendHeartbeaToIceServer immediately anytime a public address changes
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
+            }
             
             // attempt to update our sockets now
             requestCurrentPublicSocketViaSTUN();
@@ -966,6 +981,10 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
                                                        QNetworkAccessManager::PutOperation,
                                                        JSONCallbackParameters(),
                                                        domainUpdateJSON.toUtf8());
+}
+
+void DomainServer::sendHearbeatToIceServer() {
+    LimitedNodeList::getInstance()->sendHeartbeatToIceServer();
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {

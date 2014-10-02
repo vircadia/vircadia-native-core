@@ -106,6 +106,8 @@ public:
     
     virtual void sendSTUNRequest();
     virtual bool processSTUNResponse(const QByteArray& packet);
+    
+    void sendHeartbeatToIceServer(QUuid headerID = QUuid(), const QUuid& connectRequestID = QUuid());
 public slots:
     void reset();
     void eraseAllNodes();

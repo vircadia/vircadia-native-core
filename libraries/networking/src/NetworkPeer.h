@@ -19,6 +19,7 @@
 
 const QString ICE_SERVER_HOSTNAME = "localhost";
 const int ICE_SERVER_DEFAULT_PORT = 7337;
+const int ICE_HEARBEAT_INTERVAL_MSECS = 2 * 1000;
 
 class NetworkPeer : public QObject {
 public:

@@ -618,3 +618,24 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     
     return false;
 }
+
+void LimitedNodeList::sendHeartbeatToIceServer(QUuid headerID, const QUuid& connectionRequestID) {
+    
+    if (headerID.isNull()) {
+        headerID = _sessionUUID;
+    }
+    
+    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
+    QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
+    
+    iceDataStream << _publicSockAddr << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort());
+    
+    if (!connectionRequestID.isNull()) {
+        iceDataStream << connectionRequestID;
+        
+        qDebug() << "Sending packet to ICE server to request connection info for peer with ID"
+            << uuidStringWithoutCurlyBraces(connectionRequestID);
+    }
+    
+    _nodeSocket.writeDatagram(iceRequestByteArray, QHostAddress::LocalHost, ICE_SERVER_DEFAULT_PORT);
+}

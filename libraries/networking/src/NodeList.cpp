@@ -304,16 +304,7 @@ void NodeList::sendICERequestForDomainConnection() {
     
     static QUuid iceUUID = QUuid::createUuid();
     
-    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, iceUUID);
-    QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
-    
-    iceDataStream << _publicSockAddr << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort());
-    iceDataStream << _domainHandler.getUUID();
-    
-    qDebug() << "Sending packet to ICE server to request connection info for peer with ID"
-        << uuidStringWithoutCurlyBraces(_domainHandler.getUUID());
-    
-    _nodeSocket.writeDatagram(iceRequestByteArray, QHostAddress::LocalHost, ICE_SERVER_DEFAULT_PORT);
+    LimitedNodeList::sendHeartbeatToIceServer(iceUUID, _domainHandler.getUUID());
 }
 
 int NodeList::processDomainServerList(const QByteArray& packet) {
