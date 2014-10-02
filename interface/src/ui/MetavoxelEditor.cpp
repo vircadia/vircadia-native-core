@@ -1393,8 +1393,14 @@ void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3&
     }
     QColor color = _color->getColor();
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialBoxEdit(Box(minimum, maximum),
-        _editor->getGridSpacing(), material, color)) };
+    
+    Cuboid* cuboid = new Cuboid();
+    cuboid->setTranslation((maximum + minimum) * 0.5f);
+    glm::vec3 vector = (maximum - minimum) * 0.5f;
+    cuboid->setScale(vector.x);
+    cuboid->setAspectY(vector.y / vector.x);
+    cuboid->setAspectZ(vector.z / vector.x);
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(SharedObjectPointer(cuboid), material, color)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
