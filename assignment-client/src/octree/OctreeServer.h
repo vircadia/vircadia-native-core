@@ -115,7 +115,7 @@ public:
     static int howManyThreadsDidHandlePacketSend(quint64 since = 0);
     static int howManyThreadsDidCallWriteDatagram(quint64 since = 0);
 
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler);
 
     virtual void aboutToFinish();
     void forceNodeShutdown(SharedNodePointer node);

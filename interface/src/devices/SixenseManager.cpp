@@ -96,15 +96,28 @@ void SixenseManager::initialize() {
 #ifdef __APPLE__
         
         if (!_sixenseLibrary) {
-            const QString SIXENSE_LIBRARY_NAME = "libsixense_x64.dylib";
-            _sixenseLibrary = new QLibrary(SIXENSE_LIBRARY_NAME);
+            
+#ifdef SIXENSE_LIB_FILENAME
+            _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
+#else
+            const QString SIXENSE_LIBRARY_NAME = "libsixense_x64";
+            QFileInfo frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "../Frameworks/"
+                + SIXENSE_LIBRARY_NAME;
+        
+            _sixenseLibrary = new QLibrary(frameworkSixenseLibrary.fileName());
+#endif
         }
         
-        qDebug() << "Initializing sixense library for hydra support - libsixense_x64.dylib load state is"
-            << _sixenseLibrary->isLoaded();
+        if (_sixenseLibrary->load()){
+            qDebug() << "Loaded sixense library for hydra support -" << _sixenseLibrary->fileName();
+        } else {
+            qDebug() << "Sixense library at" << _sixenseLibrary->fileName() << "failed to load."
+                << "Continuing without hydra support.";
+            return;
+        }
+        
         SixenseBaseFunction sixenseInit = (SixenseBaseFunction) _sixenseLibrary->resolve("sixenseInit");
 #endif
-        
         sixenseInit();
         
         _isInitialized = true;

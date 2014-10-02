@@ -20,7 +20,7 @@
 class HTTPSRequestHandler : public HTTPRequestHandler {
 public:
     /// Handles an HTTPS request
-    virtual bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url) = 0;
+    virtual bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false) = 0;
 };
 
 class HTTPSManager : public HTTPManager, public HTTPSRequestHandler {
@@ -35,8 +35,8 @@ public:
     void setCertificate(const QSslCertificate& certificate) { _certificate = certificate; }
     void setPrivateKey(const QSslKey& privateKey) { _privateKey = privateKey; }
     
-    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url);
-    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url);
+    bool handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler = false);
+    bool handleHTTPSRequest(HTTPSConnection* connection, const QUrl& url, bool skipSubHandler = false);
     
 protected:
     void incomingConnection(qintptr socketDescriptor);
