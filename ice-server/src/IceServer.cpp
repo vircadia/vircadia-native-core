@@ -9,9 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QTimer>
+
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 
 #include "IceServer.h"
+
+const int CLEAR_INACTIVE_PEERS_INTERVAL_MSECS = 1 * 1000;
+const int PEER_SILENCE_THRESHOLD_MSECS = 5 * 1000;
 
 IceServer::IceServer(int argc, char* argv[]) :
 	QCoreApplication(argc, argv),
@@ -24,6 +30,12 @@ IceServer::IceServer(int argc, char* argv[]) :
     
     // call our process datagrams slot when the UDP socket has packets ready
     connect(&_serverSocket, &QUdpSocket::readyRead, this, &IceServer::processDatagrams);
+    
+    // setup our timer to clear inactive peers
+    QTimer* inactivePeerTimer = new QTimer(this);
+    connect(inactivePeerTimer, &QTimer::timeout, this, &IceServer::clearInactivePeers);
+    inactivePeerTimer->start(CLEAR_INACTIVE_PEERS_INTERVAL_MSECS);
+    
 }
 
 void IceServer::processDatagrams() {
@@ -65,6 +77,9 @@ void IceServer::processDatagrams() {
                 qDebug() << "Matched hearbeat to existing network peer" << *matchingPeer;
             }
             
+            // update our last heard microstamp for this network peer to now
+            matchingPeer->setLastHeardMicrostamp(usecTimestampNow());
+            
             // check if this node also included a UUID that they would like to connect to
             QUuid connectRequestID;
             hearbeatStream >> connectRequestID;
@@ -83,6 +98,22 @@ void IceServer::processDatagrams() {
                     _serverSocket.writeDatagram(heartbeatResponse, sendingSockAddr.getAddress(), sendingSockAddr.getPort());
                 }
             }
+        }
+    }
+}
+
+void IceServer::clearInactivePeers() {
+    NetworkPeerHash::iterator peerItem = _activePeers.begin();
+    
+    while (peerItem != _activePeers.end()) {
+        SharedNetworkPeer peer = peerItem.value();
+        
+        if ((usecTimestampNow() - peer->getLastHeardMicrostamp()) > (PEER_SILENCE_THRESHOLD_MSECS * 1000)) {
+            qDebug() << "Removing peer from memory for inactivity -" << *peer;
+            peerItem = _activePeers.erase(peerItem);
+        } else {
+            // we didn't kill this peer, push the iterator forwards
+            ++peerItem;
         }
     }
 }

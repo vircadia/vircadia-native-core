@@ -16,7 +16,6 @@
 #include "SharedUtil.h"
 
 #include <QtCore/QDataStream>
-#include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 
 const QString UNKNOWN_NodeType_t_NAME = "Unknown";
@@ -46,8 +45,6 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
 	NetworkPeer(uuid, publicSocket, localSocket),
     _type(type),
-    _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow()),
     _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),

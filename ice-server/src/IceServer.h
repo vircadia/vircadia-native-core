@@ -18,14 +18,17 @@
 
 #include <NetworkPeer.h>
 
+typedef QHash<QUuid, SharedNetworkPeer> NetworkPeerHash;
+
 class IceServer : public QCoreApplication {
 public:
     IceServer(int argc, char* argv[]);
 private slots:
     void processDatagrams();
+    void clearInactivePeers();
 private:
     QUuid _id;
-    QHash<QUuid, SharedNetworkPeer> _activePeers;
+    NetworkPeerHash _activePeers;
     QUdpSocket _serverSocket;
 };
 

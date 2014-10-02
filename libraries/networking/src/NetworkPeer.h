@@ -41,6 +41,12 @@ public:
     void activateLocalSocket();
     void activateSymmetricSocket();
     
+    quint64 getWakeTimestamp() const { return _wakeTimestamp; }
+    void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
+    
+    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
+    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
+    
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
 protected:
@@ -50,6 +56,9 @@ protected:
     HifiSockAddr _localSocket;
     HifiSockAddr _symmetricSocket;
     HifiSockAddr* _activeSocket;
+    
+    quint64 _wakeTimestamp;
+    quint64 _lastHeardMicrostamp;
 };
 
 QDebug operator<<(QDebug debug, const NetworkPeer &peer);

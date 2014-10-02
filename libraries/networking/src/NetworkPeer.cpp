@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <qdatetime.h>
+
+#include <SharedUtil.h>
 #include <UUID.h>
 
 #include "NetworkPeer.h"
@@ -18,7 +21,9 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _publicSocket(publicSocket),
     _localSocket(localSocket),
     _symmetricSocket(),
-    _activeSocket(NULL)
+    _activeSocket(NULL),
+    _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
+    _lastHeardMicrostamp(usecTimestampNow())
 {
     
 }

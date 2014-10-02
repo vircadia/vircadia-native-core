@@ -56,12 +56,6 @@ public:
 
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
-
-    quint64 getWakeTimestamp() const { return _wakeTimestamp; }
-    void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
-
-    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
-    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
@@ -92,8 +86,7 @@ private:
     Node& operator=(Node otherNode);
 
     NodeType_t _type;
-    quint64 _wakeTimestamp;
-    quint64 _lastHeardMicrostamp;
+    
     
     QUuid _connectionSecret;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
