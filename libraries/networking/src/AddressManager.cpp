@@ -118,9 +118,21 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
             QJsonObject domainObject = dataObject[ADDRESS_API_DOMAIN_KEY].toObject();
             
             const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
-            QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
+            const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
             
-            emit possibleDomainChangeRequired(domainHostname);
+            if (domainObject.contains(DOMAIN_NETWORK_ADDRESS_KEY)) {
+                QString domainHostname = domainObject[DOMAIN_NETWORK_ADDRESS_KEY].toString();
+                
+                emit possibleDomainChangeRequiredToHostname(domainHostname);
+            } else {
+                QString iceServerAddress = domainObject[DOMAIN_ICE_SERVER_ADDRESS_KEY].toString();
+                
+                const QString DOMAIN_ID_KEY = "id";
+                QString domainIDString = domainObject[DOMAIN_ID_KEY].toString();
+                QUuid domainID(domainIDString);
+                
+                emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
+            }
             
             // take the path that came back
             const QString LOCATION_KEY = "location";
@@ -182,7 +194,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
     
     if (hostnameRegex.indexIn(lookupString) != -1) {
-        emit possibleDomainChangeRequired(hostnameRegex.cap(0));
+        emit possibleDomainChangeRequiredToHostname(hostnameRegex.cap(0));
         emit lookupResultsFinished();
         return true;
     }
@@ -190,7 +202,7 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
-        emit possibleDomainChangeRequired(ipAddressRegex.cap(0));
+        emit possibleDomainChangeRequiredToHostname(ipAddressRegex.cap(0));
         emit lookupResultsFinished();
         return true;
     }

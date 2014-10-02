@@ -67,6 +67,10 @@ void IceServer::processDatagrams() {
             // check if this node also included a UUID that they would like to connect to
             QUuid connectRequestUUID;
             hearbeatStream >> connectRequestUUID;
+            
+            if (!connectRequestUUID.isNull()) {
+                qDebug() << "Peer wants to connect to peer with ID" << uuidStringWithoutCurlyBraces(connectRequestUUID);
+            }
         }
     }
 }

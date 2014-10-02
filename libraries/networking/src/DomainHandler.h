@@ -54,7 +54,7 @@ public:
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     
-    bool requiresICE() const { return _requiresICE; }
+    bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
     
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
@@ -68,6 +68,7 @@ public:
     void softReset();
 public slots:
     void setHostname(const QString& hostname);
+    void setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id);
     
 private slots:
     void completedHostnameLookup(const QHostInfo& hostInfo);
@@ -87,7 +88,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
-    bool _requiresICE;
+    HifiSockAddr _iceServerSockAddr;
     bool _isConnected;
     QTimer* _handshakeTimer;
     QJsonObject _settingsObject;

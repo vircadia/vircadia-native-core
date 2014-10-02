@@ -40,7 +40,8 @@ signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
     void lookupResultIsNotFound();
-    void possibleDomainChangeRequired(const QString& newHostname);
+    void possibleDomainChangeRequiredToHostname(const QString& newHostname);
+    void possibleDomainChangeRequiredViaICEForID(const QString& iceServerHostname, const QUuid& domainID);
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);

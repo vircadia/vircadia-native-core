@@ -299,9 +299,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     AddressManager& addressManager = AddressManager::getInstance();
     
-    // connect to the domainChangeRequired signal on AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+    // handle domain change signals from AddressManager
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
             this, &Application::changeDomainHostname);
+    
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+            &domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;

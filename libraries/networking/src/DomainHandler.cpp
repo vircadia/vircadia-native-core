@@ -25,7 +25,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
-    _requiresICE(true),
+    _iceServerSockAddr(),
     _isConnected(false),
     _handshakeTimer(NULL),
     _settingsObject(),
@@ -36,7 +36,7 @@ DomainHandler::DomainHandler(QObject* parent) :
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
-    _requiresICE = true;
+    _iceServerSockAddr = HifiSockAddr();
     _isConnected = false;
     emit disconnectedFromDomain();
     
@@ -122,6 +122,19 @@ void DomainHandler::setHostname(const QString& hostname) {
         
         UserActivityLogger::getInstance().changedDomain(_hostname);
         emit hostnameChanged(_hostname);
+    }
+}
+
+void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
+    if (id != _uuid) {
+        // re-set the domain info to connect to new domain
+        hardReset();
+        
+        _uuid = id;
+        _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        
+        qDebug() << "Domain ID changed to" << uuidStringWithoutCurlyBraces(_uuid)
+            << "- ICE required via ice server at" << iceServerHostname;
     }
 }
 
