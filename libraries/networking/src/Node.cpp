@@ -44,14 +44,10 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) :
+	NetworkPeer(uuid, publicSocket, localSocket),
     _type(type),
-    _uuid(uuid),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
     _lastHeardMicrostamp(usecTimestampNow()),
-    _publicSocket(publicSocket),
-    _localSocket(localSocket),
-    _symmetricSocket(),
-    _activeSocket(NULL),
     _connectionSecret(),
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
@@ -66,48 +62,6 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
 Node::~Node() {
     delete _linkedData;
     delete _bytesReceivedMovingAverage;
-}
-
-void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
-    if (_activeSocket == &_publicSocket) {
-        // if the active socket was the public socket then reset it to NULL
-        _activeSocket = NULL;
-    }
-
-    _publicSocket = publicSocket;
-}
-
-void Node::setLocalSocket(const HifiSockAddr& localSocket) {
-    if (_activeSocket == &_localSocket) {
-        // if the active socket was the local socket then reset it to NULL
-        _activeSocket = NULL;
-    }
-
-    _localSocket = localSocket;
-}
-
-void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
-    if (_activeSocket == &_symmetricSocket) {
-        // if the active socket was the symmetric socket then reset it to NULL
-        _activeSocket = NULL;
-    }
-    
-    _symmetricSocket = symmetricSocket;
-}
-
-void Node::activateLocalSocket() {
-    qDebug() << "Activating local socket for node" << *this;
-    _activeSocket = &_localSocket;
-}
-
-void Node::activatePublicSocket() {
-    qDebug() << "Activating public socket for node" << *this;
-    _activeSocket = &_publicSocket;
-}
-
-void Node::activateSymmetricSocket() {
-    qDebug() << "Activating symmetric socket for node" << *this;
-    _activeSocket = &_symmetricSocket;
 }
 
 void Node::recordBytesReceived(int bytesReceived) {
