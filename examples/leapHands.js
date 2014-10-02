@@ -33,6 +33,8 @@ var leapHands = (function () {
         PI = 3.141593,
         isWindows,
         avatarScale,
+        avatarFaceModelURL,
+        avatarSkeletonModelURL,
         settingsTimer;
 
     function printSkeletonJointNames() {
@@ -168,6 +170,8 @@ var leapHands = (function () {
         calibrationStatus = CALIBRATING;
 
         avatarScale = MyAvatar.scale;
+        avatarFaceModelURL = MyAvatar.faceModelURL;
+        avatarSkeletonModelURL = MyAvatar.skeletonModelURL;
 
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
         MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
@@ -212,8 +216,10 @@ var leapHands = (function () {
 
     function checkSettings() {
         // There is no "scale changed" event so we need check periodically.
-        if (!isOnHMD && calibrationStatus && MyAvatar.scale !== avatarScale) {
-            print("Leap Motion: Recalibrate because avatar scale changed");
+        if (!isOnHMD && calibrationStatus > UNCALIBRATED && (MyAvatar.scale !== avatarScale
+            || MyAvatar.faceModelURL !== avatarFaceModelURL
+            || MyAvatar.skeletonModelURL !== avatarSkeletonModelURL)) {
+            print("Leap Motion: Recalibrate because avatar body or scale changed");
             calibrationStatus = UNCALIBRATED;
         }
 
