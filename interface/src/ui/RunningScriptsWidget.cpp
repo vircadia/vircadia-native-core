@@ -40,6 +40,9 @@ RunningScriptsWidget::RunningScriptsWidget(QWidget* parent) :
     connect(&_proxyModel, &QSortFilterProxyModel::modelReset,
             this, &RunningScriptsWidget::selectFirstInList);
 
+    QString shortcutText = Menu::getInstance()->getActionForOption(MenuOption::ReloadAllScripts)->shortcut().toString(QKeySequence::NativeText);
+    ui->tipLabel->setText("Tip: Use " + shortcutText + " to reload all scripts.");
+
     _proxyModel.setSourceModel(&_scriptsModel);
     _proxyModel.sort(0, Qt::AscendingOrder);
     _proxyModel.setDynamicSortFilter(true);
@@ -86,7 +89,7 @@ void RunningScriptsWidget::setBoundary(const QRect& rect) {
 void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
     setUpdatesEnabled(false);
     QLayoutItem* widget;
-    while ((widget = ui->scrollAreaWidgetContents->layout()->takeAt(0)) != NULL) {
+    while ((widget = ui->scriptListWidget->layout()->takeAt(0)) != NULL) {
         delete widget->widget();
         delete widget;
     }
@@ -96,7 +99,7 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         if (!hash.contains(list.at(i))) {
             hash.insert(list.at(i), 1);
         }
-        QWidget* row = new QWidget(ui->scrollAreaWidgetContents);
+        QWidget* row = new QWidget(ui->scriptListWidget);
         row->setLayout(new QHBoxLayout(row));
 
         QUrl url = QUrl(list.at(i));
@@ -130,17 +133,17 @@ void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
         line->setFrameShape(QFrame::HLine);
         line->setStyleSheet("color: #E1E1E1; margin-left: 6px; margin-right: 6px;");
 
-        ui->scrollAreaWidgetContents->layout()->addWidget(row);
-        ui->scrollAreaWidgetContents->layout()->addWidget(line);
+        ui->scriptListWidget->layout()->addWidget(row);
+        ui->scriptListWidget->layout()->addWidget(line);
     }
 
 
     ui->noRunningScriptsLabel->setVisible(list.isEmpty());
-    ui->runningScriptsList->setVisible(!list.isEmpty());
+    ui->runningScriptsList->setVisible(true);//!list.isEmpty());
     ui->reloadAllButton->setVisible(!list.isEmpty());
     ui->stopAllButton->setVisible(!list.isEmpty());
 
-    ui->scrollAreaWidgetContents->updateGeometry();
+    ui->scriptListWidget->updateGeometry();
     setUpdatesEnabled(true);
     Application::processEvents();
     repaint();
