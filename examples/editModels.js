@@ -22,10 +22,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("toolBars.js");
-Script.include("entitySelectionTool.js");
-var selectionDisplay = SelectionDisplay;
-
+Script.include("libraries/toolBars.js");
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
 var toolHeight = 50;
@@ -2022,7 +2019,6 @@ function controller(wichSide) {
 
         if (this.glowedIntersectingModel.isKnownID) {
             Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.0 });
-            selectionDisplay.hideSelection(this.glowedIntersectingModel);
             this.glowedIntersectingModel.isKnownID = false;
         }
         if (!this.grabbing) {
@@ -2042,7 +2038,6 @@ function controller(wichSide) {
                 if (wantEntityGlow) {
                     Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.25 });
                 }
-                selectionDisplay.showSelection(this.glowedIntersectingModel, intersection.properties);
             }
         }
     }
@@ -2113,7 +2108,6 @@ function controller(wichSide) {
                              });
             this.oldModelRotation = newRotation;
             this.oldModelPosition = newPosition;
-            selectionDisplay.showSelection(this.entityID, Entities.getEntityProperties(this.entityID));
 
             var indicesToRemove = [];
             for (var i = 0; i < this.jointsIntersectingFromStart.length; ++i) {
@@ -2342,7 +2336,6 @@ function moveEntities() {
 
 
                          });
-        selectionDisplay.showSelection(leftController.entityID, Entities.getEntityProperties(leftController.entityID));
         leftController.oldModelPosition = newPosition;
         leftController.oldModelRotation = rotation;
         leftController.oldModelHalfDiagonal *= ratio;
@@ -2572,7 +2565,6 @@ function mousePressEvent(event) {
         print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
         tooltip.updateText(selectedEntityProperties);
         tooltip.show(true);
-        selectionDisplay.showSelection(selectedEntityID, selectedEntityProperties);
     }
 }
 
@@ -2591,7 +2583,6 @@ function mouseMoveEvent(event) {
         if (entityIntersection.accurate) {
             if(glowedEntityID.isKnownID && glowedEntityID.id != entityIntersection.entityID.id) {
                 Entities.editEntity(glowedEntityID, { glowLevel: 0.0 });
-                selectionDisplay.hideSelection(glowedEntityID);
                 glowedEntityID.id = -1;
                 glowedEntityID.isKnownID = false;
             }
@@ -2609,7 +2600,6 @@ function mouseMoveEvent(event) {
                     Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
                 }
                 glowedEntityID = entityIntersection.entityID;
-                selectionDisplay.showSelection(entityIntersection.entityID, entityIntersection.properties);
             }
             
         }
@@ -2732,7 +2722,6 @@ function mouseMoveEvent(event) {
     
     Entities.editEntity(selectedEntityID, selectedEntityProperties);
     tooltip.updateText(selectedEntityProperties);
-    selectionDisplay.showSelection(selectedEntityID, selectedEntityProperties);
 }
 
 
@@ -2807,7 +2796,6 @@ function scriptEnding() {
     cleanupModelMenus();
     tooltip.cleanup();
     modelImporter.cleanup();
-    selectionDisplay.cleanup();
     if (exportMenu) {
         exportMenu.close();
     }
@@ -3037,7 +3025,6 @@ Controller.keyPressEvent.connect(function (event) {
         Entities.editEntity(selectedEntityID, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
         somethingChanged = true;
-        selectionDisplay.showSelection(selectedEntityID, selectedEntityProperties);
     }
 });
 
@@ -3155,7 +3142,6 @@ Window.nonBlockingFormClosed.connect(function() {
             properties.color.blue = array[index++].value;
         }
         Entities.editEntity(editModelID, properties);
-        selectionDisplay.showSelection(editModelID, propeties);
     }
     modelSelected = false;
 });
