@@ -33,9 +33,24 @@ var viewHelpers = {
       input_type = _.has(setting, 'type') ? setting.type : "text"
       
       form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
-      form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name + 
-        "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-        "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+      
+      if (setting.type === 'select') {
+        form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
+        
+        _.each(setting.options, function(option) {
+          form_group += "<option value='" + option.value + "'" + 
+            (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
+        })
+        
+        form_group += "</select>"
+        
+        form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
+      } else {
+        form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name + 
+          "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+          "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+      }
+      
       form_group += "<span class='help-block'>" + setting.help + "</span>" 
     }
     
@@ -89,6 +104,11 @@ $(document).ready(function(){
   
   $('#settings-form').on('click', '#choose-domain-btn', function(){
     chooseFromHighFidelityDomains($(this))
+  })
+  
+  $('#settings-form').on('change', 'select', function(){
+    console.log("Changed" + $(this))
+    $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
   })
 
   var panelsSource = $('#panels-template').html()
