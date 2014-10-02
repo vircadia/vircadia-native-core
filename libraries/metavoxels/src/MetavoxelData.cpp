@@ -2247,17 +2247,50 @@ AttributeValue Sphere::getNormal(MetavoxelInfo& info, int alpha) const {
 }
 
 Cuboid::Cuboid() {
-    connect(this, &Cuboid::translationChanged, this, &Cuboid::updateBounds);
-    connect(this, &Cuboid::rotationChanged, this, &Cuboid::updateBounds);
-    connect(this, &Cuboid::scaleChanged, this, &Cuboid::updateBounds);
-    updateBounds();
+    connect(this, &Cuboid::translationChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::rotationChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::scaleChanged, this, &Cuboid::updateBoundsAndPlanes);
+    updateBoundsAndPlanes();
 }
 
 bool Cuboid::contains(const glm::vec3& point) {
-    return false;
+    glm::vec4 point4(point, 1.0f);
+    for (int i = 0; i < PLANE_COUNT; i++) {
+        if (glm::dot(_planes[i], point4) > 0.0f) {
+            return false;
+        }
+    }
+    return true;
 }
 
 bool Cuboid::intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal) {
+    glm::vec4 start4(start, 1.0f);
+    glm::vec4 vector = glm::vec4(end - start, 0.0f);
+    for (int i = 0; i < PLANE_COUNT; i++) {
+        // first check the segment against the plane
+        float divisor = glm::dot(_planes[i], vector);
+        if (glm::abs(divisor) < EPSILON) {
+            continue;
+        }
+        float t = -glm::dot(_planes[i], start4) / divisor;
+        if (t < 0.0f || t > 1.0f) {
+            continue;
+        }
+        // now that we've established that it intersects the plane, check against the other sides
+        glm::vec4 point = start4 + vector * t;
+        const int PLANES_PER_AXIS = 2;
+        int indexOffset = ((i / PLANES_PER_AXIS) + 1) * PLANES_PER_AXIS;
+        for (int j = 0; j < PLANE_COUNT - PLANES_PER_AXIS; j++) {
+            if (glm::dot(_planes[(indexOffset + j) % PLANE_COUNT], point) > 0.0f) {
+                goto outerContinue;
+            }
+        }
+        distance = t;
+        normal = glm::vec3(_planes[i]);
+        return true;
+        
+        outerContinue: ;
+    }
     return false;
 }
 
@@ -2265,9 +2298,18 @@ QByteArray Cuboid::getRendererClassName() const {
     return "CuboidRenderer";
 }
 
-void Cuboid::updateBounds() {
+void Cuboid::updateBoundsAndPlanes() {
     glm::vec3 extent(getScale(), getScale(), getScale());
-    setBounds(glm::translate(getTranslation()) * glm::mat4_cast(getRotation()) * Box(-extent, extent));
+    glm::mat4 rotationMatrix = glm::mat4_cast(getRotation());
+    setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(-extent, extent));
+    
+    glm::vec4 translation4 = glm::vec4(getTranslation(), 1.0f);
+    _planes[0] = glm::vec4(glm::vec3(rotationMatrix[0]), -glm::dot(rotationMatrix[0], translation4) - getScale());
+    _planes[1] = glm::vec4(glm::vec3(-rotationMatrix[0]), glm::dot(rotationMatrix[0], translation4) - getScale());
+    _planes[2] = glm::vec4(glm::vec3(rotationMatrix[1]), -glm::dot(rotationMatrix[1], translation4) - getScale());
+    _planes[3] = glm::vec4(glm::vec3(-rotationMatrix[1]), glm::dot(rotationMatrix[1], translation4) - getScale());
+    _planes[4] = glm::vec4(glm::vec3(rotationMatrix[2]), -glm::dot(rotationMatrix[2], translation4) - getScale());
+    _planes[5] = glm::vec4(glm::vec3(-rotationMatrix[2]), glm::dot(rotationMatrix[2], translation4) - getScale());
 }
 
 StaticModel::StaticModel() {

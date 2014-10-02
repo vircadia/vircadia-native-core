@@ -791,7 +791,12 @@ protected:
 
 private slots:
     
-    void updateBounds();
+    void updateBoundsAndPlanes();
+    
+private:
+    
+    static const int PLANE_COUNT = 6;
+    glm::vec4 _planes[PLANE_COUNT];
 };
 
 /// A static 3D model loaded from the network.
