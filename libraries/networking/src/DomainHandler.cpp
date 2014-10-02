@@ -138,9 +138,18 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         setUUID(id);
         _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
         
-        qDebug() << "Domain ID changed to" << uuidStringWithoutCurlyBraces(_uuid)
-            << "- ICE required via ice server at" << iceServerHostname;
+        qDebug() << "ICE required to connect to domain via ice server at" << iceServerHostname;
     }
+}
+
+void DomainHandler::activateICELocalSocket() {
+    _sockAddr = _icePeer.getLocalSocket();
+    _hostname = _sockAddr.getAddress().toString();
+}
+
+void DomainHandler::activateICEPublicSocket() {
+    _sockAddr = _icePeer.getPublicSocket();
+    _hostname = _sockAddr.getAddress().toString();
 }
 
 void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {

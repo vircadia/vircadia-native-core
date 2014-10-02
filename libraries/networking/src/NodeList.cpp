@@ -161,11 +161,23 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
                 
                 // set the ping time for this node for stat collection
                 timePingReply(packet, sendingNode);
-            } else if (uuidFromPacketHeader(packet) == _domainHandler.getUUID()) {
-                qDebug() << "RECEIVED A REPLY FROM DOMAIN";
             }
             
             break;
+        }
+        case PacketTypeUnverifiedPingReply: {
+            qDebug() << "Received reply from domain-server on" << senderSockAddr;
+            
+            // for now we're unsafely assuming this came back from the domain
+            if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
+                qDebug() << "Connecting to domain using local socket";
+                _domainHandler.activateICELocalSocket();
+            } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
+                qDebug() << "Conecting to domain using public socket";
+                _domainHandler.activateICEPublicSocket();
+            } else {
+                qDebug() << "Reply does not match either local or public socket for domain. Will not connect.";
+            }
         }
         case PacketTypeStunResponse: {
             // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
@@ -251,7 +263,7 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
-    } else if (!_domainHandler.isConnected() && _domainHandler.requiresICE()) {
+    } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
         
@@ -319,10 +331,10 @@ void NodeList::handleICEConnectionToDomainServer() {
             << uuidStringWithoutCurlyBraces(_domainHandler.getUUID());
         
         // send the ping packet to the local and public sockets for this node
-        QByteArray localPingPacket = constructPingPacket(PingType::Local);
+        QByteArray localPingPacket = constructPingPacket(PingType::Local, false);
         writeDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket(), iceUUID);
         
-        QByteArray publicPingPacket = constructPingPacket(PingType::Public);
+        QByteArray publicPingPacket = constructPingPacket(PingType::Public, false);
         writeDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket(), iceUUID);
     }
 }

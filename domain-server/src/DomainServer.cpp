@@ -983,8 +983,10 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
                                                        domainUpdateJSON.toUtf8());
 }
 
+const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr(QHostAddress::LocalHost, ICE_SERVER_DEFAULT_PORT);
+
 void DomainServer::sendHearbeatToIceServer() {
-    LimitedNodeList::getInstance()->sendHeartbeatToIceServer();
+    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
@@ -1028,7 +1030,7 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
             case PacketTypeStunResponse:
                 nodeList->processSTUNResponse(receivedPacket);
                 break;
-            case PacketTypePing: {
+            case PacketTypeUnverifiedPing: {
                 QByteArray pingReplyPacket = nodeList->constructPingReplyPacket(receivedPacket);
                 nodeList->writeUnverifiedDatagram(pingReplyPacket, senderSockAddr);
                 
