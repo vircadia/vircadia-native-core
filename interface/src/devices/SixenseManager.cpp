@@ -97,7 +97,6 @@ void SixenseManager::initialize() {
         
         if (!_sixenseLibrary) {
             
-            
 #ifdef SIXENSE_LIB_FILENAME
             _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
 #else
