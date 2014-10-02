@@ -8,8 +8,9 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#include "SharedUtil.h"
 #include "Leapmotion.h"
+#include "Menu.h"
+#include "SharedUtil.h"
 
 const int PALMROOT_NUM_JOINTS = 3;
 const int FINGER_NUM_JOINTS = 4;
@@ -101,6 +102,12 @@ Leapmotion::Leapmotion() :
             }
         }
     }
+
+#ifdef HAVE_LEAPMOTION
+    if (Menu::getInstance()->isOptionChecked(MenuOption::LeapMotionOnHMD)) {
+        _controller.setPolicyFlags(Leap::Controller::POLICY_OPTIMIZE_HMD);
+    }
+#endif
 }
 
 Leapmotion::~Leapmotion() {

@@ -1335,11 +1335,7 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
             } else {
                 glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
                 if (!(translucent && alphaThreshold == 0.0f)) {
-                    float emissive = (part.emissiveColor.r + part.emissiveColor.g + part.emissiveColor.b) / 3.0f;
-                    diffuse.a = qMax(Application::getInstance()->getGlowEffect()->getIntensity(), emissive);
-                    glAlphaFunc(GL_EQUAL, diffuse.a);
-                    diffuse = glm::vec4(qMax(diffuse.r, part.emissiveColor.r), qMax(diffuse.g, part.emissiveColor.g),
-                        qMax(diffuse.b, part.emissiveColor.b), diffuse.a);
+                    glAlphaFunc(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
                 }
                 glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
                 glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);

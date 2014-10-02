@@ -28,7 +28,7 @@ const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings
 
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
-    _settingsMap()
+    _configMap()
 {
     // load the description object from the settings description
     QFile descriptionFile(QCoreApplication::applicationDirPath() + SETTINGS_DESCRIPTION_RELATIVE_PATH);
@@ -37,11 +37,30 @@ DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray = QJsonDocument::fromJson(descriptionFile.readAll()).array();
 }
 
-void DomainServerSettingsManager::loadSettingsMap(const QStringList& argumentList) {
-    _settingsMap = HifiConfigVariantMap::mergeMasterConfigWithUserConfig(argumentList);
+void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList) {
+    _configMap.loadMasterAndUserConfig(argumentList);
     
-    // figure out where we are supposed to persist our settings to
-    _settingsFilepath = HifiConfigVariantMap::userConfigFilepath(argumentList);
+    // for now we perform a temporary transition from http-username and http-password to http_username and http_password
+    const QVariant* oldUsername = valueForKeyPath(_configMap.getUserConfig(), "security.http-username");
+    const QVariant* oldPassword = valueForKeyPath(_configMap.getUserConfig(), "security.http-password");
+    
+    if (oldUsername || oldPassword) {
+        QVariantMap& settingsMap = *reinterpret_cast<QVariantMap*>(_configMap.getUserConfig()["security"].data());
+        
+        // remove old keys, move to new format
+        if (oldUsername) {
+            settingsMap["http_username"] = oldUsername->toString();
+            settingsMap.remove("http-username");
+        }
+        
+        if (oldPassword) {
+            settingsMap["http_password"] = oldPassword->toString();
+            settingsMap.remove("http-password");
+        }
+        
+        // save the updated settings
+        persistToFile();
+    }
 }
 
 const QString SETTINGS_PATH = "/settings.json";
@@ -76,7 +95,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         QJsonObject postedObject = postedDocument.object();
         
         // we recurse one level deep below each group for the appropriate setting
-        recurseJSONObjectAndOverwriteSettings(postedObject, _settingsMap, _descriptionArray);
+        recurseJSONObjectAndOverwriteSettings(postedObject, _configMap.getUserConfig(), _descriptionArray);
         
         // store whatever the current _settingsMap is to file
         persistToFile();
@@ -94,10 +113,13 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
         // setup a JSON Object with descriptions and non-omitted settings
         const QString SETTINGS_RESPONSE_DESCRIPTION_KEY = "descriptions";
         const QString SETTINGS_RESPONSE_VALUE_KEY = "values";
+        const QString SETTINGS_RESPONSE_LOCKED_VALUES_KEY = "locked";
         
         QJsonObject rootObject;
         rootObject[SETTINGS_RESPONSE_DESCRIPTION_KEY] = _descriptionArray;
         rootObject[SETTINGS_RESPONSE_VALUE_KEY] = responseObjectForType("", true);
+        rootObject[SETTINGS_RESPONSE_LOCKED_VALUES_KEY] = QJsonDocument::fromVariant(_configMap.getMasterConfig()).object();
+        
         
         connection->respond(HTTPConnection::StatusCode200, QJsonDocument(rootObject).toJson(), "application/json");
     }
@@ -145,7 +167,8 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
                         
                         // we need to check if the settings map has a value for this setting
                         QVariant variantValue;
-                        QVariant settingsMapGroupValue = _settingsMap.value(groupObject[DESCRIPTION_NAME_KEY].toString());
+                        QVariant settingsMapGroupValue = _configMap.getMergedConfig()
+                            .value(groupObject[DESCRIPTION_NAME_KEY].toString());
                         
                         if (!settingsMapGroupValue.isNull()) {
                             variantValue = settingsMapGroupValue.toMap().value(settingName);
@@ -239,23 +262,19 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
     }
 }
 
-QByteArray DomainServerSettingsManager::getJSONSettingsMap() const {
-    return QJsonDocument::fromVariant(_settingsMap).toJson();
-}
-
 void DomainServerSettingsManager::persistToFile() {
     
     // make sure we have the dir the settings file is supposed to live in
-    QFileInfo settingsFileInfo(_settingsFilepath);
+    QFileInfo settingsFileInfo(_configMap.getUserConfigFilename());
     
     if (!settingsFileInfo.dir().exists()) {
         settingsFileInfo.dir().mkpath(".");
     }
     
-    QFile settingsFile(_settingsFilepath);
+    QFile settingsFile(_configMap.getUserConfigFilename());
     
     if (settingsFile.open(QIODevice::WriteOnly)) {
-        settingsFile.write(getJSONSettingsMap());
+        settingsFile.write(QJsonDocument::fromVariant(_configMap.getUserConfig()).toJson());
     } else {
         qCritical("Could not write to JSON settings file. Unable to persist settings.");
     }

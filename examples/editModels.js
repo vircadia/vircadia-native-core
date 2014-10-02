@@ -2403,7 +2403,7 @@ function Tooltip() {
     this.x = 285;
     this.y = 115;
     this.width = 500;
-    this.height = 180; // 145;
+    this.height = 300; // 145;
     this.margin = 5;
     this.decimals = 3;
 
@@ -2414,8 +2414,8 @@ function Tooltip() {
         height: this.height,
         margin: this.margin,
         text: "",
-        color: { red: 128, green: 128, blue: 128 },
-        alpha: 0.2,
+        color: { red: 228, green: 228, blue: 228 },
+        alpha: 0.5,
         visible: false
     });
     this.show = function (doShow) {
@@ -2764,6 +2764,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
                         afterItem: "Allow Select Large Models", isCheckable: true });
 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
@@ -2818,6 +2819,128 @@ var dimensionY;
 var dimensionZ;
 var rescalePercentage;
 
+function showPropertiesForm() {
+    propertiesForEditedEntity = Entities.getEntityProperties(editModelID);
+    var properties = propertiesForEditedEntity;
+
+    var array = new Array();
+    var index = 0;
+    var decimals = 3;
+    if (properties.type == "Model") {
+        array.push({ label: "Model URL:", value: properties.modelURL });
+        index++;
+        array.push({ label: "Animation URL:", value: properties.animationURL });
+        index++;
+        array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
+        index++;
+        array.push({ label: "Animation FPS:", value: properties.animationFPS });
+        index++;
+        array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
+        index++;
+    }
+    array.push({ label: "Position:", type: "header" });
+    index++;
+    array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
+    index++;
+    array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
+    index++;
+    array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
+    index++;
+
+    array.push({ label: "Registration X:", value: properties.registrationPoint.x.toFixed(decimals) });
+    index++;
+    array.push({ label: "Registration Y:", value: properties.registrationPoint.y.toFixed(decimals) });
+    index++;
+    array.push({ label: "Registration Z:", value: properties.registrationPoint.z.toFixed(decimals) });
+    index++;
+
+    array.push({ label: "Rotation:", type: "header" });
+    index++;
+    var angles = Quat.safeEulerAngles(properties.rotation);
+    array.push({ label: "Pitch:", value: angles.x.toFixed(decimals) });
+    index++;
+    array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
+    index++;
+    array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
+    index++;
+
+    array.push({ label: "Dimensions:", type: "header" });
+    index++;
+    array.push({ label: "Width:", value: properties.dimensions.x.toFixed(decimals) });
+    dimensionX = index;
+    index++;
+    array.push({ label: "Height:", value: properties.dimensions.y.toFixed(decimals) });
+    dimensionY = index;
+    index++;
+    array.push({ label: "Depth:", value: properties.dimensions.z.toFixed(decimals) });
+    dimensionZ = index;
+    index++;
+    array.push({ label: "", type: "inlineButton", buttonLabel: "Reset to Natural Dimensions", name: "resetDimensions" });
+    index++;
+    array.push({ label: "Rescale Percentage:", value: 100 });
+    rescalePercentage = index;
+    index++;
+    array.push({ label: "", type: "inlineButton", buttonLabel: "Rescale", name: "rescaleDimensions" });
+    index++;
+
+    array.push({ label: "Velocity:", type: "header" });
+    index++;
+    array.push({ label: "Linear X:", value: properties.velocity.x.toFixed(decimals) });
+    index++;
+    array.push({ label: "Linear Y:", value: properties.velocity.y.toFixed(decimals) });
+    index++;
+    array.push({ label: "Linear Z:", value: properties.velocity.z.toFixed(decimals) });
+    index++;
+    array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
+    index++;
+    array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
+    index++;
+    array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
+    index++;
+    array.push({ label: "Angular Roll:", value: properties.angularVelocity.z.toFixed(decimals) });
+    index++;
+    array.push({ label: "Angular Damping:", value: properties.angularDamping.toFixed(decimals) });
+    index++;
+
+    array.push({ label: "Gravity X:", value: properties.gravity.x.toFixed(decimals) });
+    index++;
+    array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
+    index++;
+    array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
+    index++;
+
+    array.push({ label: "Collisions:", type: "header" });
+    index++;
+    array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
+    index++;
+    array.push({ label: "Ignore for Collisions:", value: properties.ignoreForCollisions });
+    index++;
+    array.push({ label: "Collisions Will Move:", value: properties.collisionsWillMove });
+    index++;
+
+    array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
+    index++;
+
+    array.push({ label: "Visible:", value: properties.visible });
+    index++;
+
+    if (properties.type == "Box" || properties.type == "Sphere") {
+        array.push({ label: "Color:", type: "header" });
+        index++;
+        array.push({ label: "Red:", value: properties.color.red });
+        index++;
+        array.push({ label: "Green:", value: properties.color.green });
+        index++;
+        array.push({ label: "Blue:", value: properties.color.blue });
+        index++;
+    }
+    array.push({ button: "Cancel" });
+    index++;
+
+    editEntityFormArray = array;
+    Window.nonBlockingForm("Edit Properties", array);
+}
+
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
     if (menuItem == "Allow Select Small Models") {
@@ -2849,6 +2972,33 @@ function handeMenuEvent(menuItem) {
         } else {
             print("  Delete Entity.... not holding...");
         }
+    } else if (menuItem == "Model List") {
+        var models = new Array();
+        models = Entities.findEntities(MyAvatar.position, Number.MAX_VALUE);
+        for (var i = 0; i < models.length; i++) {
+            models[i].properties = Entities.getEntityProperties(models[i]);
+            models[i].toString = function() {
+                var modelname = decodeURIComponent(
+                                this.properties.modelURL.indexOf("/") != -1 ?
+                                this.properties.modelURL.substring(this.properties.modelURL.lastIndexOf("/") + 1) :
+                                this.properties.modelURL);
+                return "[" + this.properties.type + "] " + modelname;
+            };
+        }
+        var form = [{label: "Model: ", options: models}];
+        form.push({label: "Action: ", options: ["Properties", "Delete", "Teleport"]});
+        form.push({ button: "Cancel" });
+        if (Window.form("Model List", form)) {
+            var selectedModel = form[0].value;
+            if (form[1].value == "Properties") {
+                editModelID = selectedModel;
+                showPropertiesForm();
+            } else if (form[1].value == "Delete") {
+                Entities.deleteEntity(selectedModel);
+            } else if (form[1].value == "Teleport") {
+                MyAvatar.position = selectedModel.properties.position;
+            }
+        }
     } else if (menuItem == "Edit Properties...") {
         editModelID = -1;
         if (leftController.grabbing) {
@@ -2865,126 +3015,7 @@ function handeMenuEvent(menuItem) {
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
-
-            propertiesForEditedEntity = Entities.getEntityProperties(editModelID);
-            var properties = propertiesForEditedEntity;
-
-            var array = new Array();
-            var index = 0;
-            var decimals = 3;
-            if (properties.type == "Model") {
-                array.push({ label: "Model URL:", value: properties.modelURL });
-                index++;
-                array.push({ label: "Animation URL:", value: properties.animationURL });
-                index++;
-                array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
-                index++;
-                array.push({ label: "Animation FPS:", value: properties.animationFPS });
-                index++;
-                array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
-                index++;
-            }
-            array.push({ label: "Position:", type: "header" });
-            index++;
-            array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
-            index++;
-            array.push({ label: "Y:", value: properties.position.y.toFixed(decimals) });
-            index++;
-            array.push({ label: "Z:", value: properties.position.z.toFixed(decimals) });
-            index++;
-
-            array.push({ label: "Registration X:", value: properties.registrationPoint.x.toFixed(decimals) });
-            index++;
-            array.push({ label: "Registration Y:", value: properties.registrationPoint.y.toFixed(decimals) });
-            index++;
-            array.push({ label: "Registration Z:", value: properties.registrationPoint.z.toFixed(decimals) });
-            index++;
-
-            array.push({ label: "Rotation:", type: "header" });
-            index++;
-            var angles = Quat.safeEulerAngles(properties.rotation);
-            array.push({ label: "Pitch:", value: angles.x.toFixed(decimals) });
-            index++;
-            array.push({ label: "Yaw:", value: angles.y.toFixed(decimals) });
-            index++;
-            array.push({ label: "Roll:", value: angles.z.toFixed(decimals) });
-            index++;
-
-            array.push({ label: "Dimensions:", type: "header" });
-            index++;
-            array.push({ label: "Width:", value: properties.dimensions.x.toFixed(decimals) });
-            dimensionX = index;
-            index++;
-            array.push({ label: "Height:", value: properties.dimensions.y.toFixed(decimals) });
-            dimensionY = index;
-            index++;
-            array.push({ label: "Depth:", value: properties.dimensions.z.toFixed(decimals) });
-            dimensionZ = index;
-            index++;
-            array.push({ label: "", type: "inlineButton", buttonLabel: "Reset to Natural Dimensions", name: "resetDimensions" });
-            index++;
-            array.push({ label: "Rescale Percentage:", value: 100 });
-            rescalePercentage = index;
-            index++;
-            array.push({ label: "", type: "inlineButton", buttonLabel: "Rescale", name: "rescaleDimensions" });
-            index++;
-
-            array.push({ label: "Velocity:", type: "header" });
-            index++;
-            array.push({ label: "Linear X:", value: properties.velocity.x.toFixed(decimals) });
-            index++;
-            array.push({ label: "Linear Y:", value: properties.velocity.y.toFixed(decimals) });
-            index++;
-            array.push({ label: "Linear Z:", value: properties.velocity.z.toFixed(decimals) });
-            index++;
-            array.push({ label: "Linear Damping:", value: properties.damping.toFixed(decimals) });
-            index++;
-            array.push({ label: "Angular Pitch:", value: properties.angularVelocity.x.toFixed(decimals) });
-            index++;
-            array.push({ label: "Angular Yaw:", value: properties.angularVelocity.y.toFixed(decimals) });
-            index++;
-            array.push({ label: "Angular Roll:", value: properties.angularVelocity.z.toFixed(decimals) });
-            index++;
-            array.push({ label: "Angular Damping:", value: properties.angularDamping.toFixed(decimals) });
-            index++;
-
-            array.push({ label: "Gravity X:", value: properties.gravity.x.toFixed(decimals) });
-            index++;
-            array.push({ label: "Gravity Y:", value: properties.gravity.y.toFixed(decimals) });
-            index++;
-            array.push({ label: "Gravity Z:", value: properties.gravity.z.toFixed(decimals) });
-            index++;
-
-            array.push({ label: "Collisions:", type: "header" });
-            index++;
-            array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
-            index++;
-            array.push({ label: "Ignore for Collisions:", value: properties.ignoreForCollisions });
-            index++;
-            array.push({ label: "Collisions Will Move:", value: properties.collisionsWillMove });
-            index++;
-
-            array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
-            index++;
-
-            array.push({ label: "Visible:", value: properties.visible });
-            index++;
-            
-            if (properties.type == "Box" || properties.type == "Sphere") {
-                array.push({ label: "Color:", type: "header" });
-                index++;
-                array.push({ label: "Red:", value: properties.color.red });
-                index++;
-                array.push({ label: "Green:", value: properties.color.green });
-                index++;
-                array.push({ label: "Blue:", value: properties.color.blue });
-                index++;
-            }
-            array.push({ button: "Cancel" });
-            index++;
-
-            editEntityFormArray = array;
-            Window.nonBlockingForm("Edit Properties", array);
+            showPropertiesForm(editModelID);
         }
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();

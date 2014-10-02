@@ -186,6 +186,7 @@ public slots:
     void pasteToVoxel();
 
     void toggleLoginMenuItem();
+    void toggleSixense(bool shouldEnable);
 
     QMenu* addMenu(const QString& menuName);
     void removeMenu(const QString& menuName);
@@ -402,6 +403,7 @@ namespace MenuOption {
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
+    const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
@@ -448,6 +450,7 @@ namespace MenuOption {
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";
+    const QString SixenseEnabled = "Enable Hydra Support";
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";

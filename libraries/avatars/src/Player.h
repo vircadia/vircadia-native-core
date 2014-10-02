@@ -44,8 +44,11 @@ public slots:
     void loadRecording(RecordingPointer recording);
     void play();
     
-    void setCurrentFrame(int currentFrame);
-    void setCurrentTime(qint64 currentTime);
+    void setCurrentFrame(unsigned int currentFrame);
+    void setCurrentTime(unsigned int currentTime);
+
+    void setVolume(float volume);
+    void setAudioOffset(int audioOffset);
     
     void setPlayFromCurrentLocation(bool playFromCurrentPosition);
     void setLoop(bool loop) { _loop = loop; }
@@ -61,17 +64,19 @@ private:
     void setAudionInjectorPosition();
     bool computeCurrentFrame();
     
-    QElapsedTimer _timer;
+    AvatarData* _avatar;
     RecordingPointer _recording;
     int _currentFrame;
+    float _frameInterpolationFactor;
     int _pausedFrame;
-    qint64 _timerOffset;
+
+    QElapsedTimer _timer;
+    int _timerOffset;
+    int _audioOffset;
     
+    QThread* _audioThread;
     QSharedPointer<AudioInjector> _injector;
     AudioInjectorOptions _options;
-    
-    AvatarData* _avatar;
-    QThread* _audioThread;
     
     RecordingContext _currentContext;
     bool _playFromCurrentPosition;

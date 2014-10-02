@@ -57,7 +57,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
-    _settingsManager.loadSettingsMap(arguments());
+    _settingsManager.setupConfigMap(arguments());
     
     installNativeEventFilter(&_shutdownEventListener);
     connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
@@ -81,6 +81,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::restart() {
     qDebug() << "domain-server is restarting.";
+    
+    // make sure all static instances are reset
+    LimitedNodeList::getInstance()->reset();
+    AccountManager::getInstance(true);
+    
     exit(DomainServer::EXIT_CODE_REBOOT);
 }
 
@@ -1042,16 +1047,17 @@ const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 
 QString pathForAssignmentScript(const QUuid& assignmentUUID) {
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
-    newPath += "/";
+    newPath += "/scripts/";
     // append the UUID for this script as the new filename, remove the curly braces
     newPath += uuidStringWithoutCurlyBraces(assignmentUUID);
     return newPath;
 }
 
-bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
+bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
     const QString JSON_MIME_TYPE = "application/json";
 
     const QString URI_ASSIGNMENT = "/assignment";
+    const QString URI_ASSIGNMENT_SCRIPTS = URI_ASSIGNMENT + "/scripts";
     const QString URI_NODES = "/nodes";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
@@ -1062,7 +1068,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     }
     
     // check if this is a request for a scripted assignment (with a temp unique UUID)
-    const QString  ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
+    const QString ASSIGNMENT_REGEX_STRING = QString("\\%1\\/(%2)\\/?$").arg(URI_ASSIGNMENT).arg(UUID_REGEX_STRING);
     QRegExp assignmentRegex(ASSIGNMENT_REGEX_STRING);
     
     if (connection->requestOperation() == QNetworkAccessManager::GetOperation
@@ -1081,11 +1087,11 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     // via correct URL for the script so the client can download
                     
                     QUrl scriptURL = url;
-                    scriptURL.setPath(URI_ASSIGNMENT + "/"
+                    scriptURL.setPath(URI_ASSIGNMENT + "/scripts/"
                                       + uuidStringWithoutCurlyBraces(pendingData->getAssignmentUUID()));
                     
                     // have the HTTPManager serve the appropriate script file
-                    return _httpManager.handleHTTPRequest(connection, scriptURL);
+                    return _httpManager.handleHTTPRequest(connection, scriptURL, true);
                 }
             }
         }
@@ -1256,16 +1262,21 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
                 // create a file with the GUID of the assignment in the script host location
                 QFile scriptFile(newPath);
-                scriptFile.open(QIODevice::WriteOnly);
-                scriptFile.write(formData[0].second);
-
-                qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
-                                       .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
-
-                // add the script assigment to the assignment queue
-                SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
-                _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
-                _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
+                if (scriptFile.open(QIODevice::WriteOnly)) {
+                    scriptFile.write(formData[0].second);
+                    
+                    qDebug() << qPrintable(QString("Saved a script for assignment at %1%2")
+                                           .arg(newPath).arg(assignmentPool == emptyPool ? "" : " - pool is " + assignmentPool));
+                    
+                    // add the script assigment to the assignment queue
+                    SharedAssignmentPointer sharedScriptedAssignment(scriptAssignment);
+                    _unfulfilledAssignments.enqueue(sharedScriptedAssignment);
+                    _allAssignments.insert(sharedScriptedAssignment->getUUID(), sharedScriptedAssignment);
+                } else {
+                    // unable to save script for assignment - we shouldn't be here but debug it out
+                    qDebug() << "Unable to save a script for assignment at" << newPath;
+                    qDebug() << "Script will not be added to queue";
+                }
             }
 
             // respond with a 200 code for successful upload
@@ -1314,7 +1325,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
 
 const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
 
-bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url) {
+bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
     const QString URI_OAUTH = "/oauth";
     qDebug() << "HTTPS request received at" << url.toString();
     if (url.path() == URI_OAUTH) {
@@ -1396,8 +1407,8 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
     const QByteArray HTTP_COOKIE_HEADER_KEY = "Cookie";
     const QString ADMIN_USERS_CONFIG_KEY = "admin-users";
     const QString ADMIN_ROLES_CONFIG_KEY = "admin-roles";
-    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http-username";
-    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http-password";
+    const QString BASIC_AUTH_USERNAME_KEY_PATH = "security.http_username";
+    const QString BASIC_AUTH_PASSWORD_KEY_PATH = "security.http_password";
     
     const QByteArray UNAUTHENTICATED_BODY = "You do not have permission to access this domain-server.";
     

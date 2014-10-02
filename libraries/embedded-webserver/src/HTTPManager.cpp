@@ -40,8 +40,8 @@ void HTTPManager::incomingConnection(qintptr socketDescriptor) {
     }
 }
 
-bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url) {
-    if (requestHandledByRequestHandler(connection, url)) {
+bool HTTPManager::handleHTTPRequest(HTTPConnection* connection, const QUrl& url, bool skipSubHandler) {
+    if (!skipSubHandler && requestHandledByRequestHandler(connection, url)) {
         // this request was handled by our request handler object
         // so we don't need to attempt to do so in the document root
         return true;
