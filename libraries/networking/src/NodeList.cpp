@@ -336,7 +336,7 @@ void NodeList::sendDomainServerCheckIn() {
 
 void NodeList::handleICEConnectionToDomainServer() {
     if (_domainHandler.getICEPeer().isNull()) {
-        LimitedNodeList::sendHeartbeatToIceServer(HifiSockAddr("h.dfu.co", 7337),
+        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getUUID());
     } else {
