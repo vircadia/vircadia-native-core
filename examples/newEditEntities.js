@@ -5,18 +5,7 @@
 //  Created by Brad Hefta-Gaub on 10/2/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This script allows you to edit models either with the razor hydras or with your mouse
-//
-//  If using the hydras :
-//  grab grab models with the triggers, you can then move the models around or scale them with both hands.
-//  You can switch mode using the bumpers so that you can move models around more easily.
-//
-//  If using the mouse :
-//  - left click lets you move the model in the plane facing you.
-//    If pressing shift, it will move on the horizontal plane it's in.
-//  - right click lets you rotate the model. z and x give access to more axes of rotation while shift provides finer control.
-//  - left + right click lets you scale the model.
-//  - you can press r while holding the model to reset its rotation
+//  This script allows you to edit entities with a new UI/UX for mouse and trackpad based editing
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
