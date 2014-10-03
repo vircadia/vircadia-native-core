@@ -881,31 +881,11 @@ SelectionDisplay = (function () {
             switch(result.overlayID) {
                 case grabberMoveUp:
                     mode = "TRANSLATE_UP_DOWN";
-
-                    pickRay = Camera.computePickRay(event.x, event.y);
-                    lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
-                                                                    Quat.getFront(lastAvatarOrientation));
-                    if (wantDebug) {
-                             print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                             print("                event.y:" + event.y);
-                        Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                        Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
-                    }
                     somethingClicked = true;
                     break;
 
                 case grabberRBN:
                     mode = "STRETCH_RBN";
-
-                    pickRay = Camera.computePickRay(event.x, event.y);
-                    lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
-                                                                    Quat.getFront(lastAvatarOrientation));
-                    if (wantDebug) {
-                             print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                             print("                event.y:" + event.y);
-                        Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                        Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
-                    }
                     somethingClicked = true;
                     break;
 
@@ -913,17 +893,6 @@ SelectionDisplay = (function () {
                 case grabberEdgeTN:
                 case grabberEdgeBN:
                     mode = "STRETCH_NEAR";
-
-                    pickRay = Camera.computePickRay(event.x, event.y);
-                    lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
-                                                                    Quat.getFront(lastAvatarOrientation));
-                    if (wantDebug) {
-                             print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                             print("                event.y:" + event.y);
-                        Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                        Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
-                             print("                   mode:" + mode);
-                    }
                     somethingClicked = true;
                     break;
 
@@ -956,16 +925,6 @@ SelectionDisplay = (function () {
                 switch(result.overlayID) {
                     case selectionBox:
                         mode = "TRANSLATE_XZ";
-
-                        pickRay = Camera.computePickRay(event.x, event.y);
-                        lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
-                                                                        Quat.getFront(lastAvatarOrientation));
-                        if (wantDebug) {
-                                 print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                                 print("                event.y:" + event.y);
-                            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                            Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
-                        }
                         somethingClicked = true;
                         break;
                     default:
@@ -973,6 +932,17 @@ SelectionDisplay = (function () {
                         mode = "UNKNOWN";
                         break;
                 }
+            }
+        }
+
+        if (somethingClicked) {
+            pickRay = Camera.computePickRay(event.x, event.y);
+            lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
+                                                            Quat.getFront(lastAvatarOrientation));
+            if (wantDebug) {
+                     print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+                Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
             }
         }
 
