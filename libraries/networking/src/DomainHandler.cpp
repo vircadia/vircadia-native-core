@@ -25,6 +25,9 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _iceClientID(),
+    _iceServerSockAddr(),
+    _icePeer(),
     _isConnected(false),
     _handshakeTimer(NULL),
     _settingsObject(),
@@ -35,7 +38,12 @@ DomainHandler::DomainHandler(QObject* parent) :
 
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
+    
+    _iceServerSockAddr = HifiSockAddr();
+    _icePeer = NetworkPeer();
+    
     _isConnected = false;
+    
     emit disconnectedFromDomain();
     
     if (_handshakeTimer) {
@@ -123,6 +131,31 @@ void DomainHandler::setHostname(const QString& hostname) {
     }
 }
 
+void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, const QUuid& id) {
+    if (id != _uuid) {
+        // re-set the domain info to connect to new domain
+        hardReset();
+        
+        setUUID(id);
+        _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        
+        // refresh our ICE client UUID to something new
+        _iceClientID = QUuid::createUuid();
+        
+        qDebug() << "ICE required to connect to domain via ice server at" << iceServerHostname;
+    }
+}
+
+void DomainHandler::activateICELocalSocket() {
+    _sockAddr = _icePeer.getLocalSocket();
+    _hostname = _sockAddr.getAddress().toString();
+}
+
+void DomainHandler::activateICEPublicSocket() {
+    _sockAddr = _icePeer.getPublicSocket();
+    _hostname = _sockAddr.getAddress().toString();
+}
+
 void DomainHandler::completedHostnameLookup(const QHostInfo& hostInfo) {
     for (int i = 0; i < hostInfo.addresses().size(); i++) {
         if (hostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
@@ -152,21 +185,29 @@ void DomainHandler::setIsConnected(bool isConnected) {
     }
 }
 
-void DomainHandler::requestDomainSettings() const {
-    if (_settingsObject.isEmpty()) {
-        // setup the URL required to grab settings JSON
-        QUrl settingsJSONURL;
-        settingsJSONURL.setScheme("http");
-        settingsJSONURL.setHost(_hostname);
-        settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-        settingsJSONURL.setPath("/settings.json");
-        Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
-        settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
-        
-        qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
-        
-        QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
-        connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+void DomainHandler::requestDomainSettings() {
+    NodeType_t owningNodeType = NodeList::getInstance()->getOwnerType();
+    if (owningNodeType == NodeType::Agent) {
+        // for now the agent nodes don't need any settings - this allows local assignment-clients
+        // to connect to a domain that is using automatic networking (since we don't have TCP hole punch yet)
+        _settingsObject = QJsonObject();
+        emit settingsReceived(_settingsObject);
+    } else {
+        if (_settingsObject.isEmpty()) {
+            // setup the URL required to grab settings JSON
+            QUrl settingsJSONURL;
+            settingsJSONURL.setScheme("http");
+            settingsJSONURL.setHost(_hostname);
+            settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
+            settingsJSONURL.setPath("/settings.json");
+            Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+            settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
+            
+            qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
+            
+            QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
+            connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+        }
     }
 }
 
@@ -215,4 +256,21 @@ void DomainHandler::parseDTLSRequirementPacket(const QByteArray& dtlsRequirement
     _sockAddr.setPort(dtlsPort);
     
 //    initializeDTLSSession();
+}
+
+void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
+    QDataStream iceResponseStream(icePacket);
+    iceResponseStream.skipRawData(numBytesForPacketHeader(icePacket));
+    
+    NetworkPeer packetPeer;
+    iceResponseStream >> packetPeer;
+    
+    if (packetPeer.getUUID() != _uuid) {
+        qDebug() << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
+    } else {
+        qDebug() << "Received network peer object for domain -" << packetPeer;
+        _icePeer = packetPeer;
+        
+        emit requestICEConnectionAttempt();
+    }
 }

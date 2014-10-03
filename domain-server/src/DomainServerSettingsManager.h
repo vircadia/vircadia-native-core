@@ -26,6 +26,7 @@ public:
     bool handleAuthenticatedHTTPRequest(HTTPConnection* connection, const QUrl& url);
     
     void setupConfigMap(const QStringList& argumentList);
+    QVariant valueOrDefaultValueForKeyPath(const QString& keyPath);
     
     QVariantMap& getSettingsMap() { return _configMap.getMergedConfig(); }
 private:

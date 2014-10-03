@@ -70,7 +70,11 @@ enum PacketType {
     PacketTypeVoxelEditNack,
     PacketTypeParticleEditNack,
     PacketTypeEntityEditNack, // 48
-    PacketTypeSignedTransactionPayment
+    PacketTypeSignedTransactionPayment,
+    PacketTypeIceServerHeartbeat,
+    PacketTypeIceServerHeartbeatResponse,
+    PacketTypeUnverifiedPing,
+    PacketTypeUnverifiedPingReply
 };
 
 typedef char PacketVersion;
@@ -80,7 +84,9 @@ const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
     << PacketTypeDomainList << PacketTypeDomainListRequest << PacketTypeDomainOAuthRequest
     << PacketTypeCreateAssignment << PacketTypeRequestAssignment << PacketTypeStunResponse
     << PacketTypeNodeJsonStats << PacketTypeVoxelQuery << PacketTypeParticleQuery << PacketTypeEntityQuery
-    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeParticleEditNack << PacketTypeEntityEditNack;
+    << PacketTypeOctreeDataNack << PacketTypeVoxelEditNack << PacketTypeParticleEditNack << PacketTypeEntityEditNack
+    << PacketTypeIceServerHeartbeat << PacketTypeIceServerHeartbeatResponse
+    << PacketTypeUnverifiedPing << PacketTypeUnverifiedPingReply;
 
 const int NUM_BYTES_MD5_HASH = 16;
 const int NUM_STATIC_HEADER_BYTES = sizeof(PacketVersion) + NUM_BYTES_RFC4122_UUID;

@@ -64,7 +64,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     
     qRegisterMetaType<DomainServerWebSessionData>("DomainServerWebSessionData");
     qRegisterMetaTypeStreamOperators<DomainServerWebSessionData>("DomainServerWebSessionData");
-
+    
     if (optionallyReadX509KeyAndCertificate() && optionallySetupOAuth() && optionallySetupAssignmentPayment()) {
         // we either read a certificate and private key or were not passed one
         // and completed login or did not need to
@@ -74,8 +74,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         
         loadExistingSessionsFromSettings();
         
-        // check if we have the flag that enables dynamic IP
-        setupDynamicIPAddressUpdating();
+        // setup automatic networking settings with data server
+        setupAutomaticNetworking();
     }
 }
 
@@ -156,6 +156,16 @@ bool DomainServer::optionallySetupOAuth() {
 
     const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
     _oauthProviderURL = QUrl(settingsMap.value(OAUTH_PROVIDER_URL_OPTION).toString());
+    
+    // if we don't have an oauth provider URL then we default to the default node auth url
+    if (_oauthProviderURL.isEmpty()) {
+        _oauthProviderURL = DEFAULT_NODE_AUTH_URL;
+    }
+    
+    AccountManager& accountManager = AccountManager::getInstance();
+    accountManager.disableSettingsFilePersistence();
+    accountManager.setAuthURL(_oauthProviderURL);
+    
     _oauthClientID = settingsMap.value(OAUTH_CLIENT_ID_OPTION).toString();
     _oauthClientSecret = QProcessEnvironment::systemEnvironment().value(OAUTH_CLIENT_SECRET_ENV);
     _hostname = settingsMap.value(REDIRECT_HOSTNAME_OPTION).toString();
@@ -230,40 +240,36 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     addStaticAssignmentsToQueue();
 }
 
-const QString HIFI_USERNAME_ENV_KEY = "DOMAIN_SERVER_USERNAME";
-const QString HIFI_PASSWORD_ENV_KEY = "DOMAIN_SERVER_PASSWORD";
-
-bool DomainServer::hasOAuthProviderAndAuthInformation() {
+bool DomainServer::didSetupAccountManagerWithAccessToken() {
+    AccountManager& accountManager = AccountManager::getInstance();
+    
+    if (accountManager.hasValidAccessToken()) {
+        // we already gave the account manager a valid access token
+        return true;
+    }
     
     if (!_oauthProviderURL.isEmpty()) {
+        // check for an access-token in our settings, can optionally be overidden by env value
+        const QString ACCESS_TOKEN_KEY_PATH = "metaverse.access_token";
+        const QString ENV_ACCESS_TOKEN_KEY = "DOMAIN_SERVER_ACCESS_TOKEN";
         
-        static bool hasAttemptedAuthWithOAuthProvider = false;
+        QString accessToken = QProcessEnvironment::systemEnvironment().value(ENV_ACCESS_TOKEN_KEY);
         
-        if (!hasAttemptedAuthWithOAuthProvider) {
-            AccountManager& accountManager = AccountManager::getInstance();
-            accountManager.setAuthURL(_oauthProviderURL);
+        if (accessToken.isEmpty()) {
+            const QVariant* accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
             
-            if (!accountManager.hasValidAccessToken()) {
-                // we don't have a valid access token so we need to get one
-                // check if we have a username and password set via env
-                QString username = QProcessEnvironment::systemEnvironment().value(HIFI_USERNAME_ENV_KEY);
-                QString password = QProcessEnvironment::systemEnvironment().value(HIFI_PASSWORD_ENV_KEY);
-                
-                if (!username.isEmpty() && !password.isEmpty()) {
-                    
-                    accountManager.requestAccessToken(username, password);
-                    
-                    // connect to loginFailed signal from AccountManager so we can quit if that is the case
-                    connect(&accountManager, &AccountManager::loginFailed, this, &DomainServer::loginFailed);
-                } else {
-                    qDebug() << "Missing access-token or username and password combination. domain-server will now quit.";
-                    QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
-                    return false;
-                }
+            if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
+                accessToken = accessTokenVariant->toString();
+            } else {
+                qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present."
+                    << "Set an access token via the web interface, in your user or master config"
+                    << "at keypath metaverse.access_token or in your ENV at key DOMAIN_SERVER_ACCESS_TOKEN";
+                return false;
             }
-            
-            hasAttemptedAuthWithOAuthProvider = true;
         }
+        
+        // give this access token to the AccountManager
+        accountManager.setAccessTokenForCurrentAuthURL(accessToken);
         
         return true;
 
@@ -282,7 +288,7 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     
     if (settingsMap.contains(PAY_FOR_ASSIGNMENTS_OPTION) &&
         settingsMap.value(PAY_FOR_ASSIGNMENTS_OPTION).toBool() &&
-        hasOAuthProviderAndAuthInformation()) {
+        didSetupAccountManagerWithAccessToken()) {
         
         qDebug() << "Assignments will be paid for via" << qPrintable(_oauthProviderURL.toString());
         
@@ -304,49 +310,68 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     return true;
 }
 
-void DomainServer::setupDynamicIPAddressUpdating() {
-    const QString ENABLE_DYNAMIC_IP_UPDATING_OPTION = "update-ip";
+const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
+const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
+const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
+
+void DomainServer::setupAutomaticNetworking() {
+    const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
     
-    const QVariantMap& settingsMap = _settingsManager.getSettingsMap();
+    if (!didSetupAccountManagerWithAccessToken()) {
+        qDebug() << "Cannot setup domain-server automatic networking without an access token.";
+        qDebug() << "Please add an access token to your config file or via the web interface.";
+        
+        return;
+    }
     
-    if (settingsMap.contains(ENABLE_DYNAMIC_IP_UPDATING_OPTION) &&
-        settingsMap.value(ENABLE_DYNAMIC_IP_UPDATING_OPTION).toBool() &&
-        hasOAuthProviderAndAuthInformation()) {
+    QString automaticNetworkValue =
+        _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
+    
+    if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
+        automaticNetworkValue == FULL_AUTOMATIC_NETWORKING_VALUE) {
         
         LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
-            qDebug() << "domain-server IP address will be updated for domain with ID"
+            qDebug() << "domain-server" << automaticNetworkValue << "automatic networking enabled for ID"
                 << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
             const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+            const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
             
-            // setup our timer to check our IP via stun every 30 seconds
+            // setup our timer to check our IP via stun every X seconds
             QTimer* dynamicIPTimer = new QTimer(this);
-            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentIPAddressViaSTUN);
-            dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
             
-            // send public socket changes to the data server so nodes can find us at our new IP
-            connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendNewPublicSocketToDataServer);
-            
-            if (!AccountManager::getInstance().hasValidAccessToken()) {
-                // we don't have an access token to talk to data-web yet, so
-                // check our IP address as soon as we get an AccountManager access token
-                connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
-                        this, &DomainServer::requestCurrentIPAddressViaSTUN);
+            if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+                dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
+                
+                // send public socket changes to the data server so nodes can find us at our new IP
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
             } else {
-                // access token good to go, attempt to update our IP now
-                requestCurrentIPAddressViaSTUN();
+                dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
+                
+                // setup a timer to heartbeat with the ice-server every so often
+                QTimer* iceHeartbeatTimer = new QTimer(this);
+                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
+                iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+                
+                // call our sendHeartbeaToIceServer immediately anytime a public address changes
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
             }
             
-        } else {
-            qDebug() << "Cannot enable dynamic domain-server IP address updating without a domain ID."
-                << "Please add an id to your config.json or pass it with the command line argument --id.";
-            qDebug() << "Failed dynamic IP address update setup. domain-server will now quit.";
+            // attempt to update our sockets now
+            requestCurrentPublicSocketViaSTUN();
             
-            QMetaObject::invokeMethod(this, "quit", Qt::QueuedConnection);
+        } else {
+            qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
+            << "Please add an ID to your config file or via the web interface.";
+            
+            return;
         }
+    } else {
+        updateNetworkingInfoWithDataServer(automaticNetworkValue);
     }
 }
 
@@ -556,9 +581,17 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
         || (isAssignment && matchingQueuedAssignment)) {
         // this was either not a static assignment or it was and we had a matching one in the queue
+        
+        QUuid nodeUUID;
 
-        // create a new session UUID for this node
-        QUuid nodeUUID = QUuid::createUuid();
+        if (_connectingICEPeers.contains(packetUUID) || _connectedICEPeers.contains(packetUUID)) {
+            //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
+            nodeUUID = packetUUID;
+        } else {
+            // we got a packetUUID we didn't recognize, just add the node
+            nodeUUID = QUuid::createUuid();
+        }
+        
 
         SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
                                                                                     publicSockAddr, localSockAddr);
@@ -675,6 +708,13 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
     LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    // if we've established a connection via ICE with this peer, use that socket
+    // otherwise just try to reply back to them on their sending socket (although that may not work)
+    HifiSockAddr destinationSockAddr = _connectedICEPeers.value(node->getUUID());
+    if (destinationSockAddr.isNull()) {
+        destinationSockAddr = senderSockAddr;
+    }
 
     if (nodeInterestList.size() > 0) {
 
@@ -912,23 +952,128 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
     }
 }
 
-void DomainServer::requestCurrentIPAddressViaSTUN() {
+void DomainServer::requestCurrentPublicSocketViaSTUN() {
     LimitedNodeList::getInstance()->sendSTUNRequest();
 }
 
-void DomainServer::sendNewPublicSocketToDataServer(const HifiSockAddr& newPublicSockAddr) {
+QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
+    const QString SOCKET_NETWORK_ADDRESS_KEY = "network_address";
+    const QString SOCKET_PORT_KEY = "port";
+    
+    QJsonObject socketObject;
+    socketObject[SOCKET_NETWORK_ADDRESS_KEY] = socket.getAddress().toString();
+    socketObject[SOCKET_PORT_KEY] = socket.getPort();
+    
+    return socketObject;
+}
+
+const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
+
+void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
+    updateNetworkingInfoWithDataServer(IP_ONLY_AUTOMATIC_NETWORKING_VALUE, newPublicSockAddr.getAddress().toString());
+}
+
+void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
     // setup the domain object to send to the data server
-    const QString DOMAIN_JSON_OBJECT = "{\"domain\":{\"network_address\":\"%1\"}}";
+    const QString PUBLIC_NETWORK_ADDRESS_KEY = "network_address";
+    const QString AUTOMATIC_NETWORKING_KEY = "automatic_networking";
     
-    QString domainUpdateJSON = DOMAIN_JSON_OBJECT.arg(newPublicSockAddr.getAddress().toString());
+    QJsonObject domainObject;
+    if (!networkAddress.isEmpty()) {
+        domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
+    }
+    
+    qDebug() << "Updating automatic networking setting in domain-server to" << newSetting;
+    
+    domainObject[AUTOMATIC_NETWORKING_KEY] = newSetting;
+    
+    QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,
                                                        JSONCallbackParameters(),
                                                        domainUpdateJSON.toUtf8());
+}
+
+// todo: have data-web respond with ice-server hostname to use
+const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
+
+void DomainServer::performICEUpdates() {
+    sendHearbeatToIceServer();
+    sendICEPingPackets();
+}
+
+void DomainServer::sendHearbeatToIceServer() {
+    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
+}
+
+void DomainServer::sendICEPingPackets() {
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    QHash<QUuid, NetworkPeer>::iterator peer = _connectingICEPeers.begin();
+    
+    while (peer != _connectingICEPeers.end()) {
+        
+        if (peer->getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
+            // we've already tried to connect to this peer enough times
+            // remove it from our list - if it wants to re-connect it'll come back through ice-server
+            peer = _connectingICEPeers.erase(peer);
+        } else {
+            // send ping packets to this peer's interfaces
+            qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << peer->getUUID();
+            
+            // send the ping packet to the local and public sockets for this node
+            QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
+            nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
+            
+            QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
+            nodeList->writeUnverifiedDatagram(publicPingPacket, peer->getPublicSocket());
+            
+            peer->incrementConnectionAttempts();
+            
+            // go to next peer in hash
+            ++peer;
+        }
+    }
+}
+
+void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
+    // loop through the packet and pull out network peers
+    // any peer we don't have we add to the hash, otherwise we update
+    QDataStream iceResponseStream(packet);
+    iceResponseStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    NetworkPeer receivedPeer;
+    
+    while (!iceResponseStream.atEnd()) {
+        iceResponseStream >> receivedPeer;
+        
+        if (!_connectingICEPeers.contains(receivedPeer.getUUID()) && !_connectedICEPeers.contains(receivedPeer.getUUID())) {
+            qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
+        }
+        
+        _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
+    }
+}
+
+void DomainServer::processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
+    QUuid nodeUUID = uuidFromPacketHeader(packet);
+    NetworkPeer sendingPeer = _connectingICEPeers.take(nodeUUID);
+    
+    if (!sendingPeer.isNull()) {
+        // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
+        if (senderSockAddr == sendingPeer.getLocalSocket()) {
+            qDebug() << "Activating local socket for communication with network peer -" << sendingPeer;
+            _connectedICEPeers.insert(nodeUUID, sendingPeer.getLocalSocket());
+        } else if (senderSockAddr == sendingPeer.getPublicSocket()) {
+            qDebug() << "Activating public socket for communication with network peer -" << sendingPeer;
+            _connectedICEPeers.insert(nodeUUID, sendingPeer.getPublicSocket());
+        }
+    }
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
@@ -971,6 +1116,19 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
             }
             case PacketTypeStunResponse:
                 nodeList->processSTUNResponse(receivedPacket);
+                break;
+            case PacketTypeUnverifiedPing: {
+                QByteArray pingReplyPacket = nodeList->constructPingReplyPacket(receivedPacket);
+                nodeList->writeUnverifiedDatagram(pingReplyPacket, senderSockAddr);
+                
+                break;
+            }
+            case PacketTypeUnverifiedPingReply: {
+                processICEPingReply(receivedPacket, senderSockAddr);
+                break;
+            }
+            case PacketTypeIceServerHeartbeatResponse:
+                processICEHeartbeatResponse(receivedPacket);
                 break;
             default:
                 break;
@@ -1676,6 +1834,10 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
+    
+    // remove this node from the connecting / connected ICE lists (if they exist)
+    _connectingICEPeers.remove(node->getUUID());
+    _connectedICEPeers.remove(node->getUUID());
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
