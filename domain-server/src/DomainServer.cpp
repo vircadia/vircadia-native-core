@@ -1027,7 +1027,7 @@ void DomainServer::sendICEPingPackets() {
         } else {
             // send ping packets to this peer's interfaces
             qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-            << peer->getUUID();
+                << peer->getUUID();
             
             // send the ping packet to the local and public sockets for this node
             QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
@@ -1055,11 +1055,13 @@ void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
     while (!iceResponseStream.atEnd()) {
         iceResponseStream >> receivedPeer;
         
-        if (!_connectingICEPeers.contains(receivedPeer.getUUID()) && !_connectedICEPeers.contains(receivedPeer.getUUID())) {
-            qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
+        if (!_connectedICEPeers.contains(receivedPeer.getUUID())) {
+            if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
+                qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
+            }
+            
+            _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
         }
-        
-        _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
     }
 }
 
