@@ -165,6 +165,12 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             
             break;
         }
+        case PacketTypeUnverifiedPing: {
+            // send back a reply
+            QByteArray replyPacket = constructPingReplyPacket(packet);
+            writeUnverifiedDatagram(replyPacket, senderSockAddr);
+            break;
+        }
         case PacketTypeUnverifiedPingReply: {
             qDebug() << "Received reply from domain-server on" << senderSockAddr;
             

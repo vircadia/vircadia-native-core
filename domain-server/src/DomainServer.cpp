@@ -354,7 +354,7 @@ void DomainServer::setupAutomaticNetworking() {
                 
                 // setup a timer to heartbeat with the ice-server every so often
                 QTimer* iceHeartbeatTimer = new QTimer(this);
-                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHearbeatToIceServer);
+                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
                 iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
                 
                 // call our sendHeartbeaToIceServer immediately anytime a public address changes
@@ -985,8 +985,49 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
 
 const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr(QHostAddress::LocalHost, ICE_SERVER_DEFAULT_PORT);
 
+void DomainServer::performICEUpdates() {
+    sendHearbeatToIceServer();
+    sendICEPingPackets();
+}
+
 void DomainServer::sendHearbeatToIceServer() {
     LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
+}
+
+void DomainServer::sendICEPingPackets() {
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    foreach(const NetworkPeer& peer, _connectingICEPeers) {
+        // send ping packets to this peer's interfaces
+        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << peer.getUUID();
+        
+        // send the ping packet to the local and public sockets for this node
+        QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
+        nodeList->writeUnverifiedDatagram(localPingPacket, peer.getLocalSocket());
+        
+        QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
+        nodeList->writeUnverifiedDatagram(publicPingPacket, peer.getPublicSocket());
+    }
+}
+
+void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
+    // loop through the packet and pull out network peers
+    // any peer we don't have we add to the hash, otherwise we update
+    QDataStream iceResponseStream(packet);
+    iceResponseStream.skipRawData(numBytesForPacketHeader(packet));
+    
+    NetworkPeer receivedPeer;
+    
+    while (!iceResponseStream.atEnd()) {
+        iceResponseStream >> receivedPeer;
+        
+        if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
+            qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
+        }
+        
+        _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
+    }
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
@@ -1036,6 +1077,9 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 
                 break;
             }
+            case PacketTypeIceServerHeartbeatResponse:
+                processICEHeartbeatResponse(receivedPacket);
+                break;
             default:
                 break;
         }
