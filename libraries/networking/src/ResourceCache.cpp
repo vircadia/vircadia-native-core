@@ -245,6 +245,7 @@ void Resource::attemptRequest() {
 void Resource::finishedLoading(bool success) {
     if (success) {
         _loaded = true;
+        emit loaded();
     } else {
         _failedToLoad = true;
     }

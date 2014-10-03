@@ -97,15 +97,14 @@ void SixenseManager::initialize() {
         
         if (!_sixenseLibrary) {
             
-            
 #ifdef SIXENSE_LIB_FILENAME
             _sixenseLibrary = new QLibrary(SIXENSE_LIB_FILENAME);
 #else
             const QString SIXENSE_LIBRARY_NAME = "libsixense_x64";
-            QFileInfo frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "../Frameworks/"
+            QString frameworkSixenseLibrary = QCoreApplication::applicationDirPath() + "../Frameworks/"
                 + SIXENSE_LIBRARY_NAME;
         
-            _sixenseLibrary = new QLibrary(frameworkSixenseLibrary.fileName());
+            _sixenseLibrary = new QLibrary(frameworkSixenseLibrary);
 #endif
         }
         

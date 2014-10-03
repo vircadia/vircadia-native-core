@@ -161,6 +161,7 @@ public:
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
     float getGlowLevel() const { return _glowLevel; }
+    float getLocalRenderAlpha() const { return _localRenderAlpha; }
     const QString& getScript() const { return _script; }
 
     // model related properties
@@ -171,6 +172,7 @@ public:
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
+    void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
     void setScript(const QString& value) { _script = value; _scriptChanged = true; }
 
 
@@ -201,6 +203,7 @@ public:
     bool animationFrameIndexChanged() const { return _animationFrameIndexChanged; }
     bool animationFPSChanged() const { return _animationFPSChanged; }
     bool glowLevelChanged() const { return _glowLevelChanged; }
+    bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
 
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
@@ -283,6 +286,7 @@ private:
     float _animationFrameIndex;
     float _animationFPS;
     float _glowLevel;
+    float _localRenderAlpha;
     QVector<SittingPoint> _sittingPoints;
     glm::vec3 _naturalDimensions;
 
@@ -293,6 +297,7 @@ private:
     bool _animationFrameIndexChanged;
     bool _animationFPSChanged;
     bool _glowLevelChanged;
+    bool _localRenderAlphaChanged;
 
     bool _defaultSettings;
 };

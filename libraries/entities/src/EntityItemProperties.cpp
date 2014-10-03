@@ -67,6 +67,7 @@ EntityItemProperties::EntityItemProperties() :
     _animationFrameIndex(ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
     _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
+    _localRenderAlpha(1.0f),
 
     _naturalDimensions(1.0f, 1.0f, 1.0f),
     _colorChanged(false),
@@ -76,6 +77,7 @@ EntityItemProperties::EntityItemProperties() :
     _animationFrameIndexChanged(false),
     _animationFPSChanged(false),
     _glowLevelChanged(false),
+    _localRenderAlphaChanged(false),
 
     _defaultSettings(true)
 {
@@ -156,6 +158,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
     COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
 
@@ -202,6 +205,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localRenderAlpha, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(collisionsWillMove, setCollisionsWillMove);
 
@@ -605,6 +609,7 @@ void EntityItemProperties::markAllChanged() {
     _animationFrameIndexChanged = true;
     _animationFPSChanged = true;
     _glowLevelChanged = true;
+    _localRenderAlphaChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {

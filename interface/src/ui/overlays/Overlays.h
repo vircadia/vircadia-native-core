@@ -15,6 +15,21 @@
 
 #include "Overlay.h"
 
+class RayToOverlayIntersectionResult {
+public:
+    RayToOverlayIntersectionResult();
+    bool intersects;
+    int overlayID;
+    float distance;
+    BoxFace face;
+    glm::vec3 intersection;
+};
+
+Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
+
+QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value);
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value);
+
 class Overlays : public QObject {
     Q_OBJECT
 public:
@@ -36,8 +51,11 @@ public slots:
     /// deletes a particle
     void deleteOverlay(unsigned int id);
 
-    /// returns the top most overlay at the screen point, or 0 if not overlay at that point
+    /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
+
+    /// returns details about the closest 3D Overlay hit by the pick ray
+    RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray);
     
     /// returns whether the overlay's assets are loaded or not
     bool isLoaded(unsigned int id);
@@ -51,6 +69,7 @@ private:
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
 };
+
 
  
 #endif // hifi_Overlays_h
