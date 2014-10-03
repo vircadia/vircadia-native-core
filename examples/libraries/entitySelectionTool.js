@@ -771,6 +771,51 @@ SelectionDisplay = (function () {
         that.select(currentSelection, false); // TODO: this should be more than highlighted
     };
 
+    that.stretchFAR = function(event) {
+        if (!entitySelected || mode !== "STRETCH_FAR") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var originalFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
+        var newFAR = originalFAR + vector.z;
+        var changeInDimensions = { x: 0, y: 0, z: (newFAR - originalFAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: 0, y: 0, z: (newFAR - originalFAR) * 0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchFAR... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            originalFAR:" + originalFAR);
+            print("                 newFAR:" + newFAR);
+            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };
+
     that.stretchRBN = function(event) {
         if (!entitySelected || mode !== "STRETCH_RBN") {
             return; // not allowed
@@ -896,6 +941,13 @@ SelectionDisplay = (function () {
                     somethingClicked = true;
                     break;
 
+                case grabberFAR:
+                case grabberEdgeTF:
+                case grabberEdgeBF:
+                    mode = "STRETCH_FAR";
+                    somethingClicked = true;
+                    break;
+
                 default:
                     mode = "UNKNOWN";
                     break;
@@ -968,6 +1020,9 @@ SelectionDisplay = (function () {
                 break;
             case "STRETCH_NEAR":
                 that.stretchNEAR(event);
+                break;
+            case "STRETCH_FAR":
+                that.stretchFAR(event);
                 break;
             default:
                 // nothing to do by default
