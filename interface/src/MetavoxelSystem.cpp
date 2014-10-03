@@ -1551,6 +1551,11 @@ public:
     AxisIndex(int x = -1, int y = -1, int z = -1) : x(x), y(y), z(z) { }
 };
 
+static glm::vec3 safeNormalize(const glm::vec3& vector) {
+    float length = glm::length(vector);
+    return (length > 0.0f) ? (vector / length) : vector;
+}
+
 int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
@@ -1879,7 +1884,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             }
                         }
                     }
-                    glm::vec3 normal = glm::normalize(axisNormals[0] + axisNormals[1] + axisNormals[2]);
+                    glm::vec3 normal = safeNormalize(axisNormals[0] + axisNormals[1] + axisNormals[2]);
                     center /= crossingCount;
                     
                     // use a sequence of Givens rotations to perform a QR decomposition
@@ -1967,12 +1972,12 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         vertices.append(point);
                         
                     } else {
-                        axisNormals[0] = glm::normalize(axisNormals[0]);
-                        axisNormals[1] = glm::normalize(axisNormals[1]);
-                        axisNormals[2] = glm::normalize(axisNormals[2]);
-                        glm::vec3 normalXY(glm::normalize(axisNormals[0] + axisNormals[1]));
-                        glm::vec3 normalXZ(glm::normalize(axisNormals[0] + axisNormals[2]));
-                        glm::vec3 normalYZ(glm::normalize(axisNormals[1] + axisNormals[2]));
+                        axisNormals[0] = safeNormalize(axisNormals[0]);
+                        axisNormals[1] = safeNormalize(axisNormals[1]);
+                        axisNormals[2] = safeNormalize(axisNormals[2]);
+                        glm::vec3 normalXY(safeNormalize(axisNormals[0] + axisNormals[1]));
+                        glm::vec3 normalXZ(safeNormalize(axisNormals[0] + axisNormals[2]));
+                        glm::vec3 normalYZ(safeNormalize(axisNormals[1] + axisNormals[2]));
                         if (glm::dot(axisNormals[0], normalXY) > CREASE_COS_NORMAL &&
                                 glm::dot(axisNormals[1], normalXY) > CREASE_COS_NORMAL) {
                             point.setNormal(normalXY);
