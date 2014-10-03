@@ -1051,7 +1051,7 @@ void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
     while (!iceResponseStream.atEnd()) {
         iceResponseStream >> receivedPeer;
         
-        if (!_connectingICEPeers.contains(receivedPeer.getUUID()) && _connectedICEPeers.contains(receivedPeer.getUUID())) {
+        if (!_connectingICEPeers.contains(receivedPeer.getUUID()) && !_connectedICEPeers.contains(receivedPeer.getUUID())) {
             qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
         }
         

@@ -59,7 +59,7 @@ public:
     
     bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
     const HifiSockAddr& getICEServerSockAddr() const { return _iceServerSockAddr; }
-    NetworkPeer& getICEPeer() const { return _icePeer; }
+    NetworkPeer& getICEPeer() { return _icePeer; }
     void activateICELocalSocket();
     void activateICEPublicSocket();
     
