@@ -708,6 +708,13 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
     LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    // if we've established a connection via ICE with this peer, use that socket
+    // otherwise just try to reply back to them on their sending socket (although that may not work)
+    HifiSockAddr destinationSockAddr = _connectedICEPeers.value(node->getUUID());
+    if (destinationSockAddr.isNull()) {
+        destinationSockAddr = senderSockAddr;
+    }
 
     if (nodeInterestList.size() > 0) {
 
@@ -1811,6 +1818,10 @@ void DomainServer::nodeAdded(SharedNodePointer node) {
 }
 
 void DomainServer::nodeKilled(SharedNodePointer node) {
+    
+    // remove this node from the connecting / connected ICE lists (if they exist)
+    _connectingICEPeers.remove(node->getUUID());
+    _connectedICEPeers.remove(node->getUUID());
 
     DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
