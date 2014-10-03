@@ -108,6 +108,7 @@ void AddressBarDialog::setupUI() {
     _closeButton->setMaximumSize(QSize(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE));
     QIcon icon(Application::resourcesPath() + CLOSE_BUTTON_ICON);
     _closeButton->setIcon(icon);
+    _closeButton->setIconSize(QSize(CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE));
     _closeButton->setFlat(true);
     _addressLayout->addWidget(_closeButton, 0, Qt::AlignRight);
     
