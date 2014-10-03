@@ -28,7 +28,7 @@ void Sphere3DOverlay::render() {
         return; // do nothing if we're not visible
     }
 
-    const int slices = 15;
+    const int SLICES = 15;
     float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
@@ -58,9 +58,9 @@ void Sphere3DOverlay::render() {
             glScalef(dimensions.x, dimensions.y, dimensions.z);
             //Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             if (_isSolid) {
-                glutSolidSphere(1.0f, slices, slices);
+                glutSolidSphere(1.0f, SLICES, SLICES);
             } else {
-                glutWireSphere(1.0f, slices, slices);
+                glutWireSphere(1.0f, SLICES, SLICES);
             }
         glPopMatrix();
     glPopMatrix();
