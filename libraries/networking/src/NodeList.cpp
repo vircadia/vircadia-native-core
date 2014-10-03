@@ -471,34 +471,3 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
         sendingNode->activateSymmetricSocket();
     }
 }
-
-const QString QSETTINGS_GROUP_NAME = "NodeList";
-const QString DOMAIN_SERVER_SETTING_KEY = "domainServerHostname";
-
-void NodeList::loadData(QSettings *settings) {
-    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
-
-    QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
-
-    if (domainServerHostname.size() > 0) {
-        _domainHandler.setHostname(domainServerHostname);
-    } else {
-        _domainHandler.setHostname(DEFAULT_DOMAIN_HOSTNAME);
-    }
-    
-    settings->endGroup();
-}
-
-void NodeList::saveData(QSettings* settings) {
-    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
-
-    if (_domainHandler.getHostname() != DEFAULT_DOMAIN_HOSTNAME) {
-        // the user is using a different hostname, store it
-        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHandler.getHostname()));
-    } else {
-        // the user has switched back to default, remove the current setting
-        settings->remove(DOMAIN_SERVER_SETTING_KEY);
-    }
-
-    settings->endGroup();
-}

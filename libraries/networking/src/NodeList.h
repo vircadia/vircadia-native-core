@@ -63,9 +63,6 @@ public:
     void sendAssignment(Assignment& assignment);
     
     void pingPunchForInactiveNode(const SharedNodePointer& node);
-    
-    void loadData(QSettings* settings);
-    void saveData(QSettings* settings);
 public slots:
     void reset();
     void sendDomainServerCheckIn();
