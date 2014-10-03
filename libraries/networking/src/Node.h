@@ -21,6 +21,7 @@
 #include <QMutex>
 
 #include "HifiSockAddr.h"
+#include "NetworkPeer.h"
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 #include "MovingPercentile.h"
@@ -44,7 +45,7 @@ namespace NodeType {
     const QString& getNodeTypeName(NodeType_t nodeType);
 }
 
-class Node : public QObject {
+class Node : public NetworkPeer {
     Q_OBJECT
 public:
     Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
@@ -55,28 +56,6 @@ public:
 
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
-
-    const QUuid& getUUID() const { return _uuid; }
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
-
-    quint64 getWakeTimestamp() const { return _wakeTimestamp; }
-    void setWakeTimestamp(quint64 wakeTimestamp) { _wakeTimestamp = wakeTimestamp; }
-
-    quint64 getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
-    void setLastHeardMicrostamp(quint64 lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
-
-    const HifiSockAddr& getPublicSocket() const { return _publicSocket; }
-    void setPublicSocket(const HifiSockAddr& publicSocket);
-    const HifiSockAddr& getLocalSocket() const { return _localSocket; }
-    void setLocalSocket(const HifiSockAddr& localSocket);
-    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
-    void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
-    
-    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
-
-    void activatePublicSocket();
-    void activateLocalSocket();
-    void activateSymmetricSocket();
     
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
@@ -98,6 +77,17 @@ public:
     void updateClockSkewUsec(int clockSkewSample);
     QMutex& getMutex() { return _mutex; }
     
+    virtual void setPublicSocket(const HifiSockAddr& publicSocket);
+    virtual void setLocalSocket(const HifiSockAddr& localSocket);
+    const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
+    virtual void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
+    
+    const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
+    
+    void activatePublicSocket();
+    void activateLocalSocket();
+    void activateSymmetricSocket();
+    
     friend QDataStream& operator<<(QDataStream& out, const Node& node);
     friend QDataStream& operator>>(QDataStream& in, Node& node);
 
@@ -107,13 +97,10 @@ private:
     Node& operator=(Node otherNode);
 
     NodeType_t _type;
-    QUuid _uuid;
-    quint64 _wakeTimestamp;
-    quint64 _lastHeardMicrostamp;
-    HifiSockAddr _publicSocket;
-    HifiSockAddr _localSocket;
-    HifiSockAddr _symmetricSocket;
+    
     HifiSockAddr* _activeSocket;
+    HifiSockAddr _symmetricSocket;
+    
     QUuid _connectionSecret;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     NodeData* _linkedData;

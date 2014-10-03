@@ -62,15 +62,22 @@ private slots:
     void setupPendingAssignmentCredits();
     void sendPendingTransactionsToServer();
     
-    void requestCurrentIPAddressViaSTUN();
-    void sendNewPublicSocketToDataServer(const HifiSockAddr& newPublicSockAddr);
+    void requestCurrentPublicSocketViaSTUN();
+    void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
+    void performICEUpdates();
+    void sendHearbeatToIceServer();
+    void sendICEPingPackets();
 private:
     void setupNodeListAndAssignments(const QUuid& sessionUUID = QUuid::createUuid());
     bool optionallySetupOAuth();
     bool optionallyReadX509KeyAndCertificate();
-    bool hasOAuthProviderAndAuthInformation();
+    bool didSetupAccountManagerWithAccessToken();
     bool optionallySetupAssignmentPayment();
-    void setupDynamicIPAddressUpdating();
+    
+    void setupAutomaticNetworking();
+    void updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress = QString());
+    void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    void processICEHeartbeatResponse(const QByteArray& packet);
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
@@ -130,7 +137,13 @@ private:
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
     
+    HifiSockAddr _localSockAddr;
+    
+    QHash<QUuid, NetworkPeer> _connectingICEPeers;
+    QHash<QUuid, HifiSockAddr> _connectedICEPeers;
+    
     DomainServerSettingsManager _settingsManager;
 };
+
 
 #endif // hifi_DomainServer_h
