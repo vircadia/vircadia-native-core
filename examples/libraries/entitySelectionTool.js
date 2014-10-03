@@ -585,9 +585,10 @@ SelectionDisplay = (function () {
                                 innerRadius: 0.9
                             });
 
-        Overlays.editOverlay(yawHandle, { visible: true, position: yawCorner, rotation: yawHandleRotation});
-        Overlays.editOverlay(pitchHandle, { visible: true, position: pitchCorner, rotation: pitchHandleRotation});
-        Overlays.editOverlay(rollHandle, { visible: true, position: rollCorner, rotation: rollHandleRotation});
+        // TODO: we have not implemented the rotating handle/controls yet... so for now, these handles are hidden
+        Overlays.editOverlay(yawHandle, { visible: false, position: yawCorner, rotation: yawHandleRotation});
+        Overlays.editOverlay(pitchHandle, { visible: false, position: pitchCorner, rotation: pitchHandleRotation});
+        Overlays.editOverlay(rollHandle, { visible: false, position: rollCorner, rotation: rollHandleRotation});
 
         Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
     };
