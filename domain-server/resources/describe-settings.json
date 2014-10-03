@@ -1,19 +1,5 @@
 [
   {
-    "name": "metaverse",
-    "label": "Metaverse Registration",
-    "settings": [
- 
-    ]
-  },
-  {
-    "name": "security",
-    "label": "Security",
-    "settings": [
- 
-    ]
-  },
-  {
  "name": "audio",
  "label": "Audio",
  "assignment-types": [0],
@@ -51,19 +37,19 @@
                           }
                           ],
               "default": {
-                "Zone 1":
+                "Zone_1":
                 {
                     "x-range": "10-82",
                     "y-range": "36-94",
                     "z-range": "38-84"
                 },
-                "Zone 2":
+                "Zone_2":
                 {
                     "x-range": "12-163",
                     "y-range": "64-134",
                     "z-range": "27-184"
                 },
-                "Zone 3":
+                "Zone_3":
                 {
                     "x-range": "463-632",
                     "y-range": "264-384",

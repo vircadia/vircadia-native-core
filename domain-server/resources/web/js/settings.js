@@ -32,67 +32,7 @@ var viewHelpers = {
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else if (setting.type === 'table') {
-        form_group += "<div class='panel panel-default'>"
-        form_group += "<div class='panel-heading'>" + setting.label + "</div>"
-        form_group += "<div class='panel-body'>"
-        form_group += "<p>" + setting.help + "</p>"
-        form_group += "</div>"
-        
-        form_group += "<table class='table' name='" + setting_name + "'>"
-        // Column names
-        form_group += "<tr>"
-        if (setting.number === true) {
-            form_group += "<td><strong>#</strong></td>"
-        }
-        form_group += "<td><strong>" + setting.key.label + "</strong></td>"
-        _.each(setting.columns, function(col) {
-               form_group += "<td><strong>" + col.label + "</strong></td>"
-        })
-        if (setting.can_delete === true || setting.can_add === true) {
-            form_group += "<td></td>"
-        }
-        form_group += "</tr>"
-        
-        // Rows
-        var row_num = 1
-        _.each(setting_value, function(row, name) {
-               form_group += "<tr>"
-               if (setting.number === true) {
-                    form_group += "<td>" + row_num + "</td>"
-               }
-               form_group += "<td>" + name + "</td>"
-               _.each(setting.columns, function(col) {
-                      form_group += "<td>"
-                      if (row.hasOwnProperty(col.name)) {
-                        form_group += row[col.name]
-                      }
-                      form_group += "</td>"
-                })
-               if (setting.can_delete === true) {
-                    form_group += "<td><span class='glyphicon glyphicon-remove del-row'></span></td>"
-               } else if (setting.can_add === true) {
-                form_group += "<td></td>"
-               }
-               form_group += "</tr>"
-               row_num++
-        })
-        
-        // Entries
-        if (setting.can_add === true) {
-            form_group += "<tr>"
-            if (setting.number === true) {
-                form_group += "<td></td>"
-            }
-            form_group += "<td><input type='text' name='" + setting_name + ".key' class='form-control' placeholder='" + setting.key.placeholder + "'></td>"
-            _.each(setting.columns, function(col) {
-                   form_group += "<td><input type='text' name='" + setting_name + "." + col.name + "' class='form-control' placeholder='" + col.placeholder + "'></td>"
-                   })
-            form_group += "<td><span class='glyphicon glyphicon-ok add-row'></span></td>"
-            form_group += "</tr>"
-        }
-        
-        form_group += "</table>"
-        form_group += "</div>"
+        form_group += makeTable(setting, setting_name, setting_value);
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
       
@@ -145,13 +85,20 @@ $(document).ready(function(){
   })
                   
                   
-  $('#settings-form').on('click', '.add-row', function(){
-    console.log("add-row " + $(this))
- })
-  
-  $('#settings-form').on('click', '.del-row', function(){
-     console.log("del-row " + $(this))
- })
+                  $('#settings-form').on('click', '.add-row', function(){
+                                         console.log("add-row " + $(this))
+                                         
+                                         var row = $(this).parents("tr")
+                                         
+                                         })
+                  
+                  $('#settings-form').on('click', '.del-row', function(){
+                                         console.log("del-row " + $(this))
+                                         
+                                         var row = $(this).parents("tr")
+                                         row.empty()
+                                         row.html("<input type='hidden' name='" + row.attr("name") + "' value=' '>");
+                                         })
                   
                   
   $('#settings-form').on('change', '.setting-input', function(){
@@ -261,6 +208,78 @@ $('body').on('click', '.save-button', function(e){
   
   return false;
 });
+
+function makeTable(setting, setting_name, setting_value) {
+    var html = "<div class='panel panel-default'>"
+    html += "<div class='panel-heading'>" + setting.label + "</div>"
+    html += "<div class='panel-body'>"
+    html += "<p>" + setting.help + "</p>"
+    html += "</div>"
+    html += "<table class='table' name='" + setting_name + "'>"
+    
+    // Column names
+    html += "<tr class='headers'>"
+    if (setting.number === true) {
+        html += "<td class='number'><strong>#</strong></td>" // Row number
+    }
+    html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
+    _.each(setting.columns, function(col) {
+        html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
+    })
+    if (setting.can_delete === true || setting.can_add === true) {
+        html += "<td class='buttons'></td>" // Buttons
+    }
+    html += "</tr>"
+    
+    // Rows
+    var row_num = 1
+    _.each(setting_value, function(row, name) {
+           html += "<tr class='data' name='" + setting_name + "." + name + "'>"
+           if (setting.number === true) {
+           html += "<td class='number'>" + row_num + "</td>"
+           }
+           html += "<td class='key'>" + name + "</td>"
+           _.each(setting.columns, function(col) {
+                  html += "<td class='data'>"
+                  if (row.hasOwnProperty(col.name)) {
+                  html += row[col.name]
+                  }
+                  html += "</td>"
+                  })
+           if (setting.can_delete === true) {
+           html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
+           } else if (setting.can_add === true) {
+           html += "<td class='buttons'></td>"
+           }
+           html += "</tr>"
+        row_num++
+    })
+    
+    // Inputs
+    if (setting.can_add === true) {
+        html += makeTableInputs(setting)
+    }
+    
+    html += "</table>"
+    html += "</div>"
+    
+    return html;
+}
+
+function makeTableInputs(setting) {
+    var html = "<tr class='inputs'>"
+    if (setting.number === true) {
+        html += "<td class='number'></td>"
+    }
+    html += "<td class='key'><input type='text' class='form-control' placeholder='" + setting.key.placeholder + "'></td>"
+    _.each(setting.columns, function(col) {
+           html += "<td class='data'><input type='text' class='form-control' placeholder='" + col.placeholder + "'></td>"
+           })
+    html += "<td class='buttons'><span class='glyphicon glyphicon-ok add-row'></span></td>"
+    html += "</tr>"
+    
+    return html
+}
 
 function badgeSidebarForDifferences(changedInput) {
   // figure out which group this input is in
