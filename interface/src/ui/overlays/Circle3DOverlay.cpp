@@ -174,13 +174,6 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     if (innerRadius.isValid()) {
         setInnerRadius(innerRadius.toVariant().toFloat());
     }
-    
-    qDebug() << "startAt:" << getStartAt();
-    qDebug() << "endAt:" << getEndAt();
-    qDebug() << "outerRadius:" << getOuterRadius();
-    qDebug() << "innerRadius:" << getInnerRadius();
-    qDebug() << "getIsSolid:" << getIsSolid();
-    qDebug() << "getIsDashedLine:" << getIsDashedLine();
 }
 
 
