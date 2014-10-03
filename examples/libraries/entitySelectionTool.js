@@ -345,7 +345,7 @@ SelectionDisplay = (function () {
             pickRay = Camera.computePickRay(event.x, event.y);
             lastPlaneIntersection = rayPlaneIntersection(pickRay, properties.position, Quat.getFront(lastAvatarOrientation));
 
-            var wantDebug = true;
+            var wantDebug = false;
             if (wantDebug) {
                 print("select() with EVENT...... ");
                 print("                event.y:" + event.y);
@@ -1045,7 +1045,385 @@ SelectionDisplay = (function () {
         tooltip.updateText(selectedEntityProperties);
         that.select(currentSelection, false); // TODO: this should be more than highlighted
     };
+
+    that.stretchLBN = function(event) {
+        if (!entitySelected || mode !== "STRETCH_LBN") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
+        var newLEFT = oldLEFT - vector.x;
+
+        var oldBOTTOM = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
+        var newBOTTOM = oldBOTTOM - vector.y;
+
+        var oldNEAR = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
+        var newNEAR = oldNEAR - vector.z;
         
+        
+        var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newBOTTOM - oldBOTTOM) , z: (newNEAR - oldNEAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
+                                 y: (newBOTTOM - oldBOTTOM) * -0.5, 
+                                 z: (newNEAR - oldNEAR) * -0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchLBN... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldLEFT:" + oldLEFT);
+            print("                 newLEFT:" + newLEFT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };        
+
+    that.stretchRTN = function(event) {
+        if (!entitySelected || mode !== "STRETCH_RTN") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
+        var newRIGHT = oldRIGHT + vector.x;
+
+        var oldTOP = selectedEntityPropertiesOriginalPosition.y + halfDimensions.y;
+        var newTOP = oldTOP + vector.y;
+
+        var oldNEAR = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
+        var newNEAR = oldNEAR - vector.z;
+        
+        
+        var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newTOP - oldTOP) , z: (newNEAR - oldNEAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
+                                 y: (newTOP - oldTOP) * 0.5, 
+                                 z: (newNEAR - oldNEAR) * -0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchRTN... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldRIGHT:" + oldRIGHT);
+            print("                 newRIGHT:" + newRIGHT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };
+
+    that.stretchLTN = function(event) {
+        if (!entitySelected || mode !== "STRETCH_LTN") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
+        var newLEFT = oldLEFT - vector.x;
+
+        var oldTOP = selectedEntityPropertiesOriginalPosition.y + halfDimensions.y;
+        var newTOP = oldTOP + vector.y;
+
+        var oldNEAR = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
+        var newNEAR = oldNEAR - vector.z;
+        
+        
+        var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newTOP - oldTOP) , z: (newNEAR - oldNEAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
+                                 y: (newTOP - oldTOP) * 0.5, 
+                                 z: (newNEAR - oldNEAR) * -0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchLTN... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldLEFT:" + oldLEFT);
+            print("                 newLEFT:" + newLEFT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };   
+
+    that.stretchRBF = function(event) {
+        if (!entitySelected || mode !== "STRETCH_RBF") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
+        var newRIGHT = oldRIGHT + vector.x;
+
+        var oldBOTTOM = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
+        var newBOTTOM = oldBOTTOM - vector.y;
+
+        var oldFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
+        var newFAR = oldFAR + vector.z;
+        
+        
+        var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newBOTTOM - oldBOTTOM) , z: (newFAR - oldFAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
+                                 y: (newBOTTOM - oldBOTTOM) * -0.5, 
+                                 z: (newFAR - oldFAR) * 0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchRBF... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldRIGHT:" + oldRIGHT);
+            print("                 newRIGHT:" + newRIGHT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };
+
+    that.stretchLBF = function(event) {
+        if (!entitySelected || mode !== "STRETCH_LBF") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
+        var newLEFT = oldLEFT - vector.x;
+
+        var oldBOTTOM = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
+        var newBOTTOM = oldBOTTOM - vector.y;
+
+        var oldFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
+        var newFAR = oldFAR + vector.z;
+        
+        
+        var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newBOTTOM - oldBOTTOM) , z: (newFAR - oldFAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
+                                 y: (newBOTTOM - oldBOTTOM) * -0.5, 
+                                 z: (newFAR - oldFAR) * 0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchLBF... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldLEFT:" + oldLEFT);
+            print("                 newLEFT:" + newLEFT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };        
+
+    that.stretchRTF = function(event) {
+        if (!entitySelected || mode !== "STRETCH_RTF") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
+        var newRIGHT = oldRIGHT + vector.x;
+
+        var oldTOP = selectedEntityPropertiesOriginalPosition.y + halfDimensions.y;
+        var newTOP = oldTOP + vector.y;
+
+        var oldFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
+        var newFAR = oldFAR + vector.z;
+        
+        
+        var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newTOP - oldTOP) , z: (newFAR - oldFAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
+                                 y: (newTOP - oldTOP) * 0.5, 
+                                 z: (newFAR - oldFAR) * 0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchRTF... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldRIGHT:" + oldRIGHT);
+            print("                 newRIGHT:" + newRIGHT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };
+
+    that.stretchLTF = function(event) {
+        if (!entitySelected || mode !== "STRETCH_LTF") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
+        var newLEFT = oldLEFT - vector.x;
+
+        var oldTOP = selectedEntityPropertiesOriginalPosition.y + halfDimensions.y;
+        var newTOP = oldTOP + vector.y;
+
+        var oldFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
+        var newFAR = oldFAR + vector.z;
+        
+        
+        var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newTOP - oldTOP) , z: (newFAR - oldFAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
+                                 y: (newTOP - oldTOP) * 0.5, 
+                                 z: (newFAR - oldFAR) * 0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
+        if (wantDebug) {
+            print("stretchLTF... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            print("            oldLEFT:" + oldLEFT);
+            print("                 newLEFT:" + newLEFT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
+        }
+        
+        selectedEntityProperties.position = newPosition;
+        selectedEntityProperties.dimensions = newDimensions;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };   
+
     that.checkMove = function() {
         if (currentSelection.isKnownID && 
             (!Vec3.equal(MyAvatar.position, lastAvatarPosition) || !Quat.equal(MyAvatar.orientation, lastAvatarOrientation))){
@@ -1066,7 +1444,7 @@ SelectionDisplay = (function () {
 
         if (result.intersects) {
 
-            var wantDebug = true;
+            var wantDebug = false;
             if (wantDebug) {
                 print("something intersects... ");
                 print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
@@ -1085,6 +1463,41 @@ SelectionDisplay = (function () {
 
                 case grabberRBN:
                     mode = "STRETCH_RBN";
+                    somethingClicked = true;
+                    break;
+
+                case grabberLBN:
+                    mode = "STRETCH_LBN";
+                    somethingClicked = true;
+                    break;
+
+                case grabberRTN:
+                    mode = "STRETCH_RTN";
+                    somethingClicked = true;
+                    break;
+
+                case grabberLTN:
+                    mode = "STRETCH_LTN";
+                    somethingClicked = true;
+                    break;
+
+                case grabberRBF:
+                    mode = "STRETCH_RBF";
+                    somethingClicked = true;
+                    break;
+
+                case grabberLBF:
+                    mode = "STRETCH_LBF";
+                    somethingClicked = true;
+                    break;
+
+                case grabberRTF:
+                    mode = "STRETCH_RTF";
+                    somethingClicked = true;
+                    break;
+
+                case grabberLTF:
+                    mode = "STRETCH_LTF";
                     somethingClicked = true;
                     break;
 
@@ -1181,7 +1594,7 @@ SelectionDisplay = (function () {
     };
 
     that.mouseMoveEvent = function(event) {
-        print("mouseMoveEvent()... mode:" + mode);
+        //print("mouseMoveEvent()... mode:" + mode);
         switch (mode) {
             case "TRANSLATE_UP_DOWN":
                 that.translateUpDown(event);
@@ -1192,6 +1605,29 @@ SelectionDisplay = (function () {
             case "STRETCH_RBN":
                 that.stretchRBN(event);
                 break;
+            case "STRETCH_LBN":
+                that.stretchLBN(event);
+                break;
+            case "STRETCH_RTN":
+                that.stretchRTN(event);
+                break;
+            case "STRETCH_LTN":
+                that.stretchLTN(event);
+                break;
+
+            case "STRETCH_RBF":
+                that.stretchRBF(event);
+                break;
+            case "STRETCH_LBF":
+                that.stretchLBF(event);
+                break;
+            case "STRETCH_RTF":
+                that.stretchRTF(event);
+                break;
+            case "STRETCH_LTF":
+                that.stretchLTF(event);
+                break;
+
             case "STRETCH_NEAR":
                 that.stretchNEAR(event);
                 break;
