@@ -14,6 +14,7 @@
 var leapHands = (function () {
 
     var isOnHMD,
+        LEAP_ON_HMD_MENU_ITEM = "Leap Motion on HMD",
         LEAP_OFFSET = 0.019,  // Thickness of Leap Motion plus HMD clip
         HMD_OFFSET = 0.100,  // Eyeballs to front surface of Oculus DK2  TODO: Confirm and make depend on device and eye relief
         hands,
@@ -30,7 +31,11 @@ var leapHands = (function () {
         CALIBRATED = 2,
         CALIBRATION_TIME = 1000,  // milliseconds
         PI = 3.141593,
-        isWindows;
+        isWindows,
+        avatarScale,
+        avatarFaceModelURL,
+        avatarSkeletonModelURL,
+        settingsTimer;
 
     function printSkeletonJointNames() {
         var jointNames,
@@ -164,6 +169,10 @@ var leapHands = (function () {
 
         calibrationStatus = CALIBRATING;
 
+        avatarScale = MyAvatar.scale;
+        avatarFaceModelURL = MyAvatar.faceModelURL;
+        avatarSkeletonModelURL = MyAvatar.skeletonModelURL;
+
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
         MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
         MyAvatar.setJointData("LeftForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
@@ -187,6 +196,37 @@ var leapHands = (function () {
         }
 
         return false;
+    }
+
+    function setIsOnHMD() {
+        isOnHMD = Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM);
+        if (isOnHMD) {
+            print("Leap Motion: Is on HMD");
+
+            // Offset of Leap Motion origin from physical eye position
+            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
+            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
+
+            calibrationStatus = CALIBRATED;
+        } else {
+            print("Leap Motion: Is on desk");
+            calibrationStatus = UNCALIBRATED;
+        }
+    }
+
+    function checkSettings() {
+        // There is no "scale changed" event so we need check periodically.
+        if (!isOnHMD && calibrationStatus > UNCALIBRATED && (MyAvatar.scale !== avatarScale
+            || MyAvatar.faceModelURL !== avatarFaceModelURL
+            || MyAvatar.skeletonModelURL !== avatarSkeletonModelURL)) {
+            print("Leap Motion: Recalibrate because avatar body or scale changed");
+            calibrationStatus = UNCALIBRATED;
+        }
+
+        // There is a "menu changed" event but we may as well check here.
+        if (isOnHMD !== Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM)) {
+            setIsOnHMD();
+        }
     }
 
     function setUp() {
@@ -267,19 +307,9 @@ var leapHands = (function () {
             ]
         ];
 
-        isOnHMD = Menu.isOptionChecked("Leap Motion on HMD");
-        if (isOnHMD) {
-            print("Leap Motion is on HMD");
+        setIsOnHMD();
 
-            // Offset of Leap Motion origin from physical eye position
-            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
-            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
-
-            calibrationStatus = CALIBRATED;
-        } else {
-            print("Leap Motion is on desk");
-            calibrationStatus = UNCALIBRATED;
-        }
+        settingsTimer = Script.setInterval(checkSettings, 2000);
     }
 
     function moveHands() {
@@ -302,7 +332,7 @@ var leapHands = (function () {
 
             if (hands[h].controller.isActive()) {
 
-                // Calibrate when and if a controller is first active.
+                // Calibrate if necessary.
                 if (!checkCalibration()) {
                     return;
                 }
@@ -429,6 +459,8 @@ var leapHands = (function () {
         var h,
             i,
             j;
+
+        Script.clearInterval(settingsTimer);
 
         for (h = 0; h < NUM_HANDS; h += 1) {
             Controller.releaseInputController(hands[h].controller);
