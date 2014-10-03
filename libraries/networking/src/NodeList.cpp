@@ -335,7 +335,11 @@ void NodeList::sendDomainServerCheckIn() {
 }
 
 void NodeList::handleICEConnectionToDomainServer() {
-    if (_domainHandler.getICEPeer().isNull()) {
+    if (_domainHandler.getICEPeer().isNull()
+        || _domainHandler.getICEPeer().getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
+        
+        _domainHandler.getICEPeer().resetConnectionAttemps();
+        
         LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
                                                   _domainHandler.getUUID());
@@ -349,6 +353,8 @@ void NodeList::handleICEConnectionToDomainServer() {
         
         QByteArray publicPingPacket = constructPingPacket(PingType::Public, false, _domainHandler.getICEClientID());
         writeUnverifiedDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket());
+        
+        _domainHandler.getICEPeer().incrementConnectionAttempts();
     }
 }
 
