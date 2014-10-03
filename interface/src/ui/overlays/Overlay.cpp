@@ -155,35 +155,21 @@ float Overlay::updatePulse() {
     elapsedPeriods = fmod(elapsedPeriods, 1.0f);
     _lastPulseUpdate = now;
 
-    
     float glowDistance =  (_pulseMax - _pulseMin);
     float glowDistancePerPeriod = glowDistance * 2.0f;
-    
-    // if we're currently traveling from min to max
-    if (_pulseDirection > 0.0f) {
-        float glowDelta = glowDistancePerPeriod * elapsedPeriods;
-        
-        // if by adding the glowDelta, we would pass our max, then calculate
-        // the distance from the max back to where we'd land...
-        if (_pulse + glowDelta >= _pulseMax) {
-            float glowDeltaToMax = (_pulse + glowDelta) - _pulseMax;
-            float glowDeltaFromMaxBack = glowDelta - glowDeltaToMax;
-            glowDelta = -glowDeltaFromMaxBack;
-            _pulseDirection = -1.0f;
-        }
-        _pulse += glowDelta;
-    } else {
-        float glowDelta = _pulseDirection * glowDistancePerPeriod * elapsedPeriods;
-        
-        // if by subtracting the glowDelta, we would pass our min, then calculate
-        // the distance from the min back to where we'd land...
-        if (_pulse + glowDelta <= _pulseMin) {
-            float glowDeltaToMin = (_pulse + glowDelta) - _pulseMin;
-            float glowDeltaFromMinBack = glowDelta - glowDeltaToMin;
-            glowDelta = -glowDeltaFromMinBack;
-            _pulseDirection = 1.0f;
-        }
-        _pulse += glowDelta;
+
+    float glowDelta = _pulseDirection * glowDistancePerPeriod * elapsedPeriods;
+    float newGlow = _pulse + glowDelta;
+    float limit = (_pulseDirection > 0.0f) ? _pulseMax : _pulseMin;
+    float passedLimit = (_pulseDirection > 0.0f) ? (newGlow >= limit) : (newGlow <= limit);
+
+    if (passedLimit) {
+        float glowDeltaToLimit = newGlow - limit;
+        float glowDeltaFromLimitBack = glowDelta - glowDeltaToLimit;
+        glowDelta = -glowDeltaFromLimitBack;
+        _pulseDirection *= -1.0f;
     }
+    _pulse += glowDelta;
+    
     return _pulse;
 }
