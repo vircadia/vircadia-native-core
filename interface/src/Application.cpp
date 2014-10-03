@@ -1082,6 +1082,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
+            case Qt::Key_Escape:
+                OculusManager::abandonCalibration();
+                break;
             default:
                 event->ignore();
                 break;
@@ -1474,6 +1477,7 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::disconnect();
             OculusManager::connect();
         }
+        OculusManager::recalibrate();
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());

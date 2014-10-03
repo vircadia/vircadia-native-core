@@ -55,6 +55,16 @@ bool OculusManager::_programInitialized = false;
 Camera* OculusManager::_camera = NULL;
 int OculusManager::_activeEyeIndex = -1;
 
+float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
+float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.f * RADIANS_PER_DEGREE;
+float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
+float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 0.5f * RADIANS_PER_DEGREE;
+quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
+OculusManager::CalibrationState OculusManager::_calibrationState;
+glm::vec3 OculusManager::_calibrationPosition;
+glm::quat OculusManager::_calibrationOrientation;
+quint64 OculusManager::_calibrationStartTime;
+
 #endif
 
 glm::vec3 OculusManager::_leftEyePosition = glm::vec3();
@@ -62,6 +72,8 @@ glm::vec3 OculusManager::_rightEyePosition = glm::vec3();
 
 void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
+    _calibrationState = UNCALIBRATED;
+
     ovr_Initialize();
 
     _ovrHmd = ovrHmd_Create(0);
@@ -169,6 +181,67 @@ void OculusManager::disconnect() {
             }
         }
     }
+#endif
+}
+
+void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
+#ifdef HAVE_LIBOVR
+    switch (_calibrationState) {
+
+        case UNCALIBRATED:
+            if (position != glm::vec3() && orientation != glm::quat()) {  // Handle zero values at start-up.
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+                _calibrationState = WAITING_FOR_DELTA;
+            }
+            break;
+
+        case WAITING_FOR_DELTA:
+            if (glm::length(position - _calibrationPosition) > CALIBRATION_DELTA_MINIMUM_LENGTH
+                || glm::angle(orientation * glm::inverse(_calibrationOrientation)) > CALIBRATION_DELTA_MINIMUM_ANGLE) {
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+                _calibrationState = WAITING_FOR_ZERO;
+            }
+            break;
+
+        case WAITING_FOR_ZERO:
+            if (glm::length(position - _calibrationPosition) < CALIBRATION_ZERO_MAXIMUM_LENGTH
+                && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
+                _calibrationStartTime = usecTimestampNow();
+                _calibrationState = WAITING_FOR_ZERO_HELD;
+            } else {
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+            }
+            break;
+
+        case WAITING_FOR_ZERO_HELD:
+            if (glm::length(position - _calibrationPosition) < CALIBRATION_ZERO_MAXIMUM_LENGTH
+                && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
+                if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
+                    _calibrationState = CALIBRATED;
+                    Application::getInstance()->resetSensors();
+                }
+            } else {
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+                _calibrationState = WAITING_FOR_ZERO;
+            }
+            break;
+    }
+#endif
+}
+
+void OculusManager::recalibrate() {
+#ifdef HAVE_LIBOVR
+    _calibrationState = UNCALIBRATED;
+#endif
+}
+
+void OculusManager::abandonCalibration() {
+#ifdef HAVE_LIBOVR
+    _calibrationState = CALIBRATED;
 #endif
 }
 
@@ -330,6 +403,12 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     
     trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
     trackerPosition = bodyOrientation * trackerPosition;
+
+    if (_calibrationState != CALIBRATED) {
+        ovrQuatf ovrHeadOrientation = ts.HeadPose.ThePose.Orientation;
+        orientation = glm::quat(ovrHeadOrientation.w, ovrHeadOrientation.x, ovrHeadOrientation.y, ovrHeadOrientation.z);
+        calibrate(trackerPosition, orientation);
+    }
 #endif
     
     //Render each eye into an fbo
