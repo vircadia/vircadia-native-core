@@ -76,7 +76,7 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
         int dotIndex = keyPath.indexOf('.');
         
         QString groupKey = keyPath.mid(0, dotIndex);
-        QString settingKey = keyPath.mid(dotIndex);
+        QString settingKey = keyPath.mid(dotIndex + 1);
         
         foreach(const QVariant& group, _descriptionArray.toVariantList()) {
             QVariantMap groupMap = group.toMap();
@@ -88,16 +88,13 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
                         return settingMap[SETTING_DEFAULT_KEY];
                     }
                 }
+                
+                return QVariant();
             }
         }
     }
     
-    if (foundValue) {
-        return *foundValue;
-    } else {
-        return QVariant();
-    }
-    
+    return QVariant();
 }
 
 const QString SETTINGS_PATH = "/settings.json";
