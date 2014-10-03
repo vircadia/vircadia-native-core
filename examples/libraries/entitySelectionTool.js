@@ -85,6 +85,7 @@ SelectionDisplay = (function () {
                     visible: false,
                     dashed: true,
                     lineWidth: 1.0,
+                    ignoreRayIntersection: true // this never ray intersects
                 });
 
     var selectionBox = Overlays.addOverlay("cube", {
@@ -584,9 +585,9 @@ SelectionDisplay = (function () {
                                 innerRadius: 0.9
                             });
 
-        Overlays.editOverlay(yawHandle, { visible: false, position: yawCorner, rotation: yawHandleRotation});
-        Overlays.editOverlay(pitchHandle, { visible: false, position: pitchCorner, rotation: pitchHandleRotation});
-        Overlays.editOverlay(rollHandle, { visible: false, position: rollCorner, rotation: rollHandleRotation});
+        Overlays.editOverlay(yawHandle, { visible: true, position: yawCorner, rotation: yawHandleRotation});
+        Overlays.editOverlay(pitchHandle, { visible: true, position: pitchCorner, rotation: pitchHandleRotation});
+        Overlays.editOverlay(rollHandle, { visible: true, position: rollCorner, rotation: rollHandleRotation});
 
         Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
     };
@@ -645,6 +646,45 @@ SelectionDisplay = (function () {
         currentSelection = { id: -1, isKnownID: false };
         entitySelected = false;
     };
+
+    that.translateXZ = function(event) {
+        if (!entitySelected || mode !== "TRANSLATE_XZ") {
+            return; // not allowed
+        }
+        pickRay = Camera.computePickRay(event.x, event.y);
+
+        // translate mode left/right based on view toward entity
+        var newIntersection = rayPlaneIntersection(pickRay,
+                                                   selectedEntityPropertiesOriginalPosition,
+                                                   Quat.getFront(lastAvatarOrientation));
+
+        var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+
+        // this allows us to use the old editModels "shifted" logic which makes the
+        // up/down behavior of the mouse move "in"/"out" of the screen.
+        var i = Vec3.dot(vector, Quat.getRight(orientation));
+        var j = Vec3.dot(vector, Quat.getUp(orientation));
+        vector = Vec3.sum(Vec3.multiply(Quat.getRight(orientation), i),
+                          Vec3.multiply(Quat.getFront(orientation), j));
+        
+        newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, vector);
+
+        var wantDebug = false;
+        if (wantDebug) {
+            print("translateXZ... ");
+            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+            Vec3.print("        newIntersection:", newIntersection);
+            Vec3.print("                 vector:", vector);
+            Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("         recentPosition:", selectedEntityProperties.position);
+            Vec3.print("            newPosition:", newPosition);
+        }
+
+        selectedEntityProperties.position = newPosition;
+        Entities.editEntity(currentSelection, selectedEntityProperties);
+        tooltip.updateText(selectedEntityProperties);
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
+    };
     
     that.translateUpDown = function(event) {
         if (!entitySelected || mode !== "TRANSLATE_UP_DOWN") {
@@ -678,9 +718,9 @@ SelectionDisplay = (function () {
         }
 
         selectedEntityProperties.position = newPosition;
-        Entities.editEntity(selectedEntityID, selectedEntityProperties);
+        Entities.editEntity(currentSelection, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
-        that.select(selectedEntityID, false); // TODO: this should be more than highlighted
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
     };
 
     that.stretchNEAR = function(event) {
@@ -726,9 +766,9 @@ SelectionDisplay = (function () {
         
         selectedEntityProperties.position = newPosition;
         selectedEntityProperties.dimensions = newDimensions;
-        Entities.editEntity(selectedEntityID, selectedEntityProperties);
+        Entities.editEntity(currentSelection, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
-        that.select(selectedEntityID, false); // TODO: this should be more than highlighted
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
     };
 
     that.stretchRBN = function(event) {
@@ -802,9 +842,9 @@ SelectionDisplay = (function () {
         
         selectedEntityProperties.position = newPosition;
         selectedEntityProperties.dimensions = newDimensions;
-        Entities.editEntity(selectedEntityID, selectedEntityProperties);
+        Entities.editEntity(currentSelection, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
-        that.select(selectedEntityID, false); // TODO: this should be more than highlighted
+        that.select(currentSelection, false); // TODO: this should be more than highlighted
     };
 
     that.checkMove = function() {
@@ -815,8 +855,16 @@ SelectionDisplay = (function () {
     };
 
     that.mousePressEvent = function(event) {
+        var somethingClicked = false;
         var pickRay = Camera.computePickRay(event.x, event.y);
+        
+        // before we do a ray test for grabbers, disable the ray intersection for our selection box
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
+        Overlays.editOverlay(yawHandle, { ignoreRayIntersection: true });
+        Overlays.editOverlay(pitchHandle, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rollHandle, { ignoreRayIntersection: true });
         var result = Overlays.findRayIntersection(pickRay);
+
         if (result.intersects) {
 
             var wantDebug = true;
@@ -843,7 +891,7 @@ SelectionDisplay = (function () {
                         Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                         Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
                     }
-
+                    somethingClicked = true;
                     break;
 
                 case grabberRBN:
@@ -858,7 +906,7 @@ SelectionDisplay = (function () {
                         Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                         Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
                     }
-
+                    somethingClicked = true;
                     break;
 
                 case grabberNEAR:
@@ -876,17 +924,64 @@ SelectionDisplay = (function () {
                         Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
                              print("                   mode:" + mode);
                     }
-
+                    somethingClicked = true;
                     break;
 
                 default:
                     mode = "UNKNOWN";
                     break;
             }
-
-            //print("   mode:" + mode);
-
         }
+        
+        if (!somethingClicked) {
+            // After testing our stretch handles, then check out rotate handles
+            Overlays.editOverlay(yawHandle, { ignoreRayIntersection: false });
+            Overlays.editOverlay(pitchHandle, { ignoreRayIntersection: false });
+            Overlays.editOverlay(rollHandle, { ignoreRayIntersection: false });
+            var result = Overlays.findRayIntersection(pickRay);
+            if (result.intersects) {
+                switch(result.overlayID) {
+                    default:
+                        print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        mode = "UNKNOWN";
+                        break;
+                }
+            }
+        }
+
+        if (!somethingClicked) {
+            Overlays.editOverlay(selectionBox, { ignoreRayIntersection: false });
+            var result = Overlays.findRayIntersection(pickRay);
+            if (result.intersects) {
+                switch(result.overlayID) {
+                    case selectionBox:
+                        mode = "TRANSLATE_XZ";
+
+                        pickRay = Camera.computePickRay(event.x, event.y);
+                        lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
+                                                                        Quat.getFront(lastAvatarOrientation));
+                        if (wantDebug) {
+                                 print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                                 print("                event.y:" + event.y);
+                            Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+                            Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
+                        }
+                        somethingClicked = true;
+                        break;
+                    default:
+                        print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                        mode = "UNKNOWN";
+                        break;
+                }
+            }
+        }
+
+        // reset everything as intersectable...
+        // TODO: we could optimize this since some of these were already flipped back
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: false });
+        Overlays.editOverlay(yawHandle, { ignoreRayIntersection: false });
+        Overlays.editOverlay(pitchHandle, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rollHandle, { ignoreRayIntersection: false });
     };
 
     that.mouseMoveEvent = function(event) {
@@ -894,6 +989,9 @@ SelectionDisplay = (function () {
         switch (mode) {
             case "TRANSLATE_UP_DOWN":
                 that.translateUpDown(event);
+                break;
+            case "TRANSLATE_XZ":
+                that.translateXZ(event);
                 break;
             case "STRETCH_RBN":
                 that.stretchRBN(event);
@@ -909,6 +1007,13 @@ SelectionDisplay = (function () {
 
     that.mouseReleaseEvent = function(event) {
         mode = "UNKNOWN";
+        
+        // if something is selected, then reset the "original" properties for any potential next click+move operation
+        if (entitySelected) {
+            selectedEntityProperties = Entities.getEntityProperties(currentSelection);
+            selectedEntityPropertiesOriginalPosition = properties.position;
+            selectedEntityPropertiesOriginalDimensions = properties.dimensions;
+        }
     };
 
     Controller.mousePressEvent.connect(that.mousePressEvent);

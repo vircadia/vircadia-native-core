@@ -329,7 +329,6 @@ function isLocked(properties) {
 
 
 var entitySelected = false;
-var moving = false;
 var selectedEntityID;
 var selectedEntityProperties;
 var mouseLastPosition;
@@ -413,7 +412,6 @@ function mousePressEvent(event) {
 
             if (0 < x && sizeOK) {
                 entitySelected = true;
-                moving = true; // if we are moving we are moving
                 selectedEntityID = foundEntity;
                 selectedEntityProperties = properties;
                 orientation = MyAvatar.orientation;
@@ -481,35 +479,6 @@ function mouseMoveEvent(event) {
         }
         return;
     }
-
-    if (entitySelected && moving) {
-        pickRay = Camera.computePickRay(event.x, event.y);
-
-        // translate mode left/right based on view toward entity
-        var newIntersection = rayPlaneIntersection(pickRay,
-                                                   selectedEntityProperties.oldPosition,
-                                                   Quat.getFront(orientation));
-
-        var vector = Vec3.subtract(newIntersection, intersection);
-
-        // this allows us to use the old editModels "shifted" logic which makes the
-        // up/down behavior of the mouse move "in"/"out" of the screen.
-        var i = Vec3.dot(vector, Quat.getRight(orientation));
-        var j = Vec3.dot(vector, Quat.getUp(orientation));
-        vector = Vec3.sum(Vec3.multiply(Quat.getRight(orientation), i),
-                          Vec3.multiply(Quat.getFront(orientation), j));
-
-
-        selectedEntityProperties.position = Vec3.sum(selectedEntityProperties.oldPosition, vector);
-    
-
-        Entities.editEntity(selectedEntityID, selectedEntityProperties);
-        tooltip.updateText(selectedEntityProperties);
-
-        // TODO: make this be a "moving state" - which is actually more like highlighted
-        //       but including the change measurements
-        selectionDisplay.select(selectedEntityID, event); // TODO: this should be more than highlighted
-    }
 }
 
 
@@ -520,7 +489,6 @@ function mouseReleaseEvent(event) {
     if (entitySelected) {
         tooltip.show(false);
     }
-    moving = false;
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
