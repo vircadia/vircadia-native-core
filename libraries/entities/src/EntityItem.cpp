@@ -782,9 +782,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
-    
-qDebug() << "EntityItem::setProperties().... localRenderAlpha:" << getLocalRenderAlpha();
-    
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
