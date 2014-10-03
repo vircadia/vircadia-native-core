@@ -24,8 +24,8 @@ const bool DEFAULT_IS_DASHED_LINE = false;
 Base3DOverlay::Base3DOverlay() :
     _position(DEFAULT_POSITION),
     _lineWidth(DEFAULT_LINE_WIDTH),
-    _isSolid(DEFAULT_IS_SOLID),
     _rotation(),
+    _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
     _ignoreRayIntersection(false)
 {
