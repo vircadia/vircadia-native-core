@@ -92,7 +92,12 @@ QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QStrin
         }
     }
     
-    return *foundValue;
+    if (foundValue) {
+        return *foundValue;
+    } else {
+        return QVariant();
+    }
+    
 }
 
 const QString SETTINGS_PATH = "/settings.json";
