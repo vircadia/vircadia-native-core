@@ -14,6 +14,9 @@
 SelectionDisplay = (function () {
     var that = {};
     
+    var lastAvatarPosition = MyAvatar.position;
+    var lastAvatarOrientation = MyAvatar.orientation;
+
     var currentSelection = { id: -1, isKnownID: false };
 
     var handleHoverColor = { red: 224, green: 67, blue: 36 };
@@ -88,6 +91,17 @@ SelectionDisplay = (function () {
                     lineWidth: 1.0,
                 });
 
+    var grabberMoveUp = Overlays.addOverlay("billboard", {
+                    url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/up-arrow.png",
+                    position: { x:0, y: 0, z: 0},
+                    color: { red: 0, green: 0, blue: 0 },
+                    alpha: 1.0,
+                    visible: false,
+                    size: 0.1,
+                    scale: 0.1,
+                    isFacingAvatar: true
+                  });
+            
     var grabberLBN = Overlays.addOverlay("cube", grabberPropertiesCorner);
     var grabberRBN = Overlays.addOverlay("cube", grabberPropertiesCorner);
     var grabberLBF = Overlays.addOverlay("cube", grabberPropertiesCorner);
@@ -206,6 +220,7 @@ SelectionDisplay = (function () {
     that.cleanup = function () {
         Overlays.deleteOverlay(highlightBox);
         Overlays.deleteOverlay(selectionBox);
+        Overlays.deleteOverlay(grabberMoveUp);
         Overlays.deleteOverlay(baseOfEntityProjectionOverlay);
         Overlays.deleteOverlay(grabberLBN);
         Overlays.deleteOverlay(grabberLBF);
@@ -263,11 +278,18 @@ SelectionDisplay = (function () {
     };
 
     that.select = function(entityID) {
+    
+print("select()...... entityID:" + entityID.id);
+    
         var properties = Entities.getEntityProperties(entityID);
         if (currentSelection.isKnownID == true) {
             that.unselect(currentSelection);
         }
         currentSelection = entityID;
+
+        lastAvatarPosition = MyAvatar.position;
+        lastAvatarOrientation = MyAvatar.orientation;
+
 
         var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
         var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
@@ -283,6 +305,7 @@ SelectionDisplay = (function () {
         }
 
         var rotateHandleOffset = 0.05;
+        var grabberMoveUpOffset = 0.1;
         
         var left = properties.position.x - halfDimensions.x;
         var right = properties.position.x + halfDimensions.x;
@@ -397,6 +420,8 @@ SelectionDisplay = (function () {
                                z: far + rotateHandleOffset};
             }
         }
+
+        Overlays.editOverlay(highlightBox, { visible: false });
         
         Overlays.editOverlay(selectionBox, 
                             { 
@@ -405,6 +430,9 @@ SelectionDisplay = (function () {
                                 dimensions: properties.dimensions,
                                 rotation: properties.rotation,
                             });
+                            
+                            
+        Overlays.editOverlay(grabberMoveUp, { visible: true, position: { x: center.x, y: top + grabberMoveUpOffset, z: center.z } });
 
         Overlays.editOverlay(grabberLBN, { visible: true, position: { x: left, y: bottom, z: near } });
         Overlays.editOverlay(grabberRBN, { visible: true, position: { x: right, y: bottom, z: near } });
@@ -507,6 +535,7 @@ SelectionDisplay = (function () {
     that.unselect = function (entityID) {
         Overlays.editOverlay(selectionBox, { visible: false });
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { visible: false });
+        Overlays.editOverlay(grabberMoveUp, { visible: false });
         Overlays.editOverlay(grabberLBN, { visible: false });
         Overlays.editOverlay(grabberLBF, { visible: false });
         Overlays.editOverlay(grabberRBN, { visible: false });
@@ -547,6 +576,23 @@ SelectionDisplay = (function () {
         Entities.editEntity(entityID, { localRenderAlpha: 1.0 });
     };
 
+    that.checkMove = function() {
+        if (currentSelection.isKnownID && 
+            (!Vec3.equal(MyAvatar.position, lastAvatarPosition) || !Quat.equal(MyAvatar.orientation, lastAvatarOrientation))){
+
+print("checkMove calling .... select()");
+
+//print("Vec3.equal(MyAvatar.position, lastAvatarPosition):" + Vec3.equal(MyAvatar.position, lastAvatarPosition);
+//Vec3.print("MyAvatar.position:", MyAvatar.position);
+//Vec3.print("lastAvatarPosition:", lastAvatarPosition);
+
+//print("Quat.equal(MyAvatar.orientation, lastAvatarOrientation):" + Quat.equal(MyAvatar.orientation, lastAvatarOrientation));
+//Quat.print("MyAvatar.orientation:", MyAvatar.orientation);
+//Quat.print("lastAvatarOrientation:", lastAvatarOrientation);
+
+            that.select(currentSelection);
+        }
+    };
 
     that.mousePressEvent = function(event) {
     };
