@@ -185,21 +185,29 @@ void DomainHandler::setIsConnected(bool isConnected) {
     }
 }
 
-void DomainHandler::requestDomainSettings() const {
-    if (_settingsObject.isEmpty()) {
-        // setup the URL required to grab settings JSON
-        QUrl settingsJSONURL;
-        settingsJSONURL.setScheme("http");
-        settingsJSONURL.setHost(_hostname);
-        settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
-        settingsJSONURL.setPath("/settings.json");
-        Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
-        settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
-        
-        qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
-        
-        QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
-        connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+void DomainHandler::requestDomainSettings() {
+    NodeType_t owningNodeType = NodeList::getInstance()->getOwnerType();
+    if (owningNodeType == NodeType::Agent) {
+        // for now the agent nodes don't need any settings - this allows local assignment-clients
+        // to connect to a domain that is using automatic networking (since we don't have TCP hole punch yet)
+        _settingsObject = QJsonObject();
+        emit settingsReceived(_settingsObject);
+    } else {
+        if (_settingsObject.isEmpty()) {
+            // setup the URL required to grab settings JSON
+            QUrl settingsJSONURL;
+            settingsJSONURL.setScheme("http");
+            settingsJSONURL.setHost(_hostname);
+            settingsJSONURL.setPort(DOMAIN_SERVER_HTTP_PORT);
+            settingsJSONURL.setPath("/settings.json");
+            Assignment::Type assignmentType = Assignment::typeForNodeType(NodeList::getInstance()->getOwnerType());
+            settingsJSONURL.setQuery(QString("type=%1").arg(assignmentType));
+            
+            qDebug() << "Requesting domain-server settings at" << settingsJSONURL.toString();
+            
+            QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(settingsJSONURL));
+            connect(reply, &QNetworkReply::finished, this, &DomainHandler::settingsRequestFinished);
+        }
     }
 }
 

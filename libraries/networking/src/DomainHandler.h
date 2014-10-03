@@ -67,7 +67,7 @@ public:
     void setIsConnected(bool isConnected);
     
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
-    void requestDomainSettings() const;
+    void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
     
     void parseDTLSRequirementPacket(const QByteArray& dtlsRequirementPacket);
