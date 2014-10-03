@@ -258,7 +258,7 @@ bool DomainServer::didSetupAccountManagerWithAccessToken() {
         if (accessToken.isEmpty()) {
             const QVariant* accessTokenVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ACCESS_TOKEN_KEY_PATH);
             
-            if (accessTokenVariant->canConvert(QMetaType::QString)) {
+            if (accessTokenVariant && accessTokenVariant->canConvert(QMetaType::QString)) {
                 accessToken = accessTokenVariant->toString();
             } else {
                 qDebug() << "A domain-server feature that requires authentication is enabled but no access token is present."
