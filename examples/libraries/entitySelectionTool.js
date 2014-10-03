@@ -737,14 +737,14 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var originalNEAR = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
-        var newNEAR = originalNEAR + vector.z;
+        var oldNEAR = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
+        var newNEAR = oldNEAR + vector.z;
 
         // if near is changing, then...
         //   dimensions changes by: (oldNEAR - newNEAR)
-        var changeInDimensions = { x: 0, y: 0, z: (originalNEAR - newNEAR) };
+        var changeInDimensions = { x: 0, y: 0, z: (oldNEAR - newNEAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
-        var changeInPosition = { x: 0, y: 0, z: (originalNEAR - newNEAR) * -0.5 };
+        var changeInPosition = { x: 0, y: 0, z: (oldNEAR - newNEAR) * -0.5 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -752,13 +752,13 @@ SelectionDisplay = (function () {
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            print("           originalNEAR:" + originalNEAR);
+            print("           oldNEAR:" + oldNEAR);
             print("                newNEAR:" + newNEAR);
-            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
             Vec3.print("            changeInDimensions:", changeInDimensions);
             Vec3.print("                 newDimensions:", newDimensions);
 
-            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
             Vec3.print("              changeInPosition:", changeInPosition);
             Vec3.print("                   newPosition:", newPosition);
         }
@@ -785,11 +785,11 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var originalFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
-        var newFAR = originalFAR + vector.z;
-        var changeInDimensions = { x: 0, y: 0, z: (newFAR - originalFAR) };
+        var oldFAR = selectedEntityPropertiesOriginalPosition.z + halfDimensions.z;
+        var newFAR = oldFAR + vector.z;
+        var changeInDimensions = { x: 0, y: 0, z: (newFAR - oldFAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
-        var changeInPosition = { x: 0, y: 0, z: (newFAR - originalFAR) * 0.5 };
+        var changeInPosition = { x: 0, y: 0, z: (newFAR - oldFAR) * 0.5 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -797,13 +797,13 @@ SelectionDisplay = (function () {
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            print("            originalFAR:" + originalFAR);
+            print("            oldFAR:" + oldFAR);
             print("                 newFAR:" + newFAR);
-            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
             Vec3.print("            changeInDimensions:", changeInDimensions);
             Vec3.print("                 newDimensions:", newDimensions);
 
-            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
             Vec3.print("              changeInPosition:", changeInPosition);
             Vec3.print("                   newPosition:", newPosition);
         }
@@ -830,11 +830,11 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var originalTOP = selectedEntityPropertiesOriginalPosition.y + halfDimensions.y;
-        var newTOP = originalTOP + vector.y;
-        var changeInDimensions = { x: 0, y: (newTOP - originalTOP), z: 0 };
+        var oldTOP = selectedEntityPropertiesOriginalPosition.y + halfDimensions.y;
+        var newTOP = oldTOP + vector.y;
+        var changeInDimensions = { x: 0, y: (newTOP - oldTOP), z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
-        var changeInPosition = { x: 0, y: (newTOP - originalTOP) * 0.5, z: 0 };
+        var changeInPosition = { x: 0, y: (newTOP - oldTOP) * 0.5, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -842,13 +842,13 @@ SelectionDisplay = (function () {
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            print("            originalTOP:" + originalTOP);
+            print("            oldTOP:" + oldTOP);
             print("                 newTOP:" + newTOP);
-            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
             Vec3.print("            changeInDimensions:", changeInDimensions);
             Vec3.print("                 newDimensions:", newDimensions);
 
-            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
             Vec3.print("              changeInPosition:", changeInPosition);
             Vec3.print("                   newPosition:", newPosition);
         }
@@ -874,11 +874,11 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var originalBOTTOM = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
-        var newBOTTOM = originalBOTTOM + vector.y;
-        var changeInDimensions = { x: 0, y: (originalBOTTOM - newBOTTOM), z: 0 };
+        var oldBOTTOM = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
+        var newBOTTOM = oldBOTTOM + vector.y;
+        var changeInDimensions = { x: 0, y: (oldBOTTOM - newBOTTOM), z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
-        var changeInPosition = { x: 0, y: (originalBOTTOM - newBOTTOM) * -0.5, z: 0 };
+        var changeInPosition = { x: 0, y: (oldBOTTOM - newBOTTOM) * -0.5, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -886,13 +886,13 @@ SelectionDisplay = (function () {
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            print("            originalBOTTOM:" + originalBOTTOM);
+            print("            oldBOTTOM:" + oldBOTTOM);
             print("                 newBOTTOM:" + newBOTTOM);
-            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
             Vec3.print("            changeInDimensions:", changeInDimensions);
             Vec3.print("                 newDimensions:", newDimensions);
 
-            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
             Vec3.print("              changeInPosition:", changeInPosition);
             Vec3.print("                   newPosition:", newPosition);
         }
@@ -918,11 +918,11 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var originalRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
-        var newRIGHT = originalRIGHT + vector.x;
-        var changeInDimensions = { x: (newRIGHT - originalRIGHT), y: 0 , z: 0 };
+        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
+        var newRIGHT = oldRIGHT + vector.x;
+        var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: 0 , z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
-        var changeInPosition = { x: (newRIGHT - originalRIGHT) * 0.5, y: 0, z: 0 };
+        var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, y: 0, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -930,13 +930,13 @@ SelectionDisplay = (function () {
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            print("            originalRIGHT:" + originalRIGHT);
+            print("            oldRIGHT:" + oldRIGHT);
             print("                 newRIGHT:" + newRIGHT);
-            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
             Vec3.print("            changeInDimensions:", changeInDimensions);
             Vec3.print("                 newDimensions:", newDimensions);
 
-            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
             Vec3.print("              changeInPosition:", changeInPosition);
             Vec3.print("                   newPosition:", newPosition);
         }
@@ -962,11 +962,11 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var originalLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
-        var newLEFT = originalLEFT + vector.x;
-        var changeInDimensions = { x: (originalLEFT - newLEFT), y: 0, z: 0 };
+        var oldLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
+        var newLEFT = oldLEFT + vector.x;
+        var changeInDimensions = { x: (oldLEFT - newLEFT), y: 0, z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
-        var changeInPosition = { x: (originalLEFT - newLEFT) * -0.5, y: 0, z: 0 };
+        var changeInPosition = { x: (oldLEFT - newLEFT) * -0.5, y: 0, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -974,13 +974,13 @@ SelectionDisplay = (function () {
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            print("            originalLEFT:" + originalLEFT);
+            print("            oldLEFT:" + oldLEFT);
             print("                 newLEFT:" + newLEFT);
-            Vec3.print("            originalDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
             Vec3.print("            changeInDimensions:", changeInDimensions);
             Vec3.print("                 newDimensions:", newDimensions);
 
-            Vec3.print("              originalPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
             Vec3.print("              changeInPosition:", changeInPosition);
             Vec3.print("                   newPosition:", newPosition);
         }
@@ -990,19 +990,12 @@ SelectionDisplay = (function () {
         Entities.editEntity(currentSelection, selectedEntityProperties);
         tooltip.updateText(selectedEntityProperties);
         that.select(currentSelection, false); // TODO: this should be more than highlighted
-    };    
-
+    };
+    
     that.stretchRBN = function(event) {
         if (!entitySelected || mode !== "STRETCH_RBN") {
             return; // not allowed
         }
-        
-        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var right = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
-        var bottom = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
-        var near = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
-        var originalRBN = { x: right, y: bottom, z: near };
-        
         pickRay = Camera.computePickRay(event.x, event.y);
 
         // translate mode left/right based on view toward entity
@@ -1011,55 +1004,40 @@ SelectionDisplay = (function () {
                                                    Quat.getFront(lastAvatarOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
-        
-        // calculate the X/Z axis change... and use that instead of the X/Y axis change
-        var i = Vec3.dot(vector, Quat.getRight(orientation));
-        var j = Vec3.dot(vector, Quat.getUp(orientation));
-        vector = Vec3.sum(Vec3.multiply(Quat.getRight(orientation), i),
-                          Vec3.multiply(Quat.getFront(orientation), j));
-        
-        newRBN = Vec3.sum(originalRBN, vector);
 
-        var oldDimensions = selectedEntityPropertiesOriginalDimensions;
-        var changeInDimensions = Vec3.subtract(newRBN, originalRBN);
-        var newDimensions = Vec3.sum(selectedEntityProperties.dimensions, changeInDimensions);
-        if (newDimensions.x < 0) {
-            // TODO: need to handle x flip for position
-            newDimensions.x = Math.abs(newDimensions.x);
-        }
+        var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
+        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
+        var newRIGHT = oldRIGHT + vector.x;
 
-        if (newDimensions.y < 0) {
-            // TODO: need to handle y flip for position
-            newDimensions.y = Math.abs(newDimensions.y);
-        }
+        var oldBOTTOM = selectedEntityPropertiesOriginalPosition.y - halfDimensions.y;
+        var newBOTTOM = oldBOTTOM - vector.y;
 
-        if (newDimensions.z < 0) {
-            // TODO: need to handle z flip for position
-            newDimensions.z = Math.abs(newDimensions.z);
-        }
-        changeInDimensions = Vec3.subtract(newDimensions, oldDimensions);
+        var oldNEAR = selectedEntityPropertiesOriginalPosition.z - halfDimensions.z;
+        var newNEAR = oldNEAR - vector.z;
         
-        // TODO: need to handle registrations, for now assume center registration
-        var changeInPosition = Vec3.multiply(changeInDimensions, 0.5);
-        newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         
-
-        var wantDebug = true;
+        var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newBOTTOM - oldBOTTOM) , z: (newNEAR - oldNEAR) };
+        var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
+                                 y: (newBOTTOM - oldBOTTOM) * -0.5, 
+                                 z: (newNEAR - oldNEAR) * -0.5 };
+        var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
+        var wantDebug = false;
         if (wantDebug) {
             print("stretchRBN... ");
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
             Vec3.print("        newIntersection:", newIntersection);
             Vec3.print("                 vector:", vector);
-            Vec3.print("           original RBN:", originalRBN);
-            Vec3.print("                new RBN:", newRBN);
-            Vec3.print(" SEP.OriginalDimensions:", selectedEntityPropertiesOriginalDimensions);
-            Vec3.print("          oldDimensions:", oldDimensions);
-            Vec3.print("     changeInDimensions:", changeInDimensions);
-            Vec3.print("          newDimensions:", newDimensions);
-            Vec3.print("       changeInPosition:", changeInPosition);
-            Vec3.print("            newPosition:", newPosition);
+            print("            oldRIGHT:" + oldRIGHT);
+            print("                 newRIGHT:" + newRIGHT);
+            Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
+            Vec3.print("            changeInDimensions:", changeInDimensions);
+            Vec3.print("                 newDimensions:", newDimensions);
+
+            Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
+            Vec3.print("              changeInPosition:", changeInPosition);
+            Vec3.print("                   newPosition:", newPosition);
         }
-        
         
         selectedEntityProperties.position = newPosition;
         selectedEntityProperties.dimensions = newDimensions;
@@ -1067,7 +1045,7 @@ SelectionDisplay = (function () {
         tooltip.updateText(selectedEntityProperties);
         that.select(currentSelection, false); // TODO: this should be more than highlighted
     };
-
+        
     that.checkMove = function() {
         if (currentSelection.isKnownID && 
             (!Vec3.equal(MyAvatar.position, lastAvatarPosition) || !Quat.equal(MyAvatar.orientation, lastAvatarOrientation))){
@@ -1132,10 +1110,14 @@ SelectionDisplay = (function () {
                     somethingClicked = true;
                     break;
                 case grabberRIGHT:
+                case grabberEdgeTR:  // TODO: maybe this should be TOP+RIGHT stretching?
+                case grabberEdgeBR:  // TODO: maybe this should be BOTTOM+RIGHT stretching?
                     mode = "STRETCH_RIGHT";
                     somethingClicked = true;
                     break;
                 case grabberLEFT:
+                case grabberEdgeTL:  // TODO: maybe this should be TOP+LEFT stretching?
+                case grabberEdgeBL:  // TODO: maybe this should be BOTTOM+LEFT stretching?
                     mode = "STRETCH_LEFT";
                     somethingClicked = true;
                     break;
