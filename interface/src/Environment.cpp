@@ -261,7 +261,7 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
-    glutSolidSphere(data.getAtmosphereOuterRadius(), 100, 50);
+    Application::getInstance()->getGeometryCache()->renderSphere(1.f, 100, 50); //Draw a unit sphere
     glDepthMask(GL_TRUE);
     
     program->release();

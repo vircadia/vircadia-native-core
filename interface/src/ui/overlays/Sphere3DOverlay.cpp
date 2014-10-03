@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"
+#include "Application.h"
 
 Sphere3DOverlay::Sphere3DOverlay() {
 }
@@ -39,7 +40,7 @@ void Sphere3DOverlay::render() {
     glLineWidth(_lineWidth);
     const int slices = 15;
     if (_isSolid) {
-        glutSolidSphere(_size, slices, slices);
+		Application::getInstance()->getGeometryCache()->renderSphere(_size, slices, slices); 
     } else {
         glutWireSphere(_size, slices, slices);
     }

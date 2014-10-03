@@ -11,6 +11,7 @@
 
 #include "BuckyBalls.h"
 
+#include "Application.h"
 #include "Util.h"
 #include "world.h"
 #include "devices/SixenseManager.h"
@@ -171,7 +172,7 @@ void BuckyBalls::render() {
         }
         glPushMatrix();
         glTranslatef(_bballPosition[i].x, _bballPosition[i].y, _bballPosition[i].z);
-        glutSolidSphere(_bballRadius[i], 15, 15);
+		Application::getInstance()->getGeometryCache()->renderSphere(_bballRadius[i], 15, 15); 
         glPopMatrix();
     }
 }

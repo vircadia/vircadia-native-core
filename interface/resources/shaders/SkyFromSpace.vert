@@ -32,10 +32,12 @@
 // Copyright (c) 2004 Sean O'Neil
 //
 
+uniform float fOuterRadius;		// The outer (atmosphere) radius
+
 varying vec3 position;
 
 void main(void)
 {
-	position = gl_Vertex.xyz;
-	gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+	position = gl_Vertex.xyz * fOuterRadius;
+	gl_Position = gl_ModelViewProjectionMatrix * vec4(position, 1.0);
 }

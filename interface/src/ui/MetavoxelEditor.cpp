@@ -1415,7 +1415,7 @@ void SphereTool::render() {
     
     glEnable(GL_CULL_FACE);
     
-    glutSolidSphere(_radius->value(), 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(_radius->value(), 10, 10);
     
     glDisable(GL_CULL_FACE);
     

@@ -385,7 +385,7 @@ Menu::Menu() :
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, 0, false);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
