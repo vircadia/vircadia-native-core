@@ -65,7 +65,7 @@ void ImageOverlay::render() {
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, _textureID);
     }
-    const float MAX_COLOR = 255;
+    const float MAX_COLOR = 255.0f;
     xColor color = getColor();
     float alpha = getAlpha();
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);

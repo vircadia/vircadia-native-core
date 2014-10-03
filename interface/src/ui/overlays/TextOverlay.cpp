@@ -54,7 +54,7 @@ void TextOverlay::render() {
     }
 
 
-    const float MAX_COLOR = 255;
+    const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
     float alpha = getAlpha();
     glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);

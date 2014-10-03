@@ -41,7 +41,7 @@ void Circle3DOverlay::render() {
     //const int slices = 15;
     float alpha = getAlpha();
     xColor color = getColor();
-    const float MAX_COLOR = 255;
+    const float MAX_COLOR = 255.0f;
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
 

@@ -36,7 +36,7 @@ void RenderableSphereEntityItem::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     glm::quat rotation = getRotation();
 
-    const float MAX_COLOR = 255;
+    const float MAX_COLOR = 255.0f;
     glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
                     getColor()[BLUE_INDEX] / MAX_COLOR, getLocalRenderAlpha());
                     

@@ -39,7 +39,7 @@ void RenderableBoxEntityItem::render(RenderArgs* args) {
     glm::quat rotation = getRotation();
 
     const bool useGlutCube = true;
-    const float MAX_COLOR = 255;
+    const float MAX_COLOR = 255.0f;
 
     if (useGlutCube) {
         glColor4f(getColor()[RED_INDEX] / MAX_COLOR, getColor()[GREEN_INDEX] / MAX_COLOR, 
