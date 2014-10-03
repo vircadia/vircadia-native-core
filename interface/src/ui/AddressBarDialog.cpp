@@ -27,7 +27,7 @@ void AddressBarDialog::setupUI() {
     
     const QString DIALOG_STYLESHEET = "font-family: Helvetica, Arial, sans-serif;";
     const QString ADDRESSBAR_PLACEHOLDER = "Go to: domain, @user, #location";
-    const QString ADDRESSBAR_STYLESHEET = "padding: 10px; font-size: 20px;";
+    const QString ADDRESSBAR_STYLESHEET = "padding: 5px 10px; font-size: 20px;";
     
     const int ADDRESSBAR_MIN_WIDTH = 200;
     const int ADDRESSBAR_MAX_WIDTH = 615;
