@@ -65,8 +65,10 @@ void ImageOverlay::render() {
         glEnable(GL_TEXTURE_2D);
         glBindTexture(GL_TEXTURE_2D, _textureID);
     }
-    const float MAX_COLOR = 255;
-    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
+    const float MAX_COLOR = 255.0f;
+    xColor color = getColor();
+    float alpha = getAlpha();
+    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
     float imageWidth = _textureImage.width();
     float imageHeight = _textureImage.height();
@@ -106,6 +108,7 @@ void ImageOverlay::render() {
         }
         glVertex2f(_bounds.left(), _bounds.bottom());
     glEnd();
+
     if (_renderImage) {
         glDisable(GL_TEXTURE_2D);
     }

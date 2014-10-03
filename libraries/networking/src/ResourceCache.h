@@ -124,6 +124,11 @@ public:
 
     Q_INVOKABLE void allReferencesCleared();
 
+signals:
+
+    /// Fired when the resource has been loaded.
+    void loaded();
+
 protected slots:
 
     void attemptRequest();

@@ -22,8 +22,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-Script.include("toolBars.js");
-
+Script.include("libraries/toolBars.js");
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
 var toolHeight = 50;
@@ -35,6 +34,9 @@ var LASER_LENGTH_FACTOR = 500;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
+var allowLargeModels = false;
+var allowSmallModels = false;
+var wantEntityGlow = false;
 
 var LEFT = 0;
 var RIGHT = 1;
@@ -1568,6 +1570,8 @@ var ExportMenu = function (opts) {
     Controller.mouseReleaseEvent.connect(this.mouseReleaseEvent);
 };
 
+
+
 var ModelImporter = function (opts) {
     var self = this;
 
@@ -1974,12 +1978,11 @@ function controller(wichSide) {
         var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
         var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
-        if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
-            if (angularSize > MAX_ANGULAR_SIZE) {
-                print("Angular size too big: " + angularSize);
-                return { valid: false };
-            }
+        
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
+        if (0 < x && sizeOK) {
             return { valid: true, x: x, y: y, z: z };
         }
         return { valid: false };
@@ -2027,9 +2030,14 @@ function controller(wichSide) {
             var halfDiagonal = Vec3.length(intersection.properties.dimensions) / 2.0;
                                                           
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), intersection.properties.position)) * 180 / 3.14;
-            if (intersection.accurate && intersection.entityID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+            if (intersection.accurate && intersection.entityID.isKnownID && sizeOK) {
                 this.glowedIntersectingModel = intersection.entityID;
-                Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.25 });
+                
+                if (wantEntityGlow) {
+                    Entities.editEntity(this.glowedIntersectingModel, { glowLevel: 0.25 });
+                }
             }
         }
     }
@@ -2395,7 +2403,7 @@ function Tooltip() {
     this.x = 285;
     this.y = 115;
     this.width = 500;
-    this.height = 180; // 145;
+    this.height = 300; // 145;
     this.margin = 5;
     this.decimals = 3;
 
@@ -2406,8 +2414,8 @@ function Tooltip() {
         height: this.height,
         margin: this.margin,
         text: "",
-        color: { red: 128, green: 128, blue: 128 },
-        alpha: 0.2,
+        color: { red: 228, green: 228, blue: 228 },
+        alpha: 0.5,
         visible: false
     });
     this.show = function (doShow) {
@@ -2526,16 +2534,16 @@ function mousePressEvent(event) {
             var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
-            if (0 < x && angularSize > MIN_ANGULAR_SIZE) {
-                if (angularSize < MAX_ANGULAR_SIZE) {
-                    entitySelected = true;
-                    selectedEntityID = foundEntity;
-                    selectedEntityProperties = properties;
-                    orientation = MyAvatar.orientation;
-                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-                } else {
-                    print("Angular size too big: " + angularSize);
-                }
+
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+            if (0 < x && sizeOK) {
+                entitySelected = true;
+                selectedEntityID = foundEntity;
+                selectedEntityProperties = properties;
+                orientation = MyAvatar.orientation;
+                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
             }
         }
     }
@@ -2583,11 +2591,17 @@ function mouseMoveEvent(event) {
             
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
                                             entityIntersection.properties.position)) * 180 / 3.14;
-                                            
-            if (entityIntersection.entityID.isKnownID && angularSize > MIN_ANGULAR_SIZE && angularSize < MAX_ANGULAR_SIZE) {
-                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+            if (entityIntersection.entityID.isKnownID && sizeOK) {
+                if (wantEntityGlow) {
+                    Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+                }
                 glowedEntityID = entityIntersection.entityID;
             }
+            
         }
         return;
     }
@@ -2745,10 +2759,17 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L", 
+                        afterItem: "Paste Models", isCheckable: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
+                        afterItem: "Allow Select Large Models", isCheckable: true });
+
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
+
+    
 }
 
 function cleanupModelMenus() {
@@ -2760,6 +2781,8 @@ function cleanupModelMenus() {
     }
 
     Menu.removeMenuItem("Edit", "Paste Models");
+    Menu.removeMenuItem("Edit", "Allow Select Large Models");
+    Menu.removeMenuItem("Edit", "Allow Select Small Models");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
@@ -2920,7 +2943,11 @@ function showPropertiesForm() {
 
 function handeMenuEvent(menuItem) {
     print("menuItemEvent() in JS... menuItem=" + menuItem);
-    if (menuItem == "Delete") {
+    if (menuItem == "Allow Select Small Models") {
+        allowSmallModels = Menu.isOptionChecked("Allow Select Small Models");
+    } else if (menuItem == "Allow Select Large Models") {
+        allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
+    } else if (menuItem == "Delete") {
         if (leftController.grabbing) {
             print("  Delete Entity.... leftController.entityID="+ leftController.entityID);
             Entities.deleteEntity(leftController.entityID);

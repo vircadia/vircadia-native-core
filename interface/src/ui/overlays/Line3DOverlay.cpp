@@ -12,6 +12,7 @@
 #include "InterfaceConfig.h"
 
 #include "Line3DOverlay.h"
+#include "renderer/GlowEffect.h"
 
 
 Line3DOverlay::Line3DOverlay() {
@@ -25,16 +26,33 @@ void Line3DOverlay::render() {
         return; // do nothing if we're not visible
     }
 
-    const float MAX_COLOR = 255;
+    float glowLevel = getGlowLevel();
+    Glower* glower = NULL;
+    if (glowLevel > 0.0f) {
+        glower = new Glower(glowLevel);
+    }
+
     glDisable(GL_LIGHTING);
     glLineWidth(_lineWidth);
-    glColor4f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR, _alpha);
 
-    glBegin(GL_LINES);
+    float alpha = getAlpha();
+    xColor color = getColor();
+    const float MAX_COLOR = 255.0f;
+    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+
+    if (getIsDashedLine()) {
+        drawDashedLine(_position, _end);
+    } else {
+        glBegin(GL_LINES);
         glVertex3f(_position.x, _position.y, _position.z);
         glVertex3f(_end.x, _end.y, _end.z);
-    glEnd();
+        glEnd();
+    }
     glEnable(GL_LIGHTING);
+
+    if (glower) {
+        delete glower;
+    }
 }
 
 void Line3DOverlay::setProperties(const QScriptValue& properties) {
