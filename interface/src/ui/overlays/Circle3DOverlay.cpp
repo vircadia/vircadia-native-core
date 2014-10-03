@@ -33,10 +33,10 @@ void Circle3DOverlay::render() {
         return; // do nothing if we're not visible
     }
     
-    float PI_OVER_180 = 3.14159265358979f / 180.0f;
-    float FULL_CIRCLE = 360.0f;
-    float SLICES = 180.0f;  // The amount of segment to create the circle
-    float SLICE_ANGLE = FULL_CIRCLE / SLICES;
+    const float PI_OVER_180 = 3.14159265358979f / 180.0f;
+    const float FULL_CIRCLE = 360.0f;
+    const float SLICES = 180.0f;  // The amount of segment to create the circle
+    const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
 
     //const int slices = 15;
     float alpha = getAlpha();
