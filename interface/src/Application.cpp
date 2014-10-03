@@ -299,6 +299,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     AddressManager& addressManager = AddressManager::getInstance();
     
+    // use our MyAvatar position and quat for address manager path
+    addressManager.setPositionGetter(getPositionForPath);
+    addressManager.setOrientationGetter(getOrientationForPath);
+    
     // handle domain change signals from AddressManager
     connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
             this, &Application::changeDomainHostname);
@@ -3458,9 +3462,7 @@ void Application::updateLocationInServer() {
 
         QJsonObject locationObject;
         
-        QString pathString = AddressManager::pathForPositionAndOrientation(_myAvatar->getPosition(),
-                                                                           true,
-                                                                           _myAvatar->getOrientation());
+        QString pathString = AddressManager::getInstance().currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
         const QString PATH_KEY_IN_LOCATION = "path";

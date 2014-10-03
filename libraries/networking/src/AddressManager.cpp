@@ -22,17 +22,36 @@ AddressManager& AddressManager::getInstance() {
     return sharedInstance;
 }
 
-QString AddressManager::pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation,
-                                                      const glm::quat& orientation) {
+AddressManager::AddressManager() :
+    _currentDomain(),
+    _positionGetter(NULL),
+    _orientationGetter(NULL)
+{
     
-    QString pathString = "/" + createByteArray(position);
+}
+
+const QString AddressManager::currentPath(bool withOrientation) const {
     
-    if (hasOrientation) {
-        QString orientationString = createByteArray(orientation);
-        pathString += "/" + orientationString;
+    if (_positionGetter) {
+        QString pathString = "/" + createByteArray(_positionGetter());
+        
+        if (withOrientation) {
+            if (_orientationGetter) {
+                QString orientationString = createByteArray(_orientationGetter());
+                pathString += "/" + orientationString;
+            } else {
+                qDebug() << "Cannot add orientation to path without a getter for position."
+                    << "Call AdressManager::setOrientationGetter to pass a function that will return a glm::quat";
+            }
+            
+        }
+        
+        return pathString;
+    } else {
+        qDebug() << "Cannot create address path without a getter for position."
+            << "Call AdressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
+        return QString();
     }
-    
-    return pathString;
 }
 
 const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
@@ -134,6 +153,11 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
                 emit possibleDomainChangeRequiredViaICEForID(iceServerAddress, domainID);
             }
             
+            // set our current domain to the name that came back
+            const QString DOMAIN_NAME_KEY = "name";
+            
+            _currentDomain = domainObject[DOMAIN_NAME_KEY].toString();
+            
             // take the path that came back
             const QString LOCATION_KEY = "location";
             const QString LOCATION_PATH_KEY = "path";
@@ -144,7 +168,7 @@ void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
             } else if (domainObject.contains(LOCATION_KEY)) {
                 returnedPath = domainObject[LOCATION_KEY].toObject()[LOCATION_PATH_KEY].toString();
             }
-            
+
             bool shouldFaceViewpoint = dataObject.contains(ADDRESS_API_ONLINE_KEY);
             
             if (!returnedPath.isEmpty()) {
@@ -194,16 +218,25 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     QRegExp hostnameRegex(HOSTNAME_REGEX_STRING, Qt::CaseInsensitive);
     
     if (hostnameRegex.indexIn(lookupString) != -1) {
-        emit possibleDomainChangeRequiredToHostname(hostnameRegex.cap(0));
+        QString domainHostname = hostnameRegex.cap(0);
+        
+        emit possibleDomainChangeRequiredToHostname(domainHostname);
         emit lookupResultsFinished();
+        
+        _currentDomain = domainHostname;
+        
         return true;
     }
     
     QRegExp ipAddressRegex(IP_ADDRESS_REGEX_STRING);
     
     if (ipAddressRegex.indexIn(lookupString) != -1) {
-        emit possibleDomainChangeRequiredToHostname(ipAddressRegex.cap(0));
+        QString domainIPString = ipAddressRegex.cap(0);
+        
+        emit possibleDomainChangeRequiredToHostname(domainIPString);
         emit lookupResultsFinished();
+        
+        _currentDomain = domainIPString;
         return true;
     }
     

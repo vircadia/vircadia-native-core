@@ -21,15 +21,21 @@
 
 static const QString HIFI_URL_SCHEME = "hifi";
 
+typedef const glm::vec3& (*PositionGetter)();
+typedef glm::quat (*OrientationGetter)();
+
 class AddressManager : public QObject {
     Q_OBJECT
 public:
     static AddressManager& getInstance();
     
-    static QString pathForPositionAndOrientation(const glm::vec3& position, bool hasOrientation = false,
-                                                 const glm::quat& orientation = glm::quat());
+    const QString currentPath(bool withOrientation = true) const;
     
     void attemptPlaceNameLookup(const QString& lookupString);
+    
+    void setPositionGetter(PositionGetter positionGetter) { _positionGetter = positionGetter; }
+    void setOrientationGetter(OrientationGetter orientationGetter) { _orientationGetter = orientationGetter; }
+    
 public slots:
     void handleLookupString(const QString& lookupString);
     
@@ -46,6 +52,8 @@ signals:
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
 private:
+    AddressManager();
+    
     const JSONCallbackParameters& apiCallbackParameters();
     
     bool handleUrl(const QUrl& lookupUrl);
@@ -53,6 +61,10 @@ private:
     bool handleNetworkAddress(const QString& lookupString);
     bool handleRelativeViewpoint(const QString& pathSubsection, bool shouldFace = false);
     bool handleUsername(const QString& lookupString);
+    
+    QString _currentDomain;
+    PositionGetter _positionGetter;
+    OrientationGetter _orientationGetter;
 };
 
 #endif // hifi_AddressManager_h
