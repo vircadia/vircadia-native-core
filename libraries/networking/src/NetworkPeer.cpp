@@ -46,6 +46,7 @@ NetworkPeer::NetworkPeer(const NetworkPeer& otherPeer) {
     
     _wakeTimestamp = otherPeer._wakeTimestamp;
     _lastHeardMicrostamp = otherPeer._lastHeardMicrostamp;
+    _connectionAttempts = otherPeer._connectionAttempts;
 }
 
 NetworkPeer& NetworkPeer::operator=(const NetworkPeer& otherPeer) {
@@ -62,6 +63,7 @@ void NetworkPeer::swap(NetworkPeer& otherPeer) {
     swap(_localSocket, otherPeer._localSocket);
     swap(_wakeTimestamp, otherPeer._wakeTimestamp);
     swap(_lastHeardMicrostamp, otherPeer._lastHeardMicrostamp);
+    swap(_connectionAttempts, otherPeer._connectionAttempts);
 }
 
 QByteArray NetworkPeer::toByteArray() const {

@@ -359,6 +359,9 @@ void DomainServer::setupAutomaticNetworking() {
                 
                 // call our sendHeartbeaToIceServer immediately anytime a public address changes
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
+                
+                // tell the data server which type of automatic networking we are using
+                updateNetworkingInfoWithDataServer(automaticNetworkValue);
             }
             
             // attempt to update our sockets now
@@ -999,7 +1002,6 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
 }
 
 // todo: have data-web respond with ice-server hostname to use
-const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
 
 void DomainServer::performICEUpdates() {
     sendHearbeatToIceServer();
@@ -1007,6 +1009,7 @@ void DomainServer::performICEUpdates() {
 }
 
 void DomainServer::sendHearbeatToIceServer() {
+    const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
     LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
 }
 
@@ -1024,7 +1027,7 @@ void DomainServer::sendICEPingPackets() {
         } else {
             // send ping packets to this peer's interfaces
             qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-            << peer->getUUID();
+                << peer->getUUID();
             
             // send the ping packet to the local and public sockets for this node
             QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
@@ -1052,11 +1055,13 @@ void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
     while (!iceResponseStream.atEnd()) {
         iceResponseStream >> receivedPeer;
         
-        if (!_connectingICEPeers.contains(receivedPeer.getUUID()) && !_connectedICEPeers.contains(receivedPeer.getUUID())) {
-            qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
+        if (!_connectedICEPeers.contains(receivedPeer.getUUID())) {
+            if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
+                qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
+            }
+            
+            _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
         }
-        
-        _connectingICEPeers[receivedPeer.getUUID()] = receivedPeer;
     }
 }
 
