@@ -1002,7 +1002,6 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
 }
 
 // todo: have data-web respond with ice-server hostname to use
-const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
 
 void DomainServer::performICEUpdates() {
     sendHearbeatToIceServer();
@@ -1010,6 +1009,7 @@ void DomainServer::performICEUpdates() {
 }
 
 void DomainServer::sendHearbeatToIceServer() {
+    const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
     LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
 }
 
