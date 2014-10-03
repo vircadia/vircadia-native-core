@@ -359,6 +359,9 @@ void DomainServer::setupAutomaticNetworking() {
                 
                 // call our sendHeartbeaToIceServer immediately anytime a public address changes
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
+                
+                // tell the data server which type of automatic networking we are using
+                updateNetworkingInfoWithDataServer(automaticNetworkValue);
             }
             
             // attempt to update our sockets now
