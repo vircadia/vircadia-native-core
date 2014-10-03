@@ -129,16 +129,16 @@ void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end)
     glBegin(GL_LINES);
 
     // draw each line segment with appropriate gaps
-    const float dashLength = 0.05f;
-    const float gapLength = 0.025f;
-    const float segmentLength = dashLength + gapLength;
+    const float DASH_LENGTH = 0.05f;
+    const float GAP_LENGTH = 0.025f;
+    const float SEGMENT_LENGTH = DASH_LENGTH + GAP_LENGTH;
     float length = glm::distance(start, end);
-    float segmentCount = length / segmentLength;
+    float segmentCount = length / SEGMENT_LENGTH;
     int segmentCountFloor = (int)glm::floor(segmentCount);
 
     glm::vec3 segmentVector = (end - start) / segmentCount;
-    glm::vec3 dashVector = segmentVector / segmentLength * dashLength;
-    glm::vec3 gapVector = segmentVector / segmentLength * gapLength;
+    glm::vec3 dashVector = segmentVector / SEGMENT_LENGTH * DASH_LENGTH;
+    glm::vec3 gapVector = segmentVector / SEGMENT_LENGTH * GAP_LENGTH;
 
     glm::vec3 point = start;
     glVertex3f(point.x, point.y, point.z);
