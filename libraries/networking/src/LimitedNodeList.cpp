@@ -459,6 +459,39 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
     return n;
 }
 
+QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified, const QUuid& packetHeaderID) {
+    QByteArray pingPacket = byteArrayWithPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
+                                                         packetHeaderID);
+    
+    QDataStream packetStream(&pingPacket, QIODevice::Append);
+    
+    packetStream << pingType;
+    packetStream << usecTimestampNow();
+    
+    return pingPacket;
+}
+
+QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID) {
+    QDataStream pingPacketStream(pingPacket);
+    pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
+    
+    PingType_t typeFromOriginalPing;
+    pingPacketStream >> typeFromOriginalPing;
+    
+    quint64 timeFromOriginalPing;
+    pingPacketStream >> timeFromOriginalPing;
+    
+    PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
+        ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
+    
+    QByteArray replyPacket = byteArrayWithPopulatedHeader(replyType, packetHeaderID);
+    QDataStream packetStream(&replyPacket, QIODevice::Append);
+    
+    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
+    
+    return replyPacket;
+}
+
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
 
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
@@ -617,4 +650,26 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     }
     
     return false;
+}
+
+void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
+                                               QUuid headerID, const QUuid& connectionRequestID) {
+    
+    if (headerID.isNull()) {
+        headerID = _sessionUUID;
+    }
+    
+    QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
+    QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
+    
+    iceDataStream << _publicSockAddr << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort());
+    
+    if (!connectionRequestID.isNull()) {
+        iceDataStream << connectionRequestID;
+        
+        qDebug() << "Sending packet to ICE server to request connection info for peer with ID"
+            << uuidStringWithoutCurlyBraces(connectionRequestID);
+    }
+    
+    writeUnverifiedDatagram(iceRequestByteArray, iceServerSockAddr);
 }

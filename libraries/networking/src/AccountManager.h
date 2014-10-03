@@ -59,10 +59,13 @@ public:
     const QUrl& getAuthURL() const { return _authURL; }
     void setAuthURL(const QUrl& authURL);
     bool hasAuthEndpoint() { return !_authURL.isEmpty(); }
+    
+    void disableSettingsFilePersistence() { _shouldPersistToSettingsFile = false; }
 
     bool isLoggedIn() { return !_authURL.isEmpty() && hasValidAccessToken(); }
     bool hasValidAccessToken();
     Q_INVOKABLE bool checkAndSignalForAccessToken();
+    void setAccessTokenForCurrentAuthURL(const QString& accessToken);
 
     void requestAccessToken(const QString& login, const QString& password);
     void requestProfile();
@@ -107,6 +110,7 @@ private:
     QMap<QNetworkReply*, JSONCallbackParameters> _pendingCallbackMap;
 
     DataServerAccountInfo _accountInfo;
+    bool _shouldPersistToSettingsFile;
 };
 
 #endif // hifi_AccountManager_h
