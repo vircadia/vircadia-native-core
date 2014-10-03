@@ -226,6 +226,8 @@ public:
     char normal[3];
     quint8 materials[4];
     quint8 materialWeights[4];
+    
+    void setNormal(const glm::vec3& normal);
 };
 
 /// Contains the information necessary to render a voxel block.
