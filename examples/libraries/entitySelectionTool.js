@@ -14,11 +14,17 @@
 SelectionDisplay = (function () {
     var that = {};
     
+    var mode = "UNKNOWN";
     var overlayNames = new Array();
     var lastAvatarPosition = MyAvatar.position;
     var lastAvatarOrientation = MyAvatar.orientation;
+    var lastPlaneIntersection;
+    var initialY;
 
     var currentSelection = { id: -1, isKnownID: false };
+    var entitySelected = false;
+    var selectedEntityProperties;
+    var selectedEntityPropertiesOriginalPosition;
 
     var handleHoverColor = { red: 224, green: 67, blue: 36 };
     var handleHoverAlpha = 1.0;
@@ -320,19 +326,36 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(highlightBox,{ visible: false});
     };
 
-    that.select = function(entityID) {
-    
-print("select()...... entityID:" + entityID.id);
-    
+    that.select = function(entityID, event) {
         var properties = Entities.getEntityProperties(entityID);
         if (currentSelection.isKnownID == true) {
             that.unselect(currentSelection);
         }
         currentSelection = entityID;
-
+        entitySelected = true;
+        
         lastAvatarPosition = MyAvatar.position;
         lastAvatarOrientation = MyAvatar.orientation;
 
+        if (event !== false) {
+            selectedEntityProperties = properties;
+            selectedEntityPropertiesOriginalPosition = properties.position;
+            pickRay = Camera.computePickRay(event.x, event.y);
+            lastPlaneIntersection = rayPlaneIntersection(pickRay, properties.position, Quat.getFront(lastAvatarOrientation));
+            initialY = event.y;
+
+            var wantDebug = false;
+            if (wantDebug) {
+                print("select() with EVENT...... ");
+                print("               initialY:" + initialY);
+                print("                event.y:" + event.y);
+                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+                Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
+                Vec3.print("       current position:", properties.position);
+            }
+            
+            
+        }
 
         var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
         var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
@@ -573,6 +596,7 @@ print("select()...... entityID:" + entityID.id);
             that.unselect(currentSelection);
         }
         currentSelection = { id: -1, isKnownID: false };
+        entitySelected = false;
     };
 
     that.unselect = function (entityID) {
@@ -617,37 +641,117 @@ print("select()...... entityID:" + entityID.id);
         Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
 
         Entities.editEntity(entityID, { localRenderAlpha: 1.0 });
+
+        currentSelection = { id: -1, isKnownID: false };
+        entitySelected = false;
+    };
+    
+    that.translateUpDown = function(event) {
+        if (entitySelected && mode == "TRANSLATE_UP_DOWN") {
+            var newY = initialY - event.y; // y goes from top to bottom of window
+
+            pickRay = Camera.computePickRay(event.x, event.y);
+
+            // translate mode left/right based on view toward entity
+            var newIntersection = rayPlaneIntersection(pickRay,
+                                                       selectedEntityPropertiesOriginalPosition,
+                                                       Quat.getFront(lastAvatarOrientation));
+
+            var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+            
+            // we only care about the Y axis
+            vector.x = 0;
+            vector.z = 0;
+            
+            newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, vector);
+
+            var wantDebug = false;
+            if (wantDebug) {
+                print("translateUpDown... ");
+                print("               initialY:" + initialY);
+                print("                event.y:" + event.y);
+                print("                   newY:" + newY);
+                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+                Vec3.print("        newIntersection:", newIntersection);
+                Vec3.print("                 vector:", vector);
+                Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
+                Vec3.print("         recentPosition:", selectedEntityProperties.position);
+                Vec3.print("            newPosition:", newPosition);
+            }
+
+            selectedEntityProperties.position = newPosition;
+            Entities.editEntity(selectedEntityID, selectedEntityProperties);
+            tooltip.updateText(selectedEntityProperties);
+            that.select(selectedEntityID, false); // TODO: this should be more than highlighted
+        }
     };
 
     that.checkMove = function() {
         if (currentSelection.isKnownID && 
             (!Vec3.equal(MyAvatar.position, lastAvatarPosition) || !Quat.equal(MyAvatar.orientation, lastAvatarOrientation))){
-            that.select(currentSelection);
+            that.select(currentSelection, false);
         }
     };
 
     that.mousePressEvent = function(event) {
-        print("SelectionDisplay.mousePressEvent() x:" + event.x + " y:" + event.y);
         var pickRay = Camera.computePickRay(event.x, event.y);
-
         var result = Overlays.findRayIntersection(pickRay);
         if (result.intersects) {
-            print("something intersects... ");
-            print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
 
-            print("   result.intersects:" + result.intersects);
-            print("   result.overlayID:" + result.overlayID);
-            print("   result.distance:" + result.distance);
-            print("   result.face:" + result.face);
-            Vec3.print("   result.intersection:", result.intersection);
-            
+            var wantDebug = false;
+            if (wantDebug) {
+                print("something intersects... ");
+                print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
+                print("   result.intersects:" + result.intersects);
+                print("   result.overlayID:" + result.overlayID);
+                print("   result.distance:" + result.distance);
+                print("   result.face:" + result.face);
+                Vec3.print("   result.intersection:", result.intersection);
+            }
+
+            switch(result.overlayID) {
+                case grabberMoveUp:
+                    mode = "TRANSLATE_UP_DOWN";
+
+                    pickRay = Camera.computePickRay(event.x, event.y);
+                    lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
+                                                                    Quat.getFront(lastAvatarOrientation));
+                    initialY = event.y;
+
+                    if (wantDebug) {
+                             print("mousePressEvent()...... ");
+                             print("               initialY:" + initialY);
+                             print("                event.y:" + event.y);
+                        Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+                        Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
+                    }
+
+                    break;
+
+                default:
+                    mode = "UNKNOWN";
+                    break;
+            }
+
+            //print("   mode:" + mode);
+
         }
     };
 
     that.mouseMoveEvent = function(event) {
+        //print("mouseMoveEvent()... mode:" + mode);
+        switch (mode) {
+            case "TRANSLATE_UP_DOWN":
+                that.translateUpDown(event);
+                break;
+            default:
+                // nothing to do by default
+                break;
+        }
     };
 
     that.mouseReleaseEvent = function(event) {
+        mode = "UNKNOWN";
     };
 
     Controller.mousePressEvent.connect(that.mousePressEvent);

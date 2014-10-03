@@ -442,8 +442,7 @@ function mousePressEvent(event) {
         print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
         tooltip.updateText(selectedEntityProperties);
         tooltip.show(true);
-        print("mousePressEvent calling selectionDisplay.select()???");
-        selectionDisplay.select(selectedEntityID);
+        selectionDisplay.select(selectedEntityID, event);
     }
 }
 
@@ -491,7 +490,7 @@ function mouseMoveEvent(event) {
                                                    selectedEntityProperties.oldPosition,
                                                    Quat.getFront(orientation));
 
-        var vector = Vec3.subtract(newIntersection, intersection)
+        var vector = Vec3.subtract(newIntersection, intersection);
 
         // this allows us to use the old editModels "shifted" logic which makes the
         // up/down behavior of the mouse move "in"/"out" of the screen.
@@ -509,7 +508,7 @@ function mouseMoveEvent(event) {
 
         // TODO: make this be a "moving state" - which is actually more like highlighted
         //       but including the change measurements
-        selectionDisplay.select(selectedEntityID); // TODO: this should be more than highlighted
+        selectionDisplay.select(selectedEntityID, event); // TODO: this should be more than highlighted
     }
 }
 
