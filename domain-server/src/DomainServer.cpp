@@ -998,7 +998,8 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
                                                        domainUpdateJSON.toUtf8());
 }
 
-const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr(QHostAddress::LocalHost, ICE_SERVER_DEFAULT_PORT);
+// todo: have data-web respond with ice-server hostname to use
+const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
 
 void DomainServer::performICEUpdates() {
     sendHearbeatToIceServer();
