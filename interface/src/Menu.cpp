@@ -816,6 +816,8 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
+    
+    settings->setValue(SETTINGS_ADDRESS_KEY, AddressManager::getInstance().currentAddress());
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();

@@ -1799,15 +1799,24 @@ void Application::init() {
 
     Menu::getInstance()->loadSettings();
     _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
-
-    qDebug() << "Loaded settings";
     
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     if (urlIndex != -1) {
         AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
+    } else {
+        // check if we have a URL in settings to load to jump back to
+        // we load this separate from the other settings so we don't double lookup a URL
+        QSettings* interfaceSettings = lockSettings();
+        QUrl addressURL = interfaceSettings->value(SETTINGS_ADDRESS_KEY).toUrl();
+        
+        AddressManager::getInstance().handleLookupString(addressURL.toString());
+        
+        unlockSettings();
     }
+    
+    qDebug() << "Loaded settings";
     
 #ifdef __APPLE__
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {

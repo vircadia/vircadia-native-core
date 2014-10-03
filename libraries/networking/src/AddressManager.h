@@ -29,6 +29,8 @@ class AddressManager : public QObject {
 public:
     static AddressManager& getInstance();
     
+    const QUrl currentAddress();
+    
     const QString currentPath(bool withOrientation = true) const;
     
     void attemptPlaceNameLookup(const QString& lookupString);

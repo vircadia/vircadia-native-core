@@ -30,6 +30,16 @@ AddressManager::AddressManager() :
     
 }
 
+const QUrl AddressManager::currentAddress() {
+    QUrl hifiURL;
+    
+    hifiURL.setScheme(HIFI_URL_SCHEME);
+    hifiURL.setHost(_currentDomain);
+    hifiURL.setPath(currentPath());
+    
+    return hifiURL;
+}
+
 const QString AddressManager::currentPath(bool withOrientation) const {
     
     if (_positionGetter) {
