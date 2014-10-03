@@ -21,7 +21,8 @@ NetworkPeer::NetworkPeer() :
     _publicSocket(),
     _localSocket(),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow())
+    _lastHeardMicrostamp(usecTimestampNow()),
+    _connectionAttempts(0)
 {
     
 }
@@ -31,7 +32,8 @@ NetworkPeer::NetworkPeer(const QUuid& uuid, const HifiSockAddr& publicSocket, co
     _publicSocket(publicSocket),
     _localSocket(localSocket),
     _wakeTimestamp(QDateTime::currentMSecsSinceEpoch()),
-    _lastHeardMicrostamp(usecTimestampNow())
+    _lastHeardMicrostamp(usecTimestampNow()),
+    _connectionAttempts(0)
 {
     
 }

@@ -20,6 +20,7 @@
 const QString ICE_SERVER_HOSTNAME = "localhost";
 const int ICE_SERVER_DEFAULT_PORT = 7337;
 const int ICE_HEARBEAT_INTERVAL_MSECS = 2 * 1000;
+const int MAX_ICE_CONNECTION_ATTEMPTS = 5;
 
 class NetworkPeer : public QObject {
 public:
@@ -50,6 +51,10 @@ public:
     
     QByteArray toByteArray() const;
     
+    int getConnectionAttempts() const  { return _connectionAttempts; }
+    void incrementConnectionAttempts() { ++_connectionAttempts; }
+    void resetConnectionAttemps() { _connectionAttempts = 0; }
+    
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
 protected:
@@ -60,6 +65,8 @@ protected:
     
     quint64 _wakeTimestamp;
     quint64 _lastHeardMicrostamp;
+    
+    int _connectionAttempts;
 private:
     void swap(NetworkPeer& otherPeer);
 };

@@ -1012,17 +1012,31 @@ void DomainServer::sendHearbeatToIceServer() {
 void DomainServer::sendICEPingPackets() {
     LimitedNodeList* nodeList = LimitedNodeList::getInstance();
     
-    foreach(const NetworkPeer& peer, _connectingICEPeers) {
-        // send ping packets to this peer's interfaces
-        qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
-            << peer.getUUID();
+    QHash<QUuid, NetworkPeer>::iterator peer = _connectingICEPeers.begin();
+    
+    while (peer != _connectingICEPeers.end()) {
         
-        // send the ping packet to the local and public sockets for this node
-        QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
-        nodeList->writeUnverifiedDatagram(localPingPacket, peer.getLocalSocket());
-        
-        QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
-        nodeList->writeUnverifiedDatagram(publicPingPacket, peer.getPublicSocket());
+        if (peer->getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
+            // we've already tried to connect to this peer enough times
+            // remove it from our list - if it wants to re-connect it'll come back through ice-server
+            peer = _connectingICEPeers.erase(peer);
+        } else {
+            // send ping packets to this peer's interfaces
+            qDebug() << "Sending ping packets to establish connectivity with ICE peer with ID"
+            << peer->getUUID();
+            
+            // send the ping packet to the local and public sockets for this node
+            QByteArray localPingPacket = nodeList->constructPingPacket(PingType::Local, false);
+            nodeList->writeUnverifiedDatagram(localPingPacket, peer->getLocalSocket());
+            
+            QByteArray publicPingPacket = nodeList->constructPingPacket(PingType::Public, false);
+            nodeList->writeUnverifiedDatagram(publicPingPacket, peer->getPublicSocket());
+            
+            peer->incrementConnectionAttempts();
+            
+            // go to next peer in hash
+            ++peer;
+        }
     }
 }
 
