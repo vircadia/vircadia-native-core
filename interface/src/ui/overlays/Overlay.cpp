@@ -152,9 +152,7 @@ float Overlay::updatePulse() {
 
     // we can safely remove any "full" periods, since those just rotate us back
     // to our final glow level
-    while (elapsedPeriods > 1.0f) {
-        elapsedPeriods -= 1.0f;
-    }
+    elapsedPeriods = fmod(elapsedPeriods, 1.0f);
     _lastPulseUpdate = now;
 
     
