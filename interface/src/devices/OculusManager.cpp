@@ -186,6 +186,8 @@ void OculusManager::disconnect() {
 
 void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
 #ifdef HAVE_LIBOVR
+    static QString progressMessage;
+
     switch (_calibrationState) {
 
         case UNCALIBRATED:
@@ -210,6 +212,8 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 _calibrationStartTime = usecTimestampNow();
                 _calibrationState = WAITING_FOR_ZERO_HELD;
+                qDebug() << "Progress box: Hold still to calibrate";
+                progressMessage = "";
             } else {
                 _calibrationPosition = position;
                 _calibrationOrientation = orientation;
@@ -221,7 +225,19 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
                     _calibrationState = CALIBRATED;
+                    qDebug() << "Delete progress box";
                     Application::getInstance()->resetSensors();
+                } else {
+                    // 3...2...1...
+                    quint64 quarterSeconds = (usecTimestampNow() - _calibrationStartTime) / 250000;
+                    if (quarterSeconds + 1 > progressMessage.length()) {
+                        if (quarterSeconds == 4 * (quarterSeconds / 4)) {
+                            progressMessage += QString::number(CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4);
+                        } else {
+                            progressMessage += ".";
+                        }
+                        qDebug() << progressMessage;
+                    }
                 }
             } else {
                 _calibrationPosition = position;
