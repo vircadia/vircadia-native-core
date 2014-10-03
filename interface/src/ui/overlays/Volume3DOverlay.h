@@ -14,6 +14,8 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
+#include <glm/glm.hpp>
+
 #include <QGLWidget>
 #include <QScriptValue>
 
@@ -27,18 +29,20 @@ public:
     ~Volume3DOverlay();
 
     // getters
-    float getSize() const { return _size; }
-    bool getIsSolid() const { return _isSolid; }
+    const glm::vec3& getCenter() const { return _position; } // TODO: consider adding registration point!!
+    glm::vec3 getCorner() const { return _position - (_dimensions * 0.5f); } // TODO: consider adding registration point!!
+    const glm::vec3& getDimensions() const { return _dimensions; }
 
     // setters
-    void setSize(float size) { _size = size; }
-    void setIsSolid(bool isSolid) { _isSolid = isSolid; }
+    void setSize(float size) { _dimensions = glm::vec3(size, size, size); }
+    void setDimensions(const glm::vec3& value) { _dimensions = value; }
 
     virtual void setProperties(const QScriptValue& properties);
 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+
 protected:
-    float _size;
-    bool _isSolid;
+    glm::vec3 _dimensions;
 };
 
  

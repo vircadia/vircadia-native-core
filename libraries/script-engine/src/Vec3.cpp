@@ -55,3 +55,7 @@ glm::vec3 Vec3::normalize(const glm::vec3& v) {
 void Vec3::print(const QString& lable, const glm::vec3& v) {
     qDebug() << qPrintable(lable) << v.x << "," << v.y << "," << v.z;
 }
+
+bool Vec3::equal(const glm::vec3& v1, const glm::vec3& v2) {
+    return v1 == v2;
+}

@@ -42,22 +42,59 @@ public:
     // getters
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
-    const xColor& getColor() const { return _color; }
-    float getAlpha() const { return _alpha; }
+    xColor getColor();
+    float getAlpha();
+    float getGlowLevel();
     Anchor getAnchor() const { return _anchor; }
+
+
+    float getPulseMax() const { return _pulseMax; }
+    float getPulseMin() const { return _pulseMin; }
+    float getPulsePeriod() const { return _pulsePeriod; }
+    float getPulseDirection() const { return _pulseDirection; }
+
+    float getGlowLevelPulse() const { return _glowLevelPulse; }
+    float getColorPulse() const { return _colorPulse; }
+    float getAlphaPulse() const { return _alphaPulse; }
 
     // setters
     void setVisible(bool visible) { _visible = visible; }
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
+    void setGlowLevel(float value) { _glowLevel = value; }
     void setAnchor(Anchor anchor) { _anchor = anchor; }
+
+    void setPulseMax(float value) { _pulseMax = value; }
+    void setPulseMin(float value) { _pulseMin = value; }
+    void setPulsePeriod(float value) { _pulsePeriod = value; }
+    void setPulseDirection(float value) { _pulseDirection = value; }
+
+
+    void setGlowLevelPulse(float value) { _glowLevelPulse = value; }
+    void setColorPulse(float value) { _colorPulse = value; }
+    void setAlphaPulse(float value) { _alphaPulse = value; }
 
     virtual void setProperties(const QScriptValue& properties);
 
 protected:
+    float updatePulse();
+
     QGLWidget* _parent;
     bool _isLoaded;
     float _alpha;
+    float _glowLevel;
+
+    float _pulse;
+    float _pulseMax;
+    float _pulseMin;
+    float _pulsePeriod;
+    float _pulseDirection;
+    quint64 _lastPulseUpdate;
+
+    float _glowLevelPulse; // ratio of the pulse to the glow level
+    float _alphaPulse; // ratio of the pulse to the alpha
+    float _colorPulse; // ratio of the pulse to the color
+
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;

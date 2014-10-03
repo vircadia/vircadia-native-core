@@ -56,16 +56,16 @@ void BillboardOverlay::render() {
     
     glPushMatrix(); {
         glTranslatef(_position.x, _position.y, _position.z);
+        glm::quat rotation;
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera
-            glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
+            rotation = Application::getInstance()->getCamera()->getRotation();
             rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
-            glm::vec3 axis = glm::axis(rotation);
-            glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         } else {
-            glm::vec3 axis = glm::axis(_rotation);
-            glRotatef(glm::degrees(glm::angle(_rotation)), axis.x, axis.y, axis.z);
+            rotation = getRotation();
         }
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
         glScalef(_scale, _scale, _scale);
         
         if (_billboardTexture) {
@@ -73,10 +73,14 @@ void BillboardOverlay::render() {
             float x = _fromImage.width() / (2.0f * maxSize);
             float y = -_fromImage.height() / (2.0f * maxSize);
             
-            glColor3f(1.0f, 1.0f, 1.0f);
+            const float MAX_COLOR = 255.0f;
+            xColor color = getColor();
+            float alpha = getAlpha();
+            glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
             glBegin(GL_QUADS); {
                 glTexCoord2f((float)_fromImage.x() / (float)_size.width(),
                              (float)_fromImage.y() / (float)_size.height());
+
                 glVertex2f(-x, -y);
                 glTexCoord2f(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
                              (float)_fromImage.y() / (float)_size.height());
@@ -140,20 +144,6 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
         _scale = scaleValue.toVariant().toFloat();
     }
     
-    QScriptValue rotationValue = properties.property("rotation");
-    if (rotationValue.isValid()) {
-        QScriptValue x = rotationValue.property("x");
-        QScriptValue y = rotationValue.property("y");
-        QScriptValue z = rotationValue.property("z");
-        QScriptValue w = rotationValue.property("w");
-        if (x.isValid() && y.isValid() && z.isValid() && w.isValid()) {
-            _rotation.x = x.toVariant().toFloat();
-            _rotation.y = y.toVariant().toFloat();
-            _rotation.z = z.toVariant().toFloat();
-            _rotation.w = w.toVariant().toFloat();
-        }
-    }
-    
     QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
@@ -172,3 +162,20 @@ void BillboardOverlay::replyFinished() {
     _billboard = reply->readAll();
     _isLoaded = true;
 }
+
+bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face) const {
+
+    if (_billboardTexture) {
+        float maxSize = glm::max(_fromImage.width(), _fromImage.height());
+        float x = _fromImage.width() / (2.0f * maxSize);
+        float y = -_fromImage.height() / (2.0f * maxSize);
+        float maxDimension = glm::max(x,y);
+        float scaledDimension = maxDimension * _scale;
+        glm::vec3 corner = getCenter() - glm::vec3(scaledDimension, scaledDimension, scaledDimension) ;
+        AACube myCube(corner, scaledDimension * 2.0f);
+        return myCube.findRayIntersection(origin, direction, distance, face);
+    }
+    return false;
+}
+

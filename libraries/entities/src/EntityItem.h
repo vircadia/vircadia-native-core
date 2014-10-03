@@ -153,6 +153,10 @@ public:
     float getGlowLevel() const { return _glowLevel; }
     void setGlowLevel(float glowLevel) { _glowLevel = glowLevel; }
 
+    static const float DEFAULT_LOCAL_RENDER_ALPHA;
+    float getLocalRenderAlpha() const { return _localRenderAlpha; }
+    void setLocalRenderAlpha(float localRenderAlpha) { _localRenderAlpha = localRenderAlpha; }
+
     static const float DEFAULT_MASS;
     float getMass() const { return _mass; }
     void setMass(float value) { _mass = value; }
@@ -263,6 +267,7 @@ protected:
     glm::vec3 _dimensions;
     glm::quat _rotation;
     float _glowLevel;
+    float _localRenderAlpha;
     float _mass;
     glm::vec3 _velocity;
     glm::vec3 _gravity;

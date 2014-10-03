@@ -84,3 +84,7 @@ void Quat::print(const QString& lable, const glm::quat& q) {
     qDebug() << qPrintable(lable) << q.x << "," << q.y << "," << q.z << "," << q.w;
 }
 
+bool Quat::equal(const glm::vec3& q1, const glm::vec3& q2) {
+    return q1 == q2;
+}
+

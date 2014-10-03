@@ -36,6 +36,7 @@ public slots:
     float distance(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 normalize(const glm::vec3& v);
     void print(const QString& lable, const glm::vec3& v);
+    bool equal(const glm::vec3& v1, const glm::vec3& v2);
 };
 
 
