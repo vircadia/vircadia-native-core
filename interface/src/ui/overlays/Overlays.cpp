@@ -265,7 +265,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
         i.previous();
         unsigned int thisID = i.key();
         Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
-        if (thisOverlay->getVisible() && thisOverlay->isLoaded()) {
+        if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
             if (thisOverlay->findRayIntersection(ray.origin, ray.direction, thisDistance, thisFace)) {

@@ -26,7 +26,8 @@ Base3DOverlay::Base3DOverlay() :
     _lineWidth(DEFAULT_LINE_WIDTH),
     _isSolid(DEFAULT_IS_SOLID),
     _rotation(),
-    _isDashedLine(DEFAULT_IS_DASHED_LINE)
+    _isDashedLine(DEFAULT_IS_DASHED_LINE),
+    _ignoreRayIntersection(false)
 {
 }
 
@@ -111,6 +112,9 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     }
     if (properties.property("dashed").isValid()) {
         setIsDashedLine(properties.property("dashed").toVariant().toBool());
+    }
+    if (properties.property("ignoreRayIntersection").isValid()) {
+        setIgnoreRayIntersection(properties.property("ignoreRayIntersection").toVariant().toBool());
     }
 }
 

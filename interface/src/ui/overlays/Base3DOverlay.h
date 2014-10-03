@@ -33,6 +33,7 @@ public:
     bool getIsDashedLine() const { return _isDashedLine; }
     bool getIsSolidLine() const { return !_isDashedLine; }
     const glm::quat& getRotation() const { return _rotation; }
+    bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
 
     // setters
     void setPosition(const glm::vec3& position) { _position = position; }
@@ -40,6 +41,7 @@ public:
     void setIsSolid(bool isSolid) { _isSolid = isSolid; }
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setRotation(const glm::quat& value) { _rotation = value; }
+    void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
 
     virtual void setProperties(const QScriptValue& properties);
 
@@ -53,6 +55,7 @@ protected:
     glm::quat _rotation;
     bool _isSolid;
     bool _isDashedLine;
+    bool _ignoreRayIntersection;
 };
 
  
