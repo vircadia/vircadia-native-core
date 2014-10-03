@@ -319,6 +319,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
         case MAX_Z_FACE:
             faceName = "MAX_Z_FACE";
             break;
+        default:
         case UNKNOWN_FACE:
             faceName = "UNKNOWN_FACE";
             break;
@@ -345,8 +346,10 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
         value.face = MAX_Y_FACE;
     } else if (faceName == "MIN_Z_FACE") {
         value.face = MIN_Z_FACE;
-    } else {
+    } else if (faceName == "MAX_Z_FACE") {
         value.face = MAX_Z_FACE;
+    } else {
+        value.face = UNKNOWN_FACE;
     };
     QScriptValue intersection = object.property("intersection");
     if (intersection.isValid()) {
