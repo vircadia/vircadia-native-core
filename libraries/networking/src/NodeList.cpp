@@ -276,7 +276,7 @@ void NodeList::sendDomainServerCheckIn() {
         bool isUsingDTLS = false;
         
         PacketType domainPacketType = !_domainHandler.isConnected()
-        ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
+            ? PacketTypeDomainConnectRequest : PacketTypeDomainListRequest;
         
         if (!_domainHandler.isConnected()) {
             qDebug() << "Sending connect request to domain-server at" << _domainHandler.getHostname();
@@ -285,10 +285,17 @@ void NodeList::sendDomainServerCheckIn() {
         // construct the DS check in packet
         QUuid packetUUID = _sessionUUID;
         
-        if (!_domainHandler.getAssignmentUUID().isNull() && domainPacketType == PacketTypeDomainConnectRequest) {
-            // this is a connect request and we're an assigned node
-            // so set our packetUUID as the assignment UUID
-            packetUUID = _domainHandler.getAssignmentUUID();
+        if (domainPacketType == PacketTypeDomainConnectRequest) {
+            if (!_domainHandler.getAssignmentUUID().isNull()) {
+                // this is a connect request and we're an assigned node
+                // so set our packetUUID as the assignment UUID
+                packetUUID = _domainHandler.getAssignmentUUID();
+            } else if (_domainHandler.requiresICE()) {
+                // this is a connect request and we're an interface client
+                // that used ice to discover the DS
+                // so send our ICE client UUID with the connect request
+                packetUUID = _domainHandler.getICEClientID();
+            }
         }
         
         QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
@@ -336,7 +343,7 @@ void NodeList::handleICEConnectionToDomainServer() {
         qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getUUID());
         
-        // send the ping packet to the local and public sockets for this node
+        // send the ping packet to the local and public sockets for this nodfe
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
         writeUnverifiedDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
         

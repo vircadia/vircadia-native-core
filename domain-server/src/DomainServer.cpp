@@ -581,9 +581,17 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
         || (isAssignment && matchingQueuedAssignment)) {
         // this was either not a static assignment or it was and we had a matching one in the queue
+        
+        QUuid nodeUUID;
 
-        // create a new session UUID for this node
-        QUuid nodeUUID = QUuid::createUuid();
+        if (_connectingICEPeers.contains(packetUUID) || _connectedICEPeers.contains(packetUUID)) {
+            //  this user negotiated a connection with us via ICE, so re-use their ICE client ID
+            nodeUUID = packetUUID;
+        } else {
+            // we got a packetUUID we didn't recognize, just add the node
+            nodeUUID = QUuid::createUuid();
+        }
+        
 
         SharedNodePointer newNode = LimitedNodeList::getInstance()->addOrUpdateNode(nodeUUID, nodeType,
                                                                                     publicSockAddr, localSockAddr);
@@ -1022,7 +1030,7 @@ void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
     while (!iceResponseStream.atEnd()) {
         iceResponseStream >> receivedPeer;
         
-        if (!_connectingICEPeers.contains(receivedPeer.getUUID())) {
+        if (!_connectingICEPeers.contains(receivedPeer.getUUID()) && _connectedICEPeers.contains(receivedPeer.getUUID())) {
             qDebug() << "New peer requesting connection being added to hash -" << receivedPeer;
         }
         
@@ -1031,7 +1039,19 @@ void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
 }
 
 void DomainServer::processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
-    qDebug() << "looking for a node with ID" << uuidFromPacketHeader(packet) << "in connecting hash";
+    QUuid nodeUUID = uuidFromPacketHeader(packet);
+    NetworkPeer sendingPeer = _connectingICEPeers.take(nodeUUID);
+    
+    if (!sendingPeer.isNull()) {
+        // we had this NetworkPeer in our connecting list - add the right sock addr to our connected list
+        if (senderSockAddr == sendingPeer.getLocalSocket()) {
+            qDebug() << "Activating local socket for communication with network peer -" << sendingPeer;
+            _connectedICEPeers.insert(nodeUUID, sendingPeer.getLocalSocket());
+        } else if (senderSockAddr == sendingPeer.getPublicSocket()) {
+            qDebug() << "Activating public socket for communication with network peer -" << sendingPeer;
+            _connectedICEPeers.insert(nodeUUID, sendingPeer.getPublicSocket());
+        }
+    }
 }
 
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
