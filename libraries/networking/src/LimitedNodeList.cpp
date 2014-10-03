@@ -459,8 +459,9 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
     return n;
 }
 
-QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified) {
-    QByteArray pingPacket = byteArrayWithPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing);
+QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVerified, const QUuid& packetHeaderID) {
+    QByteArray pingPacket = byteArrayWithPopulatedHeader(isVerified ? PacketTypePing : PacketTypeUnverifiedPing,
+                                                         packetHeaderID);
     
     QDataStream packetStream(&pingPacket, QIODevice::Append);
     
@@ -470,7 +471,7 @@ QByteArray LimitedNodeList::constructPingPacket(PingType_t pingType, bool isVeri
     return pingPacket;
 }
 
-QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
+QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID) {
     QDataStream pingPacketStream(pingPacket);
     pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
     
@@ -483,7 +484,7 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
     PacketType replyType = (packetTypeForPacket(pingPacket) == PacketTypePing)
         ? PacketTypePingReply : PacketTypeUnverifiedPingReply;
     
-    QByteArray replyPacket = byteArrayWithPopulatedHeader(replyType);
+    QByteArray replyPacket = byteArrayWithPopulatedHeader(replyType, packetHeaderID);
     QDataStream packetStream(&replyPacket, QIODevice::Append);
     
     packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();

@@ -167,7 +167,7 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
         }
         case PacketTypeUnverifiedPing: {
             // send back a reply
-            QByteArray replyPacket = constructPingReplyPacket(packet);
+            QByteArray replyPacket = constructPingReplyPacket(packet, _domainHandler.getICEClientID());
             writeUnverifiedDatagram(replyPacket, senderSockAddr);
             break;
         }
@@ -328,20 +328,20 @@ void NodeList::sendDomainServerCheckIn() {
 }
 
 void NodeList::handleICEConnectionToDomainServer() {
-    static QUuid iceUUID = QUuid::createUuid();
-    
     if (_domainHandler.getICEPeer().isNull()) {
-        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(), iceUUID, _domainHandler.getUUID());
+        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
+                                                  _domainHandler.getICEClientID(),
+                                                  _domainHandler.getUUID());
     } else {
         qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
             << uuidStringWithoutCurlyBraces(_domainHandler.getUUID());
         
         // send the ping packet to the local and public sockets for this node
-        QByteArray localPingPacket = constructPingPacket(PingType::Local, false);
-        writeDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket(), iceUUID);
+        QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
+        writeUnverifiedDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
         
-        QByteArray publicPingPacket = constructPingPacket(PingType::Public, false);
-        writeDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket(), iceUUID);
+        QByteArray publicPingPacket = constructPingPacket(PingType::Public, false, _domainHandler.getICEClientID());
+        writeUnverifiedDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket());
     }
 }
 

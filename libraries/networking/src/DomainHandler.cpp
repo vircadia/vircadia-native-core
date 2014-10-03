@@ -25,6 +25,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _iceClientID(),
     _iceServerSockAddr(),
     _icePeer(),
     _isConnected(false),
@@ -137,6 +138,9 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         
         setUUID(id);
         _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        
+        // refresh our ICE client UUID to something new
+        _iceClientID = QUuid::createUuid();
         
         qDebug() << "ICE required to connect to domain via ice server at" << iceServerHostname;
     }

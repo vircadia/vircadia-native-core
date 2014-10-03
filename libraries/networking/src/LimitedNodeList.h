@@ -112,8 +112,9 @@ public:
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
     
-    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic, bool isVerified = true);
-    QByteArray constructPingReplyPacket(const QByteArray& pingPacket);
+    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic, bool isVerified = true,
+                                   const QUuid& packetHeaderID = QUuid());
+    QByteArray constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID = QUuid());
     
     virtual void sendSTUNRequest();
     virtual bool processSTUNResponse(const QByteArray& packet);
