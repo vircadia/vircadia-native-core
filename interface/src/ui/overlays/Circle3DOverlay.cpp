@@ -33,7 +33,6 @@ void Circle3DOverlay::render() {
         return; // do nothing if we're not visible
     }
     
-    const float PI_OVER_180 = 3.14159265358979f / 180.0f;
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
     const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
@@ -81,7 +80,7 @@ void Circle3DOverlay::render() {
                 glBegin(GL_QUAD_STRIP);
 
                 float angle = startAt;
-                float angleInRadians = angle * PI_OVER_180;
+                float angleInRadians = glm::radians(angle);
                 glm::vec2 firstInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
                 glm::vec2 firstOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
 
@@ -89,7 +88,7 @@ void Circle3DOverlay::render() {
                 glVertex2f(firstOuterPoint.x, firstOuterPoint.y);
 
                 while (angle < endAt) {
-                    angleInRadians = angle * PI_OVER_180;
+                    angleInRadians = glm::radians(angle);
                     glm::vec2 thisInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
                     glm::vec2 thisOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
 
@@ -101,7 +100,7 @@ void Circle3DOverlay::render() {
             
                 // get the last slice portion....
                 angle = endAt;
-                angleInRadians = angle * PI_OVER_180;
+                angleInRadians = glm::radians(angle);
                 glm::vec2 lastInnerPoint(cos(angleInRadians) * innerRadius, sin(angleInRadians) * innerRadius);
                 glm::vec2 lastOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
             
@@ -118,19 +117,19 @@ void Circle3DOverlay::render() {
                 
 
                 float angle = startAt;
-                float angleInRadians = angle * PI_OVER_180;
+                float angleInRadians = glm::radians(angle);
                 glm::vec2 firstPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
                 glVertex2f(firstPoint.x, firstPoint.y);
 
                 while (angle < endAt) {
                     angle += SLICE_ANGLE;
-                    angleInRadians = angle * PI_OVER_180;
+                    angleInRadians = glm::radians(angle);
                     glm::vec2 thisPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
                     glVertex2f(thisPoint.x, thisPoint.y);
 
                     if (getIsDashedLine()) {
                         angle += SLICE_ANGLE / 2.0f; // short gap
-                        angleInRadians = angle * PI_OVER_180;
+                        angleInRadians = glm::radians(angle);
                         glm::vec2 dashStartPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
                         glVertex2f(dashStartPoint.x, dashStartPoint.y);
                     }
@@ -138,7 +137,7 @@ void Circle3DOverlay::render() {
             
                 // get the last slice portion....
                 angle = endAt;
-                angleInRadians = angle * PI_OVER_180;
+                angleInRadians = glm::radians(angle);
                 glm::vec2 lastOuterPoint(cos(angleInRadians) * outerRadius, sin(angleInRadians) * outerRadius);
                 glVertex2f(lastOuterPoint.x, lastOuterPoint.y);
                 glEnd();
