@@ -1030,6 +1030,10 @@ void DomainServer::processICEHeartbeatResponse(const QByteArray& packet) {
     }
 }
 
+void DomainServer::processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr) {
+    qDebug() << "looking for a node with ID" << uuidFromPacketHeader(packet) << "in connecting hash";
+}
+
 void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     LimitedNodeList* nodeList = LimitedNodeList::getInstance();
 
@@ -1075,6 +1079,10 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 QByteArray pingReplyPacket = nodeList->constructPingReplyPacket(receivedPacket);
                 nodeList->writeUnverifiedDatagram(pingReplyPacket, senderSockAddr);
                 
+                break;
+            }
+            case PacketTypeUnverifiedPingReply: {
+                processICEPingReply(receivedPacket, senderSockAddr);
                 break;
             }
             case PacketTypeIceServerHeartbeatResponse:

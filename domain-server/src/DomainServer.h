@@ -76,6 +76,7 @@ private:
     
     void setupAutomaticNetworking();
     void updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress = QString());
+    void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     void processICEHeartbeatResponse(const QByteArray& packet);
     
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
