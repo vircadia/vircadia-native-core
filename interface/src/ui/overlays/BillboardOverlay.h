@@ -26,6 +26,8 @@ public:
     virtual void render();
     virtual void setProperties(const QScriptValue& properties);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
     
 private slots:
     void replyFinished();

@@ -30,6 +30,7 @@ public:
 
     // getters
     const glm::vec3& getCenter() const { return _position; } // TODO: consider adding registration point!!
+    glm::vec3 getCorner() const { return _position - (_dimensions * 0.5f); } // TODO: consider adding registration point!!
     const glm::vec3& getDimensions() const { return _dimensions; }
 
     // setters
@@ -37,6 +38,8 @@ public:
     void setDimensions(const glm::vec3& value) { _dimensions = value; }
 
     virtual void setProperties(const QScriptValue& properties);
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
 
 protected:
     glm::vec3 _dimensions;

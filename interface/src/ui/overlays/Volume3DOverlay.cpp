@@ -12,6 +12,7 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+#include <AABox.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 
@@ -79,4 +80,13 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
             setDimensions(newDimensions);
         }
     }
+}
+
+bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face) const {
+
+    // TODO: this is not exactly accurate because it doesn't properly handle rotation... but it's close enough for our
+    // current use cases. We do need to improve it to be more accurate
+    AABox myBox(getCorner(), _dimensions);
+    return myBox.findRayIntersection(origin, direction, distance, face);
 }

@@ -13,7 +13,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-//#include <glm/gtx/extented_min_max.hpp>
+
+#include <BoxBase.h>
 
 #include "Overlay.h"
 
@@ -41,6 +42,8 @@ public:
     void setRotation(const glm::quat& value) { _rotation = value; }
 
     virtual void setProperties(const QScriptValue& properties);
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
 
 protected:
     void drawDashedLine(const glm::vec3& start, const glm::vec3& end);

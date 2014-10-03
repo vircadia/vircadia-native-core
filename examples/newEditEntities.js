@@ -225,6 +225,9 @@ var toolBar = (function () {
 
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
+            if (!isActive) {
+                selectionDisplay.unselectAll();
+            }
             return true;
         }
 

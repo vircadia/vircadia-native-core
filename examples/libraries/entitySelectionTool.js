@@ -14,6 +14,7 @@
 SelectionDisplay = (function () {
     var that = {};
     
+    var overlayNames = new Array();
     var lastAvatarPosition = MyAvatar.position;
     var lastAvatarOrientation = MyAvatar.orientation;
 
@@ -216,6 +217,48 @@ SelectionDisplay = (function () {
                                         scale: 0.1,
                                         isFacingAvatar: false
                                       });
+
+    overlayNames[highlightBox] = "highlightBox";
+    overlayNames[selectionBox] = "selectionBox";
+    overlayNames[baseOfEntityProjectionOverlay] = "baseOfEntityProjectionOverlay";
+    overlayNames[grabberMoveUp] = "grabberMoveUp";
+    overlayNames[grabberLBN] = "grabberLBN";
+    overlayNames[grabberLBF] = "grabberLBF";
+    overlayNames[grabberRBN] = "grabberRBN";
+    overlayNames[grabberRBF] = "grabberRBF";
+    overlayNames[grabberLTN] = "grabberLTN";
+    overlayNames[grabberLTF] = "grabberLTF";
+    overlayNames[grabberRTN] = "grabberRTN";
+    overlayNames[grabberRTF] = "grabberRTF";
+
+    overlayNames[grabberTOP] = "grabberTOP";
+    overlayNames[grabberBOTTOM] = "grabberBOTTOM";
+    overlayNames[grabberLEFT] = "grabberLEFT";
+    overlayNames[grabberRIGHT] = "grabberRIGHT";
+    overlayNames[grabberNEAR] = "grabberNEAR";
+    overlayNames[grabberFAR] = "grabberFAR";
+
+    overlayNames[grabberEdgeTR] = "grabberEdgeTR";
+    overlayNames[grabberEdgeTL] = "grabberEdgeTL";
+    overlayNames[grabberEdgeTF] = "grabberEdgeTF";
+    overlayNames[grabberEdgeTN] = "grabberEdgeTN";
+    overlayNames[grabberEdgeBR] = "grabberEdgeBR";
+    overlayNames[grabberEdgeBL] = "grabberEdgeBL";
+    overlayNames[grabberEdgeBF] = "grabberEdgeBF";
+    overlayNames[grabberEdgeBN] = "grabberEdgeBN";
+    overlayNames[grabberEdgeNR] = "grabberEdgeNR";
+    overlayNames[grabberEdgeNL] = "grabberEdgeNL";
+    overlayNames[grabberEdgeFR] = "grabberEdgeFR";
+    overlayNames[grabberEdgeFL] = "grabberEdgeFL";
+        
+    overlayNames[yawHandle] = "yawHandle";
+    overlayNames[pitchHandle] = "pitchHandle";
+    overlayNames[rollHandle] = "rollHandle";
+
+    overlayNames[rotateOverlayInner] = "rotateOverlayInner";
+    overlayNames[rotateOverlayOuter] = "rotateOverlayOuter";
+    overlayNames[rotateOverlayCurrent] = "rotateOverlayCurrent";
+
 
     that.cleanup = function () {
         Overlays.deleteOverlay(highlightBox);
@@ -579,22 +622,26 @@ print("select()...... entityID:" + entityID.id);
     that.checkMove = function() {
         if (currentSelection.isKnownID && 
             (!Vec3.equal(MyAvatar.position, lastAvatarPosition) || !Quat.equal(MyAvatar.orientation, lastAvatarOrientation))){
-
-print("checkMove calling .... select()");
-
-//print("Vec3.equal(MyAvatar.position, lastAvatarPosition):" + Vec3.equal(MyAvatar.position, lastAvatarPosition);
-//Vec3.print("MyAvatar.position:", MyAvatar.position);
-//Vec3.print("lastAvatarPosition:", lastAvatarPosition);
-
-//print("Quat.equal(MyAvatar.orientation, lastAvatarOrientation):" + Quat.equal(MyAvatar.orientation, lastAvatarOrientation));
-//Quat.print("MyAvatar.orientation:", MyAvatar.orientation);
-//Quat.print("lastAvatarOrientation:", lastAvatarOrientation);
-
             that.select(currentSelection);
         }
     };
 
     that.mousePressEvent = function(event) {
+        print("SelectionDisplay.mousePressEvent() x:" + event.x + " y:" + event.y);
+        var pickRay = Camera.computePickRay(event.x, event.y);
+
+        var result = Overlays.findRayIntersection(pickRay);
+        if (result.intersects) {
+            print("something intersects... ");
+            print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
+
+            print("   result.intersects:" + result.intersects);
+            print("   result.overlayID:" + result.overlayID);
+            print("   result.distance:" + result.distance);
+            print("   result.face:" + result.face);
+            Vec3.print("   result.intersection:", result.intersection);
+            
+        }
     };
 
     that.mouseMoveEvent = function(event) {

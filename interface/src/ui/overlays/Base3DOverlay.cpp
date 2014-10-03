@@ -25,8 +25,8 @@ Base3DOverlay::Base3DOverlay() :
     _position(DEFAULT_POSITION),
     _lineWidth(DEFAULT_LINE_WIDTH),
     _isSolid(DEFAULT_IS_SOLID),
-    _isDashedLine(DEFAULT_IS_DASHED_LINE),
-    _rotation()
+    _rotation(),
+    _isDashedLine(DEFAULT_IS_DASHED_LINE)
 {
 }
 
@@ -114,6 +114,12 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face) const {
+    return false;
+}
+
+
 void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end) {
 
     glBegin(GL_LINES);
@@ -144,4 +150,6 @@ void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end)
     glEnd();
 
 }
+
+
 

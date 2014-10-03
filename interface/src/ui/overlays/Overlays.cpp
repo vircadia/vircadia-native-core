@@ -8,6 +8,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
 #include <Application.h>
 
 #include "BillboardOverlay.h"
@@ -253,6 +254,104 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         }
     }
     return 0; // not found
+}
+
+RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
+    float bestDistance = std::numeric_limits<float>::max();
+    RayToOverlayIntersectionResult result;
+    QMapIterator<unsigned int, Overlay*> i(_overlays3D);
+    i.toBack();
+    while (i.hasPrevious()) {
+        i.previous();
+        unsigned int thisID = i.key();
+        Base3DOverlay* thisOverlay = static_cast<Base3DOverlay*>(i.value());
+        if (thisOverlay->getVisible() && thisOverlay->isLoaded()) {
+            float thisDistance;
+            BoxFace thisFace;
+            if (thisOverlay->findRayIntersection(ray.origin, ray.direction, thisDistance, thisFace)) {
+                if (thisDistance < bestDistance) {
+                    bestDistance = thisDistance;
+                    result.intersects = true;
+                    result.distance = thisDistance;
+                    result.face = thisFace;
+                    result.overlayID = thisID;
+                    result.intersection = ray.origin + (ray.direction * thisDistance);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() : 
+    intersects(false), 
+    overlayID(-1),
+    distance(0),
+    face(),
+    intersection()
+{ 
+}
+
+QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("intersects", value.intersects);
+    obj.setProperty("overlayID", value.overlayID);
+    obj.setProperty("distance", value.distance);
+
+    QString faceName = "";    
+    // handle BoxFace
+    switch (value.face) {
+        case MIN_X_FACE:
+            faceName = "MIN_X_FACE";
+            break;
+        case MAX_X_FACE:
+            faceName = "MAX_X_FACE";
+            break;
+        case MIN_Y_FACE:
+            faceName = "MIN_Y_FACE";
+            break;
+        case MAX_Y_FACE:
+            faceName = "MAX_Y_FACE";
+            break;
+        case MIN_Z_FACE:
+            faceName = "MIN_Z_FACE";
+            break;
+        case MAX_Z_FACE:
+            faceName = "MAX_Z_FACE";
+            break;
+        case UNKNOWN_FACE:
+            faceName = "UNKNOWN_FACE";
+            break;
+    }
+    obj.setProperty("face", faceName);
+    QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
+    obj.setProperty("intersection", intersection);
+    return obj;
+}
+
+void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, RayToOverlayIntersectionResult& value) {
+    value.intersects = object.property("intersects").toVariant().toBool();
+    value.overlayID = object.property("overlayID").toVariant().toInt();
+    value.distance = object.property("distance").toVariant().toFloat();
+
+    QString faceName = object.property("face").toVariant().toString();
+    if (faceName == "MIN_X_FACE") {
+        value.face = MIN_X_FACE;
+    } else if (faceName == "MAX_X_FACE") {
+        value.face = MAX_X_FACE;
+    } else if (faceName == "MIN_Y_FACE") {
+        value.face = MIN_Y_FACE;
+    } else if (faceName == "MAX_Y_FACE") {
+        value.face = MAX_Y_FACE;
+    } else if (faceName == "MIN_Z_FACE") {
+        value.face = MIN_Z_FACE;
+    } else {
+        value.face = MAX_Z_FACE;
+    };
+    QScriptValue intersection = object.property("intersection");
+    if (intersection.isValid()) {
+        vec3FromScriptValue(intersection, value.intersection);
+    }
 }
 
 bool Overlays::isLoaded(unsigned int id) {

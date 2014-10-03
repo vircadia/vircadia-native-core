@@ -74,7 +74,6 @@ public:
     void setColorPulse(float value) { _colorPulse = value; }
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
-
     virtual void setProperties(const QScriptValue& properties);
 
 protected:

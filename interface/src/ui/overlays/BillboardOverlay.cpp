@@ -80,6 +80,7 @@ void BillboardOverlay::render() {
             glBegin(GL_QUADS); {
                 glTexCoord2f((float)_fromImage.x() / (float)_size.width(),
                              (float)_fromImage.y() / (float)_size.height());
+
                 glVertex2f(-x, -y);
                 glTexCoord2f(((float)_fromImage.x() + (float)_fromImage.width()) / (float)_size.width(),
                              (float)_fromImage.y() / (float)_size.height());
@@ -161,3 +162,20 @@ void BillboardOverlay::replyFinished() {
     _billboard = reply->readAll();
     _isLoaded = true;
 }
+
+bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face) const {
+
+    if (_billboardTexture) {
+        float maxSize = glm::max(_fromImage.width(), _fromImage.height());
+        float x = _fromImage.width() / (2.0f * maxSize);
+        float y = -_fromImage.height() / (2.0f * maxSize);
+        float maxDimension = glm::max(x,y);
+        float scaledDimension = maxDimension * _scale;
+        glm::vec3 corner = getCenter() - glm::vec3(scaledDimension, scaledDimension, scaledDimension) ;
+        AACube myCube(corner, scaledDimension * 2.0f);
+        return myCube.findRayIntersection(origin, direction, distance, face);
+    }
+    return false;
+}
+
