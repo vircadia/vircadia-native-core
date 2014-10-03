@@ -442,6 +442,7 @@ namespace MenuOption {
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
