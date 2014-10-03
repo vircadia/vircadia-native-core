@@ -490,6 +490,7 @@ QColorEditor::QColorEditor(QWidget* parent) : QWidget(parent) {
     setLayout(layout);
     layout->addWidget(_button = new QPushButton());
     connect(_button, SIGNAL(clicked()), SLOT(selectColor()));
+    setColor(QColor());
 }
 
 void QColorEditor::setColor(const QColor& color) {
