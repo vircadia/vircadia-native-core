@@ -26,7 +26,7 @@ varying vec4 alphaValues;
 void main(void) {
     // determine the cube face to use for texture coordinate generation
     vec3 absNormal = abs(normal);
-    vec3 steps = smoothstep(absNormal.zzy - vec3(0.25, 0.25, 0.25), absNormal.zzy + vec3(0.25, 0.25, 0.25), absNormal.xyx);
+    vec3 steps = smoothstep(absNormal.zzy - vec3(0.05, 0.05, 0.05), absNormal.zzy + vec3(0.05, 0.05, 0.05), absNormal.xyx);
     
     // blend the splat textures
     vec4 base0 = texture2D(diffuseMaps[0], gl_TexCoord[0].xy);
