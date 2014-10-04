@@ -102,7 +102,7 @@ void IceServer::processDatagrams() {
             if (requestingConnections.size() > 0) {
                 // send a heartbeart response based on the set of connections
                 qDebug() << "Sending a heartbeat response to" << senderUUID << "who has" << requestingConnections.size()
-                << "potential connections";
+                    << "potential connections";
                 sendHeartbeatResponse(sendingSockAddr, requestingConnections);
             }
         }
@@ -114,6 +114,7 @@ void IceServer::sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, Q
     
     QByteArray outgoingPacket(MAX_PACKET_SIZE, 0);
     int currentPacketSize = populatePacketHeader(outgoingPacket, PacketTypeIceServerHeartbeatResponse, _id);
+    int numHeaderBytes = currentPacketSize;
     
     // go through the connections, sending packets containing connection information for those nodes
     while (peerID != connections.end()) {
@@ -142,9 +143,11 @@ void IceServer::sendHeartbeatResponse(const HifiSockAddr& destinationSockAddr, Q
         }
     }
     
-    // write the last packet
-    _serverSocket.writeDatagram(outgoingPacket.data(), currentPacketSize,
-                                destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    if (currentPacketSize > numHeaderBytes) {
+        // write the last packet, if there is data in it
+        _serverSocket.writeDatagram(outgoingPacket.data(), currentPacketSize,
+                                    destinationSockAddr.getAddress(), destinationSockAddr.getPort());
+    }
 }
 
 void IceServer::clearInactivePeers() {
