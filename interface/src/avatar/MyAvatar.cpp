@@ -740,15 +740,7 @@ AnimationDetails MyAvatar::getAnimationDetails(const QString& url) {
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
-    settings->setValue("bodyYaw", _bodyYaw);
-    settings->setValue("bodyPitch", _bodyPitch);
-    settings->setValue("bodyRoll", _bodyRoll);
-
     settings->setValue("headPitch", getHead()->getBasePitch());
-
-    settings->setValue("position_x", _position.x);
-    settings->setValue("position_y", _position.y);
-    settings->setValue("position_z", _position.z);
 
     settings->setValue("pupilDilation", getHead()->getPupilDilation());
 
@@ -800,18 +792,7 @@ void MyAvatar::saveData(QSettings* settings) {
 void MyAvatar::loadData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
-    // in case settings is corrupt or missing loadSetting() will check for NaN
-    _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
-    _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
-    _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
-
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
-
-    glm::vec3 newPosition;
-    newPosition.x = loadSetting(settings, "position_x", START_LOCATION.x);
-    newPosition.y = loadSetting(settings, "position_y", START_LOCATION.y);
-    newPosition.z = loadSetting(settings, "position_z", START_LOCATION.z);
-    slamPosition(newPosition);
 
     getHead()->setPupilDilation(loadSetting(settings, "pupilDilation", 0.0f));
 

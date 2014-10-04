@@ -52,6 +52,14 @@ typedef QSharedPointer<Node> SharedNodePointer;
 typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
+typedef quint8 PingType_t;
+namespace PingType {
+    const PingType_t Agnostic = 0;
+    const PingType_t Local = 1;
+    const PingType_t Public = 2;
+    const PingType_t Symmetric = 3;
+}
+
 class LimitedNodeList : public QObject {
     Q_OBJECT
 public:
@@ -104,8 +112,15 @@ public:
     void getPacketStats(float &packetsPerSecond, float &bytesPerSecond);
     void resetPacketStats();
     
+    QByteArray constructPingPacket(PingType_t pingType = PingType::Agnostic, bool isVerified = true,
+                                   const QUuid& packetHeaderID = QUuid());
+    QByteArray constructPingReplyPacket(const QByteArray& pingPacket, const QUuid& packetHeaderID = QUuid());
+    
     virtual void sendSTUNRequest();
     virtual bool processSTUNResponse(const QByteArray& packet);
+    
+    void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
+                                  QUuid headerID = QUuid(), const QUuid& connectRequestID = QUuid());
 public slots:
     void reset();
     void eraseAllNodes();

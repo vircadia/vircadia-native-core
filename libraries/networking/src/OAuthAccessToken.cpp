@@ -16,7 +16,7 @@
 OAuthAccessToken::OAuthAccessToken() :
     token(),
     refreshToken(),
-    expiryTimestamp(0),
+    expiryTimestamp(-1),
     tokenType()
 {
     

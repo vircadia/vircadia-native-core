@@ -299,9 +299,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     
     AddressManager& addressManager = AddressManager::getInstance();
     
-    // connect to the domainChangeRequired signal on AddressManager
-    connect(&addressManager, &AddressManager::possibleDomainChangeRequired,
+    // use our MyAvatar position and quat for address manager path
+    addressManager.setPositionGetter(getPositionForPath);
+    addressManager.setOrientationGetter(getOrientationForPath);
+    
+    // handle domain change signals from AddressManager
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredToHostname,
             this, &Application::changeDomainHostname);
+    
+    connect(&addressManager, &AddressManager::possibleDomainChangeRequiredViaICEForID,
+            &domainHandler, &DomainHandler::setIceServerHostnameAndID);
 
     _settings = new QSettings(this);
     _numChangedSettings = 0;
@@ -1796,15 +1803,24 @@ void Application::init() {
 
     Menu::getInstance()->loadSettings();
     _audio.setReceivedAudioStreamSettings(Menu::getInstance()->getReceivedAudioStreamSettings());
-
-    qDebug() << "Loaded settings";
     
     // when --url in command line, teleport to location
     const QString HIFI_URL_COMMAND_LINE_KEY = "--url";
     int urlIndex = arguments().indexOf(HIFI_URL_COMMAND_LINE_KEY);
     if (urlIndex != -1) {
         AddressManager::getInstance().handleLookupString(arguments().value(urlIndex + 1));
+    } else {
+        // check if we have a URL in settings to load to jump back to
+        // we load this separate from the other settings so we don't double lookup a URL
+        QSettings* interfaceSettings = lockSettings();
+        QUrl addressURL = interfaceSettings->value(SETTINGS_ADDRESS_KEY).toUrl();
+        
+        AddressManager::getInstance().handleLookupString(addressURL.toString());
+        
+        unlockSettings();
     }
+    
+    qDebug() << "Loaded settings";
     
 #ifdef __APPLE__
     if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseEnabled)) {
@@ -3426,7 +3442,7 @@ void Application::updateWindowTitle(){
     QString connectionStatus = nodeList->getDomainHandler().isConnected() ? "" : " (NOT CONNECTED) ";
     QString username = AccountManager::getInstance().getAccountInfo().getUsername();
     QString title = QString() + (!username.isEmpty() ? username + " @ " : QString())
-        + nodeList->getDomainHandler().getHostname() + connectionStatus + buildVersion;
+        + AddressManager::getInstance().getCurrentDomain() + connectionStatus + buildVersion;
 
     AccountManager& accountManager = AccountManager::getInstance();
     if (accountManager.getAccountInfo().hasBalance()) {
@@ -3448,25 +3464,23 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-    const QUuid& domainUUID = NodeList::getInstance()->getDomainHandler().getUUID();
+    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && !domainUUID.isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
 
         QJsonObject locationObject;
         
-        QString pathString = AddressManager::pathForPositionAndOrientation(_myAvatar->getPosition(),
-                                                                           true,
-                                                                           _myAvatar->getOrientation());
+        QString pathString = AddressManager::getInstance().currentPath();
        
         const QString LOCATION_KEY_IN_ROOT = "location";
         const QString PATH_KEY_IN_LOCATION = "path";
         const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainUUID.toString());
+        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
@@ -3876,6 +3890,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
+    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, RayToOverlayIntersectionResultFromScriptValue);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,

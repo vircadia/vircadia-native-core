@@ -52,12 +52,25 @@ void LocalVoxelsOverlay::update(float deltatime) {
 }
 
 void LocalVoxelsOverlay::render() {
-    if (_visible && _size > 0 && _voxelSystem && _voxelSystem->isInitialized()) {
+    glm::vec3 dimensions = getDimensions();
+    float size = glm::length(dimensions);
+    if (_visible && size > 0 && _voxelSystem && _voxelSystem->isInitialized()) {
+
+        float glowLevel = getGlowLevel();
+        Glower* glower = NULL;
+        if (glowLevel > 0.0f) {
+            glower = new Glower(glowLevel);
+        }
+
         glPushMatrix(); {
             glTranslatef(_position.x, _position.y, _position.z);
-            glScalef(_size, _size, _size);
+            glScalef(dimensions.x, dimensions.y, dimensions.z);
             _voxelSystem->render();
         } glPopMatrix();
+
+        if (glower) {
+            delete glower;
+        }
     }
 }
 

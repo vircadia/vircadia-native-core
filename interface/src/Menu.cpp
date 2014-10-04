@@ -754,7 +754,6 @@ void Menu::loadSettings(QSettings* settings) {
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->updateWindowTitle();
-    NodeList::getInstance()->loadData(settings);
 
     // notify that a settings has changed
     connect(&NodeList::getInstance()->getDomainHandler(), &DomainHandler::hostnameChanged, this, &Menu::bumpSettings);
@@ -815,7 +814,8 @@ void Menu::saveSettings(QSettings* settings) {
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
-    NodeList::getInstance()->saveData(settings);
+    
+    settings->setValue(SETTINGS_ADDRESS_KEY, AddressManager::getInstance().currentAddress());
 
     if (lockedSettings) {
         Application::getInstance()->unlockSettings();

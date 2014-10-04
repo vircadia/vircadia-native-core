@@ -26,11 +26,12 @@ varying vec4 alphaValues;
 void main(void) {
     // determine the cube face to use for texture coordinate generation
     vec3 absNormal = abs(normal);
-    vec2 parameters = step(absNormal.yy, absNormal.xz) * step(absNormal.zx, absNormal.xz);
+    vec3 steps = step(absNormal.zzy, absNormal.xyx);
+    vec2 parameters = mix(vec2(0.0, steps.y), vec2(steps.x, steps.x), steps.z);
     
     // blend the splat textures
-    gl_FragColor = (texture2D(diffuseMaps[0], mix(gl_TexCoord[0].xw, gl_TexCoord[0].zy, parameters)) * alphaValues.x +
-        texture2D(diffuseMaps[1], mix(gl_TexCoord[1].xw, gl_TexCoord[1].zy, parameters)) * alphaValues.y +
-        texture2D(diffuseMaps[2], mix(gl_TexCoord[2].xw, gl_TexCoord[2].zy, parameters)) * alphaValues.z +
-        texture2D(diffuseMaps[3], mix(gl_TexCoord[3].xw, gl_TexCoord[3].zy, parameters)) * alphaValues.w);
+    gl_FragColor = (texture2D(diffuseMaps[0], mix(gl_TexCoord[0].xy, gl_TexCoord[0].zw, parameters)) * alphaValues.x +
+        texture2D(diffuseMaps[1], mix(gl_TexCoord[1].xy, gl_TexCoord[1].zw, parameters)) * alphaValues.y +
+        texture2D(diffuseMaps[2], mix(gl_TexCoord[2].xy, gl_TexCoord[2].zw, parameters)) * alphaValues.z +
+        texture2D(diffuseMaps[3], mix(gl_TexCoord[3].xy, gl_TexCoord[3].zw, parameters)) * alphaValues.w);
 }

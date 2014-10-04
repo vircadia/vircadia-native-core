@@ -18,7 +18,7 @@ var controlVoxelSize = 0.25;
 var controlVoxelPosition = { x: 2000 , y: 0, z: 0 };
 
 // Script. DO NOT MODIFY BEYOND THIS LINE.
-Script.include("toolBars.js");
+Script.include("libraries/toolBars.js");
 
 var DO_NOTHING = 0;
 var PLAY = 1;

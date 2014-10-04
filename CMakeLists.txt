@@ -58,6 +58,7 @@ endforeach()
 # targets on all platforms
 add_subdirectory(assignment-client)
 add_subdirectory(domain-server)
+add_subdirectory(ice-server)
 add_subdirectory(interface)
 add_subdirectory(tests)
 add_subdirectory(tools)

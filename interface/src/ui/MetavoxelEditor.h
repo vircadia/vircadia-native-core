@@ -125,6 +125,8 @@ public:
 
 protected:
 
+    virtual bool shouldSnapToGrid();
+    
     virtual QColor getColor() = 0;
     
     virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum) = 0; 
@@ -177,7 +179,8 @@ class PlaceSpannerTool : public MetavoxelTool {
 
 public:
     
-    PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText);
+    PlaceSpannerTool(MetavoxelEditor* editor, const QString& name,
+        const QString& placeText = QString(), bool usesValue = true);
 
     virtual void simulate(float deltaTime);
 
@@ -189,9 +192,11 @@ public:
 
 protected:
 
+    virtual QColor getColor();
+    virtual SharedObjectPointer getSpanner(bool detach = false);
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
-private slots:
+protected slots:
     
     void place();
 };
@@ -375,23 +380,6 @@ private:
     QDoubleSpinBox* _height;
 };
 
-/// Allows coloring parts of the heightfield.
-class HeightfieldColorBrushTool : public HeightfieldBrushTool {
-    Q_OBJECT
-
-public:
-    
-    HeightfieldColorBrushTool(MetavoxelEditor* editor);
-
-protected:
-    
-    virtual QVariant createEdit(bool alternate);
-    
-private:
-    
-    QColorEditor* _color;
-};
-
 /// Allows texturing parts of the heightfield.
 class HeightfieldMaterialBrushTool : public HeightfieldBrushTool {
     Q_OBJECT
@@ -406,33 +394,15 @@ protected:
 
 private slots:
     
+    void clearTexture();
     void updateTexture();
+    void textureLoaded();
     
-private:
-    
-    SharedObjectEditor* _materialEditor;
-    QSharedPointer<NetworkTexture> _texture;
-};
-
-/// Allows setting voxel colors by dragging out a box.
-class VoxelColorBoxTool : public BoxTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelColorBoxTool(MetavoxelEditor* editor);
-    
-    virtual bool appliesTo(const AttributePointer& attribute) const;
-    
-protected:
-    
-    virtual QColor getColor();
-    
-    virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
-
 private:
     
     QColorEditor* _color;
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
 };
 
 /// Allows setting voxel materials by dragging out a box.
@@ -447,87 +417,54 @@ public:
     
 protected:
     
+    virtual bool shouldSnapToGrid();
+    
     virtual QColor getColor();
     
     virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
 
 private slots:
     
+    void clearColor();
+    void clearTexture();
     void updateTexture();
+    void textureLoaded();
     
 private:
     
+    QCheckBox* _snapToGrid;
+    QColorEditor* _color;
     SharedObjectEditor* _materialEditor;
     QSharedPointer<NetworkTexture> _texture;
 };
 
-/// Base class for tools based on a sphere brush.
-class SphereTool : public MetavoxelTool {
+/// Allows setting voxel materials by placing a spanner.
+class VoxelMaterialSpannerTool : public PlaceSpannerTool {
     Q_OBJECT
 
 public:
     
-    SphereTool(MetavoxelEditor* editor, const QString& name);
-    
-    virtual void render();
-
-    virtual bool eventFilter(QObject* watched, QEvent* event);
-    
-protected:
-
-    virtual QColor getColor() = 0;
-    
-    virtual void applyValue(const glm::vec3& position, float radius) = 0;
-    
-    QFormLayout* _form;
-    QDoubleSpinBox* _radius;
-    
-    glm::vec3 _position;
-};
-
-/// Allows setting voxel colors by moving a sphere around.
-class VoxelColorSphereTool : public SphereTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelColorSphereTool(MetavoxelEditor* editor);
+    VoxelMaterialSpannerTool(MetavoxelEditor* editor);
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
 protected:
 
+    virtual SharedObjectPointer getSpanner(bool detach = false);
     virtual QColor getColor();
-    
-    virtual void applyValue(const glm::vec3& position, float radius);
-    
-private:
-    
-    QColorEditor* _color;
-};
-
-/// Allows setting voxel materials by moving a sphere around.
-class VoxelMaterialSphereTool : public SphereTool {
-    Q_OBJECT
-
-public:
-    
-    VoxelMaterialSphereTool(MetavoxelEditor* editor);
-    
-    virtual bool appliesTo(const AttributePointer& attribute) const;
-
-protected:
-
-    virtual QColor getColor();
-    
-    virtual void applyValue(const glm::vec3& position, float radius);
+    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
     
 private slots:
     
+    void clearColor();
+    void clearTexture();
     void updateTexture();
+    void textureLoaded();
     
 private:
     
+    SharedObjectEditor* _spannerEditor;
+    QColorEditor* _color;
     SharedObjectEditor* _materialEditor;
     QSharedPointer<NetworkTexture> _texture;
 };
