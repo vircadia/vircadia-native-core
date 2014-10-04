@@ -43,6 +43,7 @@ public:
     const QString& getText() const { return _text; }
     int getLeftMargin() const { return _leftMargin; }
     int getTopMargin() const { return _topMargin; }
+    xColor getBackgroundColor();
 
     // setters
     void setText(const QString& text) { _text = text; }

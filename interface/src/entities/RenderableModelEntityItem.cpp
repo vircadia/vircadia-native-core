@@ -71,8 +71,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     if (drawAsModel) {
         glPushMatrix();
         {
-            const float alpha = 1.0f;
-        
+            float alpha = getLocalRenderAlpha();
+
             if (!_model || _needsModelReload) {
                 // TODO: this getModel() appears to be about 3% of model render time. We should optimize
                 PerformanceTimer perfTimer("getModel");

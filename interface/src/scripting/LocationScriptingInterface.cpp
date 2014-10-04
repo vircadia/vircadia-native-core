@@ -29,9 +29,7 @@ QString LocationScriptingInterface::getHref() {
 }
 
 QString LocationScriptingInterface::getPathname() {
-    MyAvatar* applicationAvatar = Application::getInstance()->getAvatar();
-    return AddressManager::pathForPositionAndOrientation(applicationAvatar->getPosition(),
-                                                         true, applicationAvatar->getOrientation());
+    return AddressManager::getInstance().currentPath();
 }
 
 QString LocationScriptingInterface::getHostname() {

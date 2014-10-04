@@ -226,6 +226,8 @@ public:
     char normal[3];
     quint8 materials[4];
     quint8 materialWeights[4];
+    
+    void setNormal(const glm::vec3& normal);
 };
 
 /// Contains the information necessary to render a voxel block.
@@ -338,11 +340,11 @@ class ClippedRenderer : public SpannerRenderer {
 
 public:
     
-    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     
 protected:
 
-    virtual void renderUnclipped(float alpha, Mode mode) = 0;
+    virtual void renderUnclipped(const glm::vec4& color, Mode mode) = 0;
 };
 
 /// Renders spheres.
@@ -353,11 +355,24 @@ public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize);
+    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
     
 protected:
 
-    virtual void renderUnclipped(float alpha, Mode mode);
+    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+};
+
+/// Renders cuboids.
+class CuboidRenderer : public ClippedRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE CuboidRenderer();
+    
+protected:
+
+    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
 };
 
 /// Renders static models.
@@ -375,7 +390,7 @@ public:
 
 protected:
 
-    virtual void renderUnclipped(float alpha, Mode mode);
+    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
 
 private slots:
 

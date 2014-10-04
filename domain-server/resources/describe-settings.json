@@ -1,5 +1,64 @@
 [
   {
+ "name": "metaverse",
+ "label": "Metaverse Registration",
+ "settings": [
+              {
+              "name": "access_token",
+              "label": "Access Token",
+              "help": "This is an access token generated on the <a href='https://data.highfidelity.io/tokens' target='_blank'>My Tokens</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
+              },
+              {
+              "name": "id",
+              "label": "Domain ID",
+              "help": "This is your High Fidelity domain ID. If you do not want your domain to be registered in the High Fidelity metaverse you can leave this blank."
+              },
+              {
+              "name": "automatic_networking",
+              "label": "Automatic Networking",
+              "help": "This defines how other nodes in the High Fidelity metaverse will be able to reach your domain-server.<br/>If you don't want to deal with any network settings, use full automatic networking.",
+              "default": "disabled",
+              "type": "select",
+              "options": [
+                          {
+                          "value": "full",
+                          "label": "Full: update both the IP address and port to reach my server"
+                          },
+                          {
+                          "value": "ip",
+                          "label": "IP Only: update just my IP address, I will open the port manually"
+                          },
+                          {
+                          "value": "disabled",
+                          "label": "None: use the network information I have entered for this domain at data.highfidelity.io"
+                          }
+                          ]
+              }
+              ]
+ },
+ {
+ "name": "security",
+ "label": "Security",
+ "settings": [
+              {
+              "name": "http_username",
+              "label": "HTTP Username",
+              "help": "Username used for basic HTTP authentication."
+              },
+              {
+              "name": "http_password",
+              "label": "HTTP Password",
+              "type": "password",
+              "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
+              "value-hidden": true
+              }
+              ]
+ },
+ {
+ "name": "audio",
+ "label": "Audio",
+ "assignment-types": [0],
+ "settings": [
  "name": "audio",
  "label": "Audio",
  "assignment-types": [0],
@@ -71,11 +130,11 @@
       },
       {
         "name": "attenuation_per_doubling_in_distance",
-        "label": "Attenuattion per doubling in distance",
+        "label": "Attenuation per doubling in distance",
         "help": "Factor between 0.0 and 1.0 (0.0: No attenuation, 1.0: extreme attenuation)",
         "placeholder": "0.18",
         "default": "0.18",
-        "advanced": true
+        "advanced": false
       },
       {
         "name": "dynamic_jitter_buffer",

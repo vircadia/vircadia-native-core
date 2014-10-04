@@ -64,6 +64,9 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     // clear our NodeList when the domain changes
     connect(&_domainHandler, &DomainHandler::hostnameChanged, this, &NodeList::reset);
     
+    // handle ICE signal from DS so connection is attempted immediately
+    connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
+    
     // clear our NodeList when logout is requested
     connect(&AccountManager::getInstance(), &AccountManager::logoutComplete , this, &NodeList::reset);
 }
@@ -123,6 +126,10 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             _domainHandler.parseDTLSRequirementPacket(packet);
             break;
         }
+        case PacketTypeIceServerHeartbeatResponse: {
+            _domainHandler.processICEResponsePacket(packet);
+            break;
+        }
         case PacketTypePing: {
             // send back a reply
             SharedNodePointer matchingNode = sendingNodeForPacket(packet);
@@ -157,6 +164,26 @@ void NodeList::processNodeData(const HifiSockAddr& senderSockAddr, const QByteAr
             }
             
             break;
+        }
+        case PacketTypeUnverifiedPing: {
+            // send back a reply
+            QByteArray replyPacket = constructPingReplyPacket(packet, _domainHandler.getICEClientID());
+            writeUnverifiedDatagram(replyPacket, senderSockAddr);
+            break;
+        }
+        case PacketTypeUnverifiedPingReply: {
+            qDebug() << "Received reply from domain-server on" << senderSockAddr;
+            
+            // for now we're unsafely assuming this came back from the domain
+            if (senderSockAddr == _domainHandler.getICEPeer().getLocalSocket()) {
+                qDebug() << "Connecting to domain using local socket";
+                _domainHandler.activateICELocalSocket();
+            } else if (senderSockAddr == _domainHandler.getICEPeer().getPublicSocket()) {
+                qDebug() << "Conecting to domain using public socket";
+                _domainHandler.activateICEPublicSocket();
+            } else {
+                qDebug() << "Reply does not match either local or public socket for domain. Will not connect.";
+            }
         }
         case PacketTypeStunResponse: {
             // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
@@ -242,8 +269,10 @@ void NodeList::sendDomainServerCheckIn() {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
+    } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
+        handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-
+        
         bool isUsingDTLS = false;
         
         PacketType domainPacketType = !_domainHandler.isConnected()
@@ -256,10 +285,17 @@ void NodeList::sendDomainServerCheckIn() {
         // construct the DS check in packet
         QUuid packetUUID = _sessionUUID;
         
-        if (!_domainHandler.getAssignmentUUID().isNull() && domainPacketType == PacketTypeDomainConnectRequest) {
-            // this is a connect request and we're an assigned node
-            // so set our packetUUID as the assignment UUID
-            packetUUID = _domainHandler.getAssignmentUUID();
+        if (domainPacketType == PacketTypeDomainConnectRequest) {
+            if (!_domainHandler.getAssignmentUUID().isNull()) {
+                // this is a connect request and we're an assigned node
+                // so set our packetUUID as the assignment UUID
+                packetUUID = _domainHandler.getAssignmentUUID();
+            } else if (_domainHandler.requiresICE()) {
+                // this is a connect request and we're an interface client
+                // that used ice to discover the DS
+                // so send our ICE client UUID with the connect request
+                packetUUID = _domainHandler.getICEClientID();
+            }
         }
         
         QByteArray domainServerPacket = byteArrayWithPopulatedHeader(domainPacketType, packetUUID);
@@ -267,8 +303,8 @@ void NodeList::sendDomainServerCheckIn() {
         
         // pack our data to send to the domain-server
         packetStream << _ownerType << _publicSockAddr
-            << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-            << (quint8) _nodeTypesOfInterest.size();
+        << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
+        << (quint8) _nodeTypesOfInterest.size();
         
         // copy over the bytes for node types of interest, if required
         foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
@@ -295,6 +331,30 @@ void NodeList::sendDomainServerCheckIn() {
         
         // increment the count of un-replied check-ins
         _numNoReplyDomainCheckIns++;
+    }
+}
+
+void NodeList::handleICEConnectionToDomainServer() {
+    if (_domainHandler.getICEPeer().isNull()
+        || _domainHandler.getICEPeer().getConnectionAttempts() >= MAX_ICE_CONNECTION_ATTEMPTS) {
+        
+        _domainHandler.getICEPeer().resetConnectionAttemps();
+        
+        LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
+                                                  _domainHandler.getICEClientID(),
+                                                  _domainHandler.getICEDomainID());
+    } else {
+        qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
+            << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
+        
+        // send the ping packet to the local and public sockets for this nodfe
+        QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());
+        writeUnverifiedDatagram(localPingPacket, _domainHandler.getICEPeer().getLocalSocket());
+        
+        QByteArray publicPingPacket = constructPingPacket(PingType::Public, false, _domainHandler.getICEClientID());
+        writeUnverifiedDatagram(publicPingPacket, _domainHandler.getICEPeer().getPublicSocket());
+        
+        _domainHandler.getICEPeer().incrementConnectionAttempts();
     }
 }
 
@@ -369,35 +429,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
     _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
 }
 
-QByteArray NodeList::constructPingPacket(PingType_t pingType) {
-    QByteArray pingPacket = byteArrayWithPopulatedHeader(PacketTypePing);
-    
-    QDataStream packetStream(&pingPacket, QIODevice::Append);
-    
-    packetStream << pingType;
-    packetStream << usecTimestampNow();
-    
-    return pingPacket;
-}
-
-QByteArray NodeList::constructPingReplyPacket(const QByteArray& pingPacket) {
-    QDataStream pingPacketStream(pingPacket);
-    pingPacketStream.skipRawData(numBytesForPacketHeader(pingPacket));
-    
-    PingType_t typeFromOriginalPing;
-    pingPacketStream >> typeFromOriginalPing;
-    
-    quint64 timeFromOriginalPing;
-    pingPacketStream >> timeFromOriginalPing;
-    
-    QByteArray replyPacket = byteArrayWithPopulatedHeader(PacketTypePingReply);
-    QDataStream packetStream(&replyPacket, QIODevice::Append);
-    
-    packetStream << typeFromOriginalPing << timeFromOriginalPing << usecTimestampNow();
-    
-    return replyPacket;
-}
-
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
     
     // send the ping packet to the local and public sockets for this node
@@ -439,35 +470,4 @@ void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, con
     } else if (pingType == PingType::Symmetric && !sendingNode->getActiveSocket()) {
         sendingNode->activateSymmetricSocket();
     }
-}
-
-const QString QSETTINGS_GROUP_NAME = "NodeList";
-const QString DOMAIN_SERVER_SETTING_KEY = "domainServerHostname";
-
-void NodeList::loadData(QSettings *settings) {
-    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
-
-    QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
-
-    if (domainServerHostname.size() > 0) {
-        _domainHandler.setHostname(domainServerHostname);
-    } else {
-        _domainHandler.setHostname(DEFAULT_DOMAIN_HOSTNAME);
-    }
-    
-    settings->endGroup();
-}
-
-void NodeList::saveData(QSettings* settings) {
-    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
-
-    if (_domainHandler.getHostname() != DEFAULT_DOMAIN_HOSTNAME) {
-        // the user is using a different hostname, store it
-        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHandler.getHostname()));
-    } else {
-        // the user has switched back to default, remove the current setting
-        settings->remove(DOMAIN_SERVER_SETTING_KEY);
-    }
-
-    settings->endGroup();
 }

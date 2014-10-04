@@ -15,6 +15,8 @@
 #include <QThread>
 #include <QtDebug>
 
+#include <glm/gtx/transform.hpp>
+
 #include <GeometryUtil.h>
 
 #include "MetavoxelData.h"
@@ -29,6 +31,7 @@ REGISTER_META_OBJECT(MetavoxelRenderer)
 REGISTER_META_OBJECT(DefaultMetavoxelRenderer)
 REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
+REGISTER_META_OBJECT(Cuboid)
 REGISTER_META_OBJECT(StaticModel)
 
 static int metavoxelDataTypeId = registerSimpleMetaType<MetavoxelData>();
@@ -2025,6 +2028,14 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
+bool Spanner::contains(const glm::vec3& point) {
+    return false;
+}
+
+bool Spanner::intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal) {
+    return false;
+}
+
 QByteArray Spanner::getRendererClassName() const {
     return "SpannerRendererer";
 }
@@ -2042,7 +2053,7 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(float alpha, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
+void SpannerRenderer::render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
     // nothing by default
 }
 
@@ -2072,18 +2083,20 @@ void Transformable::setScale(float scale) {
     }
 }
 
-Sphere::Sphere() :
-    _color(Qt::gray) {
-    
-    connect(this, SIGNAL(translationChanged(const glm::vec3&)), SLOT(updateBounds()));
-    connect(this, SIGNAL(scaleChanged(float)), SLOT(updateBounds()));
-    updateBounds();
+ColorTransformable::ColorTransformable() :
+    _color(Qt::white) {
 }
 
-void Sphere::setColor(const QColor& color) {
+void ColorTransformable::setColor(const QColor& color) {
     if (_color != color) {
         emit colorChanged(_color = color);
     }
+}
+
+Sphere::Sphere() {
+    connect(this, SIGNAL(translationChanged(const glm::vec3&)), SLOT(updateBounds()));
+    connect(this, SIGNAL(scaleChanged(float)), SLOT(updateBounds()));
+    updateBounds();
 }
 
 const QVector<AttributePointer>& Sphere::getAttributes() const {
@@ -2175,6 +2188,38 @@ bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direc
     return findRaySphereIntersection(origin, direction, getTranslation(), getScale(), distance);
 }
 
+bool Sphere::contains(const glm::vec3& point) {
+    return glm::distance(point, getTranslation()) <= getScale();
+}
+
+bool Sphere::intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal) {
+    glm::vec3 relativeStart = start - getTranslation();
+    glm::vec3 vector = end - start;
+    float a = glm::dot(vector, vector);
+    if (a == 0.0f) {
+        return false;
+    }
+    float b = glm::dot(relativeStart, vector);
+    float radicand = b * b - a * (glm::dot(relativeStart, relativeStart) - getScale() * getScale());
+    if (radicand < 0.0f) {
+        return false;
+    }
+    float radical = glm::sqrt(radicand);
+    float first = (-b - radical) / a;
+    if (first >= 0.0f && first <= 1.0f) {
+        distance = first;
+        normal = glm::normalize(relativeStart + vector * distance);
+        return true;
+    }
+    float second = (-b + radical) / a;
+    if (second >= 0.0f && second <= 1.0f) {
+        distance = second;
+        normal = glm::normalize(relativeStart + vector * distance);
+        return true;
+    }
+    return false;
+}
+
 QByteArray Sphere::getRendererClassName() const {
     return "SphereRenderer";
 }
@@ -2199,6 +2244,89 @@ AttributeValue Sphere::getNormal(MetavoxelInfo& info, int alpha) const {
         color = QRgb();
     }
     return AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
+}
+
+Cuboid::Cuboid() :
+    _aspectY(1.0f),
+    _aspectZ(1.0f) {
+    
+    connect(this, &Cuboid::translationChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::rotationChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::scaleChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::aspectYChanged, this, &Cuboid::updateBoundsAndPlanes);
+    connect(this, &Cuboid::aspectZChanged, this, &Cuboid::updateBoundsAndPlanes);
+    updateBoundsAndPlanes();
+}
+
+void Cuboid::setAspectY(float aspectY) {
+    if (_aspectY != aspectY) {
+        emit aspectYChanged(_aspectY = aspectY);
+    }
+}
+
+void Cuboid::setAspectZ(float aspectZ) {
+    if (_aspectZ != aspectZ) {
+        emit aspectZChanged(_aspectZ = aspectZ);
+    }
+}
+
+bool Cuboid::contains(const glm::vec3& point) {
+    glm::vec4 point4(point, 1.0f);
+    for (int i = 0; i < PLANE_COUNT; i++) {
+        if (glm::dot(_planes[i], point4) > 0.0f) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Cuboid::intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal) {
+    glm::vec4 start4(start, 1.0f);
+    glm::vec4 vector = glm::vec4(end - start, 0.0f);
+    for (int i = 0; i < PLANE_COUNT; i++) {
+        // first check the segment against the plane
+        float divisor = glm::dot(_planes[i], vector);
+        if (glm::abs(divisor) < EPSILON) {
+            continue;
+        }
+        float t = -glm::dot(_planes[i], start4) / divisor;
+        if (t < 0.0f || t > 1.0f) {
+            continue;
+        }
+        // now that we've established that it intersects the plane, check against the other sides
+        glm::vec4 point = start4 + vector * t;
+        const int PLANES_PER_AXIS = 2;
+        int indexOffset = ((i / PLANES_PER_AXIS) + 1) * PLANES_PER_AXIS;
+        for (int j = 0; j < PLANE_COUNT - PLANES_PER_AXIS; j++) {
+            if (glm::dot(_planes[(indexOffset + j) % PLANE_COUNT], point) > 0.0f) {
+                goto outerContinue;
+            }
+        }
+        distance = t;
+        normal = glm::vec3(_planes[i]);
+        return true;
+        
+        outerContinue: ;
+    }
+    return false;
+}
+
+QByteArray Cuboid::getRendererClassName() const {
+    return "CuboidRenderer";
+}
+
+void Cuboid::updateBoundsAndPlanes() {
+    glm::vec3 extent(getScale(), getScale() * _aspectY, getScale() * _aspectZ);
+    glm::mat4 rotationMatrix = glm::mat4_cast(getRotation());
+    setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(-extent, extent));
+    
+    glm::vec4 translation4 = glm::vec4(getTranslation(), 1.0f);
+    _planes[0] = glm::vec4(glm::vec3(rotationMatrix[0]), -glm::dot(rotationMatrix[0], translation4) - getScale());
+    _planes[1] = glm::vec4(glm::vec3(-rotationMatrix[0]), glm::dot(rotationMatrix[0], translation4) - getScale());
+    _planes[2] = glm::vec4(glm::vec3(rotationMatrix[1]), -glm::dot(rotationMatrix[1], translation4) - getScale() * _aspectY);
+    _planes[3] = glm::vec4(glm::vec3(-rotationMatrix[1]), glm::dot(rotationMatrix[1], translation4) - getScale() * _aspectY);
+    _planes[4] = glm::vec4(glm::vec3(rotationMatrix[2]), -glm::dot(rotationMatrix[2], translation4) - getScale() * _aspectZ);
+    _planes[5] = glm::vec4(glm::vec3(-rotationMatrix[2]), glm::dot(rotationMatrix[2], translation4) - getScale() * _aspectZ);
 }
 
 StaticModel::StaticModel() {

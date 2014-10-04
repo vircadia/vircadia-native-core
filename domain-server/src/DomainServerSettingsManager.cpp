@@ -26,6 +26,10 @@
 
 const QString SETTINGS_DESCRIPTION_RELATIVE_PATH = "/resources/describe-settings.json";
 
+const QString DESCRIPTION_SETTINGS_KEY = "settings";
+const QString SETTING_DEFAULT_KEY = "default";
+const QString DESCRIPTION_NAME_KEY = "name";
+
 DomainServerSettingsManager::DomainServerSettingsManager() :
     _descriptionArray(),
     _configMap()
@@ -61,6 +65,36 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
         // save the updated settings
         persistToFile();
     }
+}
+
+QVariant DomainServerSettingsManager::valueOrDefaultValueForKeyPath(const QString &keyPath) {
+    const QVariant* foundValue = valueForKeyPath(_configMap.getMergedConfig(), keyPath);
+    
+    if (foundValue) {
+        return *foundValue;
+    } else {
+        int dotIndex = keyPath.indexOf('.');
+        
+        QString groupKey = keyPath.mid(0, dotIndex);
+        QString settingKey = keyPath.mid(dotIndex + 1);
+        
+        foreach(const QVariant& group, _descriptionArray.toVariantList()) {
+            QVariantMap groupMap = group.toMap();
+            
+            if (groupMap[DESCRIPTION_NAME_KEY].toString() == groupKey) {
+                foreach(const QVariant& setting, groupMap[DESCRIPTION_SETTINGS_KEY].toList()) {
+                    QVariantMap settingMap = setting.toMap();
+                    if (settingMap[DESCRIPTION_NAME_KEY].toString() == settingKey) {
+                        return settingMap[SETTING_DEFAULT_KEY];
+                    }
+                }
+                
+                return QVariant();
+            }
+        }
+    }
+    
+    return QVariant();
 }
 
 const QString SETTINGS_PATH = "/settings.json";
@@ -126,10 +160,6 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
     
     return false;
 }
-
-const QString DESCRIPTION_SETTINGS_KEY = "settings";
-const QString SETTING_DEFAULT_KEY = "default";
-const QString DESCRIPTION_NAME_KEY = "name";
 
 QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& typeValue, bool isAuthenticated) {
     QJsonObject responseObject;
