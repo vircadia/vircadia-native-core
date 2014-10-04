@@ -25,6 +25,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _uuid(),
     _sockAddr(HifiSockAddr(QHostAddress::Null, DEFAULT_DOMAIN_SERVER_PORT)),
     _assignmentUUID(),
+    _iceDomainID(),
     _iceClientID(),
     _iceServerSockAddr(),
     _icePeer(),
@@ -39,8 +40,12 @@ DomainHandler::DomainHandler(QObject* parent) :
 void DomainHandler::clearConnectionInfo() {
     _uuid = QUuid();
     
-    _iceServerSockAddr = HifiSockAddr();
     _icePeer = NetworkPeer();
+    
+    if (requiresICE()) {
+        // if we connected to this domain with ICE, re-set the socket so we reconnect through the ice-server
+        _sockAddr.setAddress(QHostAddress::Null);
+    }
     
     _isConnected = false;
     
@@ -65,6 +70,7 @@ void DomainHandler::softReset() {
 
 void DomainHandler::hardReset() {
     softReset();
+    _iceDomainID = QUuid();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
 }
@@ -136,7 +142,7 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         // re-set the domain info to connect to new domain
         hardReset();
         
-        setUUID(id);
+        _iceDomainID = id;
         _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
         
         // refresh our ICE client UUID to something new
@@ -265,7 +271,7 @@ void DomainHandler::processICEResponsePacket(const QByteArray& icePacket) {
     NetworkPeer packetPeer;
     iceResponseStream >> packetPeer;
     
-    if (packetPeer.getUUID() != _uuid) {
+    if (packetPeer.getUUID() != _iceDomainID) {
         qDebug() << "Received a network peer with ID that does not match current domain. Will not attempt connection.";
     } else {
         qDebug() << "Received network peer object for domain -" << packetPeer;

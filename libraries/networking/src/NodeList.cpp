@@ -342,10 +342,10 @@ void NodeList::handleICEConnectionToDomainServer() {
         
         LimitedNodeList::sendHeartbeatToIceServer(_domainHandler.getICEServerSockAddr(),
                                                   _domainHandler.getICEClientID(),
-                                                  _domainHandler.getUUID());
+                                                  _domainHandler.getICEDomainID());
     } else {
         qDebug() << "Sending ping packets to establish connectivity with domain-server with ID"
-            << uuidStringWithoutCurlyBraces(_domainHandler.getUUID());
+            << uuidStringWithoutCurlyBraces(_domainHandler.getICEDomainID());
         
         // send the ping packet to the local and public sockets for this nodfe
         QByteArray localPingPacket = constructPingPacket(PingType::Local, false, _domainHandler.getICEClientID());

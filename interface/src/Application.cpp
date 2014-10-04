@@ -3462,9 +3462,9 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-    const QUuid& domainUUID = NodeList::getInstance()->getDomainHandler().getUUID();
+    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && !domainUUID.isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
@@ -3478,7 +3478,7 @@ void Application::updateLocationInServer() {
         const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainUUID.toString());
+        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
