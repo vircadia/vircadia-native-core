@@ -55,6 +55,8 @@ public:
     const QUuid& getAssignmentUUID() const { return _assignmentUUID; }
     void setAssignmentUUID(const QUuid& assignmentUUID) { _assignmentUUID = assignmentUUID; }
     
+    const QUuid& getICEDomainID() const { return _iceDomainID; }
+    
     const QUuid& getICEClientID() const { return _iceClientID; }
     
     bool requiresICE() const { return !_iceServerSockAddr.isNull(); }
@@ -97,6 +99,7 @@ private:
     QString _hostname;
     HifiSockAddr _sockAddr;
     QUuid _assignmentUUID;
+    QUuid _iceDomainID;
     QUuid _iceClientID;
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
