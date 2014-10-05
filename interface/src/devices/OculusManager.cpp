@@ -456,13 +456,14 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
     
     trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
-    trackerPosition = bodyOrientation * trackerPosition;
 
     if (_calibrationState != CALIBRATED) {
         ovrQuatf ovrHeadOrientation = ts.HeadPose.ThePose.Orientation;
         orientation = glm::quat(ovrHeadOrientation.w, ovrHeadOrientation.x, ovrHeadOrientation.y, ovrHeadOrientation.z);
         calibrate(trackerPosition, orientation);
     }
+
+    trackerPosition = bodyOrientation * trackerPosition;
 #endif
     
     //Render each eye into an fbo
