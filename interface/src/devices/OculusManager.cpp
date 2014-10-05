@@ -58,12 +58,16 @@ int OculusManager::_activeEyeIndex = -1;
 float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
 float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.f * RADIANS_PER_DEGREE;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
-float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 0.5f * RADIANS_PER_DEGREE;
+float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 2.0f * RADIANS_PER_DEGREE;
 quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
+float OculusManager::CALIBRATION_MESSAGE_DISTANCE = 2.5f;
 OculusManager::CalibrationState OculusManager::_calibrationState;
 glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
+int OculusManager::_calibrationMessage = 0;
+QString OculusManager::CALIBRATION_BILLBOARD_URL = "http://ctrlaltstudio.com/hifi/hold-to-calibrate.svg";  // TODO: Update with final URL
+float OculusManager::CALIBRATION_BILLBOARD_SCALE = 2.f;
 
 #endif
 
@@ -184,9 +188,20 @@ void OculusManager::disconnect() {
 #endif
 }
 
+void OculusManager::positionCalibrationBillboard(BillboardOverlay* billboard) {
+    glm::quat headOrientation = Application::getInstance()->getAvatar()->getHeadOrientation();
+    headOrientation.x = 0;
+    headOrientation.z = 0;
+    glm::normalize(headOrientation);
+    billboard->setPosition(Application::getInstance()->getAvatar()->getHeadPosition()
+        + headOrientation * glm::vec3(0.f, 0.f, -CALIBRATION_MESSAGE_DISTANCE));
+    billboard->setRotation(headOrientation);
+}
+
 void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
 #ifdef HAVE_LIBOVR
     static QString progressMessage;
+    static BillboardOverlay* billboard;
 
     switch (_calibrationState) {
 
@@ -212,7 +227,19 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 _calibrationStartTime = usecTimestampNow();
                 _calibrationState = WAITING_FOR_ZERO_HELD;
-                qDebug() << "Progress box: Hold still to calibrate";
+
+                if (_calibrationMessage == 0) {
+                    qDebug() << "Calibration message: Hold still to calibrate";
+
+                    billboard = new BillboardOverlay();
+                    billboard->setURL(CALIBRATION_BILLBOARD_URL);
+                    billboard->setScale(CALIBRATION_BILLBOARD_SCALE);
+                    billboard->setIsFacingAvatar(false);
+                    positionCalibrationBillboard(billboard);
+
+                    _calibrationMessage = Application::getInstance()->getOverlays().addOverlay(billboard);
+                }
+
                 progressMessage = "";
             } else {
                 _calibrationPosition = position;
@@ -225,14 +252,22 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
                     _calibrationState = CALIBRATED;
-                    qDebug() << "Delete progress box";
+                    qDebug() << "Delete calibration message";
+                    Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
+                    _calibrationMessage = 0;
                     Application::getInstance()->resetSensors();
                 } else {
-                    // 3...2...1...
                     quint64 quarterSeconds = (usecTimestampNow() - _calibrationStartTime) / 250000;
                     if (quarterSeconds + 1 > progressMessage.length()) {
+                        // 3...2...1...
                         if (quarterSeconds == 4 * (quarterSeconds / 4)) {
-                            progressMessage += QString::number(CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4);
+                            quint64 wholeSeconds = CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4;
+
+                            if (wholeSeconds == 2) {
+                                positionCalibrationBillboard(billboard);
+                            }
+
+                            progressMessage += QString::number(wholeSeconds);
                         } else {
                             progressMessage += ".";
                         }
@@ -258,6 +293,9 @@ void OculusManager::recalibrate() {
 void OculusManager::abandonCalibration() {
 #ifdef HAVE_LIBOVR
     _calibrationState = CALIBRATED;
+    qDebug() << "Delete calibration message";
+    Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
+    _calibrationMessage = 0;
 #endif
 }
 
