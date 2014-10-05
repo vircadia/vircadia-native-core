@@ -150,6 +150,10 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+void BillboardOverlay::setURL(const QString url) {
+    setBillboardURL(url);
+}
+
 void BillboardOverlay::setBillboardURL(const QUrl url) {
     _isLoaded = false;
     QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(url));

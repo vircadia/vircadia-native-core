@@ -24,6 +24,12 @@ public:
     BillboardOverlay();
     
     virtual void render();
+
+    // setters
+    void setURL(const QString url);
+    void setScale(float scale) { _scale = scale; }
+    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
+
     virtual void setProperties(const QScriptValue& properties);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
 
