@@ -293,9 +293,11 @@ void OculusManager::recalibrate() {
 void OculusManager::abandonCalibration() {
 #ifdef HAVE_LIBOVR
     _calibrationState = CALIBRATED;
-    qDebug() << "Delete calibration message";
-    Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-    _calibrationMessage = 0;
+    if (_calibrationMessage > 0) {
+        qDebug() << "Delete calibration message";
+        Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
+        _calibrationMessage = 0;
+    }
 #endif
 }
 

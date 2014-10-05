@@ -1478,6 +1478,8 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::connect();
         }
         OculusManager::recalibrate();
+    } else {
+        OculusManager::abandonCalibration();
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
