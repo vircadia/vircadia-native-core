@@ -254,11 +254,14 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                         QString settingType = groupObject[SETTING_DESCRIPTION_TYPE_KEY].toString();
                         
                         const QString INPUT_DOUBLE_TYPE = "double";
+                        const QString INPUT_INTEGER_TYPE = "int";
                         
                         // make sure the resulting json value has the right type
                         
                         if (settingType == INPUT_DOUBLE_TYPE) {
                             settingsVariant[key] = rootValue.toString().toDouble();
+                        } else if (settingType == INPUT_INTEGER_TYPE) {
+                            settingsVariant[key] = rootValue.toString().toInt();
                         } else {
                             settingsVariant[key] = rootValue.toString();
                         }
