@@ -15,8 +15,8 @@
 
 QThreadStorage<NetworkAccessManager*> networkAccessManagers;
 
-NetworkAccessManager& NetworkAccessManager::getInstance() {
-    if (!networkAccessManagers.hasLocalData()) {
+NetworkAccessManager& NetworkAccessManager::getInstance(bool forceReset) {
+    if (!networkAccessManagers.hasLocalData() || forceReset) {
             networkAccessManagers.setLocalData(new NetworkAccessManager());
     }
     
@@ -24,4 +24,5 @@ NetworkAccessManager& NetworkAccessManager::getInstance() {
 }
 
 NetworkAccessManager::NetworkAccessManager() {
+    
 }

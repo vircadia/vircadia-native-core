@@ -18,7 +18,7 @@
 class NetworkAccessManager : public QNetworkAccessManager {
     Q_OBJECT
 public:
-    static NetworkAccessManager& getInstance();
+    static NetworkAccessManager& getInstance(bool forceReset = false);
     
 private:
     NetworkAccessManager();
