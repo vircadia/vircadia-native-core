@@ -57,6 +57,11 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
+    
+    // make sure we have a fresh AccountManager instance
+    // (need this since domain-server can restart itself and maintain static variables)
+    AccountManager::getInstance(true);
+    
     _settingsManager.setupConfigMap(arguments());
     
     installNativeEventFilter(&_shutdownEventListener);
@@ -81,10 +86,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::restart() {
     qDebug() << "domain-server is restarting.";
-    
-    // make sure all static instances are reset
-    LimitedNodeList::getInstance()->reset();
-    AccountManager::getInstance(true);
     
     exit(DomainServer::EXIT_CODE_REBOOT);
 }
@@ -358,7 +359,7 @@ void DomainServer::setupAutomaticNetworking() {
                 iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
                 
                 // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
-                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this &DomainServer::sendHearbeatToIceServer);
+                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
                 
                 // tell the data server which type of automatic networking we are using
