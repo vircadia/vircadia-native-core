@@ -11,6 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
 Script.include("libraries/stringHelpers.js");
 Script.include("libraries/dataviewHelpers.js");
 Script.include("libraries/httpMultiPart.js");
@@ -31,7 +32,7 @@ Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 var windowDimensions = Controller.getViewportDimensions();
-var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
 
@@ -45,14 +46,14 @@ var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
 var modelURLs = [
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx"
+        HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+        HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/pug.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
+        HIFI_PUBLIC_BUCKET + "meshes/minotaur/mino_full.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/Combat_tank_V01.FBX",
+        HIFI_PUBLIC_BUCKET + "meshes/orc.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/slimer.fbx"
     ];
 
 var mode = 0;
@@ -310,7 +311,7 @@ var exportMenu = null;
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" &&
-        properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+        properties.modelURL == HIFI_PUBLIC_BUCKET + "ozan/Terrain_Reduce_forAlpha.fbx") {
         return true;
     }
     return false;

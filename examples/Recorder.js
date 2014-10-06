@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
 Script.include("libraries/toolBars.js");
 
 var recordingFile = "recording.rec";
@@ -22,7 +23,7 @@ function setPlayerOptions() {
 }
 
 var windowDimensions = Controller.getViewportDimensions();
-var TOOL_ICON_URL = "http://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/";
+var TOOL_ICON_URL = HIFI_PUBLIC_BUCKET + "images/tools/";
 var ALPHA_ON = 1.0;
 var ALPHA_OFF = 0.7;
 var COLOR_ON = { red: 128, green: 0, blue: 0 };

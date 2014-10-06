@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 function length(v) {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
@@ -26,8 +28,8 @@ function vMinus(a, b) {
 
 //  First, load two percussion sounds to be used on the sticks
 
-var drum1 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Drums/RackTomHi.raw");
-var drum2 = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Drums/RackTomLo.raw");
+var drum1 = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomHi.raw");
+var drum2 = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomLo.raw");
 
 //  State Machine:
 //  0 = not triggered 

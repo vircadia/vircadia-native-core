@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 // Set the following variables to the values needed
-var filename = "http://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/bartender.rec";
+var filename = HIFI_PUBLIC_BUCKET + "ozan/bartender.rec";
 var playFromCurrentLocation = true;
 var useDisplayName = true;
 var useAttachments = true;

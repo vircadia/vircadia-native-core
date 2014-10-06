@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 SelectionDisplay = (function () {
     var that = {};
     
@@ -100,7 +102,7 @@ SelectionDisplay = (function () {
                 });
 
     var grabberMoveUp = Overlays.addOverlay("billboard", {
-                    url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/up-arrow.png",
+                    url: HIFI_PUBLIC_BUCKET + "images/up-arrow.png",
                     position: { x:0, y: 0, z: 0},
                     color: { red: 0, green: 0, blue: 0 },
                     alpha: 1.0,
