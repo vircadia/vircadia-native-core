@@ -189,6 +189,11 @@ bool DomainServer::optionallySetupOAuth() {
 
 const QString DOMAIN_CONFIG_ID_KEY = "id";
 
+const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
+const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
+const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
+const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
+
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
     const QString CUSTOM_PORT_OPTION = "port";
@@ -196,7 +201,12 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     QVariantMap& settingsMap = _settingsManager.getSettingsMap();
 
-    if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
+    QVariant autoNetworkingValue = _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH);
+    
+    if (!autoNetworkingValue.isNull() && autoNetworkingValue.toString() == FULL_AUTOMATIC_NETWORKING_VALUE) {
+        // when using full networking use an ephemeral port
+        domainServerPort = 0;
+    } else  if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
         domainServerPort = (unsigned short) settingsMap.value(CUSTOM_PORT_OPTION).toUInt();
     }
 
@@ -310,12 +320,7 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     return true;
 }
 
-const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
-const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
-const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
-
 void DomainServer::setupAutomaticNetworking() {
-    const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
     
     if (!didSetupAccountManagerWithAccessToken()) {
         qDebug() << "Cannot setup domain-server automatic networking without an access token.";
@@ -957,7 +962,6 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
 }
 
 void DomainServer::requestCurrentPublicSocketViaSTUN() {
-    qDebug() << "Sending STUN request to retrieve public socket information.";
     LimitedNodeList::getInstance()->sendSTUNRequest();
 }
 

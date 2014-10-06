@@ -580,7 +580,7 @@ void LimitedNodeList::sendSTUNRequest() {
     memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
     
     // lookup the IP for the STUN server
-    static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+    HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
     
     _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
                               stunSockAddr.getAddress(), stunSockAddr.getPort());
