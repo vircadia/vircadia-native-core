@@ -24,6 +24,7 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <StreamUtils.h>    // adebug
 
 #include "Application.h"
 #include "Avatar.h"
@@ -52,6 +53,7 @@ const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
+    _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
     _velocity(0.0f),
     _positionDeltaAccumulator(0.0f),
@@ -760,6 +762,21 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
     //collided = headModel.findCollisions(shapes, collisions) || collided;
     bool collided = headModel.findCollisions(shapes, collisions);
     return collided;
+}
+
+void Avatar::setSkeletonOffset(const glm::vec3& offset) {
+    const float MAX_OFFSET_LENGTH = _scale * 0.5f;
+    float offsetLength = glm::length(offset);
+    if (offsetLength > MAX_OFFSET_LENGTH) {
+        _skeletonOffset = (MAX_OFFSET_LENGTH / offsetLength) * offset;
+    } else {
+        _skeletonOffset = offset;
+    }
+    std::cout << "adebug set offset = " << offset << std::endl;  // adebug
+}
+
+glm::vec3 Avatar::getSkeletonPosition() const { 
+    return _position + _skeletonOffset; 
 }
 
 QVector<glm::quat> Avatar::getJointRotations() const {

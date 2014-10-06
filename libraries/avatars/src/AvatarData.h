@@ -138,15 +138,15 @@ public:
     AvatarData();
     virtual ~AvatarData();
 
-    const QUuid& getSessionUUID() { return _sessionUUID; }
+    const QUuid& getSessionUUID() const { return _sessionUUID; }
 
-    const glm::vec3& getPosition();
+    const glm::vec3& getPosition() const;
     virtual void setPosition(const glm::vec3 position, bool overideReferential = false);
 
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    QByteArray toByteArray();
+    virtual QByteArray toByteArray();
 
     /// \return true if an error should be logged
     bool shouldLogError(const quint64& now);

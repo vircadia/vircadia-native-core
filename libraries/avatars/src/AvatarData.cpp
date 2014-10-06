@@ -67,7 +67,7 @@ AvatarData::~AvatarData() {
     delete _referential;
 }
 
-const glm::vec3& AvatarData::getPosition() {
+const glm::vec3& AvatarData::getPosition() const {
     if (_referential) {
         _referential->update();
     }
