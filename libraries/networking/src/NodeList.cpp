@@ -418,13 +418,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
     
     packetStream << assignment;
 
-    static HifiSockAddr DEFAULT_ASSIGNMENT_SOCKET(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, DEFAULT_DOMAIN_SERVER_PORT);
-
-    const HifiSockAddr* assignmentServerSocket = _assignmentServerSocket.isNull()
-        ? &DEFAULT_ASSIGNMENT_SOCKET
-        : &_assignmentServerSocket;
-
-    _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
+    _nodeSocket.writeDatagram(packet, _assignmentServerSocket.getAddress(), _assignmentServerSocket.getPort());
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
