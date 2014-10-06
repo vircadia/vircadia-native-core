@@ -114,12 +114,12 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
 void GeometryCache::renderSphere(float radius, int slices, int stacks) {
     VerticesIndices& vbo = _sphereVBOs[IntPair(slices, stacks)];
     int vertices = slices * (stacks - 1) + 2;
-    int numVerticesPerTriangle = 3;
-    int numTrianglesPerQuad = 2;
-    int indices = slices * numTrianglesPerQuad * numVerticesPerTriangle * (stacks - 1) + slices * numTrianglesPerQuad * numVerticesPerTriangle;
+    const int NUM_VERTICES_PER_TRIANGLE = 3;
+    const int NUM_TRIANGLES_PER_QUAD = 2;
+    int indices = slices * NUM_TRIANGLES_PER_QUAD * NUM_VERTICES_PER_TRIANGLE * (stacks - 1) + slices * NUM_TRIANGLES_PER_QUAD * NUM_VERTICES_PER_TRIANGLE;
     if (vbo.first == 0) {
-        int numCoordinatesPerVertex = 3;
-        GLfloat* vertexData = new GLfloat[vertices * numCoordinatesPerVertex];
+        const int NUM_COORDS_PER_VERTEX = 3;
+        GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
         GLfloat* vertex = vertexData;
 
         // south pole
@@ -148,7 +148,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        const int BYTES_PER_VERTEX = numCoordinatesPerVertex * sizeof(GLfloat);
+        const int BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
         glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
         delete[] vertexData;
         
