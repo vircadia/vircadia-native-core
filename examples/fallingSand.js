@@ -12,12 +12,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var zFightingSizeAdjust = 0.002; // used to adjust preview voxels to prevent z fighting
 var previewLineWidth = 2.0;
 
 var voxelSize = 1;
 var windowDimensions = Controller.getViewportDimensions();
-var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 
 var MAX_VOXEL_SCALE_POWER = 5;
 var MIN_VOXEL_SCALE_POWER = -8;

@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var count = 0;
 var moveUntil = 2000;
 var stopAfter = moveUntil + 100;
@@ -31,12 +33,12 @@ var originalProperties = {
              green: 255,
              blue: 0 },
 
-    modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
-    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
-    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
-    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
-    //modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
+    modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+    //modelURL: HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
+    //modelURL: HIFI_PUBLIC_BUCKET + "meshes/pug.fbx",
+    //modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
+    //modelURL: HIFI_PUBLIC_BUCKET + "meshes/minotaur/mino_full.fbx",
+    //modelURL: HIFI_PUBLIC_BUCKET + "meshes/Combat_tank_V01.FBX",
     
     rotation: rotation
 };

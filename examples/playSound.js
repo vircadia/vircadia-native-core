@@ -8,8 +8,10 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+Script.include("libraries/globals.js");
+
 //  First, load a sample sound from a URL
-var bird = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");
+var bird = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
 
 function maybePlaySound(deltaTime) {
 	if (Math.random() < 0.01) {

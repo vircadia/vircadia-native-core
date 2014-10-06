@@ -15,6 +15,7 @@
 #include <SharedUtil.h>
 
 #include "Sphere3DOverlay.h"
+#include "Application.h"
 #include "renderer/GlowEffect.h"
 
 Sphere3DOverlay::Sphere3DOverlay() {
@@ -33,7 +34,6 @@ void Sphere3DOverlay::render() {
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
-
 
     glDisable(GL_LIGHTING);
     
@@ -58,7 +58,7 @@ void Sphere3DOverlay::render() {
             glScalef(dimensions.x, dimensions.y, dimensions.z);
             //Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
             if (_isSolid) {
-                glutSolidSphere(1.0f, SLICES, SLICES);
+                Application::getInstance()->getGeometryCache()->renderSphere(1.0f, SLICES, SLICES); 
             } else {
                 glutWireSphere(1.0f, SLICES, SLICES);
             }
