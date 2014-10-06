@@ -357,7 +357,8 @@ void DomainServer::setupAutomaticNetworking() {
                 connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
                 iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
                 
-                // call our sendHeartbeaToIceServer immediately anytime a public address changes
+                // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
+                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this &DomainServer::sendHearbeatToIceServer);
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
                 
                 // tell the data server which type of automatic networking we are using
