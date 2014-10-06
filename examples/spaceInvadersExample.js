@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var iteration = 0;
 
 var gameOver = false;
@@ -82,13 +84,13 @@ var missileFired = false;
 var myMissile;
 
 // sounds
-var hitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
-var shootSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
+var hitSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
+var shootSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 var moveSounds = new Array();
-moveSounds[0] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo1.raw");
-moveSounds[1] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo2.raw");
-moveSounds[2] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo3.raw");
-moveSounds[3] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo4.raw");
+moveSounds[0] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo1.raw");
+moveSounds[1] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo2.raw");
+moveSounds[2] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo3.raw");
+moveSounds[3] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo4.raw");
 var currentMoveSound = 0;
 var numberOfSounds = 4;
 var stepsPerSound = invaderStepsPerCycle / numberOfSounds;
@@ -99,36 +101,36 @@ var soundInMyHead = true;
 // models...
 var invaderModels = new Array();
 invaderModels[0] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-large-purple.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[1] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-large-cyan.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-cyan.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[2] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-medium-cyan.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-medium-cyan.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[3] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-medium-green.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-medium-green.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[4] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-small-green.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-small-green.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
     
     
 
-//modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-//modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/invader.svo",
-// "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/spaceInvader3.fbx"
+//modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+//modelURL: HIFI_PUBLIC_BUCKET + "meshes/invader.svo",
+// HIFI_PUBLIC_BUCKET + "meshes/spaceInvader3.fbx"
 
 function initializeMyShip() {
     myShipProperties = {
@@ -138,7 +140,7 @@ function initializeMyShip() {
             damping: 0,
             radius: shipSize,
             color: { red: 0, green: 255, blue: 0 },
-            modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/myCannon16x16.svo",
+            modelURL: HIFI_PUBLIC_BUCKET + "meshes/myCannon16x16.svo",
             modelScale: 450,
             modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
             lifetime: itemLifetimes

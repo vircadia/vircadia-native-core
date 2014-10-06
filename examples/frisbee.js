@@ -14,6 +14,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+Script.include("libraries/globals.js");
 Script.include("libraries/toolBars.js");
 
 const LEFT_PALM = 0;
@@ -160,7 +162,7 @@ var currentMouseControl = false;
 
 var newSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var throwSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
+var throwSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
 
 var simulatedFrisbees = [];
 
