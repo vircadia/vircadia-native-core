@@ -1236,7 +1236,7 @@ var toolBar = (function () {
                 checkCount++;
 
                 if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
-                    if (checkCount < RESIZE_TIMEOUT / RESIZE_INTERVAL) {
+                    if (checkCount < RESIZE_MAX_CHECKS) {
                         Script.setTimeout(resize, RESIZE_INTERVAL);
                     } else {
                         print("Resize failed: timed out waiting for model (" + url + ") to load");
@@ -1247,7 +1247,7 @@ var toolBar = (function () {
                 }
             }
 
-            Script.setTimeout(resize, 50);
+            Script.setTimeout(resize, RESIZE_INTERVAL);
 
         } else {
             print("Can't add model: Model would be out of bounds.");
