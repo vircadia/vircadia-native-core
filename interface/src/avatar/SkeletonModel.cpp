@@ -899,7 +899,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             endPoint = endPoint - simulationTranslation;
             glTranslatef(endPoint.x, endPoint.y, endPoint.z);                                     
             glColor4f(0.6f, 0.6f, 0.8f, alpha); 
-			Application::getInstance()->getGeometryCache()->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS); 
+            Application::getInstance()->getGeometryCache()->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS); 
 
             // draw a yellow sphere at the capsule startpoint
             glm::vec3 startPoint;
@@ -908,7 +908,7 @@ void SkeletonModel::renderJointCollisionShapes(float alpha) {
             glm::vec3 axis = endPoint - startPoint;
             glTranslatef(-axis.x, -axis.y, -axis.z);
             glColor4f(0.8f, 0.8f, 0.6f, alpha); 
-			Application::getInstance()->getGeometryCache()->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS); 
+            Application::getInstance()->getGeometryCache()->renderSphere(capsule->getRadius(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS); 
 
             // draw a green cylinder between the two points
             glm::vec3 origin(0.0f);

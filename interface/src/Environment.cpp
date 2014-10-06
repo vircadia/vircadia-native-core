@@ -266,5 +266,5 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     
     program->release();
     
-    glPopMatrix();  
+    glPopMatrix();
 }

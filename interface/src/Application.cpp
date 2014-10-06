@@ -884,11 +884,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_W:
                 if (isOption && !isShifted && !isMeta) {
-					Menu::getInstance()->triggerOption(MenuOption::Wireframe);
+                    Menu::getInstance()->triggerOption(MenuOption::Wireframe);
                 } else {
-					_myAvatar->setDriveKeys(FWD, 1.f);
-				}
-				break;
+                    _myAvatar->setDriveKeys(FWD, 1.f);
+                }
+                break;
 
             case Qt::Key_S:
                 if (isShifted && isMeta && !isOption) {
@@ -2906,7 +2906,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-		_geometryCache.renderSphere(originSphereRadius, 15, 15);
+        _geometryCache.renderSphere(originSphereRadius, 15, 15);
         
         // draw the audio reflector overlay
         {

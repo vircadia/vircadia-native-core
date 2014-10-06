@@ -172,7 +172,7 @@ void BuckyBalls::render() {
         }
         glPushMatrix();
         glTranslatef(_bballPosition[i].x, _bballPosition[i].y, _bballPosition[i].z);
-		Application::getInstance()->getGeometryCache()->renderSphere(_bballRadius[i], 15, 15); 
+        Application::getInstance()->getGeometryCache()->renderSphere(_bballRadius[i], 15, 15); 
         glPopMatrix();
     }
 }

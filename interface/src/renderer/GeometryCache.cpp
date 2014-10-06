@@ -114,17 +114,20 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
 void GeometryCache::renderSphere(float radius, int slices, int stacks) {
     VerticesIndices& vbo = _sphereVBOs[IntPair(slices, stacks)];
     int vertices = slices * (stacks - 1) + 2;
-    int indices = slices * 2 * 3 * (stacks - 1) + slices * 2 * 3;
-    if (vbo.first == 0) {    
-        GLfloat* vertexData = new GLfloat[vertices * 3];
+    int numVerticesPerTriangle = 3;
+    int numTrianglesPerQuad = 2;
+    int indices = slices * numTrianglesPerQuad * numVerticesPerTriangle * (stacks - 1) + slices * numTrianglesPerQuad * numVerticesPerTriangle;
+    if (vbo.first == 0) {
+        int numCoordinatesPerVertex = 3;
+        GLfloat* vertexData = new GLfloat[vertices * numCoordinatesPerVertex];
         GLfloat* vertex = vertexData;
-		
-		// south pole
-		*(vertex++) = 0.0f;
+
+        // south pole
+        *(vertex++) = 0.0f;
         *(vertex++) = 0.0f;
         *(vertex++) = -1.0f;
 
-		//add stacks vertices climbing up Y axis
+        //add stacks vertices climbing up Y axis
         for (int i = 1; i < stacks; i++) {
             float phi = PI * (float)i / (float)(stacks) - PI_OVER_TWO;
             float z = sinf(phi), radius = cosf(phi);
@@ -138,31 +141,31 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
             }
         }
 
-		// north pole
-		*(vertex++) = 0.0f;
+        // north pole
+        *(vertex++) = 0.0f;
         *(vertex++) = 0.0f;
         *(vertex++) = 1.0f;
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        const int BYTES_PER_VERTEX = 3 * sizeof(GLfloat);
+        const int BYTES_PER_VERTEX = numCoordinatesPerVertex * sizeof(GLfloat);
         glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
         delete[] vertexData;
         
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
-        
-		// South cap
-		GLushort bottom = 0;
+
+        // South cap
+        GLushort bottom = 0;
         GLushort top = 1;
         for (int i = 0; i < slices; i++) {    
             *(index++) = bottom;
             *(index++) = top + i;
             *(index++) = top + (i + 1) % slices;
         }
-		
-		// (stacks - 2) ribbons
-		for (int i = 0; i < stacks - 2; i++) {
+
+        // (stacks - 2) ribbons
+        for (int i = 0; i < stacks - 2; i++) {
             bottom = i * slices + 1;
             top = bottom + slices;
             for (int j = 0; j < slices; j++) {
@@ -178,8 +181,8 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
             }
         }
         
-		// north cap
-		bottom = (stacks - 2) * slices + 1;
+        // north cap
+        bottom = (stacks - 2) * slices + 1;
         top = bottom + slices;
         for (int i = 0; i < slices; i++) {    
             *(index++) = bottom + i;
@@ -199,12 +202,12 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
     }
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
- 
+
     glVertexPointer(3, GL_FLOAT, 0, 0);
     glNormalPointer(GL_FLOAT, 0, 0);
-    
-	glPushMatrix();
-	glScalef(radius, radius, radius);
+
+    glPushMatrix();
+    glScalef(radius, radius, radius);
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
     glPopMatrix();
 
