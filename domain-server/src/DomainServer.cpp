@@ -957,6 +957,7 @@ void DomainServer::transactionJSONCallback(const QJsonObject& data) {
 }
 
 void DomainServer::requestCurrentPublicSocketViaSTUN() {
+    qDebug() << "Sending STUN request to retrieve public socket information.";
     LimitedNodeList::getInstance()->sendSTUNRequest();
 }
 
