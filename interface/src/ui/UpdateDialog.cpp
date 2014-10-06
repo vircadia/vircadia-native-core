@@ -23,8 +23,8 @@ UpdateDialog::UpdateDialog(QWidget *parent, const QString& releaseNotes, const Q
     Ui::Dialog dialogUI;
     dialogUI.setupUi(this);
     
-    QString updateRequired = QString("You are currently running build %1, the latest build released is %2. \
-                                      Please download and install the most recent release to access the latest features and bug fixes.")
+    QString updateRequired = QString("You are currently running build %1, the latest build released is %2."
+                                     "\n\nPlease download and install the most recent release to access the latest features and bug fixes.")
                                       .arg(Application::getInstance()->applicationVersion(), latestVersion);
     
     setAttribute(Qt::WA_DeleteOnClose);

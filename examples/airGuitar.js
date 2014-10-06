@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 function length(v) {
     return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
@@ -26,28 +28,28 @@ function vMinus(a, b) {
 }
 
 //  The model file to be used for the guitar 
-var guitarModel = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/attachments/guitar.fst";
+var guitarModel = HIFI_PUBLIC_BUCKET + "models/attachments/guitar.fst";
 
 //  Load sounds that will be played
 
 var chords = new Array();
 // Nylon string guitar
-chords[1] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
-chords[2] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+B.raw");
-chords[3] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+E.raw");
-chords[4] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+G.raw");
+chords[1] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
+chords[2] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+B.raw");
+chords[3] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+E.raw");
+chords[4] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+G.raw");
 
 // Electric guitar
-chords[5] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+A+short.raw");
-chords[6] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+B+short.raw");
-chords[7] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+E+short.raw");
-chords[8] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Metal+G+short.raw");
+chords[5] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+A+short.raw");
+chords[6] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+B+short.raw");
+chords[7] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+E+short.raw");
+chords[8] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+G+short.raw");
 
 //  Steel Guitar 
-chords[9] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+A.raw");
-chords[10] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+B.raw");
-chords[11] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+E.raw");
-chords[12] = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Steel+G.raw");
+chords[9] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+A.raw");
+chords[10] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+B.raw");
+chords[11] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+E.raw");
+chords[12] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+G.raw");
 
 var NUM_CHORDS = 4;
 var NUM_GUITARS = 3;

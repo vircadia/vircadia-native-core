@@ -11,7 +11,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/220Sine.wav");
+Script.include("libraries/globals.js");
+
+var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
 
 var soundPlaying = false;
 

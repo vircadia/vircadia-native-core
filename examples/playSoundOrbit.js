@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var soundClip = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Voxels/voxel create 3.raw");
+Script.include("libraries/globals.js");
+
+var soundClip = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Voxels/voxel create 3.raw");
 
 var currentTime = 1.570079; // pi/2
 var deltaTime = 0.05;

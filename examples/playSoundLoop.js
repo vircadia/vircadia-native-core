@@ -11,12 +11,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
 
 //  A few sample files you may want to try: 
 
-var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guitars/Guitar+-+Nylon+A.raw");
-//var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/220Sine.wav");
-//var sound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Bandcamp.wav");
+var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
+//var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
+//var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Bandcamp.wav");
 
 var soundPlaying = false;
 var options = new AudioInjectionOptions();
