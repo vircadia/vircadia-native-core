@@ -187,7 +187,7 @@ void AccountManager::invokedRequest(const QString& path,
                                     const JSONCallbackParameters& callbackParams,
                                     const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart) {
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest networkRequest;
     
@@ -359,7 +359,7 @@ void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken)
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
 
@@ -431,7 +431,7 @@ void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) 
 }
 
 void AccountManager::requestProfile() {
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl profileURL = _authURL;
     profileURL.setPath("/api/v1/users/profile");
