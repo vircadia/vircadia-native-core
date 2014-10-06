@@ -302,9 +302,7 @@ void NodeList::sendDomainServerCheckIn() {
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr
-        << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-        << (quint8) _nodeTypesOfInterest.size();
+        packetStream << _ownerType << _publicSockAddr << _localSockAddr << (quint8) _nodeTypesOfInterest.size();
         
         // copy over the bytes for node types of interest, if required
         foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {

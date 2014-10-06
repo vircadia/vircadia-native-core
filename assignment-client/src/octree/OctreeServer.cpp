@@ -940,7 +940,7 @@ void OctreeServer::run() {
         qDebug("--statusHost=%s", statusHost);
         _statusHost = statusHost;
     } else {
-        _statusHost = QHostAddress(getHostOrderLocalAddress()).toString();
+        _statusHost = getLocalAddress().toString();
     }
     qDebug("statusHost=%s", qPrintable(_statusHost));
 

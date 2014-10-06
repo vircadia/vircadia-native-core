@@ -127,11 +127,15 @@ public slots:
     
     void removeSilentNodes();
     
+    void updateLocalSockAddr();
+    
     void killNodeWithUUID(const QUuid& nodeUUID);
 signals:
     void uuidChanged(const QUuid& ownerUUID, const QUuid& oldUUID);
     void nodeAdded(SharedNodePointer);
     void nodeKilled(SharedNodePointer);
+    
+    void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 protected:
     static std::auto_ptr<LimitedNodeList> _sharedInstance;
@@ -153,6 +157,7 @@ protected:
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;
     QUdpSocket* _dtlsSocket;
+    HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
     int _numCollectedPackets;
     int _numCollectedBytes;
