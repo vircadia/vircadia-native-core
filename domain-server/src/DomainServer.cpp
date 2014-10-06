@@ -204,8 +204,8 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     QVariant autoNetworkingValue = _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH);
     
     if (!autoNetworkingValue.isNull() && autoNetworkingValue.toString() == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        // when using full networking use an ephemeral port
-        domainServerPort = 0;
+        // when using full networking use an ephemeral port - disabled until nodes can find us this way
+        // domainServerPort = 0;
     } else  if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
         domainServerPort = (unsigned short) settingsMap.value(CUSTOM_PORT_OPTION).toUInt();
     }
