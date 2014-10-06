@@ -2423,7 +2423,7 @@ void SphereRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
-    glutSolidSphere(sphere->getScale(), 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(sphere->getScale(), 10, 10);
     
     glPopMatrix();
 }

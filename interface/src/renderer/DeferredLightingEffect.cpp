@@ -51,7 +51,7 @@ void DeferredLightingEffect::releaseSimpleProgram() {
 
 void DeferredLightingEffect::renderSolidSphere(float radius, int slices, int stacks) {
     bindSimpleProgram();
-    glutSolidSphere(radius, slices, stacks);
+    Application::getInstance()->getGeometryCache()->renderSphere(radius, slices, stacks); 
     releaseSimpleProgram();
 }
 
