@@ -21,8 +21,15 @@ Circle3DOverlay::Circle3DOverlay() :
     _startAt(0.0f),
     _endAt(360.0f),
     _outerRadius(1.0f),
-    _innerRadius(0.0f)
+    _innerRadius(0.0f),
+    _hasTickMarks(false),
+    _majorTickMarksAngle(0.0f),
+    _minorTickMarksAngle(0.0f),
+    _majorTickMarksLength(0.0f),
+    _minorTickMarksLength(0.0f)
 {
+    _majorTickMarksColor.red = _majorTickMarksColor.green = _majorTickMarksColor.blue = (unsigned char)0;
+    _minorTickMarksColor.red = _minorTickMarksColor.green = _minorTickMarksColor.blue = (unsigned char)0;
 }
 
 Circle3DOverlay::~Circle3DOverlay() {
@@ -142,6 +149,66 @@ void Circle3DOverlay::render() {
                 glVertex2f(lastOuterPoint.x, lastOuterPoint.y);
                 glEnd();
             }
+            
+            // draw our tick marks
+            // for our overlay, is solid means we draw a ring between the inner and outer radius of the circle, otherwise
+            // we just draw a line...
+            if (getHasTickMarks()) {
+                glBegin(GL_LINES);
+
+                // draw our major tick marks
+                if (getMajorTickMarksAngle() > 0.0f && getMajorTickMarksLength() != 0.0f) {
+                
+                    xColor color = getMajorTickMarksColor();
+                    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+                
+                    float angle = startAt;
+                    float angleInRadians = glm::radians(angle);
+                    float tickMarkLength = getMajorTickMarksLength();
+                    float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
+                    float endRadius = startRadius + tickMarkLength;
+
+                    while (angle <= endAt) {
+                        angleInRadians = glm::radians(angle);
+
+                        glm::vec2 thisPointA(cos(angleInRadians) * startRadius, sin(angleInRadians) * startRadius);
+                        glm::vec2 thisPointB(cos(angleInRadians) * endRadius, sin(angleInRadians) * endRadius);
+
+                        glVertex2f(thisPointA.x, thisPointA.y);
+                        glVertex2f(thisPointB.x, thisPointB.y);
+                
+                        angle += getMajorTickMarksAngle();
+                    }
+                }
+
+                // draw our minor tick marks
+                if (getMinorTickMarksAngle() > 0.0f && getMinorTickMarksLength() != 0.0f) {
+                
+                    xColor color = getMinorTickMarksColor();
+                    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+                
+                    float angle = startAt;
+                    float angleInRadians = glm::radians(angle);
+                    float tickMarkLength = getMinorTickMarksLength();
+                    float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
+                    float endRadius = startRadius + tickMarkLength;
+
+                    while (angle <= endAt) {
+                        angleInRadians = glm::radians(angle);
+
+                        glm::vec2 thisPointA(cos(angleInRadians) * startRadius, sin(angleInRadians) * startRadius);
+                        glm::vec2 thisPointB(cos(angleInRadians) * endRadius, sin(angleInRadians) * endRadius);
+
+                        glVertex2f(thisPointA.x, thisPointA.y);
+                        glVertex2f(thisPointB.x, thisPointB.y);
+                
+                        angle += getMinorTickMarksAngle();
+                    }
+                }
+
+                glEnd();
+            }
+            
  
         glPopMatrix();
     glPopMatrix();
@@ -172,6 +239,55 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     QScriptValue innerRadius = properties.property("innerRadius");
     if (innerRadius.isValid()) {
         setInnerRadius(innerRadius.toVariant().toFloat());
+    }
+
+    QScriptValue hasTickMarks = properties.property("hasTickMarks");
+    if (hasTickMarks.isValid()) {
+        setHasTickMarks(hasTickMarks.toVariant().toBool());
+    }
+
+    QScriptValue majorTickMarksAngle = properties.property("majorTickMarksAngle");
+    if (majorTickMarksAngle.isValid()) {
+        setMajorTickMarksAngle(majorTickMarksAngle.toVariant().toFloat());
+    }
+
+    QScriptValue minorTickMarksAngle = properties.property("minorTickMarksAngle");
+    if (minorTickMarksAngle.isValid()) {
+        setMinorTickMarksAngle(minorTickMarksAngle.toVariant().toFloat());
+    }
+
+    QScriptValue majorTickMarksLength = properties.property("majorTickMarksLength");
+    if (majorTickMarksLength.isValid()) {
+        setMajorTickMarksLength(majorTickMarksLength.toVariant().toFloat());
+    }
+
+    QScriptValue minorTickMarksLength = properties.property("minorTickMarksLength");
+    if (minorTickMarksLength.isValid()) {
+        setMinorTickMarksLength(minorTickMarksLength.toVariant().toFloat());
+    }
+
+    QScriptValue majorTickMarksColor = properties.property("majorTickMarksColor");
+    if (majorTickMarksColor.isValid()) {
+        QScriptValue red = majorTickMarksColor.property("red");
+        QScriptValue green = majorTickMarksColor.property("green");
+        QScriptValue blue = majorTickMarksColor.property("blue");
+        if (red.isValid() && green.isValid() && blue.isValid()) {
+            _majorTickMarksColor.red = red.toVariant().toInt();
+            _majorTickMarksColor.green = green.toVariant().toInt();
+            _majorTickMarksColor.blue = blue.toVariant().toInt();
+        }
+    }
+
+    QScriptValue minorTickMarksColor = properties.property("minorTickMarksColor");
+    if (minorTickMarksColor.isValid()) {
+        QScriptValue red = minorTickMarksColor.property("red");
+        QScriptValue green = minorTickMarksColor.property("green");
+        QScriptValue blue = minorTickMarksColor.property("blue");
+        if (red.isValid() && green.isValid() && blue.isValid()) {
+            _minorTickMarksColor.red = red.toVariant().toInt();
+            _minorTickMarksColor.green = green.toVariant().toInt();
+            _minorTickMarksColor.blue = blue.toVariant().toInt();
+        }
     }
 }
 
