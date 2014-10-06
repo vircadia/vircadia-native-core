@@ -196,19 +196,12 @@ const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
 
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
-    const QString CUSTOM_PORT_OPTION = "port";
-    unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
+
+    QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
+    unsigned short domainServerPort = (unsigned short) localPortValue.toUInt();
     
     QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-
-    QVariant autoNetworkingValue = _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH);
-    
-    if (!autoNetworkingValue.isNull() && autoNetworkingValue.toString() == FULL_AUTOMATIC_NETWORKING_VALUE) {
-        // when using full networking use an ephemeral port - disabled until nodes can find us this way
-        // domainServerPort = 0;
-    } else  if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
-        domainServerPort = (unsigned short) settingsMap.value(CUSTOM_PORT_OPTION).toUInt();
-    }
 
     unsigned short domainServerDTLSPort = 0;
 

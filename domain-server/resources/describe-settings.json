@@ -35,7 +35,7 @@
         ]
       },
       {
-        "name": "port",
+        "name": "local_port",
         "label": "Local UDP Port",
         "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to run multiple full automatic networking domain-servers in the same network.",
         "default": "40102",
