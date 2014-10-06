@@ -49,7 +49,7 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float MIN_KEYBOARD_CONTROL_SPEED = 0.75f;
+const float MIN_KEYBOARD_CONTROL_SPEED = 0.50f;
 const float MAX_WALKING_SPEED = 4.5f;
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
