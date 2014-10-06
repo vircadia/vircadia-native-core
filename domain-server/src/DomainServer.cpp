@@ -57,9 +57,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
-    // force a refresh of the NetworkAccessManager instance for this thread
-    NetworkAccessManager::getInstance(true);
-    
     // make sure we have a fresh AccountManager instance
     // (need this since domain-server can restart itself and maintain static variables)
     AccountManager::getInstance(true);

@@ -18,7 +18,7 @@
 class NetworkAccessManager : public QObject {
     Q_OBJECT
 public:
-    static QNetworkAccessManager& getInstance(bool forceReset = false);
+    static QNetworkAccessManager& getInstance();
 };
 
 #endif // hifi_NetworkAccessManager_h
