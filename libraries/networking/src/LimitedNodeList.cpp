@@ -576,6 +576,13 @@ void LimitedNodeList::sendSTUNRequest() {
                               stunSockAddr.getAddress(), stunSockAddr.getPort());
 }
 
+void LimitedNodeList::rebindNodeSocket() {
+    quint16 oldPort = _nodeSocket.localPort();
+    
+    _nodeSocket.close();
+    _nodeSocket.bind(QHostAddress::AnyIPv4, oldPort);
+}
+
 bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     // check the cookie to make sure this is actually a STUN response
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
