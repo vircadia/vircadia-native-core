@@ -225,15 +225,6 @@ border-color: palette(dark); border-style: solid;  border-left-width: 1px; borde
             <height>60</height>
            </size>
           </property>
-          <property name="font">
-           <font>
-            <family>Helvetica,Arial,sans-serif</family>
-            <pointsize>14</pointsize>
-           </font>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="frameShape">
            <enum>QFrame::NoFrame</enum>
           </property>
