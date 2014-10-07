@@ -112,6 +112,9 @@ public:
     /// Clears all data in the specified attribute layer.
     void clear(const AttributePointer& attribute);
 
+    /// "Touches" all data in the specified attribute layer, making it look as if it has changed.
+    void touch(const AttributePointer& attribute);
+
     /// Convenience function that finds the first spanner intersecting the provided ray.    
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
@@ -253,6 +256,8 @@ public:
     
     void countNodes(const AttributePointer& attribute, const glm::vec3& minimum,
         float size, const MetavoxelLOD& lod, int& internalNodes, int& leaves) const;
+    
+    MetavoxelNode* touch(const AttributePointer& attribute) const;
     
 private:
     Q_DISABLE_COPY(MetavoxelNode)

@@ -56,6 +56,10 @@ signals:
 
     void rendering();
 
+public slots:
+
+    void updateHermiteDisplay();
+
 protected:
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
@@ -99,9 +103,11 @@ public:
     MetavoxelData getAugmentedData();
     
     void setRenderedAugmentedData(const MetavoxelData& data) { _renderedAugmentedData = data; }
-    
+
     virtual int parseData(const QByteArray& packet);
 
+    Q_INVOKABLE void refreshVoxelData();
+    
 protected:
     
     virtual void dataChanged(const MetavoxelData& oldData);
@@ -243,7 +249,7 @@ public:
 class VoxelBuffer : public BufferData {
 public:
     
-    VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
+    VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
         const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
         
     virtual void render(bool cursor = false);
@@ -252,10 +258,13 @@ private:
     
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
+    QVector<glm::vec3> _hermite;
     int _vertexCount;
     int _indexCount;
+    int _hermiteCount;
     QOpenGLBuffer _vertexBuffer;
     QOpenGLBuffer _indexBuffer;
+    QOpenGLBuffer _hermiteBuffer;
     QVector<SharedObjectPointer> _materials;
     QVector<NetworkTexturePointer> _networkTextures;
 };

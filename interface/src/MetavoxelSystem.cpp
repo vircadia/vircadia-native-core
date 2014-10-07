@@ -137,6 +137,20 @@ void MetavoxelSystem::render() {
     emit rendering();
 }
 
+void MetavoxelSystem::updateHermiteDisplay() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+            if (node->getType() == NodeType::MetavoxelServer) {
+                QMutexLocker locker(&node->getMutex());
+                MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+                if (client) {
+                    QMetaObject::invokeMethod(client, "refreshVoxelData");
+                }
+            }
+        }
+    }
+}
+
 class RayHeightfieldIntersectionVisitor : public RayIntersectionVisitor {
 public:
     
@@ -577,6 +591,14 @@ void Augmenter::run() {
     QMetaObject::invokeMethod(node->getLinkedData(), "setAugmentedData", Q_ARG(const MetavoxelData&, _data));
 }
 
+void MetavoxelSystemClient::refreshVoxelData() {
+    // make it look as if all the colors have changed
+    MetavoxelData oldData = getAugmentedData();
+    oldData.touch(AttributeRegistry::getInstance()->getVoxelColorAttribute());
+
+    QThreadPool::globalInstance()->start(new Augmenter(_node, _data, oldData, _remoteDataLOD));
+}
+
 void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
     MetavoxelClient::dataChanged(oldData);
     QThreadPool::globalInstance()->start(new Augmenter(_node, _data, getAugmentedData(), _remoteDataLOD));
@@ -986,12 +1008,14 @@ void VoxelPoint::setNormal(const glm::vec3& normal) {
     this->normal[2] = (char)(normal.z * 127.0f);
 }
 
-VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
+VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
         const QVector<SharedObjectPointer>& materials) :
     _vertices(vertices),
     _indices(indices),
+    _hermite(hermite),
     _vertexCount(vertices.size()),
     _indexCount(indices.size()),
+    _hermiteCount(hermite.size()),
     _indexBuffer(QOpenGLBuffer::IndexBuffer),
     _materials(materials) {
 }
@@ -1111,6 +1135,41 @@ void VoxelBuffer::render(bool cursor) {
     
     _vertexBuffer.release();
     _indexBuffer.release();
+    
+    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+        if (!_hermiteBuffer.isCreated()) {
+            _hermiteBuffer.create();
+            _hermiteBuffer.bind();
+            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));
+            _hermite.clear();
+        
+        } else {
+            _hermiteBuffer.bind();
+        }
+        
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+        
+        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().bind();
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        
+        glLineWidth(2.0f);
+        
+        glDrawArrays(GL_LINES, 0, _hermiteCount);
+        
+        glLineWidth(1.0f);
+        
+        DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
+        
+        glEnableClientState(GL_COLOR_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        
+        _hermiteBuffer.release();
+    }
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -1586,6 +1645,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     if (color && hermite && material) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
+        QVector<glm::vec3> hermiteSegments;
         
         // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
         // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
@@ -1623,6 +1683,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         float highest = size - 1.0f;
         float scale = info.size / highest;
         const int ALPHA_OFFSET = 24;
+        bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
         for (int z = 0; z < expanded; z++) {
             const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
@@ -1885,6 +1946,13 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         green += qGreen(crossing.color);
                         blue += qBlue(crossing.color);
                         
+                        if (displayHermite) {
+                            glm::vec3 start = info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) +
+                                crossing.point) * scale;
+                            hermiteSegments.append(start);
+                            hermiteSegments.append(start + crossing.normal * scale);
+                        }
+                        
                         // when assigning a material, search for its presence and, if not found,
                         // place it in the first empty slot
                         if (crossing.material != 0) {
@@ -2109,8 +2177,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                 colorZ += area;
             }
         }
-        
-        buffer = new VoxelBuffer(vertices, indices, material ? material->getMaterials() : QVector<SharedObjectPointer>());
+        buffer = new VoxelBuffer(vertices, indices, hermiteSegments,
+            material ? material->getMaterials() : QVector<SharedObjectPointer>());
     
     } else if (color && hermite) {
         BufferPointVector points;
