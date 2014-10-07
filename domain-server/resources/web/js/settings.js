@@ -292,7 +292,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://data.highfidelity.io/domains", '_blank');
+            window.open("https://data.highfidelity.io/users/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." + 
