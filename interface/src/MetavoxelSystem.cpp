@@ -2112,10 +2112,11 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         
         buffer = new VoxelBuffer(vertices, indices, material ? material->getMaterials() : QVector<SharedObjectPointer>());
     
-    } else if (color) {
+    } else if (color && hermite) {
         BufferPointVector points;
         
         const QVector<QRgb>& colorContents = color->getContents();
+        const QVector<QRgb>& hermiteContents = hermite->getContents();
         int size = color->getSize();
         int area = size * size;
         int limit = size - 1;
@@ -2128,6 +2129,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         const int MAX_ALPHA_TOTAL = MetavoxelNode::CHILD_COUNT * EIGHT_BIT_MAXIMUM;
         float step = info.size / limit;
         glm::vec4 minimum(info.minimum.x + step * 0.5f, info.minimum.y + step * 0.5f, info.minimum.z + step * 0.5f, 0.0f);
+        
+        const QRgb* hermiteData = hermiteContents.constData();
+        int hermiteStride = hermite->getSize() * VoxelHermiteData::EDGE_COUNT;
+        int hermiteArea = hermiteStride * hermite->getSize();
         
         for (int z = 0; z < limit; z++) {
             const QRgb* colorY = colorZ;
@@ -2143,14 +2148,93 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     if (alphaTotal == 0 || alphaTotal == MAX_ALPHA_TOTAL) {
                         continue;
                     }
-                    BufferPoint point = { minimum + glm::vec4(x, y, z, 1.0f) * step,
+                    const QRgb* hermiteBase = hermiteData + z * hermiteArea + y * hermiteStride +
+                        x * VoxelHermiteData::EDGE_COUNT;
+                    glm::vec3 normal;
+                    glm::vec3 position;
+                    int crossingCount = 0;
+                    if (a0 != a1) {
+                        QRgb hermite = hermiteBase[0];
+                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a0 != a2) {
+                        QRgb hermite = hermiteBase[1];
+                        position += glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a0 != a4) {
+                        QRgb hermite = hermiteBase[2];
+                        position += glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a1 != a3) {
+                        QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 1];
+                        position += glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a1 != a5) {
+                        QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 2];
+                        position += glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a2 != a3) {
+                        QRgb hermite = hermiteBase[hermiteStride];
+                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a2 != a6) {
+                        QRgb hermite = hermiteBase[hermiteStride + 2];
+                        position += glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a3 != a7) {
+                        QRgb hermite = hermiteBase[hermiteStride + VoxelHermiteData::EDGE_COUNT + 2];
+                        position += glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        normal += unpackNormal(hermite);    
+                        crossingCount++;
+                    }
+                    if (a4 != a5) {
+                        QRgb hermite = hermiteBase[hermiteArea];
+                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a4 != a6) {
+                        QRgb hermite = hermiteBase[hermiteArea + 1];
+                        position += glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a5 != a7) {
+                        QRgb hermite = hermiteBase[hermiteArea + VoxelHermiteData::EDGE_COUNT + 1];
+                        position += glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    if (a6 != a7) {
+                        QRgb hermite = hermiteBase[hermiteArea + hermiteStride];
+                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
+                        normal += unpackNormal(hermite);
+                        crossingCount++;
+                    }
+                    normal = safeNormalize(normal);
+                    BufferPoint point = { minimum + (glm::vec4(x, y, z, 1.0f) +
+                            glm::vec4(position / (float)crossingCount, 0.0f)) * step,
                         { (quint8)((qRed(c0) * a0 + qRed(c1) * a1 + qRed(c2) * a2 + qRed(c3) * a3 + qRed(c4) * a4 +
                                 qRed(c5) * a5 + qRed(c6) * a6 + qRed(c7) * a7) / alphaTotal),
                           (quint8)((qGreen(c0) * a0 + qGreen(c1) * a1 + qGreen(c2) * a2 + qGreen(c3) * a3 + qGreen(c4) * a4 +
                                 qGreen(c5) * a5 + qGreen(c6) * a6 + qGreen(c7) * a7) / alphaTotal),
                           (quint8)((qBlue(c0) * a0 + qBlue(c1) * a1 + qBlue(c2) * a2 + qBlue(c3) * a3 + qBlue(c4) * a4 +
                                 qBlue(c5) * a5 + qBlue(c6) * a6 + qBlue(c7) * a7) / alphaTotal) },
-                        { 0, 127, 0 } };
+                        { (quint8)(normal.x * 127.0f), (quint8)(normal.y * 127.0f), (quint8)(normal.z * 127.0f) } };
                     points.append(point); 
                 }
                 colorY += size;
