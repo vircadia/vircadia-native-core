@@ -140,6 +140,15 @@ private:
     int _pointCount;
 };
 
+/// Contains the information necessary to render a group of voxels as points.
+class VoxelPointBuffer : public PointBuffer {
+public:
+    
+    VoxelPointBuffer(const BufferPointVector& points);
+    
+    virtual void render(bool cursor = false);
+};
+
 /// Contains the information necessary to render a heightfield block.
 class HeightfieldBuffer : public BufferData {
 public:
@@ -272,6 +281,9 @@ public:
     
     static void init();
 
+    static ProgramObject& getPointProgram() { return _pointProgram; }
+    static int getPointScaleLocation() { return _pointScaleLocation; }
+    
     static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
     static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
     static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }

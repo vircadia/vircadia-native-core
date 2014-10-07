@@ -620,6 +620,22 @@ void PointBuffer::render(bool cursor) {
     _buffer.release();
 }
 
+VoxelPointBuffer::VoxelPointBuffer(const BufferPointVector& points) :
+    PointBuffer(points) {
+}
+
+void VoxelPointBuffer::render(bool cursor) {
+    DefaultMetavoxelRendererImplementation::getPointProgram().bind();
+
+    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
+
+    PointBuffer::render(cursor);
+    
+    glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
+
+    DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
+}
+
 const int HeightfieldBuffer::HEIGHT_BORDER = 1;
 const int HeightfieldBuffer::SHARED_EDGE = 1;
 const int HeightfieldBuffer::HEIGHT_EXTENSION = 2 * HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE;
@@ -1117,7 +1133,10 @@ AttributeValue BufferDataAttribute::inherit(const AttributeValue& parentValue) c
 
 void DefaultMetavoxelRendererImplementation::init() {
     if (!_pointProgram.isLinked()) {
-        _pointProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/metavoxel_point.vert");
+        _pointProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_point.vert");
+        _pointProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_voxel_base.frag");
         _pointProgram.link();
        
         _pointProgram.bind();
@@ -1560,11 +1579,11 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
-    VoxelBuffer* buffer = NULL;
+    BufferData* buffer = NULL;
     VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
     VoxelMaterialDataPointer material = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
     VoxelHermiteDataPointer hermite = info.inputValues.at(2).getInlineValue<VoxelHermiteDataPointer>();
-    if (color && hermite) {
+    if (color && hermite && material) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         
@@ -2092,6 +2111,53 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         }
         
         buffer = new VoxelBuffer(vertices, indices, material ? material->getMaterials() : QVector<SharedObjectPointer>());
+    
+    } else if (color) {
+        BufferPointVector points;
+        
+        const QVector<QRgb>& colorContents = color->getContents();
+        int size = color->getSize();
+        int area = size * size;
+        int limit = size - 1;
+        
+        const QRgb* colorZ = colorContents.constData();
+        int offset3 = size + 1;
+        int offset5 = area + 1;
+        int offset6 = area + size;
+        int offset7 = offset6 + 1;
+        const int MAX_ALPHA_TOTAL = MetavoxelNode::CHILD_COUNT * EIGHT_BIT_MAXIMUM;
+        float step = info.size / limit;
+        glm::vec4 minimum(info.minimum.x + step * 0.5f, info.minimum.y + step * 0.5f, info.minimum.z + step * 0.5f, 0.0f);
+        
+        for (int z = 0; z < limit; z++) {
+            const QRgb* colorY = colorZ;
+            for (int y = 0; y < limit; y++) {
+                const QRgb* colorX = colorY;
+                for (int x = 0; x < limit; x++) {
+                    QRgb c0 = colorX[0], c1 = colorX[1], c2 = colorX[size], c3 = colorX[offset3], c4 = colorX[area],
+                        c5 = colorX[offset5], c6 = colorX[offset6], c7 = colorX[offset7];
+                    colorX++;
+                    int a0 = qAlpha(c0), a1 = qAlpha(c1), a2 = qAlpha(c2), a3 = qAlpha(c3),
+                        a4 = qAlpha(c4), a5 = qAlpha(c5), a6 = qAlpha(c6), a7 = qAlpha(c7);
+                    int alphaTotal = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7;
+                    if (alphaTotal == 0 || alphaTotal == MAX_ALPHA_TOTAL) {
+                        continue;
+                    }
+                    BufferPoint point = { minimum + glm::vec4(x, y, z, 1.0f) * step,
+                        { (quint8)((qRed(c0) * a0 + qRed(c1) * a1 + qRed(c2) * a2 + qRed(c3) * a3 + qRed(c4) * a4 +
+                                qRed(c5) * a5 + qRed(c6) * a6 + qRed(c7) * a7) / alphaTotal),
+                          (quint8)((qGreen(c0) * a0 + qGreen(c1) * a1 + qGreen(c2) * a2 + qGreen(c3) * a3 + qGreen(c4) * a4 +
+                                qGreen(c5) * a5 + qGreen(c6) * a6 + qGreen(c7) * a7) / alphaTotal),
+                          (quint8)((qBlue(c0) * a0 + qBlue(c1) * a1 + qBlue(c2) * a2 + qBlue(c3) * a3 + qBlue(c4) * a4 +
+                                qBlue(c5) * a5 + qBlue(c6) * a6 + qBlue(c7) * a7) / alphaTotal) },
+                        { 0, 127, 0 } };
+                    points.append(point); 
+                }
+                colorY += size;
+            }
+            colorZ += area;
+        }
+        buffer = new VoxelPointBuffer(points);
     }
     BufferDataPointer pointer(buffer);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
