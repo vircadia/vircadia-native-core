@@ -3,16 +3,20 @@ lab experimenting with Virtual Worlds and VR.
 
 In this repository you'll find the source to many of the components in our 
 alpha-stage virtual world. The project embraces distributed development 
-and if you'd like to help, we'll pay you -- find out more at Worklist.net. 
+and if you'd like to help, we'll pay you -- find out more at [Worklist.net](https://worklist.net). 
 If you find a small bug and have a fix, pull requests are welcome. If you'd 
 like to get paid for your work, make sure you report the bug via a job on 
-Worklist.net.
+[Worklist.net](https://worklist.net).
 
 We're hiring! We're looking for skilled developers; 
 send your resume to hiring@highfidelity.io
 
 ##### Chat with us
 Come chat with us in [our Gitter](http://gitter.im/highfidelity/hifi) if you have any questions or just want to say hi!
+
+Documentation
+=========
+Documenation is available at [docs.highfidelity.io](http://docs.highfidelity.io), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 Build Instructions 
 =========
