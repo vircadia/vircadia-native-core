@@ -1564,14 +1564,13 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
     VoxelMaterialDataPointer material = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
     VoxelHermiteDataPointer hermite = info.inputValues.at(2).getInlineValue<VoxelHermiteDataPointer>();
-    if (color && material && hermite) {
+    if (color && hermite) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         
         // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
         // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
         const QVector<QRgb>& colorContents = color->getContents();
-        const QByteArray& materialContents = material->getContents();
         const QVector<QRgb>& hermiteContents = hermite->getContents();
         int size = color->getSize();
         int area = size * size;
@@ -1589,7 +1588,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         int hermiteStride = hermite->getSize() * VoxelHermiteData::EDGE_COUNT;
         int hermiteArea = hermiteStride * hermite->getSize();
         
-        const char* materialData = materialContents.constData();
+        const char* materialData = material ? material->getContents().constData() : NULL;
         
         // as we scan down the cube generating vertices between grid points, we remember the indices of the last
         // (element, line, section--x, y, z) so that we can connect generated vertices as quads
@@ -1667,7 +1666,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     int clampedX = qMax(x - 1, 0), clampedY = qMax(y - 1, 0), clampedZ = qMax(z - 1, 0);
                     const QRgb* hermiteBase = hermiteData + clampedZ * hermiteArea + clampedY * hermiteStride +
                         clampedX * VoxelHermiteData::EDGE_COUNT;
-                    const char* materialBase = materialData + clampedZ * area + clampedY * size + clampedX;
+                    const char* materialBase = materialData ?
+                        (materialData + clampedZ * area + clampedY * size + clampedX) : NULL;
                     int crossingCount = 0;
                     if (middleX) {
                         if (alpha0 != alpha1) {
@@ -1676,10 +1676,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             crossing.normal = unpackNormal(hermite);
                             if (alpha0 == 0) {
                                 crossing.color = colorX[1];
-                                crossing.material = materialBase[1];
+                                crossing.material = materialBase ? materialBase[1] : 0;
                             } else {
                                 crossing.color = colorX[0];
-                                crossing.material = materialBase[0];
+                                crossing.material = materialBase ? materialBase[0] : 0;
                             }
                             crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
                             crossing.axis = 0;
@@ -1691,10 +1691,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.normal = unpackNormal(hermite);
                                 if (alpha1 == 0) {
                                     crossing.color = colorX[offset3];
-                                    crossing.material = materialBase[offset3];
+                                    crossing.material = materialBase ? materialBase[offset3] : 0;
                                 } else {
                                     crossing.color = colorX[1];
-                                    crossing.material = materialBase[1];
+                                    crossing.material = materialBase ? materialBase[1] : 0;
                                 }
                                 crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
                                 crossing.axis = 1;
@@ -1705,10 +1705,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.normal = unpackNormal(hermite);
                                 if (alpha2 == 0) {
                                     crossing.color = colorX[offset3];
-                                    crossing.material = materialBase[offset3];
+                                    crossing.material = materialBase ? materialBase[offset3] : 0;
                                 } else {
                                     crossing.color = colorX[size];
-                                    crossing.material = materialBase[size];
+                                    crossing.material = materialBase ? materialBase[size] : 0;
                                 }
                                 crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
                                 crossing.axis = 0;
@@ -1720,10 +1720,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.normal = unpackNormal(hermite);
                                     if (alpha3 == 0) {
                                         crossing.color = colorX[offset7];
-                                        crossing.material = materialBase[offset7];
+                                        crossing.material = materialBase ? materialBase[offset7] : 0;
                                     } else {
                                         crossing.color = colorX[offset3];
-                                        crossing.material = materialBase[offset3];
+                                        crossing.material = materialBase ? materialBase[offset3] : 0;
                                     }
                                     crossing.point = glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                                     crossing.axis = 2;
@@ -1734,10 +1734,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.normal = unpackNormal(hermite);
                                     if (alpha5 == 0) {
                                         crossing.color = colorX[offset7];
-                                        crossing.material = materialBase[offset7];
+                                        crossing.material = materialBase ? materialBase[offset7] : 0;
                                     } else {
                                         crossing.color = colorX[offset5];
-                                        crossing.material = materialBase[offset5];
+                                        crossing.material = materialBase ? materialBase[offset5] : 0;
                                     }
                                     crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
                                     crossing.axis = 1;
@@ -1748,10 +1748,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.normal = unpackNormal(hermite);
                                     if (alpha6 == 0) {
                                         crossing.color = colorX[offset7];
-                                        crossing.material = materialBase[offset7];
+                                        crossing.material = materialBase ? materialBase[offset7] : 0;
                                     } else {
                                         crossing.color = colorX[offset6];
-                                        crossing.material = materialBase[offset6];
+                                        crossing.material = materialBase ? materialBase[offset6] : 0;
                                     }
                                     crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
                                     crossing.axis = 0;
@@ -1765,10 +1765,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.normal = unpackNormal(hermite);
                                 if (alpha1 == 0) {
                                     crossing.color = colorX[offset5];
-                                    crossing.material = materialBase[offset5];
+                                    crossing.material = materialBase ? materialBase[offset5] : 0;
                                 } else {
                                     crossing.color = colorX[1];
-                                    crossing.material = materialBase[1];
+                                    crossing.material = materialBase ? materialBase[1] : 0;
                                 }
                                 crossing.point = glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                                 crossing.axis = 2;
@@ -1779,10 +1779,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.normal = unpackNormal(hermite);
                                 if (alpha4 == 0) {
                                     crossing.color = colorX[offset5];
-                                    crossing.material = materialBase[offset5];
+                                    crossing.material = materialBase ? materialBase[offset5] : 0;
                                 } else {
                                     crossing.color = colorX[area];
-                                    crossing.material = materialBase[area];
+                                    crossing.material = materialBase ? materialBase[area] : 0;
                                 }
                                 crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
                                 crossing.axis = 0;
@@ -1796,10 +1796,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             crossing.normal = unpackNormal(hermite);
                             if (alpha0 == 0) {
                                 crossing.color = colorX[size];
-                                crossing.material = materialBase[size];
+                                crossing.material = materialBase ? materialBase[size] : 0;
                             } else {
                                 crossing.color = colorX[0];
-                                crossing.material = materialBase[0];
+                                crossing.material = materialBase ? materialBase[0] : 0;
                             }
                             crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
                             crossing.axis = 1;
@@ -1811,10 +1811,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.normal = unpackNormal(hermite);
                                 if (alpha2 == 0) {
                                     crossing.color = colorX[offset6];
-                                    crossing.material = materialBase[offset6];
+                                    crossing.material = materialBase ? materialBase[offset6] : 0;
                                 } else {
                                     crossing.color = colorX[size];
-                                    crossing.material = materialBase[size];
+                                    crossing.material = materialBase ? materialBase[size] : 0;
                                 }
                                 crossing.point = glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                                 crossing.axis = 2;
@@ -1825,10 +1825,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.normal = unpackNormal(hermite);
                                 if (alpha4 == 0) {
                                     crossing.color = colorX[offset6];
-                                    crossing.material = materialBase[offset6];
+                                    crossing.material = materialBase ? materialBase[offset6] : 0;
                                 } else {
                                     crossing.color = colorX[area];
-                                    crossing.material = materialBase[area];
+                                    crossing.material = materialBase ? materialBase[area] : 0;
                                 }
                                 crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
                                 crossing.axis = 1;
@@ -1841,10 +1841,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         crossing.normal = unpackNormal(hermite);
                         if (alpha0 == 0) {
                             crossing.color = colorX[area];
-                            crossing.material = materialBase[area];
+                            crossing.material = materialBase ? materialBase[area] : 0;
                         } else {
                             crossing.color = colorX[0];
-                            crossing.material = materialBase[0];
+                            crossing.material = materialBase ? materialBase[0] : 0;
                         }
                         crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
                         crossing.axis = 2;
@@ -2091,7 +2091,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
             }
         }
         
-        buffer = new VoxelBuffer(vertices, indices, material->getMaterials());
+        buffer = new VoxelBuffer(vertices, indices, material ? material->getMaterials() : QVector<SharedObjectPointer>());
     }
     BufferDataPointer pointer(buffer);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
