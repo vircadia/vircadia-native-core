@@ -111,7 +111,7 @@ private:
         WAITING_FOR_ZERO_HELD,
         CALIBRATED
     };
-    static void OculusManager::positionCalibrationBillboard(BillboardOverlay* billboard);
+    static void positionCalibrationBillboard(BillboardOverlay* billboard);
     static float CALIBRATION_DELTA_MINIMUM_LENGTH;
     static float CALIBRATION_DELTA_MINIMUM_ANGLE;
     static float CALIBRATION_ZERO_MAXIMUM_LENGTH;
