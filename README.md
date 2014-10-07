@@ -16,7 +16,7 @@ Come chat with us in [our Gitter](http://gitter.im/highfidelity/hifi) if you hav
 
 Documentation
 =========
-Documenation is available at [docs.highfidelity.io](http://docs.highfidelity.io), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
+Documentation is available at [docs.highfidelity.io](http://docs.highfidelity.io), if something is missing, please suggest it via a new job on Worklist (add to the hifi-docs project).
 
 Build Instructions 
 =========
