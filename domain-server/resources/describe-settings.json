@@ -59,10 +59,6 @@
  "label": "Audio",
  "assignment-types": [0],
  "settings": [
- "name": "audio",
- "label": "Audio",
- "assignment-types": [0],
- "settings": [
               {
               "name": "zones",
               "type": "table",
@@ -72,6 +68,7 @@
               "can_add": true,
               "can_delete": true,
               "key": {
+                "name": "name",
                 "label": "Name",
                 "placeholder": "Zone name"
               },
@@ -119,6 +116,7 @@
       {
         "name": "enable_filter",
         "type": "checkbox",
+        "label": "Positional filter",
         "help": "positional audio stream uses lowpass filter",
         "default": true
       },

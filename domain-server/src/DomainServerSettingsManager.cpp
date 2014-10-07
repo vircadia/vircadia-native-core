@@ -238,9 +238,12 @@ const QString SETTING_DESCRIPTION_TYPE_KEY = "type";
 void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         QVariantMap& settingsVariant,
                                                                         QJsonArray descriptionArray) {
+    
+    qDebug() << "Posted object:" << postedObject;
     foreach(const QString& key, postedObject.keys()) {
 
         QJsonValue rootValue = postedObject[key];
+        qDebug() << "Key:" << key;
         
         // we don't continue if this key is not present in our descriptionObject
         foreach(const QJsonValue& groupValue, descriptionArray) {
@@ -269,22 +272,20 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                     // there's a JSON Object to explore, so attempt to recurse into it
                     QJsonObject nextDescriptionObject = groupObject;
                     
-                    if (nextDescriptionObject.contains(DESCRIPTION_SETTINGS_KEY)) {
-                        if (!settingsVariant.contains(key)) {
-                            // we don't have a map below this key yet, so set it up now
-                            settingsVariant[key] = QVariantMap();
-                        }
-                        
-                        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[key].data());
-                        
-                        recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
-                                                              thisMap,
-                                                              nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toArray());
-                        
-                        if (thisMap.isEmpty()) {
-                            // we've cleared all of the settings below this value, so remove this one too
-                            settingsVariant.remove(key);
-                        }
+                    if (!settingsVariant.contains(key)) {
+                        // we don't have a map below this key yet, so set it up now
+                        settingsVariant[key] = QVariantMap();
+                    }
+                    
+                    QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[key].data());
+                    
+                    recurseJSONObjectAndOverwriteSettings(rootValue.toObject(),
+                                                          thisMap,
+                                                          nextDescriptionObject[DESCRIPTION_SETTINGS_KEY].toArray());
+                    
+                    if (thisMap.isEmpty()) {
+                        // we've cleared all of the settings below this value, so remove this one too
+                        settingsVariant.remove(key);
                     }
                 }
             }

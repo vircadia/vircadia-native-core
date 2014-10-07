@@ -22,9 +22,7 @@ var viewHelpers = {
     }
     
     if (setting.type === 'checkbox') {
-      if (setting.label !== null && typeof(setting.label) !== 'undefined' && setting.label !== "") {
-        form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
-      }
+      form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
       form_group += "<input type='checkbox' name='" + setting_name + "' " +
@@ -84,23 +82,95 @@ $(document).ready(function(){
       $(window).resize(resizeFn);
   })
                   
-                  
-                  $('#settings-form').on('click', '.add-row', function(){
-                                         console.log("add-row " + $(this))
-                                         
-                                         var row = $(this).parents("tr")
-                                         
-                                         })
-                  
-                  $('#settings-form').on('click', '.del-row', function(){
-                                         console.log("del-row " + $(this))
-                                         
-                                         var row = $(this).parents("tr")
-                                         row.empty()
-                                         row.html("<input type='hidden' name='" + row.attr("name") + "' value=' '>");
-                                         })
-                  
-                  
+    
+    $('#settings-form').on('click', '.add-row', function(){
+        console.log("add-row " + $(this))
+        
+        var row = $(this).parents("tr")
+        var data = row.parent().children(".data")
+        
+        // Check key spaces
+        var name = row.children(".key").children("input").val()
+        if (name.indexOf(' ') !== -1) {
+            showAlertMessage("Key contains spaces", false)
+            return
+        }
+        // Check keys with the same name
+        var equals = false;
+        _.each(data.children(".key"), function(element) {
+            if ($(element).text() === name) {
+               equals = true
+               return
+            }
+        })
+        if (equals) {
+            showAlertMessage("Two keys cannot be identical.", false)
+            return
+        }
+        
+        // Check empty fields
+        var empty = false;
+        _.each(row.children(".data").children("input"), function(element) {
+            if ($(element).val().length === 0) {
+               empty = true
+               return
+            }
+        })
+        if (empty) {
+            showAlertMessage("Empty field(s)")
+            return
+        }
+        
+        var input_clone = row.clone()
+        // Change input row to data row
+        var full_name = row.parents("table").attr("name") + "." + name
+        row.attr("class", "data")
+        
+        _.each(row.children(), function(element) {
+            if ($(element).hasClass("number")) { // Index row
+                var numbers = data.children(".number")
+                if (numbers.length > 0) {
+                    $(element).html(parseInt(numbers.last().text()) + 1)
+                } else {
+                    $(element).html(1)
+                }
+            } else if ($(element).hasClass("buttons")) { // Change buttons
+               var prevSpan = $(element).parent().prev().children(".buttons").children("span")
+               var span = $(element).children("span")
+               console.log(prevSpan.length)
+               console.log(span.length)
+               if (prevSpan.hasClass("del-row")) {
+                    console.log("Switching icons")
+                   span.removeClass("glyphicon-ok add-row")
+                   span.addClass("glyphicon-remove del-row")
+               } else {
+                   span.remove()
+               }
+            } else if($(element).hasClass("data") || $(element).hasClass("key")) { // Hide inputs
+               var input = $(element).children("input")
+               input.attr("type", "hidden")
+               input.attr("name", full_name + "." + $(element).attr("name"))
+               input.attr("value", input.val())
+               input.attr("data-changed", "true")
+               
+               $(element).html($(element).html() + input.val())
+            } else {
+               console.log("Unknown table element")
+            }
+        })
+        row.parent().append(input_clone)
+        //showAlertMessage("Row added", true)
+    })
+    
+    $('#settings-form').on('click', '.del-row', function(){
+        console.log("del-row " + $(this))
+        
+        var row = $(this).parents("tr")
+        row.empty()
+        row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
+    })
+    
+    
   $('#settings-form').on('change', '.setting-input', function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
@@ -110,7 +180,7 @@ $(document).ready(function(){
   
   $('#advanced-toggle-button').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
-    var advancedSelector = $('.advanced-setting') 
+    var advancedSelector = $('.advanced-setting')
     
     if (Settings.showAdvanced) {
       advancedSelector.show()
@@ -271,9 +341,13 @@ function makeTableInputs(setting) {
     if (setting.number === true) {
         html += "<td class='number'></td>"
     }
-    html += "<td class='key'><input type='text' class='form-control' placeholder='" + setting.key.placeholder + "'></td>"
+    html += "<td class='key' name='" + setting.key.name + "'>\
+            <input type='text' class='form-control' placeholder='" + setting.key.placeholder + "' value=''>\
+            </td>"
     _.each(setting.columns, function(col) {
-           html += "<td class='data'><input type='text' class='form-control' placeholder='" + col.placeholder + "'></td>"
+           html += "<td class='data'name='" + col.name + "'>\
+                    <input type='text' class='form-control' placeholder='" + col.placeholder + "' value=''>\
+                    </td>"
            })
     html += "<td class='buttons'><span class='glyphicon glyphicon-ok add-row'></span></td>"
     html += "</tr>"
@@ -330,11 +404,11 @@ function showRestartModal() {
   }, 1000);
 }
 
-function cleanupFormValues(node) {  
+function cleanupFormValues(node) {
   if (node.type && node.type === 'checkbox') {
     return { name: node.name, value: node.checked ? true : false };
   } else {
-    return false;
+      return false;
   }
 }
 
