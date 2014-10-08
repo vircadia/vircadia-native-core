@@ -48,9 +48,14 @@ var viewHelpers = {
         
         form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
       } else {
-        form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name +
-        "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-        "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+        
+        if (input_type == 'integer') {
+          input_type = "text"
+        }
+        
+        form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name + 
+          "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+          "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       }
       
       form_group += "<span class='help-block'>" + setting.help + "</span>" 

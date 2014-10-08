@@ -350,7 +350,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);

@@ -90,7 +90,7 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
 void DomainHandler::setUUID(const QUuid& uuid) {
     if (uuid != _uuid) {
         _uuid = uuid;
-        qDebug() << "Domain uuid changed to" << uuidStringWithoutCurlyBraces(_uuid);
+        qDebug() << "Domain ID changed to" << uuidStringWithoutCurlyBraces(_uuid);
     }
 }
 

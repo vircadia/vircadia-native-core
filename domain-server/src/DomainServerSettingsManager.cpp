@@ -262,9 +262,12 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
             // make sure the resulting json value has the right type
             const QString settingType = settingDescription.toObject()[SETTING_DESCRIPTION_TYPE_KEY].toString();
             const QString INPUT_DOUBLE_TYPE = "double";
+            const QString INPUT_INTEGER_TYPE = "int";
             
             if (settingType == INPUT_DOUBLE_TYPE) {
                 settingMap[key] = newValue.toString().toDouble();
+            } else if (settingType == INPUT_INTEGER_TYPE) {
+                settingMap[key] = newValue.toString().toInt();
             } else {
                 settingMap[key] = newValue.toString();
             }

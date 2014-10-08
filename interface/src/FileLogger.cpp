@@ -28,7 +28,7 @@ FileLogger::FileLogger(QObject* parent) :
     setExtraDebugging(false);
 
     _fileName = FileUtils::standardPath(LOGS_DIRECTORY);
-    QHostAddress clientAddress = QHostAddress(getHostOrderLocalAddress());
+    QHostAddress clientAddress = getLocalAddress();
     QDateTime now = QDateTime::currentDateTime();
     _fileName.append(QString(FILENAME_FORMAT).arg(clientAddress.toString(), now.toString(DATETIME_FORMAT)));
 }

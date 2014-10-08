@@ -15,13 +15,10 @@
 #include <QNetworkAccessManager>
 
 /// Wrapper around QNetworkAccessManager to restrict at one instance by thread
-class NetworkAccessManager : public QNetworkAccessManager {
+class NetworkAccessManager : public QObject {
     Q_OBJECT
 public:
-    static NetworkAccessManager& getInstance();
-    
-private:
-    NetworkAccessManager();
+    static QNetworkAccessManager& getInstance();
 };
 
 #endif // hifi_NetworkAccessManager_h
