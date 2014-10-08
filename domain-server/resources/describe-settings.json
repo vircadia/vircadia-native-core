@@ -74,44 +74,24 @@
               },
               "columns": [
                           {
-                          "name": "x-range",
+                          "name": "x_range",
                           "label": "X range",
                           "can_set": true,
                           "placeholder": "0-16384"
                           },
                           {
-                          "name": "y-range",
+                          "name": "y_range",
                           "label": "Y range",
                           "can_set": true,
                           "placeholder": "0-16384"
                           },
                           {
-                          "name": "z-range",
+                          "name": "z_range",
                           "label": "Z range",
                           "can_set": true,
                           "placeholder": "0-16384"
                           }
-                          ],
-              "default": {
-                "Zone_1":
-                {
-                    "x-range": "10-82",
-                    "y-range": "36-94",
-                    "z-range": "38-84"
-                },
-                "Zone_2":
-                {
-                    "x-range": "12-163",
-                    "y-range": "64-134",
-                    "z-range": "27-184"
-                },
-                "Zone_3":
-                {
-                    "x-range": "463-632",
-                    "y-range": "264-384",
-                    "z-range": "843-937"
-                }
-              }
+                          ]
               },
       {
         "name": "enable_filter",

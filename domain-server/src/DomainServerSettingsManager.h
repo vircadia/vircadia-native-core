@@ -32,7 +32,7 @@ public:
 private:
     QJsonObject responseObjectForType(const QString& typeValue, bool isAuthenticated = false);
     void recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject, QVariantMap& settingsVariant,
-                                               QJsonArray descriptionArray);
+                                               const QJsonArray& descriptionArray);
     void persistToFile();
     
     QJsonArray _descriptionArray;
