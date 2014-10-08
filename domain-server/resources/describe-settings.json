@@ -64,7 +64,7 @@
         "type": "table",
         "label": "Zones",
         "help": "In this table you can define a set of zones in which you can specify various audio properties.",
-        "number": true,
+        "number": false,
         "can_add": true,
         "can_delete": true,
         "key": {
