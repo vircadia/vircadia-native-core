@@ -48,7 +48,7 @@ var viewHelpers = {
         
         form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
       } else {
-        form_group += "<input type='" + input_type + "' class='form-control setting-input' name='" + setting_name +
+        form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name +
           "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
           "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       }
@@ -169,7 +169,7 @@ $(document).ready(function(){
         row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
     })
     
-  $('#settings-form').on('change', '.setting-input', function(){
+  $('#settings-form').on('change', 'input', function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
