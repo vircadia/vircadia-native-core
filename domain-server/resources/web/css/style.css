@@ -78,3 +78,8 @@ span.port {
 td.buttons {
   width: 14px;
 }
+
+td.buttons .glyphicon {
+  display: block;
+  text-align: center;
+}
