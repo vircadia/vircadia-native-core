@@ -612,10 +612,9 @@ void Application::paintGL() {
         // OculusManager::display() updates camera position and rotation a bit further on.
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
-        float thirdPersonCameraDistance = MIRROR_FULLSCREEN_DISTANCE * _scaleMirror * 10.0f;
+        static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
         _myCamera.setPosition(_myAvatar->getUprightHeadPosition() +
-                              _myAvatar->getOrientation() * glm::vec3(0,0,1) * thirdPersonCameraDistance);
+                              _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
