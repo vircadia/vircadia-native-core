@@ -3099,12 +3099,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, 1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, 1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
@@ -3112,11 +3112,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
             // face/body so that the average eye position lies at the origin
             eyeRelativeCamera = true;
-            _mirrorCamera.setPosition(glm::vec3());
+            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
 
         } else {
             _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                      _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, 1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+                                      _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
