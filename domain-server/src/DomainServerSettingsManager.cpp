@@ -233,8 +233,8 @@ QJsonObject DomainServerSettingsManager::responseObjectForType(const QString& ty
     return responseObject;
 }
 
-bool settingExists(const QString& groupName, const QString& settingName,
-                   const QJsonArray& descriptionArray, QJsonValue& settingDescription) {
+bool DomainServerSettingsManager::settingExists(const QString& groupName, const QString& settingName,
+                                                const QJsonArray& descriptionArray, QJsonValue& settingDescription) {
     foreach(const QJsonValue& groupValue, descriptionArray) {
         QJsonObject groupObject = groupValue.toObject();
         if (groupObject[DESCRIPTION_NAME_KEY].toString() == groupName) {
@@ -252,8 +252,8 @@ bool settingExists(const QString& groupName, const QString& settingName,
     return false;
 }
 
-void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
-                   const QJsonValue& settingDescription) {
+void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& settingMap,
+                                                const QJsonValue& settingDescription) {
     if (newValue.isString()) {
         if (newValue.toString().isEmpty()) {
             // this is an empty value, clear it in settings variant so the default is sent
