@@ -68,9 +68,9 @@
         "can_add": true,
         "can_delete": true,
         "key": {
-        "name": "name",
-        "label": "Name",
-        "placeholder": "Zone name"
+          "name": "name",
+          "label": "Name",
+          "placeholder": "Zone name"
         },
         "columns": [
           {
