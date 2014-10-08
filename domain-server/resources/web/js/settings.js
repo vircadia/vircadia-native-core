@@ -84,7 +84,7 @@ $(document).ready(function(){
                   
   $('#settings-form').on('click', '.add-row', function(){
     var row = $(this).parents("tr")
-    var row-data = row.parent().children(".row-data")
+    var data = row.parent().children(".row-data")
         
     // Check key spaces
     var name = row.children(".key").children("input").val()
@@ -94,7 +94,7 @@ $(document).ready(function(){
     }
     // Check keys with the same name
     var equals = false;
-    _.each(row-data.children(".key"), function(element) {
+    _.each(data.children(".key"), function(element) {
       if ($(element).text() === name) {
         equals = true
         return
@@ -125,7 +125,7 @@ $(document).ready(function(){
         
     _.each(row.children(), function(element) {
       if ($(element).hasClass("number")) { // Index row
-        var numbers = row-data.children(".number")
+        var numbers = data.children(".number")
         if (numbers.length > 0) {
           $(element).html(parseInt(numbers.last().text()) + 1)
         } else {
@@ -134,10 +134,7 @@ $(document).ready(function(){
       } else if ($(element).hasClass("buttons")) { // Change buttons
         var prevSpan = $(element).parent().prev().children(".buttons").children("span")
         var span = $(element).children("span")
-        console.log(prevSpan.length)
-        console.log(span.length)
         if (prevSpan.hasClass("del-row")) {
-          console.log("Switching icons")
           span.removeClass("glyphicon-ok add-row")
           span.addClass("glyphicon-remove del-row")
         } else {
@@ -308,7 +305,7 @@ function makeTable(setting, setting_name, setting_value) {
     }
     html += "<td class='key'>" + name + "</td>"
     _.each(setting.columns, function(col) {
-      html += "<td class='data'>"
+      html += "<td class='row-data'>"
       if (row.hasOwnProperty(col.name)) {
         html += row[col.name]
       }
@@ -343,7 +340,7 @@ function makeTableInputs(setting) {
            <input type='text' class='form-control' placeholder='" + setting.key.placeholder + "' value=''>\
            </td>"
   _.each(setting.columns, function(col) {
-    html += "<td class='data'name='" + col.name + "'>\
+    html += "<td class='row-data'name='" + col.name + "'>\
              <input type='text' class='form-control' placeholder='" + col.placeholder + "' value=''>\
              </td>"
   })

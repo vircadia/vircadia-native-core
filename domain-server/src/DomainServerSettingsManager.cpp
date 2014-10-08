@@ -279,9 +279,7 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
         
         QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
         foreach(const QString childKey, newValue.toObject().keys()) {
-            updateSetting(childKey, newValue.toObject()[childKey],
-                          thisMap,
-                          settingDescription.toObject()[key]);
+            updateSetting(childKey, newValue.toObject()[childKey], thisMap, settingDescription.toObject()[key]);
         }
         
         if (settingMap[key].toMap().isEmpty()) {
@@ -310,9 +308,7 @@ void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
             QJsonValue thisDescription;
             if (settingExists(groupKey, settingKey, descriptionArray, thisDescription)) {
                 QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[groupKey].data());
-                updateSetting(settingKey, settingValue,
-                              thisMap,
-                              thisDescription);
+                updateSetting(settingKey, settingValue, thisMap, thisDescription);
             }
         }
         
