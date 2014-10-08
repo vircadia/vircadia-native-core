@@ -37,6 +37,9 @@ public:
     
     void update();
     
+    void closeJoystick();
+    void setSDLJoystick(SDL_Joystick* sdlJoystick) { _sdlJoystick = sdlJoystick; }
+    
     const QString& getName() const { return _name; }
     
     const QVector<float>& getAxes() const { return _axes; }

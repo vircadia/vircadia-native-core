@@ -29,6 +29,10 @@ Joystick::Joystick(const QString& name, SDL_Joystick* sdlJoystick) :
 #endif
 
 Joystick::~Joystick() {
+    closeJoystick();
+}
+
+void Joystick::closeJoystick() {
 #ifdef HAVE_SDL
     SDL_JoystickClose(_sdlJoystick);
 #endif
