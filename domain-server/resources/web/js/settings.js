@@ -84,7 +84,7 @@ $(document).ready(function(){
                   
     $('#settings-form').on('click', '.add-row', function(){
         var row = $(this).parents("tr")
-        var data = row.parent().children(".data")
+        var row-data = row.parent().children(".row-data")
         
         // Check key spaces
         var name = row.children(".key").children("input").val()
@@ -94,7 +94,7 @@ $(document).ready(function(){
         }
         // Check keys with the same name
         var equals = false;
-        _.each(data.children(".key"), function(element) {
+        _.each(row-data.children(".key"), function(element) {
             if ($(element).text() === name) {
                equals = true
                return
@@ -107,7 +107,7 @@ $(document).ready(function(){
         
         // Check empty fields
         var empty = false;
-        _.each(row.children(".data").children("input"), function(element) {
+        _.each(row.children(".row-data").children("input"), function(element) {
             if ($(element).val().length === 0) {
                empty = true
                return
@@ -121,11 +121,11 @@ $(document).ready(function(){
         var input_clone = row.clone()
         // Change input row to data row
         var full_name = row.parents("table").attr("name") + "." + name
-        row.attr("class", "data")
+        row.attr("class", "row-data")
         
         _.each(row.children(), function(element) {
             if ($(element).hasClass("number")) { // Index row
-                var numbers = data.children(".number")
+                var numbers = row-data.children(".number")
                 if (numbers.length > 0) {
                     $(element).html(parseInt(numbers.last().text()) + 1)
                 } else {
@@ -147,7 +147,7 @@ $(document).ready(function(){
                var input = $(element).children("input")
                $(element).html(input.val())
                input.remove()
-            } else if($(element).hasClass("data")) { // Hide inputs
+            } else if($(element).hasClass("row-data")) { // Hide inputs
                var input = $(element).children("input")
                input.attr("type", "hidden")
                input.attr("name", full_name + "." + $(element).attr("name"))
@@ -302,7 +302,7 @@ function makeTable(setting, setting_name, setting_value) {
     // Rows
     var row_num = 1
     _.each(setting_value, function(row, name) {
-           html += "<tr class='data' name='" + setting_name + "." + name + "'>"
+           html += "<tr class='row-data' name='" + setting_name + "." + name + "'>"
            if (setting.number === true) {
            html += "<td class='number'>" + row_num + "</td>"
            }
