@@ -31,6 +31,8 @@ float widthChar(float scale, int mono, char ch);
 void drawText(int x, int y, float scale, float radians, int mono,
               char const* string, const float* color);
 
+void renderTextRenderer(int mono);
+
 void drawvec3(int x, int y, float scale, float radians, float thick, int mono, glm::vec3 vec, 
               float r=1.0, float g=1.0, float b=1.0);
 

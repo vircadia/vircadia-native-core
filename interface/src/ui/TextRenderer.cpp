@@ -100,12 +100,25 @@ int TextRenderer::draw(int x, int y, const char* str) {
         glTexCoord2f(ls, tt);
         glVertex2f(left, top);
         glEnd();
-    
+/*
+        const int NUM_COORDS_PER_GLYPH = 16;
+        float vertexBuffer[NUM_COORDS_PER_GLYPH] = { ls, bt, left, bottom, rs, bt, right, bottom, rs, tt, right, top, ls, tt, left, top };
+        gpu::Buffer::Size offset = sizeof(vertexBuffer)*_numGlyphsBatched;
+        if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer.getSize()) {
+            _glyphsBuffer.append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+        } else {
+            _glyphsBuffer.setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+        }
+        _numGlyphsBatched++;
+*/
         x += glyph.width();
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
     
+ //   executeDrawBatch();
+ //   clearDrawBatch();
+
     return maxHeight;
 }
 
@@ -131,8 +144,10 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _x(IMAGE_SIZE),
     _y(IMAGE_SIZE),
     _rowHeight(0),
-    _color(properties.color) {
-    
+    _color(properties.color),
+    _glyphsBuffer(),
+    _numGlyphsBatched(0)
+{
     _font.setKerning(false);
 }
 
@@ -228,9 +243,248 @@ const Glyph& TextRenderer::getGlyph(char c) {
     return glyph;
 }
 
+void TextRenderer::executeDrawBatch() {
+    if (_numGlyphsBatched<=0) {
+        return;
+    }
+
+    glEnable(GL_TEXTURE_2D);
+
+    GLuint textureID = 0;
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    gpu::backend::syncGPUObject(_glyphsBuffer);
+    GLuint vbo = _glyphsBuffer.getGLBufferObject();
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+    const int NUM_POS_COORDS = 2;
+    const int NUM_TEX_COORDS = 2;
+    const int VERTEX_STRIDE = (NUM_POS_COORDS + NUM_TEX_COORDS) * sizeof(float);
+    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+    glVertexPointer(2, GL_FLOAT, VERTEX_STRIDE, 0);
+    glTexCoordPointer(2, GL_FLOAT, VERTEX_STRIDE, (GLvoid*) VERTEX_TEXCOORD_OFFSET );
+
+    glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
+}
+
+void TextRenderer::clearDrawBatch() {
+    _numGlyphsBatched = 0;
+}
+
 QHash<TextRenderer::Properties, TextRenderer*> TextRenderer::_instances;
 
 Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
     _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
 }
 
+using namespace gpu;
+
+Buffer::Size Buffer::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
+    if ( !dataAllocated ) { 
+        qWarning() << "Buffer::Sysmem::allocateMemory() : Must have a valid dataAllocated pointer.";
+        return NOT_ALLOCATED;
+    }
+
+    // Try to allocate if needed
+    Size newSize = 0;
+    if (size > 0) {
+        // Try allocating as much as the required size + one block of memory
+        newSize = size;
+        (*dataAllocated) = new Byte[newSize];
+        // Failed?
+        if (!(*dataAllocated)) {
+            qWarning() << "Buffer::Sysmem::allocate() : Can't allocate a system memory buffer of " << newSize << "bytes. Fails to create the buffer Sysmem.";
+            return NOT_ALLOCATED;
+        }
+    }
+
+    // Return what's actually allocated
+    return newSize;
+}
+
+void Buffer::Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
+    if (dataAllocated) {
+        delete[] dataAllocated;
+    }
+}
+
+Buffer::Sysmem::Sysmem() :
+    _data(NULL),
+    _size(0),
+    _stamp(0)
+{
+}
+
+Buffer::Sysmem::Sysmem(Size size, const Byte* bytes) :
+    _data(NULL),
+    _size(0),
+    _stamp(0)
+{
+    if (size > 0) {
+        _size = allocateMemory(&_data, size);
+        if (_size >= size) {
+            if (bytes) {
+                memcpy(_data, bytes, size);
+            }
+        }
+    }
+}
+
+Buffer::Sysmem::~Sysmem() {
+    deallocateMemory( _data, _size );
+    _data = NULL;
+    _size = 0;
+}
+
+Buffer::Size Buffer::Sysmem::allocate(Size size) {
+    if (size != _size) {
+        Byte* newData = 0;
+        Size newSize = 0;
+        if (size > 0) {
+            Size allocated = allocateMemory(&newData, size);
+            if (allocated == NOT_ALLOCATED) {
+                // early exit because allocation failed
+                return 0;
+            }
+            newSize = allocated;
+        }
+        // Allocation was successful, can delete previous data
+        deallocateMemory(_data, _size);
+        _data = newData;
+        _size = newSize;
+        _stamp++;
+    }
+    return _size;
+}
+
+Buffer::Size Buffer::Sysmem::resize(Size size) {
+    if (size != _size) {
+        Byte* newData = 0;
+        Size newSize = 0;
+        if (size > 0) {
+            Size allocated = allocateMemory(&newData, size);
+            if (allocated == NOT_ALLOCATED) {
+                // early exit because allocation failed
+                return _size;
+            }
+            newSize = allocated;
+            // Restore back data from old buffer in the new one
+            if (_data) {
+                Size copySize = ((newSize < _size)? newSize: _size);
+                memcpy( newData, _data, copySize);
+            }
+        }
+        // Reallocation was successful, can delete previous data
+        deallocateMemory(_data, _size);
+        _data = newData;
+        _size = newSize;
+        _stamp++;
+    }
+    return _size;
+}
+
+Buffer::Size Buffer::Sysmem::setData( Size size, const Byte* bytes ) {
+    if (allocate(size) == size) {
+        if (bytes) {
+            memcpy( _data, bytes, _size );
+            _stamp++;
+        }
+    }
+    return _size;
+}
+
+Buffer::Size Buffer::Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
+    if (((offset + size) <= getSize()) && bytes) {
+        memcpy( _data + offset, bytes, size );
+        _stamp++;
+        return size;
+    }
+    return 0;
+}
+
+Buffer::Size Buffer::Sysmem::append(Size size, const Byte* bytes) {
+    if (size > 0) {
+        Size oldSize = getSize();
+        Size totalSize = oldSize + size;
+        if (resize(totalSize) == totalSize) {
+            return setSubData(oldSize, size, bytes);
+        }
+    }
+    return 0;
+}
+
+Buffer::Buffer() :
+    _sysmem(NULL),
+    _gpuObject(NULL) {
+    _sysmem = new Sysmem();
+}
+
+Buffer::~Buffer() {
+    if (_sysmem) {
+        delete _sysmem;
+        _sysmem = 0;
+    }
+    if (_gpuObject) {
+        delete _gpuObject;
+        _gpuObject = 0;
+    }
+}
+
+Buffer::Size Buffer::resize(Size size) {
+    return editSysmem().resize(size);
+}
+
+Buffer::Size Buffer::setData(Size size, const Byte* data) {
+    return editSysmem().setData(size, data);
+}
+
+Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
+    return editSysmem().setSubData( offset, size, data);
+}
+
+Buffer::Size Buffer::append(Size size, const Byte* data) {
+    return editSysmem().append( size, data);
+}
+
+namespace gpu {
+namespace backend {
+
+void syncGPUObject(const Buffer& buffer) {
+    BufferObject* object = buffer.getGPUObject();
+
+    if (object && (object->_stamp == buffer.getSysmem().getStamp())) {
+        return;
+    }
+
+    // need to have a gpu object?
+    if (!object) {
+        object = new BufferObject();
+        glGenBuffers(1, &object->_buffer);
+        buffer.setGPUObject(object);
+    }
+
+    // Now let's update the content of the bo with the sysmem version
+    //if (object->_size < buffer.getSize()) {
+        glBindBuffer(GL_COPY_WRITE_BUFFER, object->_buffer);
+        glBufferData(GL_COPY_WRITE_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().read(), GL_STATIC_DRAW);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+        object->_stamp = buffer.getSysmem().getStamp();
+        object->_size = buffer.getSysmem().getSize();
+    //}
+}
+
+};
+};
