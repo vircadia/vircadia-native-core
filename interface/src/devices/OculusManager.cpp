@@ -263,7 +263,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                         if (quarterSeconds == 4 * (quarterSeconds / 4)) {
                             quint64 wholeSeconds = CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4;
 
-                            if (wholeSeconds == 2) {
+                            if (wholeSeconds == 3) {
                                 positionCalibrationBillboard(billboard);
                             }
 
