@@ -280,12 +280,9 @@ $('body').on('click', '.save-button', function(e){
 });
 
 function makeTable(setting, setting_name, setting_value) {
-  var html = "<div class='panel panel-default'>"
-  html += "<div class='panel-heading'>" + setting.label + "</div>"
-  html += "<div class='panel-body'>"
-  html += "<p>" + setting.help + "</p>"
-  html += "</div>"
-  html += "<table class='table' name='" + setting_name + "'>"
+  var html = "<label class='control-label'>" + setting.label + "</label>"
+  html += "<span class='help-block'>" + setting.help + "</span>"
+  html += "<table class='table table-bordered' name='" + setting_name + "'>"
     
   // Column names
   html += "<tr class='headers'>"
@@ -297,7 +294,7 @@ function makeTable(setting, setting_name, setting_value) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   if (setting.can_delete === true || setting.can_add === true) {
-    html += "<td class='buttons'></td>" // Buttons
+    html += "<td class='buttons'><strong>+/-</strong></td>" // Buttons
   }
   html += "</tr>"
     
@@ -329,9 +326,8 @@ function makeTable(setting, setting_name, setting_value) {
   if (setting.can_add === true) {
     html += makeTableInputs(setting)
   }
-    
+  
   html += "</table>"
-  html += "</div>"
     
   return html;
 }
@@ -342,7 +338,7 @@ function makeTableInputs(setting) {
     html += "<td class='number'></td>"
   }
   html += "<td class='key' name='" + setting.key.name + "'>\
-           <input type='text' class='form-control' placeholder='" + setting.key.placeholder + "' value=''>\
+           <input type='text' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
            </td>"
   _.each(setting.columns, function(col) {
     html += "<td class='row-data'name='" + col.name + "'>\
