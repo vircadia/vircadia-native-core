@@ -311,10 +311,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     ovrPosef eyeRenderPose[ovrEye_Count];
 
-    _camera->setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-    _camera->setDistance(0.0f);
-    _camera->setUpShift(0.0f);
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
 
@@ -348,8 +344,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
         
-        _camera->setTargetRotation(bodyOrientation * orientation);
-        _camera->setTargetPosition(position + trackerPosition);
+        _camera->setRotation(bodyOrientation * orientation);
+        _camera->setPosition(position + trackerPosition);
         
         //  Store the latest left and right eye render locations for things that need to know
         glm::vec3 thisEyePosition = position + trackerPosition +
@@ -413,8 +409,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glBindTexture(GL_TEXTURE_2D, 0);
     
     // Update camera for use by rest of Interface.
-    whichCamera.setTargetPosition((_leftEyePosition + _rightEyePosition) / 2.f);
-    whichCamera.setTargetRotation(_camera->getTargetRotation());
+    whichCamera.setPosition((_leftEyePosition + _rightEyePosition) / 2.f);
+    whichCamera.setRotation(_camera->getRotation());
 
 #endif
 }

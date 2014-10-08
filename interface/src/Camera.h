@@ -35,14 +35,9 @@ public:
     void initialize(); // instantly put the camera at the ideal position and rotation. 
 
     void update( float deltaTime );
-    
-    void setUpShift(float u) { _upShift = u; }
-    void setDistance(float d) { _distance = d; }
+
     void setPosition(const glm::vec3& p) { _position = p; }
-    void setTargetPosition(const glm::vec3& t);
-    void setTightness(float t) { _tightness = t; }
-    void setTargetRotation(const glm::quat& rotation);
-    void setModeShiftPeriod(float r);
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; };
     void setMode(CameraMode m);
     void setFieldOfView(float f);
     void setAspectRatio(float a);
@@ -55,10 +50,6 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getRotation() const { return _rotation; }
     CameraMode getMode() const { return _mode; }
-    float getModeShiftPeriod() const { return _modeShiftPeriod; }
-    float getDistance() const { return _distance; }
-    const glm::vec3& getTargetPosition() const { return _targetPosition; }
-    const glm::quat& getTargetRotation() const { return _targetRotation; }
     float getFieldOfView() const { return _fieldOfView; }
     float getAspectRatio() const { return _aspectRatio; }
     float getNearClip() const { return _scale * _nearClip; }
@@ -67,18 +58,11 @@ public:
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
     float getScale() const { return _scale; }
     
-    bool getFrustumNeedsReshape() const; // call to find out if the view frustum needs to be reshaped
-    void setFrustumWasReshaped();  // call this after reshaping the view frustum.
-    
 private:
 
     bool _needsToInitialize;
     CameraMode _mode;
-    CameraMode _prevMode;
-    bool _frustumNeedsReshape;
     glm::vec3 _position;
-    glm::vec3 _idealPosition;
-    glm::vec3 _targetPosition;
     float _fieldOfView; // degrees
     float _aspectRatio;
     float _nearClip;
@@ -86,22 +70,8 @@ private:
     glm::vec3 _eyeOffsetPosition;
     glm::quat _eyeOffsetOrientation;
     glm::quat _rotation;
-    glm::quat _targetRotation;
-    float _upShift;
-    float _distance;
-    float _tightness;
-    float _previousUpShift;
-    float _previousDistance;
-    float _previousTightness;
-    float _newUpShift;
-    float _newDistance;
-    float _newTightness;
-    float _modeShift;
-    float _linearModeShift;
-    float _modeShiftPeriod;
+
     float _scale;
-    
-    void updateFollowMode(float deltaTime);
 };
 
 
@@ -113,12 +83,11 @@ public:
 public slots:
     QString getMode() const;
     void setMode(const QString& mode);
-    void setModeShiftPeriod(float r) {_camera->setModeShiftPeriod(r); }
-    void setPosition(const glm::vec3& value) { _camera->setTargetPosition(value);}
+    void setPosition(const glm::vec3& value) { _camera->setPosition(value);}
 
     glm::vec3 getPosition() const { return _camera->getPosition(); }
 
-    void setOrientation(const glm::quat& value) { _camera->setTargetRotation(value); }
+    void setOrientation(const glm::quat& value) { _camera->setRotation(value); }
     glm::quat getOrientation() const { return _camera->getRotation(); }
 
     PickRay computePickRay(float x, float y);
