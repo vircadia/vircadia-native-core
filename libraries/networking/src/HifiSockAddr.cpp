@@ -90,32 +90,29 @@ QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr) {
     return dataStream;
 }
 
-quint32 getHostOrderLocalAddress() {
+QHostAddress getLocalAddress() {
     
-    static int localAddress = 0;
+    QHostAddress localAddress;
     
-    if (localAddress == 0) {
-        foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
-            if (networkInterface.flags() & QNetworkInterface::IsUp
-                && networkInterface.flags() & QNetworkInterface::IsRunning
-                && networkInterface.flags() & ~QNetworkInterface::IsLoopBack) {
-                // we've decided that this is the active NIC
-                // enumerate it's addresses to grab the IPv4 address
-                foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
-                    // make sure it's an IPv4 address that isn't the loopback
-                    if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
-                        qDebug("Node's local address is %s", entry.ip().toString().toLocal8Bit().constData());
-                        
-                        // set our localAddress and break out
-                        localAddress = entry.ip().toIPv4Address();
-                        break;
-                    }
+    foreach(const QNetworkInterface &networkInterface, QNetworkInterface::allInterfaces()) {
+        if (networkInterface.flags() & QNetworkInterface::IsUp
+            && networkInterface.flags() & QNetworkInterface::IsRunning
+            && networkInterface.flags() & ~QNetworkInterface::IsLoopBack) {
+            // we've decided that this is the active NIC
+            // enumerate it's addresses to grab the IPv4 address
+            foreach(const QNetworkAddressEntry &entry, networkInterface.addressEntries()) {
+                // make sure it's an IPv4 address that isn't the loopback
+                if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
+                    
+                    // set our localAddress and break out
+                    localAddress = entry.ip();
+                    break;
                 }
             }
-            
-            if (localAddress != 0) {
-                break;
-            }
+        }
+        
+        if (!localAddress.isNull()) {
+            break;
         }
     }
     

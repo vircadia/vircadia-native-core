@@ -221,7 +221,7 @@ void ModelHandler::update() {
     }
     for (int i = 0; i < _model.rowCount(); ++i) {
         QUrl url(_model.item(i,0)->data(Qt::UserRole).toString());
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkRequest request(url);
         QNetworkReply* reply = networkAccessManager.head(request);
         connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));
@@ -272,7 +272,7 @@ void ModelHandler::queryNewFiles(QString marker) {
     
     // Download
     url.setQuery(query);
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
     QNetworkReply* reply = networkAccessManager.get(request);
     connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));

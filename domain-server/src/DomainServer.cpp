@@ -57,6 +57,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     setApplicationName("domain-server");
     QSettings::setDefaultFormat(QSettings::IniFormat);
     
+    // make sure we have a fresh AccountManager instance
+    // (need this since domain-server can restart itself and maintain static variables)
+    AccountManager::getInstance(true);
+    
     _settingsManager.setupConfigMap(arguments());
     
     installNativeEventFilter(&_shutdownEventListener);
@@ -81,10 +85,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
 void DomainServer::restart() {
     qDebug() << "domain-server is restarting.";
-    
-    // make sure all static instances are reset
-    LimitedNodeList::getInstance()->reset();
-    AccountManager::getInstance(true);
     
     exit(DomainServer::EXIT_CODE_REBOOT);
 }
@@ -189,16 +189,19 @@ bool DomainServer::optionallySetupOAuth() {
 
 const QString DOMAIN_CONFIG_ID_KEY = "id";
 
+const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
+const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
+const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
+const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
+
 void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
 
-    const QString CUSTOM_PORT_OPTION = "port";
-    unsigned short domainServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    const QString CUSTOM_LOCAL_PORT_OPTION = "metaverse.local_port";
+
+    QVariant localPortValue = _settingsManager.valueOrDefaultValueForKeyPath(CUSTOM_LOCAL_PORT_OPTION);
+    unsigned short domainServerPort = (unsigned short) localPortValue.toUInt();
     
     QVariantMap& settingsMap = _settingsManager.getSettingsMap();
-
-    if (settingsMap.contains(CUSTOM_PORT_OPTION)) {
-        domainServerPort = (unsigned short) settingsMap.value(CUSTOM_PORT_OPTION).toUInt();
-    }
 
     unsigned short domainServerDTLSPort = 0;
 
@@ -310,12 +313,7 @@ bool DomainServer::optionallySetupAssignmentPayment() {
     return true;
 }
 
-const QString FULL_AUTOMATIC_NETWORKING_VALUE = "full";
-const QString IP_ONLY_AUTOMATIC_NETWORKING_VALUE = "ip";
-const QString DISABLED_AUTOMATIC_NETWORKING_VALUE = "disabled";
-
 void DomainServer::setupAutomaticNetworking() {
-    const QString METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH = "metaverse.automatic_networking";
     
     if (!didSetupAccountManagerWithAccessToken()) {
         qDebug() << "Cannot setup domain-server automatic networking without an access token.";
@@ -357,7 +355,8 @@ void DomainServer::setupAutomaticNetworking() {
                 connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
                 iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
                 
-                // call our sendHeartbeaToIceServer immediately anytime a public address changes
+                // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
+                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
                 
                 // tell the data server which type of automatic networking we are using

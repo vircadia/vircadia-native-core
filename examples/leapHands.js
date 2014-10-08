@@ -30,8 +30,6 @@ var leapHands = (function () {
         CALIBRATING = 1,
         CALIBRATED = 2,
         CALIBRATION_TIME = 1000,  // milliseconds
-        PI = 3.141593,
-        isWindows,
         avatarScale,
         avatarFaceModelURL,
         avatarSkeletonModelURL,
@@ -132,9 +130,6 @@ var leapHands = (function () {
 
         if (hands[0].controller.isActive() && hands[1].controller.isActive()) {
             leapHandHeight = (hands[0].controller.getAbsTranslation().y + hands[1].controller.getAbsTranslation().y) / 2.0;
-
-            // TODO: Temporary detection of Windows to work around Leap Controller problem.
-            isWindows = (hands[1].controller.getAbsRotation().z > (0.25 * PI));
         } else {
             calibrationStatus = UNCALIBRATED;
             return;
@@ -318,11 +313,7 @@ var leapHands = (function () {
             j,
             side,
             handOffset,
-            handRoll,
-            handPitch,
-            handYaw,
             handRotation,
-            wristAbsRotation,
             locRotation,
             cameraOrientation,
             inverseAvatarOrientation;
@@ -361,20 +352,22 @@ var leapHands = (function () {
                     handOffset.x = -handOffset.x;
 
                     // Hand rotation in camera coordinates ...
-                    // TODO: 2.0* scale factors should not be necessary; Leap Motion controller code needs investigating.
-                    handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
-                    wristAbsRotation = wrists[h].controller.getAbsRotation();
-                    handPitch = 2.0 * wristAbsRotation.x - PI / 2.0;
-                    handYaw = 2.0 * -wristAbsRotation.y;
-                    // TODO: Roll values only work if hand is upside down; Leap Motion controller code needs investigating.
-                    handRoll = PI + handRoll;
+                    handRotation = wrists[h].controller.getAbsRotation();
+                    handRotation = {
+                        x: handRotation.z,
+                        y: handRotation.y,
+                        z: handRotation.x,
+                        w: handRotation.w
+                    };
 
                     if (h === 0) {
-                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
-                            Quat.fromVec3Radians({ x: handRoll, y: handYaw, z: -handPitch }));
+                        handRotation.x = -handRotation.x;
+                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
+                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 0, z: 1 }), handRotation);
                     } else {
-                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
-                            Quat.fromVec3Radians({ x: -handRoll, y: handYaw, z: handPitch }));
+                        handRotation.z = -handRotation.z;
+                        handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
+                        handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 0, z: 1 }), handRotation);
                     }
 
                     // Hand rotation in avatar coordinates ...
@@ -392,25 +385,22 @@ var leapHands = (function () {
                         z: hands[h].zeroPosition.z - handOffset.z
                     };
 
-                    // TODO: 2.0* scale factors should not be necessary; Leap Motion controller code needs investigating.
-                    handRoll = 2.0 * -hands[h].controller.getAbsRotation().z;
-                    wristAbsRotation = wrists[h].controller.getAbsRotation();
-                    handPitch = 2.0 * -wristAbsRotation.x;
-                    handYaw = 2.0 * wristAbsRotation.y;
+                    handRotation = wrists[h].controller.getAbsRotation();
+                    handRotation = {
+                        x: handRotation.z,
+                        y: handRotation.y,
+                        z: handRotation.x,
+                        w: handRotation.w
+                    };
 
-                    // TODO: Leap Motion controller's right-hand roll calculation only works if physical hand is upside down.
-                    // Approximate fix is to add a fudge factor.
-                    if (h === 1 && isWindows) {
-                        handRoll = handRoll + 0.6 * PI;
-                    }
-
-                    // Hand position and orientation ...
                     if (h === 0) {
+                        handRotation.x = -handRotation.x;
                         handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
-                            Quat.fromVec3Radians({ x: handRoll, y: handYaw, z: -handPitch }));
+                            handRotation);
                     } else {
+                        handRotation.z = -handRotation.z;
                         handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 0, y: 1, z: 0 }),
-                            Quat.fromVec3Radians({ x: -handRoll, y: handYaw, z: handPitch }));
+                            handRotation);
                     }
                 }
 

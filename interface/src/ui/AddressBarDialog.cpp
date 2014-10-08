@@ -26,7 +26,7 @@ AddressBarDialog::AddressBarDialog() :
 void AddressBarDialog::setupUI() {
     
     const QString DIALOG_STYLESHEET = "font-family: Helvetica, Arial, sans-serif;";
-    const QString ADDRESSBAR_PLACEHOLDER = "Go to: domain, @user, #location";
+    const QString ADDRESSBAR_PLACEHOLDER = "Go to: domain, location, @user, /x,y,z";
     const QString ADDRESSBAR_STYLESHEET = "padding: 5px 10px; font-size: 20px;";
     
     const int ADDRESSBAR_MIN_WIDTH = 200;
@@ -44,13 +44,6 @@ void AddressBarDialog::setupUI() {
     
     const int DIALOG_HEIGHT = 62;
     const int DIALOG_INITIAL_WIDTH = 560;
-    
-    setModal(true);
-#ifndef Q_OS_MAC
-    setWindowModality(Qt::ApplicationModal);
-#else
-    setWindowModality(Qt::WindowModal);
-#endif
     
     QSizePolicy sizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setSizePolicy(sizePolicy);

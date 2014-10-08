@@ -33,6 +33,14 @@
             "label": "None: use the network information I have entered for this domain at data.highfidelity.io"
           }
         ]
+      },
+      {
+        "name": "local_port",
+        "label": "Local UDP Port",
+        "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to run multiple full automatic networking domain-servers in the same network.",
+        "default": "40102",
+        "type": "int",
+        "advanced": true
       }
     ]
   },
@@ -51,6 +59,19 @@
         "type": "password",
         "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
         "value-hidden": true
+      },
+      {
+        "name": "allowed_users",
+        "type": "table",
+        "label": "Allowed Users",
+        "help": "A list of usernames for the High Fidelity users you want to allow into your domain. Users not found in this list will not be allowed to connect.",
+        "numbered": false,
+        "can_add": true,
+        "can_delete": true,
+        "key": {
+          "name": "username",
+          "label": "Username"
+        }
       }
     ]
   },
@@ -60,9 +81,43 @@
     "assignment-types": [0],
     "settings": [
       {
+        "name": "zones",
+        "type": "table",
+        "label": "Zones",
+        "help": "In this table you can define a set of zones in which you can specify various audio properties.",
+        "numbered": false,
+        "can_add": true,
+        "can_delete": true,
+        "key": {
+          "name": "name",
+          "label": "Name",
+          "placeholder": "Zone name"
+        },
+        "columns": [
+          {
+            "name": "x_range",
+            "label": "X range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "y_range",
+            "label": "Y range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "z_range",
+            "label": "Z range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          }
+        ]
+      },
+      {
         "name": "enable_filter",
         "type": "checkbox",
-        "label": "Enable Positional Filter",
+        "label": "Positional filter",
         "help": "positional audio stream uses lowpass filter",
         "default": true
       },
