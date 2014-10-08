@@ -277,12 +277,13 @@ void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& 
             settingMap[key] = QVariantMap();
         }
         
+        QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingMap[key].data());
         foreach(const QString childKey, newValue.toObject().keys()) {
             updateSetting(childKey, newValue.toObject()[childKey],
-                          *reinterpret_cast<QVariantMap*>(settingMap[key].data()),
+                          thisMap,
                           settingDescription.toObject()[key]);
-            
         }
+        
         if (settingMap[key].toMap().isEmpty()) {
             // we've cleared all of the settings below this value, so remove this one too
             settingMap.remove(key);
@@ -293,29 +294,31 @@ void updateSetting(const QString& key, const QJsonValue& newValue, QVariantMap& 
 void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         QVariantMap& settingsVariant,
                                                                         const QJsonArray& descriptionArray) {
+    // Iterate on the setting groups
     foreach(const QString& groupKey, postedObject.keys()) {
         QJsonValue groupValue = postedObject[groupKey];
+
+        if (!settingsVariant.contains(groupKey)) {
+            // we don't have a map below this key yet, so set it up now
+            settingsVariant[groupKey] = QVariantMap();
+        }
         
+        // Iterate on the settings
         foreach(const QString& settingKey, groupValue.toObject().keys()) {
             QJsonValue settingValue = groupValue.toObject()[settingKey];
             
             QJsonValue thisDescription;
             if (settingExists(groupKey, settingKey, descriptionArray, thisDescription)) {
-                if (!settingsVariant.contains(groupKey)) {
-                    // we don't have a map below this key yet, so set it up now
-                    settingsVariant[groupKey] = QVariantMap();
-                }
-                
                 QVariantMap& thisMap = *reinterpret_cast<QVariantMap*>(settingsVariant[groupKey].data());
                 updateSetting(settingKey, settingValue,
                               thisMap,
                               thisDescription);
-                
-                if (settingsVariant[groupKey].toMap().empty()) {
-                    // we've cleared all of the settings below this value, so remove this one too
-                    settingsVariant.remove(groupKey);
-                }
             }
+        }
+        
+        if (settingsVariant[groupKey].toMap().empty()) {
+            // we've cleared all of the settings below this value, so remove this one too
+            settingsVariant.remove(groupKey);
         }
     }
 }
