@@ -302,8 +302,8 @@ function makeTable(setting, setting_name, setting_value) {
   var row_num = 1
   _.each(setting_value, function(row, name) {
     html += "<tr class='row-data' name='" + setting_name + "." + name + "'>"
-    if (setting.number === true) {
-      html += "<td class='number'>" + row_num + "</td>"
+    if (setting.numbered === true) {
+      html += "<td class='numbered'>" + row_num + "</td>"
     }
     html += "<td class='key'>" + name + "</td>"
     _.each(setting.columns, function(col) {
@@ -334,8 +334,8 @@ function makeTable(setting, setting_name, setting_value) {
 
 function makeTableInputs(setting) {
   var html = "<tr class='inputs'>"
-  if (setting.number === true) {
-    html += "<td class='number'></td>"
+  if (setting.numbered === true) {
+    html += "<td class='numbered'></td>"
   }
   html += "<td class='key' name='" + setting.key.name + "'>\
            <input type='text' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
