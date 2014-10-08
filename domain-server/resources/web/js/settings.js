@@ -299,7 +299,7 @@ function makeTableInputs(setting) {
              </td>"
   })
   
-  html += "<td class='buttons'><span class='glyphicon glyphicon-ok add-row'></span></td>"
+  html += "<td class='buttons'><span class='glyphicon glyphicon-plus add-row'></span></td>"
   html += "</tr>"
     
   return html
