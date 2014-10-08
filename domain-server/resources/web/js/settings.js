@@ -82,10 +82,7 @@ $(document).ready(function(){
       $(window).resize(resizeFn);
   })
                   
-    
     $('#settings-form').on('click', '.add-row', function(){
-        console.log("add-row " + $(this))
-        
         var row = $(this).parents("tr")
         var data = row.parent().children(".data")
         
@@ -146,7 +143,11 @@ $(document).ready(function(){
                } else {
                    span.remove()
                }
-            } else if($(element).hasClass("data") || $(element).hasClass("key")) { // Hide inputs
+            } else if ($(element).hasClass("key")) {
+               var input = $(element).children("input")
+               $(element).html(input.val())
+               input.remove()
+            } else if($(element).hasClass("data")) { // Hide inputs
                var input = $(element).children("input")
                input.attr("type", "hidden")
                input.attr("name", full_name + "." + $(element).attr("name"))
@@ -159,17 +160,14 @@ $(document).ready(function(){
             }
         })
         row.parent().append(input_clone)
-        //showAlertMessage("Row added", true)
+        showAlertMessage("Row added", true)
     })
     
     $('#settings-form').on('click', '.del-row', function(){
-        console.log("del-row " + $(this))
-        
         var row = $(this).parents("tr")
         row.empty()
         row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
     })
-    
     
   $('#settings-form').on('change', '.setting-input', function(){
     // this input was changed, add the changed data attribute to it
