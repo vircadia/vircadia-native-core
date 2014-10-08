@@ -153,7 +153,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-        _cameraPushback(0.0f),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -658,13 +657,12 @@ void Application::paintGL() {
         ViewFrustumOffset viewFrustumOffset = Menu::getInstance()->getViewFrustumOffset();
 
         // set the camera to third-person view but offset so we can see the frustum
-        _viewFrustumOffsetCamera.setPosition(_myCamera.getPosition());
-        _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-            viewFrustumOffset.pitch, viewFrustumOffset.yaw, viewFrustumOffset.roll))));
-        // TODO: PHILIP
-        //  Fix Frustum offset and up
-        //_viewFrustumOffsetCamera.setUpShift(viewFrustumOffset.up);
-        //_viewFrustumOffsetCamera.setDistance(viewFrustumOffset.distance);
+        glm::quat frustumRotation = glm::quat(glm::radians(glm::vec3(viewFrustumOffset.pitch, viewFrustumOffset.yaw, viewFrustumOffset.roll)));
+        
+        _viewFrustumOffsetCamera.setPosition(_myCamera.getPosition() +
+                                             frustumRotation * glm::vec3(0.0f, viewFrustumOffset.up, -viewFrustumOffset.distance));
+        
+        _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
         
         _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
         _viewFrustumOffsetCamera.update(1.f/_fps);
