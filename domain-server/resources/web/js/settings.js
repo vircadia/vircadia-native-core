@@ -26,7 +26,7 @@ var viewHelpers = {
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
       form_group += "<input type='checkbox' name='" + setting_name + "' " +
-      (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
+        (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else if (setting.type === 'table') {
@@ -463,7 +463,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." + 
-        "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
+          "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
       }
       
       
@@ -481,7 +481,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
   } else {
     bootbox.alert({
       message: "You must have an access token to query your High Fidelity domains.<br><br>" + 
-      "Please follow the instructions on the settings page to add an access token.",
+        "Please follow the instructions on the settings page to add an access token.",
       title: "Access token required"
     })
   }
