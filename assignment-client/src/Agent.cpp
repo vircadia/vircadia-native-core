@@ -206,7 +206,7 @@ void Agent::run() {
         scriptURL = QUrl(_payload);
     }
    
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
     
     QNetworkDiskCache* cache = new QNetworkDiskCache();

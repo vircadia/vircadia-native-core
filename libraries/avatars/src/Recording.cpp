@@ -385,7 +385,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
         // Download file if necessary
         qDebug() << "Downloading recording at" << url;
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         QEventLoop loop;
         QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
