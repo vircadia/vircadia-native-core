@@ -682,7 +682,7 @@ void ScriptEngine::include(const QString& includeFile) {
     QString includeContents;
 
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         qDebug() << "Downloading included script at" << includeFile;
         QEventLoop loop;
