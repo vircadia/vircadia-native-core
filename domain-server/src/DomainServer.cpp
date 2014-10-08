@@ -568,7 +568,7 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         } else {
             // we don't know anything about this client
             // we have an OAuth provider, ask this interface client to auth against it
-            QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainOAuthRequest);
+            QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainUsernameRequest);
             QDataStream oauthRequestStream(&oauthRequestByteArray, QIODevice::Append);
             QUrl authorizationURL = packetUUID.isNull() ? oauthAuthorizationURL() : oauthAuthorizationURL(packetUUID);
             oauthRequestStream << authorizationURL;
