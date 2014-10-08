@@ -94,7 +94,7 @@ $(document).ready(function(){
     // Check key spaces
     var name = row.children(".key").children("input").val()
     if (name.indexOf(' ') !== -1) {
-      showAlertMessage("Key contains spaces", false)
+      showErrorMessage("Error", "Key contains spaces")
       return
     }
     // Check keys with the same name
@@ -106,7 +106,7 @@ $(document).ready(function(){
       }
     })
     if (equals) {
-      showAlertMessage("Two keys cannot be identical.", false)
+      showErrorMessage("Error", "Two keys cannot be identical")
       return
     }
         
@@ -119,7 +119,7 @@ $(document).ready(function(){
       }
     })
     if (empty) {
-      showAlertMessage("Empty field(s)")
+      showErrorMessage("Error", "Empty field(s)")
       return
     }
         
@@ -162,7 +162,6 @@ $(document).ready(function(){
       }
     })
     row.parent().append(input_clone)
-    showAlertMessage("Row added", true)
   })
     
   $('#settings-form').on('click', '.del-row', function(){
@@ -268,11 +267,11 @@ $('body').on('click', '.save-button', function(e){
     if (data.status == "success") {
       showRestartModal();
     } else {
-      showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
+      showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
       reloadSettings();
     }
   }).fail(function(){
-    showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
+    showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
     reloadSettings();
   });
   
@@ -408,12 +407,8 @@ function cleanupFormValues(node) {
   }
 }
 
-function showAlertMessage(message, isSuccess) {
-  var alertBox = $('.alert');
-  alertBox.attr('class', 'alert');
-  alertBox.addClass(isSuccess ? 'alert-success' : 'alert-danger');
-  alertBox.html(message);
-  alertBox.fadeIn();
+function showErrorMessage(title, message) {
+  swal(title, message, "error")
 }
 
 function chooseFromHighFidelityDomains(clickedButton) {
