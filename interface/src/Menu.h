@@ -414,7 +414,6 @@ namespace MenuOption {
     const QString Log = "Log";
     const QString Logout = "Logout";
     const QString LowVelocityFilter = "Low Velocity Filter";
-    const QString LowerDetailAsPoints = "Lower Detail as Points";
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
