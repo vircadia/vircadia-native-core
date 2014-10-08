@@ -64,8 +64,8 @@ var text = Overlays.addOverlay("text", {
                     y: 100,
                     width: 150,
                     height: 50,
-                    color: { red: 0, green: 0, blue: 0},
-                    textColor: { red: 255, green: 0, blue: 0},
+                    backgroundColor: { red: 255, green: 255, blue: 255},
+                    color: { red: 255, green: 0, blue: 0},
                     topMargin: 4,
                     leftMargin: 4,
                     text: "Here is some text.\nAnd a second line."

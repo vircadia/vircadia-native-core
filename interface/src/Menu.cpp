@@ -1234,7 +1234,7 @@ void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
         locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
-        _userLocationsDialog = DataWebDialog::dialogForPath("/locations", locationObjectMap);
+        _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
     if (!_userLocationsDialog->isVisible()) {
@@ -1278,7 +1278,7 @@ void Menu::nameLocation() {
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
         locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
-        _newLocationDialog = DataWebDialog::dialogForPath("/locations/new", locationObjectMap);
+        _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     
     if (!_newLocationDialog->isVisible()) {
