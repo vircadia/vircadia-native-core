@@ -157,7 +157,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
                 emit errorMessage("ERROR Loading file:" + fileName);
             }
         } else {
-            NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
             qDebug() << "Downloading script at" << url;
             QEventLoop loop;
@@ -681,8 +681,8 @@ void ScriptEngine::include(const QString& includeFile) {
     QUrl url = resolveInclude(includeFile);
     QString includeContents;
 
-    if (url.scheme() == "http" || url.scheme() == "ftp") {
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         qDebug() << "Downloading included script at" << includeFile;
         QEventLoop loop;

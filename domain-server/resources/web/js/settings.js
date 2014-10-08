@@ -46,6 +46,11 @@ var viewHelpers = {
         
         form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
       } else {
+        
+        if (input_type == 'integer') {
+          input_type = "text"
+        }
+        
         form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name + 
           "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
           "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
@@ -292,7 +297,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://data.highfidelity.io/domains", '_blank');
+            window.open("https://data.highfidelity.io/user/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." + 
