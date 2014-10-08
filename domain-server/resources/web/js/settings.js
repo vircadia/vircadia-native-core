@@ -88,80 +88,7 @@ $(document).ready(function(){
   })
                   
   $('#settings-form').on('click', '.add-row', function(){
-    var row = $(this).parents("tr")
-    var data = row.parent().children(".row-data")
-        
-    // Check key spaces
-    var name = row.children(".key").children("input").val()
-    if (name.indexOf(' ') !== -1) {
-      showErrorMessage("Error", "Key contains spaces")
-      return
-    }
-    // Check keys with the same name
-    var equals = false;
-    _.each(data.children(".key"), function(element) {
-      if ($(element).text() === name) {
-        equals = true
-        return
-      }
-    })
-    if (equals) {
-      showErrorMessage("Error", "Two keys cannot be identical")
-      return
-    }
-        
-    // Check empty fields
-    var empty = false;
-    _.each(row.children(".row-data").children("input"), function(element) {
-      if ($(element).val().length === 0) {
-        empty = true
-        return
-      }
-    })
-    if (empty) {
-      showErrorMessage("Error", "Empty field(s)")
-      return
-    }
-        
-    var input_clone = row.clone()
-    // Change input row to data row
-    var full_name = row.parents("table").attr("name") + "." + name
-    row.attr("class", "row-data")
-        
-    _.each(row.children(), function(element) {
-      if ($(element).hasClass("number")) { // Index row
-        var numbers = data.children(".number")
-        if (numbers.length > 0) {
-          $(element).html(parseInt(numbers.last().text()) + 1)
-        } else {
-          $(element).html(1)
-        }
-      } else if ($(element).hasClass("buttons")) { // Change buttons
-        var prevSpan = $(element).parent().prev().children(".buttons").children("span")
-        var span = $(element).children("span")
-        if (prevSpan.hasClass("del-row")) {
-          span.removeClass("glyphicon-ok add-row")
-          span.addClass("glyphicon-remove del-row")
-        } else {
-          span.remove()
-        }
-      } else if ($(element).hasClass("key")) {
-        var input = $(element).children("input")
-        $(element).html(input.val())
-        input.remove()
-      } else if($(element).hasClass("row-data")) { // Hide inputs
-        var input = $(element).children("input")
-        input.attr("type", "hidden")
-        input.attr("name", full_name + "." + $(element).attr("name"))
-        input.attr("value", input.val())
-        input.attr("data-changed", "true")
-               
-        $(element).html($(element).html() + input.val())
-      } else {
-        console.log("Unknown table element")
-      }
-    })
-    row.parent().append(input_clone)
+    addTableRow(this);
   })
     
   $('#settings-form').on('click', '.del-row', function(){
@@ -279,9 +206,12 @@ $('body').on('click', '.save-button', function(e){
 });
 
 function makeTable(setting, setting_name, setting_value) {
+  var isArray = !_.has(setting, 'key')
+  
   var html = "<label class='control-label'>" + setting.label + "</label>"
   html += "<span class='help-block'>" + setting.help + "</span>"
-  html += "<table class='table table-bordered' name='" + setting_name + "'>"
+  html += "<table class='table table-bordered' name='" + setting_name + (isArray ? "[]" : "") 
+    + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
   // Column names
   html += "<tr class='headers'>"
@@ -303,24 +233,31 @@ function makeTable(setting, setting_name, setting_value) {
   }
   html += "</tr>"
     
-  // Rows
+  // populate rows in the table from existing values
   var row_num = 1
-  _.each(setting_value, function(row, name) {
-    html += "<tr class='row-data' name='" + setting_name + "." + name + "'>"
+  
+  _.each(setting_value, function(row, indexOrName) {
+    html += "<tr" + (isArray ? "" : "name='" + setting_name + "." + indexOrName) + "'>"
     
     if (setting.numbered === true) {
       html += "<td class='numbered'>" + row_num + "</td>"
     }
     
     if (setting.key) {
-        html += "<td class='key'>" + name + "</td>"
+        html += "<td class='key'>" + indexOrName + "</td>"
     }
     
     _.each(setting.columns, function(col) {
       html += "<td class='row-data'>"
-      if (row.hasOwnProperty(col.name)) {
-        html += row[col.name]
+      
+      if (isArray) {
+        html += row
+        // for arrays we add a hidden input to this td so that values can be posted appropriately
+        html += "<input type='hidden' name='" + setting_name + "[]' val='" + row + "'/>"
+      } else if (row.hasOwnProperty(col.name)) {
+        html += row[col.name]        
       }
+      
       html += "</td>"
     })
     
@@ -333,7 +270,7 @@ function makeTable(setting, setting_name, setting_value) {
     row_num++
   })
     
-  // Inputs
+  // populate inputs in the table for new values, if we can add
   if (setting.can_add === true) {
     html += makeTableInputs(setting)
   }
@@ -390,6 +327,97 @@ function badgeSidebarForDifferences(changedInput) {
   }
   
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
+}
+
+function addTableRow(add_glyphicon) {
+  var row = $(add_glyphicon).closest('tr')
+  
+  var table = row.parents('table')
+  var isArray = table.data('setting-type') === 'array'
+  
+  var data = row.parent().children(".row-data")
+  
+  if (!isArray) {
+    // Check key spaces
+    var name = row.children(".key").children("input").val()
+    if (name.indexOf(' ') !== -1) {
+      showErrorMessage("Error", "Key contains spaces")
+      return
+    }
+    // Check keys with the same name
+    var equals = false;
+    _.each(data.children(".key"), function(element) {
+      if ($(element).text() === name) {
+        equals = true
+        return
+      }
+    })
+    if (equals) {
+      showErrorMessage("Error", "Two keys cannot be identical")
+      return
+    }
+  }
+      
+  // Check empty fields
+  var empty = false;
+  _.each(row.children(".row-data").children("input"), function(element) {
+    if ($(element).val().length === 0) {
+      empty = true
+      return
+    }
+  })
+  if (empty) {
+    showErrorMessage("Error", "Empty field(s)")
+    return
+  }
+      
+  var input_clone = row.clone()
+  
+  // Change input row to data row
+  var setting_name = row.parents("table").attr("name") 
+  var full_name = setting_name + "." + name
+  row.attr("class", "row-data")
+      
+  _.each(row.children(), function(element) {
+    if ($(element).hasClass("numbered")) { // Index row
+      var numbers = data.children(".numbered")
+      if (numbers.length > 0) {
+        $(element).html(parseInt(numbers.last().text()) + 1)
+      } else {
+        $(element).html(1)
+      }
+    } else if ($(element).hasClass("buttons")) { // Change buttons
+      var prevSpan = $(element).parent().prev().children(".buttons").children("span")
+      var span = $(element).children("span")
+      if (prevSpan.hasClass("del-row")) {
+        span.removeClass("glyphicon-ok add-row")
+        span.addClass("glyphicon-remove del-row")
+      } else {
+        span.remove()
+      }
+    } else if ($(element).hasClass("key")) {
+      var input = $(element).children("input")
+      $(element).html(input.val())
+      input.remove()
+    } else if ($(element).hasClass("row-data")) { // Hide inputs
+      var input = $(element).children("input")
+      input.attr("type", "hidden")
+      
+      if (isArray) {
+        input.attr("name", setting_name)
+      } else {
+        input.attr("name", full_name + "." + $(element).attr("name"))
+      }
+      
+      input.attr("value", input.val())
+      input.attr("data-changed", "true")
+             
+      $(element).html($(element).html() + input.val())
+    } else {
+      console.log("Unknown table element")
+    }
+  })
+  row.parent().append(input_clone)
 }
 
 function showRestartModal() {

@@ -82,4 +82,5 @@ td.buttons {
 td.buttons .glyphicon {
   display: block;
   text-align: center;
+  font-size: 16px;
 }
