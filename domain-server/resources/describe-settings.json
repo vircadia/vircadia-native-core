@@ -68,9 +68,43 @@
     "assignment-types": [0],
     "settings": [
       {
+        "name": "zones",
+        "type": "table",
+        "label": "Zones",
+        "help": "In this table you can define a set of zones in which you can specify various audio properties.",
+        "number": false,
+        "can_add": true,
+        "can_delete": true,
+        "key": {
+          "name": "name",
+          "label": "Name",
+          "placeholder": "Zone name"
+        },
+        "columns": [
+          {
+            "name": "x_range",
+            "label": "X range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "y_range",
+            "label": "Y range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "z_range",
+            "label": "Z range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          }
+        ]
+      },
+      {
         "name": "enable_filter",
         "type": "checkbox",
-        "label": "Enable Positional Filter",
+        "label": "Positional filter",
         "help": "positional audio stream uses lowpass filter",
         "default": true
       },
