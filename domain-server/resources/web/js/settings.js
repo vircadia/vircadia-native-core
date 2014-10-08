@@ -408,7 +408,7 @@ function cleanupFormValues(node) {
 }
 
 function showErrorMessage(title, message) {
-  swal(title, message, "error")
+  swal(title, message)
 }
 
 function chooseFromHighFidelityDomains(clickedButton) {
