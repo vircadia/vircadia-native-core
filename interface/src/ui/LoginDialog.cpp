@@ -35,9 +35,6 @@ LoginDialog::LoginDialog(QWidget* parent) :
     _ui->infoLabel->setVisible(false);
     _ui->errorLabel->setVisible(false);
 
-    setModal(true);
-    setWindowModality(Qt::NonModal);
-
     connect(&AccountManager::getInstance(), &AccountManager::loginComplete,
             this, &LoginDialog::handleLoginCompleted);
     connect(&AccountManager::getInstance(), &AccountManager::loginFailed,

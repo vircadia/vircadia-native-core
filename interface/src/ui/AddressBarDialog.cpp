@@ -45,13 +45,6 @@ void AddressBarDialog::setupUI() {
     const int DIALOG_HEIGHT = 62;
     const int DIALOG_INITIAL_WIDTH = 560;
     
-    setModal(true);
-#ifndef Q_OS_MAC
-    setWindowModality(Qt::ApplicationModal);
-#else
-    setWindowModality(Qt::WindowModal);
-#endif
-    
     QSizePolicy sizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     setSizePolicy(sizePolicy);
     setMinimumSize(QSize(DIALOG_INITIAL_WIDTH, DIALOG_HEIGHT));
