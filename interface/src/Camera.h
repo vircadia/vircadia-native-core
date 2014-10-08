@@ -67,21 +67,8 @@ public:
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
     float getScale() const { return _scale; }
     
-    CameraMode getInterpolatedMode() const;
-
     bool getFrustumNeedsReshape() const; // call to find out if the view frustum needs to be reshaped
     void setFrustumWasReshaped();  // call this after reshaping the view frustum.
-
-    // These only work on independent cameras
-    /// one time change to what the camera is looking at
-    void lookAt(const glm::vec3& value);
-
-    /// fix what the camera is looking at, and keep the camera looking at this even if position changes
-    void keepLookingAt(const glm::vec3& value);
-
-    /// stops the keep looking at feature, doesn't change what's being looked at, but will stop camera from
-    /// continuing to update it's orientation to keep looking at the item
-    void stopLooking() { _isKeepLookingAt = false; }
     
 private:
 
@@ -113,9 +100,6 @@ private:
     float _linearModeShift;
     float _modeShiftPeriod;
     float _scale;
-
-    glm::vec3 _lookingAt;
-    bool _isKeepLookingAt;
     
     void updateFollowMode(float deltaTime);
 };
@@ -136,17 +120,6 @@ public slots:
 
     void setOrientation(const glm::quat& value) { _camera->setTargetRotation(value); }
     glm::quat getOrientation() const { return _camera->getRotation(); }
-
-    // These only work on independent cameras
-    /// one time change to what the camera is looking at
-    void lookAt(const glm::vec3& value) { _camera->lookAt(value);}
-
-    /// fix what the camera is looking at, and keep the camera looking at this even if position changes
-    void keepLookingAt(const glm::vec3& value) { _camera->keepLookingAt(value);}
-
-    /// stops the keep looking at feature, doesn't change what's being looked at, but will stop camera from
-    /// continuing to update it's orientation to keep looking at the item
-    void stopLooking() { _camera->stopLooking();}
 
     PickRay computePickRay(float x, float y);
 

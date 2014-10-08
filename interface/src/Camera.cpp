@@ -29,8 +29,8 @@ const float CAMERA_INDEPENDENT_MODE_DISTANCE  = 0.0f;
 const float CAMERA_INDEPENDENT_MODE_TIGHTNESS = 100.0f;
 
 const float CAMERA_THIRD_PERSON_MODE_UP_SHIFT  = -0.2f;
-const float CAMERA_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
-const float CAMERA_THIRD_PERSON_MODE_TIGHTNESS = 8.0f;
+const float CAMERA_THIRD_PERSON_MODE_DISTANCE  = 10.5f;
+const float CAMERA_THIRD_PERSON_MODE_TIGHTNESS = 100.0f;
 
 const float CAMERA_MIRROR_MODE_UP_SHIFT        = 0.0f;
 const float CAMERA_MIRROR_MODE_DISTANCE        = 0.17f;
@@ -61,9 +61,7 @@ Camera::Camera() :
     _modeShift(1.0f),
     _linearModeShift(0.0f),
     _modeShiftPeriod(1.0f),
-    _scale(1.0f),
-    _lookingAt(0.0f, 0.0f, 0.0f),
-    _isKeepLookingAt(false)
+    _scale(1.0f)
 {
 }
 
@@ -97,11 +95,6 @@ void Camera::updateFollowMode(float deltaTime) {
     float t = _tightness * _modeShift * deltaTime;	
     if (t > 1.0f) {
         t = 1.0f;
-    }
-    
-    // handle keepLookingAt
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
     }
     
     // Update position and rotation, setting directly if tightness is 0.0
@@ -167,13 +160,7 @@ void Camera::setMode(CameraMode m) {
 }
 
 void Camera::setTargetPosition(const glm::vec3& t) { 
-    _targetPosition = t; 
-
-    // handle keepLookingAt
-    if (_isKeepLookingAt) {
-        lookAt(_lookingAt);
-    }
-    
+    _targetPosition = t;
 }
 
 void Camera::setTargetRotation( const glm::quat& targetRotation ) {
@@ -226,34 +213,9 @@ bool Camera::getFrustumNeedsReshape() const {
     return _frustumNeedsReshape;
 }
 
-// call this when deciding whether to render the head or not
-CameraMode Camera::getInterpolatedMode() const {
-    const float SHIFT_THRESHOLD_INTO_FIRST_PERSON = 0.7f;
-    const float SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON = 0.6f;
-    if ((_mode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_INTO_FIRST_PERSON) ||
-        (_prevMode == CAMERA_MODE_FIRST_PERSON && _linearModeShift < SHIFT_THRESHOLD_OUT_OF_FIRST_PERSON)) {
-        return _prevMode;
-    }
-    return _mode;
-}
-
 // call this after reshaping the view frustum
 void Camera::setFrustumWasReshaped() {
     _frustumNeedsReshape = false;
-}
-
-void Camera::lookAt(const glm::vec3& lookAt) {
-    glm::vec3 up = IDENTITY_UP;
-    glm::mat4 lookAtMatrix = glm::lookAt(_targetPosition, lookAt, up);
-    glm::quat rotation = glm::quat_cast(lookAtMatrix);
-    rotation.w = -rotation.w; // Rosedale approved
-    setTargetRotation(rotation);
-}
-
-void Camera::keepLookingAt(const glm::vec3& point) {
-    lookAt(point);
-    _isKeepLookingAt = true;
-    _lookingAt = point;
 }
 
 CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :
