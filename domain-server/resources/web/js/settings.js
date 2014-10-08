@@ -26,11 +26,11 @@ var viewHelpers = {
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
       form_group += "<input type='checkbox' name='" + setting_name + "' " +
-        (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
+      (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else if (setting.type === 'table') {
-        form_group += makeTable(setting, setting_name, setting_value);
+      form_group += makeTable(setting, setting_name, setting_value);
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
       
@@ -41,7 +41,7 @@ var viewHelpers = {
         
         _.each(setting.options, function(option) {
           form_group += "<option value='" + option.value + "'" + 
-            (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
+          (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
         })
         
         form_group += "</select>"
@@ -49,8 +49,8 @@ var viewHelpers = {
         form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
       } else {
         form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name +
-          "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-          "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+        "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+        "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       }
       
       form_group += "<span class='help-block'>" + setting.help + "</span>" 
@@ -71,103 +71,103 @@ $(document).ready(function(){
   */
   
   $('[data-clampedwidth]').each(function () {
-      var elem = $(this);
-      var parentPanel = elem.data('clampedwidth');
-      var resizeFn = function () {
-          var sideBarNavWidth = $(parentPanel).width() - parseInt(elem.css('paddingLeft')) - parseInt(elem.css('paddingRight')) - parseInt(elem.css('marginLeft')) - parseInt(elem.css('marginRight')) - parseInt(elem.css('borderLeftWidth')) - parseInt(elem.css('borderRightWidth'));
-          elem.css('width', sideBarNavWidth);
-      };
+    var elem = $(this);
+    var parentPanel = elem.data('clampedwidth');
+    var resizeFn = function () {
+      var sideBarNavWidth = $(parentPanel).width() - parseInt(elem.css('paddingLeft')) - parseInt(elem.css('paddingRight')) - parseInt(elem.css('marginLeft')) - parseInt(elem.css('marginRight')) - parseInt(elem.css('borderLeftWidth')) - parseInt(elem.css('borderRightWidth'));
+      elem.css('width', sideBarNavWidth);
+    };
 
-      resizeFn();
-      $(window).resize(resizeFn);
+    resizeFn();
+    $(window).resize(resizeFn);
   })
                   
-    $('#settings-form').on('click', '.add-row', function(){
-        var row = $(this).parents("tr")
-        var row-data = row.parent().children(".row-data")
+  $('#settings-form').on('click', '.add-row', function(){
+    var row = $(this).parents("tr")
+    var row-data = row.parent().children(".row-data")
         
-        // Check key spaces
-        var name = row.children(".key").children("input").val()
-        if (name.indexOf(' ') !== -1) {
-            showAlertMessage("Key contains spaces", false)
-            return
+    // Check key spaces
+    var name = row.children(".key").children("input").val()
+    if (name.indexOf(' ') !== -1) {
+      showAlertMessage("Key contains spaces", false)
+      return
+    }
+    // Check keys with the same name
+    var equals = false;
+    _.each(row-data.children(".key"), function(element) {
+      if ($(element).text() === name) {
+        equals = true
+        return
+      }
+    })
+    if (equals) {
+      showAlertMessage("Two keys cannot be identical.", false)
+      return
+    }
+        
+    // Check empty fields
+    var empty = false;
+    _.each(row.children(".row-data").children("input"), function(element) {
+      if ($(element).val().length === 0) {
+        empty = true
+        return
+      }
+    })
+    if (empty) {
+      showAlertMessage("Empty field(s)")
+      return
+    }
+        
+    var input_clone = row.clone()
+    // Change input row to data row
+    var full_name = row.parents("table").attr("name") + "." + name
+    row.attr("class", "row-data")
+        
+    _.each(row.children(), function(element) {
+      if ($(element).hasClass("number")) { // Index row
+        var numbers = row-data.children(".number")
+        if (numbers.length > 0) {
+          $(element).html(parseInt(numbers.last().text()) + 1)
+        } else {
+          $(element).html(1)
         }
-        // Check keys with the same name
-        var equals = false;
-        _.each(row-data.children(".key"), function(element) {
-            if ($(element).text() === name) {
-               equals = true
-               return
-            }
-        })
-        if (equals) {
-            showAlertMessage("Two keys cannot be identical.", false)
-            return
+      } else if ($(element).hasClass("buttons")) { // Change buttons
+        var prevSpan = $(element).parent().prev().children(".buttons").children("span")
+        var span = $(element).children("span")
+        console.log(prevSpan.length)
+        console.log(span.length)
+        if (prevSpan.hasClass("del-row")) {
+          console.log("Switching icons")
+          span.removeClass("glyphicon-ok add-row")
+          span.addClass("glyphicon-remove del-row")
+        } else {
+          span.remove()
         }
-        
-        // Check empty fields
-        var empty = false;
-        _.each(row.children(".row-data").children("input"), function(element) {
-            if ($(element).val().length === 0) {
-               empty = true
-               return
-            }
-        })
-        if (empty) {
-            showAlertMessage("Empty field(s)")
-            return
-        }
-        
-        var input_clone = row.clone()
-        // Change input row to data row
-        var full_name = row.parents("table").attr("name") + "." + name
-        row.attr("class", "row-data")
-        
-        _.each(row.children(), function(element) {
-            if ($(element).hasClass("number")) { // Index row
-                var numbers = row-data.children(".number")
-                if (numbers.length > 0) {
-                    $(element).html(parseInt(numbers.last().text()) + 1)
-                } else {
-                    $(element).html(1)
-                }
-            } else if ($(element).hasClass("buttons")) { // Change buttons
-               var prevSpan = $(element).parent().prev().children(".buttons").children("span")
-               var span = $(element).children("span")
-               console.log(prevSpan.length)
-               console.log(span.length)
-               if (prevSpan.hasClass("del-row")) {
-                    console.log("Switching icons")
-                   span.removeClass("glyphicon-ok add-row")
-                   span.addClass("glyphicon-remove del-row")
-               } else {
-                   span.remove()
-               }
-            } else if ($(element).hasClass("key")) {
-               var input = $(element).children("input")
-               $(element).html(input.val())
-               input.remove()
-            } else if($(element).hasClass("row-data")) { // Hide inputs
-               var input = $(element).children("input")
-               input.attr("type", "hidden")
-               input.attr("name", full_name + "." + $(element).attr("name"))
-               input.attr("value", input.val())
-               input.attr("data-changed", "true")
+      } else if ($(element).hasClass("key")) {
+        var input = $(element).children("input")
+        $(element).html(input.val())
+        input.remove()
+      } else if($(element).hasClass("row-data")) { // Hide inputs
+        var input = $(element).children("input")
+        input.attr("type", "hidden")
+        input.attr("name", full_name + "." + $(element).attr("name"))
+        input.attr("value", input.val())
+        input.attr("data-changed", "true")
                
-               $(element).html($(element).html() + input.val())
-            } else {
-               console.log("Unknown table element")
-            }
-        })
-        row.parent().append(input_clone)
-        showAlertMessage("Row added", true)
+        $(element).html($(element).html() + input.val())
+      } else {
+        console.log("Unknown table element")
+      }
     })
+    row.parent().append(input_clone)
+    showAlertMessage("Row added", true)
+  })
     
-    $('#settings-form').on('click', '.del-row', function(){
-        var row = $(this).parents("tr")
-        row.empty()
-        row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
-    })
+  $('#settings-form').on('click', '.del-row', function(){
+    var row = $(this).parents("tr")
+    row.empty()
+    row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
+  })
     
   $('#settings-form').on('change', 'input', function(){
     // this input was changed, add the changed data attribute to it
@@ -278,79 +278,79 @@ $('body').on('click', '.save-button', function(e){
 });
 
 function makeTable(setting, setting_name, setting_value) {
-    var html = "<div class='panel panel-default'>"
-    html += "<div class='panel-heading'>" + setting.label + "</div>"
-    html += "<div class='panel-body'>"
-    html += "<p>" + setting.help + "</p>"
-    html += "</div>"
-    html += "<table class='table' name='" + setting_name + "'>"
+  var html = "<div class='panel panel-default'>"
+  html += "<div class='panel-heading'>" + setting.label + "</div>"
+  html += "<div class='panel-body'>"
+  html += "<p>" + setting.help + "</p>"
+  html += "</div>"
+  html += "<table class='table' name='" + setting_name + "'>"
     
-    // Column names
-    html += "<tr class='headers'>"
+  // Column names
+  html += "<tr class='headers'>"
+  if (setting.number === true) {
+    html += "<td class='number'><strong>#</strong></td>" // Row number
+  }
+  html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
+  _.each(setting.columns, function(col) {
+    html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
+  })
+  if (setting.can_delete === true || setting.can_add === true) {
+    html += "<td class='buttons'></td>" // Buttons
+  }
+  html += "</tr>"
+    
+  // Rows
+  var row_num = 1
+  _.each(setting_value, function(row, name) {
+    html += "<tr class='row-data' name='" + setting_name + "." + name + "'>"
     if (setting.number === true) {
-        html += "<td class='number'><strong>#</strong></td>" // Row number
+      html += "<td class='number'>" + row_num + "</td>"
     }
-    html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
+    html += "<td class='key'>" + name + "</td>"
     _.each(setting.columns, function(col) {
-        html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
+      html += "<td class='data'>"
+      if (row.hasOwnProperty(col.name)) {
+        html += row[col.name]
+      }
+      html += "</td>"
     })
-    if (setting.can_delete === true || setting.can_add === true) {
-        html += "<td class='buttons'></td>" // Buttons
+    if (setting.can_delete === true) {
+      html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
+    } else if (setting.can_add === true) {
+      html += "<td class='buttons'></td>"
     }
     html += "</tr>"
+    row_num++
+  })
     
-    // Rows
-    var row_num = 1
-    _.each(setting_value, function(row, name) {
-           html += "<tr class='row-data' name='" + setting_name + "." + name + "'>"
-           if (setting.number === true) {
-           html += "<td class='number'>" + row_num + "</td>"
-           }
-           html += "<td class='key'>" + name + "</td>"
-           _.each(setting.columns, function(col) {
-                  html += "<td class='data'>"
-                  if (row.hasOwnProperty(col.name)) {
-                  html += row[col.name]
-                  }
-                  html += "</td>"
-                  })
-           if (setting.can_delete === true) {
-           html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
-           } else if (setting.can_add === true) {
-           html += "<td class='buttons'></td>"
-           }
-           html += "</tr>"
-        row_num++
-    })
+  // Inputs
+  if (setting.can_add === true) {
+    html += makeTableInputs(setting)
+  }
     
-    // Inputs
-    if (setting.can_add === true) {
-        html += makeTableInputs(setting)
-    }
+  html += "</table>"
+  html += "</div>"
     
-    html += "</table>"
-    html += "</div>"
-    
-    return html;
+  return html;
 }
 
 function makeTableInputs(setting) {
-    var html = "<tr class='inputs'>"
-    if (setting.number === true) {
-        html += "<td class='number'></td>"
-    }
-    html += "<td class='key' name='" + setting.key.name + "'>\
-            <input type='text' class='form-control' placeholder='" + setting.key.placeholder + "' value=''>\
-            </td>"
-    _.each(setting.columns, function(col) {
-           html += "<td class='data'name='" + col.name + "'>\
-                    <input type='text' class='form-control' placeholder='" + col.placeholder + "' value=''>\
-                    </td>"
-           })
-    html += "<td class='buttons'><span class='glyphicon glyphicon-ok add-row'></span></td>"
-    html += "</tr>"
+  var html = "<tr class='inputs'>"
+  if (setting.number === true) {
+    html += "<td class='number'></td>"
+  }
+  html += "<td class='key' name='" + setting.key.name + "'>\
+           <input type='text' class='form-control' placeholder='" + setting.key.placeholder + "' value=''>\
+           </td>"
+  _.each(setting.columns, function(col) {
+    html += "<td class='data'name='" + col.name + "'>\
+             <input type='text' class='form-control' placeholder='" + col.placeholder + "' value=''>\
+             </td>"
+  })
+  html += "<td class='buttons'><span class='glyphicon glyphicon-ok add-row'></span></td>"
+  html += "</tr>"
     
-    return html
+  return html
 }
 
 function badgeSidebarForDifferences(changedInput) {
@@ -406,7 +406,7 @@ function cleanupFormValues(node) {
   if (node.type && node.type === 'checkbox') {
     return { name: node.name, value: node.checked ? true : false };
   } else {
-      return false;
+    return false;
   }
 }
 
@@ -461,7 +461,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." + 
-          "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
+        "<br/><br/>Go to your domains page to create a new one. Once your domain is created re-open this dialog to select it.</p>"
       }
       
       
@@ -479,7 +479,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
   } else {
     bootbox.alert({
       message: "You must have an access token to query your High Fidelity domains.<br><br>" + 
-        "Please follow the instructions on the settings page to add an access token.",
+      "Please follow the instructions on the settings page to add an access token.",
       title: "Access token required"
     })
   }
