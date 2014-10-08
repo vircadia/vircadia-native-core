@@ -58,7 +58,7 @@ signals:
 
 public slots:
 
-    void updateHermiteDisplay();
+    void refreshVoxelData();
 
 protected:
 
@@ -150,9 +150,15 @@ private:
 class VoxelPointBuffer : public PointBuffer {
 public:
     
-    VoxelPointBuffer(const BufferPointVector& points);
+    VoxelPointBuffer(const BufferPointVector& points, const QVector<glm::vec3>& hermite);
     
     virtual void render(bool cursor = false);
+    
+private:
+    
+    QVector<glm::vec3> _hermite;
+    int _hermiteCount;
+    QOpenGLBuffer _hermiteBuffer;
 };
 
 /// Contains the information necessary to render a heightfield block.

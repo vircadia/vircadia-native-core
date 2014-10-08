@@ -1657,11 +1657,11 @@ bool VoxelColorAttribute::merge(void*& parent, void* children[], bool postRead) 
                         src += (1 + offset1);
                         int a0 = qAlpha(v0), a1 = qAlpha(v1), a2 = qAlpha(v2), a3 = qAlpha(v3),
                             a4 = qAlpha(v4), a5 = qAlpha(v5), a6 = qAlpha(v6), a7 = qAlpha(v7);
-                        int alphaTotal = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7;
-                        if (alphaTotal == 0) {
+                        if (a0 == 0) {
                             *dest++ = qRgba(0, 0, 0, 0);
                             continue;
                         }
+                        int alphaTotal = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7;
                         *dest++ = qRgba(
                             (qRed(v0) * a0 + qRed(v1) * a1 + qRed(v2) * a2 + qRed(v3) * a3 +
                                 qRed(v4) * a4 + qRed(v5) * a5 + qRed(v6) * a6 + qRed(v7) * a7) / alphaTotal,

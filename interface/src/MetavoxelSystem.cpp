@@ -137,15 +137,13 @@ void MetavoxelSystem::render() {
     emit rendering();
 }
 
-void MetavoxelSystem::updateHermiteDisplay() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
-        foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
-            if (node->getType() == NodeType::MetavoxelServer) {
-                QMutexLocker locker(&node->getMutex());
-                MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
-                if (client) {
-                    QMetaObject::invokeMethod(client, "refreshVoxelData");
-                }
+void MetavoxelSystem::refreshVoxelData() {
+    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        if (node->getType() == NodeType::MetavoxelServer) {
+            QMutexLocker locker(&node->getMutex());
+            MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
+            if (client) {
+                QMetaObject::invokeMethod(client, "refreshVoxelData");
             }
         }
     }
@@ -642,8 +640,47 @@ void PointBuffer::render(bool cursor) {
     _buffer.release();
 }
 
-VoxelPointBuffer::VoxelPointBuffer(const BufferPointVector& points) :
-    PointBuffer(points) {
+VoxelPointBuffer::VoxelPointBuffer(const BufferPointVector& points, const QVector<glm::vec3>& hermite) :
+    PointBuffer(points),
+    _hermite(hermite),
+    _hermiteCount(hermite.size()) {
+}
+
+static void renderHermiteData(QVector<glm::vec3>& hermite, int hermiteCount, QOpenGLBuffer& hermiteBuffer) {
+    if (hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+        if (!hermiteBuffer.isCreated()) {
+            hermiteBuffer.create();
+            hermiteBuffer.bind();
+            hermiteBuffer.allocate(hermite.constData(), hermite.size() * sizeof(glm::vec3));
+            hermite.clear();
+        
+        } else {
+            hermiteBuffer.bind();
+        }
+        
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+        
+        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().bind();
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        
+        glLineWidth(2.0f);
+        
+        glDrawArrays(GL_LINES, 0, hermiteCount);
+        
+        glLineWidth(1.0f);
+        
+        DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
+        
+        glEnableClientState(GL_COLOR_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        
+        hermiteBuffer.release();
+    }
 }
 
 void VoxelPointBuffer::render(bool cursor) {
@@ -656,6 +693,8 @@ void VoxelPointBuffer::render(bool cursor) {
     glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
 
     DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
+    
+    renderHermiteData(_hermite, _hermiteCount, _hermiteBuffer);
 }
 
 const int HeightfieldBuffer::HEIGHT_BORDER = 1;
@@ -1136,40 +1175,7 @@ void VoxelBuffer::render(bool cursor) {
     _vertexBuffer.release();
     _indexBuffer.release();
     
-    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
-        if (!_hermiteBuffer.isCreated()) {
-            _hermiteBuffer.create();
-            _hermiteBuffer.bind();
-            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));
-            _hermite.clear();
-        
-        } else {
-            _hermiteBuffer.bind();
-        }
-        
-        glDisableClientState(GL_COLOR_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
-        
-        glVertexPointer(3, GL_FLOAT, 0, 0);
-        
-        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().bind();
-        
-        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        
-        glLineWidth(2.0f);
-        
-        glDrawArrays(GL_LINES, 0, _hermiteCount);
-        
-        glLineWidth(1.0f);
-        
-        DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
-        
-        glEnableClientState(GL_COLOR_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        
-        _hermiteBuffer.release();
-    }
+    renderHermiteData(_hermite, _hermiteCount, _hermiteBuffer);
 }
 
 BufferDataAttribute::BufferDataAttribute(const QString& name) :
@@ -1638,11 +1644,14 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
     }
+    const int EDGES_PER_CUBE = 12;
+    
     BufferData* buffer = NULL;
     VoxelColorDataPointer color = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
     VoxelMaterialDataPointer material = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
     VoxelHermiteDataPointer hermite = info.inputValues.at(2).getInlineValue<VoxelHermiteDataPointer>();
-    if (color && hermite && material) {
+    
+    if (color && hermite && (material || !Menu::getInstance()->isOptionChecked(MenuOption::LowerDetailAsPoints))) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         QVector<glm::vec3> hermiteSegments;
@@ -1677,7 +1686,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<AxisIndex> planeIndices(expanded * expanded);
         QVector<AxisIndex> lastPlaneIndices(expanded * expanded);
         
-        const int EDGES_PER_CUBE = 12;
         EdgeCrossing crossings[EDGES_PER_CUBE];
         
         float highest = size - 1.0f;
@@ -2182,6 +2190,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
     
     } else if (color && hermite) {
         BufferPointVector points;
+        QVector<glm::vec3> hermiteSegments;
         
         const QVector<QRgb>& colorContents = color->getContents();
         const QVector<QRgb>& hermiteContents = hermite->getContents();
@@ -2201,6 +2210,9 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         const QRgb* hermiteData = hermiteContents.constData();
         int hermiteStride = hermite->getSize() * VoxelHermiteData::EDGE_COUNT;
         int hermiteArea = hermiteStride * hermite->getSize();
+        bool displayHermite = Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData);
+        
+        EdgeCrossing crossings[EDGES_PER_CUBE];
         
         for (int z = 0; z < limit; z++) {
             const QRgb* colorY = colorZ;
@@ -2218,80 +2230,90 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     }
                     const QRgb* hermiteBase = hermiteData + z * hermiteArea + y * hermiteStride +
                         x * VoxelHermiteData::EDGE_COUNT;
-                    glm::vec3 normal;
-                    glm::vec3 position;
                     int crossingCount = 0;
                     if (a0 != a1) {
                         QRgb hermite = hermiteBase[0];
-                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a0 != a2) {
                         QRgb hermite = hermiteBase[1];
-                        position += glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a0 != a4) {
                         QRgb hermite = hermiteBase[2];
-                        position += glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a1 != a3) {
                         QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 1];
-                        position += glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a1 != a5) {
                         QRgb hermite = hermiteBase[VoxelHermiteData::EDGE_COUNT + 2];
-                        position += glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a2 != a3) {
                         QRgb hermite = hermiteBase[hermiteStride];
-                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a2 != a6) {
                         QRgb hermite = hermiteBase[hermiteStride + 2];
-                        position += glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a3 != a7) {
                         QRgb hermite = hermiteBase[hermiteStride + VoxelHermiteData::EDGE_COUNT + 2];
-                        position += glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                        normal += unpackNormal(hermite);    
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
+                        crossing.normal = unpackNormal(hermite);    
                     }
                     if (a4 != a5) {
                         QRgb hermite = hermiteBase[hermiteArea];
-                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a4 != a6) {
                         QRgb hermite = hermiteBase[hermiteArea + 1];
-                        position += glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a5 != a7) {
                         QRgb hermite = hermiteBase[hermiteArea + VoxelHermiteData::EDGE_COUNT + 1];
-                        position += glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
+                        crossing.normal = unpackNormal(hermite);
                     }
                     if (a6 != a7) {
                         QRgb hermite = hermiteBase[hermiteArea + hermiteStride];
-                        position += glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
-                        normal += unpackNormal(hermite);
-                        crossingCount++;
+                        EdgeCrossing& crossing = crossings[crossingCount++];
+                        crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
+                        crossing.normal = unpackNormal(hermite);
+                    }
+                    glm::vec3 normal;
+                    glm::vec3 position;
+                    for (int i = 0; i < crossingCount; i++) {
+                        const EdgeCrossing& crossing = crossings[i];
+                        position += crossing.point;
+                        normal += crossing.normal;
+                        if (displayHermite) {
+                            glm::vec3 base = glm::vec3(minimum) + (glm::vec3(x, y, z) + crossing.point) * step;
+                            hermiteSegments.append(base);
+                            hermiteSegments.append(base + crossing.normal * step);
+                        }
                     }
                     normal = safeNormalize(normal);
                     BufferPoint point = { minimum + (glm::vec4(x, y, z, 1.0f) +
@@ -2309,7 +2331,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
             }
             colorZ += area;
         }
-        buffer = new VoxelPointBuffer(points);
+        buffer = new VoxelPointBuffer(points, hermiteSegments);
     }
     BufferDataPointer pointer(buffer);
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));

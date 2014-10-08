@@ -425,7 +425,9 @@ Menu::Menu() :
     
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
-        Application::getInstance()->getMetavoxels(), SLOT(updateHermiteDisplay()));
+        Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::LowerDetailAsPoints, 0, false,
+        Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
     
     QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
