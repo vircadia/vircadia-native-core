@@ -38,7 +38,10 @@ public:
     void update();
     
     void closeJoystick();
+    
+#ifdef HAVE_SDL
     void setSDLJoystick(SDL_Joystick* sdlJoystick) { _sdlJoystick = sdlJoystick; }
+#endif
     
     const QString& getName() const { return _name; }
     
