@@ -68,10 +68,13 @@
         "numbered": false,
         "can_add": true,
         "can_delete": true,
-        "key": {
-          "name": "username",
-          "label": "Username"
-        }
+        "columns": [
+          {
+            "name": "username",
+            "label": "Username",
+            "can_set": true
+          }
+        ]
       }
     ]
   },

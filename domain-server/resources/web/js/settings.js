@@ -285,13 +285,19 @@ function makeTable(setting, setting_name, setting_value) {
     
   // Column names
   html += "<tr class='headers'>"
-  if (setting.number === true) {
+  
+  if (setting.numbered === true) {
     html += "<td class='number'><strong>#</strong></td>" // Row number
   }
-  html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
+  
+  if (setting.key) {
+    html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
+  }
+  
   _.each(setting.columns, function(col) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
+  
   if (setting.can_delete === true || setting.can_add === true) {
     html += "<td class='buttons'><strong>+/-</strong></td>" // Buttons
   }
@@ -301,10 +307,15 @@ function makeTable(setting, setting_name, setting_value) {
   var row_num = 1
   _.each(setting_value, function(row, name) {
     html += "<tr class='row-data' name='" + setting_name + "." + name + "'>"
+    
     if (setting.numbered === true) {
       html += "<td class='numbered'>" + row_num + "</td>"
     }
-    html += "<td class='key'>" + name + "</td>"
+    
+    if (setting.key) {
+        html += "<td class='key'>" + name + "</td>"
+    }
+    
     _.each(setting.columns, function(col) {
       html += "<td class='row-data'>"
       if (row.hasOwnProperty(col.name)) {
@@ -312,6 +323,7 @@ function makeTable(setting, setting_name, setting_value) {
       }
       html += "</td>"
     })
+    
     if (setting.can_delete === true) {
       html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
     } else if (setting.can_add === true) {
@@ -333,17 +345,23 @@ function makeTable(setting, setting_name, setting_value) {
 
 function makeTableInputs(setting) {
   var html = "<tr class='inputs'>"
+  
   if (setting.numbered === true) {
     html += "<td class='numbered'></td>"
   }
-  html += "<td class='key' name='" + setting.key.name + "'>\
-           <input type='text' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
-           </td>"
+  
+  if (setting.key) {
+    html += "<td class='key' name='" + setting.key.name + "'>\
+             <input type='text' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
+             </td>"
+  }
+  
   _.each(setting.columns, function(col) {
     html += "<td class='row-data'name='" + col.name + "'>\
-             <input type='text' class='form-control' placeholder='" + col.placeholder + "' value=''>\
+             <input type='text' class='form-control' placeholder='" + (col.key ? col.key : "") + "' value=''>\
              </td>"
   })
+  
   html += "<td class='buttons'><span class='glyphicon glyphicon-ok add-row'></span></td>"
   html += "</tr>"
     
