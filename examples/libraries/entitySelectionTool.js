@@ -169,7 +169,14 @@ SelectionDisplay = (function () {
                     alpha: 0.2,
                     solid: true,
                     visible: false,
-                    rotation: yawOverlayRotation
+                    rotation: yawOverlayRotation,
+                    hasTickMarks: true,
+                    majorTickMarksAngle: 12.5,
+                    minorTickMarksAngle: 0,
+                    majorTickMarksLength: -0.25,
+                    minorTickMarksLength: 0,
+                    majorTickMarksColor: { red: 0, green: 0, blue: 0 },
+                    minorTickMarksColor: { red: 0, green: 0, blue: 0 },
                 });
 
     var rotateOverlayOuter = Overlays.addOverlay("circle3d", {
@@ -179,7 +186,15 @@ SelectionDisplay = (function () {
                     alpha: 0.2,
                     solid: true,
                     visible: false,
-                    rotation: yawOverlayRotation
+                    rotation: yawOverlayRotation,
+
+                    hasTickMarks: true,
+                    majorTickMarksAngle: 45.0,
+                    minorTickMarksAngle: 5,
+                    majorTickMarksLength: 0.25,
+                    minorTickMarksLength: 0.1,
+                    majorTickMarksColor: { red: 0, green: 0, blue: 0 },
+                    minorTickMarksColor: { red: 0, green: 0, blue: 0 },
                 });
 
     var rotateOverlayCurrent = Overlays.addOverlay("circle3d", {
@@ -571,7 +586,7 @@ SelectionDisplay = (function () {
                                 innerRadius: 0.9,
                                 startAt: 0,
                                 endAt: 360,
-                                alpha: outerAlpha
+                                alpha: outerAlpha,
                             });
 
         Overlays.editOverlay(rotateOverlayCurrent, 
@@ -584,7 +599,7 @@ SelectionDisplay = (function () {
                                 size: outerRadius,
                                 startAt: 0,
                                 endAt: 0,
-                                innerRadius: 0.9
+                                innerRadius: 0.9,
                             });
 
         // TODO: we have not implemented the rotating handle/controls yet... so for now, these handles are hidden
