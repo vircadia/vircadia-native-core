@@ -627,14 +627,14 @@ void Application::paintGL() {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
             _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
                                   glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  _myAvatar->getOrientation() * glm::vec3(0,0,-1) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
+                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                   glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         } else {
-            glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
-            float headHeight = eyePosition.y - _myAvatar->getPosition().y;
-            _myCamera.setPosition(_myAvatar->getPosition() +
-                                    glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0) +
-                                    _myAvatar->getOrientation() * glm::vec3(0,0,-1) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                  glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         }
     }
 
