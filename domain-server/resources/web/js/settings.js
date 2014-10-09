@@ -289,7 +289,7 @@ function makeTableInputs(setting) {
   
   _.each(setting.columns, function(col) {
     html += "<td class='row-data'name='" + col.name + "'>\
-             <input type='text' class='form-control' placeholder='" + (col.key ? col.key : "") + "' value=''>\
+             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
              </td>"
   })
   
