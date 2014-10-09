@@ -561,7 +561,6 @@ SelectionDisplay = (function () {
         }
         
         
-        print("select() with mode:" + mode);
         var rotateHandlesVisible = true;
         var translateHandlesVisible = true;
         var stretchHandlesVisible = true;
@@ -1506,6 +1505,14 @@ SelectionDisplay = (function () {
         if (!entitySelected || mode !== "ROTATE_YAW") {
             return; // not allowed
         }
+
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var result = Overlays.findRayIntersection(pickRay);
+        print("result.intersects:" + result.intersects);
+        print("result.overlayID:" + overlayNames[result.overlayID]);
+        print("result.distance:" + result.distance);
+        print("result.face:" + result.face);
+        Vec3.print("result.intersection:", result.intersection);
     };
 
     that.rotatePitch = function(event) {
@@ -1691,6 +1698,13 @@ SelectionDisplay = (function () {
             
             var overlayOrientation;
             var overlayCenter;
+
+            var properties = Entities.getEntityProperties(currentSelection);            
+            var angles = Quat.safeEulerAngles(properties.rotation);
+            var pitch = angles.x;
+            var yaw = angles.y;
+            var roll = angles.z;
+            var currentRotation;
             
             if (result.intersects) {
                 switch(result.overlayID) {
@@ -1699,6 +1713,7 @@ SelectionDisplay = (function () {
                         somethingClicked = true;
                         overlayOrientation = yawHandleRotation;
                         overlayCenter = yawCenter;
+                        currentRotation = yaw;
                         break;
 
                     case pitchHandle:
@@ -1706,6 +1721,7 @@ SelectionDisplay = (function () {
                         somethingClicked = true;
                         overlayOrientation = pitchHandleRotation;
                         overlayCenter = pitchCenter;
+                        currentRotation = pitch;
                         break;
 
                     case rollHandle:
@@ -1713,6 +1729,7 @@ SelectionDisplay = (function () {
                         somethingClicked = true;
                         overlayOrientation = rollHandleRotation;
                         overlayCenter = rollCenter;
+                        currentRotation = roll;
                         break;
 
                     default:
@@ -1725,10 +1742,16 @@ SelectionDisplay = (function () {
             print("    somethingClicked:" + somethingClicked);
             print("                mode:" + mode);
             
+
             if (somethingClicked) {
+            
+                if (currentRotation < 0) {
+                    currentRotation = currentRotation + 360;
+                }
             
                 // TODO: need to place correctly....
                 print("    attempting to show overlays:" + somethingClicked);
+                print("    currentRotation:" + currentRotation);
             
                 Overlays.editOverlay(rotateOverlayInner, 
                                     { 
@@ -1741,14 +1764,18 @@ SelectionDisplay = (function () {
                                     { 
                                         visible: true,
                                         rotation: overlayOrientation,
-                                        position: overlayCenter
+                                        position: overlayCenter,
+                                        startAt: currentRotation,
+                                        endAt: 360
                                     });
 
                 Overlays.editOverlay(rotateOverlayCurrent, 
                                     { 
                                         visible: true,
                                         rotation: overlayOrientation,
-                                        position: overlayCenter
+                                        position: overlayCenter,
+                                        startAt: 0,
+                                        endAt: currentRotation
                                     });
 
                 Overlays.editOverlay(yawHandle, { visible: false });
