@@ -465,7 +465,6 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     
     // if they are equal, we don't need data-changed
     isTrue = _.isEqual(panelSettingJSON, initialPanelSettingJSON)
-    
   } else {
     isTrue = true
   }
