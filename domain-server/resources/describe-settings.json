@@ -63,7 +63,7 @@
     ]
   },
   {
-    "name": "audio",
+    "name": "audio_env",
     "label": "Audio Environment",
     "assignment-types": [0],
     "settings": [
@@ -143,7 +143,7 @@
     ]
   },
   {
-    "name": "audio_advanced",
+    "name": "audio_buffer",
     "label": "Audio Buffer",
     "assignment-types": [0],
     "settings": [
