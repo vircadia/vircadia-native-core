@@ -92,9 +92,20 @@ $(document).ready(function(){
   })
     
   $('#settings-form').on('click', '.del-row', function(){
-    var row = $(this).parents("tr")
-    row.empty()
-    row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
+    var row = $(this).parents('tr')
+    
+    var table = row.parents('table')
+    var isArray = table.data('setting-type') === 'array'
+    
+    if (!isArray) {
+      // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
+      row.empty()
+      row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
+    } else {
+      // just remove this row completely - the removal of the hidden input will remove it from the array on post
+      row.remove()
+    }
+    
   })
     
   $('#settings-form').on('change', 'input', function(){
@@ -417,6 +428,11 @@ function addTableRow(add_glyphicon) {
       console.log("Unknown table element")
     }
   })
+  
+  input_clone.find('input').each(function(){
+    $(this).val('')
+  });
+  
   row.parent().append(input_clone)
 }
 
