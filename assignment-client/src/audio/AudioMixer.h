@@ -29,7 +29,6 @@ class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AudioMixer(const QByteArray& packet);
-    ~AudioMixer();
 public slots:
     /// threaded run of assignment
     void run();
@@ -75,8 +74,6 @@ private:
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;
-    AABox* _sourceUnattenuatedZone;
-    AABox* _listenerUnattenuatedZone;
     QHash<QString, AABox> _audioZones;
 
     static InboundAudioStream::Settings _streamSettings;

@@ -90,8 +90,6 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     _numStatFrames(0),
     _sumListeners(0),
     _sumMixes(0),
-    _sourceUnattenuatedZone(NULL),
-    _listenerUnattenuatedZone(NULL),
     _lastPerSecondCallbackTime(usecTimestampNow()),
     _sendAudioStreamStats(false),
     _datagramsReadPerCallStats(0, READ_DATAGRAMS_STATS_WINDOW_SECONDS),
@@ -103,18 +101,13 @@ AudioMixer::AudioMixer(const QByteArray& packet) :
     // we will soon find a better common home for these audio-related constants
 }
 
-AudioMixer::~AudioMixer() {
-    delete _sourceUnattenuatedZone;
-    delete _listenerUnattenuatedZone;
-}
-
 const float ATTENUATION_BEGINS_AT_DISTANCE = 1.0f;
 const float RADIUS_OF_HEAD = 0.076f;
 
 int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* listenerNodeData,
-                                                            const QUuid& streamUUID,
-                                                            PositionalAudioStream* streamToAdd,
-                                                            AvatarAudioStream* listeningNodeStream) {
+                                                         const QUuid& streamUUID,
+                                                         PositionalAudioStream* streamToAdd,
+                                                         AvatarAudioStream* listeningNodeStream) {
     // If repetition with fade is enabled:
     // If streamToAdd could not provide a frame (it was starved), then we'll mix its previously-mixed frame
     // This is preferable to not mixing it at all since that's equivalent to inserting silence.
@@ -138,20 +131,18 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
             return 0;
         }
     }
-
+    
     // at this point, we know streamToAdd's last pop output is valid
-
+    
     // if the frame we're about to mix is silent, bail
     if (streamToAdd->getLastPopOutputLoudness() == 0.0f) {
         return 0;
     }
-
+    
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
     float weakChannelAmplitudeRatio = 1.0f;
-    
-    bool shouldDistanceAttenuate = true;
     
     //  Is the source that I am mixing my own?
     bool sourceIsSelf = (streamToAdd == listeningNodeStream);
@@ -171,10 +162,6 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     }
     
     ++_sumMixes;
-    
-    if (streamToAdd->getListenerUnattenuatedZone()) {
-        shouldDistanceAttenuate = !streamToAdd->getListenerUnattenuatedZone()->contains(listeningNodeStream->getPosition());
-    }
     
     if (streamToAdd->getType() == PositionalAudioStream::Injector) {
         attenuationCoefficient *= reinterpret_cast<InjectedAudioStream*>(streamToAdd)->getAttenuationRatio();
@@ -211,7 +198,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         attenuationCoefficient *= offAxisCoefficient;
     }
     
-    if (shouldDistanceAttenuate && (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE)) {
+    if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
         // calculate the distance coefficient using the distance to this node
         float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
                                          * _attenuationPerDoublingInDistance);
@@ -719,7 +706,7 @@ void AudioMixer::run() {
                 // this function will attempt to pop a frame from each audio stream.
                 // a pointer to the popped data is stored as a member in InboundAudioStream.
                 // That's how the popped audio data will be read for mixing (but only if the pop was successful)
-                nodeData->checkBuffersBeforeFrameSend(_sourceUnattenuatedZone, _listenerUnattenuatedZone);
+                nodeData->checkBuffersBeforeFrameSend();
             
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
                     && nodeData->getAvatarAudioStream()) {
