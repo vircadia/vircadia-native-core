@@ -4,6 +4,7 @@ var Settings = {
   DATA_ROW_CLASS: 'value-row',
   DATA_COL_CLASS: 'value-col',
   ADD_ROW_BUTTON_CLASS: 'add-row',
+  ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
   TABLE_BUTTONS_CLASS: 'buttons'
 };
 
@@ -94,7 +95,7 @@ $(document).ready(function(){
     $(window).resize(resizeFn);
   })
                   
-  $('#settings-form').on('click', '.add-row', function(){
+  $('#settings-form').on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
     addTableRow(this);
   })
     
@@ -278,8 +279,6 @@ function makeTable(setting, setting_name, setting_value) {
         // for arrays we add a hidden input to this td so that values can be posted appropriately
         html += "<input type='hidden' name='" + setting_name + "[" + indexOrName + "]" 
           + (colIsArray ? "" : "." + col.name) + "' value='" + colValue + "'/>"
-          
-        
       } else if (row.hasOwnProperty(col.name)) {
         html += row[col.name] 
       }
@@ -319,7 +318,7 @@ function makeTableInputs(setting) {
              </td>"
   })
   
-  html += "<td class='buttons'><span class='glyphicon glyphicon-plus add-row'></span></td>"
+  html += "<td class='buttons'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
   html += "</tr>"
     
   return html
@@ -415,8 +414,8 @@ function addTableRow(add_glyphicon) {
     } else if ($(element).hasClass("buttons")) { 
       // Change buttons
       var span = $(element).children("span")
-      span.removeClass("glyphicon-plus add-row")
-      span.addClass("glyphicon-remove del-row")
+      span.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
+      span.addClass("glyphicon glyphicon-remove del-row")
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
       $(element).html(input.val())
