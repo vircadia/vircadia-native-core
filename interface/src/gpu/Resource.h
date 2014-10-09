@@ -94,7 +94,7 @@ protected:
         template< typename T >
         const T* read() const { return reinterpret_cast< T* > ( _data ); } 
         template< typename T >
-        T* edit() const { _stamp++; return reinterpret_cast< T* > ( _data ); } 
+        T* edit() { _stamp++; return reinterpret_cast< T* > ( _data ); } 
 
         // Access the current version of the sysmem, used to compare if copies are in sync
         inline Stamp getStamp() const { return _stamp; }
