@@ -44,8 +44,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
-    _networkReplyUUIDMap(),
-    _sessionAuthenticationHash(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _settingsManager()
@@ -507,7 +505,7 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
-const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
+const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
@@ -552,32 +550,20 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     }
     
     QString connectedUsername;
-
-    if (!isAssignment && !_oauthProviderURL.isEmpty() && _settingsManager.getSettingsMap().contains(ALLOWED_ROLES_CONFIG_KEY)) {
-        // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
-        if (_sessionAuthenticationHash.contains(packetUUID)) {
-            connectedUsername = _sessionAuthenticationHash.take(packetUUID);
-            if (connectedUsername.isEmpty()) {
-                // we've decided this is a user that isn't allowed in, return out
-                // TODO: provide information to the user so they know why they can't connect
-                return;
-            } else {
-                // we're letting this user in, don't return and remove their UUID from the hash
-                _sessionAuthenticationHash.remove(packetUUID);
-            }
-        } else {
-            // we don't know anything about this client
-            // we have an OAuth provider, ask this interface client to auth against it
-            QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainUsernameRequest);
-            QDataStream oauthRequestStream(&oauthRequestByteArray, QIODevice::Append);
-            QUrl authorizationURL = packetUUID.isNull() ? oauthAuthorizationURL() : oauthAuthorizationURL(packetUUID);
-            oauthRequestStream << authorizationURL;
-
-            // send this oauth request datagram back to the client
-            LimitedNodeList::getInstance()->writeUnverifiedDatagram(oauthRequestByteArray, senderSockAddr);
-
-            return;
-        }
+    
+    static const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
+    static QVariantList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toList() : QVariantList();
+    
+    if (!isAssignment && allowedUsers.count() > 0) {
+        // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in
+        
+        QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainUsernameRequest);
+        
+        // send this oauth request datagram back to the client
+        LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+        
+        return;
     }
 
     if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
@@ -1545,13 +1531,6 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 // we've redirected the user back to our homepage
                 return true;
                 
-            } else {
-                qDebug() << "Requesting a token for user with session UUID" << uuidStringWithoutCurlyBraces(stateUUID);
-                
-                // insert this to our pending token replies so we can associate the returned access token with the right UUID
-                _networkReplyUUIDMap.insert(tokenReply, stateUUID);
-                
-                connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleTokenRequestFinished);
             }
         }
 
@@ -1695,22 +1674,6 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 
 const QString OAUTH_JSON_ACCESS_TOKEN_KEY = "access_token";
 
-void DomainServer::handleTokenRequestFinished() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
-    QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
-
-    if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
-        
-        qDebug() << "Received access token for user with UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-            << "-" << "requesting profile.";
-        
-        QNetworkReply* profileReply = profileRequestGivenTokenReply(networkReply);
-
-        connect(profileReply, &QNetworkReply::finished, this, &DomainServer::handleProfileRequestFinished);
-
-        _networkReplyUUIDMap.insert(profileReply, matchingSessionUUID);
-    }
-}
 
 QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenReply) {
     // pull the access token from the returned JSON and store it with the matching session UUID
@@ -1724,48 +1687,6 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
     
     return NetworkAccessManager::getInstance().get(QNetworkRequest(profileURL));
 }
-
-void DomainServer::handleProfileRequestFinished() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
-    QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
-
-    if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
-        QJsonDocument profileJSON = QJsonDocument::fromJson(networkReply->readAll());
-
-        if (profileJSON.object()["status"].toString() == "success") {
-            // pull the user roles from the response
-            QJsonArray userRolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
-
-            QStringList allowedRolesArray = _settingsManager.getSettingsMap().value(ALLOWED_ROLES_CONFIG_KEY).toStringList();
-
-            QString connectableUsername;
-            QString profileUsername = profileJSON.object()["data"].toObject()["user"].toObject()["username"].toString();
-
-            foreach(const QJsonValue& roleValue, userRolesArray) {
-                if (allowedRolesArray.contains(roleValue.toString())) {
-                    // the user has a role that lets them in
-                    // set the bool to true and break
-                    connectableUsername = profileUsername;
-                    break;
-                }
-            }
-            
-            if (connectableUsername.isEmpty()) {
-                qDebug() << "User" << profileUsername << "with session UUID"
-                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-                    << "does not have an allowable role. Refusing connection.";
-            } else {
-                qDebug() << "User" << profileUsername << "with session UUID"
-                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-                    << "has an allowable role. Can connect.";
-            }
-
-            // insert this UUID and a flag that indicates if they are allowed to connect
-            _sessionAuthenticationHash.insert(matchingSessionUUID, connectableUsername);
-        }
-    }
-}
-
 
 const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
 

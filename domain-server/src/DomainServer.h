@@ -131,8 +131,6 @@ private:
     QString _oauthClientID;
     QString _oauthClientSecret;
     QString _hostname;
-    QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
-    QHash<QUuid, QString> _sessionAuthenticationHash;
     
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
