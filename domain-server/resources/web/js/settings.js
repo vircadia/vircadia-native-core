@@ -283,8 +283,6 @@ function makeTable(setting, setting_name, setting_value) {
         // for arrays we add a hidden input to this td so that values can be posted appropriately
         html += "<input type='hidden' name='" + setting_name + "[" + indexOrName + "]" 
           + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
-          
-          console.log(html)
       } else if (row.hasOwnProperty(col.name)) {
         html += row[col.name] 
       }
