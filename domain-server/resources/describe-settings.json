@@ -59,20 +59,6 @@
         "type": "password",
         "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
         "value-hidden": true
-      },
-      {
-        "name": "allowed_users",
-        "type": "table",
-        "label": "Allowed Users",
-        "help": "A list of usernames for the High Fidelity users you want to allow into your domain. Users not found in this list will not be allowed to connect.",
-        "numbered": false,
-        "columns": [
-          {
-            "name": "username",
-            "label": "Username",
-            "can_set": true
-          }
-        ]
       }
     ]
   },
@@ -139,7 +125,7 @@
             "placeholder": "0.18"
           }
         ]
-      },
+      }
       {
         "name": "enable_filter",
         "type": "checkbox",
