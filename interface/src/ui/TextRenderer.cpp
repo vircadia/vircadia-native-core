@@ -21,6 +21,10 @@
 #include "InterfaceConfig.h"
 #include "TextRenderer.h"
 
+#include "glm/glm.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+
+
 // the width/height of the cached glyph textures
 const int IMAGE_SIZE = 256;
 
@@ -63,8 +67,16 @@ int TextRenderer::calculateHeight(const char* str) {
 }
 
 int TextRenderer::draw(int x, int y, const char* str) {
-    glEnable(GL_TEXTURE_2D);    
-    
+    // Grab the current color
+    float currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
+    int compactColor =  ((int( currentColor[0] * 255.f) & 0xFF)) |
+                        ((int( currentColor[1] * 255.f) & 0xFF) << 8) |
+                        ((int( currentColor[2] * 255.f) & 0xFF) << 16) |
+                        ((int( currentColor[3] * 255.f) & 0xFF) << 24);
+
+    //glEnable(GL_TEXTURE_2D);
+
     int maxHeight = 0;
     for (const char* ch = str; *ch != 0; ch++) {
         const Glyph& glyph = getGlyph(*ch);
@@ -76,20 +88,22 @@ int TextRenderer::draw(int x, int y, const char* str) {
         if (glyph.bounds().height() > maxHeight) {
             maxHeight = glyph.bounds().height();
         }
-    
-        glBindTexture(GL_TEXTURE_2D, glyph.textureID());
+        //glBindTexture(GL_TEXTURE_2D, glyph.textureID());
     
         int left = x + glyph.bounds().x();
         int right = x + glyph.bounds().x() + glyph.bounds().width();
         int bottom = y + glyph.bounds().y();
         int top = y + glyph.bounds().y() + glyph.bounds().height();
-    
+
+        glm::vec2  leftBottom = glm::vec2(float(left), float(bottom));
+        glm::vec2  rightTop = glm::vec2(float(right), float(top));
+
         float scale = QApplication::desktop()->windowHandle()->devicePixelRatio() / IMAGE_SIZE;
         float ls = glyph.location().x() * scale;
         float rs = (glyph.location().x() + glyph.bounds().width()) * scale;
         float bt = glyph.location().y() * scale;
         float tt = (glyph.location().y() + glyph.bounds().height()) * scale;
-    
+/*
         glBegin(GL_QUADS);
         glTexCoord2f(ls, bt);
         glVertex2f(left, bottom);
@@ -100,24 +114,37 @@ int TextRenderer::draw(int x, int y, const char* str) {
         glTexCoord2f(ls, tt);
         glVertex2f(left, top);
         glEnd();
-/*
-        const int NUM_COORDS_PER_GLYPH = 16;
-        float vertexBuffer[NUM_COORDS_PER_GLYPH] = { ls, bt, left, bottom, rs, bt, right, bottom, rs, tt, right, top, ls, tt, left, top };
+*/
+
+        const int NUM_COORDS_SCALARS_PER_GLYPH = 16;
+        float vertexBuffer[NUM_COORDS_SCALARS_PER_GLYPH] = {    leftBottom.x, leftBottom.y, ls, bt,
+                                                        rightTop.x, leftBottom.y, rs, bt,
+                                                        rightTop.x, rightTop.y, rs, tt,
+                                                        leftBottom.x, rightTop.y, ls, tt, };
+
+        const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
+        unsigned int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
+
         gpu::Buffer::Size offset = sizeof(vertexBuffer)*_numGlyphsBatched;
+        gpu::Buffer::Size colorOffset = sizeof(colorBuffer)*_numGlyphsBatched;
         if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer.getSize()) {
             _glyphsBuffer.append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer.append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
         } else {
             _glyphsBuffer.setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer.setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
         }
         _numGlyphsBatched++;
-*/
+
         x += glyph.width();
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-    
- //   executeDrawBatch();
- //   clearDrawBatch();
+
+    // TODO: remove these calls once we move to a full batched rendering of the text, for now, one draw call per draw() function call
+    drawBatch();
+    clearBatch();
+
+   // glBindTexture(GL_TEXTURE_2D, 0);
+   // glDisable(GL_TEXTURE_2D);
 
     return maxHeight;
 }
@@ -243,44 +270,69 @@ const Glyph& TextRenderer::getGlyph(char c) {
     return glyph;
 }
 
-void TextRenderer::executeDrawBatch() {
+void TextRenderer::drawBatch() {
     if (_numGlyphsBatched<=0) {
         return;
     }
 
+    // TODO: Right now the drawBatch is called while calling the draw() function but in the future we'll need to apply the correct transform stack
+    /*
+    GLint matrixMode;
+    glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    */
+
     glEnable(GL_TEXTURE_2D);
+    // TODO: Apply the correct font atlas texture, for now only one texture per TextRenderer so it should be good
+    glBindTexture(GL_TEXTURE_2D, _currentTextureID);
 
-    GLuint textureID = 0;
-    glBindTexture(GL_TEXTURE_2D, textureID);
-
-    gpu::backend::syncGPUObject(_glyphsBuffer);
     GLuint vbo = _glyphsBuffer.getGLBufferObject();
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    GLuint colorvbo = _glyphsColorBuffer.getGLBufferObject();
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
 
     const int NUM_POS_COORDS = 2;
     const int NUM_TEX_COORDS = 2;
     const int VERTEX_STRIDE = (NUM_POS_COORDS + NUM_TEX_COORDS) * sizeof(float);
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glVertexPointer(2, GL_FLOAT, VERTEX_STRIDE, 0);
     glTexCoordPointer(2, GL_FLOAT, VERTEX_STRIDE, (GLvoid*) VERTEX_TEXCOORD_OFFSET );
+
+    glBindBuffer(GL_ARRAY_BUFFER, colorvbo);
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
 
     glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    
+    glDisableClientState(GL_COLOR_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
 
+    // TODO: Right now the drawBatch is called while calling the draw() function but in the future we'll need to apply the correct transform stack
+    /*
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glMatrixMode(matrixMode);
+    */
 }
 
-void TextRenderer::clearDrawBatch() {
+void TextRenderer::clearBatch() {
     _numGlyphsBatched = 0;
 }
 
@@ -289,202 +341,3 @@ QHash<TextRenderer::Properties, TextRenderer*> TextRenderer::_instances;
 Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
     _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
 }
-
-using namespace gpu;
-
-Buffer::Size Buffer::Sysmem::allocateMemory(Byte** dataAllocated, Size size) {
-    if ( !dataAllocated ) { 
-        qWarning() << "Buffer::Sysmem::allocateMemory() : Must have a valid dataAllocated pointer.";
-        return NOT_ALLOCATED;
-    }
-
-    // Try to allocate if needed
-    Size newSize = 0;
-    if (size > 0) {
-        // Try allocating as much as the required size + one block of memory
-        newSize = size;
-        (*dataAllocated) = new Byte[newSize];
-        // Failed?
-        if (!(*dataAllocated)) {
-            qWarning() << "Buffer::Sysmem::allocate() : Can't allocate a system memory buffer of " << newSize << "bytes. Fails to create the buffer Sysmem.";
-            return NOT_ALLOCATED;
-        }
-    }
-
-    // Return what's actually allocated
-    return newSize;
-}
-
-void Buffer::Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
-    if (dataAllocated) {
-        delete[] dataAllocated;
-    }
-}
-
-Buffer::Sysmem::Sysmem() :
-    _data(NULL),
-    _size(0),
-    _stamp(0)
-{
-}
-
-Buffer::Sysmem::Sysmem(Size size, const Byte* bytes) :
-    _data(NULL),
-    _size(0),
-    _stamp(0)
-{
-    if (size > 0) {
-        _size = allocateMemory(&_data, size);
-        if (_size >= size) {
-            if (bytes) {
-                memcpy(_data, bytes, size);
-            }
-        }
-    }
-}
-
-Buffer::Sysmem::~Sysmem() {
-    deallocateMemory( _data, _size );
-    _data = NULL;
-    _size = 0;
-}
-
-Buffer::Size Buffer::Sysmem::allocate(Size size) {
-    if (size != _size) {
-        Byte* newData = 0;
-        Size newSize = 0;
-        if (size > 0) {
-            Size allocated = allocateMemory(&newData, size);
-            if (allocated == NOT_ALLOCATED) {
-                // early exit because allocation failed
-                return 0;
-            }
-            newSize = allocated;
-        }
-        // Allocation was successful, can delete previous data
-        deallocateMemory(_data, _size);
-        _data = newData;
-        _size = newSize;
-        _stamp++;
-    }
-    return _size;
-}
-
-Buffer::Size Buffer::Sysmem::resize(Size size) {
-    if (size != _size) {
-        Byte* newData = 0;
-        Size newSize = 0;
-        if (size > 0) {
-            Size allocated = allocateMemory(&newData, size);
-            if (allocated == NOT_ALLOCATED) {
-                // early exit because allocation failed
-                return _size;
-            }
-            newSize = allocated;
-            // Restore back data from old buffer in the new one
-            if (_data) {
-                Size copySize = ((newSize < _size)? newSize: _size);
-                memcpy( newData, _data, copySize);
-            }
-        }
-        // Reallocation was successful, can delete previous data
-        deallocateMemory(_data, _size);
-        _data = newData;
-        _size = newSize;
-        _stamp++;
-    }
-    return _size;
-}
-
-Buffer::Size Buffer::Sysmem::setData( Size size, const Byte* bytes ) {
-    if (allocate(size) == size) {
-        if (bytes) {
-            memcpy( _data, bytes, _size );
-            _stamp++;
-        }
-    }
-    return _size;
-}
-
-Buffer::Size Buffer::Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
-    if (((offset + size) <= getSize()) && bytes) {
-        memcpy( _data + offset, bytes, size );
-        _stamp++;
-        return size;
-    }
-    return 0;
-}
-
-Buffer::Size Buffer::Sysmem::append(Size size, const Byte* bytes) {
-    if (size > 0) {
-        Size oldSize = getSize();
-        Size totalSize = oldSize + size;
-        if (resize(totalSize) == totalSize) {
-            return setSubData(oldSize, size, bytes);
-        }
-    }
-    return 0;
-}
-
-Buffer::Buffer() :
-    _sysmem(NULL),
-    _gpuObject(NULL) {
-    _sysmem = new Sysmem();
-}
-
-Buffer::~Buffer() {
-    if (_sysmem) {
-        delete _sysmem;
-        _sysmem = 0;
-    }
-    if (_gpuObject) {
-        delete _gpuObject;
-        _gpuObject = 0;
-    }
-}
-
-Buffer::Size Buffer::resize(Size size) {
-    return editSysmem().resize(size);
-}
-
-Buffer::Size Buffer::setData(Size size, const Byte* data) {
-    return editSysmem().setData(size, data);
-}
-
-Buffer::Size Buffer::setSubData(Size offset, Size size, const Byte* data) {
-    return editSysmem().setSubData( offset, size, data);
-}
-
-Buffer::Size Buffer::append(Size size, const Byte* data) {
-    return editSysmem().append( size, data);
-}
-
-namespace gpu {
-namespace backend {
-
-void syncGPUObject(const Buffer& buffer) {
-    BufferObject* object = buffer.getGPUObject();
-
-    if (object && (object->_stamp == buffer.getSysmem().getStamp())) {
-        return;
-    }
-
-    // need to have a gpu object?
-    if (!object) {
-        object = new BufferObject();
-        glGenBuffers(1, &object->_buffer);
-        buffer.setGPUObject(object);
-    }
-
-    // Now let's update the content of the bo with the sysmem version
-    //if (object->_size < buffer.getSize()) {
-        glBindBuffer(GL_COPY_WRITE_BUFFER, object->_buffer);
-        glBufferData(GL_COPY_WRITE_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().read(), GL_STATIC_DRAW);
-        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-        object->_stamp = buffer.getSysmem().getStamp();
-        object->_size = buffer.getSysmem().getSize();
-    //}
-}
-
-};
-};

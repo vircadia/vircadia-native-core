@@ -197,11 +197,6 @@ static TextRenderer* textRenderer(int mono) {
     }
 }
 
-void renderTextRenderer(int mono) {
-    textRenderer(mono)->executeDrawBatch();
-    textRenderer(mono)->clearDrawBatch();
-}
-
 int widthText(float scale, int mono, char const* string) {
     return textRenderer(mono)->computeWidth(string) * (scale / 0.10);
 }
