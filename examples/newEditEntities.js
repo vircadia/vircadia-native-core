@@ -163,6 +163,9 @@ var toolBar = (function () {
         Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
 
+    var RESIZE_INTERVAL = 50;
+    var RESIZE_TIMEOUT = 20000;
+    var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
         var position;
 
@@ -176,6 +179,27 @@ var toolBar = (function () {
                 modelURL: url
             });
             print("Model added: " + url);
+
+            var checkCount = 0;
+            function resize() {
+                var entityProperties = Entities.getEntityProperties(entityId);
+                var naturalDimensions = entityProperties.naturalDimensions;
+
+                checkCount++;
+
+                if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                    if (checkCount < RESIZE_MAX_CHECKS) {
+                        Script.setTimeout(resize, RESIZE_INTERVAL);
+                    } else {
+                        print("Resize failed: timed out waiting for model (" + url + ") to load");
+                    }
+                } else {
+                    entityProperties.dimensions = naturalDimensions;
+                    Entities.editEntity(entityId, entityProperties);
+                }
+            }
+
+            Script.setTimeout(resize, RESIZE_INTERVAL);
         } else {
             print("Can't add model: Model would be out of bounds.");
         }
