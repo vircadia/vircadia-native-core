@@ -425,6 +425,9 @@ function addTableRow(add_glyphicon) {
   
   if (isArray) {
     updateDataChangedForSiblingRows(row, true)
+    
+    // the addition of any table row should remove the empty-array-row
+    row.siblings('.empty-array-row').remove()
   }
   
   badgeSidebarForDifferences($(table))
@@ -450,6 +453,9 @@ function deleteTableRow(delete_glyphicon) {
   } else {
     // this is the last row, we can't remove it completely since we need to post an empty array
     row.empty()
+    
+    row.removeClass('new-row row-data')
+    row.addClass('empty-array-row')
     
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
       + "' data-changed='true' value=''>");
