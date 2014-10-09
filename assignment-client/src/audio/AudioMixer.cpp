@@ -66,7 +66,8 @@ const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
-const QString AUDIO_GROUP_KEY = "audio";
+const QString AUDIO_ENV_GROUP_KEY = "audio_env";
+const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
 
 void attachNewNodeDataToNode(Node *newNode) {
     if (!newNode->getLinkedData()) {
@@ -122,9 +123,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     // This improves the perceived quality of the audio slightly.
     
     bool showDebug = false;  // (randFloat() < 0.05f);
-
+    
     float repeatedFrameFadeFactor = 1.0f;
-
+    
     if (!streamToAdd->lastPopSucceeded()) {
         if (_streamSettings._repetitionWithFade && !streamToAdd->getLastPopOutput().isNull()) {
             // reptition with fade is enabled, and we do have a valid previous frame to repeat.
@@ -639,9 +640,7 @@ void AudioMixer::run() {
     const QJsonObject& settingsObject = domainHandler.getSettingsObject();
     
     // check the settings object to see if we have anything we can parse out
-    if (settingsObject.contains(AUDIO_GROUP_KEY)) {
-        parseSettingsObject(settingsObject);
-    }
+    parseSettingsObject(settingsObject);
     
     int nextFrame = 0;
     QElapsedTimer timer;
@@ -875,154 +874,136 @@ QString AudioMixer::getReadPendingDatagramsHashMatchTimeStatsString() const {
 }
 
 void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
-    QJsonObject audioGroupObject = settingsObject[AUDIO_GROUP_KEY].toObject();
-    
-    // check the payload to see if we have asked for dynamicJitterBuffer support
-    const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
-    _streamSettings._dynamicJitterBuffers = audioGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
-    if (_streamSettings._dynamicJitterBuffers) {
-        qDebug() << "Enable dynamic jitter buffers.";
-    } else {
-        qDebug() << "Dynamic jitter buffers disabled.";
-    }
-    
-    bool ok;
-    const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
-    _streamSettings._staticDesiredJitterBufferFrames = audioGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
-    if (!ok) {
-        _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
-    }
-    qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
-    
-    const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max_frames_over_desired";
-    _streamSettings._maxFramesOverDesired = audioGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
-    if (!ok) {
-        _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
-    }
-    qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
-    
-    const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use_stdev_for_desired_calc";
-    _streamSettings._useStDevForJitterCalc = audioGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
-    if (_streamSettings._useStDevForJitterCalc) {
-        qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
-    } else {
-        qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
-    }
-    
-    const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window_starve_threshold";
-    _streamSettings._windowStarveThreshold = audioGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
-    if (!ok) {
-        _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
-    }
-    qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
-    
-    const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "window_seconds_for_desired_calc_on_too_many_starves";
-    _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
-    if (!ok) {
-        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
-    }
-    qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
-    
-    const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "window_seconds_for_desired_reduction";
-    _streamSettings._windowSecondsForDesiredReduction = audioGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
-    if (!ok) {
-        _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
-    }
-    qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
-    
-    const QString REPETITION_WITH_FADE_JSON_KEY = "repetition_with_fade";
-    _streamSettings._repetitionWithFade = audioGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
-    if (_streamSettings._repetitionWithFade) {
-        qDebug() << "Repetition with fade enabled";
-    } else {
-        qDebug() << "Repetition with fade disabled";
-    }
-    
-    const QString PRINT_STREAM_STATS_JSON_KEY = "print_stream_stats";
-    _printStreamStats = audioGroupObject[PRINT_STREAM_STATS_JSON_KEY].toBool();
-    if (_printStreamStats) {
-        qDebug() << "Stream stats will be printed to stdout";
-    }
-    
-    const QString FILTER_KEY = "enable_filter";
-    if (audioGroupObject[FILTER_KEY].isBool()) {
-        _enableFilter = audioGroupObject[FILTER_KEY].toBool();
-    }
-    if (_enableFilter) {
-        qDebug() << "Filter enabled";
-    }
-    
-    const QString UNATTENUATED_ZONE_KEY = "unattenuated_zone";
-    
-    QString unattenuatedZoneString = audioGroupObject[UNATTENUATED_ZONE_KEY].toString();
-    if (!unattenuatedZoneString.isEmpty()) {
-        QStringList zoneStringList = unattenuatedZoneString.split(',');
+    if (settingsObject.contains(AUDIO_BUFFER_GROUP_KEY)) {
+        QJsonObject audioBufferGroupObject = settingsObject[AUDIO_BUFFER_GROUP_KEY].toObject();
         
-        glm::vec3 sourceCorner(zoneStringList[0].toFloat(), zoneStringList[1].toFloat(), zoneStringList[2].toFloat());
-        glm::vec3 sourceDimensions(zoneStringList[3].toFloat(), zoneStringList[4].toFloat(), zoneStringList[5].toFloat());
+        // check the payload to see if we have asked for dynamicJitterBuffer support
+        const QString DYNAMIC_JITTER_BUFFER_JSON_KEY = "dynamic_jitter_buffer";
+        _streamSettings._dynamicJitterBuffers = audioBufferGroupObject[DYNAMIC_JITTER_BUFFER_JSON_KEY].toBool();
+        if (_streamSettings._dynamicJitterBuffers) {
+            qDebug() << "Enable dynamic jitter buffers.";
+        } else {
+            qDebug() << "Dynamic jitter buffers disabled.";
+        }
         
-        glm::vec3 listenerCorner(zoneStringList[6].toFloat(), zoneStringList[7].toFloat(), zoneStringList[8].toFloat());
-        glm::vec3 listenerDimensions(zoneStringList[9].toFloat(), zoneStringList[10].toFloat(), zoneStringList[11].toFloat());
+        bool ok;
+        const QString DESIRED_JITTER_BUFFER_FRAMES_KEY = "static_desired_jitter_buffer_frames";
+        _streamSettings._staticDesiredJitterBufferFrames = audioBufferGroupObject[DESIRED_JITTER_BUFFER_FRAMES_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._staticDesiredJitterBufferFrames = DEFAULT_STATIC_DESIRED_JITTER_BUFFER_FRAMES;
+        }
+        qDebug() << "Static desired jitter buffer frames:" << _streamSettings._staticDesiredJitterBufferFrames;
         
-        _sourceUnattenuatedZone = new AABox(sourceCorner, sourceDimensions);
-        _listenerUnattenuatedZone = new AABox(listenerCorner, listenerDimensions);
+        const QString MAX_FRAMES_OVER_DESIRED_JSON_KEY = "max_frames_over_desired";
+        _streamSettings._maxFramesOverDesired = audioBufferGroupObject[MAX_FRAMES_OVER_DESIRED_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._maxFramesOverDesired = DEFAULT_MAX_FRAMES_OVER_DESIRED;
+        }
+        qDebug() << "Max frames over desired:" << _streamSettings._maxFramesOverDesired;
         
-        glm::vec3 sourceCenter = _sourceUnattenuatedZone->calcCenter();
-        glm::vec3 destinationCenter = _listenerUnattenuatedZone->calcCenter();
+        const QString USE_STDEV_FOR_DESIRED_CALC_JSON_KEY = "use_stdev_for_desired_calc";
+        _streamSettings._useStDevForJitterCalc = audioBufferGroupObject[USE_STDEV_FOR_DESIRED_CALC_JSON_KEY].toBool();
+        if (_streamSettings._useStDevForJitterCalc) {
+            qDebug() << "Using Philip's stdev method for jitter calc if dynamic jitter buffers enabled";
+        } else {
+            qDebug() << "Using Fred's max-gap method for jitter calc if dynamic jitter buffers enabled";
+        }
         
-        qDebug() << "There is an unattenuated zone with source center at"
-        << QString("%1, %2, %3").arg(sourceCenter.x).arg(sourceCenter.y).arg(sourceCenter.z);
-        qDebug() << "Buffers inside this zone will not be attenuated inside a box with center at"
-        << QString("%1, %2, %3").arg(destinationCenter.x).arg(destinationCenter.y).arg(destinationCenter.z);
-    }
-    
-    const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
-    if (audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {
-        bool ok = false;
-        float attenuation = audioGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].toString().toFloat(&ok);
-        if (ok) {
-            _attenuationPerDoublingInDistance = attenuation;
-            qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
+        const QString WINDOW_STARVE_THRESHOLD_JSON_KEY = "window_starve_threshold";
+        _streamSettings._windowStarveThreshold = audioBufferGroupObject[WINDOW_STARVE_THRESHOLD_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowStarveThreshold = DEFAULT_WINDOW_STARVE_THRESHOLD;
+        }
+        qDebug() << "Window A starve threshold:" << _streamSettings._windowStarveThreshold;
+        
+        const QString WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY = "window_seconds_for_desired_calc_on_too_many_starves";
+        _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES;
+        }
+        qDebug() << "Window A length:" << _streamSettings._windowSecondsForDesiredCalcOnTooManyStarves << "seconds";
+        
+        const QString WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY = "window_seconds_for_desired_reduction";
+        _streamSettings._windowSecondsForDesiredReduction = audioBufferGroupObject[WINDOW_SECONDS_FOR_DESIRED_REDUCTION_JSON_KEY].toString().toInt(&ok);
+        if (!ok) {
+            _streamSettings._windowSecondsForDesiredReduction = DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION;
+        }
+        qDebug() << "Window B length:" << _streamSettings._windowSecondsForDesiredReduction << "seconds";
+        
+        const QString REPETITION_WITH_FADE_JSON_KEY = "repetition_with_fade";
+        _streamSettings._repetitionWithFade = audioBufferGroupObject[REPETITION_WITH_FADE_JSON_KEY].toBool();
+        if (_streamSettings._repetitionWithFade) {
+            qDebug() << "Repetition with fade enabled";
+        } else {
+            qDebug() << "Repetition with fade disabled";
+        }
+        
+        const QString PRINT_STREAM_STATS_JSON_KEY = "print_stream_stats";
+        _printStreamStats = audioBufferGroupObject[PRINT_STREAM_STATS_JSON_KEY].toBool();
+        if (_printStreamStats) {
+            qDebug() << "Stream stats will be printed to stdout";
         }
     }
     
-    const QString AUDIO_ZONES = "zones";
-    if (audioGroupObject[AUDIO_ZONES].isObject()) {
-        const QJsonObject& zones = audioGroupObject[AUDIO_ZONES].toObject();
+    if (settingsObject.contains(AUDIO_ENV_GROUP_KEY)) {
+        QJsonObject audioEnvGroupObject = settingsObject[AUDIO_ENV_GROUP_KEY].toObject();
         
-        const QString X_RANGE = "x_range";
-        const QString Y_RANGE = "y_range";
-        const QString Z_RANGE = "z_range";
-        foreach (const QString& zone, zones.keys()) {
-            QJsonObject zoneObject = zones[zone].toObject();
+        const QString ATTENATION_PER_DOULING_IN_DISTANCE = "attenuation_per_doubling_in_distance";
+        if (audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].isString()) {
+            bool ok = false;
+            float attenuation = audioEnvGroupObject[ATTENATION_PER_DOULING_IN_DISTANCE].toString().toFloat(&ok);
+            if (ok) {
+                _attenuationPerDoublingInDistance = attenuation;
+                qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
+            }
+        }
+        
+        const QString FILTER_KEY = "enable_filter";
+        if (audioEnvGroupObject[FILTER_KEY].isBool()) {
+            _enableFilter = audioEnvGroupObject[FILTER_KEY].toBool();
+        }
+        if (_enableFilter) {
+            qDebug() << "Filter enabled";
+        }
+        
+        const QString AUDIO_ZONES = "zones";
+        if (audioEnvGroupObject[AUDIO_ZONES].isObject()) {
+            const QJsonObject& zones = audioEnvGroupObject[AUDIO_ZONES].toObject();
             
-            if (zoneObject.contains(X_RANGE) && zoneObject.contains(Y_RANGE) && zoneObject.contains(Z_RANGE)) {
-                QStringList xRange = zoneObject.value(X_RANGE).toString().split("-", QString::SkipEmptyParts);
-                QStringList yRange = zoneObject.value(Y_RANGE).toString().split("-", QString::SkipEmptyParts);
-                QStringList zRange = zoneObject.value(Z_RANGE).toString().split("-", QString::SkipEmptyParts);
+            const QString X_RANGE = "x_range";
+            const QString Y_RANGE = "y_range";
+            const QString Z_RANGE = "z_range";
+            foreach (const QString& zone, zones.keys()) {
+                QJsonObject zoneObject = zones[zone].toObject();
                 
-                if (xRange.size() == 2 && yRange.size() == 2 && zRange.size() == 2) {
-                    float xMin, xMax, yMin, yMax, zMin, zMax;
-                    bool ok, allOk = true;
-                    xMin = xRange[0].toFloat(&ok) / (float)TREE_SCALE;
-                    allOk &= ok;
-                    xMax = xRange[1].toFloat(&ok) / (float)TREE_SCALE;
-                    allOk &= ok;
-                    yMin = yRange[0].toFloat(&ok) / (float)TREE_SCALE;
-                    allOk &= ok;
-                    yMax = yRange[1].toFloat(&ok) / (float)TREE_SCALE;
-                    allOk &= ok;
-                    zMin = zRange[0].toFloat(&ok) / (float)TREE_SCALE;
-                    allOk &= ok;
-                    zMax = zRange[1].toFloat(&ok) / (float)TREE_SCALE;
-                    allOk &= ok;
+                if (zoneObject.contains(X_RANGE) && zoneObject.contains(Y_RANGE) && zoneObject.contains(Z_RANGE)) {
+                    QStringList xRange = zoneObject.value(X_RANGE).toString().split("-", QString::SkipEmptyParts);
+                    QStringList yRange = zoneObject.value(Y_RANGE).toString().split("-", QString::SkipEmptyParts);
+                    QStringList zRange = zoneObject.value(Z_RANGE).toString().split("-", QString::SkipEmptyParts);
                     
-                    if (allOk) {
-                        glm::vec3 corner(xMin, yMin, zMin);
-                        glm::vec3 dimension(xMax - xMin, yMax - yMin, zMax - zMin);
-                        AABox zoneAABox(corner, dimension);
-                        _audioZones.insert(zone, zoneAABox);
-                        qDebug() << "Added zone:" << zoneAABox;
+                    if (xRange.size() == 2 && yRange.size() == 2 && zRange.size() == 2) {
+                        float xMin, xMax, yMin, yMax, zMin, zMax;
+                        bool ok, allOk = true;
+                        xMin = xRange[0].toFloat(&ok) / (float)TREE_SCALE;
+                        allOk &= ok;
+                        xMax = xRange[1].toFloat(&ok) / (float)TREE_SCALE;
+                        allOk &= ok;
+                        yMin = yRange[0].toFloat(&ok) / (float)TREE_SCALE;
+                        allOk &= ok;
+                        yMax = yRange[1].toFloat(&ok) / (float)TREE_SCALE;
+                        allOk &= ok;
+                        zMin = zRange[0].toFloat(&ok) / (float)TREE_SCALE;
+                        allOk &= ok;
+                        zMax = zRange[1].toFloat(&ok) / (float)TREE_SCALE;
+                        allOk &= ok;
+                        
+                        if (allOk) {
+                            glm::vec3 corner(xMin, yMin, zMin);
+                            glm::vec3 dimension(xMax - xMin, yMax - yMin, zMax - zMin);
+                            AABox zoneAABox(corner, dimension);
+                            _audioZones.insert(zone, zoneAABox);
+                            qDebug() << "Added zone:" << zoneAABox;
+                        }
                     }
                 }
             }
