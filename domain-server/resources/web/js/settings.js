@@ -1,6 +1,7 @@
 var Settings = {
   showAdvanced: false,
   ADVANCED_CLASS: 'advanced-setting',
+  TRIGGER_CHANGE_CLASS: 'trigger-change',
   DATA_ROW_CLASS: 'value-row',
   DATA_COL_CLASS: 'value-col',
   ADD_ROW_BUTTON_CLASS: 'add-row',
@@ -28,7 +29,7 @@ var viewHelpers = {
     }
     
     common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
-      + " trigger-change' data-short-name='" + setting.name + "' name='" + setting_name + "' "
+      + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
     
     if (setting.type === 'checkbox') {
       form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
@@ -121,7 +122,7 @@ $(document).ready(function(){
     }
   });
     
-  $('#settings-form').on('change', 'input.trigger-change', function(){
+  $('#settings-form').on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
