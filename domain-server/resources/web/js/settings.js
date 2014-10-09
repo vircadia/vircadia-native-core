@@ -321,6 +321,7 @@ function badgeSidebarForDifferences(changedInput) {
   
   // get a JSON representation of that section
   var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID]
+  var initialPanelJSON = Settings.initialValues[panelParentID]
   
   console.log(panelJSON)
   console.log(Settings.initialValues[panelParentID])
@@ -329,14 +330,8 @@ function badgeSidebarForDifferences(changedInput) {
   
   // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
-    if (panelJSON[setting] != Settings.initialValues[panelParentID][setting]) {
-      badgeValue += 1
-    }
-  }
-  
-  // badge for any settings we remove that are in the initialValues
-  for (var setting in Settings.initialValues[panelParentID]) {
-    if (!_.has(panelJSON, setting)) {
+    if (panelJSON[setting] !== initialPanelJSON[setting] 
+        && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting))) {
       badgeValue += 1
     }
   }
