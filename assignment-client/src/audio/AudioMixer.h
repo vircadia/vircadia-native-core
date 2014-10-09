@@ -66,6 +66,8 @@ private:
     QString getReadPendingDatagramsTimeStatsString() const;
     QString getReadPendingDatagramsHashMatchTimeStatsString() const;
     
+    void parseSettingsObject(const QJsonObject& settingsObject);
+    
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
     float _performanceThrottlingRatio;
@@ -75,6 +77,7 @@ private:
     int _sumMixes;
     AABox* _sourceUnattenuatedZone;
     AABox* _listenerUnattenuatedZone;
+    QHash<QString, AABox> _audioZones;
 
     static InboundAudioStream::Settings _streamSettings;
 
