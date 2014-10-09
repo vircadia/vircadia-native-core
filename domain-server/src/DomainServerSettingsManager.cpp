@@ -295,6 +295,8 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
 void DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject,
                                                                         QVariantMap& settingsVariant,
                                                                         const QJsonArray& descriptionArray) {
+    
+    qDebug() << postedObject;
     // Iterate on the setting groups
     foreach(const QString& groupKey, postedObject.keys()) {
         QJsonValue groupValue = postedObject[groupKey];

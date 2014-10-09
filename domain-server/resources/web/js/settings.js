@@ -102,8 +102,15 @@ $(document).ready(function(){
       row.empty()
       row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
     } else {      
-      // just remove this row completely - the removal of the hidden input will remove it from the array on post
-      row.remove()
+      if (table.children('tr.row-data').length) {
+        // this isn't the last row - we can just remove it
+        row.remove()
+      } else {
+        // this is the last row, we can't remove it completely since we need to post an empty array
+        row.empty()
+        row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
+          + "' data-changed='true' value=''>");
+      }
       
       // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
       badgeSidebarForDifferences($(table))
