@@ -109,11 +109,13 @@ $(document).ready(function(){
       sibling = $(this).parent('td').next();
       
       if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
-        // jump to that input
+        // set focus to next input
         sibling.find('input').focus()
       } else if (sibling.hasClass(Settings.TABLE_BUTTONS_CLASS)) {
         sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
-        $(this).blur()
+        
+        // set focus to the first input in the new row
+        $(this).closest('table').find('tr.inputs input:first').focus()
       }      
     }
   });
