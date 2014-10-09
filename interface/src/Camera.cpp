@@ -22,13 +22,16 @@
 
 
 Camera::Camera() : 
-    _needsToInitialize(true),
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _aspectRatio(16.0f/9.0f),
     _nearClip(DEFAULT_NEAR_CLIP), // default
     _farClip(DEFAULT_FAR_CLIP), // default
+    _hmdPosition(),
+    _hmdRotation(),
+    _targetPosition(),
+    _targetRotation(),
     _scale(1.0f)
 {
 }
@@ -63,26 +66,6 @@ void Camera::setNearClip(float n) {
 void Camera::setFarClip(float f) { 
     _farClip = f;
 }
-
-void Camera::setEyeOffsetPosition(const glm::vec3& p) {
-    _eyeOffsetPosition = p;
-}
-
-void Camera::setEyeOffsetOrientation(const glm::quat& o) {
-    _eyeOffsetOrientation = o;
-
-}
-
-void Camera::setScale(float s) {
-    _scale = s;
-    _needsToInitialize = true;
-
-}
-
-void Camera::initialize() {
-    _needsToInitialize = true;
-}
-
 
 CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :
     _camera(camera), _viewFrustum(viewFrustum) 

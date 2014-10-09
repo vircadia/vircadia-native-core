@@ -337,15 +337,22 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #else
         ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
 #endif
-        //Set the camera rotation for this eye
+        // Set the camera rotation for this eye
         eyeRenderPose[eye] = ovrHmd_GetEyePose(_ovrHmd, eye);
         orientation.x = eyeRenderPose[eye].Orientation.x;
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
         
-        _camera->setRotation(bodyOrientation * orientation);
-        _camera->setPosition(position + trackerPosition);
+        // Update the application camera with the latest HMD position
+        whichCamera.setHmdPosition(trackerPosition);
+        whichCamera.setHmdRotation(orientation);
+        
+        //_camera->setRotation(bodyOrientation * orientation);
+        //_camera->setPosition(position + trackerPosition);
+        // Update our camera to what the application camera is doing
+        _camera->setRotation(whichCamera.getRotation());
+        _camera->setPosition(whichCamera.getPosition());
         
         //  Store the latest left and right eye render locations for things that need to know
         glm::vec3 thisEyePosition = position + trackerPosition +
@@ -409,8 +416,8 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     glBindTexture(GL_TEXTURE_2D, 0);
     
     // Update camera for use by rest of Interface.
-    whichCamera.setPosition((_leftEyePosition + _rightEyePosition) / 2.f);
-    whichCamera.setRotation(_camera->getRotation());
+    //whichCamera.setPosition((_leftEyePosition + _rightEyePosition) / 2.f);
+    //whichCamera.setRotation(_camera->getRotation());
 
 #endif
 }
