@@ -989,7 +989,41 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                             glm::vec3 dimension(xMax - xMin, yMax - yMin, zMax - zMin);
                             AABox zoneAABox(corner, dimension);
                             _audioZones.insert(zone, zoneAABox);
-                            qDebug() << "Added zone:" << zoneAABox;
+                            qDebug() << "Added zone:" << zone << zoneAABox;
+                        }
+                    }
+                }
+            }
+        }
+        
+        const QString ATTENUATION_COEFFICIENTS = "attenuation_coefficients";
+        if (audioEnvGroupObject[ATTENUATION_COEFFICIENTS].isArray()) {
+            const QJsonArray& coefficients = audioEnvGroupObject[ATTENUATION_COEFFICIENTS].toArray();
+            
+            const QString SOURCE = "source";
+            const QString LISTENER = "listener";
+            const QString COEFFICIENT = "coefficient";
+            for (int i = 0; i < coefficients.count(); ++i) {
+                QJsonObject coefficientObject = coefficients[i].toObject();
+                
+                if (coefficientObject.contains(SOURCE) &&
+                    coefficientObject.contains(LISTENER) &&
+                    coefficientObject.contains(COEFFICIENT)) {
+                    
+                    bool ok;
+                    QString source = coefficientObject.value(SOURCE).toString();
+                    QString listener = coefficientObject.value(LISTENER).toString();
+                    float coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
+                    
+                    if (ok && coefficient >= 0.0f && coefficient <= 1.0f &&
+                        _audioZones.contains(source) && _audioZones.contains(listener)) {
+                        
+                        if (!_attenuationCoefficients.contains(source)) {
+                            _attenuationCoefficients.insert(source, QHash<QString, float>());
+                        }
+                        if (!_attenuationCoefficients[source].contains(listener)) {
+                            _attenuationCoefficients[source].insert(listener, coefficient);
+                            qDebug() << "Added Coefficient:" << source << listener << coefficient;
                         }
                     }
                 }
@@ -997,3 +1031,5 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
         }
     }
 }
+
+

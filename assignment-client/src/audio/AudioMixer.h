@@ -75,6 +75,7 @@ private:
     int _sumListeners;
     int _sumMixes;
     QHash<QString, AABox> _audioZones;
+    QHash<QString, QHash<QString, float> > _attenuationCoefficients;
 
     static InboundAudioStream::Settings _streamSettings;
 
