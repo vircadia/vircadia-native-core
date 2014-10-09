@@ -474,21 +474,24 @@ function deleteTableRow(delete_glyphicon) {
   if (!isArray) {
     // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
     row.empty()
-    row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
-  } else if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
-    updateDataChangedForSiblingRows(row)
-    
-    // this isn't the last row - we can just remove it
-    row.remove()
+    row.html("<input type='hidden' class='form-control' name='" 
+      + row.attr('name') + "' data-changed='true' value=''>");
   } else {
-    // this is the last row, we can't remove it completely since we need to post an empty array
-    row.empty()
+    if (table.find('.' + Settings.DATA_ROW_CLASS).length) {
+      updateDataChangedForSiblingRows(row)
     
-    row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
-    row.addClass('empty-array-row')
+      // this isn't the last row - we can just remove it
+      row.remove()
+    } else {
+      // this is the last row, we can't remove it completely since we need to post an empty array
+      row.empty()
     
-    row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
-      + "' data-changed='true' value=''>");
+      row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
+      row.addClass('empty-array-row')
+    
+      row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
+        + "' data-changed='true' value=''>");
+    }
   }
   
   // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
