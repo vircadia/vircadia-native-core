@@ -6,7 +6,8 @@ var Settings = {
   DATA_COL_CLASS: 'value-col',
   ADD_ROW_BUTTON_CLASS: 'add-row',
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
-  TABLE_BUTTONS_CLASS: 'buttons'
+  TABLE_BUTTONS_CLASS: 'buttons',
+  NEW_ROW_CLASS: 'new-row'
 };
 
 var viewHelpers = {
@@ -400,7 +401,7 @@ function addTableRow(add_glyphicon) {
   var table = row.parents("table")
   var setting_name = table.attr("name") 
   var full_name = setting_name + "." + key
-  row.addClass(Settings.DATA_ROW_CLASS + " new-row")
+  row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS)
   row.removeClass("inputs")
       
   _.each(row.children(), function(element) {
@@ -481,7 +482,7 @@ function deleteTableRow(delete_glyphicon) {
     // this is the last row, we can't remove it completely since we need to post an empty array
     row.empty()
     
-    row.removeClass(Settings.DATA_ROW_CLASS).removeClass('new-row')
+    row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
     row.addClass('empty-array-row')
     
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
