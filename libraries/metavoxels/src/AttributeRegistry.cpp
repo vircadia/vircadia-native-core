@@ -70,7 +70,7 @@ AttributeRegistry::AttributeRegistry() :
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldMaterialAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     
-    const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 32.0f;
+    const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 16.0f;
     _voxelColorAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
     _voxelColorAttribute->setUserFacing(true);
     _voxelMaterialAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
