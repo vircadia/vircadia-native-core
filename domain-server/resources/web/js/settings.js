@@ -2,7 +2,9 @@ var Settings = {
   showAdvanced: false,
   ADVANCED_CLASS: 'advanced-setting',
   DATA_ROW_CLASS: 'value-row',
-  DATA_COL_CLASS: 'value-col'
+  DATA_COL_CLASS: 'value-col',
+  ADD_ROW_BUTTON_CLASS: 'add-row',
+  TABLE_BUTTONS_CLASS: 'buttons'
 };
 
 var viewHelpers = {
@@ -99,6 +101,22 @@ $(document).ready(function(){
   $('#settings-form').on('click', '.del-row', function(){
     deleteTableRow(this);
   })
+  
+  $('#settings-form').on('keypress', 'table input', function(e){
+    if (e.keyCode == 13) {
+      // capture enter in table input
+      // if we have a sibling next to us that has an input, jump to it, otherwise check if we have a glyphicon for add to click
+      sibling = $(this).parent('td').next();
+      
+      if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
+        // jump to that input
+        sibling.find('input').focus()
+      } else if (sibling.hasClass(Settings.TABLE_BUTTONS_CLASS)) {
+        sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+        $(this).blur()
+      }      
+    }
+  });
     
   $('#settings-form').on('change', 'input.trigger-change', function(){
     // this input was changed, add the changed data attribute to it
