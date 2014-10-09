@@ -92,29 +92,7 @@ $(document).ready(function(){
   })
     
   $('#settings-form').on('click', '.del-row', function(){
-    var row = $(this).parents('tr')
-    
-    var table = $(row).closest('table')
-    var isArray = table.data('setting-type') === 'array'
-    
-    if (!isArray) {
-      // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
-      row.empty()
-      row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
-    } else {      
-      if (table.children('tr.row-data').length) {
-        // this isn't the last row - we can just remove it
-        row.remove()
-      } else {
-        // this is the last row, we can't remove it completely since we need to post an empty array
-        row.empty()
-        row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
-          + "' data-changed='true' value=''>");
-      }
-    }
-    
-    // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
-    badgeSidebarForDifferences($(table))
+    deleteTableRow(this);
   })
     
   $('#settings-form').on('change', 'input.trigger-change', function(){
@@ -254,7 +232,7 @@ function makeTable(setting, setting_name, setting_value) {
   var row_num = 1
   
   _.each(setting_value, function(row, indexOrName) {
-    html += "<tr" + (isArray ? "" : "name='" + setting_name + "." + indexOrName) + "'>"
+    html += "<tr class='row-data'" + (isArray ? "" : "name='" + setting_name + "." + indexOrName + "'") + ">"
     
     if (setting.numbered === true) {
       html += "<td class='numbered'>" + row_num + "</td>"
@@ -323,14 +301,11 @@ function badgeSidebarForDifferences(changedInput) {
   var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID]
   var initialPanelJSON = Settings.initialValues[panelParentID]
   
-  console.log(panelJSON)
-  console.log(Settings.initialValues[panelParentID])
-  
   var badgeValue = 0
   
   // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
-    if (panelJSON[setting] !== initialPanelJSON[setting] 
+    if (!_.isEqual(panelJSON[setting], initialPanelJSON[setting]) 
         && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting))) {
       badgeValue += 1
     }
@@ -392,7 +367,8 @@ function addTableRow(add_glyphicon) {
   var table = row.parents("table")
   var setting_name = table.attr("name") 
   var full_name = setting_name + "." + name
-  row.attr("class", "row-data")
+  row.addClass("row-data new-row")
+  row.removeClass("inputs")
       
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) { 
@@ -435,9 +411,53 @@ function addTableRow(add_glyphicon) {
     $(this).val('')
   });
   
+  if (isArray) {
+    updateDataChangedForSiblingRows(row, true)
+  }
+  
   badgeSidebarForDifferences($(table))
   
   row.parent().append(input_clone)
+}
+
+function deleteTableRow(delete_glyphicon) {
+  var row = $(delete_glyphicon).closest('tr')
+  
+  var table = $(row).closest('table')
+  var isArray = table.data('setting-type') === 'array'
+  
+  if (!isArray) {
+    // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
+    row.empty()
+    row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
+  } else if (table.find('tr.row-data').length > 1) {
+    updateDataChangedForSiblingRows(row, true)
+    
+    // this isn't the last row - we can just remove it
+    row.remove()
+  } else {
+    // this is the last row, we can't remove it completely since we need to post an empty array
+    row.empty()
+    
+    row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
+      + "' data-changed='true' value=''>");
+  }
+  
+  // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
+  badgeSidebarForDifferences($(table))
+} 
+
+function updateDataChangedForSiblingRows(row, isTrue) {
+  // anytime a new row is added to an array we need to set data-changed for all sibling row-data inputs to true
+  row.siblings('.row-data').each(function(){
+    var hiddenInput = $(this).find('td.row-data input')
+    if (isTrue) {
+      hiddenInput.attr('data-changed', isTrue)
+    } else {
+      hiddenInput.removeAttr('data-changed')
+    }
+    
+  })
 }
 
 function showRestartModal() {
