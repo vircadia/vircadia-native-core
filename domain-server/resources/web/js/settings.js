@@ -25,7 +25,7 @@ var viewHelpers = {
       form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
-      form_group += "<input type='checkbox' name='" + setting_name + "' " +
+      form_group += "<input type='checkbox' class='trigger-change' name='" + setting_name + "' " +
         (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
@@ -46,14 +46,14 @@ var viewHelpers = {
         
         form_group += "</select>"
         
-        form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
+        form_group += "<input type='hidden' class='trigger-change' name='" + setting_name + "' value='" + setting_value + "'>"
       } else {
         
         if (input_type == 'integer') {
           input_type = "text"
         }
         
-        form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name + 
+        form_group += "<input type='" + input_type + "' class='form-control trigger-change' name='" + setting_name + 
           "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
           "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       }
@@ -117,7 +117,7 @@ $(document).ready(function(){
     }
   })
     
-  $('#settings-form').on('change', 'input', function(){
+  $('#settings-form').on('change', 'input.trigger-change', function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
@@ -335,8 +335,16 @@ function badgeSidebarForDifferences(changedInput) {
   
   var badgeValue = 0
   
-  for (var setting in Settings.initialValues[panelParentID]) {
+  // badge for any settings we have that are not the same or are not present in initialValues
+  for (var setting in panelJSON) {
     if (panelJSON[setting] != Settings.initialValues[panelParentID][setting]) {
+      badgeValue += 1
+    }
+  }
+  
+  // badge for any settings we remove that are in the initialValues
+  for (var setting in Settings.initialValues[panelParentID]) {
+    if (!_.has(panelJSON, setting)) {
       badgeValue += 1
     }
   }
@@ -394,7 +402,8 @@ function addTableRow(add_glyphicon) {
   var input_clone = row.clone()
   
   // Change input row to data row
-  var setting_name = row.parents("table").attr("name") 
+  var table = row.parents("table")
+  var setting_name = table.attr("name") 
   var full_name = setting_name + "." + name
   row.attr("class", "row-data")
       
@@ -419,7 +428,8 @@ function addTableRow(add_glyphicon) {
       var input = $(element).children("input")
       $(element).html(input.val())
       input.remove()
-    } else if ($(element).hasClass("row-data")) { // Hide inputs
+    } else if ($(element).hasClass("row-data")) { 
+      // Hide inputs
       var input = $(element).children("input")
       input.attr("type", "hidden")
       
@@ -429,10 +439,9 @@ function addTableRow(add_glyphicon) {
         input.attr("name", full_name + "." + $(element).attr("name"))
       }
       
-      input.attr("value", input.val())
       input.attr("data-changed", "true")
              
-      $(element).html($(element).html() + input.val())
+      $(element).append(input.val())
     } else {
       console.log("Unknown table element")
     }
@@ -441,6 +450,8 @@ function addTableRow(add_glyphicon) {
   input_clone.find('input').each(function(){
     $(this).val('')
   });
+  
+  badgeSidebarForDifferences($(table))
   
   row.parent().append(input_clone)
 }
