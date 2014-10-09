@@ -338,15 +338,15 @@ function addTableRow(add_glyphicon) {
   
   if (!isArray) {
     // Check key spaces
-    var name = row.children(".key").children("input").val()
-    if (name.indexOf(' ') !== -1) {
+    var key = row.children(".key").children("input").val()
+    if (key.indexOf(' ') !== -1) {
       showErrorMessage("Error", "Key contains spaces")
       return
     }
     // Check keys with the same name
     var equals = false;
     _.each(data.children(".key"), function(element) {
-      if ($(element).text() === name) {
+      if ($(element).text() === key) {
         equals = true
         return
       }
@@ -376,7 +376,7 @@ function addTableRow(add_glyphicon) {
   // Change input row to data row
   var table = row.parents("table")
   var setting_name = table.attr("name") 
-  var full_name = setting_name + "." + name
+  var full_name = setting_name + "." + key
   row.addClass("row-data new-row")
   row.removeClass("inputs")
       
@@ -405,8 +405,12 @@ function addTableRow(add_glyphicon) {
       
       if (isArray) {
         var row_index = row.siblings('tr.row-data').length
+        var key = $(element).attr('name')
         
-        input.attr("name", setting_name + "[" + row_index + "]")
+        // are there multiple columns or just one?
+        // with multiple we have an array of Objects, with one we have an array of whatever the value type is
+        var num_columns = row.children('td.row-data').length
+        input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))        
       } else {
         input.attr("name", full_name + "." + $(element).attr("name"))
       }
