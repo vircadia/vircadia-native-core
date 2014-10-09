@@ -64,9 +64,23 @@
   },
   {
     "name": "audio",
-    "label": "Audio",
+    "label": "Audio Environment",
     "assignment-types": [0],
     "settings": [
+      {
+        "name": "attenuation_per_doubling_in_distance",
+        "label": "Default Domain Attenuation",
+        "help": "Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)",
+        "placeholder": "0.18",
+        "default": "0.18",
+        "advanced": false
+      },
+      {
+        "name": "enable_filter",
+        "type": "checkbox",
+        "help": "positional audio stream uses lowpass filter",
+        "default": true
+      },
       {
         "name": "zones",
         "type": "table",
@@ -76,7 +90,7 @@
         "key": {
           "name": "name",
           "label": "Name",
-          "placeholder": "Zone name"
+          "placeholder": "Zone_Name"
         },
         "columns": [
           {
@@ -100,26 +114,39 @@
         ]
       },
       {
-        "name": "enable_filter",
-        "type": "checkbox",
-        "label": "Positional filter",
-        "help": "positional audio stream uses lowpass filter",
-        "default": true
-      },
-      {
-        "name": "unattenuated_zone",
-        "label": "Unattenuated Zone",
-        "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
-        "placeholder": "no zone"
-      },
-      {
-        "name": "attenuation_per_doubling_in_distance",
-        "label": "Attenuation per doubling in distance",
-        "help": "Factor between 0.0 and 1.0 (0.0: No attenuation, 1.0: extreme attenuation)",
-        "placeholder": "0.18",
-        "default": "0.18",
-        "advanced": false
-      },
+        "name": "attenuation_coefficients",
+        "type": "table",
+        "label": "Attenuation Coefficients",
+        "help": "In this table you can set custom attenuation coefficients between audio zones",
+        "numbered": false,
+        "columns": [
+          {
+            "name": "source",
+            "label": "Source",
+            "can_set": true,
+            "placeholder": "Zone_A"
+          },
+          {
+            "name": "listener",
+            "label": "Listener",
+            "can_set": true,
+            "placeholder": "Zone_B"
+          },
+          {
+            "name": "coefficient",
+            "label": "Attenuation coefficient",
+            "can_set": true,
+            "placeholder": "0.18"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "audio_advanced",
+    "label": "Audio Buffer",
+    "assignment-types": [0],
+    "settings": [
       {
         "name": "dynamic_jitter_buffer",
         "type": "checkbox",
