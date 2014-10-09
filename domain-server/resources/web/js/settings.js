@@ -210,7 +210,7 @@ function makeTable(setting, setting_name, setting_value) {
   
   var html = "<label class='control-label'>" + setting.label + "</label>"
   html += "<span class='help-block'>" + setting.help + "</span>"
-  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name + (isArray ? "[]" : "") 
+  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
   // Column names
@@ -248,9 +248,15 @@ function makeTable(setting, setting_name, setting_value) {
       html += "<td class='row-data'>"
       
       if (isArray) {
-        html += row
+        colIsArray = _.isArray(row)
+        colValue = colIsArray ? row : row[col.name]
+        html += colValue
+        
         // for arrays we add a hidden input to this td so that values can be posted appropriately
-        html += "<input type='hidden' name='" + setting_name + "[]' value='" + row + "'/>"
+        html += "<input type='hidden' name='" + setting_name + "[" + indexOrName + "]" 
+          + (colIsArray ? "" : "." + col.name) + "' value='" + colValue + "'/>"
+          
+        
       } else if (row.hasOwnProperty(col.name)) {
         html += row[col.name] 
       }
@@ -260,6 +266,7 @@ function makeTable(setting, setting_name, setting_value) {
     
     html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
     html += "</tr>"
+    
     row_num++
   })
     
@@ -358,11 +365,12 @@ function addTableRow(add_glyphicon) {
       return
     }
   })
+  
   if (empty) {
     showErrorMessage("Error", "Empty field(s)")
     return
   }
-      
+  
   var input_clone = row.clone()
   
   // Change input row to data row
@@ -384,7 +392,7 @@ function addTableRow(add_glyphicon) {
     } else if ($(element).hasClass("buttons")) { 
       // Change buttons
       var span = $(element).children("span")
-      span.removeClass("glyphicon-ok add-row")
+      span.removeClass("glyphicon-plus add-row")
       span.addClass("glyphicon-remove del-row")
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
@@ -396,7 +404,9 @@ function addTableRow(add_glyphicon) {
       input.attr("type", "hidden")
       
       if (isArray) {
-        input.attr("name", setting_name)
+        var row_index = row.siblings('tr.row-data').length
+        
+        input.attr("name", setting_name + "[" + row_index + "]")
       } else {
         input.attr("name", full_name + "." + $(element).attr("name"))
       }
