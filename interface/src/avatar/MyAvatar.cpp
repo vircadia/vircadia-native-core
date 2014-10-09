@@ -1126,7 +1126,7 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     
     //  Render head so long as the camera isn't inside it
     const Camera *camera = Application::getInstance()->getCamera();
-    const glm::vec3 cameraPos = camera->getPosition() + (camera->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) * camera->getDistance();
+    const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
         getHead()->render(1.0f, modelRenderMode, postLighting);
         

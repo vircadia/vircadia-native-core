@@ -72,9 +72,7 @@
         "type": "table",
         "label": "Zones",
         "help": "In this table you can define a set of zones in which you can specify various audio properties.",
-        "number": false,
-        "can_add": true,
-        "can_delete": true,
+        "numbered": false,
         "key": {
           "name": "name",
           "label": "Name",
@@ -98,6 +96,33 @@
             "label": "Z range",
             "can_set": true,
             "placeholder": "0-16384"
+          }
+        ]
+      },
+      {
+        "name": "attenuation_coefficients",
+        "type": "table",
+        "label": "Attenuation Coefficients",
+        "help": "In this table you can set custom attenuation coefficients between audio zones",
+        "numbered": false,
+        "columns": [
+          {
+            "name": "source",
+            "label": "Source",
+            "can_set": true,
+            "placeholder": "Zone_A"
+          },
+          {
+            "name": "listener",
+            "label": "Listener",
+            "can_set": true,
+            "placeholder": "Zone_B"
+          },
+          {
+            "name": "coefficient",
+            "label": "Attenuation coefficient",
+            "can_set": true,
+            "placeholder": "0.18"
           }
         ]
       },

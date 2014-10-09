@@ -31,13 +31,19 @@ public:
     
 public slots:
     Joystick* joystickWithName(const QString& name);
+    void reset();
     
 private:
+#ifdef HAVE_SDL
+    SDL_Joystick* openSDLJoystickWithName(const QString& name);
+#endif
+    
     JoystickScriptingInterface();
     ~JoystickScriptingInterface();
     
     QMap<QString, Joystick*> _openJoysticks;
     QStringList _availableDeviceNames;
+    bool _isInitialized;
 };
 
 #endif // hifi_JoystickScriptingInterface_h
