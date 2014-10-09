@@ -6,6 +6,8 @@ var Settings = {
   DATA_COL_CLASS: 'value-col',
   ADD_ROW_BUTTON_CLASS: 'add-row',
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
+  DEL_ROW_BUTTON_CLASS: 'del-row',
+  DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
   TABLE_BUTTONS_CLASS: 'buttons',
   NEW_ROW_CLASS: 'new-row'
 };
@@ -101,7 +103,7 @@ $(document).ready(function(){
     addTableRow(this);
   })
     
-  $('#settings-form').on('click', '.del-row', function(){
+  $('#settings-form').on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
     deleteTableRow(this);
   })
   
@@ -288,7 +290,7 @@ function makeTable(setting, setting_name, setting_value) {
       html += "</td>"
     })
     
-    html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
+    html += "<td class='buttons'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
     html += "</tr>"
     
     row_num++
@@ -417,7 +419,7 @@ function addTableRow(add_glyphicon) {
       // Change buttons
       var span = $(element).children("span")
       span.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
-      span.addClass("glyphicon glyphicon-remove del-row")
+      span.addClass(Settings.DEL_ROW_SPAN_CLASSES)
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
       $(element).html(input.val())
