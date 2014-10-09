@@ -1507,6 +1507,12 @@ SelectionDisplay = (function () {
         }
 
         var pickRay = Camera.computePickRay(event.x, event.y);
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
+        
         var result = Overlays.findRayIntersection(pickRay);
         print("result.intersects:" + result.intersects);
         print("result.overlayID:" + overlayNames[result.overlayID]);
@@ -1519,12 +1525,36 @@ SelectionDisplay = (function () {
         if (!entitySelected || mode !== "ROTATE_PITCH") {
             return; // not allowed
         }
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
+        var result = Overlays.findRayIntersection(pickRay);
+        print("result.intersects:" + result.intersects);
+        print("result.overlayID:" + overlayNames[result.overlayID]);
+        print("result.distance:" + result.distance);
+        print("result.face:" + result.face);
+        Vec3.print("result.intersection:", result.intersection);
     };
 
     that.rotateRoll = function(event) {
         if (!entitySelected || mode !== "ROTATE_ROLL") {
             return; // not allowed
         }
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
+        var result = Overlays.findRayIntersection(pickRay);
+        print("result.intersects:" + result.intersects);
+        print("result.overlayID:" + overlayNames[result.overlayID]);
+        print("result.distance:" + result.distance);
+        print("result.face:" + result.face);
+        Vec3.print("result.intersection:", result.intersection);
     };
 
     that.checkMove = function() {
