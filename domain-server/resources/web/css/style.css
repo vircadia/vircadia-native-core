@@ -84,3 +84,8 @@ td.buttons .glyphicon {
   text-align: center;
   font-size: 12px;
 }
+
+tr.new-row {
+  color: #3c763d;
+  background-color: #dff0d8;
+}

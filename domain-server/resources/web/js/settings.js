@@ -1,12 +1,22 @@
 var Settings = {
-  showAdvanced: false
+  showAdvanced: false,
+  ADVANCED_CLASS: 'advanced-setting',
+  TRIGGER_CHANGE_CLASS: 'trigger-change',
+  DATA_ROW_CLASS: 'value-row',
+  DATA_COL_CLASS: 'value-col',
+  ADD_ROW_BUTTON_CLASS: 'add-row',
+  ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
+  DEL_ROW_BUTTON_CLASS: 'del-row',
+  DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  TABLE_BUTTONS_CLASS: 'buttons',
+  NEW_ROW_CLASS: 'new-row'
 };
 
 var viewHelpers = {
   getFormGroup: function(groupName, setting, values, isAdvanced, isLocked) {
     setting_name = groupName + "." + setting.name
     
-    form_group = "<div class='form-group" + (isAdvanced ? " advanced-setting" : "") + "'>"
+    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>"
     
     if (_.has(values, groupName) && _.has(values[groupName], setting.name)) {
       setting_value = values[groupName][setting.name] 
@@ -22,7 +32,7 @@ var viewHelpers = {
     }
     
     common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
-      + " trigger-change' data-short-name='" + setting.name + "' name='" + setting_name + "' "
+      + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
     
     if (setting.type === 'checkbox') {
       if (setting.label) {
@@ -93,15 +103,33 @@ $(document).ready(function(){
     $(window).resize(resizeFn);
   })
                   
-  $('#settings-form').on('click', '.add-row', function(){
+  $('#settings-form').on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
     addTableRow(this);
   })
     
-  $('#settings-form').on('click', '.del-row', function(){
+  $('#settings-form').on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
     deleteTableRow(this);
   })
+  
+  $('#settings-form').on('keypress', 'table input', function(e){
+    if (e.keyCode == 13) {
+      // capture enter in table input
+      // if we have a sibling next to us that has an input, jump to it, otherwise check if we have a glyphicon for add to click
+      sibling = $(this).parent('td').next();
+      
+      if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
+        // set focus to next input
+        sibling.find('input').focus()
+      } else if (sibling.hasClass(Settings.TABLE_BUTTONS_CLASS)) {
+        sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+        
+        // set focus to the first input in the new row
+        $(this).closest('table').find('tr.inputs input:first').focus()
+      }      
+    }
+  });
     
-  $('#settings-form').on('change', 'input.trigger-change', function(){
+  $('#settings-form').on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
@@ -110,7 +138,7 @@ $(document).ready(function(){
   
   $('#advanced-toggle-button').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
-    var advancedSelector = $('.advanced-setting')
+    var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
     
     if (Settings.showAdvanced) {
       advancedSelector.show()
@@ -214,7 +242,7 @@ function makeTable(setting, setting_name, setting_value) {
   
   var html = (setting.label) ? "<label class='control-label'>" + setting.label + "</label>" : ""
   html += "<span class='help-block'>" + setting.help + "</span>"
-  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name + (isArray ? "[]" : "") 
+  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
   // Column names
@@ -238,7 +266,7 @@ function makeTable(setting, setting_name, setting_value) {
   var row_num = 1
   
   _.each(setting_value, function(row, indexOrName) {
-    html += "<tr class='row-data'" + (isArray ? "" : "name='" + setting_name + "." + indexOrName + "'") + ">"
+    html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + setting_name + "." + indexOrName + "'") + ">"
     
     if (setting.numbered === true) {
       html += "<td class='numbered'>" + row_num + "</td>"
@@ -249,12 +277,16 @@ function makeTable(setting, setting_name, setting_value) {
     }
     
     _.each(setting.columns, function(col) {
-      html += "<td class='row-data'>"
+      html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
       
       if (isArray) {
-        html += row
+        colIsArray = _.isArray(row)
+        colValue = colIsArray ? row : row[col.name]
+        html += colValue
+        
         // for arrays we add a hidden input to this td so that values can be posted appropriately
-        html += "<input type='hidden' name='" + setting_name + "[]' value='" + row + "'/>"
+        html += "<input type='hidden' name='" + setting_name + "[" + indexOrName + "]" 
+          + (colIsArray ? "" : "." + col.name) + "' value='" + colValue + "'/>"
       } else if (row.hasOwnProperty(col.name)) {
         html += row[col.name] 
       }
@@ -262,8 +294,9 @@ function makeTable(setting, setting_name, setting_value) {
       html += "</td>"
     })
     
-    html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
+    html += "<td class='buttons'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
     html += "</tr>"
+    
     row_num++
   })
     
@@ -288,12 +321,12 @@ function makeTableInputs(setting) {
   }
   
   _.each(setting.columns, function(col) {
-    html += "<td class='row-data'name='" + col.name + "'>\
+    html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
              <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
              </td>"
   })
   
-  html += "<td class='buttons'><span class='glyphicon glyphicon-plus add-row'></span></td>"
+  html += "<td class='buttons'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
   html += "</tr>"
     
   return html
@@ -331,19 +364,19 @@ function addTableRow(add_glyphicon) {
   var table = row.parents('table')
   var isArray = table.data('setting-type') === 'array'
   
-  var data = row.parent().children(".row-data")
+  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
   
   if (!isArray) {
     // Check key spaces
-    var name = row.children(".key").children("input").val()
-    if (name.indexOf(' ') !== -1) {
+    var key = row.children(".key").children("input").val()
+    if (key.indexOf(' ') !== -1) {
       showErrorMessage("Error", "Key contains spaces")
       return
     }
     // Check keys with the same name
     var equals = false;
-    _.each(data.children(".key"), function(element) {
-      if ($(element).text() === name) {
+    _.each(columns.children(".key"), function(element) {
+      if ($(element).text() === key) {
         equals = true
         return
       }
@@ -356,30 +389,31 @@ function addTableRow(add_glyphicon) {
       
   // Check empty fields
   var empty = false;
-  _.each(row.children(".row-data").children("input"), function(element) {
+  _.each(row.children('.' + Settings.DATA_COL_CLASS + ' input'), function(element) {
     if ($(element).val().length === 0) {
       empty = true
       return
     }
   })
+  
   if (empty) {
     showErrorMessage("Error", "Empty field(s)")
     return
   }
-      
+  
   var input_clone = row.clone()
   
   // Change input row to data row
   var table = row.parents("table")
   var setting_name = table.attr("name") 
-  var full_name = setting_name + "." + name
-  row.addClass("row-data new-row")
+  var full_name = setting_name + "." + key
+  row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS)
   row.removeClass("inputs")
       
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) { 
       // Index row
-      var numbers = data.children(".numbered")
+      var numbers = columns.children(".numbered")
       if (numbers.length > 0) {
         $(element).html(parseInt(numbers.last().text()) + 1)
       } else {
@@ -388,19 +422,25 @@ function addTableRow(add_glyphicon) {
     } else if ($(element).hasClass("buttons")) { 
       // Change buttons
       var span = $(element).children("span")
-      span.removeClass("glyphicon-ok add-row")
-      span.addClass("glyphicon-remove del-row")
+      span.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
+      span.addClass(Settings.DEL_ROW_SPAN_CLASSES)
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
       $(element).html(input.val())
       input.remove()
-    } else if ($(element).hasClass("row-data")) { 
+    } else if ($(element).hasClass(Settings.DATA_COL_CLASS)) { 
       // Hide inputs
       var input = $(element).children("input")
       input.attr("type", "hidden")
       
       if (isArray) {
-        input.attr("name", setting_name)
+        var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
+        var key = $(element).attr('name')
+        
+        // are there multiple columns or just one?
+        // with multiple we have an array of Objects, with one we have an array of whatever the value type is
+        var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
+        input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))        
       } else {
         input.attr("name", full_name + "." + $(element).attr("name"))
       }
@@ -419,6 +459,9 @@ function addTableRow(add_glyphicon) {
   
   if (isArray) {
     updateDataChangedForSiblingRows(row, true)
+    
+    // the addition of any table row should remove the empty-array-row
+    row.siblings('.empty-array-row').remove()
   }
   
   badgeSidebarForDifferences($(table))
@@ -436,7 +479,7 @@ function deleteTableRow(delete_glyphicon) {
     // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
     row.empty()
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
-  } else if (table.find('tr.row-data').length > 1) {
+  } else if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
     updateDataChangedForSiblingRows(row)
     
     // this isn't the last row - we can just remove it
@@ -444,6 +487,9 @@ function deleteTableRow(delete_glyphicon) {
   } else {
     // this is the last row, we can't remove it completely since we need to post an empty array
     row.empty()
+    
+    row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
+    row.addClass('empty-array-row')
     
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
       + "' data-changed='true' value=''>");
@@ -454,7 +500,7 @@ function deleteTableRow(delete_glyphicon) {
 } 
 
 function updateDataChangedForSiblingRows(row, forceTrue) {
-  // anytime a new row is added to an array we need to set data-changed for all sibling row-data inputs to true
+  // anytime a new row is added to an array we need to set data-changed for all sibling row inputs to true
   // unless it matches the inital set of values
   
   if (!forceTrue) {
@@ -473,14 +519,13 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     isTrue = true
   }
   
-  row.siblings('.row-data').each(function(){
-    var hiddenInput = $(this).find('td.row-data input')
+  row.siblings('.' + Settings.DATA_ROW_CLASS).each(function(){
+    var hiddenInput = $(this).find('td.' + Settings.DATA_COL_CLASS + ' input')
     if (isTrue) {
       hiddenInput.attr('data-changed', isTrue)
     } else {
       hiddenInput.removeAttr('data-changed')
     }
-    
   })
 }
 
