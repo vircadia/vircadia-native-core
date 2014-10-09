@@ -29,6 +29,10 @@ Joystick::Joystick(const QString& name, SDL_Joystick* sdlJoystick) :
 #endif
 
 Joystick::~Joystick() {
+    closeJoystick();
+}
+
+void Joystick::closeJoystick() {
 #ifdef HAVE_SDL
     SDL_JoystickClose(_sdlJoystick);
 #endif
@@ -38,14 +42,12 @@ void Joystick::update() {
 #ifdef HAVE_SDL
     // update our current values, emit a signal when there is a change
     for (int j = 0; j < getNumAxes(); j++) {
-        float value = glm::round(SDL_JoystickGetAxis(_sdlJoystick, j) + 0.5f) / std::numeric_limits<short>::max();
-        const float DEAD_ZONE = 0.1f;
-        float cleanValue = glm::abs(value) < DEAD_ZONE ? 0.0f : value;
-        
-        if (_axes[j] != cleanValue) {
+        float newValue = glm::round(SDL_JoystickGetAxis(_sdlJoystick, j) + 0.5f) / std::numeric_limits<short>::max();
+
+        if (_axes[j] != newValue) {
             float oldValue =  _axes[j];
-            _axes[j] = cleanValue;
-            emit axisValueChanged(j, cleanValue, oldValue);
+            _axes[j] = newValue;
+            emit axisValueChanged(j, newValue, oldValue);
         }
     }
     for (int j = 0; j < getNumButtons(); j++) {
