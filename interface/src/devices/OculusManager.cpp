@@ -348,8 +348,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         whichCamera.setHmdPosition(trackerPosition);
         whichCamera.setHmdRotation(orientation);
         
-        //_camera->setRotation(bodyOrientation * orientation);
-        //_camera->setPosition(position + trackerPosition);
         // Update our camera to what the application camera is doing
         _camera->setRotation(whichCamera.getRotation());
         _camera->setPosition(whichCamera.getPosition());
@@ -414,10 +412,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     renderDistortionMesh(eyeRenderPose);
     
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    // Update camera for use by rest of Interface.
-    //whichCamera.setPosition((_leftEyePosition + _rightEyePosition) / 2.f);
-    //whichCamera.setRotation(_camera->getRotation());
+
 
 #endif
 }
