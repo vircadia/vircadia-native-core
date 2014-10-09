@@ -21,12 +21,14 @@ var viewHelpers = {
       label_class += ' locked'
     }
     
+    common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
+      + " trigger-change' data-short-name='" + setting.name + "' name='" + setting_name + "' "
+    
     if (setting.type === 'checkbox') {
       form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
-      form_group += "<input type='checkbox' class='trigger-change' name='" + setting_name + "' " +
-        (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
+      form_group += "<input type='checkbox'" + common_attrs + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else if (setting.type === 'table') {
@@ -46,15 +48,15 @@ var viewHelpers = {
         
         form_group += "</select>"
         
-        form_group += "<input type='hidden' class='trigger-change' name='" + setting_name + "' value='" + setting_value + "'>"
+        form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
       } else {
         
         if (input_type == 'integer') {
           input_type = "text"
         }
         
-        form_group += "<input type='" + input_type + "' class='form-control trigger-change' name='" + setting_name + 
-          "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+        form_group += "<input type='" + input_type + "'" +  common_attrs +
+          "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
           "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
       }
       
@@ -208,7 +210,7 @@ function makeTable(setting, setting_name, setting_value) {
   
   var html = "<label class='control-label'>" + setting.label + "</label>"
   html += "<span class='help-block'>" + setting.help + "</span>"
-  html += "<table class='table table-bordered' name='" + setting_name + (isArray ? "[]" : "") 
+  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name + (isArray ? "[]" : "") 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
   // Column names
@@ -431,7 +433,7 @@ function deleteTableRow(delete_glyphicon) {
     row.empty()
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
   } else if (table.find('tr.row-data').length > 1) {
-    updateDataChangedForSiblingRows(row, true)
+    updateDataChangedForSiblingRows(row)
     
     // this isn't the last row - we can just remove it
     row.remove()
@@ -447,8 +449,27 @@ function deleteTableRow(delete_glyphicon) {
   badgeSidebarForDifferences($(table))
 } 
 
-function updateDataChangedForSiblingRows(row, isTrue) {
+function updateDataChangedForSiblingRows(row, forceTrue) {
   // anytime a new row is added to an array we need to set data-changed for all sibling row-data inputs to true
+  // unless it matches the inital set of values
+  
+  if (!forceTrue) {
+    // figure out which group this row is in
+    var panelParentID = row.closest('.panel').attr('id')
+    // get the short name for the setting from the table
+    var tableShortName = row.closest('table').data('short-name')
+  
+    // get a JSON representation of that section
+    var panelSettingJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID][tableShortName]
+    var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+    
+    // if they are equal, we don't need data-changed
+    isTrue = _.isEqual(panelSettingJSON, initialPanelSettingJSON)
+    
+  } else {
+    isTrue = true
+  }
+  
   row.siblings('.row-data').each(function(){
     var hiddenInput = $(this).find('td.row-data input')
     if (isTrue) {
