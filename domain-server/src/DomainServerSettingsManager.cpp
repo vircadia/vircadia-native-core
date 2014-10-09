@@ -289,6 +289,9 @@ void DomainServerSettingsManager::updateSetting(const QString& key, const QJsonV
             // we've cleared all of the settings below this value, so remove this one too
             settingMap.remove(key);
         }
+    } else if (newValue.isArray()) {
+        // we just assume array is replacement
+        settingMap[key] = newValue.toArray().toVariantList();
     }
 }
 
