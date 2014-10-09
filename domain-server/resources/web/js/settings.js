@@ -256,7 +256,7 @@ function makeTable(setting, setting_name, setting_value) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   
-  html += "<td class='buttons'><strong>+/-</strong></td></tr>"
+  html += "<td class='buttons'></td></tr>"
     
   // populate rows in the table from existing values
   var row_num = 1
