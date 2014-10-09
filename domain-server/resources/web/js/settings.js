@@ -94,18 +94,20 @@ $(document).ready(function(){
   $('#settings-form').on('click', '.del-row', function(){
     var row = $(this).parents('tr')
     
-    var table = row.parents('table')
+    var table = $(row).closest('table')
     var isArray = table.data('setting-type') === 'array'
     
     if (!isArray) {
       // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
       row.empty()
       row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
-    } else {
+    } else {      
       // just remove this row completely - the removal of the hidden input will remove it from the array on post
       row.remove()
+      
+      // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
+      badgeSidebarForDifferences($(table))
     }
-    
   })
     
   $('#settings-form').on('change', 'input', function(){
@@ -264,9 +266,9 @@ function makeTable(setting, setting_name, setting_value) {
       if (isArray) {
         html += row
         // for arrays we add a hidden input to this td so that values can be posted appropriately
-        html += "<input type='hidden' name='" + setting_name + "[]' val='" + row + "'/>"
+        html += "<input type='hidden' name='" + setting_name + "[]' value='" + row + "'/>"
       } else if (row.hasOwnProperty(col.name)) {
-        html += row[col.name]        
+        html += row[col.name] 
       }
       
       html += "</td>"
@@ -326,7 +328,7 @@ function badgeSidebarForDifferences(changedInput) {
   
   var badgeValue = 0
   
-  for (var setting in panelJSON) {
+  for (var setting in Settings.initialValues[panelParentID]) {
     if (panelJSON[setting] != Settings.initialValues[panelParentID][setting]) {
       badgeValue += 1
     }
