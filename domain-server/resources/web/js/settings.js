@@ -100,7 +100,7 @@ $(document).ready(function(){
     if (!isArray) {
       // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
       row.empty()
-      row.html("<input type='hidden' class='form-control' name='" + row.attr("name") + "' data-changed='true' value=''>");
+      row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
     } else {      
       if (table.children('tr.row-data').length) {
         // this isn't the last row - we can just remove it
@@ -111,10 +111,10 @@ $(document).ready(function(){
         row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
           + "' data-changed='true' value=''>");
       }
-      
-      // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
-      badgeSidebarForDifferences($(table))
     }
+    
+    // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
+    badgeSidebarForDifferences($(table))
   })
     
   $('#settings-form').on('change', 'input.trigger-change', function(){
@@ -248,10 +248,7 @@ function makeTable(setting, setting_name, setting_value) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   
-  if (setting.can_delete === true || setting.can_add === true) {
-    html += "<td class='buttons'><strong>+/-</strong></td>" // Buttons
-  }
-  html += "</tr>"
+  html += "<td class='buttons'><strong>+/-</strong></td></tr>"
     
   // populate rows in the table from existing values
   var row_num = 1
@@ -281,20 +278,13 @@ function makeTable(setting, setting_name, setting_value) {
       html += "</td>"
     })
     
-    if (setting.can_delete === true) {
-      html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
-    } else if (setting.can_add === true) {
-      html += "<td class='buttons'></td>"
-    }
+    html += "<td class='buttons'><span class='glyphicon glyphicon-remove del-row'></span></td>"
     html += "</tr>"
     row_num++
   })
     
-  // populate inputs in the table for new values, if we can add
-  if (setting.can_add === true) {
-    html += makeTableInputs(setting)
-  }
-  
+  // populate inputs in the table for new values
+  html += makeTableInputs(setting)
   html += "</table>"
     
   return html;
@@ -330,8 +320,10 @@ function badgeSidebarForDifferences(changedInput) {
   var panelParentID = changedInput.closest('.panel').attr('id')
   
   // get a JSON representation of that section
-  var rootJSON = form2js(panelParentID, ".", false, cleanupFormValues, true);
-  var panelJSON = rootJSON[panelParentID]
+  var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID]
+  
+  console.log(panelJSON)
+  console.log(Settings.initialValues[panelParentID])
   
   var badgeValue = 0
   
@@ -408,22 +400,19 @@ function addTableRow(add_glyphicon) {
   row.attr("class", "row-data")
       
   _.each(row.children(), function(element) {
-    if ($(element).hasClass("numbered")) { // Index row
+    if ($(element).hasClass("numbered")) { 
+      // Index row
       var numbers = data.children(".numbered")
       if (numbers.length > 0) {
         $(element).html(parseInt(numbers.last().text()) + 1)
       } else {
         $(element).html(1)
       }
-    } else if ($(element).hasClass("buttons")) { // Change buttons
-      var prevSpan = $(element).parent().prev().children(".buttons").children("span")
+    } else if ($(element).hasClass("buttons")) { 
+      // Change buttons
       var span = $(element).children("span")
-      if (prevSpan.hasClass("del-row")) {
-        span.removeClass("glyphicon-ok add-row")
-        span.addClass("glyphicon-remove del-row")
-      } else {
-        span.remove()
-      }
+      span.removeClass("glyphicon-ok add-row")
+      span.addClass("glyphicon-remove del-row")
     } else if ($(element).hasClass("key")) {
       var input = $(element).children("input")
       $(element).html(input.val())

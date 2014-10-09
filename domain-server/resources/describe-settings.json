@@ -66,8 +66,6 @@
         "label": "Allowed Users",
         "help": "A list of usernames for the High Fidelity users you want to allow into your domain. Users not found in this list will not be allowed to connect.",
         "numbered": false,
-        "can_add": true,
-        "can_delete": true,
         "columns": [
           {
             "name": "username",
@@ -89,8 +87,6 @@
         "label": "Zones",
         "help": "In this table you can define a set of zones in which you can specify various audio properties.",
         "numbered": false,
-        "can_add": true,
-        "can_delete": true,
         "key": {
           "name": "name",
           "label": "Name",
