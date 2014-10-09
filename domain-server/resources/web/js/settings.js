@@ -1,6 +1,8 @@
 var Settings = {
   showAdvanced: false,
-  ADVANCED_CLASS: 'advanced-setting'
+  ADVANCED_CLASS: 'advanced-setting',
+  DATA_ROW_CLASS: 'value-row',
+  DATA_COL_CLASS: 'value-col'
 };
 
 var viewHelpers = {
@@ -235,7 +237,7 @@ function makeTable(setting, setting_name, setting_value) {
   var row_num = 1
   
   _.each(setting_value, function(row, indexOrName) {
-    html += "<tr class='row-data'" + (isArray ? "" : "name='" + setting_name + "." + indexOrName + "'") + ">"
+    html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + setting_name + "." + indexOrName + "'") + ">"
     
     if (setting.numbered === true) {
       html += "<td class='numbered'>" + row_num + "</td>"
@@ -246,7 +248,7 @@ function makeTable(setting, setting_name, setting_value) {
     }
     
     _.each(setting.columns, function(col) {
-      html += "<td class='row-data'>"
+      html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
       
       if (isArray) {
         colIsArray = _.isArray(row)
@@ -292,7 +294,7 @@ function makeTableInputs(setting) {
   }
   
   _.each(setting.columns, function(col) {
-    html += "<td class='row-data'name='" + col.name + "'>\
+    html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
              <input type='text' class='form-control' placeholder='" + (col.key ? col.key : "") + "' value=''>\
              </td>"
   })
@@ -335,7 +337,7 @@ function addTableRow(add_glyphicon) {
   var table = row.parents('table')
   var isArray = table.data('setting-type') === 'array'
   
-  var data = row.parent().children(".row-data")
+  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
   
   if (!isArray) {
     // Check key spaces
@@ -346,7 +348,7 @@ function addTableRow(add_glyphicon) {
     }
     // Check keys with the same name
     var equals = false;
-    _.each(data.children(".key"), function(element) {
+    _.each(columns.children(".key"), function(element) {
       if ($(element).text() === key) {
         equals = true
         return
@@ -360,7 +362,7 @@ function addTableRow(add_glyphicon) {
       
   // Check empty fields
   var empty = false;
-  _.each(row.children(".row-data").children("input"), function(element) {
+  _.each(row.children('.' + Settings.DATA_COL_CLASS + ' input'), function(element) {
     if ($(element).val().length === 0) {
       empty = true
       return
@@ -378,13 +380,13 @@ function addTableRow(add_glyphicon) {
   var table = row.parents("table")
   var setting_name = table.attr("name") 
   var full_name = setting_name + "." + key
-  row.addClass("row-data new-row")
+  row.addClass(Settings.DATA_ROW_CLASS + " new-row")
   row.removeClass("inputs")
       
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) { 
       // Index row
-      var numbers = data.children(".numbered")
+      var numbers = columns.children(".numbered")
       if (numbers.length > 0) {
         $(element).html(parseInt(numbers.last().text()) + 1)
       } else {
@@ -399,18 +401,18 @@ function addTableRow(add_glyphicon) {
       var input = $(element).children("input")
       $(element).html(input.val())
       input.remove()
-    } else if ($(element).hasClass("row-data")) { 
+    } else if ($(element).hasClass(Settings.DATA_COL_CLASS)) { 
       // Hide inputs
       var input = $(element).children("input")
       input.attr("type", "hidden")
       
       if (isArray) {
-        var row_index = row.siblings('tr.row-data').length
+        var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
         var key = $(element).attr('name')
         
         // are there multiple columns or just one?
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
-        var num_columns = row.children('td.row-data').length
+        var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
         input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))        
       } else {
         input.attr("name", full_name + "." + $(element).attr("name"))
@@ -450,7 +452,7 @@ function deleteTableRow(delete_glyphicon) {
     // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
     row.empty()
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name") + "' data-changed='true' value=''>");
-  } else if (table.find('tr.row-data').length > 1) {
+  } else if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
     updateDataChangedForSiblingRows(row)
     
     // this isn't the last row - we can just remove it
@@ -459,7 +461,7 @@ function deleteTableRow(delete_glyphicon) {
     // this is the last row, we can't remove it completely since we need to post an empty array
     row.empty()
     
-    row.removeClass('new-row row-data')
+    row.removeClass(Settings.DATA_ROW_CLASS).removeClass('new-row')
     row.addClass('empty-array-row')
     
     row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
@@ -471,7 +473,7 @@ function deleteTableRow(delete_glyphicon) {
 } 
 
 function updateDataChangedForSiblingRows(row, forceTrue) {
-  // anytime a new row is added to an array we need to set data-changed for all sibling row-data inputs to true
+  // anytime a new row is added to an array we need to set data-changed for all sibling row inputs to true
   // unless it matches the inital set of values
   
   if (!forceTrue) {
@@ -490,8 +492,8 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     isTrue = true
   }
   
-  row.siblings('.row-data').each(function(){
-    var hiddenInput = $(this).find('td.row-data input')
+  row.siblings('.' + Settings.DATA_ROW_CLASS).each(function(){
+    var hiddenInput = $(this).find('td.' + Settings.DATA_COL_CLASS + ' input')
     if (isTrue) {
       hiddenInput.attr('data-changed', isTrue)
     } else {
