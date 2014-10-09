@@ -1,12 +1,13 @@
 var Settings = {
-  showAdvanced: false
+  showAdvanced: false,
+  ADVANCED_CLASS: 'advanced-setting'
 };
 
 var viewHelpers = {
   getFormGroup: function(groupName, setting, values, isAdvanced, isLocked) {
     setting_name = groupName + "." + setting.name
     
-    form_group = "<div class='form-group" + (isAdvanced ? " advanced-setting" : "") + "'>"
+    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>"
     
     if (_.has(values, groupName) && _.has(values[groupName], setting.name)) {
       setting_value = values[groupName][setting.name] 
@@ -106,7 +107,7 @@ $(document).ready(function(){
   
   $('#advanced-toggle-button').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
-    var advancedSelector = $('.advanced-setting')
+    var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
     
     if (Settings.showAdvanced) {
       advancedSelector.show()
