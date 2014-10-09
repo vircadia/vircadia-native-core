@@ -90,7 +90,6 @@
 #include "scripting/WindowScriptingInterface.h"
 
 #include "ui/InfoView.h"
-#include "ui/OAuthWebViewHandler.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
@@ -219,10 +218,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         listenPort = atoi(portStr);
     }
     
-    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
-    // make sure it is ready before the NodeList might need it
-    OAuthWebViewHandler::getInstance();
-
     // start the nodeThread so its event loop is running
     _nodeThread->start();
 
@@ -3522,9 +3517,6 @@ void Application::domainChanged(const QString& domainHostname) {
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
-
-    // reset the auth URL for OAuth web view handler
-    OAuthWebViewHandler::getInstance().clearLastAuthorizationURL();
 }
 
 void Application::connectedToDomain(const QString& hostname) {

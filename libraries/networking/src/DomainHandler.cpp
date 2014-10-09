@@ -30,6 +30,7 @@ DomainHandler::DomainHandler(QObject* parent) :
     _iceServerSockAddr(),
     _icePeer(),
     _isConnected(false),
+    _requiresUsernameSignature(false),
     _handshakeTimer(NULL),
     _settingsObject(),
     _failedSettingsRequests(0)
@@ -48,6 +49,7 @@ void DomainHandler::clearConnectionInfo() {
     }
     
     _isConnected = false;
+    _requiresUsernameSignature = false;
     
     emit disconnectedFromDomain();
     

@@ -15,7 +15,6 @@
 
 #include "Application.h"
 #include "Menu.h"
-#include "ui/OAuthWebViewHandler.h"
 
 #include "DatagramProcessor.h"
 
@@ -136,16 +135,11 @@ void DatagramProcessor::processDatagrams() {
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
-                case PacketTypeDomainOAuthRequest: {
-                    QDataStream readStream(incomingPacket);
-                    readStream.skipRawData(numBytesForPacketHeader(incomingPacket));
-                    
-                    QUrl authorizationURL;
-                    readStream >> authorizationURL;
-                    
-                    QMetaObject::invokeMethod(&OAuthWebViewHandler::getInstance(), "displayWebviewForAuthorizationURL",
-                                              Q_ARG(const QUrl&, authorizationURL));
-                    
+                case PacketTypeDomainUsernameRequest: {
+                    // flag the domain handler so it knows to send a username signature on next check-in
+                    // and then make it send that next check in
+                    nodeList->getDomainHandler().setRequiresUsernameSignature(true);
+                    nodeList->sendDomainServerCheckIn();
                     break;
                 }
                 case PacketTypeMuteEnvironment: {

@@ -68,6 +68,9 @@ public:
     bool isConnected() const { return _isConnected; }
     void setIsConnected(bool isConnected);
     
+    bool requiresUsernameSignature() const { return _requiresUsernameSignature; }
+    void setRequiresUsernameSignature(bool requiresUsernameSignature) { _requiresUsernameSignature = requiresUsernameSignature; }
+    
     bool hasSettings() const { return !_settingsObject.isEmpty(); }
     void requestDomainSettings();
     const QJsonObject& getSettingsObject() const { return _settingsObject; }
@@ -104,6 +107,7 @@ private:
     HifiSockAddr _iceServerSockAddr;
     NetworkPeer _icePeer;
     bool _isConnected;
+    bool _requiresUsernameSignature;
     QTimer* _handshakeTimer;
     QJsonObject _settingsObject;
     int _failedSettingsRequests;
