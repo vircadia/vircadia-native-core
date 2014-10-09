@@ -374,6 +374,13 @@ void MetavoxelData::clear(const AttributePointer& attribute) {
     }
 }
 
+void MetavoxelData::touch(const AttributePointer& attribute) {
+    MetavoxelNode* root = _roots.value(attribute);
+    if (root) {
+        setRoot(attribute, root->touch(attribute));
+    }
+}
+
 class FirstRaySpannerIntersectionVisitor : public RaySpannerIntersectionVisitor {
 public:
     
@@ -1247,6 +1254,16 @@ void MetavoxelNode::countNodes(const AttributePointer& attribute, const glm::vec
     for (int i = 0; i < CHILD_COUNT; i++) {
         _children[i]->countNodes(attribute, getNextMinimum(minimum, nextSize, i), nextSize, lod, internal, leaves);
     }
+}
+
+MetavoxelNode* MetavoxelNode::touch(const AttributePointer& attribute) const {
+    MetavoxelNode* node = new MetavoxelNode(getAttributeValue(attribute));
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        if (_children[i]) {
+            node->setChild(i, _children[i]->touch(attribute));
+        }
+    }
+    return node;
 }
 
 MetavoxelInfo::MetavoxelInfo(MetavoxelInfo* parentInfo, int inputValuesSize, int outputValuesSize) :
