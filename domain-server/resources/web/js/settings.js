@@ -295,9 +295,9 @@ function makeTableInputs(setting) {
   return html
 }
 
-function badgeSidebarForDifferences(changedInput) {
+function badgeSidebarForDifferences(changedElement) {
   // figure out which group this input is in
-  var panelParentID = changedInput.closest('.panel').attr('id')
+  var panelParentID = changedElement.closest('.panel').attr('id')
   
   // get a JSON representation of that section
   var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID]
