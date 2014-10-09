@@ -23,7 +23,7 @@ var leapHands = (function () {
         fingers,
         NUM_FINGERS = 5,  // 0 = thumb; ...; 4 = pinky
         THUMB = 0,
-        NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal(tip) joint
+        NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal joint
         MAX_HAND_INACTIVE_COUNT = 20,
         calibrationStatus,
         UNCALIBRATED = 0,
@@ -226,8 +226,6 @@ var leapHands = (function () {
 
     function setUp() {
 
-        // TODO: Leap Motion controller joint naming doesn't match up with skeleton joint naming; numbers are out by 1.
-
         hands = [
             {
                 jointName: "LeftHand",
@@ -246,6 +244,9 @@ var leapHands = (function () {
             { controller: Controller.createInputController("Spatial", "joint_R_wrist") }
         ];
 
+        // The Leap controller's first joint is the hand-metacarpal joint but this joint's data is not used because it's too
+        // dependent on the model skeleton exactly matching the Leap skeleton; using just the second and subsequent joints 
+        // seems to work better over all.
         fingers = [{}, {}];
         fingers[0] = [
             [
