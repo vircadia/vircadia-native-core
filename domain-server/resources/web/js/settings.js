@@ -492,7 +492,6 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
     } else {
       hiddenInput.removeAttr('data-changed')
     }
-    
   })
 }
 
