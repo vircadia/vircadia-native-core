@@ -75,6 +75,7 @@ int TextRenderer::draw(int x, int y, const char* str) {
                         ((int( currentColor[2] * 255.f) & 0xFF) << 16) |
                         ((int( currentColor[3] * 255.f) & 0xFF) << 24);
 
+// TODO: Remove that code once we test for performance improvments
     //glEnable(GL_TEXTURE_2D);
 
     int maxHeight = 0;
@@ -103,6 +104,8 @@ int TextRenderer::draw(int x, int y, const char* str) {
         float rs = (glyph.location().x() + glyph.bounds().width()) * scale;
         float bt = glyph.location().y() * scale;
         float tt = (glyph.location().y() + glyph.bounds().height()) * scale;
+
+// TODO: Remove that code once we test for performance improvments
 /*
         glBegin(GL_QUADS);
         glTexCoord2f(ls, bt);
@@ -143,6 +146,7 @@ int TextRenderer::draw(int x, int y, const char* str) {
     drawBatch();
     clearBatch();
 
+// TODO: Remove that code once we test for performance improvments
    // glBindTexture(GL_TEXTURE_2D, 0);
    // glDisable(GL_TEXTURE_2D);
 

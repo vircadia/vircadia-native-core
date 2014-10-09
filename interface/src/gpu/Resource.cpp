@@ -206,7 +206,8 @@ void syncGPUObject(const Buffer& buffer) {
     }
 
     // Now let's update the content of the bo with the sysmem version
-    //if (object->_size < buffer.getSize()) {
+    // TODO: in the future, be smarter about when to actually upload the glBO version based on the data that did change
+    //if () {
         glBindBuffer(GL_ARRAY_BUFFER, object->_buffer);
         glBufferData(GL_ARRAY_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().readData(), GL_DYNAMIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);

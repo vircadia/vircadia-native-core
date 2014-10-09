@@ -129,9 +129,11 @@ public:
     Size resize(Size pSize);
 
     // Assign data bytes and size (allocate for size, then copy bytes if exists)
+    // \return the size of the buffer
     Size setData(Size size, const Byte* data);
 
     // Assign data bytes and size (allocate for size, then copy bytes if exists)
+    // \return the number of bytes copied
     Size setSubData(Size offset, Size size, const Byte* data);
 
     // Append new data at the end of the current buffer
@@ -145,10 +147,10 @@ public:
 
 protected:
 
-    Sysmem*                         _sysmem;
+    Sysmem* _sysmem;
 
     typedef backend::BufferObject GPUObject;
-    mutable backend::BufferObject*  _gpuObject;
+    mutable backend::BufferObject* _gpuObject;
 
     inline const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
     inline Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
