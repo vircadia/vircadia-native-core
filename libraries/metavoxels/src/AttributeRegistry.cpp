@@ -1616,8 +1616,74 @@ bool VoxelColorAttribute::merge(void*& parent, void* children[], bool postRead) 
             maxSize = qMax(maxSize, pointer->getSize());
         }
     }
-    *(VoxelColorDataPointer*)&parent = VoxelColorDataPointer();
-    return maxSize == 0;
+    if (maxSize == 0) {
+        *(VoxelColorDataPointer*)&parent = VoxelColorDataPointer();
+        return true;
+    }
+    int size = maxSize;
+    int area = size * size;
+    QVector<QRgb> contents(area * size);
+    int halfSize = size / 2;
+    int halfSizeComplement = size - halfSize;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        VoxelColorDataPointer child = decodeInline<VoxelColorDataPointer>(children[i]);
+        if (!child) {
+            continue;
+        }
+        const QVector<QRgb>& childContents = child->getContents();
+        int childSize = child->getSize();
+        int childArea = childSize * childSize;
+        const int INDEX_MASK = 1;
+        int xIndex = i & INDEX_MASK;
+        const int Y_SHIFT = 1;
+        int yIndex = (i >> Y_SHIFT) & INDEX_MASK;
+        int Z_SHIFT = 2;
+        int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
+        QRgb* dest = contents.data() + (zIndex * halfSize * area) + (yIndex * halfSize * size) + (xIndex * halfSize);
+        const QRgb* src = childContents.data();
+        
+        const int MAX_ALPHA = 255;
+        if (childSize == size) {
+            // simple case: one destination value for four child values
+            for (int z = 0; z < halfSizeComplement; z++) {
+                int offset4 = (z == halfSize) ? 0 : childArea;
+                for (int y = 0; y < halfSizeComplement; y++) {
+                    int offset2 = (y == halfSize) ? 0 : childSize;
+                    int offset6 = offset4 + offset2;
+                    for (QRgb* end = dest + halfSizeComplement; dest != end; ) {
+                        int offset1 = (dest == end - 1) ? 0 : 1;
+                        QRgb v0 = src[0], v1 = src[offset1], v2 = src[offset2], v3 = src[offset2 + offset1], v4 = src[offset4],
+                            v5 = src[offset4 + offset1], v6 = src[offset6], v7 = src[offset6 + offset1];
+                        src += (1 + offset1);
+                        int a0 = qAlpha(v0), a1 = qAlpha(v1), a2 = qAlpha(v2), a3 = qAlpha(v3),
+                            a4 = qAlpha(v4), a5 = qAlpha(v5), a6 = qAlpha(v6), a7 = qAlpha(v7);
+                        if (a0 == 0) {
+                            *dest++ = qRgba(0, 0, 0, 0);
+                            continue;
+                        }
+                        int alphaTotal = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7;
+                        *dest++ = qRgba(
+                            (qRed(v0) * a0 + qRed(v1) * a1 + qRed(v2) * a2 + qRed(v3) * a3 +
+                                qRed(v4) * a4 + qRed(v5) * a5 + qRed(v6) * a6 + qRed(v7) * a7) / alphaTotal,
+                            (qGreen(v0) * a0 + qGreen(v1) * a1 + qGreen(v2) * a2 + qGreen(v3) * a3 +
+                                qGreen(v4) * a4 + qGreen(v5) * a5 + qGreen(v6) * a6 + qGreen(v7) * a7) / alphaTotal,
+                            (qBlue(v0) * a0 + qBlue(v1) * a1 + qBlue(v2) * a2 + qBlue(v3) * a3 +
+                                qBlue(v4) * a4 + qBlue(v5) * a5 + qBlue(v6) * a6 + qBlue(v7) * a7) / alphaTotal,
+                            MAX_ALPHA);
+                    }
+                    dest += halfSize;
+                    src += offset2;
+                }
+                dest += halfSize * size;
+                src += offset4;
+            }
+        } else {
+            // more complex: N destination values for four child values
+            // ...
+        }
+    }
+    *(VoxelColorDataPointer*)&parent = VoxelColorDataPointer(new VoxelColorData(contents, size));
+    return false;
 }
 
 const int VOXEL_MATERIAL_HEADER_SIZE = sizeof(qint32) * 6;
@@ -2020,8 +2086,87 @@ bool VoxelHermiteAttribute::merge(void*& parent, void* children[], bool postRead
             maxSize = qMax(maxSize, pointer->getSize());
         }
     }
-    *(VoxelHermiteDataPointer*)&parent = VoxelHermiteDataPointer();
-    return maxSize == 0;
+    if (maxSize == 0) {
+        *(VoxelHermiteDataPointer*)&parent = VoxelHermiteDataPointer();
+        return true;
+    }
+    int size = maxSize;
+    int area = size * size;
+    QVector<QRgb> contents(area * size * VoxelHermiteData::EDGE_COUNT);
+    int halfSize = size / 2;
+    int halfSizeComplement = size - halfSize;
+    for (int i = 0; i < MERGE_COUNT; i++) {
+        VoxelHermiteDataPointer child = decodeInline<VoxelHermiteDataPointer>(children[i]);
+        if (!child) {
+            continue;
+        }
+        const QVector<QRgb>& childContents = child->getContents();
+        int childSize = child->getSize();
+        int childArea = childSize * childSize;
+        const int INDEX_MASK = 1;
+        int xIndex = i & INDEX_MASK;
+        const int Y_SHIFT = 1;
+        int yIndex = (i >> Y_SHIFT) & INDEX_MASK;
+        int Z_SHIFT = 2;
+        int zIndex = (i >> Z_SHIFT) & INDEX_MASK;
+        QRgb* dest = contents.data() + ((zIndex * halfSize * area) + (yIndex * halfSize * size) + (xIndex * halfSize)) *
+            VoxelHermiteData::EDGE_COUNT;
+        const QRgb* src = childContents.data();
+        
+        if (childSize == size) {
+            // simple case: one destination value for four child values
+            for (int z = 0; z < halfSizeComplement; z++) {
+                int offset4 = (z == halfSize) ? 0 : (childArea * VoxelHermiteData::EDGE_COUNT);
+                for (int y = 0; y < halfSizeComplement; y++) {
+                    int offset2 = (y == halfSize) ? 0 : (childSize * VoxelHermiteData::EDGE_COUNT);
+                    int offset6 = offset4 + offset2;
+                    for (QRgb* end = dest + halfSizeComplement * VoxelHermiteData::EDGE_COUNT; dest != end;
+                            dest += VoxelHermiteData::EDGE_COUNT) {
+                        int offset1 = (dest == end - VoxelHermiteData::EDGE_COUNT) ? 0 : VoxelHermiteData::EDGE_COUNT;
+                        for (int i = 0; i < VoxelHermiteData::EDGE_COUNT; i++) {
+                            QRgb v[] = { src[i], src[offset1 + i], src[offset2 + i], src[offset2 + offset1 + i],
+                                src[offset4 + i], src[offset4 + offset1 + i], src[offset6 + i], src[offset6 + offset1 + i] };
+                            glm::vec3 n[] = { unpackNormal(v[0]), unpackNormal(v[1]), unpackNormal(v[2]), unpackNormal(v[3]),
+                                unpackNormal(v[4]), unpackNormal(v[5]), unpackNormal(v[6]), unpackNormal(v[7]) };
+                            float l[] = { glm::length(n[0]), glm::length(n[1]), glm::length(n[2]),  glm::length(n[3]),
+                                glm::length(n[4]), glm::length(n[5]), glm::length(n[6]), glm::length(n[7]) };
+                            float lengthTotal = l[0] + l[1] + l[2] + l[3] + l[4] + l[5] + l[6] + l[7];
+                            if (lengthTotal == 0.0f) {
+                                dest[i] = qRgba(0, 0, 0, 0);
+                                continue;
+                            }
+                            glm::vec3 combinedNormal = n[0] * l[0] + n[1] * l[1] + n[2] * l[2] + n[3] * l[3] + n[4] * l[4] +
+                                n[5] * l[5] + n[6] * l[6] + n[7] * l[7];
+                            float combinedLength = glm::length(combinedNormal);
+                            if (combinedLength > 0.0f) {
+                                combinedNormal /= combinedLength;
+                            }
+                            float combinedOffset = 0.0f;
+                            int mask = 1 << i;
+                            for (int j = 0; j < MERGE_COUNT; j++) {
+                                float offset = qAlpha(v[j]) * (0.5f / EIGHT_BIT_MAXIMUM);
+                                if (j & mask) {
+                                    offset += 0.5f;   
+                                }
+                                combinedOffset += offset * l[j];
+                            }
+                            dest[i] = packNormal(combinedNormal, EIGHT_BIT_MAXIMUM * combinedOffset / lengthTotal);
+                        }     
+                        src += (VoxelHermiteData::EDGE_COUNT + offset1);
+                    }
+                    dest += (halfSize * VoxelHermiteData::EDGE_COUNT);
+                    src += offset2;
+                }
+                dest += (halfSize * size * VoxelHermiteData::EDGE_COUNT);
+                src += offset4;
+            }
+        } else {
+            // more complex: N destination values for four child values
+            // ...
+        }
+    }
+    *(VoxelHermiteDataPointer*)&parent = VoxelHermiteDataPointer(new VoxelHermiteData(contents, size));
+    return false;
 }
 
 SharedObjectAttribute::SharedObjectAttribute(const QString& name, const QMetaObject* metaObject,

@@ -374,6 +374,7 @@ namespace MenuOption {
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
+    const QString DisplayHermiteData = "Display Hermite Data";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
