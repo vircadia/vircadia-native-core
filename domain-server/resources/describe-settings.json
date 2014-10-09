@@ -64,7 +64,7 @@
         "name": "allowed_users",
         "type": "table",
         "label": "Allowed Users",
-        "help": "A list of usernames for the High Fidelity users you want to allow into your domain. Users not found in this list will not be allowed to connect.",
+        "help": "A list of usernames for the High Fidelity users you want to allow into your domain.<br>If the list is blank, all users are allowed to connect.<br>You are always allowed to connect to your domain directly from your local machine.",
         "numbered": false,
         "columns": [
           {
