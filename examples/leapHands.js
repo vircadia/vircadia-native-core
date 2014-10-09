@@ -407,19 +407,26 @@ var leapHands = (function () {
                 MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, handRotation, true);
 
                 // Finger joints ...
-                // TODO: 2.0 * scale factors should not be necessary; Leap Motion controller code needs investigating.
                 for (i = 0; i < NUM_FINGERS; i += 1) {
                     for (j = 0; j < NUM_FINGER_JOINTS; j += 1) {
                         if (fingers[h][i][j].controller !== null) {
                             locRotation = fingers[h][i][j].controller.getLocRotation();
                             if (i === THUMB) {
-                                MyAvatar.setJointData(fingers[h][i][j].jointName,
-                                    Quat.fromPitchYawRollRadians(2.0 * side * locRotation.y, 2.0 * -locRotation.z,
-                                        2.0 * side * -locRotation.x));
+                                locRotation = {
+                                    x: side * locRotation.y,
+                                    y: side * -locRotation.z,
+                                    z: side * -locRotation.x,
+                                    w: locRotation.w
+                                };
                             } else {
-                                MyAvatar.setJointData(fingers[h][i][j].jointName,
-                                    Quat.fromPitchYawRollRadians(2.0 * -locRotation.x, 0.0, 2.0 * -locRotation.y));
+                                locRotation = {
+                                    x: -locRotation.x,
+                                    y: -locRotation.z,
+                                    z: -locRotation.y,
+                                    w: locRotation.w
+                                };
                             }
+                            MyAvatar.setJointData(fingers[h][i][j].jointName, locRotation);
                         }
                     }
                 }
