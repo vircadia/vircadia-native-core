@@ -48,6 +48,8 @@ public:
 
     bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
+    bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
     Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
     Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
@@ -241,7 +243,10 @@ class VoxelBuffer : public BufferData {
 public:
     
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
+        const QHash<QRgb, glm::vec3>& points, int size, const QVector<SharedObjectPointer>& materials =
+            QVector<SharedObjectPointer>());
+
+    bool findFirstRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
         
     virtual void render(bool cursor = false);
 
@@ -250,6 +255,8 @@ private:
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
+    QHash<QRgb, glm::vec3> _points;
+    int _size;
     int _vertexCount;
     int _indexCount;
     int _hermiteCount;

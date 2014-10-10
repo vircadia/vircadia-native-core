@@ -328,6 +328,50 @@ bool MetavoxelSystem::findFirstRayHeightfieldIntersection(const glm::vec3& origi
     return true;
 }
 
+class RayVoxelIntersectionVisitor : public RayIntersectionVisitor {
+public:
+    
+    float intersectionDistance;
+    
+    RayVoxelIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction, const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info, float distance);
+};
+
+RayVoxelIntersectionVisitor::RayVoxelIntersectionVisitor(const glm::vec3& origin,
+        const glm::vec3& direction, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
+        Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), QVector<AttributePointer>(), lod),
+    intersectionDistance(FLT_MAX) {
+}
+
+int RayVoxelIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
+    if (!info.isLeaf) {
+        return _order;
+    }
+    const VoxelBuffer* buffer = static_cast<VoxelBuffer*>(
+        info.inputValues.at(0).getInlineValue<BufferDataPointer>().data());
+    if (!buffer) {
+        return STOP_RECURSION;
+    }
+    glm::vec3 origin = ((_origin + distance * _direction) - info.minimum) / info.size;
+    if (buffer->findFirstRayIntersection(origin, _direction, intersectionDistance)) {
+        intersectionDistance = intersectionDistance * info.size + distance;
+        return SHORT_CIRCUIT;
+    }
+    return STOP_RECURSION;
+}
+
+bool MetavoxelSystem::findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) {
+    RayVoxelIntersectionVisitor visitor(origin, direction, getLOD());
+    guideToAugmented(visitor);
+    if (visitor.intersectionDistance == FLT_MAX) {
+        return false;
+    }
+    distance = visitor.intersectionDistance;
+    return true;
+}
+
 class HeightfieldHeightVisitor : public MetavoxelVisitor {
 public:
     
@@ -991,15 +1035,79 @@ void VoxelPoint::setNormal(const glm::vec3& normal) {
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QVector<SharedObjectPointer>& materials) :
+        const QHash<QRgb, glm::vec3>& points, int size, const QVector<SharedObjectPointer>& materials) :
     _vertices(vertices),
     _indices(indices),
     _hermite(hermite),
+    _points(points),
+    _size(size),
     _vertexCount(vertices.size()),
     _indexCount(indices.size()),
     _hermiteCount(hermite.size()),
     _indexBuffer(QOpenGLBuffer::IndexBuffer),
     _materials(materials) {
+}
+
+bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    float highest = _size - 1.0f;
+    glm::vec3 position = origin * highest;
+    glm::vec3 floors = glm::floor(position);
+    int max = _size - 2;
+    int x = qMin((int)floors.x, max), y = qMin((int)floors.y, max), z = qMin((int)floors.z, max);
+    float combinedDistance = 0.0f;
+    forever {
+        if (_points.contains(qRgb(x + 1, y + 1, z + 1))) {
+            distance = combinedDistance / highest;
+            return true;
+        }
+        float xDistance = FLT_MAX, yDistance = FLT_MAX, zDistance = FLT_MAX;
+        if (direction.x > 0.0f) {
+            xDistance = (x + 1.0f - position.x) / direction.x;
+        } else if (direction.x < 0.0f) {
+            xDistance = (x - position.x) / direction.x;
+        }
+        if (direction.y > 0.0f) {
+            yDistance = (y + 1.0f - position.y) / direction.y;
+        } else if (direction.y < 0.0f) {
+            yDistance = (y - position.y) / direction.y;
+        }
+        if (direction.z > 0.0f) {
+            zDistance = (z + 1.0f - position.z) / direction.z;
+        } else if (direction.z < 0.0f) {
+            zDistance = (z - position.z) / direction.z;
+        }
+        float minimumDistance = qMin(xDistance, qMin(yDistance, zDistance));
+        if (minimumDistance == xDistance) {
+            if (direction.x > 0.0f) {
+                if (x++ == max) {
+                    return false;
+                }
+            } else if (x-- == 0) {
+                return false;
+            }
+        }
+        if (minimumDistance == yDistance) {
+            if (direction.y > 0.0f) {
+                if (y++ == max) {
+                    return false;
+                }
+            } else if (y-- == 0) {
+                return false;
+            }
+        }
+        if (minimumDistance == zDistance) {
+            if (direction.z > 0.0f) {
+                if (z++ == max) {
+                    return false;
+                }
+            } else if (z-- == 0) {
+                return false;
+            }
+        }
+        position += direction * minimumDistance;
+        combinedDistance += minimumDistance;
+    }
+    return false;
 }
 
 void VoxelBuffer::render(bool cursor) {
@@ -1627,6 +1735,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         QVector<glm::vec3> hermiteSegments;
+        QHash<QRgb, glm::vec3> points;
         
         // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
         // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
@@ -2033,6 +2142,8 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
                             (quint8)materialWeights[3] } };
                     
+                    points.insert(qRgb(x + 1, y + 1, z + 1), (glm::vec3(clampedX, clampedY, clampedZ) + center) / highest);
+                    
                     // determine whether we must "crease" by generating directional normals
                     const float CREASE_COS_NORMAL = glm::cos(glm::radians(40.0f));
                     AxisIndex index(vertices.size(), vertices.size(), vertices.size());
@@ -2158,7 +2269,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                 colorZ += area;
             }
         }
-        buffer = new VoxelBuffer(vertices, indices, hermiteSegments,
+        buffer = new VoxelBuffer(vertices, indices, hermiteSegments, points, size,
             material ? material->getMaterials() : QVector<SharedObjectPointer>());
     }
     BufferDataPointer pointer(buffer);

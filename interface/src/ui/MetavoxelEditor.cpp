@@ -129,6 +129,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new EraseHeightfieldTool(this));
     addTool(new VoxelMaterialBoxTool(this));
     addTool(new VoxelMaterialSpannerTool(this));
+    addTool(new VoxelMaterialBrushTool(this));
     
     updateAttributes();
     
@@ -1525,3 +1526,46 @@ void VoxelMaterialSpannerTool::updateTexture() {
 void VoxelMaterialSpannerTool::textureLoaded() {
     _color->setColor(_texture->getAverageColor());
 }
+
+VoxelBrushTool::VoxelBrushTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false, true) {
+}
+
+bool VoxelBrushTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+void VoxelBrushTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    
+    // find the intersection with the voxels
+    glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
+    
+    float distance;
+    if (!Application::getInstance()->getMetavoxels()->findFirstRayVoxelIntersection(origin, direction, distance)) {
+        return;
+    }
+    _position = origin + distance * direction;
+    
+    glColor4f(1.0f, 0.0f, 0.0f, 1.0f);
+    
+    glPushMatrix();
+    glTranslatef(_position.x, _position.y, _position.z);
+    
+    Application::getInstance()->getGeometryCache()->renderSphere(0.1f, 16, 16);
+    
+    glPopMatrix();
+}
+
+bool VoxelBrushTool::eventFilter(QObject* watched, QEvent* event) {
+    return false;
+}
+
+VoxelMaterialBrushTool::VoxelMaterialBrushTool(MetavoxelEditor* editor) :
+    VoxelBrushTool(editor, "Material Brush") {
+}
+
+

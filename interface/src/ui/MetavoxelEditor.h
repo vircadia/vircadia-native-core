@@ -469,4 +469,32 @@ private:
     QSharedPointer<NetworkTexture> _texture;
 };
 
+/// Base class for voxel brush tools.
+class VoxelBrushTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelBrushTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+     
+    virtual void render();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+
+protected:
+    
+    glm::vec3 _position;
+};
+
+/// Allows texturing parts of the voxel field.
+class VoxelMaterialBrushTool : public VoxelBrushTool {
+    Q_OBJECT
+    
+public:
+    
+    VoxelMaterialBrushTool(MetavoxelEditor* editor);
+};
+
 #endif // hifi_MetavoxelEditor_h
