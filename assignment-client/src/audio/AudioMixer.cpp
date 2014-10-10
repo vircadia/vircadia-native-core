@@ -197,11 +197,22 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         
         attenuationCoefficient *= offAxisCoefficient;
     }
+   
+    float attenuationPerDoublingInDistance = _attenuationPerDoublingInDistance;
+    foreach (const QString source, _attenuationCoefficients.keys()) {
+        if (_audioZones[source].contains(streamToAdd->getPosition())) {
+            foreach (const QString listener, _attenuationCoefficients[source].keys()) {
+                if (_audioZones[listener].contains(listeningNodeStream->getPosition())) {
+                    attenuationCoefficient = _attenuationCoefficients[source][listener];
+                }
+            }
+        }
+    }
     
     if (distanceBetween >= ATTENUATION_BEGINS_AT_DISTANCE) {
         // calculate the distance coefficient using the distance to this node
         float distanceCoefficient = 1 - (logf(distanceBetween / ATTENUATION_BEGINS_AT_DISTANCE) / logf(2.0f)
-                                         * _attenuationPerDoublingInDistance);
+                                         * attenuationPerDoublingInDistance);
         
         if (distanceCoefficient < 0) {
             distanceCoefficient = 0;
@@ -971,25 +982,26 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                     if (xRange.size() == 2 && yRange.size() == 2 && zRange.size() == 2) {
                         float xMin, xMax, yMin, yMax, zMin, zMax;
                         bool ok, allOk = true;
-                        xMin = xRange[0].toFloat(&ok) / (float)TREE_SCALE;
+                        xMin = xRange[0].toFloat(&ok);
                         allOk &= ok;
-                        xMax = xRange[1].toFloat(&ok) / (float)TREE_SCALE;
+                        xMax = xRange[1].toFloat(&ok);
                         allOk &= ok;
-                        yMin = yRange[0].toFloat(&ok) / (float)TREE_SCALE;
+                        yMin = yRange[0].toFloat(&ok);
                         allOk &= ok;
-                        yMax = yRange[1].toFloat(&ok) / (float)TREE_SCALE;
+                        yMax = yRange[1].toFloat(&ok);
                         allOk &= ok;
-                        zMin = zRange[0].toFloat(&ok) / (float)TREE_SCALE;
+                        zMin = zRange[0].toFloat(&ok);
                         allOk &= ok;
-                        zMax = zRange[1].toFloat(&ok) / (float)TREE_SCALE;
+                        zMax = zRange[1].toFloat(&ok);
                         allOk &= ok;
                         
                         if (allOk) {
                             glm::vec3 corner(xMin, yMin, zMin);
-                            glm::vec3 dimension(xMax - xMin, yMax - yMin, zMax - zMin);
-                            AABox zoneAABox(corner, dimension);
+                            glm::vec3 dimensions(xMax - xMin, yMax - yMin, zMax - zMin);
+                            AABox zoneAABox(corner, dimensions);
                             _audioZones.insert(zone, zoneAABox);
-                            qDebug() << "Added zone:" << zone << zoneAABox;
+                            qDebug() << "Added zone:" << zone << "(corner:" << corner
+                                     << ", dimensions:" << dimensions << ")";
                         }
                     }
                 }
