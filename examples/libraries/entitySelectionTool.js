@@ -45,6 +45,7 @@ SelectionDisplay = (function () {
     var rollNormal;
     var rotationNormal;
     
+    var originalRotation;
     var originalPitch;
     var originalYaw;
     var originalRoll;
@@ -576,10 +577,12 @@ SelectionDisplay = (function () {
         var rotateHandlesVisible = true;
         var translateHandlesVisible = true;
         var stretchHandlesVisible = true;
+        var selectionBoxVisible = true;
         if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_XZ") {
             rotateHandlesVisible = false;
             translateHandlesVisible = false;
             stretchHandlesVisible = false;
+            selectionBoxVisible = false;
         } else if (mode == "TRANSLATE_UP_DOWN") {
             rotateHandlesVisible = false;
             stretchHandlesVisible = false;
@@ -591,9 +594,10 @@ SelectionDisplay = (function () {
 
         Overlays.editOverlay(highlightBox, { visible: false });
         
+        print("selectionBoxVisible:" + selectionBoxVisible);
         Overlays.editOverlay(selectionBox, 
                             { 
-                                visible: true,
+                                visible: selectionBoxVisible,
                                 position: center,
                                 dimensions: properties.dimensions,
                                 rotation: properties.rotation,
@@ -1525,8 +1529,8 @@ SelectionDisplay = (function () {
         }
 
         var pickRay = Camera.computePickRay(event.x, event.y);
-        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
-        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true });
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
         Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
@@ -1546,10 +1550,10 @@ SelectionDisplay = (function () {
                                     start: center,
                                     end: result.intersection
                                 });
-                                
-                                
-            var newYaw = originalYaw + angleFromZero;
-            var newRotation = Quat.fromVec3Degrees({ x: originalPitch, y: newYaw, z: originalRoll });
+
+            var yawChange = Quat.fromVec3Degrees({ x: 0, y: angleFromZero, z: 0 });
+            var newRotation = Quat.multiply(yawChange, originalRotation);
+            
             Entities.editEntity(currentSelection, { rotation: newRotation });
         }
     };
@@ -1559,8 +1563,8 @@ SelectionDisplay = (function () {
             return; // not allowed
         }
         var pickRay = Camera.computePickRay(event.x, event.y);
-        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
-        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true });
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
         Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
@@ -1582,8 +1586,9 @@ SelectionDisplay = (function () {
                                     end: result.intersection
                                 });
 
-            var newPitch = originalPitch + angleFromZero;
-            var newRotation = Quat.fromVec3Degrees({ x: newPitch, y: originalYaw, z: originalRoll });
+            var pitchChange = Quat.fromVec3Degrees({ x: angleFromZero, y: 0, z: 0 });
+            var newRotation = Quat.multiply(pitchChange, originalRotation);
+
             Entities.editEntity(currentSelection, { rotation: newRotation });
         }
     };
@@ -1593,8 +1598,8 @@ SelectionDisplay = (function () {
             return; // not allowed
         }
         var pickRay = Camera.computePickRay(event.x, event.y);
-        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true });
-        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true });
+        Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
         Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
@@ -1614,8 +1619,9 @@ SelectionDisplay = (function () {
                                     end: result.intersection
                                 });
 
-            var newRoll = originalRoll + angleFromZero;
-            var newRotation = Quat.fromVec3Degrees({ x: originalPitch, y: originalYaw, z: newRoll });
+            var rollChange = Quat.fromVec3Degrees({ x: 0, y: 0, z: angleFromZero });
+            var newRotation = Quat.multiply(rollChange, originalRotation);
+            
             Entities.editEntity(currentSelection, { rotation: newRotation });
         }
     };
@@ -1799,6 +1805,7 @@ SelectionDisplay = (function () {
             var roll = angles.z;
             var currentRotation;
             
+            originalRotation = properties.rotation;
             originalPitch = pitch;
             originalYaw = yaw;
             originalRoll = roll;
@@ -2053,45 +2060,15 @@ SelectionDisplay = (function () {
             showHandles = true;
         }
         
-        if (showHandles) {
-            Overlays.editOverlay(yawHandle, { visible: true });
-            Overlays.editOverlay(pitchHandle, { visible: true });
-            Overlays.editOverlay(rollHandle, { visible: true });
-            Overlays.editOverlay(grabberMoveUp, { visible: true });
-            Overlays.editOverlay(grabberLBN, { visible: true });
-            Overlays.editOverlay(grabberLBF, { visible: true });
-            Overlays.editOverlay(grabberRBN, { visible: true });
-            Overlays.editOverlay(grabberRBF, { visible: true });
-            Overlays.editOverlay(grabberLTN, { visible: true });
-            Overlays.editOverlay(grabberLTF, { visible: true });
-            Overlays.editOverlay(grabberRTN, { visible: true });
-            Overlays.editOverlay(grabberRTF, { visible: true });
-
-            Overlays.editOverlay(grabberTOP, { visible: true });
-            Overlays.editOverlay(grabberBOTTOM, { visible: true });
-            Overlays.editOverlay(grabberLEFT, { visible: true });
-            Overlays.editOverlay(grabberRIGHT, { visible: true });
-            Overlays.editOverlay(grabberNEAR, { visible: true });
-            Overlays.editOverlay(grabberFAR, { visible: true });
-
-            Overlays.editOverlay(grabberEdgeTR, { visible: true });
-            Overlays.editOverlay(grabberEdgeTL, { visible: true });
-            Overlays.editOverlay(grabberEdgeTF, { visible: true });
-            Overlays.editOverlay(grabberEdgeTN, { visible: true });
-            Overlays.editOverlay(grabberEdgeBR, { visible: true });
-            Overlays.editOverlay(grabberEdgeBL, { visible: true });
-            Overlays.editOverlay(grabberEdgeBF, { visible: true });
-            Overlays.editOverlay(grabberEdgeBN, { visible: true });
-            Overlays.editOverlay(grabberEdgeNR, { visible: true });
-            Overlays.editOverlay(grabberEdgeNL, { visible: true });
-            Overlays.editOverlay(grabberEdgeFR, { visible: true });
-            Overlays.editOverlay(grabberEdgeFL, { visible: true });
-        }
-
         mode = "UNKNOWN";
         
         // if something is selected, then reset the "original" properties for any potential next click+move operation
         if (entitySelected) {
+
+            if (showHandles) {
+                that.select(currentSelection, event);
+            }
+
             selectedEntityProperties = Entities.getEntityProperties(currentSelection);
             selectedEntityPropertiesOriginalPosition = properties.position;
             selectedEntityPropertiesOriginalDimensions = properties.dimensions;
