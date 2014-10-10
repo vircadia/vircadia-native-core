@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+// TODO Update to work with any controller that is plugged in.
 var CONTROLLER_NAMES = [
     "Wireless 360 Controller",
+    "Controller (XBOX 360 For Windows)",
     "Controller", // Wired 360 controller
 ]
 
