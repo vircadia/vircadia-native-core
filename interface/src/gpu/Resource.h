@@ -104,7 +104,7 @@ protected:
 
     private:
         Sysmem(const Sysmem& sysmem) {}
-        Sysmem &operator=(const Sysmem &other) {return *this;}
+        Sysmem &operator=(const Sysmem& other) {return *this;}
 
         Stamp _stamp;
         Size  _size;
