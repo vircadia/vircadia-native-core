@@ -32,6 +32,8 @@ SelectionDisplay = (function () {
     var handleHoverAlpha = 1.0;
 
     var rotateOverlayTargetSize = 10000; // really big target
+    var innerSnapAngle = 22.5; // the angle which we snap to on the inner rotation tool
+    var innerRadius;
     var yawHandleRotation;
     var pitchHandleRotation;
     var rollHandleRotation;
@@ -217,7 +219,7 @@ SelectionDisplay = (function () {
                     visible: false,
                     rotation: yawOverlayRotation,
                     hasTickMarks: true,
-                    majorTickMarksAngle: 12.5,
+                    majorTickMarksAngle: innerSnapAngle,
                     minorTickMarksAngle: 0,
                     majorTickMarksLength: -0.25,
                     minorTickMarksLength: 0,
@@ -431,7 +433,7 @@ SelectionDisplay = (function () {
 
         var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
         var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
-        var innerRadius = diagonal;
+        innerRadius = diagonal;
         var outerRadius = diagonal * 1.15;
         var innerActive = false;
         var innerAlpha = 0.2;
@@ -1563,6 +1565,12 @@ SelectionDisplay = (function () {
             var centerToZero = Vec3.subtract(center, zero);
             var centerToIntersect = Vec3.subtract(center, result.intersection);
             var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+            
+            var distanceFromCenter = Vec3.distance(center, result.intersection);
+            if (distanceFromCenter < innerRadius) {
+                angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
+            }
+            
             Overlays.editOverlay(rotateCurrentOverlay,
                                 { 
                                     visible: true,
@@ -1599,6 +1607,12 @@ SelectionDisplay = (function () {
             var centerToZero = Vec3.subtract(center, zero);
             var centerToIntersect = Vec3.subtract(center, result.intersection);
             var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+
+            var distanceFromCenter = Vec3.distance(center, result.intersection);
+            if (distanceFromCenter < innerRadius) {
+                angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
+            }
+            
             Overlays.editOverlay(rotateCurrentOverlay,
                                 { 
                                     visible: true,
@@ -1633,6 +1647,12 @@ SelectionDisplay = (function () {
             var centerToZero = Vec3.subtract(center, zero);
             var centerToIntersect = Vec3.subtract(center, result.intersection);
             var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+
+            var distanceFromCenter = Vec3.distance(center, result.intersection);
+            if (distanceFromCenter < innerRadius) {
+                angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
+            }
+
             Overlays.editOverlay(rotateCurrentOverlay,
                                 { 
                                     visible: true,
