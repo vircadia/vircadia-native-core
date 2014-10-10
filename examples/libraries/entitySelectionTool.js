@@ -31,6 +31,7 @@ SelectionDisplay = (function () {
     var handleHoverColor = { red: 224, green: 67, blue: 36 };
     var handleHoverAlpha = 1.0;
 
+    var rotateOverlayTargetSize = 10000; // really big target
     var yawHandleRotation;
     var pitchHandleRotation;
     var rollHandleRotation;
@@ -196,6 +197,17 @@ SelectionDisplay = (function () {
                     color: { red: 0, green: 0, blue: 255 },
                 });
 
+
+    var rotateOverlayTarget = Overlays.addOverlay("circle3d", {
+                    position: { x:0, y: 0, z: 0},
+                    size: rotateOverlayTargetSize,
+                    color: { red: 0, green: 0, blue: 0 },
+                    alpha: 0.0,
+                    solid: true,
+                    visible: false,
+                    rotation: yawOverlayRotation,
+                });
+
     var rotateOverlayInner = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
@@ -313,6 +325,7 @@ SelectionDisplay = (function () {
     overlayNames[pitchHandle] = "pitchHandle";
     overlayNames[rollHandle] = "rollHandle";
 
+    overlayNames[rotateOverlayTarget] = "rotateOverlayTarget";
     overlayNames[rotateOverlayInner] = "rotateOverlayInner";
     overlayNames[rotateOverlayOuter] = "rotateOverlayOuter";
     overlayNames[rotateOverlayCurrent] = "rotateOverlayCurrent";
@@ -358,6 +371,7 @@ SelectionDisplay = (function () {
         Overlays.deleteOverlay(pitchHandle);
         Overlays.deleteOverlay(rollHandle);
 
+        Overlays.deleteOverlay(rotateOverlayTarget);
         Overlays.deleteOverlay(rotateOverlayInner);
         Overlays.deleteOverlay(rotateOverlayOuter);
         Overlays.deleteOverlay(rotateOverlayCurrent);
@@ -649,7 +663,10 @@ SelectionDisplay = (function () {
                                 dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
                                 rotation: properties.rotation,
                             });
+
                             
+        Overlays.editOverlay(rotateOverlayTarget, { visible: false });
+
         Overlays.editOverlay(rotateOverlayInner, 
                             { 
                                 visible: false,
@@ -733,6 +750,7 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(pitchHandle, { visible: false });
         Overlays.editOverlay(rollHandle, { visible: false });
 
+        Overlays.editOverlay(rotateOverlayTarget, { visible: false });
         Overlays.editOverlay(rotateOverlayInner, { visible: false });
         Overlays.editOverlay(rotateOverlayOuter, { visible: false });
         Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
@@ -1531,9 +1549,10 @@ SelectionDisplay = (function () {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
-        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
-        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
-        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
         
         var result = Overlays.findRayIntersection(pickRay);
         if (result.intersects) {
@@ -1565,9 +1584,10 @@ SelectionDisplay = (function () {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
-        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
-        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
-        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
         var result = Overlays.findRayIntersection(pickRay);
         
         if (result.intersects) {
@@ -1600,9 +1620,10 @@ SelectionDisplay = (function () {
         var pickRay = Camera.computePickRay(event.x, event.y);
         Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
-        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: false });
-        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
-        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
+        Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
+        Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
         var result = Overlays.findRayIntersection(pickRay);
         if (result.intersects) {
             print("ROTATE_ROLL");
@@ -1862,6 +1883,13 @@ SelectionDisplay = (function () {
                 // TODO: need to place correctly....
                 print("    attempting to show overlays:" + somethingClicked);
                 print("    currentRotation:" + currentRotation);
+
+                Overlays.editOverlay(rotateOverlayTarget, 
+                                    { 
+                                        visible: true,
+                                        rotation: overlayOrientation,
+                                        position: overlayCenter
+                                    });
             
                 Overlays.editOverlay(rotateOverlayInner, 
                                     { 
@@ -2050,6 +2078,7 @@ SelectionDisplay = (function () {
         var showHandles = false;
         // hide our rotation overlays..., and show our handles
         if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL") {
+            Overlays.editOverlay(rotateOverlayTarget, { visible: false });
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
