@@ -103,7 +103,7 @@ private:
     static Camera* _camera;
     static int _activeEyeIndex;
 
-    static void calibrate(glm::vec3 position, glm::quat orientation);
+    static void calibrate(const glm::vec3 position, const glm::quat orientation);
     enum CalibrationState {
         UNCALIBRATED,
         WAITING_FOR_DELTA,
