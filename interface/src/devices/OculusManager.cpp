@@ -229,7 +229,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 _calibrationState = WAITING_FOR_ZERO_HELD;
 
                 if (!_calibrationMessage) {
-                    qDebug() << "Calibration message: Hold still to calibrate";
+                    qDebug() << "Hold still to calibrate HMD";
 
                     billboard = new BillboardOverlay();
                     billboard->setURL(CALIBRATION_BILLBOARD_URL);
@@ -252,7 +252,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
                 if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
                     _calibrationState = CALIBRATED;
-                    qDebug() << "Delete calibration message";
+                    qDebug() << "HMD calibrated";
                     Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
                     _calibrationMessage = NULL;
                     Application::getInstance()->resetSensors();
@@ -271,7 +271,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                         } else {
                             progressMessage += ".";
                         }
-                        qDebug() << progressMessage;
+                        //qDebug() << progressMessage;  // Progress message ready for 3D text overlays.
                     }
                 }
             } else {
@@ -294,7 +294,7 @@ void OculusManager::abandonCalibration() {
 #ifdef HAVE_LIBOVR
     _calibrationState = CALIBRATED;
     if (_calibrationMessage) {
-        qDebug() << "Delete calibration message";
+        qDebug() << "Abandoned HMD calibration";
         Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
         _calibrationMessage = NULL;
     }
