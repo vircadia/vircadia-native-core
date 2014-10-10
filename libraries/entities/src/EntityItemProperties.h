@@ -101,6 +101,7 @@ public:
     
     AACube getMaximumAACubeInTreeUnits() const;
     AACube getMaximumAACubeInMeters() const;
+    AABox getAABoxInMeters() const;
 
     void debugDump() const;
 
