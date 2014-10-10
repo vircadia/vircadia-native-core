@@ -15,11 +15,12 @@
 
 #include "BillboardOverlay.h"
 
-BillboardOverlay::BillboardOverlay()
-: _fromImage(-1,-1,-1,-1),
-  _scale(1.0f),
-  _isFacingAvatar(true),
-  _newTextureNeeded(true) {
+BillboardOverlay::BillboardOverlay() :
+    _newTextureNeeded(true),
+    _fromImage(-1,-1,-1,-1),
+    _scale(1.0f),
+    _isFacingAvatar(true)
+{
       _isLoaded = false;
 }
 

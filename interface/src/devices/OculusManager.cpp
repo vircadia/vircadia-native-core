@@ -282,6 +282,9 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 _calibrationState = WAITING_FOR_ZERO;
             }
             break;
+        default:
+            break;
+            
     }
 }
 #endif
