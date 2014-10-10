@@ -204,7 +204,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         if (_audioZones[source].contains(streamToAdd->getPosition())) {
             foreach (const QString& listener, _attenuationCoefficients[source].keys()) {
                 if (_audioZones[listener].contains(listeningNodeStream->getPosition())) {
-                    attenuationCoefficient = _attenuationCoefficients[source][listener];
+                    attenuationPerDoublingInDistance = _attenuationCoefficients[source][listener];
                     wantBreak = true;
                 }
                 if (wantBreak) {
