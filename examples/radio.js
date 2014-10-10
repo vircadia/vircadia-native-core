@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
 
-var modelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/entities/radio/Speakers.fbx";
-var soundURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/FamilyStereo.raw";
+var modelURL = HIFI_PUBLIC_BUCKET + "models/entities/radio/Speakers.fbx";
+var soundURL = HIFI_PUBLIC_BUCKET + "sounds/FamilyStereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = new AudioInjectionOptions();

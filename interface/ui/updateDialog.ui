@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>750</width>
-    <height>300</height>
+    <height>213</height>
    </rect>
   </property>
   <property name="cursor">
@@ -22,74 +22,24 @@
   <property name="styleSheet">
    <string notr="true">background-color: rgb(255, 255, 255);</string>
   </property>
-  <widget class="QFrame" name="frame">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>751</width>
-     <height>71</height>
-    </rect>
-   </property>
-   <property name="layoutDirection">
-    <enum>Qt::LeftToRight</enum>
-   </property>
-   <property name="autoFillBackground">
-    <bool>false</bool>
-   </property>
-   <property name="styleSheet">
-    <string notr="true">background-color: rgb(236, 236, 236);</string>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::StyledPanel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Plain</enum>
-   </property>
-   <property name="lineWidth">
-    <number>0</number>
-   </property>
-   <widget class="QLabel" name="updateDialog">
-    <property name="geometry">
-     <rect>
-      <x>240</x>
-      <y>10</y>
-      <width>271</width>
-      <height>41</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <family>Arial</family>
-      <pointsize>36</pointsize>
-      <stylestrategy>PreferAntialias</stylestrategy>
-      <kerning>false</kerning>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true">color: rgb(51, 51, 51);</string>
-    </property>
-    <property name="text">
-     <string>Update Required</string>
-    </property>
-   </widget>
-  </widget>
   <widget class="QLabel" name="updateContent">
    <property name="geometry">
     <rect>
-     <x>100</x>
-     <y>110</y>
-     <width>561</width>
-     <height>61</height>
+     <x>50</x>
+     <y>20</y>
+     <width>641</width>
+     <height>111</height>
     </rect>
    </property>
    <property name="font">
     <font>
      <family>Arial</family>
-     <pointsize>18</pointsize>
-     <weight>50</weight>
-     <bold>false</bold>
+     <pointsize>-1</pointsize>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">font-family: Arial;
+font-size: 20px;</string>
    </property>
    <property name="text">
     <string/>
@@ -102,9 +52,9 @@
    <property name="geometry">
     <rect>
      <x>360</x>
-     <y>240</y>
-     <width>364</width>
-     <height>40</height>
+     <y>160</y>
+     <width>374</width>
+     <height>42</height>
     </rect>
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout">
@@ -115,15 +65,15 @@
       </property>
       <property name="styleSheet">
        <string notr="true">    background-color: #333333;
-    border-width: 0;
-    border-radius: 9px;
-    border-radius: 9px;
-    font-family: Arial;
-    font-size: 18px;
-    font-weight: 100;
-    color: #b7b7b7;
-    width: 120px;
-    height: 40px;</string>
+border-width: 0;
+border-radius: 9px;
+border-radius: 9px;
+font-family: Arial;
+font-size: 18px;
+font-weight: 100;
+color: #b7b7b7;
+width: 120px;
+height: 40px;</string>
       </property>
       <property name="text">
        <string>Download</string>
@@ -137,15 +87,15 @@
       </property>
       <property name="styleSheet">
        <string notr="true">    background-color: #333333;
-    border-width: 0;
-    border-radius: 9px;
-    border-radius: 9px;
-    font-family: Arial;
-    font-size: 18px;
-    font-weight: 100;
-    color: #b7b7b7;
-    width: 120px;
-    height: 40px;</string>
+border-width: 0;
+border-radius: 9px;
+border-radius: 9px;
+font-family: Arial;
+font-size: 18px;
+font-weight: 100;
+color: #b7b7b7;
+width: 120px;
+height: 40px;</string>
       </property>
       <property name="text">
        <string>Skip Version</string>
@@ -159,15 +109,15 @@
       </property>
       <property name="styleSheet">
        <string notr="true">    background-color: #333333;
-    border-width: 0;
-    border-radius: 9px;
-    border-radius: 9px;
-    font-family: Arial;
-    font-size: 18px;
-    font-weight: 100;
-    color: #b7b7b7;
-    width: 120px;
-    height: 40px;</string>
+border-width: 0;
+border-radius: 9px;
+border-radius: 9px;
+font-family: Arial;
+font-size: 18px;
+font-weight: 100;
+color: #b7b7b7;
+width: 120px;
+height: 40px;</string>
       </property>
       <property name="text">
        <string>Close</string>

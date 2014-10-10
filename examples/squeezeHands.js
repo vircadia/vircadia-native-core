@@ -9,8 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var rightHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/RightHandAnimPhilip.fbx";
-var leftHandAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/LeftHandAnimPhilip.fbx";
+Script.include("libraries/globals.js");
+
+var rightHandAnimation = HIFI_PUBLIC_BUCKET + "animations/RightHandAnimPhilip.fbx";
+var leftHandAnimation = HIFI_PUBLIC_BUCKET + "animations/LeftHandAnimPhilip.fbx";
 
 var LEFT = 0;
 var RIGHT = 1;

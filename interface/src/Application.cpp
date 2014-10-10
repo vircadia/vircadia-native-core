@@ -153,7 +153,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-        _cameraPushback(0.0f),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -350,7 +349,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkDiskCache* cache = new QNetworkDiskCache();
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
@@ -605,37 +604,40 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
-        _myCamera.setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
         if (!OculusManager::isConnected()) {
-            _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
-            _myCamera.setTargetRotation(_myAvatar->getHead()->getCameraOrientation());
+            //  If there isn't an HMD, match exactly to avatar's head
+            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition());
+            _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
+        } else {
+            //  For an HMD, set the base position and orientation to that of the avatar body
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         }
-        // OculusManager::display() updates camera position and rotation a bit further on.
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-        //Note, the camera distance is set in Camera::setMode() so we dont have to do it here.
-        _myCamera.setTightness(0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar->getUprightHeadPosition());
+        static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
+        _myCamera.setPosition(_myAvatar->getUprightHeadPosition() +
+                              _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
-            _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
-            _myCamera.setTargetRotation(_myAvatar->getHead()->getOrientation());
+            _myCamera.setRotation(_myAvatar->getHead()->getOrientation());
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        _myCamera.setTightness(0.0f);
         //Only behave like a true mirror when in the OR
         if (OculusManager::isConnected()) {
-            _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-            _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition() + glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0));
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                   glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         } else {
-            _myCamera.setTightness(0.0f);
-            glm::vec3 eyePosition = _myAvatar->getHead()->getEyePosition();
-            float headHeight = eyePosition.y - _myAvatar->getPosition().y;
-            _myCamera.setDistance(MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-            _myCamera.setTargetPosition(_myAvatar->getPosition() + glm::vec3(0, headHeight + (_raiseMirror * _myAvatar->getScale()), 0));
-            _myCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                                  glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
         }
     }
 
@@ -659,12 +661,13 @@ void Application::paintGL() {
         ViewFrustumOffset viewFrustumOffset = Menu::getInstance()->getViewFrustumOffset();
 
         // set the camera to third-person view but offset so we can see the frustum
-        _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
-        _viewFrustumOffsetCamera.setTargetRotation(_myCamera.getTargetRotation() * glm::quat(glm::radians(glm::vec3(
-            viewFrustumOffset.pitch, viewFrustumOffset.yaw, viewFrustumOffset.roll))));
-        _viewFrustumOffsetCamera.setUpShift(viewFrustumOffset.up);
-        _viewFrustumOffsetCamera.setDistance(viewFrustumOffset.distance);
-        _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
+        glm::quat frustumRotation = glm::quat(glm::radians(glm::vec3(viewFrustumOffset.pitch, viewFrustumOffset.yaw, viewFrustumOffset.roll)));
+        
+        _viewFrustumOffsetCamera.setPosition(_myCamera.getPosition() +
+                                             frustumRotation * glm::vec3(0.0f, viewFrustumOffset.up, -viewFrustumOffset.distance));
+        
+        _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
+        
         _viewFrustumOffsetCamera.update(1.f/_fps);
         whichCamera = &_viewFrustumOffsetCamera;
     }
@@ -883,7 +886,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_W:
-                _myAvatar->setDriveKeys(FWD, 1.f);
+                if (isOption && !isShifted && !isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::Wireframe);
+                } else {
+                    _myAvatar->setDriveKeys(FWD, 1.f);
+                }
                 break;
 
             case Qt::Key_S:
@@ -1781,10 +1788,8 @@ void Application::init() {
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-    _myCamera.setModeShiftPeriod(1.0f);
 
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-    _mirrorCamera.setModeShiftPeriod(0.0f);
 
     OculusManager::connect();
     if (OculusManager::isConnected()) {
@@ -2124,17 +2129,14 @@ void Application::cameraMenuChanged() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
-            _myCamera.setModeShiftPeriod(0.0f);
         }
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-            _myCamera.setModeShiftPeriod(modeShiftPeriod);
         }
     } else {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-            _myCamera.setModeShiftPeriod(modeShiftPeriod);
         }
     }
 }
@@ -2908,10 +2910,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // draw a red sphere
         float originSphereRadius = 0.05f;
         glColor3f(1,0,0);
-        glPushMatrix();
-            glutSolidSphere(originSphereRadius, 15, 15);
-        glPopMatrix();
-
+        _geometryCache.renderSphere(originSphereRadius, 15, 15);
+        
         // draw the audio reflector overlay
         {
             PerformanceTimer perfTimer("audio");
@@ -2966,7 +2966,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    bool mirrorMode = (whichCamera.getInterpolatedMode() == CAMERA_MODE_MIRROR);
+    bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
@@ -3105,30 +3105,30 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     bool eyeRelativeCamera = false;
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
-        _mirrorCamera.setDistance(BILLBOARD_DISTANCE * _myAvatar->getScale());
-        _mirrorCamera.setTargetPosition(_myAvatar->getPosition());
+        _mirrorCamera.setPosition(_myAvatar->getPosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
-        _mirrorCamera.setDistance(MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
-        _mirrorCamera.setTargetPosition(_myAvatar->getChestPosition());
+        _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
+                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
-        _mirrorCamera.setDistance(MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         if (_myAvatar->getSkeletonModel().isActive() && _myAvatar->getHead()->getFaceModel().isActive()) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
             // face/body so that the average eye position lies at the origin
             eyeRelativeCamera = true;
-            _mirrorCamera.setTargetPosition(glm::vec3());
+            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
 
         } else {
-            _mirrorCamera.setTargetPosition(_myAvatar->getHead()->getEyePosition());
+            _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
+                                      _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
 
-    _mirrorCamera.setTargetRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
+    _mirrorCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI, 0.0f)));
     _mirrorCamera.update(1.0f/_fps);
 
     // set the bounds of rear mirror view
@@ -3468,9 +3468,9 @@ void Application::updateWindowTitle(){
 void Application::updateLocationInServer() {
 
     AccountManager& accountManager = AccountManager::getInstance();
-    const QUuid& domainUUID = NodeList::getInstance()->getDomainHandler().getUUID();
+    DomainHandler& domainHandler = NodeList::getInstance()->getDomainHandler();
     
-    if (accountManager.isLoggedIn() && !domainUUID.isNull()) {
+    if (accountManager.isLoggedIn() && domainHandler.isConnected() && !domainHandler.getUUID().isNull()) {
 
         // construct a QJsonObject given the user's current address information
         QJsonObject rootObject;
@@ -3484,7 +3484,7 @@ void Application::updateLocationInServer() {
         const QString DOMAIN_ID_KEY_IN_LOCATION = "domain_id";
         
         locationObject.insert(PATH_KEY_IN_LOCATION, pathString);
-        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainUUID.toString());
+        locationObject.insert(DOMAIN_ID_KEY_IN_LOCATION, domainHandler.getUUID().toString());
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 

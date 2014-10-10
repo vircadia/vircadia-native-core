@@ -14,6 +14,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
@@ -34,11 +36,11 @@ var RELOAD_INTERVAL = 5;
 var showScore = false;
 
 // Load some sound to use for loading and firing 
-var fireSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/GUN-SHOT2.raw");
-var loadSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/Gun_Reload_Weapon22.raw");
-var impactSound = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Guns/BulletImpact2.raw");
-var targetHitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
-var targetLaunchSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
+var fireSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
+var loadSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guns/Gun_Reload_Weapon22.raw");
+var impactSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guns/BulletImpact2.raw");
+var targetHitSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
+var targetLaunchSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 
 var gunModel = "http://public.highfidelity.io/models/attachments/HaloGun.fst";
 
@@ -67,7 +69,7 @@ var reticle = Overlays.addOverlay("image", {
                     y: screenSize.y / 2 - 16,
                     width: 32,
                     height: 32,
-                    imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/reticle.png",
+                    imageURL: HIFI_PUBLIC_BUCKET + "images/reticle.png",
                     color: { red: 255, green: 255, blue: 255},
                     alpha: 1
                 });

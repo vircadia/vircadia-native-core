@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 // Multiply vector by scalar
 function vScalarMult(v, s) {
     var rval = { x: v.x * s, y: v.y * s, z: v.z * s };
@@ -68,23 +70,23 @@ function addBird()
     var size;
     var which = Math.random();
     if (which < 0.2) {
-        tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/bushtit_1.raw");
+        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
         color = { red: 100, green: 50, blue: 120 };
         size = 0.08;
     } else if (which < 0.4) {
-        tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/rosyfacedlovebird.raw");
+        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/rosyfacedlovebird.raw");
         color = { red: 100, green: 150, blue: 75 };
         size = 0.09;
     } else if (which < 0.6) {
-        tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/saysphoebe.raw");
+        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/saysphoebe.raw");
         color = { red: 84, green: 121, blue: 36 };
         size = 0.05;
     } else  if (which < 0.8) {
-        tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/mexicanWhipoorwill.raw");
+        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/mexicanWhipoorwill.raw");
         color = { red: 23, green: 197, blue: 230 };
         size = 0.12;
     } else {
-        tweet = new Sound("https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Animals/westernscreechowl.raw");
+        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/westernscreechowl.raw");
         color = { red: 50, green: 67, blue: 144 };
         size = 0.15;
     } 

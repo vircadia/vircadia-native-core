@@ -13,16 +13,19 @@
 
 uniform float pointScale;
 
-void main(void) {
+// the interpolated normal
+varying vec4 normal;
 
-    // standard diffuse lighting
-    gl_FrontColor = vec4(gl_Color.rgb * (gl_LightModel.ambient.rgb + gl_LightSource[0].ambient.rgb +
-        gl_LightSource[0].diffuse.rgb * max(0.0, dot(gl_NormalMatrix * gl_Normal, gl_LightSource[0].position.xyz))),
-            0.0);
+void main(void) {
+    // transform and store the normal for interpolation
+    normal = vec4(normalize(gl_NormalMatrix * gl_Normal), 0.0);
     
     // extract the first three components of the vertex for position
     gl_Position = gl_ModelViewProjectionMatrix * vec4(gl_Vertex.xyz, 1.0);
     
     // the final component is the size in world space
     gl_PointSize = pointScale * gl_Vertex.w / gl_Position.w;
+    
+    // copy the color for interpolation
+    gl_FrontColor = vec4(gl_Color.rgb, 0.0);
 }

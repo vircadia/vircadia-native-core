@@ -399,7 +399,7 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 } else {
                     glTranslatef(_position.x, getDisplayNamePosition().y + LOOK_AT_INDICATOR_OFFSET, _position.z);
                 }
-                glutSolidSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15);
+                Application::getInstance()->getGeometryCache()->renderSphere(LOOK_AT_INDICATOR_RADIUS, 15, 15); 
                 glPopMatrix();
             }
         }
@@ -427,7 +427,8 @@ void Avatar::render(const glm::vec3& cameraPosition, RenderMode renderMode, bool
                 glPushMatrix();
                 glTranslatef(_position.x, _position.y, _position.z);
                 glScalef(height, height, height);
-                glutSolidSphere(sphereRadius, 15, 15);
+                Application::getInstance()->getGeometryCache()->renderSphere(sphereRadius, 15, 15); 
+
                 glPopMatrix();
             }
         }

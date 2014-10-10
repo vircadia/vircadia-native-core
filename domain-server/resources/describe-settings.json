@@ -33,6 +33,14 @@
             "label": "None: use the network information I have entered for this domain at data.highfidelity.io"
           }
         ]
+      },
+      {
+        "name": "local_port",
+        "label": "Local UDP Port",
+        "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to run multiple full automatic networking domain-servers in the same network.",
+        "default": "40102",
+        "type": "int",
+        "advanced": true
       }
     ]
   },
@@ -60,9 +68,68 @@
     "assignment-types": [0],
     "settings": [
       {
+        "name": "zones",
+        "type": "table",
+        "label": "Zones",
+        "help": "In this table you can define a set of zones in which you can specify various audio properties.",
+        "numbered": false,
+        "key": {
+          "name": "name",
+          "label": "Name",
+          "placeholder": "Zone name"
+        },
+        "columns": [
+          {
+            "name": "x_range",
+            "label": "X range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "y_range",
+            "label": "Y range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "z_range",
+            "label": "Z range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          }
+        ]
+      },
+      {
+        "name": "attenuation_coefficients",
+        "type": "table",
+        "label": "Attenuation Coefficients",
+        "help": "In this table you can set custom attenuation coefficients between audio zones",
+        "numbered": false,
+        "columns": [
+          {
+            "name": "source",
+            "label": "Source",
+            "can_set": true,
+            "placeholder": "Zone_A"
+          },
+          {
+            "name": "listener",
+            "label": "Listener",
+            "can_set": true,
+            "placeholder": "Zone_B"
+          },
+          {
+            "name": "coefficient",
+            "label": "Attenuation coefficient",
+            "can_set": true,
+            "placeholder": "0.18"
+          }
+        ]
+      },
+      {
         "name": "enable_filter",
         "type": "checkbox",
-        "label": "Enable Positional Filter",
+        "label": "Positional filter",
         "help": "positional audio stream uses lowpass filter",
         "default": true
       },
@@ -74,11 +141,11 @@
       },
       {
         "name": "attenuation_per_doubling_in_distance",
-        "label": "Attenuattion per doubling in distance",
+        "label": "Attenuation per doubling in distance",
         "help": "Factor between 0.0 and 1.0 (0.0: No attenuation, 1.0: extreme attenuation)",
         "placeholder": "0.18",
         "default": "0.18",
-        "advanced": true
+        "advanced": false
       },
       {
         "name": "dynamic_jitter_buffer",

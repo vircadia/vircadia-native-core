@@ -27,6 +27,7 @@
 #include "ui/TextRenderer.h"
 #include "VoxelConstants.h"
 #include "world.h"
+#include "Application.h"
 
 #include "Util.h"
 
@@ -112,13 +113,13 @@ void drawVector(glm::vec3 * vector) {
     glPushMatrix();
     glColor3f(1,0,0);
     glTranslatef(vector->x, 0, 0);
-    glutSolidSphere(0.02, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.02f, 10, 10);
     glColor3f(0,1,0);
     glTranslatef(-vector->x, vector->y, 0);
-    glutSolidSphere(0.02, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.02f, 10, 10);
     glColor3f(0,0,1);
     glTranslatef(0, -vector->y, vector->z);
-    glutSolidSphere(0.02, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.02f, 10, 10);
     glPopMatrix();
 
 }
@@ -155,22 +156,22 @@ void renderWorldBox() {
     glPushMatrix();
     glTranslatef(MARKER_DISTANCE, 0, 0);
     glColor3fv(red);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, MARKER_DISTANCE, 0);
     glColor3fv(green);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glTranslatef(0, 0, MARKER_DISTANCE);
     glColor3fv(blue);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
     glPushMatrix();
     glColor3fv(gray);
     glTranslatef(MARKER_DISTANCE, 0, MARKER_DISTANCE);
-    glutSolidSphere(MARKER_RADIUS, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(MARKER_RADIUS, 10, 10);
     glPopMatrix();
 
 }

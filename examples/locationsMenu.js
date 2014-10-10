@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var scriptUrl = "https://script.google.com/macros/s/AKfycbwIo4lmF-qUwX1Z-9eA_P-g2gse9oFhNcjVyyksGukyDDEFXgU/exec?action=listOwners&domain=alpha.highfidelity.io";
 
 var LocationMenu = function(opts) {
@@ -24,7 +26,7 @@ var LocationMenu = function(opts) {
     var disabledColor = { red: 64, green: 64, blue: 64};
     var position = { x: 0, y: 0 };
 
-    var locationIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/location.svg";
+    var locationIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/location.svg";
     var toolHeight = 50;
     var toolWidth = 50;
     var visible = false;

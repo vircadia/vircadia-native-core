@@ -385,7 +385,7 @@ Menu::Menu() :
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, 0, false);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* avatarDebugMenu = developerMenu->addMenu("Avatar");
@@ -422,6 +422,10 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DisableAutoAdjustLOD);
+    
+    QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
+        Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
     
     QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
@@ -1234,7 +1238,7 @@ void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
         locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
-        _userLocationsDialog = DataWebDialog::dialogForPath("/locations", locationObjectMap);
+        _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
     if (!_userLocationsDialog->isVisible()) {
@@ -1278,7 +1282,7 @@ void Menu::nameLocation() {
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
         locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
-        _newLocationDialog = DataWebDialog::dialogForPath("/locations/new", locationObjectMap);
+        _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     
     if (!_newLocationDialog->isVisible()) {

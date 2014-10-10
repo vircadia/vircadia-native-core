@@ -520,7 +520,6 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
-    float _cameraPushback;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
