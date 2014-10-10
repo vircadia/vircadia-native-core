@@ -156,7 +156,6 @@ $(document).ready(function(){
   })
   
   $('#settings-form').on('change', 'select', function(){
-    console.log("Changed" + $(this))
     $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
   })
 
@@ -492,7 +491,7 @@ function deleteTableRow(delete_glyphicon) {
     
       row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
       row.addClass('empty-array-row')
-    
+      
       row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
         + "' data-changed='true' value=''>");
     }

@@ -21,6 +21,10 @@
 #include "InterfaceConfig.h"
 #include "TextRenderer.h"
 
+#include "glm/glm.hpp"
+#include <glm/gtc/matrix_transform.hpp>
+
+
 // the width/height of the cached glyph textures
 const int IMAGE_SIZE = 256;
 
@@ -63,8 +67,17 @@ int TextRenderer::calculateHeight(const char* str) {
 }
 
 int TextRenderer::draw(int x, int y, const char* str) {
-    glEnable(GL_TEXTURE_2D);    
-    
+    // Grab the current color
+    float currentColor[4];
+    glGetFloatv(GL_CURRENT_COLOR, currentColor);
+    int compactColor =  ((int( currentColor[0] * 255.f) & 0xFF)) |
+                        ((int( currentColor[1] * 255.f) & 0xFF) << 8) |
+                        ((int( currentColor[2] * 255.f) & 0xFF) << 16) |
+                        ((int( currentColor[3] * 255.f) & 0xFF) << 24);
+
+// TODO: Remove that code once we test for performance improvments
+    //glEnable(GL_TEXTURE_2D);
+
     int maxHeight = 0;
     for (const char* ch = str; *ch != 0; ch++) {
         const Glyph& glyph = getGlyph(*ch);
@@ -76,20 +89,24 @@ int TextRenderer::draw(int x, int y, const char* str) {
         if (glyph.bounds().height() > maxHeight) {
             maxHeight = glyph.bounds().height();
         }
-    
-        glBindTexture(GL_TEXTURE_2D, glyph.textureID());
+        //glBindTexture(GL_TEXTURE_2D, glyph.textureID());
     
         int left = x + glyph.bounds().x();
         int right = x + glyph.bounds().x() + glyph.bounds().width();
         int bottom = y + glyph.bounds().y();
         int top = y + glyph.bounds().y() + glyph.bounds().height();
-    
+
+        glm::vec2  leftBottom = glm::vec2(float(left), float(bottom));
+        glm::vec2  rightTop = glm::vec2(float(right), float(top));
+
         float scale = QApplication::desktop()->windowHandle()->devicePixelRatio() / IMAGE_SIZE;
         float ls = glyph.location().x() * scale;
         float rs = (glyph.location().x() + glyph.bounds().width()) * scale;
         float bt = glyph.location().y() * scale;
         float tt = (glyph.location().y() + glyph.bounds().height()) * scale;
-    
+
+// TODO: Remove that code once we test for performance improvments
+/*
         glBegin(GL_QUADS);
         glTexCoord2f(ls, bt);
         glVertex2f(left, bottom);
@@ -100,12 +117,39 @@ int TextRenderer::draw(int x, int y, const char* str) {
         glTexCoord2f(ls, tt);
         glVertex2f(left, top);
         glEnd();
-    
+*/
+
+        const int NUM_COORDS_SCALARS_PER_GLYPH = 16;
+        float vertexBuffer[NUM_COORDS_SCALARS_PER_GLYPH] = {    leftBottom.x, leftBottom.y, ls, bt,
+                                                        rightTop.x, leftBottom.y, rs, bt,
+                                                        rightTop.x, rightTop.y, rs, tt,
+                                                        leftBottom.x, rightTop.y, ls, tt, };
+
+        const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
+        unsigned int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
+
+        gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
+        gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
+        if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer.getSize()) {
+            _glyphsBuffer.append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer.append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
+        } else {
+            _glyphsBuffer.setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer.setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
+        }
+        _numGlyphsBatched++;
+
         x += glyph.width();
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-    
+
+    // TODO: remove these calls once we move to a full batched rendering of the text, for now, one draw call per draw() function call
+    drawBatch();
+    clearBatch();
+
+// TODO: Remove that code once we test for performance improvments
+   // glBindTexture(GL_TEXTURE_2D, 0);
+   // glDisable(GL_TEXTURE_2D);
+
     return maxHeight;
 }
 
@@ -131,8 +175,10 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _x(IMAGE_SIZE),
     _y(IMAGE_SIZE),
     _rowHeight(0),
-    _color(properties.color) {
-    
+    _color(properties.color),
+    _glyphsBuffer(),
+    _numGlyphsBatched(0)
+{
     _font.setKerning(false);
 }
 
@@ -228,9 +274,74 @@ const Glyph& TextRenderer::getGlyph(char c) {
     return glyph;
 }
 
+void TextRenderer::drawBatch() {
+    if (_numGlyphsBatched <= 0) {
+        return;
+    }
+
+    // TODO: Right now the drawBatch is called while calling the draw() function but in the future we'll need to apply the correct transform stack
+    /*
+    GLint matrixMode;
+    glGetIntegerv(GL_MATRIX_MODE, &matrixMode);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    */
+
+    glEnable(GL_TEXTURE_2D);
+    // TODO: Apply the correct font atlas texture, for now only one texture per TextRenderer so it should be good
+    glBindTexture(GL_TEXTURE_2D, _currentTextureID);
+
+    GLuint vbo = _glyphsBuffer.getGLBufferObject();
+    GLuint colorvbo = _glyphsColorBuffer.getGLBufferObject();
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+
+    const int NUM_POS_COORDS = 2;
+    const int NUM_TEX_COORDS = 2;
+    const int VERTEX_STRIDE = (NUM_POS_COORDS + NUM_TEX_COORDS) * sizeof(float);
+    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glVertexPointer(2, GL_FLOAT, VERTEX_STRIDE, 0);
+    glTexCoordPointer(2, GL_FLOAT, VERTEX_STRIDE, (GLvoid*) VERTEX_TEXCOORD_OFFSET );
+
+    glBindBuffer(GL_ARRAY_BUFFER, colorvbo);
+    glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
+
+    glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
+
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
+    // TODO: Right now the drawBatch is called while calling the draw() function but in the future we'll need to apply the correct transform stack
+    /*
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+    glPopMatrix();
+    glMatrixMode(matrixMode);
+    */
+}
+
+void TextRenderer::clearBatch() {
+    _numGlyphsBatched = 0;
+}
+
 QHash<TextRenderer::Properties, TextRenderer*> TextRenderer::_instances;
 
 Glyph::Glyph(int textureID, const QPoint& location, const QRect& bounds, int width) :
     _textureID(textureID), _location(location), _bounds(bounds), _width(width) {
 }
-
