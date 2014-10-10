@@ -605,10 +605,14 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         if (!OculusManager::isConnected()) {
+            //  If there isn't an HMD, match exactly to avatar's head
             _myCamera.setPosition(_myAvatar->getHead()->getEyePosition());
             _myCamera.setRotation(_myAvatar->getHead()->getCameraOrientation());
+        } else {
+            //  For an HMD, set the base position and orientation to that of the avatar body
+            _myCamera.setPosition(_myAvatar->getDefaultEyePosition());
+            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         }
-        // OculusManager::display() updates camera position and rotation a bit further on.
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
@@ -664,7 +668,6 @@ void Application::paintGL() {
         
         _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
         
-        _viewFrustumOffsetCamera.initialize(); // force immediate snap to ideal position and orientation
         _viewFrustumOffsetCamera.update(1.f/_fps);
         whichCamera = &_viewFrustumOffsetCamera;
     }

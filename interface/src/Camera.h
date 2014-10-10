@@ -38,17 +38,23 @@ public:
 
     void setPosition(const glm::vec3& p) { _position = p; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; };
+    void setHmdPosition(const glm::vec3& hmdPosition) { _hmdPosition = hmdPosition; }
+    void setHmdRotation(const glm::quat& hmdRotation) { _hmdRotation = hmdRotation; };
+    
     void setMode(CameraMode m);
     void setFieldOfView(float f);
     void setAspectRatio(float a);
     void setNearClip(float n);
     void setFarClip(float f);
-    void setEyeOffsetPosition(const glm::vec3& p);
-    void setEyeOffsetOrientation(const glm::quat& o);
-    void setScale(const float s);
+    void setEyeOffsetPosition(const glm::vec3& p) { _eyeOffsetPosition = p; }
+    void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
+    void setScale(const float s) { _scale = s; }
     
-    const glm::vec3& getPosition() const { return _position; }
-    const glm::quat& getRotation() const { return _rotation; }
+    glm::vec3 getPosition() const { return _position + _hmdPosition; }
+    glm::quat getRotation() const { return _rotation * _hmdRotation; }
+    const glm::vec3& getHmdPosition() const { return _hmdPosition; }
+    const glm::quat& getHmdRotation() const { return _hmdRotation; }
+    
     CameraMode getMode() const { return _mode; }
     float getFieldOfView() const { return _fieldOfView; }
     float getAspectRatio() const { return _aspectRatio; }
@@ -60,7 +66,6 @@ public:
     
 private:
 
-    bool _needsToInitialize;
     CameraMode _mode;
     glm::vec3 _position;
     float _fieldOfView; // degrees
@@ -70,7 +75,10 @@ private:
     glm::vec3 _eyeOffsetPosition;
     glm::quat _eyeOffsetOrientation;
     glm::quat _rotation;
-
+    glm::vec3 _hmdPosition;
+    glm::quat _hmdRotation;
+    glm::vec3 _targetPosition;
+    glm::quat _targetRotation;
     float _scale;
 };
 
