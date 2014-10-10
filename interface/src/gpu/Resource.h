@@ -59,7 +59,7 @@ protected:
     public:
 
         Sysmem();
-        Sysmem(Size size , const Byte* bytes);
+        Sysmem(Size size, const Byte* bytes);
         ~Sysmem();
 
         Size getSize() const { return _size; }
@@ -74,12 +74,12 @@ protected:
         Size resize(Size pSize);
 
         // Assign data bytes and size (allocate for size, then copy bytes if exists)
-        Size setData( Size size, const Byte* bytes );
+        Size setData(Size size, const Byte* bytes );
 
         // Update Sub data, 
         // doesn't allocate and only copy size * bytes at the offset location
         // only if all fits in the existing allocated buffer
-        Size setSubData( Size offset, Size size, const Byte* bytes);
+        Size setSubData(Size offset, Size size, const Byte* bytes);
 
         // Append new data at the end of the current buffer
         // do a resize( size + getSIze) and copy the new data
@@ -117,7 +117,7 @@ class Buffer : public Resource {
 public:
 
     Buffer();
-    Buffer(const Buffer& buf );
+    Buffer(const Buffer& buf);
     ~Buffer();
 
     // The size in bytes of data stored in the buffer
@@ -143,7 +143,7 @@ public:
 
     // this is a temporary hack so the current rendering code can access the underneath gl Buffer Object
     // TODO: remove asap, when the backend is doing more of the gl features
-    inline GLuint  getGLBufferObject() const { backend::syncGPUObject(*this); return getGPUObject()->_buffer; }
+    inline GLuint getGLBufferObject() const { backend::syncGPUObject(*this); return getGPUObject()->_buffer; }
 
 protected:
 

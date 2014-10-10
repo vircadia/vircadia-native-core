@@ -128,8 +128,8 @@ int TextRenderer::draw(int x, int y, const char* str) {
         const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
         unsigned int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
 
-        gpu::Buffer::Size offset = sizeof(vertexBuffer)*_numGlyphsBatched;
-        gpu::Buffer::Size colorOffset = sizeof(colorBuffer)*_numGlyphsBatched;
+        gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
+        gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
         if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer.getSize()) {
             _glyphsBuffer.append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
             _glyphsColorBuffer.append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
@@ -275,7 +275,7 @@ const Glyph& TextRenderer::getGlyph(char c) {
 }
 
 void TextRenderer::drawBatch() {
-    if (_numGlyphsBatched<=0) {
+    if (_numGlyphsBatched <= 0) {
         return;
     }
 
