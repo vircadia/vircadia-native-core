@@ -243,10 +243,13 @@ class VoxelBuffer : public BufferData {
 public:
     
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QHash<QRgb, glm::vec3>& points, int size, const QVector<SharedObjectPointer>& materials =
+        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
             QVector<SharedObjectPointer>());
 
-    bool findFirstRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    /// Finds the first intersection between the described ray and the voxel data.
+    /// \param entry the entry point of the ray in relative coordinates, from (0, 0, 0) to (1, 1, 1)
+    bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) const;
         
     virtual void render(bool cursor = false);
 
@@ -255,7 +258,7 @@ private:
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
-    QHash<QRgb, glm::vec3> _points;
+    QMultiHash<QRgb, int> _quadIndices;
     int _size;
     int _vertexCount;
     int _indexCount;

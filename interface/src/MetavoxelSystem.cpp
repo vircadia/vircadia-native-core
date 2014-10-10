@@ -354,9 +354,8 @@ int RayVoxelIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     if (!buffer) {
         return STOP_RECURSION;
     }
-    glm::vec3 origin = ((_origin + distance * _direction) - info.minimum) / info.size;
-    if (buffer->findFirstRayIntersection(origin, _direction, intersectionDistance)) {
-        intersectionDistance = intersectionDistance * info.size + distance;
+    glm::vec3 entry = ((_origin + distance * _direction) - info.minimum) / info.size;
+    if (buffer->findFirstRayIntersection(entry, _origin, _direction, intersectionDistance)) {
         return SHORT_CIRCUIT;
     }
     return STOP_RECURSION;
@@ -1035,11 +1034,11 @@ void VoxelPoint::setNormal(const glm::vec3& normal) {
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QHash<QRgb, glm::vec3>& points, int size, const QVector<SharedObjectPointer>& materials) :
+        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials) :
     _vertices(vertices),
     _indices(indices),
     _hermite(hermite),
-    _points(points),
+    _quadIndices(quadIndices),
     _size(size),
     _vertexCount(vertices.size()),
     _indexCount(indices.size()),
@@ -1048,17 +1047,47 @@ VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>
     _materials(materials) {
 }
 
-bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+static bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
+    glm::vec3 firstSide = v0 - v1;
+    glm::vec3 secondSide = v2 - v1;
+    glm::vec3 normal = glm::cross(secondSide, firstSide);
+    float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
+    if (dividend > 0.0f) {
+        return false; // origin below plane
+    }
+    float divisor = glm::dot(normal, direction);
+    if (divisor > -EPSILON) {
+        return false;
+    }
+    float t = dividend / divisor;
+    glm::vec3 point = origin + direction * t;
+    if (glm::dot(normal, glm::cross(point - v1, firstSide)) > 0.0f &&
+            glm::dot(normal, glm::cross(secondSide, point - v1)) > 0.0f &&
+            glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
+        distance = t;
+        return true;
+    }
+    return false;
+}
+
+bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) const {
     float highest = _size - 1.0f;
-    glm::vec3 position = origin * highest;
+    glm::vec3 position = entry * highest;
     glm::vec3 floors = glm::floor(position);
     int max = _size - 2;
     int x = qMin((int)floors.x, max), y = qMin((int)floors.y, max), z = qMin((int)floors.z, max);
-    float combinedDistance = 0.0f;
     forever {
-        if (_points.contains(qRgb(x + 1, y + 1, z + 1))) {
-            distance = combinedDistance / highest;
-            return true;
+        for (QMultiHash<QRgb, int>::const_iterator it = _quadIndices.constFind(qRgb(x + 1, y + 1, z + 1));
+                it != _quadIndices.constEnd(); it++) {
+            const int* indices = _indices.constData() + *it;
+            if (findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
+                    _vertices.at(indices[1]).vertex, _vertices.at(indices[2]).vertex, distance) ||
+                findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
+                    _vertices.at(indices[2]).vertex, _vertices.at(indices[3]).vertex, distance)) {
+                return true;
+            }
         }
         float xDistance = FLT_MAX, yDistance = FLT_MAX, zDistance = FLT_MAX;
         if (direction.x > 0.0f) {
@@ -1105,7 +1134,6 @@ bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& origin, const glm::v
             }
         }
         position += direction * minimumDistance;
-        combinedDistance += minimumDistance;
     }
     return false;
 }
@@ -1115,13 +1143,11 @@ void VoxelBuffer::render(bool cursor) {
         _vertexBuffer.create();
         _vertexBuffer.bind();
         _vertexBuffer.allocate(_vertices.constData(), _vertices.size() * sizeof(VoxelPoint));
-        _vertices.clear();
-    
+        
         _indexBuffer.create();
         _indexBuffer.bind();
         _indexBuffer.allocate(_indices.constData(), _indices.size() * sizeof(int));
-        _indices.clear();
-    
+        
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
             for (int i = 0; i < _materials.size(); i++) {
@@ -1735,7 +1761,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         QVector<glm::vec3> hermiteSegments;
-        QHash<QRgb, glm::vec3> points;
+        QMultiHash<QRgb, int> quadIndices;
         
         // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
         // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges
@@ -2142,8 +2168,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
                             (quint8)materialWeights[3] } };
                     
-                    points.insert(qRgb(x + 1, y + 1, z + 1), (glm::vec3(clampedX, clampedY, clampedZ) + center) / highest);
-                    
                     // determine whether we must "crease" by generating directional normals
                     const float CREASE_COS_NORMAL = glm::cos(glm::radians(40.0f));
                     AxisIndex index(vertices.size(), vertices.size(), vertices.size());
@@ -2202,6 +2226,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     // quads for each edge that includes a transition, using indices of previously generated vertices
                     if (x != 0 && y != 0 && z != 0) {
                         if (alpha0 != alpha1) {
+                            quadIndices.insert(qRgb(x, y, z), indices.size());
+                            quadIndices.insert(qRgb(x, y - 1, z), indices.size());
+                            quadIndices.insert(qRgb(x, y - 1, z - 1), indices.size());
+                            quadIndices.insert(qRgb(x, y, z - 1), indices.size());
                             indices.append(index.x);
                             int index1 = lastLineIndices.at(x).x;
                             int index2 = lastPlaneIndices.at((y - 1) * expanded + x).x;
@@ -2218,6 +2246,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         }
                         
                         if (alpha0 != alpha2) {
+                            quadIndices.insert(qRgb(x, y, z), indices.size());
+                            quadIndices.insert(qRgb(x - 1, y, z), indices.size());
+                            quadIndices.insert(qRgb(x - 1, y, z - 1), indices.size());
+                            quadIndices.insert(qRgb(x, y, z - 1), indices.size());
                             indices.append(index.y);
                             int index1 = lastIndex.y;
                             int index2 = lastPlaneIndices.at(y * expanded + x - 1).y;
@@ -2234,6 +2266,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         }
                         
                         if (alpha0 != alpha4) {
+                            quadIndices.insert(qRgb(x, y, z), indices.size());
+                            quadIndices.insert(qRgb(x - 1, y, z), indices.size());
+                            quadIndices.insert(qRgb(x - 1, y - 1, z), indices.size());
+                            quadIndices.insert(qRgb(x, y - 1, z), indices.size());
                             indices.append(index.z);
                             int index1 = lastIndex.z;
                             int index2 = lastLineIndices.at(x - 1).z;
@@ -2269,7 +2305,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                 colorZ += area;
             }
         }
-        buffer = new VoxelBuffer(vertices, indices, hermiteSegments, points, size,
+        buffer = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, size,
             material ? material->getMaterials() : QVector<SharedObjectPointer>());
     }
     BufferDataPointer pointer(buffer);
