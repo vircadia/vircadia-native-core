@@ -198,14 +198,22 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         attenuationCoefficient *= offAxisCoefficient;
     }
    
+    bool wantBreak = false;
     float attenuationPerDoublingInDistance = _attenuationPerDoublingInDistance;
     foreach (const QString& source, _attenuationCoefficients.keys()) {
         if (_audioZones[source].contains(streamToAdd->getPosition())) {
             foreach (const QString& listener, _attenuationCoefficients[source].keys()) {
                 if (_audioZones[listener].contains(listeningNodeStream->getPosition())) {
                     attenuationCoefficient = _attenuationCoefficients[source][listener];
+                    wantBreak = true;
+                }
+                if (wantBreak) {
+                    break;
                 }
             }
+        }
+        if (wantBreak) {
+            break;
         }
     }
     
