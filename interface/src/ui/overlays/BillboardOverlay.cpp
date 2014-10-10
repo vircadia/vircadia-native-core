@@ -156,9 +156,14 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+void BillboardOverlay::setURL(const QString& url) {
+    setBillboardURL(url);
+}
+
 void BillboardOverlay::setBillboardURL(const QString& url) {
     _url = url;
     QUrl actualURL = url;
+
     _isLoaded = false;
 
     // clear the billboard if previously set

@@ -152,7 +152,6 @@ $(document).ready(function(){
   })
   
   $('#settings-form').on('change', 'select', function(){
-    console.log("Changed" + $(this))
     $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
   })
 

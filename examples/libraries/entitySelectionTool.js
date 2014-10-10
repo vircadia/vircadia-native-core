@@ -454,22 +454,28 @@ SelectionDisplay = (function () {
         var rotateHandleOffset = 0.05;
         var grabberMoveUpOffset = 0.1;
         
-        var left = properties.position.x - halfDimensions.x;
-        var right = properties.position.x + halfDimensions.x;
-        var bottom = properties.position.y - halfDimensions.y;
-        var top = properties.position.y + halfDimensions.y;
-        var near = properties.position.z - halfDimensions.z;
-        var far = properties.position.z + halfDimensions.z;
-        var center = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
+        var top, far, left, bottom, near, right, boundsCenter, objectCenter, BLN, BRN, BLF, TLN, TRN, TLF, TRF;
 
-        var BLN = { x: left, y: bottom, z: near };
-        var BRN = { x: right, y: bottom, z: near };
-        var BLF = { x: left, y: bottom, z: far };
-        var BRF = { x: right, y: bottom, z: far };
-        var TLN = { x: left, y: top, z: near };
-        var TRN = { x: right, y: top, z: near };
-        var TLF = { x: left, y: top, z: far };
-        var TRF = { x: right, y: top, z: far };
+        objectCenter = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
+        
+        top = properties.boundingBox.tfl.y;
+        far = properties.boundingBox.tfl.z;
+        left = properties.boundingBox.tfl.x;
+
+        bottom = properties.boundingBox.brn.y;
+        right = properties.boundingBox.brn.x;
+        near = properties.boundingBox.brn.z;
+
+        boundsCenter = { x: properties.boundingBox.center.x, y: properties.boundingBox.center.y, z: properties.boundingBox.center.z };
+
+        BLN = { x: left, y: bottom, z: near };
+        BRN = { x: right, y: bottom, z: near };
+        BLF = { x: left, y: bottom, z: far };
+        BRF = { x: right, y: bottom, z: far };
+        TLN = { x: left, y: top, z: near };
+        TRN = { x: right, y: top, z: near };
+        TLF = { x: left, y: top, z: far };
+        TRF = { x: right, y: top, z: far };
 
         var yawCorner;
         var pitchCorner;
@@ -488,9 +494,10 @@ SelectionDisplay = (function () {
                 
         ------------------------------*/
         
-        if (MyAvatar.position.x > center.x) {
+        if (MyAvatar.position.x > objectCenter.x) {
             // must be BRF or BRN
-            if (MyAvatar.position.z < center.z) {
+            if (MyAvatar.position.z < objectCenter.z) {
+
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 90, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
@@ -499,21 +506,21 @@ SelectionDisplay = (function () {
                 pitchNormal  = { x: 1, y: 0, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
 
-                yawCorner = { x: right + rotateHandleOffset,
+                yawCorner = { x: left + rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
                               z: near - rotateHandleOffset };
 
-                pitchCorner = { x: left - rotateHandleOffset,
+                pitchCorner = { x: right - rotateHandleOffset,
                                y: top + rotateHandleOffset,
                                z: near - rotateHandleOffset};
 
-                rollCorner = { x: right + rotateHandleOffset,
+                rollCorner = { x: left + rotateHandleOffset,
                                 y: top + rotateHandleOffset,
                                 z: far + rotateHandleOffset };
 
-                yawCenter = { x: center.x, y: bottom, z: center.z };
-                pitchCenter = { x: left, y: center.y, z: center.z};
-                rollCenter = { x: center.x, y: center.y, z: far };
+                yawCenter = { x: boundsCenter.x, y: bottom, z: boundsCenter.z };
+                pitchCenter = { x: right, y: boundsCenter.y, z: boundsCenter.z};
+                rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: far };
                 
 
                 Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-south.png" });
@@ -521,6 +528,7 @@ SelectionDisplay = (function () {
                 
 
             } else {
+            
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 0, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
@@ -530,29 +538,31 @@ SelectionDisplay = (function () {
                 rollNormal  = { x: 0, y: 0, z: 1 };
 
 
-                yawCorner = { x: right + rotateHandleOffset,
+                yawCorner = { x: left + rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
                               z: far + rotateHandleOffset };
 
-                pitchCorner = { x: left - rotateHandleOffset,
+                pitchCorner = { x: right - rotateHandleOffset,
                                 y: top + rotateHandleOffset,
                                 z: far + rotateHandleOffset };
 
-                rollCorner = { x: right + rotateHandleOffset,
+                rollCorner = { x: left + rotateHandleOffset,
                                y: top + rotateHandleOffset,
                                z: near - rotateHandleOffset};
 
 
-                yawCenter = { x: center.x, y: bottom, z: center.z };
-                pitchCenter = { x: left, y: center.y, z: center.z };
-                rollCenter = { x: center.x, y: center.y, z: near};
+                yawCenter = { x: boundsCenter.x, y: bottom, z: boundsCenter.z };
+                pitchCenter = { x: right, y: boundsCenter.y, z: boundsCenter.z };
+                rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: near};
 
                 Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
                 Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
             }
         } else {
+        
             // must be BLF or BLN
-            if (MyAvatar.position.z < center.z) {
+            if (MyAvatar.position.z < objectCenter.z) {
+            
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 180, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 90 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
@@ -561,26 +571,27 @@ SelectionDisplay = (function () {
                 pitchNormal = { x: 1, y: 0, z: 0 };
                 rollNormal  = { x: 0, y: 0, z: 1 };
 
-                yawCorner = { x: left - rotateHandleOffset,
+                yawCorner = { x: right - rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
                               z: near - rotateHandleOffset };
 
-                pitchCorner = { x: right + rotateHandleOffset,
+                pitchCorner = { x: left + rotateHandleOffset,
                                 y: top + rotateHandleOffset,
                                 z: near - rotateHandleOffset };
 
-                rollCorner = { x: left - rotateHandleOffset,
+                rollCorner = { x: right - rotateHandleOffset,
                                y: top + rotateHandleOffset,
                                z: far + rotateHandleOffset};
 
-                yawCenter = { x: center.x, y: bottom, z: center.z };
-                pitchCenter = { x: right, y: center.y, z: center.z };
-                rollCenter = { x: center.x, y: center.y, z: far};
+                yawCenter = { x: boundsCenter.x, y: bottom, z: boundsCenter.z };
+                pitchCenter = { x: left, y: boundsCenter.y, z: boundsCenter.z };
+                rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: far};
 
                 Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
                 Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
 
             } else {
+            
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 270, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
@@ -589,28 +600,27 @@ SelectionDisplay = (function () {
                 rollNormal = { x: 0, y: 0, z: 1 };
                 pitchNormal  = { x: 1, y: 0, z: 0 };
 
-                yawCorner = { x: left - rotateHandleOffset,
+                yawCorner = { x: right - rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
                               z: far + rotateHandleOffset };
 
-                rollCorner = { x: left - rotateHandleOffset,
+                rollCorner = { x: right - rotateHandleOffset,
                                 y: top + rotateHandleOffset,
                                 z: near - rotateHandleOffset };
 
-                pitchCorner = { x: right + rotateHandleOffset,
+                pitchCorner = { x: left + rotateHandleOffset,
                                y: top + rotateHandleOffset,
                                z: far + rotateHandleOffset};
 
-                yawCenter = { x: center.x, y: bottom, z: center.z };
-                rollCenter = { x: center.x, y: center.y, z: near };
-                pitchCenter = { x: right, y: center.y, z: center.z};
+                yawCenter = { x: boundsCenter.x, y: bottom, z: boundsCenter.z };
+                rollCenter = { x: boundsCenter.x, y: boundsCenter.y, z: near };
+                pitchCenter = { x: left, y: boundsCenter.y, z: boundsCenter.z};
 
                 Overlays.editOverlay(pitchHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
                 Overlays.editOverlay(rollHandle, { url: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/rotate-arrow-west-north.png" });
 
             }
         }
-        
         
         var rotateHandlesVisible = true;
         var translateHandlesVisible = true;
@@ -632,17 +642,11 @@ SelectionDisplay = (function () {
 
         Overlays.editOverlay(highlightBox, { visible: false });
         
-        print("selectionBoxVisible:" + selectionBoxVisible);
-        Overlays.editOverlay(selectionBox, 
-                            { 
-                                visible: selectionBoxVisible,
-                                position: center,
-                                dimensions: properties.dimensions,
-                                rotation: properties.rotation,
-                            });
+        Overlays.editOverlay(selectionBox, { visible: selectionBoxVisible, position: objectCenter, dimensions: properties.dimensions,
+                                                rotation: properties.rotation,});
                             
                             
-        Overlays.editOverlay(grabberMoveUp, { visible: translateHandlesVisible, position: { x: center.x, y: top + grabberMoveUpOffset, z: center.z } });
+        Overlays.editOverlay(grabberMoveUp, { visible: translateHandlesVisible, position: { x: boundsCenter.x, y: top + grabberMoveUpOffset, z: boundsCenter.z } });
 
         Overlays.editOverlay(grabberLBN, { visible: stretchHandlesVisible, position: { x: left, y: bottom, z: near } });
         Overlays.editOverlay(grabberRBN, { visible: stretchHandlesVisible, position: { x: right, y: bottom, z: near } });
@@ -654,25 +658,25 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(grabberRTF, { visible: stretchHandlesVisible, position: { x: right, y: top, z: far } });
 
 
-        Overlays.editOverlay(grabberTOP, { visible: stretchHandlesVisible, position: { x: center.x, y: top, z: center.z } });
-        Overlays.editOverlay(grabberBOTTOM, { visible: stretchHandlesVisible, position: { x: center.x, y: bottom, z: center.z } });
-        Overlays.editOverlay(grabberLEFT, { visible: stretchHandlesVisible, position: { x: left, y: center.y, z: center.z } });
-        Overlays.editOverlay(grabberRIGHT, { visible: stretchHandlesVisible, position: { x: right, y: center.y, z: center.z } });
-        Overlays.editOverlay(grabberNEAR, { visible: stretchHandlesVisible, position: { x: center.x, y: center.y, z: near } });
-        Overlays.editOverlay(grabberFAR, { visible: stretchHandlesVisible, position: { x: center.x, y: center.y, z: far } });
+        Overlays.editOverlay(grabberTOP, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: top, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberBOTTOM, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: bottom, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberLEFT, { visible: stretchHandlesVisible, position: { x: left, y: boundsCenter.y, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberRIGHT, { visible: stretchHandlesVisible, position: { x: right, y: boundsCenter.y, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberNEAR, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: boundsCenter.y, z: near } });
+        Overlays.editOverlay(grabberFAR, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: boundsCenter.y, z: far } });
 
-        Overlays.editOverlay(grabberEdgeTR, { visible: stretchHandlesVisible, position: { x: right, y: top, z: center.z } });
-        Overlays.editOverlay(grabberEdgeTL, { visible: stretchHandlesVisible, position: { x: left, y: top, z: center.z } });
-        Overlays.editOverlay(grabberEdgeTF, { visible: stretchHandlesVisible, position: { x: center.x, y: top, z: far } });
-        Overlays.editOverlay(grabberEdgeTN, { visible: stretchHandlesVisible, position: { x: center.x, y: top, z: near } });
-        Overlays.editOverlay(grabberEdgeBR, { visible: stretchHandlesVisible, position: { x: right, y: bottom, z: center.z } });
-        Overlays.editOverlay(grabberEdgeBL, { visible: stretchHandlesVisible, position: { x: left, y: bottom, z: center.z } });
-        Overlays.editOverlay(grabberEdgeBF, { visible: stretchHandlesVisible, position: { x: center.x, y: bottom, z: far } });
-        Overlays.editOverlay(grabberEdgeBN, { visible: stretchHandlesVisible, position: { x: center.x, y: bottom, z: near } });
-        Overlays.editOverlay(grabberEdgeNR, { visible: stretchHandlesVisible, position: { x: right, y: center.y, z: near } });
-        Overlays.editOverlay(grabberEdgeNL, { visible: stretchHandlesVisible, position: { x: left, y: center.y, z: near } });
-        Overlays.editOverlay(grabberEdgeFR, { visible: stretchHandlesVisible, position: { x: right, y: center.y, z: far } });
-        Overlays.editOverlay(grabberEdgeFL, { visible: stretchHandlesVisible, position: { x: left, y: center.y, z: far } });
+        Overlays.editOverlay(grabberEdgeTR, { visible: stretchHandlesVisible, position: { x: right, y: top, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberEdgeTL, { visible: stretchHandlesVisible, position: { x: left, y: top, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberEdgeTF, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: top, z: far } });
+        Overlays.editOverlay(grabberEdgeTN, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: top, z: near } });
+        Overlays.editOverlay(grabberEdgeBR, { visible: stretchHandlesVisible, position: { x: right, y: bottom, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberEdgeBL, { visible: stretchHandlesVisible, position: { x: left, y: bottom, z: boundsCenter.z } });
+        Overlays.editOverlay(grabberEdgeBF, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: bottom, z: far } });
+        Overlays.editOverlay(grabberEdgeBN, { visible: stretchHandlesVisible, position: { x: boundsCenter.x, y: bottom, z: near } });
+        Overlays.editOverlay(grabberEdgeNR, { visible: stretchHandlesVisible, position: { x: right, y: boundsCenter.y, z: near } });
+        Overlays.editOverlay(grabberEdgeNL, { visible: stretchHandlesVisible, position: { x: left, y: boundsCenter.y, z: near } });
+        Overlays.editOverlay(grabberEdgeFR, { visible: stretchHandlesVisible, position: { x: right, y: boundsCenter.y, z: far } });
+        Overlays.editOverlay(grabberEdgeFL, { visible: stretchHandlesVisible, position: { x: left, y: boundsCenter.y, z: far } });
 
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, 
