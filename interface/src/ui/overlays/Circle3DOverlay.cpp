@@ -40,13 +40,18 @@ void Circle3DOverlay::render() {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
+
+    float alpha = getAlpha();
+
+    if (alpha == 0.0) {
+        return; // do nothing if our alpha is 0, we're not visible
+    }
     
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
     const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
 
     //const int slices = 15;
-    float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
