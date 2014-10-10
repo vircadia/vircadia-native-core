@@ -65,7 +65,7 @@ OculusManager::CalibrationState OculusManager::_calibrationState;
 glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
-int OculusManager::_calibrationMessage = 0;
+int OculusManager::_calibrationMessage = NULL;
 QString OculusManager::CALIBRATION_BILLBOARD_URL = "http://hifi-public.s3.amazonaws.com/images/hold-to-calibrate.svg";
 float OculusManager::CALIBRATION_BILLBOARD_SCALE = 2.f;
 
@@ -228,7 +228,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 _calibrationStartTime = usecTimestampNow();
                 _calibrationState = WAITING_FOR_ZERO_HELD;
 
-                if (_calibrationMessage == 0) {
+                if (!_calibrationMessage) {
                     qDebug() << "Calibration message: Hold still to calibrate";
 
                     billboard = new BillboardOverlay();
@@ -254,7 +254,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                     _calibrationState = CALIBRATED;
                     qDebug() << "Delete calibration message";
                     Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-                    _calibrationMessage = 0;
+                    _calibrationMessage = NULL;
                     Application::getInstance()->resetSensors();
                 } else {
                     quint64 quarterSeconds = (usecTimestampNow() - _calibrationStartTime) / 250000;
@@ -293,10 +293,10 @@ void OculusManager::recalibrate() {
 void OculusManager::abandonCalibration() {
 #ifdef HAVE_LIBOVR
     _calibrationState = CALIBRATED;
-    if (_calibrationMessage > 0) {
+    if (_calibrationMessage) {
         qDebug() << "Delete calibration message";
         Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
-        _calibrationMessage = 0;
+        _calibrationMessage = NULL;
     }
 #endif
 }
