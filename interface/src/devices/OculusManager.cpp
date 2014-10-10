@@ -188,6 +188,7 @@ void OculusManager::disconnect() {
 #endif
 }
 
+#ifdef HAVE_LIBOVR
 void OculusManager::positionCalibrationBillboard(BillboardOverlay* billboard) {
     glm::quat headOrientation = Application::getInstance()->getAvatar()->getHeadOrientation();
     headOrientation.x = 0;
@@ -197,9 +198,10 @@ void OculusManager::positionCalibrationBillboard(BillboardOverlay* billboard) {
         + headOrientation * glm::vec3(0.f, 0.f, -CALIBRATION_MESSAGE_DISTANCE));
     billboard->setRotation(headOrientation);
 }
+#endif
 
-void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
 #ifdef HAVE_LIBOVR
+void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
     static QString progressMessage;
     static BillboardOverlay* billboard;
 
@@ -281,8 +283,8 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
             }
             break;
     }
-#endif
 }
+#endif
 
 void OculusManager::recalibrate() {
 #ifdef HAVE_LIBOVR
