@@ -244,7 +244,7 @@ EntityPropertyDialogBox = (function () {
                 properties.color.blue = array[index++].value;
             }
             Entities.editEntity(editModelID, properties);
-            selectionDisplay.highlightSelectable(editModelID, propeties);
+            selectionDisplay.select(editModelID, false);
         }
         modelSelected = false;
     });

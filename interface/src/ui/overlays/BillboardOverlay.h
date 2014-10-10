@@ -33,12 +33,13 @@ private slots:
     void replyFinished();
 
 private:
-    void setBillboardURL(const QUrl url);
+    void setBillboardURL(const QString& url);
     
-    QUrl _url;
+    QString _url;
     QByteArray _billboard;
     QSize _size;
     QScopedPointer<Texture> _billboardTexture;
+    bool _newTextureNeeded;
     
     QRect _fromImage; // where from in the image to sample
 

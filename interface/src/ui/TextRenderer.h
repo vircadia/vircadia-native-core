@@ -19,6 +19,8 @@
 #include <QImage>
 #include <QVector>
 
+#include "gpu/Resource.h"
+
 #include "InterfaceConfig.h"
 
 // a special "character" that renders as a solid block
@@ -64,6 +66,8 @@ public:
     int computeWidth(char ch);
     int computeWidth(const char* str);
     
+    void drawBatch();
+    void clearBatch();
 private:
 
     TextRenderer(const Properties& properties);
@@ -100,6 +104,11 @@ private:
     // text color
     QColor _color;
     
+    // Graphics Buffer containing the current accumulated glyphs to render
+    gpu::Buffer _glyphsBuffer;
+    gpu::Buffer _glyphsColorBuffer;
+    int _numGlyphsBatched;
+
     static QHash<Properties, TextRenderer*> _instances;
 };
 

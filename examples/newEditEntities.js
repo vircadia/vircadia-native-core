@@ -570,6 +570,19 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Edit Properties...") {
         // good place to put the properties dialog
+
+        editModelID = -1;
+        if (entitySelected) {
+            print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
+            editModelID = selectedEntityID;
+        } else {
+            print("  Edit Properties.... not holding...");
+        }
+        if (editModelID != -1) {
+            print("  Edit Properties.... about to edit properties...");
+            entityPropertyDialogBox.openDialog(editModelID);
+        }
+        
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {

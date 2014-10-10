@@ -70,7 +70,7 @@ AttributeRegistry::AttributeRegistry() :
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldMaterialAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     
-    const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 32.0f;
+    const float VOXEL_LOD_THRESHOLD_MULTIPLIER = 16.0f;
     _voxelColorAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
     _voxelColorAttribute->setUserFacing(true);
     _voxelMaterialAttribute->setLODThresholdMultiplier(VOXEL_LOD_THRESHOLD_MULTIPLIER);
@@ -2112,53 +2112,41 @@ bool VoxelHermiteAttribute::merge(void*& parent, void* children[], bool postRead
         QRgb* dest = contents.data() + ((zIndex * halfSize * area) + (yIndex * halfSize * size) + (xIndex * halfSize)) *
             VoxelHermiteData::EDGE_COUNT;
         const QRgb* src = childContents.data();
+        int offsets[VoxelHermiteData::EDGE_COUNT];
         
         if (childSize == size) {
             // simple case: one destination value for four child values
             for (int z = 0; z < halfSizeComplement; z++) {
-                int offset4 = (z == halfSize) ? 0 : (childArea * VoxelHermiteData::EDGE_COUNT);
+                offsets[2] = (z == halfSize) ? 0 : (childArea * VoxelHermiteData::EDGE_COUNT);
                 for (int y = 0; y < halfSizeComplement; y++) {
-                    int offset2 = (y == halfSize) ? 0 : (childSize * VoxelHermiteData::EDGE_COUNT);
-                    int offset6 = offset4 + offset2;
+                    offsets[1] = (y == halfSize) ? 0 : (childSize * VoxelHermiteData::EDGE_COUNT);
                     for (QRgb* end = dest + halfSizeComplement * VoxelHermiteData::EDGE_COUNT; dest != end;
                             dest += VoxelHermiteData::EDGE_COUNT) {
-                        int offset1 = (dest == end - VoxelHermiteData::EDGE_COUNT) ? 0 : VoxelHermiteData::EDGE_COUNT;
+                        offsets[0] = (dest == end - VoxelHermiteData::EDGE_COUNT) ? 0 : VoxelHermiteData::EDGE_COUNT;
                         for (int i = 0; i < VoxelHermiteData::EDGE_COUNT; i++) {
-                            QRgb v[] = { src[i], src[offset1 + i], src[offset2 + i], src[offset2 + offset1 + i],
-                                src[offset4 + i], src[offset4 + offset1 + i], src[offset6 + i], src[offset6 + offset1 + i] };
-                            glm::vec3 n[] = { unpackNormal(v[0]), unpackNormal(v[1]), unpackNormal(v[2]), unpackNormal(v[3]),
-                                unpackNormal(v[4]), unpackNormal(v[5]), unpackNormal(v[6]), unpackNormal(v[7]) };
-                            float l[] = { glm::length(n[0]), glm::length(n[1]), glm::length(n[2]),  glm::length(n[3]),
-                                glm::length(n[4]), glm::length(n[5]), glm::length(n[6]), glm::length(n[7]) };
-                            float lengthTotal = l[0] + l[1] + l[2] + l[3] + l[4] + l[5] + l[6] + l[7];
+                            QRgb v0 = src[i], v1 = src[i + offsets[i]];
+                            glm::vec3 n0 = unpackNormal(v0), n1 = unpackNormal(v1);
+                            float l0 = glm::length(n0), l1 = glm::length(n1);
+                            float lengthTotal = l0 + l1;
                             if (lengthTotal == 0.0f) {
                                 dest[i] = qRgba(0, 0, 0, 0);
                                 continue;
                             }
-                            glm::vec3 combinedNormal = n[0] * l[0] + n[1] * l[1] + n[2] * l[2] + n[3] * l[3] + n[4] * l[4] +
-                                n[5] * l[5] + n[6] * l[6] + n[7] * l[7];
+                            glm::vec3 combinedNormal = n0 + n1;
                             float combinedLength = glm::length(combinedNormal);
                             if (combinedLength > 0.0f) {
                                 combinedNormal /= combinedLength;
                             }
-                            float combinedOffset = 0.0f;
-                            int mask = 1 << i;
-                            for (int j = 0; j < MERGE_COUNT; j++) {
-                                float offset = qAlpha(v[j]) * (0.5f / EIGHT_BIT_MAXIMUM);
-                                if (j & mask) {
-                                    offset += 0.5f;   
-                                }
-                                combinedOffset += offset * l[j];
-                            }
-                            dest[i] = packNormal(combinedNormal, EIGHT_BIT_MAXIMUM * combinedOffset / lengthTotal);
+                            float combinedOffset = qAlpha(v0) * 0.5f * l0 + (qAlpha(v1) + EIGHT_BIT_MAXIMUM) * 0.5f * l1;
+                            dest[i] = packNormal(combinedNormal, combinedOffset / lengthTotal);
                         }     
-                        src += (VoxelHermiteData::EDGE_COUNT + offset1);
+                        src += (VoxelHermiteData::EDGE_COUNT + offsets[0]);
                     }
                     dest += (halfSize * VoxelHermiteData::EDGE_COUNT);
-                    src += offset2;
+                    src += offsets[1];
                 }
                 dest += (halfSize * size * VoxelHermiteData::EDGE_COUNT);
-                src += offset4;
+                src += offsets[2];
             }
         } else {
             // more complex: N destination values for four child values
