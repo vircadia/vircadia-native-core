@@ -492,7 +492,7 @@ SelectionDisplay = (function () {
             // must be BRF or BRN
             if (MyAvatar.position.z < center.z) {
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 90, z: 0 });
-                pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 0 }); // 0, 90, 0??
+                pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
 
                 yawNormal   = { x: 0, y: 1, z: 0 };
