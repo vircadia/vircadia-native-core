@@ -556,14 +556,17 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     static QVariantList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toList() : QVariantList();
     
     if (!isAssignment && allowedUsers.count() > 0) {
-        // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in
-        
-        QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainUsernameRequest);
-        
-        // send this oauth request datagram back to the client
-        LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
-        
-        return;
+        // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in        
+        // we always let in a user who is sending a packet from our local socket or from the localhost address
+        if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
+            && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
+            QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainUsernameRequest);
+            
+            // send this oauth request datagram back to the client
+            LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+            
+            return;
+        }
     }
 
     if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))

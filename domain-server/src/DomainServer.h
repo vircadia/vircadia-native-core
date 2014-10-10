@@ -135,8 +135,6 @@ private:
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
     
-    HifiSockAddr _localSockAddr;
-    
     QHash<QUuid, NetworkPeer> _connectingICEPeers;
     QHash<QUuid, HifiSockAddr> _connectedICEPeers;
     
