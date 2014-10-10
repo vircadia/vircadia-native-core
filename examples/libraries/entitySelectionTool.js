@@ -37,11 +37,22 @@ SelectionDisplay = (function () {
     var yawCenter;
     var pitchCenter;
     var rollCenter;
+    var yawZero;
+    var pitchZero;
+    var rollZero;
+    var yawNormal;
+    var pitchNormal;
+    var rollNormal;
+    var rotationNormal;
+    
+    var originalPitch;
+    var originalYaw;
+    var originalRoll;
+    
 
     var rotateHandleColor = { red: 0, green: 0, blue: 0 };
     var rotateHandleAlpha = 0.7;
 
-    
     var grabberSizeCorner = 0.025;
     var grabberSizeEdge = 0.015;
     var grabberSizeFace = 0.025;
@@ -168,6 +179,21 @@ SelectionDisplay = (function () {
     var rollOverlayAngles = { x: 0, y: 180, z: 0 };
     var rollOverlayRotation = Quat.fromVec3Degrees(rollOverlayAngles);
 
+    var rotateZeroOverlay = Overlays.addOverlay("line3d", {
+                    visible: false,
+                    lineWidth: 2.0,
+                    start: { x: 0, y: 0, z: 0 },
+                    end: { x: 0, y: 0, z: 0 },
+                    color: { red: 255, green: 0, blue: 0 },
+                });
+
+    var rotateCurrentOverlay = Overlays.addOverlay("line3d", {
+                    visible: false,
+                    lineWidth: 2.0,
+                    start: { x: 0, y: 0, z: 0 },
+                    end: { x: 0, y: 0, z: 0 },
+                    color: { red: 0, green: 0, blue: 255 },
+                });
 
     var rotateOverlayInner = Overlays.addOverlay("circle3d", {
                     position: { x:0, y: 0, z: 0},
@@ -290,7 +316,9 @@ SelectionDisplay = (function () {
     overlayNames[rotateOverlayOuter] = "rotateOverlayOuter";
     overlayNames[rotateOverlayCurrent] = "rotateOverlayCurrent";
 
-
+    overlayNames[rotateZeroOverlay] = "rotateZeroOverlay";
+    overlayNames[rotateCurrentOverlay] = "rotateCurrentOverlay";
+    
     that.cleanup = function () {
         Overlays.deleteOverlay(highlightBox);
         Overlays.deleteOverlay(selectionBox);
@@ -332,6 +360,10 @@ SelectionDisplay = (function () {
         Overlays.deleteOverlay(rotateOverlayInner);
         Overlays.deleteOverlay(rotateOverlayOuter);
         Overlays.deleteOverlay(rotateOverlayCurrent);
+
+        Overlays.deleteOverlay(rotateZeroOverlay);
+        Overlays.deleteOverlay(rotateCurrentOverlay);
+        
 
     };
 
@@ -439,6 +471,10 @@ SelectionDisplay = (function () {
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 180 });
 
+                yawNormal   = { x: 0, y: 1, z: 0 };
+                pitchNormal = { x: 0, y: 0, z: -1 };
+                rollNormal  = { x: 1, y: 0, z: 0 };
+
                 yawCorner = { x: right + rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
                               z: near - rotateHandleOffset };
@@ -451,22 +487,18 @@ SelectionDisplay = (function () {
                                y: top + rotateHandleOffset,
                                z: near - rotateHandleOffset};
 
-                yawCenter = { x: center.x,
-                              y: bottom,
-                              z: center.z };
-
-                pitchCenter = { x: center.x,
-                                y: center.y,
-                                z: far };
-
-                rollCenter = { x: left,
-                               y: center.y,
-                               z: center.z};
-
+                yawCenter = { x: center.x, y: bottom, z: center.z };
+                pitchCenter = { x: center.x, y: center.y, z: far };
+                rollCenter = { x: left, y: center.y, z: center.z};
             } else {
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 270, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
+
+                yawNormal   = { x: 0, y: 1, z: 0 };
+                pitchNormal = { x: 1, y: 0, z: 0 };
+                rollNormal  = { x: 0, y: 0, z: 1 };
+
 
                 yawCorner = { x: right + rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
@@ -481,18 +513,9 @@ SelectionDisplay = (function () {
                                z: near - rotateHandleOffset};
 
 
-                yawCenter = { x: center.x,
-                              y: bottom,
-                              z: center.z };
-
-                pitchCenter = { x: left,
-                                y: center.y,
-                                z: center.z };
-
-                rollCenter = { x: center.x,
-                               y: center.y,
-                               z: near};
-
+                yawCenter = { x: center.x, y: bottom, z: center.z };
+                pitchCenter = { x: left, y: center.y, z: center.z };
+                rollCenter = { x: center.x, y: center.y, z: near};
             }
         } else {
             // must be BLF or BLN
@@ -501,6 +524,10 @@ SelectionDisplay = (function () {
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 90 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
 
+                yawNormal   = { x: 0, y: 1, z: 0 };
+                pitchNormal = { x: -1, y: 0, z: 0 };
+                rollNormal  = { x: 0, y: 0, z: -1 };
+
                 yawCorner = { x: left - rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
                               z: near - rotateHandleOffset };
@@ -513,24 +540,19 @@ SelectionDisplay = (function () {
                                y: top + rotateHandleOffset,
                                z: far + rotateHandleOffset};
 
-                yawCenter = { x: center.x,
-                              y: bottom,
-                              z: center.z };
+                yawCenter = { x: center.x, y: bottom, z: center.z };
+                pitchCenter = { x: right, y: center.y, z: center.z };
+                rollCenter = { x: center.x, y: center.y, z: far};
 
-                pitchCenter = { x: right,
-                                y: center.y,
-                                z: center.z };
-
-                rollCenter = { x: center.x,
-                               y: center.y,
-                               z: far};
-
-
-                
             } else {
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 180, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
+
+                // TODO: fix these
+                yawNormal   = { x: 0, y: 1, z: 0 };
+                pitchNormal = { x: 0, y: 0, z: 1 };
+                rollNormal  = { x: -1, y: 0, z: 0 };
 
                 yawCorner = { x: left - rotateHandleOffset,
                               y: bottom - rotateHandleOffset,
@@ -544,19 +566,9 @@ SelectionDisplay = (function () {
                                y: top + rotateHandleOffset,
                                z: far + rotateHandleOffset};
 
-                yawCenter = { x: center.x,
-                              y: bottom,
-                              z: center.z };
-
-                pitchCenter = { x: center.x,
-                                y: center.y,
-                                z: near };
-
-                rollCenter = { x: right,
-                               y: center.y,
-                               z: center.z};
-
-
+                yawCenter = { x: center.x, y: bottom, z: center.z };
+                pitchCenter = { x: center.x, y: center.y, z: near };
+                rollCenter = { x: right, y: center.y, z: center.z};
             }
         }
         
@@ -660,6 +672,9 @@ SelectionDisplay = (function () {
                                 endAt: 0,
                                 innerRadius: 0.9,
                             });
+                            
+        Overlays.editOverlay(rotateZeroOverlay, { visible: false });
+        Overlays.editOverlay(rotateCurrentOverlay, { visible: false });
 
         // TODO: we have not implemented the rotating handle/controls yet... so for now, these handles are hidden
         Overlays.editOverlay(yawHandle, { visible: rotateHandlesVisible, position: yawCorner, rotation: yawHandleRotation});
@@ -717,6 +732,9 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayInner, { visible: false });
         Overlays.editOverlay(rotateOverlayOuter, { visible: false });
         Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+
+        Overlays.editOverlay(rotateZeroOverlay, { visible: false });
+        Overlays.editOverlay(rotateCurrentOverlay, { visible: false });
 
         Entities.editEntity(entityID, { localRenderAlpha: 1.0 });
 
@@ -1514,11 +1532,26 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
         
         var result = Overlays.findRayIntersection(pickRay);
-        print("result.intersects:" + result.intersects);
-        print("result.overlayID:" + overlayNames[result.overlayID]);
-        print("result.distance:" + result.distance);
-        print("result.face:" + result.face);
-        Vec3.print("result.intersection:", result.intersection);
+        if (result.intersects) {
+            print("ROTATE_YAW");
+            var properties = Entities.getEntityProperties(currentSelection);
+            var center = yawCenter;
+            var zero = yawZero;
+            var centerToZero = Vec3.subtract(center, zero);
+            var centerToIntersect = Vec3.subtract(center, result.intersection);
+            var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+            Overlays.editOverlay(rotateCurrentOverlay,
+                                { 
+                                    visible: true,
+                                    start: center,
+                                    end: result.intersection
+                                });
+                                
+                                
+            var newYaw = originalYaw + angleFromZero;
+            var newRotation = Quat.fromVec3Degrees({ x: originalPitch, y: newYaw, z: originalRoll });
+            Entities.editEntity(currentSelection, { rotation: newRotation });
+        }
     };
 
     that.rotatePitch = function(event) {
@@ -1532,11 +1565,27 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
         var result = Overlays.findRayIntersection(pickRay);
-        print("result.intersects:" + result.intersects);
-        print("result.overlayID:" + overlayNames[result.overlayID]);
-        print("result.distance:" + result.distance);
-        print("result.face:" + result.face);
-        Vec3.print("result.intersection:", result.intersection);
+        
+        if (result.intersects) {
+            print("ROTATE_PITCH");
+            
+            var properties = Entities.getEntityProperties(currentSelection);
+            var center = pitchCenter;
+            var zero = pitchZero;
+            var centerToZero = Vec3.subtract(center, zero);
+            var centerToIntersect = Vec3.subtract(center, result.intersection);
+            var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+            Overlays.editOverlay(rotateCurrentOverlay,
+                                { 
+                                    visible: true,
+                                    start: center,
+                                    end: result.intersection
+                                });
+
+            var newPitch = originalPitch + angleFromZero;
+            var newRotation = Quat.fromVec3Degrees({ x: newPitch, y: originalYaw, z: originalRoll });
+            Entities.editEntity(currentSelection, { rotation: newRotation });
+        }
     };
 
     that.rotateRoll = function(event) {
@@ -1550,11 +1599,25 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: false });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: false });
         var result = Overlays.findRayIntersection(pickRay);
-        print("result.intersects:" + result.intersects);
-        print("result.overlayID:" + overlayNames[result.overlayID]);
-        print("result.distance:" + result.distance);
-        print("result.face:" + result.face);
-        Vec3.print("result.intersection:", result.intersection);
+        if (result.intersects) {
+            print("ROTATE_ROLL");
+            var properties = Entities.getEntityProperties(currentSelection);
+            var center = rollCenter;
+            var zero = rollZero;
+            var centerToZero = Vec3.subtract(center, zero);
+            var centerToIntersect = Vec3.subtract(center, result.intersection);
+            var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+            Overlays.editOverlay(rotateCurrentOverlay,
+                                { 
+                                    visible: true,
+                                    start: center,
+                                    end: result.intersection
+                                });
+
+            var newRoll = originalRoll + angleFromZero;
+            var newRotation = Quat.fromVec3Degrees({ x: originalPitch, y: originalYaw, z: newRoll });
+            Entities.editEntity(currentSelection, { rotation: newRotation });
+        }
     };
 
     that.checkMove = function() {
@@ -1736,6 +1799,10 @@ SelectionDisplay = (function () {
             var roll = angles.z;
             var currentRotation;
             
+            originalPitch = pitch;
+            originalYaw = yaw;
+            originalRoll = roll;
+            
             if (result.intersects) {
                 switch(result.overlayID) {
                     case yawHandle:
@@ -1744,6 +1811,8 @@ SelectionDisplay = (function () {
                         overlayOrientation = yawHandleRotation;
                         overlayCenter = yawCenter;
                         currentRotation = yaw;
+                        yawZero = result.intersection;
+                        rotationNormal = yawNormal;
                         break;
 
                     case pitchHandle:
@@ -1752,6 +1821,8 @@ SelectionDisplay = (function () {
                         overlayOrientation = pitchHandleRotation;
                         overlayCenter = pitchCenter;
                         currentRotation = pitch;
+                        pitchZero = result.intersection;
+                        rotationNormal = pitchNormal;
                         break;
 
                     case rollHandle:
@@ -1760,6 +1831,8 @@ SelectionDisplay = (function () {
                         overlayOrientation = rollHandleRotation;
                         overlayCenter = rollCenter;
                         currentRotation = roll;
+                        rollZero = result.intersection;
+                        rotationNormal = rollNormal;
                         break;
 
                     default:
@@ -1806,6 +1879,20 @@ SelectionDisplay = (function () {
                                         position: overlayCenter,
                                         startAt: 0,
                                         endAt: currentRotation
+                                    });
+                                    
+                Overlays.editOverlay(rotateZeroOverlay, 
+                                    { 
+                                        visible: true,
+                                        start: overlayCenter,
+                                        end: result.intersection
+                                    });
+                                    
+                Overlays.editOverlay(rotateCurrentOverlay,
+                                    { 
+                                        visible: true,
+                                        start: overlayCenter,
+                                        end: result.intersection
                                     });
 
                 Overlays.editOverlay(yawHandle, { visible: false });
