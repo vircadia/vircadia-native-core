@@ -585,7 +585,6 @@ SelectionDisplay = (function () {
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
 
-                // TODO: fix these
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
                 pitchNormal  = { x: 1, y: 0, z: 0 };
