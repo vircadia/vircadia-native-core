@@ -66,7 +66,7 @@ glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = 0;
-QString OculusManager::CALIBRATION_BILLBOARD_URL = "http://ctrlaltstudio.com/hifi/hold-to-calibrate.svg";  // TODO: Update with final URL
+QString OculusManager::CALIBRATION_BILLBOARD_URL = "http://hifi-public.s3.amazonaws.com/images/hold-to-calibrate.svg";
 float OculusManager::CALIBRATION_BILLBOARD_SCALE = 2.f;
 
 #endif
