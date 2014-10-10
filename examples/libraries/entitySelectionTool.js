@@ -1920,7 +1920,6 @@ SelectionDisplay = (function () {
             var pitch = angles.x;
             var yaw = angles.y;
             var roll = angles.z;
-            var currentRotation;
             
             originalRotation = properties.rotation;
             originalPitch = pitch;
@@ -1934,7 +1933,6 @@ SelectionDisplay = (function () {
                         somethingClicked = true;
                         overlayOrientation = yawHandleRotation;
                         overlayCenter = yawCenter;
-                        currentRotation = yaw;
                         yawZero = result.intersection;
                         rotationNormal = yawNormal;
                         break;
@@ -1944,7 +1942,6 @@ SelectionDisplay = (function () {
                         somethingClicked = true;
                         overlayOrientation = pitchHandleRotation;
                         overlayCenter = pitchCenter;
-                        currentRotation = pitch;
                         pitchZero = result.intersection;
                         rotationNormal = pitchNormal;
                         break;
@@ -1954,7 +1951,6 @@ SelectionDisplay = (function () {
                         somethingClicked = true;
                         overlayOrientation = rollHandleRotation;
                         overlayCenter = rollCenter;
-                        currentRotation = roll;
                         rollZero = result.intersection;
                         rotationNormal = rollNormal;
                         break;
@@ -1972,14 +1968,6 @@ SelectionDisplay = (function () {
 
             if (somethingClicked) {
             
-                if (currentRotation < 0) {
-                    currentRotation = currentRotation + 360;
-                }
-            
-                // TODO: need to place correctly....
-                print("    attempting to show overlays:" + somethingClicked);
-                print("    currentRotation:" + currentRotation);
-
                 Overlays.editOverlay(rotateOverlayTarget, { visible: true, rotation: overlayOrientation, position: overlayCenter });
                 Overlays.editOverlay(rotateOverlayInner, { visible: true, rotation: overlayOrientation, position: overlayCenter });
                 Overlays.editOverlay(rotateOverlayOuter, { visible: true, rotation: overlayOrientation, position: overlayCenter, startAt: 0, endAt: 360 });
