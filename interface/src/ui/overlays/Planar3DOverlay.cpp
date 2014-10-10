@@ -12,6 +12,8 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+#include <PlaneShape.h>
+#include <RayIntersectionInfo.h>
 #include <SharedUtil.h>
 #include <StreamUtils.h>
 
@@ -73,4 +75,30 @@ void Planar3DOverlay::setProperties(const QScriptValue& properties) {
             setDimensions(newDimensions);
         }
     }
+}
+
+bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face) const {
+
+    RayIntersectionInfo rayInfo;
+    rayInfo._rayStart = origin;
+    rayInfo._rayDirection = direction;
+    rayInfo._rayLength = std::numeric_limits<float>::max();
+
+    PlaneShape plane;
+
+    const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
+    glm::vec3 normal = _rotation * UNROTATED_NORMAL;
+    plane.setNormal(normal);
+    plane.setPoint(_position); // the position is definitely a point on our plane
+
+    bool intersects = plane.findRayIntersection(rayInfo);
+
+    if (intersects) {
+        distance = rayInfo._hitDistance;
+        // TODO: if it intersects, we want to check to see if the intersection point is within our dimensions
+        // glm::vec3 hitAt = origin + direction * distance;
+        // _dimensions
+    }
+    return intersects;
 }

@@ -18,7 +18,8 @@
 BillboardOverlay::BillboardOverlay()
 : _fromImage(-1,-1,-1,-1),
   _scale(1.0f),
-  _isFacingAvatar(true) {
+  _isFacingAvatar(true),
+  _newTextureNeeded(true) {
       _isLoaded = false;
 }
 
@@ -28,6 +29,9 @@ void BillboardOverlay::render() {
     }
     
     if (!_billboard.isEmpty()) {
+        if (_newTextureNeeded && _billboardTexture) {
+            _billboardTexture.reset();
+        }
         if (!_billboardTexture) {
             QImage image = QImage::fromData(_billboard);
             if (image.format() != QImage::Format_ARGB32) {
@@ -38,6 +42,7 @@ void BillboardOverlay::render() {
                 _fromImage.setRect(0, 0, _size.width(), _size.height());
             }
             _billboardTexture.reset(new Texture());
+            _newTextureNeeded = false;
             glBindTexture(GL_TEXTURE_2D, _billboardTexture->getID());
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _size.width(), _size.height(), 0,
                          GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
@@ -107,9 +112,10 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     
     QScriptValue urlValue = properties.property("url");
     if (urlValue.isValid()) {
-        _url = urlValue.toVariant().toString();
-        
-        setBillboardURL(_url);
+        QString newURL = urlValue.toVariant().toString();
+        if (newURL != _url) {
+            setBillboardURL(newURL);
+        }
     }
     
     QScriptValue subImageBounds = properties.property("subImage");
@@ -150,9 +156,16 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
-void BillboardOverlay::setBillboardURL(const QUrl url) {
+void BillboardOverlay::setBillboardURL(const QString& url) {
+    _url = url;
+    QUrl actualURL = url;
     _isLoaded = false;
-    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(url));
+
+    // clear the billboard if previously set
+    _billboard.clear();
+    _newTextureNeeded = true;
+
+    QNetworkReply* reply = NetworkAccessManager::getInstance().get(QNetworkRequest(actualURL));
     connect(reply, &QNetworkReply::finished, this, &BillboardOverlay::replyFinished);
 }
 
