@@ -9,7 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-gamepad = Joysticks.joystickWithName("Wireless 360 Controller");
+var CONTROLLER_NAMES = [
+    "Wireless 360 Controller",
+    "Controller", // Wired 360 controller
+]
+
+for (var i = 0; i < CONTROLLER_NAMES.length; i++) {
+    gamepad = Joysticks.joystickWithName(CONTROLLER_NAMES[i]);
+    if (gamepad) {
+        print("Found controller: " + CONTROLLER_NAMES[i]);
+        break;
+    }
+}
 
 if (!gamepad) {
     print("No gamepad found.");
@@ -194,7 +205,6 @@ function reportAxisValue(axis, newValue, oldValue) {
 }
 
 function reportButtonValue(button, newValue, oldValue) {
-    print("The value for button " + button + " has changed from " + oldValue + " to " + newValue);
     if (button == BUTTON_FLY_DOWN) {
         flyDownButtonState = newValue;
     } else if (button == BUTTON_FLY_UP) {
@@ -260,7 +270,9 @@ function update(dt) {
     updateWarp();
 }
 
-gamepad.axisValueChanged.connect(reportAxisValue);
-gamepad.buttonStateChanged.connect(reportButtonValue);
+if (gamepad) {
+    gamepad.axisValueChanged.connect(reportAxisValue);
+    gamepad.buttonStateChanged.connect(reportButtonValue);
 
-Script.update.connect(update);
+    Script.update.connect(update);
+}
