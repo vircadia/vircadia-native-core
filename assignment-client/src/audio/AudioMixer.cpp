@@ -199,9 +199,9 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     }
    
     float attenuationPerDoublingInDistance = _attenuationPerDoublingInDistance;
-    foreach (const QString source, _attenuationCoefficients.keys()) {
+    foreach (const QString& source, _attenuationCoefficients.keys()) {
         if (_audioZones[source].contains(streamToAdd->getPosition())) {
-            foreach (const QString listener, _attenuationCoefficients[source].keys()) {
+            foreach (const QString& listener, _attenuationCoefficients[source].keys()) {
                 if (_audioZones[listener].contains(listeningNodeStream->getPosition())) {
                     attenuationCoefficient = _attenuationCoefficients[source][listener];
                 }
