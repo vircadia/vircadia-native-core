@@ -18,6 +18,7 @@
 #endif
 
 #include "renderer/ProgramObject.h"
+#include "ui/overlays/BillboardOverlay.h"
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
 
@@ -30,6 +31,8 @@ public:
     static void connect();
     static void disconnect();
     static bool isConnected();
+    static void recalibrate();
+    static void abandonCalibration();
     static void beginFrameTiming();
     static void endFrameTiming();
     static void configureCamera(Camera& camera, int screenWidth, int screenHeight);
@@ -99,6 +102,30 @@ private:
     static bool _programInitialized;
     static Camera* _camera;
     static int _activeEyeIndex;
+
+    static void calibrate(const glm::vec3 position, const glm::quat orientation);
+    enum CalibrationState {
+        UNCALIBRATED,
+        WAITING_FOR_DELTA,
+        WAITING_FOR_ZERO,
+        WAITING_FOR_ZERO_HELD,
+        CALIBRATED
+    };
+    static void positionCalibrationBillboard(BillboardOverlay* billboard);
+    static float CALIBRATION_DELTA_MINIMUM_LENGTH;
+    static float CALIBRATION_DELTA_MINIMUM_ANGLE;
+    static float CALIBRATION_ZERO_MAXIMUM_LENGTH;
+    static float CALIBRATION_ZERO_MAXIMUM_ANGLE;
+    static quint64 CALIBRATION_ZERO_HOLD_TIME;
+    static float CALIBRATION_MESSAGE_DISTANCE;
+    static CalibrationState _calibrationState;
+    static glm::vec3 _calibrationPosition;
+    static glm::quat _calibrationOrientation;
+    static quint64 _calibrationStartTime;
+    static int _calibrationMessage;
+    static QString CALIBRATION_BILLBOARD_URL;
+    static float CALIBRATION_BILLBOARD_SCALE;
+
 #endif
     
     static glm::vec3 _leftEyePosition;

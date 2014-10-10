@@ -365,6 +365,8 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void resetSensors();
+
 private slots:
     void timer();
     void idle();
@@ -381,7 +383,6 @@ private slots:
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
-    void resetSensors();
 
     void parseVersionXml();
 
