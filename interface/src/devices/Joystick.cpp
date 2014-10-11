@@ -15,7 +15,7 @@
 
 #include "Joystick.h"
 
-const float MAX_AXIS = 32767.0f;
+const float MAX_AXIS = 32768.0f;
 
 #ifdef HAVE_SDL2
 
