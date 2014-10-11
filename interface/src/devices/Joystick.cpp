@@ -15,13 +15,17 @@
 
 #include "Joystick.h"
 
-#ifdef HAVE_SDL
+const float MAX_AXIS = 32767.0f;
 
-Joystick::Joystick(const QString& name, SDL_Joystick* sdlJoystick) :
+#ifdef HAVE_SDL2
+
+Joystick::Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController) :
+    _instanceId(instanceId),
     _name(name),
-    _axes(QVector<float>(SDL_JoystickNumAxes(sdlJoystick))),
-    _buttons(QVector<bool>(SDL_JoystickNumButtons(sdlJoystick))),
-    _sdlJoystick(sdlJoystick)
+    _sdlGameController(sdlGameController),
+    _sdlJoystick(SDL_GameControllerGetJoystick(_sdlGameController)),
+    _axes(QVector<float>(SDL_JoystickNumAxes(_sdlJoystick))),
+    _buttons(QVector<bool>(SDL_JoystickNumButtons(_sdlJoystick)))
 {
     
 }
@@ -33,30 +37,24 @@ Joystick::~Joystick() {
 }
 
 void Joystick::closeJoystick() {
-#ifdef HAVE_SDL
-    SDL_JoystickClose(_sdlJoystick);
+#ifdef HAVE_SDL2
+    SDL_GameControllerClose(_sdlGameController);
 #endif
 }
 
-void Joystick::update() {
-#ifdef HAVE_SDL
-    // update our current values, emit a signal when there is a change
-    for (int j = 0; j < getNumAxes(); j++) {
-        float newValue = glm::round(SDL_JoystickGetAxis(_sdlJoystick, j) + 0.5f) / std::numeric_limits<short>::max();
 
-        if (_axes[j] != newValue) {
-            float oldValue =  _axes[j];
-            _axes[j] = newValue;
-            emit axisValueChanged(j, newValue, oldValue);
-        }
-    }
-    for (int j = 0; j < getNumButtons(); j++) {
-        bool newValue = SDL_JoystickGetButton(_sdlJoystick, j);
-        if (_buttons[j] != newValue) {
-            bool oldValue = _buttons[j];
-            _buttons[j] = newValue;
-            emit buttonStateChanged(j, newValue, oldValue);
-        }
-    }
-#endif
+#ifdef HAVE_SDL2
+void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
+    float oldValue = _axes[event.axis];
+    float newValue = event.value / MAX_AXIS;
+    _axes[event.axis] = newValue;
+    emit axisValueChanged(event.axis, newValue, oldValue);
 }
+
+void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
+    bool oldValue = _buttons[event.button];
+    bool newValue = event.state == SDL_PRESSED;
+    _buttons[event.button] = newValue;
+    emit buttonStateChanged(event.button, newValue, oldValue);
+}
+#endif

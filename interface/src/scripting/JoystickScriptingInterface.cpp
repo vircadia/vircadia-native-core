@@ -10,8 +10,9 @@
 //
 
 #include <QtDebug>
+#include <QScriptValue>
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
 #include <SDL.h>
 #undef main
 #endif
@@ -20,104 +21,103 @@
 
 #include "JoystickScriptingInterface.h"
 
+#ifdef HAVE_SDL2
+SDL_JoystickID getInstanceId(SDL_GameController* controller) {
+    SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
+    return SDL_JoystickInstanceID(joystick);
+}
+#endif
+
 JoystickScriptingInterface& JoystickScriptingInterface::getInstance() {
     static JoystickScriptingInterface sharedInstance;
     return sharedInstance;
 }
 
 JoystickScriptingInterface::JoystickScriptingInterface() :
+#ifdef HAVE_SDL2
     _openJoysticks(),
-    _availableDeviceNames(),
+#endif
     _isInitialized(false)
 {
-    reset();
+#ifdef HAVE_SDL2
+    bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER) == 0);
+    
+    if (initSuccess) {
+        int joystickCount = SDL_NumJoysticks();
+
+        for (int i = 0; i < joystickCount; i++) {
+            SDL_GameController* controller = SDL_GameControllerOpen(i);
+            SDL_JoystickID id = getInstanceId(controller);
+            Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+            _openJoysticks[id] = joystick;
+        }
+
+        _isInitialized = true;
+    } else {
+        qDebug() << "Error initializing SDL";
+    }
+#endif
 }
 
 JoystickScriptingInterface::~JoystickScriptingInterface() {
+#ifdef HAVE_SDL2
     qDeleteAll(_openJoysticks);
     
-#ifdef HAVE_SDL
     SDL_Quit();
-    _isInitialized = false;
 #endif
 }
 
-void JoystickScriptingInterface::reset() {
-#ifdef HAVE_SDL
-    
-    if (_isInitialized) {
-        _isInitialized = false;
-        
-        // close all the open joysticks before we quit
-        foreach(Joystick* openJoystick, _openJoysticks) {
-            openJoystick->closeJoystick();
-        }
-        
-        SDL_Quit();
-    }
-    
-    bool initSuccess = (SDL_Init(SDL_INIT_JOYSTICK) == 0);
-    
-    if (initSuccess) {
-        
-        int joystickCount = SDL_NumJoysticks();
-        
-        for (int i = 0; i < joystickCount; i++) {
-            _availableDeviceNames << SDL_JoystickName(i);
-        }
-        
-        foreach(const QString& joystickName, _openJoysticks.keys()) {
-            _openJoysticks[joystickName]->setSDLJoystick(openSDLJoystickWithName(joystickName));
-        }
-        
-        _isInitialized = true;
+const QObjectList JoystickScriptingInterface::getAllJoysticks() const {
+    QObjectList objectList;
+#ifdef HAVE_SDL2
+    const QList<Joystick*> joystickList = _openJoysticks.values();
+    for (int i = 0; i < joystickList.length(); i++) {
+        objectList << joystickList[i];
     }
 #endif
+    return objectList;
 }
 
 void JoystickScriptingInterface::update() {
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
     if (_isInitialized) {
         PerformanceTimer perfTimer("JoystickScriptingInterface::update");
-        SDL_JoystickUpdate();
-        
-        foreach(Joystick* joystick, _openJoysticks) {
-            joystick->update();
+        SDL_GameControllerUpdate();
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_CONTROLLERAXISMOTION) {
+                Joystick* joystick = _openJoysticks[event.caxis.which];
+                if (joystick) {
+                    joystick->handleAxisEvent(event.caxis);
+                }
+            } else if (event.type == SDL_CONTROLLERBUTTONDOWN || event.type == SDL_CONTROLLERBUTTONUP) {
+                Joystick* joystick = _openJoysticks[event.cbutton.which];
+                if (joystick) {
+                    joystick->handleButtonEvent(event.cbutton);
+                }
+            } else if (event.type == SDL_CONTROLLERDEVICEADDED) {
+                SDL_GameController* controller = SDL_GameControllerOpen(event.cdevice.which);
+
+                SDL_JoystickID id = getInstanceId(controller);
+                Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                _openJoysticks[id] = joystick;
+                emit joystickAdded(joystick);
+            } else if (event.type == SDL_CONTROLLERDEVICEREMOVED) {
+                Joystick* joystick = _openJoysticks[event.cdevice.which];
+                _openJoysticks.remove(event.cdevice.which);
+                emit joystickRemoved(joystick);
+            }
         }
     }
 #endif
 }
 
-Joystick* JoystickScriptingInterface::joystickWithName(const QString& name) {
-    Joystick* matchingJoystick = _openJoysticks.value(name);
-#ifdef HAVE_SDL
-    if (!matchingJoystick) {
-        SDL_Joystick* openSDLJoystick = openSDLJoystickWithName(name);
-        
-        if (openSDLJoystick) {
-            matchingJoystick = _openJoysticks.insert(name, new Joystick(name, openSDLJoystick)).value();
-        } else {
-            qDebug() << "No matching joystick found with name" << name << "- returning NULL pointer.";
-        }
-    }
-#endif
-    
-    return matchingJoystick;
-}
+#ifdef HAVE_SDL2
 
-
-#ifdef HAVE_SDL
-
-SDL_Joystick* JoystickScriptingInterface::openSDLJoystickWithName(const QString &name) {
+SDL_Joystick* JoystickScriptingInterface::openSDLJoystickWithName(const QString& name) {
     // we haven't opened a joystick with this name yet - enumerate our SDL devices and see if it exists
     int joystickCount = SDL_NumJoysticks();
     
-    for (int i = 0; i < joystickCount; i++) {
-        if (SDL_JoystickName(i) == name) {
-            return SDL_JoystickOpen(i);
-            break;
-        }
-    }
     
     return NULL;
 }
