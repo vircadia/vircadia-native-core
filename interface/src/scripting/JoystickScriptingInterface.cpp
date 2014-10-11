@@ -78,6 +78,19 @@ const QObjectList JoystickScriptingInterface::getAllJoysticks() const {
     return objectList;
 }
 
+Joystick* JoystickScriptingInterface::joystickWithName(const QString& name) {
+#ifdef HAVE_SDL2
+    QMap<SDL_JoystickID, Joystick*>::iterator iter = _openJoysticks.begin();
+    while (iter != _openJoysticks.end()) {
+        if (iter.value()->getName() == name) {
+            return iter.value();
+        }
+        iter++;
+    }
+#endif
+    return NULL;
+}
+
 void JoystickScriptingInterface::update() {
 #ifdef HAVE_SDL2
     if (_isInitialized) {
@@ -111,15 +124,3 @@ void JoystickScriptingInterface::update() {
     }
 #endif
 }
-
-#ifdef HAVE_SDL2
-
-SDL_Joystick* JoystickScriptingInterface::openSDLJoystickWithName(const QString& name) {
-    // we haven't opened a joystick with this name yet - enumerate our SDL devices and see if it exists
-    int joystickCount = SDL_NumJoysticks();
-    
-    
-    return NULL;
-}
-
-#endif

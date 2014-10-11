@@ -24,7 +24,7 @@
 /// Handles joystick input through SDL.
 class JoystickScriptingInterface : public QObject {
     Q_OBJECT
-    
+
 #ifdef HAVE_SDL2
     Q_PROPERTY(int AXIS_INVALID READ axisInvalid)
     Q_PROPERTY(int AXIS_LEFT_X READ axisLeftX)
@@ -59,16 +59,17 @@ class JoystickScriptingInterface : public QObject {
 
 public:
     static JoystickScriptingInterface& getInstance();
-    
+
     void update();
-    
+
 public slots:
+    Joystick* joystickWithName(const QString& name);
     const QObjectList getAllJoysticks() const;
 
 signals:
     void joystickAdded(Joystick* joystick);
     void joystickRemoved(Joystick* joystick);
-    
+
 private:
 #ifdef HAVE_SDL2
     int axisInvalid() const { return SDL_CONTROLLER_AXIS_INVALID; }
@@ -100,13 +101,11 @@ private:
 
     int buttonPressed() const { return SDL_PRESSED; }
     int buttonRelease() const { return SDL_RELEASED; }
-
-    SDL_Joystick* openSDLJoystickWithName(const QString& name);
 #endif
-    
+
     JoystickScriptingInterface();
     ~JoystickScriptingInterface();
-    
+
 #ifdef HAVE_SDL2
     QMap<SDL_JoystickID, Joystick*> _openJoysticks;
 #endif
