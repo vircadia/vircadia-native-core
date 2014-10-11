@@ -485,6 +485,11 @@ public:
 
 protected:
     
+    virtual QVariant createEdit(bool alternate) = 0;
+    
+    QFormLayout* _form;
+    QDoubleSpinBox* _radius;
+    
     glm::vec3 _position;
 };
 
@@ -495,6 +500,22 @@ class VoxelMaterialBrushTool : public VoxelBrushTool {
 public:
     
     VoxelMaterialBrushTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private slots:
+    
+    void clearTexture();
+    void updateTexture();
+    void textureLoaded();
+    
+private:
+    
+    QColorEditor* _color;
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
 };
 
 #endif // hifi_MetavoxelEditor_h

@@ -454,10 +454,10 @@ float MetavoxelSystem::getHeightfieldHeight(const glm::vec3& location) {
     return visitor.height;
 }
 
-class HeightfieldCursorRenderVisitor : public MetavoxelVisitor {
+class CursorRenderVisitor : public MetavoxelVisitor {
 public:
     
-    HeightfieldCursorRenderVisitor(const Box& bounds);
+    CursorRenderVisitor(const AttributePointer& attribute, const Box& bounds);
     
     virtual int visit(MetavoxelInfo& info);
 
@@ -466,13 +466,12 @@ private:
     Box _bounds;
 };
 
-HeightfieldCursorRenderVisitor::HeightfieldCursorRenderVisitor(const Box& bounds) :
-    MetavoxelVisitor(QVector<AttributePointer>() <<
-        Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute()),
+CursorRenderVisitor::CursorRenderVisitor(const AttributePointer& attribute, const Box& bounds) :
+    MetavoxelVisitor(QVector<AttributePointer>() << attribute),
     _bounds(bounds) {
 }
 
-int HeightfieldCursorRenderVisitor::visit(MetavoxelInfo& info) {
+int CursorRenderVisitor::visit(MetavoxelInfo& info) {
     if (!info.getBounds().intersects(_bounds)) {
         return STOP_RECURSION;
     }
@@ -508,12 +507,49 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
-    HeightfieldCursorRenderVisitor visitor(Box(position - extents, position + extents));
+    CursorRenderVisitor visitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(),
+        Box(position - extents, position + extents));
     guideToAugmented(visitor);
     
     DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
+}
+
+void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius) {
+    glDepthFunc(GL_LEQUAL);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(-1.0f, -1.0f);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    glEnableClientState(GL_VERTEX_ARRAY);
+    
+    DefaultMetavoxelRendererImplementation::getVoxelCursorProgram().bind();
+    
+    glActiveTexture(GL_TEXTURE4);
+    float scale = 1.0f / radius;
+    glm::vec4 sCoefficients(scale, 0.0f, 0.0f, -scale * position.x);
+    glm::vec4 tCoefficients(0.0f, scale, 0.0f, -scale * position.y);
+    glm::vec4 rCoefficients(0.0f, 0.0f, scale, -scale * position.z);
+    glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&sCoefficients);
+    glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&tCoefficients);
+    glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&rCoefficients);
+    glActiveTexture(GL_TEXTURE0);
+    
+    glm::vec3 extents(radius, radius, radius);
+    CursorRenderVisitor visitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(),
+        Box(position - extents, position + extents));
+    guideToAugmented(visitor);
+    
+    DefaultMetavoxelRendererImplementation::getVoxelCursorProgram().release();
+    
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_POLYGON_OFFSET_FILL);
@@ -1170,7 +1206,7 @@ void VoxelBuffer::render(bool cursor) {
     
     glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
     
-    if (!_materials.isEmpty()) {
+    if (!(_materials.isEmpty() || cursor)) {
         Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         glDepthFunc(GL_LEQUAL);
@@ -1252,7 +1288,7 @@ void VoxelBuffer::render(bool cursor) {
     _vertexBuffer.release();
     _indexBuffer.release();
     
-    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData) && !cursor) {
         if (!_hermiteBuffer.isCreated()) {
             _hermiteBuffer.create();
             _hermiteBuffer.bind();
@@ -1348,6 +1384,12 @@ void DefaultMetavoxelRendererImplementation::init() {
         _baseVoxelProgram.link();
         
         loadSplatProgram("voxel", _splatVoxelProgram, _splatVoxelLocations);
+        
+        _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_voxel_cursor.vert");
+        _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+            "shaders/metavoxel_voxel_cursor.frag");
+        _voxelCursorProgram.link();
     }
 }
 
@@ -2577,6 +2619,7 @@ ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
 ProgramObject DefaultMetavoxelRendererImplementation::_baseVoxelProgram;
 ProgramObject DefaultMetavoxelRendererImplementation::_splatVoxelProgram;
 DefaultMetavoxelRendererImplementation::SplatLocations DefaultMetavoxelRendererImplementation::_splatVoxelLocations;
+ProgramObject DefaultMetavoxelRendererImplementation::_voxelCursorProgram;
 
 static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
     GLdouble coefficients[] = { x, y, z, w };

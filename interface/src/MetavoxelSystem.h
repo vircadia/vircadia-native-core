@@ -46,6 +46,8 @@ public:
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
 
+    void renderVoxelCursor(const glm::vec3& position, float radius);
+
     bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
     bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
@@ -321,6 +323,8 @@ public:
     static ProgramObject& getSplatVoxelProgram() { return _splatVoxelProgram; }
     static const SplatLocations& getSplatVoxelLocations() { return _splatVoxelLocations; }
     
+    static ProgramObject& getVoxelCursorProgram() { return _voxelCursorProgram; }
+    
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
@@ -354,6 +358,8 @@ private:
     static ProgramObject _baseVoxelProgram;
     static ProgramObject _splatVoxelProgram;
     static SplatLocations _splatVoxelLocations;
+    
+    static ProgramObject _voxelCursorProgram;
 };
 
 /// Base class for spanner renderers; provides clipping.
