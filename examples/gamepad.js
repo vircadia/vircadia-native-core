@@ -9,72 +9,23 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-// TODO Update to work with any controller that is plugged in.
-var CONTROLLER_NAMES = [
-    "Wireless 360 Controller",
-    "Controller (XBOX 360 For Windows)",
-    "Controller", // Wired 360 controller
-]
+var gamepads = {};
 
-for (var i = 0; i < CONTROLLER_NAMES.length; i++) {
-    gamepad = Joysticks.joystickWithName(CONTROLLER_NAMES[i]);
-    if (gamepad) {
-        print("Found controller: " + CONTROLLER_NAMES[i]);
-        break;
-    }
-}
+// Function -> button/axis mappings
+var AXIS_STRAFE = Joysticks.AXIS_LEFT_X;
+var AXIS_FORWARD = Joysticks.AXIS_LEFT_Y;
+var AXIS_ROTATE = Joysticks.AXIS_RIGHT_X;
 
-if (!gamepad) {
-    print("No gamepad found.");
-}
+var BUTTON_TURN_AROUND = Joysticks.BUTTON_RIGHT_STICK;
 
-// Controller axis/button mappings
-var GAMEPAD = {
-    AXES: {
-        LEFT_JOYSTICK_X: 0,
-        LEFT_JOYSTICK_Y: 1,
+var BUTTON_FLY_UP = Joysticks.BUTTON_RIGHT_SHOULDER;
+var BUTTON_FLY_DOWN = Joysticks.BUTTON_LEFT_SHOULDER;
+var BUTTON_WARP = Joysticks.BUTTON_FACE_BOTTOM;
 
-        RIGHT_JOYSTICK_X: 2,
-        RIGHT_JOYSTICK_Y: 3,
-
-        LEFT_TRIGGER: 4,
-        RIGHT_TRIGGER: 5,
-    },
-    BUTTONS: {
-        DPAD_UP: 0,
-        DPAD_DOWN: 1,
-        DPAD_LEFT: 2,
-        DPAD_RIGHT: 3,
-
-        LEFT_JOYSTICK: 6,
-        RIGHT_JOYSTICK: 7,
-
-        LEFT_BUMPER: 8,
-        RIGHT_BUMPER: 9,
-
-        // Face buttons, ABXY on an XBOX controller
-        FACE_BOTTOM: 11,
-        FACE_RIGHT: 12,
-        FACE_LEFT: 13,
-        FACE_TOP: 14,
-    }
-}
-
-// Button/axis mappings
-var AXIS_STRAFE = GAMEPAD.AXES.LEFT_JOYSTICK_X;
-var AXIS_FORWARD = GAMEPAD.AXES.LEFT_JOYSTICK_Y;
-var AXIS_ROTATE = GAMEPAD.AXES.RIGHT_JOYSTICK_X;
-
-var BUTTON_TURN_AROUND = GAMEPAD.BUTTONS.RIGHT_JOYSTICK;
-
-var BUTTON_FLY_UP = GAMEPAD.BUTTONS.RIGHT_BUMPER;
-var BUTTON_FLY_DOWN = GAMEPAD.BUTTONS.LEFT_BUMPER
-var BUTTON_WARP = GAMEPAD.BUTTONS.FACE_BOTTOM;
-
-var BUTTON_WARP_FORWARD = GAMEPAD.BUTTONS.DPAD_UP;
-var BUTTON_WARP_BACKWARD = GAMEPAD.BUTTONS.DPAD_DOWN;
-var BUTTON_WARP_LEFT = GAMEPAD.BUTTONS.DPAD_LEFT;
-var BUTTON_WARP_RIGHT = GAMEPAD.BUTTONS.DPAD_RIGHT;
+var BUTTON_WARP_FORWARD = Joysticks.BUTTON_DPAD_UP;
+var BUTTON_WARP_BACKWARD = Joysticks.BUTTON_DPAD_DOWN;
+var BUTTON_WARP_LEFT = Joysticks.BUTTON_DPAD_LEFT;
+var BUTTON_WARP_RIGHT = Joysticks.BUTTON_DPAD_RIGHT;
 
 // Distance in meters to warp via BUTTON_WARP_*
 var WARP_DISTANCE = 1;
@@ -272,9 +223,27 @@ function update(dt) {
     updateWarp();
 }
 
-if (gamepad) {
+function addJoystick(gamepad) {
     gamepad.axisValueChanged.connect(reportAxisValue);
     gamepad.buttonStateChanged.connect(reportButtonValue);
 
-    Script.update.connect(update);
+    gamepads[gamepad.instanceId] = gamepad;
+
+    print("Added gamepad: " + gamepad.name + " (" + gamepad.instanceId + ")");
 }
+
+function removeJoystick(gamepad) {
+    delete gamepads[gamepad.instanceId]
+
+    print("Removed gamepad: " + gamepad.name + " (" + gamepad.instanceId + ")");
+}
+
+var allJoysticks = Joysticks.getAllJoysticks();
+for (var i = 0; i < allJoysticks.length; i++) {
+    addJoystick(allJoysticks[i]);
+}
+
+Joysticks.joystickAdded.connect(addJoystick);
+Joysticks.joystickRemoved.connect(removeJoystick);
+
+Script.update.connect(update);
