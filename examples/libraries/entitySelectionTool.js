@@ -16,6 +16,8 @@ Script.include("libraries/globals.js");
 SelectionDisplay = (function () {
     var that = {};
     
+    var MINIMUM_DIMENSION = 0.001;
+    
     var mode = "UNKNOWN";
     var overlayNames = new Array();
     var lastAvatarPosition = MyAvatar.position;
@@ -883,6 +885,11 @@ SelectionDisplay = (function () {
         //   dimensions changes by: (oldNEAR - newNEAR)
         var changeInDimensions = { x: 0, y: 0, z: (oldNEAR - newNEAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: 0, y: 0, z: (oldNEAR - newNEAR) * -0.5 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
@@ -928,6 +935,11 @@ SelectionDisplay = (function () {
         var newFAR = oldFAR + vector.z;
         var changeInDimensions = { x: 0, y: 0, z: (newFAR - oldFAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+
         var changeInPosition = { x: 0, y: 0, z: (newFAR - oldFAR) * 0.5 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
@@ -973,6 +985,11 @@ SelectionDisplay = (function () {
         var newTOP = oldTOP + vector.y;
         var changeInDimensions = { x: 0, y: (newTOP - oldTOP), z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
         var changeInPosition = { x: 0, y: (newTOP - oldTOP) * 0.5, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
@@ -1017,6 +1034,11 @@ SelectionDisplay = (function () {
         var newBOTTOM = oldBOTTOM + vector.y;
         var changeInDimensions = { x: 0, y: (oldBOTTOM - newBOTTOM), z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
         var changeInPosition = { x: 0, y: (oldBOTTOM - newBOTTOM) * -0.5, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
@@ -1061,6 +1083,11 @@ SelectionDisplay = (function () {
         var newRIGHT = oldRIGHT + vector.x;
         var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: 0 , z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
         var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, y: 0, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
@@ -1105,6 +1132,11 @@ SelectionDisplay = (function () {
         var newLEFT = oldLEFT + vector.x;
         var changeInDimensions = { x: (oldLEFT - newLEFT), y: 0, z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
         var changeInPosition = { x: (oldLEFT - newLEFT) * -0.5, y: 0, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
@@ -1157,6 +1189,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newBOTTOM - oldBOTTOM) , z: (newNEAR - oldNEAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+        
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
                                  y: (newBOTTOM - oldBOTTOM) * -0.5, 
                                  z: (newNEAR - oldNEAR) * -0.5 };
@@ -1211,6 +1256,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newBOTTOM - oldBOTTOM) , z: (newNEAR - oldNEAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
                                  y: (newBOTTOM - oldBOTTOM) * -0.5, 
                                  z: (newNEAR - oldNEAR) * -0.5 };
@@ -1265,6 +1323,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newTOP - oldTOP) , z: (newNEAR - oldNEAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
                                  y: (newTOP - oldTOP) * 0.5, 
                                  z: (newNEAR - oldNEAR) * -0.5 };
@@ -1319,6 +1390,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newTOP - oldTOP) , z: (newNEAR - oldNEAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
                                  y: (newTOP - oldTOP) * 0.5, 
                                  z: (newNEAR - oldNEAR) * -0.5 };
@@ -1373,6 +1457,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newBOTTOM - oldBOTTOM) , z: (newFAR - oldFAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
                                  y: (newBOTTOM - oldBOTTOM) * -0.5, 
                                  z: (newFAR - oldFAR) * 0.5 };
@@ -1427,6 +1524,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newBOTTOM - oldBOTTOM) , z: (newFAR - oldFAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
                                  y: (newBOTTOM - oldBOTTOM) * -0.5, 
                                  z: (newFAR - oldFAR) * 0.5 };
@@ -1481,6 +1591,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: (newTOP - oldTOP) , z: (newFAR - oldFAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, 
                                  y: (newTOP - oldTOP) * 0.5, 
                                  z: (newFAR - oldFAR) * 0.5 };
@@ -1535,6 +1658,19 @@ SelectionDisplay = (function () {
         
         var changeInDimensions = { x: (newLEFT - oldLEFT), y: (newTOP - oldTOP) , z: (newFAR - oldFAR) };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
+
+        if (newDimensions.x < MINIMUM_DIMENSION) {
+            newDimensions.x = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.y < MINIMUM_DIMENSION) {
+            newDimensions.y = MINIMUM_DIMENSION;
+        }
+
+        if (newDimensions.z < MINIMUM_DIMENSION) {
+            newDimensions.z = MINIMUM_DIMENSION;
+        }
+        
         var changeInPosition = { x: (newLEFT - oldLEFT) * -0.5, 
                                  y: (newTOP - oldTOP) * 0.5, 
                                  z: (newFAR - oldFAR) * 0.5 };
