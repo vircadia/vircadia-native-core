@@ -25,7 +25,7 @@ const float SQUARED_INSET_OUTER_RADIUS = 0.950625;
 
 void main(void) {
     // use the distance to compute the ring color, then multiply it by the varying color
-    float squaredDistance = dot(gl_TexCoord[0].str, gl_TexCoord[0].str);
+    float squaredDistance = dot(gl_TexCoord[0].stp, gl_TexCoord[0].stp);
     float alpha = step(SQUARED_OUTLINE_INNER_RADIUS, squaredDistance) * step(squaredDistance, SQUARED_OUTLINE_OUTER_RADIUS);
     float white = step(SQUARED_INSET_INNER_RADIUS, squaredDistance) * step(squaredDistance, SQUARED_INSET_OUTER_RADIUS);
     gl_FragColor = gl_Color * vec4(white, white, white, alpha);
