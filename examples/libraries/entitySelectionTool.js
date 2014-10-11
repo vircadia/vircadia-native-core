@@ -262,6 +262,9 @@ SelectionDisplay = (function () {
                     visible: false,
                     rotation: yawOverlayRotation,
                     ignoreRayIntersection: true, // always ignore this
+                    hasTickMarks: true,
+                    majorTickMarksColor: { red: 0, green: 0, blue: 0 },
+                    minorTickMarksColor: { red: 0, green: 0, blue: 0 },
                 });
 
     var yawHandle = Overlays.addOverlay("billboard", {
@@ -1750,11 +1753,15 @@ SelectionDisplay = (function () {
             if (snapToInner) {
                 Overlays.editOverlay(rotateOverlayOuter, { startAt: 0, endAt: 360 });
                 Overlays.editOverlay(rotateOverlayInner, { startAt: startAtRemainder, endAt: endAtRemainder });
-                Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius });
+                Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: innerRadius,
+                                                                majorTickMarksAngle: innerSnapAngle, minorTickMarksAngle: 0,
+                                                                majorTickMarksLength: -0.25, minorTickMarksLength: 0, });
             } else {
                 Overlays.editOverlay(rotateOverlayInner, { startAt: 0, endAt: 360 });
                 Overlays.editOverlay(rotateOverlayOuter, { startAt: startAtRemainder, endAt: endAtRemainder });
-                Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius });
+                Overlays.editOverlay(rotateOverlayCurrent, { startAt: startAtCurrent, endAt: endAtCurrent, size: outerRadius,
+                                                                majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
+                                                                majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
             }
             
         }
