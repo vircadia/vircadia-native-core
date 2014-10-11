@@ -1749,6 +1749,7 @@ SelectionDisplay = (function () {
     };
 
     that.mousePressEvent = function(event) {
+
         var somethingClicked = false;
         var pickRay = Camera.computePickRay(event.x, event.y);
         
@@ -2049,6 +2050,8 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(yawHandle, { ignoreRayIntersection: false });
         Overlays.editOverlay(pitchHandle, { ignoreRayIntersection: false });
         Overlays.editOverlay(rollHandle, { ignoreRayIntersection: false });
+        
+        return somethingClicked;
     };
 
     that.mouseMoveEvent = function(event) {
@@ -2150,7 +2153,8 @@ SelectionDisplay = (function () {
         
     };
 
-    Controller.mousePressEvent.connect(that.mousePressEvent);
+    // NOTE: mousePressEvent from the main script should call us., so we don't
+    //       hook the Controller.mousePressEvent.connect(that.mousePressEvent); ourselves.
     Controller.mouseMoveEvent.connect(that.mouseMoveEvent);
     Controller.mouseReleaseEvent.connect(that.mouseReleaseEvent);
     

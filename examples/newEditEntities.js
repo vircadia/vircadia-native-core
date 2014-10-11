@@ -341,7 +341,7 @@ function mousePressEvent(event) {
     entitySelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
