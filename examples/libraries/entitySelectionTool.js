@@ -2254,8 +2254,9 @@ SelectionDisplay = (function () {
                 break;
             default:
                 // nothing to do by default
-                break;
+                return false;
         }
+        return true;
     };
 
     that.mouseReleaseEvent = function(event) {
@@ -2289,9 +2290,9 @@ SelectionDisplay = (function () {
         
     };
 
-    // NOTE: mousePressEvent from the main script should call us., so we don't
-    //       hook the Controller.mousePressEvent.connect(that.mousePressEvent); ourselves.
-    Controller.mouseMoveEvent.connect(that.mouseMoveEvent);
+    // NOTE: mousePressEvent and mouseMoveEvent from the main script should call us., so we don't hook these:
+    //       Controller.mousePressEvent.connect(that.mousePressEvent);
+    //       Controller.mouseMoveEvent.connect(that.mouseMoveEvent);
     Controller.mouseReleaseEvent.connect(that.mouseReleaseEvent);
     
     return that;
