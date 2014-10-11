@@ -393,14 +393,8 @@ SelectionDisplay = (function () {
 
     that.highlightSelectable = function(entityID) {
         var properties = Entities.getEntityProperties(entityID);
-        var center = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
-        Overlays.editOverlay(highlightBox, 
-                            { 
-                                visible: true,
-                                position: center,
-                                dimensions: properties.dimensions,
-                                rotation: properties.rotation,
-                            });
+        Overlays.editOverlay(highlightBox, { visible: true, position: properties.boundingBox.center, 
+                                                dimensions: properties.boundingBox.dimensions });
     };
 
     that.unhighlightSelectable = function(entityID) {
@@ -642,8 +636,8 @@ SelectionDisplay = (function () {
 
         Overlays.editOverlay(highlightBox, { visible: false });
         
-        Overlays.editOverlay(selectionBox, { visible: selectionBoxVisible, position: objectCenter, dimensions: properties.dimensions,
-                                                rotation: properties.rotation,});
+        Overlays.editOverlay(selectionBox, { visible: selectionBoxVisible, position: properties.boundingBox.center, 
+                                                dimensions: properties.boundingBox.dimensions });
                             
                             
         Overlays.editOverlay(grabberMoveUp, { visible: translateHandlesVisible, position: { x: boundsCenter.x, y: top + grabberMoveUpOffset, z: boundsCenter.z } });
