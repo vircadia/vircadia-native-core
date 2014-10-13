@@ -46,7 +46,11 @@ public:
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
 
+    void renderVoxelCursor(const glm::vec3& position, float radius);
+
     bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
+    bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
     Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
@@ -241,7 +245,13 @@ class VoxelBuffer : public BufferData {
 public:
     
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
+        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
+            QVector<SharedObjectPointer>());
+
+    /// Finds the first intersection between the described ray and the voxel data.
+    /// \param entry the entry point of the ray in relative coordinates, from (0, 0, 0) to (1, 1, 1)
+    bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) const;
         
     virtual void render(bool cursor = false);
 
@@ -250,6 +260,8 @@ private:
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
+    QMultiHash<QRgb, int> _quadIndices;
+    int _size;
     int _vertexCount;
     int _indexCount;
     int _hermiteCount;
@@ -311,6 +323,8 @@ public:
     static ProgramObject& getSplatVoxelProgram() { return _splatVoxelProgram; }
     static const SplatLocations& getSplatVoxelLocations() { return _splatVoxelLocations; }
     
+    static ProgramObject& getVoxelCursorProgram() { return _voxelCursorProgram; }
+    
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
@@ -344,6 +358,8 @@ private:
     static ProgramObject _baseVoxelProgram;
     static ProgramObject _splatVoxelProgram;
     static SplatLocations _splatVoxelLocations;
+    
+    static ProgramObject _voxelCursorProgram;
 };
 
 /// Base class for spanner renderers; provides clipping.

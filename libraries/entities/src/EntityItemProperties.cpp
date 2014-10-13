@@ -179,9 +179,11 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
     QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
     QScriptValue center = vec3toScriptValue(engine, aaBox.calcCenter());
+    QScriptValue boundingBoxDimensions = vec3toScriptValue(engine, aaBox.getDimensions());
     boundingBox.setProperty("brn", bottomRightNear);
     boundingBox.setProperty("tfl", topFarLeft);
     boundingBox.setProperty("center", center);
+    boundingBox.setProperty("dimensions", boundingBoxDimensions);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(boundingBox, boundingBox); // gettable, but not settable
 
     return properties;
