@@ -18,6 +18,10 @@ void MetavoxelEditMessage::apply(MetavoxelData& data, const WeakSharedObjectHash
 MetavoxelEdit::~MetavoxelEdit() {
 }
 
+void MetavoxelEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // nothing by default
+}
+
 BoxSetEdit::BoxSetEdit(const Box& region, float granularity, const OwnedAttributeValue& value) :
     region(region), granularity(granularity), value(value) {
 }
@@ -408,6 +412,11 @@ void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObje
     data.guide(visitor);
 }
 
+MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& averageColor) :
+    material(material),
+    averageColor(averageColor) {
+}
+
 class PaintHeightfieldMaterialEditVisitor : public MetavoxelVisitor {
 public:
     
@@ -595,10 +604,9 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
 
 PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& averageColor) :
+    MaterialEdit(material, averageColor),
     position(position),
-    radius(radius),
-    material(material),
-    averageColor(averageColor) {
+    radius(radius) {
 }
 
 void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -613,9 +621,8 @@ const int VOXEL_BLOCK_VOLUME = VOXEL_BLOCK_AREA * VOXEL_BLOCK_SAMPLES;
 
 VoxelMaterialSpannerEdit::VoxelMaterialSpannerEdit(const SharedObjectPointer& spanner,
         const SharedObjectPointer& material, const QColor& averageColor) :
-    spanner(spanner),
-    material(material),
-    averageColor(averageColor) {
+    MaterialEdit(material, averageColor),
+    spanner(spanner) {
 }
 
 class VoxelMaterialSpannerEditVisitor : public MetavoxelVisitor {
@@ -851,10 +858,9 @@ void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObject
 
 PaintVoxelMaterialEdit::PaintVoxelMaterialEdit(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& averageColor) :
+    MaterialEdit(material, averageColor),
     position(position),
-    radius(radius),
-    material(material),
-    averageColor(averageColor) {
+    radius(radius) {
 }
 
 class PaintVoxelMaterialEditVisitor : public MetavoxelVisitor {

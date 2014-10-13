@@ -41,6 +41,8 @@ public:
 
     Q_INVOKABLE void setSpanner(const SharedObjectPointer& object, bool reliable = false);
         
+    Q_INVOKABLE void paintHeightfieldHeight(const glm::vec3& position, float radius, float height);
+
     Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
     /// Returns the current LOD.  This must be thread-safe, as it will be called from the updater thread.

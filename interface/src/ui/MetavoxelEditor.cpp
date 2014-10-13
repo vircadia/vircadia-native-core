@@ -1595,7 +1595,9 @@ QVariant VoxelMaterialBrushTool::createEdit(bool alternate) {
         } else {
             material = SharedObjectPointer();
         }
-        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), material, _color->getColor()));
+        QColor color = _color->getColor();
+        color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
+        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), material, color));
     }   
 }
 
