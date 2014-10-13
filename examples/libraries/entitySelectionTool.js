@@ -60,9 +60,17 @@ SelectionDisplay = (function () {
     var rotateHandleColor = { red: 0, green: 0, blue: 0 };
     var rotateHandleAlpha = 0.7;
 
+    var highlightedHandleColor = { red: 255, green: 0, blue: 0 };
+    var highlightedHandleAlpha = 0.7;
+    
+    var previousHandle = false;
+    var previousHandleColor;
+    var previousHandleAlpha;
+
     var grabberSizeCorner = 0.025;
     var grabberSizeEdge = 0.015;
     var grabberSizeFace = 0.025;
+    var grabberAlpha = 1;
     var grabberColorCorner = { red: 120, green: 120, blue: 120 };
     var grabberColorEdge = { red: 0, green: 0, blue: 0 };
     var grabberColorFace = { red: 120, green: 120, blue: 120 };
@@ -2320,7 +2328,96 @@ SelectionDisplay = (function () {
                 that.stretchLEFT(event);
                 break;
             default:
-                // nothing to do by default
+                // if not in any specific mode, then just look for handles to highlight...
+                var pickRay = Camera.computePickRay(event.x, event.y);
+                var result = Overlays.findRayIntersection(pickRay);
+                var pickedColor;
+                var pickedAlpha;
+                var highlightNeeded = false;
+
+                if (result.intersects) {
+                    switch(result.overlayID) {
+                        case yawHandle:
+                        case pitchHandle:
+                        case rollHandle:
+                            pickedColor = rotateHandleColor;
+                            pickedAlpha = rotateHandleAlpha;
+                            highlightNeeded = true;
+                            break;
+                            
+                        case grabberMoveUp:
+                            pickedColor = rotateHandleColor;
+                            pickedAlpha = rotateHandleAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        case grabberLBN:
+                        case grabberLBF:
+                        case grabberRBN:
+                        case grabberRBF:
+                        case grabberLTN:
+                        case grabberLTF:
+                        case grabberRTN:
+                        case grabberRTF:
+                            pickedColor = grabberColorCorner;
+                            pickedAlpha = grabberAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        case grabberTOP:
+                        case grabberBOTTOM:
+                        case grabberLEFT:
+                        case grabberRIGHT:
+                        case grabberNEAR:
+                        case grabberFAR:
+                            pickedColor = grabberColorFace;
+                            pickedAlpha = grabberAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        case grabberEdgeTR:
+                        case grabberEdgeTL:
+                        case grabberEdgeTF:
+                        case grabberEdgeTN:
+                        case grabberEdgeBR:
+                        case grabberEdgeBL:
+                        case grabberEdgeBF:
+                        case grabberEdgeBN:
+                        case grabberEdgeNR:
+                        case grabberEdgeNL:
+                        case grabberEdgeFR:
+                        case grabberEdgeFL:
+                            pickedColor = grabberColorEdge;
+                            pickedAlpha = grabberAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        default:
+                            if (previousHandle) {
+                                Overlays.editOverlay(previousHandle, { color: previousHandleColor, alpha: previousHandleAlpha });
+                                previousHandle = false;
+                            }
+                            break;
+                    }
+                    
+                    if (highlightNeeded) {
+                        if (previousHandle) {
+                            Overlays.editOverlay(previousHandle, { color: previousHandleColor, alpha: previousHandleAlpha });
+                            previousHandle = false;
+                        }
+                        Overlays.editOverlay(result.overlayID, { color: highlightedHandleColor, alpha: highlightedHandleAlpha });
+                        previousHandle = result.overlayID;
+                        previousHandleColor = pickedColor;
+                        previousHandleAlpha = pickedAlpha;
+                    }
+                    
+                } else {
+                    if (previousHandle) {
+                        Overlays.editOverlay(previousHandle, { color: previousHandleColor, alpha: previousHandleAlpha });
+                        previousHandle = false;
+                    }
+                }
+                
                 return false;
         }
         return true;
