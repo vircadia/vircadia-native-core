@@ -1706,6 +1706,13 @@ SelectionDisplay = (function () {
         if (!entitySelected || mode !== "ROTATE_YAW") {
             return; // not allowed
         }
+        
+        var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
+
+        if (debug) {
+            print("rotateYaw()...");
+            print("    event.x,y:" + event.x + "," + event.y);
+        }
 
         var pickRay = Camera.computePickRay(event.x, event.y);
         Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
@@ -1716,7 +1723,14 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
         
         var result = Overlays.findRayIntersection(pickRay);
+
+        if (debug) {
+            print("    findRayIntersection() .... result.intersects:" + result.intersects);
+        }
+
         if (result.intersects) {
+
+
             var properties = Entities.getEntityProperties(currentSelection);
             var center = yawCenter;
             var zero = yawZero;
@@ -1732,7 +1746,11 @@ SelectionDisplay = (function () {
             }
             
             // for debugging
-            //Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+            if (debug) {
+                Vec3.print("    result.intersection:",result.intersection);
+                Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+                print("    angleFromZero:" + angleFromZero);
+            }
 
             var yawChange = Quat.fromVec3Degrees({ x: 0, y: angleFromZero, z: 0 });
             var newRotation = Quat.multiply(yawChange, originalRotation);
@@ -1771,6 +1789,13 @@ SelectionDisplay = (function () {
         if (!entitySelected || mode !== "ROTATE_PITCH") {
             return; // not allowed
         }
+        var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
+
+        if (debug) {
+            print("rotatePitch()...");
+            print("    event.x,y:" + event.x + "," + event.y);
+        }
+
         var pickRay = Camera.computePickRay(event.x, event.y);
         Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
@@ -1779,7 +1804,11 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
         var result = Overlays.findRayIntersection(pickRay);
-        
+
+        if (debug) {
+            print("    findRayIntersection() .... result.intersects:" + result.intersects);
+        }
+
         if (result.intersects) {
             var properties = Entities.getEntityProperties(currentSelection);
             var center = pitchCenter;
@@ -1796,7 +1825,11 @@ SelectionDisplay = (function () {
             }
             
             // for debugging
-            //Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+            if (debug) {
+                Vec3.print("    result.intersection:",result.intersection);
+                Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+                print("    angleFromZero:" + angleFromZero);
+            }
 
             var pitchChange = Quat.fromVec3Degrees({ x: angleFromZero, y: 0, z: 0 });
             var newRotation = Quat.multiply(pitchChange, originalRotation);
@@ -1834,6 +1867,13 @@ SelectionDisplay = (function () {
         if (!entitySelected || mode !== "ROTATE_ROLL") {
             return; // not allowed
         }
+        var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
+
+        if (debug) {
+            print("rotateRoll()...");
+            print("    event.x,y:" + event.x + "," + event.y);
+        }
+        
         var pickRay = Camera.computePickRay(event.x, event.y);
         Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
         Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
@@ -1842,6 +1882,11 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
         Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
         var result = Overlays.findRayIntersection(pickRay);
+
+        if (debug) {
+            print("    findRayIntersection() .... result.intersects:" + result.intersects);
+        }
+
         if (result.intersects) {
             var properties = Entities.getEntityProperties(currentSelection);
             var center = rollCenter;
@@ -1858,7 +1903,11 @@ SelectionDisplay = (function () {
             }
 
             // for debugging
-            //Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+            if (debug) {
+                Vec3.print("    result.intersection:",result.intersection);
+                Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+                print("    angleFromZero:" + angleFromZero);
+            }
 
             var rollChange = Quat.fromVec3Degrees({ x: 0, y: 0, z: angleFromZero });
             var newRotation = Quat.multiply(rollChange, originalRotation);
@@ -2124,8 +2173,11 @@ SelectionDisplay = (function () {
                 Overlays.editOverlay(rotateOverlayCurrent, { visible: true, rotation: overlayOrientation, position: overlayCenter, startAt: 0, endAt: 0 });
                   
                 // for debugging                  
-                //Overlays.editOverlay(rotateZeroOverlay, { visible: true, start: overlayCenter, end: result.intersection });
-                //Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: overlayCenter, end: result.intersection });
+                var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
+                if (debug) {
+                    Overlays.editOverlay(rotateZeroOverlay, { visible: true, start: overlayCenter, end: result.intersection });
+                    Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: overlayCenter, end: result.intersection });
+                }
 
                 Overlays.editOverlay(yawHandle, { visible: false });
                 Overlays.editOverlay(pitchHandle, { visible: false });
