@@ -65,23 +65,6 @@ void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * righ
     front->x = frontNew.x;  front->y = frontNew.y;  front->z = frontNew.z;
 }
 
-void printVector(glm::vec3 vec) {
-    qDebug("%4.2f, %4.2f, %4.2f", vec.x, vec.y, vec.z);
-}
-
-
-//  Return the azimuth angle (in radians) between two points.
-float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z);
-}
-
-// Return the angle (in radians) between the head and an object in the scene.  
-// The value is zero if you are looking right at it.
-// The angle is negative if the object is to your right.
-float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw) {
-    return atan2(head_pos.x - source_pos.x, head_pos.z - source_pos.z) + render_yaw + head_yaw;
-}
-
 //  Draw a 3D vector floating in space
 void drawVector(glm::vec3 * vector) {
     glDisable(GL_LIGHTING);

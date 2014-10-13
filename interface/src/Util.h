@@ -18,9 +18,6 @@
 
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up);
 
-float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
-float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
-
 float randFloat();
 const glm::vec3 randVector();
 
@@ -35,8 +32,6 @@ void drawvec3(int x, int y, float scale, float radians, float thick, int mono, g
               float r=1.0, float g=1.0, float b=1.0);
 
 void drawVector(glm::vec3* vector);
-
-void printVector(glm::vec3 vec);
 
 void renderCollisionOverlay(int width, int height, float magnitude, float red = 0, float blue = 0, float green = 0);
 
