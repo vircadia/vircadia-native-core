@@ -1392,16 +1392,14 @@ void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3&
     } else {
         material = SharedObjectPointer();
     }
-    QColor color = _color->getColor();
-    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-    
     Cuboid* cuboid = new Cuboid();
     cuboid->setTranslation((maximum + minimum) * 0.5f);
     glm::vec3 vector = (maximum - minimum) * 0.5f;
     cuboid->setScale(vector.x);
     cuboid->setAspectY(vector.y / vector.x);
     cuboid->setAspectZ(vector.z / vector.x);
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(SharedObjectPointer(cuboid), material, color)) };
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(SharedObjectPointer(cuboid),
+        material, _color->getColor())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1489,9 +1487,7 @@ void VoxelMaterialSpannerTool::applyEdit(const AttributePointer& attribute, cons
     } else {
         material = SharedObjectPointer();
     }
-    QColor color = _color->getColor();
-    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material, color)) };
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material, _color->getColor())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
@@ -1595,9 +1591,7 @@ QVariant VoxelMaterialBrushTool::createEdit(bool alternate) {
         } else {
             material = SharedObjectPointer();
         }
-        QColor color = _color->getColor();
-        color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
-        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), material, color));
+        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), material, _color->getColor()));
     }   
 }
 

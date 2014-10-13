@@ -852,7 +852,10 @@ void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObject
     while (!data.getBounds().contains(spanner->getBounds())) {
         data.expand();
     }
-    VoxelMaterialSpannerEditVisitor visitor(spanner, material, averageColor);
+    // make sure it's either 100% transparent or 100% opaque
+    QColor color = averageColor;
+    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
+    VoxelMaterialSpannerEditVisitor visitor(spanner, material, color);
     data.guide(visitor);
 }
 
@@ -956,6 +959,9 @@ int PaintVoxelMaterialEditVisitor::visit(MetavoxelInfo& info) {
 }
 
 void PaintVoxelMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintVoxelMaterialEditVisitor visitor(position, radius, material, averageColor);
+    // make sure it's 100% opaque
+    QColor color = averageColor;
+    color.setAlphaF(1.0f);
+    PaintVoxelMaterialEditVisitor visitor(position, radius, material, color);
     data.guide(visitor);
 }
