@@ -206,8 +206,6 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
                 if (_audioZones[listener].contains(listeningNodeStream->getPosition())) {
                     attenuationPerDoublingInDistance = _attenuationCoefficients[source][listener];
                     wantBreak = true;
-                }
-                if (wantBreak) {
                     break;
                 }
             }
