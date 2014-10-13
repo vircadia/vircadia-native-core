@@ -31,7 +31,6 @@
 #include "Vec3.h"
 
 class EntityScriptingInterface;
-class ParticlesScriptingInterface;
 class VoxelsScriptingInterface;
 
 const QString NO_SCRIPT("");
@@ -50,9 +49,6 @@ public:
 
     /// Access the VoxelsScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static VoxelsScriptingInterface* getVoxelsScriptingInterface() { return &_voxelsScriptingInterface; }
-
-    /// Access the ParticlesScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
-    static ParticlesScriptingInterface* getParticlesScriptingInterface() { return &_particlesScriptingInterface; }
 
     /// Access the EntityScriptingInterface in order to initialize it with a custom packet sender and jurisdiction listener
     static EntityScriptingInterface* getEntityScriptingInterface() { return &_entityScriptingInterface; }
@@ -143,7 +139,6 @@ private:
     void stopTimer(QTimer* timer);
 
     static VoxelsScriptingInterface _voxelsScriptingInterface;
-    static ParticlesScriptingInterface _particlesScriptingInterface;
     static EntityScriptingInterface _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;

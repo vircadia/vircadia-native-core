@@ -291,8 +291,6 @@ Menu::Menu() :
             0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithVoxels,
             0, false, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
             0, false, avatar, SLOT(updateCollisionGroups()));
 
@@ -339,9 +337,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersParticleNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
-                                           &nodeBounds, SLOT(setShowParticleNodes(bool)));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
@@ -363,7 +358,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);

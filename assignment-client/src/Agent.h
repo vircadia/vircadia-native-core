@@ -22,9 +22,6 @@
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
 #include <EntityTreeHeadlessViewer.h>
-#include <ParticleEditPacketSender.h>
-#include <ParticleTree.h>
-#include <ParticleTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 #include <VoxelEditPacketSender.h>
@@ -64,10 +61,8 @@ public slots:
 private:
     ScriptEngine _scriptEngine;
     VoxelEditPacketSender _voxelEditSender;
-    ParticleEditPacketSender _particleEditSender;
     EntityEditPacketSender _entityEditSender;
 
-    ParticleTreeHeadlessViewer _particleViewer;
     VoxelTreeHeadlessViewer _voxelViewer;
     EntityTreeHeadlessViewer _entityViewer;
     

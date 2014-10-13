@@ -361,7 +361,6 @@ namespace MenuOption {
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
     const QString CollideWithAvatars = "Collide With Other Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
@@ -426,11 +425,10 @@ namespace MenuOption {
     const QString NameLocation = "Name this location";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
-    const QString OctreeStats = "Voxel and Particle Statistics";
+    const QString OctreeStats = "Voxel and Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString Pair = "Pair";
-    const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
@@ -449,7 +447,6 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";

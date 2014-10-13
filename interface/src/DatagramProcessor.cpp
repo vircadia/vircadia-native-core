@@ -70,18 +70,11 @@ void DatagramProcessor::processDatagrams() {
                     
                     break;
                 }
-                case PacketTypeParticleAddResponse:
-                    // this will keep creatorTokenIDs to IDs mapped correctly
-                    Particle::handleAddParticleResponse(incomingPacket);
-                    application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
-                    break;
                 case PacketTypeEntityAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     EntityItemID::handleAddEntityResponse(incomingPacket);
                     application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
                     break;
-                case PacketTypeParticleData:
-                case PacketTypeParticleErase:
                 case PacketTypeEntityData:
                 case PacketTypeEntityErase:
                 case PacketTypeVoxelData:
@@ -165,11 +158,6 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeVoxelEditNack:
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
                         application->_voxelEditSender.processNackPacket(incomingPacket);
-                    }
-                    break;
-                case PacketTypeParticleEditNack:
-                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-                        application->_particleEditSender.processNackPacket(incomingPacket);
                     }
                     break;
                 case PacketTypeEntityEditNack:

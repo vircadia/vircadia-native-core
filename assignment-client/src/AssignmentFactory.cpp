@@ -17,7 +17,6 @@
 #include "avatars/AvatarMixer.h"
 #include "metavoxels/MetavoxelServer.h"
 #include "entities/EntityServer.h"
-#include "particles/ParticleServer.h"
 #include "voxels/VoxelServer.h"
 
 ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet) {
@@ -38,8 +37,6 @@ ThreadedAssignment* AssignmentFactory::unpackAssignment(const QByteArray& packet
             return new Agent(packet);
         case Assignment::VoxelServerType:
             return new VoxelServer(packet);
-        case Assignment::ParticleServerType:
-            return new ParticleServer(packet);
         case Assignment::MetavoxelServerType:
             return new MetavoxelServer(packet);
         case Assignment::EntityServerType:
