@@ -129,6 +129,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new EraseHeightfieldTool(this));
     addTool(new VoxelMaterialBoxTool(this));
     addTool(new VoxelMaterialSpannerTool(this));
+    addTool(new VoxelMaterialBrushTool(this));
     
     updateAttributes();
     
@@ -1523,5 +1524,104 @@ void VoxelMaterialSpannerTool::updateTexture() {
 }
 
 void VoxelMaterialSpannerTool::textureLoaded() {
+    _color->setColor(_texture->getAverageColor());
+}
+
+VoxelBrushTool::VoxelBrushTool(MetavoxelEditor* editor, const QString& name) :
+    MetavoxelTool(editor, name, false, true) {
+    
+    QWidget* widget = new QWidget();
+    widget->setLayout(_form = new QFormLayout());
+    layout()->addWidget(widget);
+    
+    _form->addRow("Radius:", _radius = new QDoubleSpinBox());
+    _radius->setSingleStep(0.01);
+    _radius->setMaximum(FLT_MAX);
+    _radius->setValue(0.25);
+}
+
+bool VoxelBrushTool::appliesTo(const AttributePointer& attribute) const {
+    return attribute->inherits("VoxelColorAttribute");
+}
+
+void VoxelBrushTool::render() {
+    if (Application::getInstance()->isMouseHidden()) {
+        return;
+    }
+    
+    // find the intersection with the voxels
+    glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
+    glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
+    
+    float distance;
+    if (!Application::getInstance()->getMetavoxels()->findFirstRayVoxelIntersection(origin, direction, distance)) {
+        return;
+    }
+    Application::getInstance()->getMetavoxels()->renderVoxelCursor(
+        _position = origin + distance * direction, _radius->value());
+}
+
+bool VoxelBrushTool::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Wheel) {
+        float angle = static_cast<QWheelEvent*>(event)->angleDelta().y();
+        const float ANGLE_SCALE = 1.0f / 1000.0f;
+        _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
+        return true;
+    
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
+        Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+        return true;
+    }
+    return false;
+}
+
+VoxelMaterialBrushTool::VoxelMaterialBrushTool(MetavoxelEditor* editor) :
+    VoxelBrushTool(editor, "Material Brush") {
+    
+    _form->addRow("Color:", _color = new QColorEditor(this));
+    connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialBrushTool::clearTexture);
+    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialBrushTool::updateTexture);
+}
+
+QVariant VoxelMaterialBrushTool::createEdit(bool alternate) {
+    if (alternate) {
+        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
+    } else {
+        SharedObjectPointer material = _materialEditor->getObject();
+        if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
+            _materialEditor->detachObject();
+        } else {
+            material = SharedObjectPointer();
+        }
+        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), material, _color->getColor()));
+    }   
+}
+
+void VoxelMaterialBrushTool::clearTexture() {
+    _materialEditor->setObject(new MaterialObject());
+}
+
+void VoxelMaterialBrushTool::updateTexture() {
+    if (_texture) {
+        _texture->disconnect(this);
+    }
+    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
+    if (!material->getDiffuse().isValid()) {
+        _texture.clear();
+        return;
+    }
+    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
+    if (_texture) {
+        if (_texture->isLoaded()) {
+            textureLoaded();
+        } else {
+            connect(_texture.data(), &Resource::loaded, this, &VoxelMaterialBrushTool::textureLoaded);
+        }
+    }
+}
+
+void VoxelMaterialBrushTool::textureLoaded() {
     _color->setColor(_texture->getAverageColor());
 }
