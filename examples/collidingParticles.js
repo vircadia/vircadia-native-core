@@ -5,9 +5,7 @@
 //  Created by Brad Hefta-Gaub on 12/31/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
-//  This is an example script that creates a couple particles, and sends them on a collision course.
-//  One of the particles has a script that when it collides with another particle, it swaps colors with that particle.
-//  The other particle has a script that when it collides with another particle it set's it's script to a suicide script.
+//  This is an example script that creates a couple entities, and sends them on a collision course.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,8 +14,8 @@
 var currentIteration = 0;
 var NUM_ITERATIONS_BEFORE_SEND = 15; // every 1/4th seconds send another
  
-var numberParticlesAdded = 0;
-var MAX_PARTICLES = 1;
+var numberEntitiesAdded = 0;
+var MAX_ENTITIES = 1;
 
 var velocity = {  
   x: 1, 
@@ -31,34 +29,6 @@ var gravity = {
 
 var damping = 0.1;
 
-var scriptA = " " +
-             " function collisionWithParticle(other, collision) { " +
-             "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
-             "   Vec3.print('penetration=', collision.penetration); " +
-             "   Vec3.print('contactPoint=', collision.contactPoint); " +
-             "   print('myID=' + Particle.getID() + '\\n'); " +
-             "   var colorBlack = { red: 0, green: 0, blue: 0 };" +
-             "   var otherColor = other.getColor();" +
-             "   print('otherColor=' + otherColor.red + ', ' + otherColor.green + ', ' + otherColor.blue + '\\n'); " +
-             "   var myColor = Particle.getColor();" +
-             "   print('myColor=' + myColor.red + ', ' + myColor.green + ', ' + myColor.blue + '\\n'); " +
-             "   Particle.setColor(otherColor); " +
-             "   other.setColor(myColor); " +
-             " } " +
-             " Particle.collisionWithParticle.connect(collisionWithParticle); " +
-             " ";
-
-var scriptB = " " +
-             " function collisionWithParticle(other, collision) { " +
-             "   print('collisionWithParticle(other.getID()=' + other.getID() + ')...'); " +
-             "   Vec3.print('penetration=', collision.penetration); " +
-             "   Vec3.print('contactPoint=', collision.contactPoint); " +
-             "   print('myID=' + Particle.getID() + '\\n'); " +
-             "   Particle.setScript('Particle.setShouldDie(true);'); " +
-             " } " +
-             " Particle.collisionWithParticle.connect(collisionWithParticle); " +
-             " ";
-
 var color = {  
   red: 255, 
   green: 255,
@@ -67,7 +37,7 @@ var color = {
 function draw(deltaTime) {
     print("hello... draw()... currentIteration=" + currentIteration + "\n");
     
-    // on the first iteration, setup a single particle that's slowly moving
+    // on the first iteration, setup a single entity that's slowly moving
     if (currentIteration == 0) {
         var colorGreen = { red: 0, green: 255, blue: 0 };
         var startPosition = {  
@@ -81,20 +51,19 @@ function draw(deltaTime) {
             z: 0.01 };
 
         var properties = {
+            type: "Sphere",
+            collisionsWillMove: true,
             position: startPosition, 
-            radius: largeRadius, 
+            dimensions: {x: largeRadius, y: largeRadius, z: largeRadius},
             color: colorGreen, 
             velocity: verySlow, 
             gravity: gravity, 
             damping: damping, 
-            inHand: false, 
-            script: scriptA
+            lifetime: 20
         };
         
-        Particles.addParticle(properties);
-        print("hello... added particle... script=\n");
-        print(scriptA);
-        numberParticlesAdded++;
+        Entities.addEntity(properties);
+        numberEntitiesAdded++;
     }
     
     if (currentIteration++ % NUM_ITERATIONS_BEFORE_SEND === 0) {
@@ -105,9 +74,9 @@ function draw(deltaTime) {
             y: 0,
             z: 0 };
 
-        var particleSize = 0.1;
+        var entitySize = 0.1;
 
-        print("number of particles=" + numberParticlesAdded +"\n");
+        print("number of entitys=" + numberEntitiesAdded +"\n");
         
         var velocityStep = 0.1;
         if (velocity.x > 0) {
@@ -122,32 +91,31 @@ function draw(deltaTime) {
           color.green = 0;
         }
         
-        if (numberParticlesAdded <= MAX_PARTICLES) {
+        if (numberEntitiesAdded <= MAX_ENTITIES) {
             var properties = {
+                type: "Sphere",
+                collisionsWillMove: true,
                 position: center, 
-                radius: particleSize, 
+                dimensions: {x: entitySize, y: entitySize, z: entitySize},
                 color: color, 
                 velocity: velocity, 
                 gravity: gravity, 
                 damping: damping, 
-                inHand: false, 
-                script: scriptB
+                lifetime: 20
             };
-            Particles.addParticle(properties);
-            print("hello... added particle... script=\n");
-            print(scriptB);
-            numberParticlesAdded++;
+            Entities.addEntity(properties);
+            numberEntitiesAdded++;
         } else {
             Script.stop();
         }
         
-        print("Particles Stats: " + Particles.getLifetimeInSeconds() + " seconds," + 
-            " Queued packets:" + Particles.getLifetimePacketsQueued() + "," +
-            " PPS:" + Particles.getLifetimePPSQueued() + "," +
-            " BPS:" + Particles.getLifetimeBPSQueued() + "," +
-            " Sent packets:" + Particles.getLifetimePacketsSent() + "," +
-            " PPS:" + Particles.getLifetimePPS() + "," +
-            " BPS:" + Particles.getLifetimeBPS() + 
+        print("Particles Stats: " + Entities.getLifetimeInSeconds() + " seconds," + 
+            " Queued packets:" + Entities.getLifetimePacketsQueued() + "," +
+            " PPS:" + Entities.getLifetimePPSQueued() + "," +
+            " BPS:" + Entities.getLifetimeBPSQueued() + "," +
+            " Sent packets:" + Entities.getLifetimePacketsSent() + "," +
+            " PPS:" + Entities.getLifetimePPS() + "," +
+            " BPS:" + Entities.getLifetimeBPS() + 
             "\n");
     }
 }
@@ -155,6 +123,6 @@ function draw(deltaTime) {
  
 // register the call back so it fires before each data send
 print("here...\n");
-Particles.setPacketsPerSecond(40000);
+Entities.setPacketsPerSecond(40000);
 Script.update.connect(draw);
 print("and here...\n");
