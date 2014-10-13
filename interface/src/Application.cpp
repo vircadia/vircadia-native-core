@@ -1851,6 +1851,13 @@ void Application::init() {
 
     _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
 
+    // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
+            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithVoxel);
+
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
+            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
