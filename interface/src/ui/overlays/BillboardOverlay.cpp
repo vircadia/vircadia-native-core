@@ -15,11 +15,12 @@
 
 #include "BillboardOverlay.h"
 
-BillboardOverlay::BillboardOverlay()
-: _fromImage(-1,-1,-1,-1),
-  _scale(1.0f),
-  _isFacingAvatar(true),
-  _newTextureNeeded(true) {
+BillboardOverlay::BillboardOverlay() :
+    _newTextureNeeded(true),
+    _fromImage(-1,-1,-1,-1),
+    _scale(1.0f),
+    _isFacingAvatar(true)
+{
       _isLoaded = false;
 }
 
@@ -156,9 +157,14 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+void BillboardOverlay::setURL(const QString& url) {
+    setBillboardURL(url);
+}
+
 void BillboardOverlay::setBillboardURL(const QString& url) {
     _url = url;
     QUrl actualURL = url;
+
     _isLoaded = false;
 
     // clear the billboard if previously set
