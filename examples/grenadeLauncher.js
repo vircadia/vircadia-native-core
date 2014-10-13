@@ -100,6 +100,7 @@ function shootBullet(position, velocity) {
     Entities.addEntity(
         { type: "Sphere",
           position: position, 
+          collisionsWillMove: true,
           dimensions: { x: BULLET_SIZE, y: BULLET_SIZE, z: BULLET_SIZE },
           color: {  red: 10, green: 10, blue: 10 },  
           velocity: velocity, 
@@ -137,6 +138,7 @@ function shootTarget() {
     Entities.addEntity(
         { type: "Sphere",
           position: newPosition, 
+          collisionsWillMove: true,
           dimensions: { x: TARGET_SIZE, y: TARGET_SIZE, z: TARGET_SIZE },
           color: {  red: 0, green: 200, blue: 200 },  
           velocity: velocity, 
@@ -155,6 +157,9 @@ function shootTarget() {
 
 
 function entityCollisionWithVoxel(entity, voxel, collision) {
+
+print("entityCollisionWithVoxel....");
+
     var VOXEL_SIZE = 0.5;
     // Don't make this big. I mean it.
     var CRATER_RADIUS = 5;
