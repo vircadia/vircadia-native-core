@@ -238,7 +238,6 @@ var toolBar = (function () {
         if (clickedOverlay === loadFileMenuItem) {
             toggleNewModelButton(false);
 
-            // TODO BUG: this is bug, if the user has never uploaded a model, this will throw an JS exception
             file = Window.browse("Select your model file ...",
                 Settings.getValue("LastModelUploadLocation").path(), 
                 "Model files (*.fst *.fbx)");
