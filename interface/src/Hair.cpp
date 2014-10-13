@@ -192,7 +192,7 @@ void Hair::render() {
     float loudnessFactor = (_loudness > 0.0f) ? logf(_loudness) / 16.0f : 0.0f;
     const int SPARKLE_EVERY = 5;
     const float HAIR_SETBACK = 0.125f;
-    int sparkleIndex = random() % 5;
+    int sparkleIndex = (int) (randFloat() * SPARKLE_EVERY);
     glPushMatrix();
     glTranslatef(0.f, 0.f, HAIR_SETBACK);
     glBegin(GL_QUADS);
