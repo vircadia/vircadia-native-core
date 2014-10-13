@@ -615,6 +615,7 @@ MaterialEditApplier::MaterialEditApplier(const MetavoxelEditMessage& message, co
 void MaterialEditApplier::handle() {
     static_cast<MaterialEdit*>(_message.edit.data())->averageColor = _texture->getAverageColor();
     Application::getInstance()->getMetavoxels()->applyEdit(_message, true);
+    deleteLater();
 }
 
 void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, bool reliable) {
