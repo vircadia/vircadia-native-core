@@ -22,7 +22,7 @@
       <ul class="nav nav-pills nav-stacked">
       </ul>
       
-      <button id="advanced-toggle-button" class="btn btn-info">Show advanced</button>
+      <button id="advanced-toggle-button" hidden=true class="btn btn-info">Show advanced</button>
       <button class="btn btn-success save-button">Save and restart</button>
     </div>
   </div>
@@ -42,10 +42,13 @@
                 <%= getFormGroup(group.name, setting, values, false, 
                   (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
               <% }); %>
-              <% _.each(split_settings[1], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values, true, 
-                  (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
-              <% }); %>
+              <% if (!_.isEmpty(split_settings[1])) { %>
+                <% $("#advanced-toggle-button").show() %>
+                <% _.each(split_settings[1], function(setting) { %>
+                  <%= getFormGroup(group.name, setting, values, true, 
+                    (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
+                <% }); %>
+              <% }%>
             </div>
           </div>
         <% }); %>
