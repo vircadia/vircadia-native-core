@@ -37,75 +37,7 @@ using namespace std;
 #define WORKAROUND_BROKEN_GLUT_STROKES
 // see http://www.opengl.org/resources/libraries/glut/spec3/node78.html
 
-void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * front, glm::vec3 * right, glm::vec3 * up) {
-    //
-    //  Converts from three euler angles to the associated orthonormal vectors
-    //
-    //  Angles contains (pitch, yaw, roll) in radians
-    //
 
-    //  First, create the quaternion associated with these euler angles
-    glm::quat q(glm::vec3(angles->x, -(angles->y), angles->z));
-
-    //  Next, create a rotation matrix from that quaternion
-    glm::mat4 rotation;
-    rotation = glm::mat4_cast(q);
-
-    //  Transform the original vectors by the rotation matrix to get the new vectors
-    glm::vec4 qup(0,1,0,0);
-    glm::vec4 qright(-1,0,0,0);
-    glm::vec4 qfront(0,0,1,0);
-    glm::vec4 upNew    = qup*rotation;
-    glm::vec4 rightNew = qright*rotation;
-    glm::vec4 frontNew = qfront*rotation;
-
-    //  Copy the answers to output vectors
-    up->x = upNew.x;  up->y = upNew.y;  up->z = upNew.z;
-    right->x = rightNew.x;  right->y = rightNew.y;  right->z = rightNew.z;
-    front->x = frontNew.x;  front->y = frontNew.y;  front->z = frontNew.z;
-}
-
-//  Draw a 3D vector floating in space
-void drawVector(glm::vec3 * vector) {
-    glDisable(GL_LIGHTING);
-    glEnable(GL_POINT_SMOOTH);
-    glPointSize(3.0);
-    glLineWidth(2.0);
-
-    //  Draw axes
-    glBegin(GL_LINES);
-    glColor3f(1,0,0);
-    glVertex3f(0,0,0);
-    glVertex3f(1,0,0);
-    glColor3f(0,1,0);
-    glVertex3f(0,0,0);
-    glVertex3f(0, 1, 0);
-    glColor3f(0,0,1);
-    glVertex3f(0,0,0);
-    glVertex3f(0, 0, 1);
-    glEnd();
-
-    // Draw the vector itself
-    glBegin(GL_LINES);
-    glColor3f(1,1,1);
-    glVertex3f(0,0,0);
-    glVertex3f(vector->x, vector->y, vector->z);
-    glEnd();
-
-    // Draw spheres for magnitude
-    glPushMatrix();
-    glColor3f(1,0,0);
-    glTranslatef(vector->x, 0, 0);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.02f, 10, 10);
-    glColor3f(0,1,0);
-    glTranslatef(-vector->x, vector->y, 0);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.02f, 10, 10);
-    glColor3f(0,0,1);
-    glTranslatef(0, -vector->y, vector->z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.02f, 10, 10);
-    glPopMatrix();
-
-}
 
 void renderWorldBox() {
     //  Show edge of world
@@ -184,10 +116,6 @@ int widthText(float scale, int mono, char const* string) {
     return textRenderer(mono)->computeWidth(string) * (scale / 0.10);
 }
 
-float widthChar(float scale, int mono, char ch) {
-    return textRenderer(mono)->computeWidth(ch) * (scale / 0.10);
-}
-
 void drawText(int x, int y, float scale, float radians, int mono,
               char const* string, const float* color) {
     //
@@ -199,29 +127,6 @@ void drawText(int x, int y, float scale, float radians, int mono,
     glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
     glScalef(scale / 0.1f, scale / 0.1f, 1.f);
     textRenderer(mono)->draw(0, 0, string);
-    glPopMatrix();
-}
-
-
-void drawvec3(int x, int y, float scale, float radians, float thick, int mono, glm::vec3 vec, float r, float g, float b) {
-    //
-    //  Draws vec3 on screen as stroked so it can be resized
-    //
-    char vectext[20];
-    sprintf(vectext,"%3.1f,%3.1f,%3.1f", vec.x, vec.y, vec.z);
-    int len, i;
-    glPushMatrix();
-    glTranslatef(static_cast<float>(x), static_cast<float>(y), 0);
-    glColor3f(r,g,b);
-    glRotated(180.0 + double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glRotated(180.0, 0.0, 1.0, 0.0);
-    glLineWidth(thick);
-    glScalef(scale, scale, 1.f);
-    len = (int) strlen(vectext);
-	for (i = 0; i < len; i++) {
-        if (!mono) glutStrokeCharacter(GLUT_STROKE_ROMAN, int(vectext[i]));
-        else glutStrokeCharacter(GLUT_STROKE_MONO_ROMAN, int(vectext[i]));
-	}
     glPopMatrix();
 }
 
@@ -238,27 +143,6 @@ void renderCollisionOverlay(int width, int height, float magnitude, float red, f
     }
 }
 
-void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::vec3 cameraPosition) {
-    glm::vec3 vectorToPosition(glm::normalize(position - cameraPosition));
-    glm::vec3 right = glm::cross(vectorToPosition, glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec3 up    = glm::cross(right, vectorToPosition);
-
-    glBegin(GL_LINE_STRIP);
-    for (int i=0; i<numSides+1; i++) {
-        float r = ((float)i / (float)numSides) * TWO_PI;
-        float s = radius * sinf(r);
-        float c = radius * cosf(r);
-
-        glVertex3f
-        (
-            position.x + right.x * s + up.x * c,
-            position.y + right.y * s + up.y * c,
-            position.z + right.z * s + up.z * c
-        );
-    }
-
-    glEnd();
-}
 
 
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides) {
@@ -304,54 +188,6 @@ void renderBevelCornersRect(int x, int y, int width, int height, int bevelDistan
     glEnd();
 }
 
-void renderRoundedCornersRect(int x, int y, int width, int height, int radius, int numPointsCorner) {
-#define MAX_POINTS_CORNER 50
-    // At least "2" is needed
-    if (numPointsCorner <= 1) {
-        return;
-    }
-    if (numPointsCorner > MAX_POINTS_CORNER) {
-        numPointsCorner = MAX_POINTS_CORNER;
-    }
-
-    // Precompute sin and cos for [0, PI/2) for the number of points (numPointCorner)
-    double radiusTimesSin[MAX_POINTS_CORNER];
-    double radiusTimesCos[MAX_POINTS_CORNER];
-    int i = 0;
-    for (int i = 0; i < numPointsCorner; i++) {
-        double t = (double)i * (double)PI_OVER_TWO / (double)(numPointsCorner - 1); 
-        radiusTimesSin[i] = radius * sin(t);
-        radiusTimesCos[i] = radius * cos(t);
-    }
-
-    glm::dvec2 cornerCenter;
-    glBegin(GL_POINTS);
-   
-    // Top left corner
-    cornerCenter = glm::vec2(x + radius, y + height - radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x - radiusTimesCos[i], cornerCenter.y + radiusTimesSin[i]); 
-    }
-
-    // Top rigth corner
-    cornerCenter = glm::vec2(x + width - radius, y + height - radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x + radiusTimesSin[i], cornerCenter.y + radiusTimesCos[i]); 
-    }
-
-    // Bottom right
-    cornerCenter = glm::vec2(x + width - radius, y + radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x + radiusTimesCos[i], cornerCenter.y - radiusTimesSin[i]); 
-    }
-
-    // Bottom left
-    cornerCenter = glm::vec2(x + radius, y + radius);
-    for (i = 0; i < numPointsCorner; i++) {
-        glVertex2d(cornerCenter.x - radiusTimesSin[i], cornerCenter.y - radiusTimesCos[i]); 
-    }
-    glEnd();
-}
 
 
 void renderOrientationDirections(glm::vec3 position, const glm::quat& orientation, float size) {
@@ -376,12 +212,6 @@ void renderOrientationDirections(glm::vec3 position, const glm::quat& orientatio
 	glVertex3f(position.x, position.y, position.z);
 	glVertex3f(pFront.x, pFront.y, pFront.z);
 	glEnd();
-}
-
-bool closeEnoughForGovernmentWork(float a, float b) {
-    float distance = std::abs(a-b);
-    //qDebug("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
-    return (distance < 0.00001f);
 }
 
 //  Do some basic timing tests and report the results
