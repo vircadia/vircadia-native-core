@@ -26,7 +26,6 @@
 #include "AudioSourceTone.h"
 #include "AudioSourceNoise.h"
 #include "AudioGain.h"
-//#include "AudioPan.h"
 #include "AudioFilter.h"
 #include "AudioFilterBank.h"
 
