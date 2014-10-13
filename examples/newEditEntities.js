@@ -338,13 +338,15 @@ function rayPlaneIntersection(pickRay, point, normal) {
 
 function mousePressEvent(event) {
     mouseLastPosition = { x: event.x, y: event.y };
-    entitySelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
+        entitySelected = false;
+        selectionDisplay.unselectAll();
+
         // If we aren't active and didn't click on an overlay: quit
         if (!isActive) {
             return;
@@ -440,34 +442,36 @@ function mouseMoveEvent(event) {
     if (!isActive) {
         return;
     }
+    
+    // allow the selectionDisplay to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event)) {
+        return;
+    }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
-    if (!entitySelected) {
-        var entityIntersection = Entities.findRayIntersection(pickRay);
-        if (entityIntersection.accurate) {
-            if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
-                selectionDisplay.unhighlightSelectable(highlightedEntityID);
-                highlightedEntityID = { id: -1, isKnownID: false };
-            }
-
-            var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-            
-            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
-                                            entityIntersection.properties.position)) * 180 / 3.14;
-
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
-                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-            if (entityIntersection.entityID.isKnownID && sizeOK) {
-                if (wantEntityGlow) {
-                    Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
-                }
-                highlightedEntityID = entityIntersection.entityID;
-                selectionDisplay.highlightSelectable(entityIntersection.entityID);
-            }
-            
+    var entityIntersection = Entities.findRayIntersection(pickRay);
+    if (entityIntersection.accurate) {
+        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+            selectionDisplay.unhighlightSelectable(highlightedEntityID);
+            highlightedEntityID = { id: -1, isKnownID: false };
         }
-        return;
+
+        var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
+        
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
+                                        entityIntersection.properties.position)) * 180 / 3.14;
+
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+        if (entityIntersection.entityID.isKnownID && sizeOK) {
+            if (wantEntityGlow) {
+                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+            }
+            highlightedEntityID = entityIntersection.entityID;
+            selectionDisplay.highlightSelectable(entityIntersection.entityID);
+        }
+        
     }
 }
 
