@@ -73,7 +73,6 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
-#include "PaymentManager.h"
 #include "Util.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
@@ -250,11 +249,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
-
-    // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
-    const PaymentManager& paymentManager = PaymentManager::getInstance();
-    connect(&_voxelEditSender, &VoxelEditPacketSender::octreePaymentRequired,
-            &paymentManager, &PaymentManager::sendSignedPayment);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
