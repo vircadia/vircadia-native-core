@@ -130,6 +130,7 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new VoxelMaterialBoxTool(this));
     addTool(new VoxelMaterialSpannerTool(this));
     addTool(new VoxelMaterialBrushTool(this));
+    addTool(new VoxelSculptBrushTool(this));
     
     updateAttributes();
     
@@ -1294,35 +1295,44 @@ QVariant HeightfieldHeightBrushTool::createEdit(bool alternate) {
         alternate ? -_height->value() : _height->value()));
 }
 
-HeightfieldMaterialBrushTool::HeightfieldMaterialBrushTool(MetavoxelEditor* editor) :
-    HeightfieldBrushTool(editor, "Material Brush") {
+MaterialControl::MaterialControl(QWidget* widget, QFormLayout* form, bool clearable) :
+    QObject(widget) {
     
-    _form->addRow("Color:", _color = new QColorEditor(this));
-    connect(_color, &QColorEditor::colorChanged, this, &HeightfieldMaterialBrushTool::clearTexture);
-    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
-    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &HeightfieldMaterialBrushTool::updateTexture);
+    QHBoxLayout* colorLayout = new QHBoxLayout();
+    form->addRow(colorLayout);
+    colorLayout->addWidget(new QLabel("Color:"));
+    colorLayout->addWidget(_color = new QColorEditor(widget), 1);
+    connect(_color, &QColorEditor::colorChanged, this, &MaterialControl::clearTexture);
+    if (clearable) {
+        QPushButton* eraseButton = new QPushButton("Erase");
+        colorLayout->addWidget(eraseButton);
+        connect(eraseButton, &QPushButton::clicked, this, &MaterialControl::clearColor);
+    }
+    
+    form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
+    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &MaterialControl::updateTexture);
 }
 
-QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
-    if (alternate) {
-        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
+SharedObjectPointer MaterialControl::getMaterial() {
+    SharedObjectPointer material = _materialEditor->getObject();
+    if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
+        _materialEditor->detachObject();
     } else {
-        SharedObjectPointer material = _materialEditor->getObject();
-        if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
-            _materialEditor->detachObject();
-        } else {
-            material = SharedObjectPointer();
-        }
-        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), material,
-            _color->getColor()));
-    }   
+        material = SharedObjectPointer();
+    }
+    return material;
 }
 
-void HeightfieldMaterialBrushTool::clearTexture() {
+void MaterialControl::clearColor() {
+    _color->setColor(QColor(0, 0, 0, 0));
+    clearTexture();
+}
+
+void MaterialControl::clearTexture() {
     _materialEditor->setObject(new MaterialObject());
 }
 
-void HeightfieldMaterialBrushTool::updateTexture() {
+void MaterialControl::updateTexture() {
     if (_texture) {
         _texture->disconnect(this);
     }
@@ -1336,13 +1346,27 @@ void HeightfieldMaterialBrushTool::updateTexture() {
         if (_texture->isLoaded()) {
             textureLoaded();
         } else {
-            connect(_texture.data(), &Resource::loaded, this, &HeightfieldMaterialBrushTool::textureLoaded);
+            connect(_texture.data(), &Resource::loaded, this, &MaterialControl::textureLoaded);
         }
     }
 }
 
-void HeightfieldMaterialBrushTool::textureLoaded() {
+void MaterialControl::textureLoaded() {
     _color->setColor(_texture->getAverageColor());
+}
+
+HeightfieldMaterialBrushTool::HeightfieldMaterialBrushTool(MetavoxelEditor* editor) :
+    HeightfieldBrushTool(editor, "Material Brush"),
+    _materialControl(new MaterialControl(this, _form)) {
+}
+
+QVariant HeightfieldMaterialBrushTool::createEdit(bool alternate) {
+    if (alternate) {
+        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
+    } else {
+        return QVariant::fromValue(PaintHeightfieldMaterialEdit(_position, _radius->value(), _materialControl->getMaterial(),
+            _materialControl->getColor()));
+    }   
 }
 
 VoxelMaterialBoxTool::VoxelMaterialBoxTool(MetavoxelEditor* editor) :
@@ -1360,17 +1384,7 @@ VoxelMaterialBoxTool::VoxelMaterialBoxTool(MetavoxelEditor* editor) :
     form->addRow(gridLayout);
     _snapToGrid->setChecked(true);
     
-    QHBoxLayout* colorLayout = new QHBoxLayout();
-    form->addRow(colorLayout);
-    colorLayout->addWidget(new QLabel("Color:"));
-    colorLayout->addWidget(_color = new QColorEditor(this), 1);
-    connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialBoxTool::clearTexture);
-    QPushButton* eraseButton = new QPushButton("Erase");
-    colorLayout->addWidget(eraseButton);
-    connect(eraseButton, &QPushButton::clicked, this, &VoxelMaterialBoxTool::clearColor);
-    
-    form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
-    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialBoxTool::updateTexture);
+    _materialControl = new MaterialControl(this, form, true);
 }
 
 bool VoxelMaterialBoxTool::appliesTo(const AttributePointer& attribute) const {
@@ -1382,16 +1396,10 @@ bool VoxelMaterialBoxTool::shouldSnapToGrid() {
 }
 
 QColor VoxelMaterialBoxTool::getColor() {
-    return _color->getColor();
+    return _materialControl->getColor();
 }
 
 void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3& maximum) {
-    SharedObjectPointer material = _materialEditor->getObject();
-    if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
-        _materialEditor->detachObject();
-    } else {
-        material = SharedObjectPointer();
-    }
     Cuboid* cuboid = new Cuboid();
     cuboid->setTranslation((maximum + minimum) * 0.5f);
     glm::vec3 vector = (maximum - minimum) * 0.5f;
@@ -1399,40 +1407,8 @@ void VoxelMaterialBoxTool::applyValue(const glm::vec3& minimum, const glm::vec3&
     cuboid->setAspectY(vector.y / vector.x);
     cuboid->setAspectZ(vector.z / vector.x);
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(SharedObjectPointer(cuboid),
-        material, _color->getColor())) };
+        _materialControl->getMaterial(), _materialControl->getColor())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
-}
-
-void VoxelMaterialBoxTool::clearColor() {
-    _color->setColor(QColor(0, 0, 0, 0));
-    clearTexture();
-}
-
-void VoxelMaterialBoxTool::clearTexture() {
-    _materialEditor->setObject(new MaterialObject());
-}
-
-void VoxelMaterialBoxTool::updateTexture() {
-    if (_texture) {
-        _texture->disconnect(this);
-    }
-    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
-    if (!material->getDiffuse().isValid()) {
-        _texture.clear();
-        return;
-    }
-    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
-    if (_texture) {
-        if (_texture->isLoaded()) {
-            textureLoaded();
-        } else {
-            connect(_texture.data(), &Resource::loaded, this, &VoxelMaterialBoxTool::textureLoaded);
-        }
-    }
-}
-
-void VoxelMaterialBoxTool::textureLoaded() {
-    _color->setColor(_texture->getAverageColor());
 }
 
 VoxelMaterialSpannerTool::VoxelMaterialSpannerTool(MetavoxelEditor* editor) :
@@ -1446,17 +1422,7 @@ VoxelMaterialSpannerTool::VoxelMaterialSpannerTool(MetavoxelEditor* editor) :
     form->addRow(_spannerEditor = new SharedObjectEditor(&Spanner::staticMetaObject, false, this));
     _spannerEditor->setObject(new Sphere());
     
-    QHBoxLayout* colorLayout = new QHBoxLayout();
-    form->addRow(colorLayout);
-    colorLayout->addWidget(new QLabel("Color:"));
-    colorLayout->addWidget(_color = new QColorEditor(this), 1);
-    connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialSpannerTool::clearTexture);
-    QPushButton* eraseButton = new QPushButton("Erase");
-    colorLayout->addWidget(eraseButton);
-    connect(eraseButton, &QPushButton::clicked, this, &VoxelMaterialSpannerTool::clearColor);
-    
-    form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
-    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialSpannerTool::updateTexture);
+    _materialControl = new MaterialControl(this, form, true);
     
     QPushButton* place = new QPushButton("Set");
     layout()->addWidget(place);
@@ -1475,52 +1441,14 @@ SharedObjectPointer VoxelMaterialSpannerTool::getSpanner(bool detach) {
 }
 
 QColor VoxelMaterialSpannerTool::getColor() {
-    return _color->getColor();
+    return _materialControl->getColor();
 }
 
 void VoxelMaterialSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
     _spannerEditor->detachObject();
-    
-    SharedObjectPointer material = _materialEditor->getObject();
-    if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
-        _materialEditor->detachObject();
-    } else {
-        material = SharedObjectPointer();
-    }
-    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material, _color->getColor())) };
+    MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner,
+        _materialControl->getMaterial(), _materialControl->getColor())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);
-}
-
-void VoxelMaterialSpannerTool::clearColor() {
-    _color->setColor(QColor(0, 0, 0, 0));
-    clearTexture();
-}
-
-void VoxelMaterialSpannerTool::clearTexture() {
-    _materialEditor->setObject(new MaterialObject());
-}
-
-void VoxelMaterialSpannerTool::updateTexture() {
-    if (_texture) {
-        _texture->disconnect(this);
-    }
-    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
-    if (!material->getDiffuse().isValid()) {
-        _texture.clear();
-        return;
-    }
-    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
-    if (_texture) {
-        if (_texture->isLoaded()) {
-            textureLoaded();
-        } else {
-            connect(_texture.data(), &Resource::loaded, this, &VoxelMaterialSpannerTool::textureLoaded);
-        }
-    }
-}
-
-void VoxelMaterialSpannerTool::textureLoaded() {
-    _color->setColor(_texture->getAverageColor());
 }
 
 VoxelBrushTool::VoxelBrushTool(MetavoxelEditor* editor, const QString& name) :
@@ -1573,51 +1501,33 @@ bool VoxelBrushTool::eventFilter(QObject* watched, QEvent* event) {
 }
 
 VoxelMaterialBrushTool::VoxelMaterialBrushTool(MetavoxelEditor* editor) :
-    VoxelBrushTool(editor, "Material Brush") {
-    
-    _form->addRow("Color:", _color = new QColorEditor(this));
-    connect(_color, &QColorEditor::colorChanged, this, &VoxelMaterialBrushTool::clearTexture);
-    _form->addRow(_materialEditor = new SharedObjectEditor(&MaterialObject::staticMetaObject, false));
-    connect(_materialEditor, &SharedObjectEditor::objectChanged, this, &VoxelMaterialBrushTool::updateTexture);
+    VoxelBrushTool(editor, "Material Brush"),
+    _materialControl(new MaterialControl(this, _form)) {
 }
 
 QVariant VoxelMaterialBrushTool::createEdit(bool alternate) {
     if (alternate) {
         return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), SharedObjectPointer(), QColor()));
     } else {
-        SharedObjectPointer material = _materialEditor->getObject();
-        if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
-            _materialEditor->detachObject();
-        } else {
-            material = SharedObjectPointer();
-        }
-        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(), material, _color->getColor()));
+        return QVariant::fromValue(PaintVoxelMaterialEdit(_position, _radius->value(),
+            _materialControl->getMaterial(), _materialControl->getColor()));
     }   
 }
 
-void VoxelMaterialBrushTool::clearTexture() {
-    _materialEditor->setObject(new MaterialObject());
+VoxelSculptBrushTool::VoxelSculptBrushTool(MetavoxelEditor* editor) :
+    VoxelBrushTool(editor, "Sculpt Brush"),
+    _materialControl(new MaterialControl(this, _form, true)) {
 }
 
-void VoxelMaterialBrushTool::updateTexture() {
-    if (_texture) {
-        _texture->disconnect(this);
+QVariant VoxelSculptBrushTool::createEdit(bool alternate) {
+    Sphere* sphere = new Sphere();
+    sphere->setTranslation(_position);
+    sphere->setScale(_radius->value());
+    if (alternate) {
+        return QVariant::fromValue(VoxelMaterialSpannerEdit(SharedObjectPointer(sphere),
+            SharedObjectPointer(), QColor(0, 0, 0, 0)));
+    } else {
+        return QVariant::fromValue(VoxelMaterialSpannerEdit(SharedObjectPointer(sphere),
+            _materialControl->getMaterial(), _materialControl->getColor()));
     }
-    MaterialObject* material = static_cast<MaterialObject*>(_materialEditor->getObject().data());
-    if (!material->getDiffuse().isValid()) {
-        _texture.clear();
-        return;
-    }
-    _texture = Application::getInstance()->getTextureCache()->getTexture(material->getDiffuse(), SPLAT_TEXTURE);
-    if (_texture) {
-        if (_texture->isLoaded()) {
-            textureLoaded();
-        } else {
-            connect(_texture.data(), &Resource::loaded, this, &VoxelMaterialBrushTool::textureLoaded);
-        }
-    }
-}
-
-void VoxelMaterialBrushTool::textureLoaded() {
-    _color->setColor(_texture->getAverageColor());
 }
