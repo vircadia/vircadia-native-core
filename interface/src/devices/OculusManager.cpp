@@ -78,6 +78,8 @@ void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
     _calibrationState = UNCALIBRATED;
 
+    qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
+
     ovr_Initialize();
 
     _ovrHmd = ovrHmd_Create(0);

@@ -10,6 +10,7 @@
 //
 
 #include <QColor>
+#include <QUrl>
 #include <QUuid>
 
 #include "RegisteredMetaTypes.h"
@@ -29,6 +30,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
+    qScriptRegisterMetaType(engine, qURLToScriptValue, qURLFromScriptValue);
     qScriptRegisterMetaType(engine, pickRayToScriptValue, pickRayFromScriptValue);
     qScriptRegisterMetaType(engine, collisionToScriptValue, collisionFromScriptValue);
     qScriptRegisterMetaType(engine, quuidToScriptValue, quuidFromScriptValue);
@@ -127,6 +129,14 @@ void qColorFromScriptValue(const QScriptValue& object, QColor& color) {
         color.setRgb(object.property("red").toInt32(), object.property("green").toInt32(), object.property("blue").toInt32(),
             alphaValue.isNumber() ? alphaValue.toInt32() : 255);
     }
+}
+
+QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url) {
+    return url.toString();
+}
+
+void qURLFromScriptValue(const QScriptValue& object, QUrl& url) {
+    url = object.toString();
 }
 
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay) {

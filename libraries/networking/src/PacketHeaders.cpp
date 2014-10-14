@@ -85,7 +85,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
-            return 6;
+            return 7;
         case PacketTypeVoxelData:
             return VERSION_VOXELS_HAS_FILE_BREAKS;
         default:

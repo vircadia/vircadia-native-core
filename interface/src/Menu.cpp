@@ -158,7 +158,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
                                     Qt::CTRL | Qt::SHIFT | Qt::Key_O, appInstance, SLOT(loadScriptURLDialog()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, appInstance, SLOT(stopAllScripts()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::SHIFT | Qt::Key_R,
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
                                   appInstance, SLOT(reloadAllScripts()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
@@ -246,10 +246,16 @@ Menu::Menu() :
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
-            MenuOption::Console,
-            Qt::CTRL | Qt::ALT | Qt::Key_J,
-            this,
-            SLOT(toggleConsole()));
+                                  MenuOption::Console,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_J,
+                                  this,
+                                  SLOT(toggleConsole()));
+
+    addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ResetSensors,
+                                  Qt::Key_Apostrophe,
+                                  appInstance,
+                                  SLOT(resetSensors()));
 
     QMenu* avatarMenu = addMenu("Avatar");
 
@@ -371,7 +377,15 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
 
-        
+    QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
+    QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, false));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionTwoThird, 0, false));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionHalf, 0, false));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, true));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
+    connect(resolutionMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderResolution(QAction*)));
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
                                            MenuOption::Voxels,
@@ -380,11 +394,7 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true);
-    addActionToQMenuAndActionHash(renderOptionsMenu,
-                                  MenuOption::GlowMode,
-                                  0,
-                                  appInstance->getGlowEffect(),
-                                  SLOT(cycleRenderMode()));
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
@@ -1223,6 +1233,23 @@ void Menu::muteEnvironment() {
     }
 
     free(packet);
+}
+
+void Menu::changeRenderResolution(QAction* action) {
+    QString text = action->text();
+    if (text == MenuOption::RenderResolutionOne) {
+        Application::getInstance()->setRenderResolutionScale(1.f);
+    } else if (text == MenuOption::RenderResolutionTwoThird) {
+        Application::getInstance()->setRenderResolutionScale(0.666f);
+    } else if (text == MenuOption::RenderResolutionHalf) {
+        Application::getInstance()->setRenderResolutionScale(0.5f);
+    } else if (text == MenuOption::RenderResolutionThird) {
+        Application::getInstance()->setRenderResolutionScale(0.333f);
+    } else if (text == MenuOption::RenderResolutionQuarter) {
+        Application::getInstance()->setRenderResolutionScale(0.25f);
+    } else {
+        Application::getInstance()->setRenderResolutionScale(1.f);
+    }
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

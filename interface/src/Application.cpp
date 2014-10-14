@@ -179,15 +179,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
-        _lastSendDownstreamAudioStats(usecTimestampNow())
+        _lastSendDownstreamAudioStats(usecTimestampNow()),
+        _renderResolutionScale(1.0f)
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
-
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     setApplicationName(applicationInfo.value("name").toString());
     setApplicationVersion(BUILD_VERSION);
@@ -206,6 +205,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
+
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
@@ -598,7 +599,8 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        _textureCache.setFrameBufferSize(_glWidget->getDeviceSize());
+        QSize fbSize = _glWidget->getDeviceSize() * _renderResolutionScale;
+        _textureCache.setFrameBufferSize(fbSize);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -695,6 +697,10 @@ void Application::paintGL() {
 
     } else {
         _glowEffect.prepare();
+
+        // Viewport is assigned to the size of the framebuffer
+        QSize size = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->size();
+        glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -3087,6 +3093,10 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 }
 
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
+    // Grab current viewport to reset it at the end
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
     bool eyeRelativeCamera = false;
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
@@ -3118,14 +3128,17 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // set the bounds of rear mirror view
     if (billboard) {
-        glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
-        glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());    
+        QSize size = getTextureCache()->getFrameBufferSize();
+        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());    
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
+        QSize size = getTextureCache()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        ratio = size.height() / (float)_glWidget->getDeviceHeight();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        glViewport(x, _glWidget->getDeviceHeight() - y - height, width, height);
-        glScissor(x, _glWidget->getDeviceHeight() - y - height, width, height);
+        glViewport(x, size.height() - y - height, width, height);
+        glScissor(x, size.height() - y - height, width, height);
     }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
@@ -3193,7 +3206,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     }
 
     // reset Viewport and projection matrix
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
@@ -4229,4 +4242,8 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
+}
+
+void Application::setRenderResolutionScale(float scale) {
+    _renderResolutionScale = scale;
 }

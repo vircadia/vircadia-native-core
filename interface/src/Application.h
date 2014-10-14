@@ -301,6 +301,8 @@ public:
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
+    float getRenderResolutionScale() const { return _renderResolutionScale; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -362,6 +364,8 @@ public slots:
     void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
+
+    void setRenderResolutionScale(float scale);
 
     void resetSensors();
 
@@ -618,6 +622,8 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
+
+    float _renderResolutionScale;
 };
 
 #endif // hifi_Application_h
