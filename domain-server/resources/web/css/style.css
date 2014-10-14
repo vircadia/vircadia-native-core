@@ -85,6 +85,16 @@ td.buttons .glyphicon {
   font-size: 12px;
 }
 
+td.edit-buttons {
+  width: 14px;
+}
+
+td.edit-buttons .glyphicon {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+}
+
 tr.new-row {
   color: #3c763d;
   background-color: #dff0d8;

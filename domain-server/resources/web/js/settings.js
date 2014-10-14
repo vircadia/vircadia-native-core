@@ -8,6 +8,10 @@ var Settings = {
   ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
   DEL_ROW_BUTTON_CLASS: 'del-row',
   DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  MOVE_UP_BUTTON_CLASS: 'move-up',
+  MOVE_UP_SPAN_CLASSES: 'glyphicon glyphicon-chevron-up move-up',
+  MOVE_DOWN_BUTTON_CLASS: 'move-down',
+  MOVE_DOWN_SPAN_CLASSES: 'glyphicon glyphicon-chevron-down move-down',
   TABLE_BUTTONS_CLASS: 'buttons',
   NEW_ROW_CLASS: 'new-row'
 };
@@ -109,6 +113,14 @@ $(document).ready(function(){
     
   $('#settings-form').on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
     deleteTableRow(this);
+  })
+    
+  $('#settings-form').on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
+    moveTableRow(this, true);
+  })
+    
+  $('#settings-form').on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
+    moveTableRow(this, false);
   })
   
   $('#settings-form').on('keypress', 'table input', function(e){
@@ -239,6 +251,10 @@ $('body').on('click', '.save-button', function(e){
 function makeTable(setting, setting_name, setting_value) {
   var isArray = !_.has(setting, 'key')
   
+  if (!isArray && setting.can_order) {
+    setting.can_order = false;
+  }
+  
   var html = (setting.label) ? "<label class='control-label'>" + setting.label + "</label>" : ""
   html += "<span class='help-block'>" + setting.help + "</span>"
   html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
@@ -259,6 +275,9 @@ function makeTable(setting, setting_name, setting_value) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   
+  if (setting.can_order) {
+    html += "<td class='edit-buttons'><span class='glyphicon glyphicon-sort'></span></td>";
+  }
   html += "<td class='buttons'><strong>+/-</strong></td></tr>"
     
   // populate rows in the table from existing values
@@ -293,6 +312,10 @@ function makeTable(setting, setting_name, setting_value) {
       html += "</td>"
     })
     
+    if (setting.can_order) {
+      html += "<td class='edit-buttons'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
+                Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+    }
     html += "<td class='buttons'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
     html += "</tr>"
     
@@ -324,7 +347,10 @@ function makeTableInputs(setting) {
              <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
              </td>"
   })
-  
+    
+  if (setting.can_order) {
+    html += "<td class='edit-buttons'></td>"
+  }
   html += "<td class='buttons'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
   html += "</tr>"
     
@@ -447,6 +473,9 @@ function addTableRow(add_glyphicon) {
       input.attr("data-changed", "true")
              
       $(element).append(input.val())
+    } else if ($(element).hasClass("edit-buttons")) {
+         $(element).html("<td class='edit-buttons'><span class='" + Settings.MOVE_UP_SPAN_CLASSES +
+                         "'></span><span class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
     } else {
       console.log("Unknown table element")
     }
@@ -499,7 +528,32 @@ function deleteTableRow(delete_glyphicon) {
   
   // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
   badgeSidebarForDifferences($(table))
-} 
+}
+
+function moveTableRow(move_glyphicon, move_up) {
+  var row = $(move_glyphicon).closest('tr')
+  
+  var table = $(row).closest('table')
+  var isArray = table.data('setting-type') === 'array'
+  if (!isArray) {
+    return;
+  }
+  
+  if (move_up) {
+    var prev_row = row.prev()
+    if (prev_row.hasClass(Settings.DATA_ROW_CLASS)) {
+      prev_row.before(row)
+    }
+  } else {
+    var next_row = row.next()
+    if (next_row.hasClass(Settings.DATA_ROW_CLASS)) {
+      next_row.after(row)
+    }
+  }
+    
+  // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
+  badgeSidebarForDifferences($(table))
+}
 
 function updateDataChangedForSiblingRows(row, forceTrue) {
   // anytime a new row is added to an array we need to set data-changed for all sibling row inputs to true
