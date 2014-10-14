@@ -67,7 +67,7 @@ private:
     QUuid _walletID;
     qint64 _balance;
     bool _hasBalance;
-    QString _privateKey;
+    QByteArray _privateKey;
 };
 
 #endif // hifi_DataServerAccountInfo_h
