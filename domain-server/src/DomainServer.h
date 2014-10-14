@@ -52,6 +52,7 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
+    void publicKeyJSONCallback(const QJsonObject& data);
     void transactionJSONCallback(const QJsonObject& data);
     
     void restart();
@@ -82,8 +83,11 @@ private:
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
     void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
-                                    HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    int parseNodeDataFromByteArray(QDataStream& packetStream,
+                                   NodeType_t& nodeType,
+                                   HifiSockAddr& publicSockAddr,
+                                   HifiSockAddr& localSockAddr,
+                                   const HifiSockAddr& senderSockAddr);
     NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
                               const NodeSet& nodeInterestList);
@@ -134,6 +138,8 @@ private:
     
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
+    
+    QHash<QString, QByteArray> _userPublicKeys;
     
     QHash<QUuid, NetworkPeer> _connectingICEPeers;
     QHash<QUuid, HifiSockAddr> _connectedICEPeers;

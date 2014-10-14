@@ -11,6 +11,7 @@
 
 #include <QtCore/QWeakPointer>
 
+#include <AccountManager.h>
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -135,10 +136,11 @@ void DatagramProcessor::processDatagrams() {
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
-                case PacketTypeDomainUsernameRequest: {
-                    // flag the domain handler so it knows to send a username signature on next check-in
-                    // and then make it send that next check in
-                    qDebug() << "domain-server is requesting a connection with a username signature";
+                case PacketTypeDomainConnectionDenied: {
+                    // output to the log so the user knows they got a denied connection request
+                    // and check and signal for an access token so that we can make sure they are logged in
+                    qDebug() << "The domain-server denied a connection request.";
+                    AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
                 }
                 case PacketTypeMuteEnvironment: {

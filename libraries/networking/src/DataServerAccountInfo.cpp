@@ -120,7 +120,7 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
     setWalletID(QUuid(user["wallet_id"].toString()));
 }
 
-const QByteArray& DataServerAccountInfo::usernameSignature() {
+const QByteArray& DataServerAccountInfo::getUsernameSignature() {
     if (_usernameSignature.isEmpty()) {
         if (!_privateKey.isEmpty()) {
             const char* privateKeyData = _privateKey.constData();
@@ -129,19 +129,17 @@ const QByteArray& DataServerAccountInfo::usernameSignature() {
                                                    _privateKey.size());
             if (rsaPrivateKey) {
                 QByteArray usernameByteArray = _username.toUtf8();
-                QByteArray encryptedUsername(RSA_size(rsaPrivateKey), 0);
+                _usernameSignature.resize(RSA_size(rsaPrivateKey));
                 
                 int encryptReturn = RSA_private_encrypt(usernameByteArray.size(),
                                                         reinterpret_cast<const unsigned char*>(usernameByteArray.constData()),
-                                                        reinterpret_cast<unsigned char*>(encryptedUsername.data()),
+                                                        reinterpret_cast<unsigned char*>(_usernameSignature.data()),
                                                         rsaPrivateKey, RSA_PKCS1_PADDING);
                 
-                if (encryptReturn != -1) {
-                    _usernameSignature = usernameByteArray;
-                    _usernameSignature.append(encryptedUsername);
-                } else {
+                if (encryptReturn == -1) {
                     qDebug() << "Error encrypting username signature.";
                     qDebug() << "Will re-attempt on next domain-server check in.";
+                    _usernameSignature = QByteArray();
                 }
             } else {
                 qDebug() << "Could not create RSA struct from QByteArray private key.";

@@ -515,8 +515,11 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
+    
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
 
-    int numPreInterestBytes = parseNodeDataFromByteArray(nodeType, publicSockAddr, localSockAddr, packet, senderSockAddr);
+    parseNodeDataFromByteArray(packetStream, nodeType, publicSockAddr, localSockAddr, senderSockAddr);
 
     QUuid packetUUID = uuidFromPacketHeader(packet);
 
@@ -549,23 +552,50 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
     }
     
-    QString connectedUsername;
+    QList<NodeType_t> nodeInterestList;
+    QString username;
+    QByteArray usernameSignature;
+    
+    packetStream >> nodeInterestList >> username >> usernameSignature;
     
     static const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
                                                                  ALLOWED_USERS_SETTINGS_KEYPATH);
-    static QVariantList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toList() : QVariantList();
+    static QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
     
     if (!isAssignment && allowedUsers.count() > 0) {
         // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in        
         // we always let in a user who is sending a packet from our local socket or from the localhost address
         if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
             && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
-            QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainUsernameRequest);
             
-            // send this oauth request datagram back to the client
-            LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+            bool canConnect = false;
             
-            return;
+            if (allowedUsers.contains(username)) {
+                // it's possible this user can be allowed to connect, but we need to check their username signature
+                
+                // even if we have a public key for them right now, request a new one in case it has just changed
+                JSONCallbackParameters callbackParams;
+                callbackParams.jsonCallbackReceiver = this;
+                callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
+                
+                const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
+                
+                AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
+                                                                     QNetworkAccessManager::GetOperation, callbackParams);
+                
+                if (_userPublicKeys.contains(username)) {
+                    // if we do have a public key for the user, check for a signature match
+                }
+            }
+            
+            if (!canConnect) {
+                QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
+                
+                // send this oauth request datagram back to the client
+                LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+                
+                return;
+            }
         }
     }
 
@@ -599,12 +629,11 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
         
         // if we have a username from an OAuth connect request, set it on the DomainServerNodeData
-        nodeData->setUsername(connectedUsername);
-
+        nodeData->setUsername(username);
         nodeData->setSendingSockAddr(senderSockAddr);
 
         // reply back to the user with a PacketTypeDomainList
-        sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+        sendDomainListToNode(newNode, senderSockAddr, nodeInterestList.toSet());
     }
 }
 
@@ -642,12 +671,9 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     return authorizationURL;
 }
 
-int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
-                                              HifiSockAddr& localSockAddr, const QByteArray& packet,
-                                              const HifiSockAddr& senderSockAddr) {
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
-
+int DomainServer::parseNodeDataFromByteArray(QDataStream& packetStream, NodeType_t& nodeType,
+                                             HifiSockAddr& publicSockAddr, HifiSockAddr& localSockAddr,
+                                             const HifiSockAddr& senderSockAddr) {
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
 
@@ -917,6 +943,10 @@ void DomainServer::sendPendingTransactionsToServer() {
 
 }
 
+void DomainServer::publicKeyJSONCallback(const QJsonObject& data) {
+    qDebug() << data;
+}
+
 void DomainServer::transactionJSONCallback(const QJsonObject& data) {
     // check if this was successful - if so we can remove it from our list of pending
     if (data.value("status").toString() == "success") {
@@ -1084,9 +1114,13 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
                     NodeType_t throwawayNodeType;
                     HifiSockAddr nodePublicAddress, nodeLocalAddress;
+                
+                    QDataStream packetStream(receivedPacket);
+                    packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
                     
-                    int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
-                                                                      receivedPacket, senderSockAddr);
+                    int numNodeInfoBytes = parseNodeDataFromByteArray(packetStream, throwawayNodeType,
+                                                                      nodePublicAddress, nodeLocalAddress,
+                                                                      senderSockAddr);
                     
                     SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
                     

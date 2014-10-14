@@ -3509,13 +3509,14 @@ void Application::domainChanged(const QString& domainHostname) {
 
 void Application::connectedToDomain(const QString& hostname) {
     AccountManager& accountManager = AccountManager::getInstance();
+    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    
+    if (accountManager.isLoggedIn() && !domainID.isNull()) {
+        // update our data-server with the domain-server we're logged in with
 
-    if (accountManager.isLoggedIn()) {
-        // update our domain-server with the data-server we're logged in with
+        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
 
-        QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
-
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
     }
 }
