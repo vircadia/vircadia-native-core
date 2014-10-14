@@ -138,8 +138,7 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeDomainUsernameRequest: {
                     // flag the domain handler so it knows to send a username signature on next check-in
                     // and then make it send that next check in
-                    nodeList->getDomainHandler().setRequiresUsernameSignature(true);
-                    nodeList->sendDomainServerCheckIn();
+                    qDebug() << "domain-server is requesting a connection with a username signature";
                     break;
                 }
                 case PacketTypeMuteEnvironment: {

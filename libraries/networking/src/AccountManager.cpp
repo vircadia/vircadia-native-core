@@ -321,6 +321,16 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
     }
 }
 
+void AccountManager::persistAccountToSettings() {
+    if (_shouldPersistToSettingsFile) {
+        // store this access token into the local settings
+        QSettings localSettings;
+        localSettings.beginGroup(ACCOUNTS_GROUP);
+        localSettings.setValue(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
+                               QVariant::fromValue(_accountInfo));
+    }
+}
+
 bool AccountManager::hasValidAccessToken() {
     
     if (_accountInfo.getAccessToken().token.isEmpty() || _accountInfo.getAccessToken().isExpired()) {
@@ -410,13 +420,7 @@ void AccountManager::requestAccessTokenFinished() {
 
             emit loginComplete(rootURL);
             
-            if (_shouldPersistToSettingsFile) {
-                // store this access token into the local settings
-                QSettings localSettings;
-                localSettings.beginGroup(ACCOUNTS_GROUP);
-                localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                                       QVariant::fromValue(_accountInfo));
-            }
+            persistAccountToSettings();
 
             requestProfile();
             generateNewKeypair();
@@ -461,15 +465,8 @@ void AccountManager::requestProfileFinished() {
         // the username has changed to whatever came back
         emit usernameChanged(_accountInfo.getUsername());
 
-        if (_shouldPersistToSettingsFile) {
-            // store the whole profile into the local settings
-            QUrl rootURL = profileReply->url();
-            rootURL.setPath("");
-            QSettings localSettings;
-            localSettings.beginGroup(ACCOUNTS_GROUP);
-            localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                                   QVariant::fromValue(_accountInfo));
-        }
+        // store the whole profile into the local settings
+        persistAccountToSettings();
         
     } else {
         // TODO: error handling
@@ -508,6 +505,7 @@ void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const 
     
     // set the private key on our data-server account info
     _accountInfo.setPrivateKey(privateKey);
+    persistAccountToSettings();
     
     // upload the public key so data-web has an up-to-date key
     const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
