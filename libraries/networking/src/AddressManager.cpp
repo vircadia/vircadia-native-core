@@ -192,7 +192,7 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
             
         } else {
             qDebug() << "Received an address manager API response with no domain key. Cannot parse.";
-            qDebug() << jsonObject;
+            qDebug() << responseObject;
         }
     } else {
         // we've been told that this result exists but is offline, emit our signal so the application can handle

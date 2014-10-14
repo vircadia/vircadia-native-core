@@ -52,7 +52,7 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
-    void publicKeyJSONCallback(const QJsonObject& data);
+    void publicKeyJSONCallback(QNetworkReply& requestReply);
     void transactionJSONCallback(const QJsonObject& data);
     
     void restart();

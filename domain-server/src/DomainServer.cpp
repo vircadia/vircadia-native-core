@@ -565,9 +565,10 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     if (!isAssignment && allowedUsers.count() > 0) {
         // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in        
         // we always let in a user who is sending a packet from our local socket or from the localhost address
-        if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
-            && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
-            
+
+//        if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
+//            && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
+        if (true) {
             bool canConnect = false;
             
             if (allowedUsers.contains(username)) {
@@ -943,8 +944,8 @@ void DomainServer::sendPendingTransactionsToServer() {
 
 }
 
-void DomainServer::publicKeyJSONCallback(const QJsonObject& data) {
-    qDebug() << data;
+void DomainServer::publicKeyJSONCallback(QNetworkReply& requestReply) {
+    
 }
 
 void DomainServer::transactionJSONCallback(const QJsonObject& data) {
