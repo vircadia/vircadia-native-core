@@ -42,8 +42,8 @@ public:
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
     
-    const QByteArray& getPrivateKey() const { return _privateKey; }
-    void setPrivateKey(const QByteArray& privateKey) { _privateKey = privateKey; }
+    const QByteArray& usernameSignature();
+    void setPrivateKey(const QByteArray& privateKey);
 
     qint64 getBalance() const { return _balance; }
     float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }
@@ -71,6 +71,7 @@ private:
     qint64 _balance;
     bool _hasBalance;
     QByteArray _privateKey;
+    QByteArray _usernameSignature;
 };
 
 #endif // hifi_DataServerAccountInfo_h

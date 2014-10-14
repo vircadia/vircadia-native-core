@@ -310,11 +310,12 @@ void NodeList::sendDomainServerCheckIn() {
         }
         
         // if this is a connect request, and we can present a username signature, send it along
-        AccountManager& accountManager = AccountManager::getInstance();
-        const QByteArray& privateKey = accountManager.getAccountInfo().getPrivateKey();
         if (!_domainHandler.isConnected()) {
-            if (!privateKey.isEmpty()) {
+            const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().usernameSignature();
+            
+            if (!usernameSignature.isEmpty()) {
                 qDebug() << "Including username signature in domain connect request.";
+                packetStream << usernameSignature;
             } else {
                 qDebug() << "Private key not present - domain connect request cannot include username signature";
             }

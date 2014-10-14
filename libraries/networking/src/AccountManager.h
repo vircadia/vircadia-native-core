@@ -70,7 +70,7 @@ public:
     void requestAccessToken(const QString& login, const QString& password);
     void requestProfile();
 
-    const DataServerAccountInfo& getAccountInfo() const { return _accountInfo; }
+    DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
 
 public slots:
     void requestAccessTokenFinished();
