@@ -303,6 +303,8 @@ public:
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
+    float getRenderResolutionScale() const { return _renderResolutionScale; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
