@@ -246,10 +246,16 @@ Menu::Menu() :
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
-            MenuOption::Console,
-            Qt::CTRL | Qt::ALT | Qt::Key_J,
-            this,
-            SLOT(toggleConsole()));
+                                  MenuOption::Console,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_J,
+                                  this,
+                                  SLOT(toggleConsole()));
+
+    addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ResetSensors,
+                                  Qt::Key_Apostrophe,
+                                  appInstance,
+                                  SLOT(resetSensors()));
 
     QMenu* avatarMenu = addMenu("Avatar");
 

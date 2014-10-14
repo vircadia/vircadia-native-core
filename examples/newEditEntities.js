@@ -238,7 +238,6 @@ var toolBar = (function () {
         if (clickedOverlay === loadFileMenuItem) {
             toggleNewModelButton(false);
 
-            // TODO BUG: this is bug, if the user has never uploaded a model, this will throw an JS exception
             file = Window.browse("Select your model file ...",
                 Settings.getValue("LastModelUploadLocation").path(), 
                 "Model files (*.fst *.fbx)");
@@ -518,6 +517,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
+    Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -537,6 +537,7 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
+    Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 }
 
 Script.scriptEnding.connect(function() {
