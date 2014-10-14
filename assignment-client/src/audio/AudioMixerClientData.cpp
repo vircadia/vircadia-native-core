@@ -106,19 +106,13 @@ int AudioMixerClientData::parseData(const QByteArray& packet) {
     return 0;
 }
 
-void AudioMixerClientData::checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone) {
+void AudioMixerClientData::checkBuffersBeforeFrameSend() {
     QHash<QUuid, PositionalAudioStream*>::ConstIterator i;
     for (i = _audioStreams.constBegin(); i != _audioStreams.constEnd(); i++) {
         PositionalAudioStream* stream = i.value();
         
         if (stream->popFrames(1, true) > 0) {
             stream->updateLastPopOutputLoudnessAndTrailingLoudness();
-        }
-        
-        if (checkSourceZone && checkSourceZone->contains(stream->getPosition())) {
-            stream->setListenerUnattenuatedZone(listenerZone);
-        } else {
-            stream->setListenerUnattenuatedZone(NULL);
         }
     }
 }

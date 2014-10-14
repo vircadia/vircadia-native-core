@@ -54,6 +54,18 @@ public:
 
     Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
+    Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);
+
+    Q_INVOKABLE void paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
+        
+    Q_INVOKABLE void paintVoxelColor(const glm::vec3& position, float radius, const QColor& color);
+    
+    Q_INVOKABLE void paintVoxelMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
+        
+    Q_INVOKABLE void setVoxelColor(const SharedObjectPointer& spanner, const QColor& color);
+        
+    Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
+        
     Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
 
 signals:
@@ -65,6 +77,8 @@ public slots:
     void refreshVoxelData();
 
 protected:
+
+    Q_INVOKABLE void applyMaterialEdit(const MetavoxelEditMessage& message, bool reliable = false);
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
 
@@ -79,6 +93,15 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
+};
+
+/// Generic abstract base class for objects that handle a signal.
+class SignalHandler : public QObject {
+    Q_OBJECT
+    
+public slots:
+    
+    virtual void handle() = 0;
 };
 
 /// Describes contents of a point in a point buffer.

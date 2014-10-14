@@ -42,9 +42,6 @@ public:
     PositionalAudioStream::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
-    AABox* getListenerUnattenuatedZone() const { return _listenerUnattenuatedZone; }
-
-    void setListenerUnattenuatedZone(AABox* listenerUnattenuatedZone) { _listenerUnattenuatedZone = listenerUnattenuatedZone; }
 
 protected:
     // disallow copying of PositionalAudioStream objects
@@ -63,7 +60,6 @@ protected:
 
     float _lastPopOutputTrailingLoudness;
     float _lastPopOutputLoudness;
-    AABox* _listenerUnattenuatedZone;
 };
 
 #endif // hifi_PositionalAudioStream_h

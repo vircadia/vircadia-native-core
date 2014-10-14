@@ -42,7 +42,7 @@ public:
     
     int parseData(const QByteArray& packet);
 
-    void checkBuffersBeforeFrameSend(AABox* checkSourceZone, AABox* listenerZone);
+    void checkBuffersBeforeFrameSend();
 
     void removeDeadInjectedStreams();
 

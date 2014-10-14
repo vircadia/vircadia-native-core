@@ -74,6 +74,11 @@ void MetavoxelClientManager::setSpanner(const SharedObjectPointer& object, bool 
     applyEdit(edit, reliable);
 }
 
+void MetavoxelClientManager::paintHeightfieldHeight(const glm::vec3& position, float radius, float height) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldHeightEdit(position, radius, height)) };
+    applyEdit(edit, true);
+}
+
 void MetavoxelClientManager::applyEdit(const MetavoxelEditMessage& edit, bool reliable) {
     QMetaObject::invokeMethod(_updater, "applyEdit", Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, reliable));
 }
