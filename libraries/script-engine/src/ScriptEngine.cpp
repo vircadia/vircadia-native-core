@@ -278,8 +278,8 @@ void ScriptEngine::init() {
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
 
-    QScriptValue audioEffectOptionsConstructorValue = _engine.newFunction(AudioEffectOptions::constructor);
-    _engine.globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
+    QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
+    globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
     
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
