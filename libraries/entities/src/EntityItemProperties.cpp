@@ -174,6 +174,18 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     sittingPoints.setProperty("length", _sittingPoints.size());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
+    AABox aaBox = getAABoxInMeters();
+    QScriptValue boundingBox = engine->newObject();
+    QScriptValue bottomRightNear = vec3toScriptValue(engine, aaBox.getCorner());
+    QScriptValue topFarLeft = vec3toScriptValue(engine, aaBox.calcTopFarLeft());
+    QScriptValue center = vec3toScriptValue(engine, aaBox.calcCenter());
+    QScriptValue boundingBoxDimensions = vec3toScriptValue(engine, aaBox.getDimensions());
+    boundingBox.setProperty("brn", bottomRightNear);
+    boundingBox.setProperty("tfl", topFarLeft);
+    boundingBox.setProperty("center", center);
+    boundingBox.setProperty("dimensions", boundingBoxDimensions);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(boundingBox, boundingBox); // gettable, but not settable
+
     return properties;
 }
 
@@ -642,4 +654,21 @@ AACube EntityItemProperties::getMaximumAACubeInMeters() const {
     float diameter = radius * 2.0f;
 
     return AACube(minimumCorner, diameter);
+}
+
+// The minimum bounding box for the entity.
+AABox EntityItemProperties::getAABoxInMeters() const { 
+
+    // _position represents the position of the registration point.
+    glm::vec3 registrationRemainder = glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint;
+    
+    glm::vec3 unrotatedMinRelativeToEntity = glm::vec3(0.0f, 0.0f, 0.0f) - (_dimensions * _registrationPoint);
+    glm::vec3 unrotatedMaxRelativeToEntity = _dimensions * registrationRemainder;
+    Extents unrotatedExtentsRelativeToRegistrationPoint = { unrotatedMinRelativeToEntity, unrotatedMaxRelativeToEntity };
+    Extents rotatedExtentsRelativeToRegistrationPoint = unrotatedExtentsRelativeToRegistrationPoint.getRotated(getRotation());
+    
+    // shift the extents to be relative to the position/registration point
+    rotatedExtentsRelativeToRegistrationPoint.shiftBy(_position);
+    
+    return AABox(rotatedExtentsRelativeToRegistrationPoint);
 }

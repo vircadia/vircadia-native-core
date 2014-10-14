@@ -13,6 +13,7 @@
 
 #include <QGLWidget>
 #include <SharedUtil.h>
+#include <StreamUtils.h>
 
 #include "Circle3DOverlay.h"
 #include "renderer/GlowEffect.h"
@@ -39,13 +40,18 @@ void Circle3DOverlay::render() {
     if (!_visible) {
         return; // do nothing if we're not visible
     }
+
+    float alpha = getAlpha();
+
+    if (alpha == 0.0) {
+        return; // do nothing if our alpha is 0, we're not visible
+    }
     
     const float FULL_CIRCLE = 360.0f;
     const float SLICES = 180.0f;  // The amount of segment to create the circle
     const float SLICE_ANGLE = FULL_CIRCLE / SLICES;
 
     //const int slices = 15;
-    float alpha = getAlpha();
     xColor color = getColor();
     const float MAX_COLOR = 255.0f;
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
@@ -162,7 +168,8 @@ void Circle3DOverlay::render() {
                     xColor color = getMajorTickMarksColor();
                     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                 
-                    float angle = startAt;
+                    float tickMarkAngle = getMajorTickMarksAngle();
+                    float angle = startAt - fmod(startAt, tickMarkAngle) + tickMarkAngle; 
                     float angleInRadians = glm::radians(angle);
                     float tickMarkLength = getMajorTickMarksLength();
                     float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
@@ -177,7 +184,7 @@ void Circle3DOverlay::render() {
                         glVertex2f(thisPointA.x, thisPointA.y);
                         glVertex2f(thisPointB.x, thisPointB.y);
                 
-                        angle += getMajorTickMarksAngle();
+                        angle += tickMarkAngle;
                     }
                 }
 
@@ -187,7 +194,8 @@ void Circle3DOverlay::render() {
                     xColor color = getMinorTickMarksColor();
                     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                 
-                    float angle = startAt;
+                    float tickMarkAngle = getMinorTickMarksAngle();
+                    float angle = startAt - fmod(startAt, tickMarkAngle) + tickMarkAngle; 
                     float angleInRadians = glm::radians(angle);
                     float tickMarkLength = getMinorTickMarksLength();
                     float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
@@ -202,7 +210,7 @@ void Circle3DOverlay::render() {
                         glVertex2f(thisPointA.x, thisPointA.y);
                         glVertex2f(thisPointB.x, thisPointB.y);
                 
-                        angle += getMinorTickMarksAngle();
+                        angle += tickMarkAngle;
                     }
                 }
 
@@ -291,6 +299,25 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, 
+                                const glm::vec3& direction, float& distance, BoxFace& face) const {
+
+    bool intersects = Planar3DOverlay::findRayIntersection(origin, direction, distance, face);
+    if (intersects) {
+        glm::vec3 hitAt = origin + (direction * distance);
+        float distanceToHit = glm::distance(hitAt, _position);
+
+        float maxDimension = glm::max(_dimensions.x, _dimensions.y);
+        float innerRadius = maxDimension * getInnerRadius();
+        float outerRadius = maxDimension * getOuterRadius();
+        
+        // TODO: this really only works for circles, we should be handling the ellipse case as well...
+        if (distanceToHit < innerRadius || distanceToHit > outerRadius) {
+            intersects = false;
+        }
+    }
+    return intersects;
+}
 
 
 

@@ -690,7 +690,6 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
 
     }
-
 }
 
 void Stats::setMetavoxelStats(int internal, int leaves, int sendProgress,
