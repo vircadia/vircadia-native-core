@@ -509,6 +509,23 @@ void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const 
     // set the private key on our data-server account info
     _accountInfo.setPrivateKey(privateKey);
     
+    // upload the public key so data-web has an up-to-date key
+    const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+    
+    // setup a multipart upload to send up the public key
+    QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    
+    QHttpPart keyPart;
+    keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                      QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
+    keyPart.setBody(publicKey);
+    
+    requestMultiPart->append(keyPart);
+    
+    authenticatedRequest(PUBLIC_KEY_UPDATE_PATH, QNetworkAccessManager::PutOperation,
+                         JSONCallbackParameters(), QByteArray(), requestMultiPart);
+    
     // get rid of the keypair generator now that we don't need it anymore
     sender()->deleteLater();
 }
