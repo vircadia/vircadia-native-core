@@ -1477,12 +1477,14 @@ void VoxelBrushTool::render() {
     glm::vec3 origin = Application::getInstance()->getMouseRayOrigin();
     glm::vec3 direction = Application::getInstance()->getMouseRayDirection();
     
-    float distance;
-    if (!Application::getInstance()->getMetavoxels()->findFirstRayVoxelIntersection(origin, direction, distance)) {
+    float heightfieldDistance = FLT_MAX, voxelDistance = FLT_MAX;
+    if (!(Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(
+                origin, direction, heightfieldDistance) |
+            Application::getInstance()->getMetavoxels()->findFirstRayVoxelIntersection(origin, direction, voxelDistance))) {
         return;
     }
     Application::getInstance()->getMetavoxels()->renderVoxelCursor(
-        _position = origin + distance * direction, _radius->value());
+        _position = origin + qMin(heightfieldDistance, voxelDistance) * direction, _radius->value());
 }
 
 bool VoxelBrushTool::eventFilter(QObject* watched, QEvent* event) {
