@@ -38,7 +38,7 @@ public:
     
     /// Sets the desired texture resolution for the framebuffer objects. 
     void setFrameBufferSize(QSize frameBufferSize);
-    inline const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
+    const QSize& getFrameBufferSize() const { return _frameBufferSize; } 
 
     /// Returns the ID of the permutation/normal texture used for Perlin noise shader programs.  This texture
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and

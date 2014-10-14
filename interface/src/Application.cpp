@@ -700,7 +700,7 @@ void Application::paintGL() {
 
         // Viewport is assigned to the size of the framebuffer
         QSize size = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->size();
-        glViewport( 0, 0, size.width(), size.height());
+        glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -3144,7 +3144,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
-        ratio = size.height() / float(_glWidget->getDeviceHeight());
+        ratio = size.height() / (float)_glWidget->getDeviceHeight();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);

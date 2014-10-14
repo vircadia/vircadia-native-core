@@ -40,9 +40,9 @@ GlowEffect::~GlowEffect() {
 }
 
 QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
-    return (!_isOddFrame) ?
-                Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject() :
-                Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
+    return (_isOddFrame ?
+                Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject():
+                Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject());
 }
 
 static ProgramObject* createProgram(const QString& name) {
@@ -139,7 +139,7 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
 
     QOpenGLFramebufferObject* destFBO = toTexture ?
         Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || (_isEmpty)) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || _isEmpty) {
         // copy the primary to the screen
         if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          
