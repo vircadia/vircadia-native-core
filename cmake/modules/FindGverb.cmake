@@ -27,11 +27,11 @@ else ()
 
   if (GVERB_FOUND)
     if (NOT GVERB_FIND_QUIETLY)
-      message(STATUS "Found Gverb... ${GVERB_LIBRARIES}")
+      message(STATUS "Found Gverb: ${GVERB_INCLUDE_DIRS}")
     endif (NOT GVERB_FIND_QUIETLY)
   else ()
     if (GVERB_FIND_REQUIRED)
-      message(FATAL_ERROR "Could not find Gverb")
+      message(FATAL_ERROR "Could NOT find Gverb")
     endif (GVERB_FIND_REQUIRED)
   endif ()
 
