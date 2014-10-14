@@ -17,6 +17,12 @@
 
 #include "RSAKeypairGenerator.h"
 
+RSAKeypairGenerator::RSAKeypairGenerator(QObject* parent) :
+    QObject(parent)
+{
+    
+}
+
 void RSAKeypairGenerator::generateKeypair() {
     
     RSA* keyPair = RSA_new();

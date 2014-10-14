@@ -41,6 +41,8 @@ public:
     
     const QUuid& getWalletID() const { return _walletID; }
     void setWalletID(const QUuid& walletID);
+    
+    void setPrivateKey(const QByteArray& privateKey) { _privateKey = privateKey; }
 
     qint64 getBalance() const { return _balance; }
     float getBalanceInSatoshis() const { return _balance / SATOSHIS_PER_CREDIT; }

@@ -91,6 +91,8 @@ signals:
     void balanceChanged(qint64 newBalance);
 private slots:
     void processReply();
+    void handleKeypairGenerationError();
+    void processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
@@ -98,6 +100,8 @@ private:
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
+    
+    void generateNewKeypair();
 
     Q_INVOKABLE void invokedRequest(const QString& path,
                                     bool requiresAuthentication,

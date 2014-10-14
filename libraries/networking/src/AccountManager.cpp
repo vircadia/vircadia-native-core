@@ -19,9 +19,11 @@
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
+#include <qthread.h>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
+#include "RSAKeypairGenerator.h"
 
 #include "AccountManager.h"
 
@@ -417,6 +419,7 @@ void AccountManager::requestAccessTokenFinished() {
             }
 
             requestProfile();
+            generateNewKeypair();
         }
     } else {
         // TODO: error handling
@@ -477,4 +480,40 @@ void AccountManager::requestProfileFinished() {
 void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qDebug() << "AccountManager requestProfileError - " << error;
+}
+
+void AccountManager::generateNewKeypair() {
+    // setup a new QThread to generate the keypair on, in case it takes a while
+    QThread* generateThread = new QThread(this);
+    
+    // setup a keypair generator
+    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();
+    
+    connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
+    connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
+    connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
+            this, &AccountManager::handleKeypairGenerationError);
+    connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
+    connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
+    
+    keypairGenerator->moveToThread(generateThread);
+    
+    qDebug() << "Starting worker thread to generate 2048-bit RSA key-pair.";
+    generateThread->start();
+}
+
+void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey) {
+    
+    qDebug() << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
+    
+    // set the private key on our data-server account info
+    _accountInfo.setPrivateKey(privateKey);
+    
+    // get rid of the keypair generator now that we don't need it anymore
+    sender()->deleteLater();
+}
+
+void AccountManager::handleKeypairGenerationError() {
+    // for now there isn't anything we do with this except get the worker thread to clean up
+    sender()->deleteLater();
 }

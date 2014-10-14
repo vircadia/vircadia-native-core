@@ -16,6 +16,8 @@
 
 class RSAKeypairGenerator : public QObject {
     Q_OBJECT
+public:
+    RSAKeypairGenerator(QObject* parent = 0);
 public slots:
     void generateKeypair();
 signals:
