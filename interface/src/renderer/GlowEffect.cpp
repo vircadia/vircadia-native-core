@@ -23,7 +23,6 @@
 
 GlowEffect::GlowEffect()
     : _initialized(false),
-      _renderMode(DIFFUSE_ADD_MODE),
       _isOddFrame(false),
       _isFirstFrame(true),
       _intensity(0.0f) {
@@ -41,7 +40,7 @@ GlowEffect::~GlowEffect() {
 }
 
 QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
-    return (_renderMode == DIFFUSE_ADD_MODE && !_isOddFrame) ?
+    return (!_isOddFrame) ?
                 Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject() :
                 Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
 }
@@ -137,31 +136,28 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
-    
+
     QOpenGLFramebufferObject* destFBO = toTexture ?
         Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || (_isEmpty && _renderMode != DIFFUSE_ADD_MODE)) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::EnableGlowEffect) || (_isEmpty)) {
         // copy the primary to the screen
-        if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
+        if (destFBO && QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
             QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);          
         } else {
             maybeBind(destFBO);
+            if (!destFBO) {
+                glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
+                    Application::getInstance()->getGLWidget()->getDeviceHeight());
+            }
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
             glColor3f(1.0f, 1.0f, 1.0f);
-            renderFullscreenQuad();    
+            renderFullscreenQuad();
             glDisable(GL_TEXTURE_2D);
             glEnable(GL_LIGHTING);
             maybeRelease(destFBO);
         }
-    } else if (_renderMode == ADD_MODE) {
-        maybeBind(destFBO);
-        _addProgram->bind();
-        renderFullscreenQuad();
-        _addProgram->release();
-        maybeRelease(destFBO);
-    
-    } else if (_renderMode == DIFFUSE_ADD_MODE) {
+    } else {
         // diffuse into the secondary/tertiary (alternating between frames)
         QOpenGLFramebufferObject* oldDiffusedFBO =
             Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
@@ -197,6 +193,11 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
             destFBO = oldDiffusedFBO;
         }
         maybeBind(destFBO);
+        if (!destFBO) {
+            glViewport(0, 0,
+                Application::getInstance()->getGLWidget()->getDeviceWidth(),
+                Application::getInstance()->getGLWidget()->getDeviceHeight());
+        }
         _addSeparateProgram->bind();      
         renderFullscreenQuad();
         _addSeparateProgram->release();
@@ -205,70 +206,6 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
         
-    } else { // _renderMode == BLUR_ADD_MODE || _renderMode == BLUR_PERSIST_ADD_MODE
-        // render the primary to the secondary with the horizontal blur
-        QOpenGLFramebufferObject* secondaryFBO =
-            Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
-        secondaryFBO->bind();
-     
-        _horizontalBlurProgram->bind();
-        renderFullscreenQuad();
-        _horizontalBlurProgram->release();
-     
-        secondaryFBO->release();
-        
-        if (_renderMode == BLUR_ADD_MODE) {
-            // render the secondary to the screen with the vertical blur
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
-            
-            if (toTexture) {
-                destFBO = Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
-            }
-            maybeBind(destFBO);
-            _verticalBlurAddProgram->bind();      
-            renderFullscreenQuad();
-            _verticalBlurAddProgram->release();
-            maybeRelease(destFBO);
-            
-        } else { // _renderMode == BLUR_PERSIST_ADD_MODE
-            // render the secondary to the tertiary with vertical blur and persistence
-            QOpenGLFramebufferObject* tertiaryFBO =
-                Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
-            tertiaryFBO->bind();
-            
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
-            const float PERSISTENCE_SMOOTHING = 0.9f;
-            glBlendColor(0.0f, 0.0f, 0.0f, _isFirstFrame ? 0.0f : PERSISTENCE_SMOOTHING);
-            
-            glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
-            
-            _verticalBlurProgram->bind();      
-            renderFullscreenQuad();
-            _verticalBlurProgram->release();
-        
-            glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-            glDisable(GL_BLEND);
-        
-            // now add the tertiary to the primary buffer
-            tertiaryFBO->release();
-            
-            glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
-            
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, tertiaryFBO->texture());
-            
-            maybeBind(destFBO);
-            _addSeparateProgram->bind();      
-            renderFullscreenQuad();
-            _addSeparateProgram->release();
-            maybeRelease(destFBO);
-        }
-        
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glActiveTexture(GL_TEXTURE0);
     }
     
     glPopMatrix();
@@ -284,28 +221,6 @@ QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     _isFirstFrame = false;
     
     return destFBO;
-}
-
-void GlowEffect::cycleRenderMode() {
-    switch(_renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT)) {
-        case ADD_MODE:
-            qDebug() << "Glow mode: Add";
-            break;
-            
-        case BLUR_ADD_MODE:
-            qDebug() << "Glow mode: Blur/add";
-            break;
-            
-        case BLUR_PERSIST_ADD_MODE:
-            qDebug() << "Glow mode: Blur/persist/add";
-            break;
-        
-        default:    
-        case DIFFUSE_ADD_MODE:
-            qDebug() << "Glow mode: Diffuse/add";
-            break;
-    }
-    _isFirstFrame = true;
 }
 
 Glower::Glower(float amount) {

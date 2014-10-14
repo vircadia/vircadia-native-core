@@ -225,6 +225,7 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
+    void changeRenderResolution(QAction* action);
 
 private:
     static Menu* _instance;
@@ -398,7 +399,6 @@ namespace MenuOption {
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
-    const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
@@ -441,6 +441,12 @@ namespace MenuOption {
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderResolution = "Scale Resolution";
+    const QString RenderResolutionOne = "1";
+    const QString RenderResolutionTwoThird = "2/3";
+    const QString RenderResolutionHalf = "1/2";
+    const QString RenderResolutionThird = "1/3";
+    const QString RenderResolutionQuarter = "1/4";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";

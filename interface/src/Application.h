@@ -365,6 +365,8 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void setRenderResolutionScale(float scale);
+
 private slots:
     void timer();
     void idle();
@@ -621,6 +623,8 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
+
+    float _renderResolutionScale;
 };
 
 #endif // hifi_Application_h
