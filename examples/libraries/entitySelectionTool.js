@@ -17,6 +17,8 @@ SelectionDisplay = (function () {
     var that = {};
     
     var MINIMUM_DIMENSION = 0.001;
+
+    var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.015;
     
     var mode = "UNKNOWN";
     var overlayNames = new Array();
@@ -174,6 +176,34 @@ SelectionDisplay = (function () {
     var grabberEdgeFR = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberEdgeFL = Overlays.addOverlay("cube", grabberPropertiesEdge);
 
+    var cornerEdgeFaceGrabbers = [
+        grabberLBN,
+        grabberRBN,
+        grabberLBF,
+        grabberRBF,
+        grabberLTN,
+        grabberRTN,
+        grabberLTF,
+        grabberRTF,
+        grabberTOP,
+        grabberBOTTOM,
+        grabberLEFT,
+        grabberRIGHT,
+        grabberNEAR,
+        grabberFAR,
+        grabberEdgeTR,
+        grabberEdgeTL,
+        grabberEdgeTF,
+        grabberEdgeTN,
+        grabberEdgeBR,
+        grabberEdgeBL,
+        grabberEdgeBF,
+        grabberEdgeBN,
+        grabberEdgeNR,
+        grabberEdgeNL,
+        grabberEdgeFR,
+        grabberEdgeFL,
+    ];
 
     var baseOverlayAngles = { x: 0, y: 0, z: 0 };
     var baseOverlayRotation = Quat.fromVec3Degrees(baseOverlayAngles);
@@ -2422,6 +2452,19 @@ SelectionDisplay = (function () {
         }
         return true;
     };
+
+    that.updateHandleSizes = function() {
+        if (selectedEntityProperties) {
+            var diff = Vec3.subtract(selectedEntityProperties.position, Camera.getPosition());
+            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO;
+            for (var i = 0; i < cornerEdgeFaceGrabbers.length; i++) {
+                Overlays.editOverlay(cornerEdgeFaceGrabbers[i], {
+                    size: grabberSize,
+                });
+            }
+        }
+    }
+    Script.update.connect(that.updateHandleSizes);
 
     that.mouseReleaseEvent = function(event) {
         var showHandles = false;
