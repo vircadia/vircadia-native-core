@@ -581,6 +581,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
                 
                 const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
                 
+                qDebug() << "Requesting public key for user" << username;
+                
                 AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
                                                                      QNetworkAccessManager::GetOperation, callbackParams);
                 
@@ -945,7 +947,27 @@ void DomainServer::sendPendingTransactionsToServer() {
 }
 
 void DomainServer::publicKeyJSONCallback(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     
+    if (jsonObject["status"] == "success") {
+        // figure out which user this is for
+        
+        const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
+        QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
+        
+        if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+            QString username = usernameRegex.cap(1);
+            
+            qDebug() << "Storing a public key for user" << username;
+            
+            // pull the public key as a QByteArray from this response
+            const QString JSON_DATA_KEY = "data";
+            const QString JSON_PUBLIC_KEY_KEY = "public_key";
+            
+            _userPublicKeys[username] =
+                QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
+        }
+    }
 }
 
 void DomainServer::transactionJSONCallback(const QJsonObject& data) {
