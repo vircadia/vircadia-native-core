@@ -75,7 +75,7 @@ span.port {
   margin-bottom: 15px;
 }
 
-td.buttons {
+td.buttons td.edit-buttons {
   width: 14px;
 }
 
@@ -85,12 +85,8 @@ td.buttons .glyphicon {
   font-size: 12px;
 }
 
-td.edit-buttons {
-  width: 14px;
-}
-
 td.edit-buttons .glyphicon {
-  display: block;
+  display: inherit;
   text-align: center;
   font-size: 12px;
 }
