@@ -168,7 +168,8 @@ void Circle3DOverlay::render() {
                     xColor color = getMajorTickMarksColor();
                     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                 
-                    float angle = startAt;
+                    float tickMarkAngle = getMajorTickMarksAngle();
+                    float angle = startAt - fmod(startAt, tickMarkAngle) + tickMarkAngle; 
                     float angleInRadians = glm::radians(angle);
                     float tickMarkLength = getMajorTickMarksLength();
                     float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
@@ -183,7 +184,7 @@ void Circle3DOverlay::render() {
                         glVertex2f(thisPointA.x, thisPointA.y);
                         glVertex2f(thisPointB.x, thisPointB.y);
                 
-                        angle += getMajorTickMarksAngle();
+                        angle += tickMarkAngle;
                     }
                 }
 
@@ -193,7 +194,8 @@ void Circle3DOverlay::render() {
                     xColor color = getMinorTickMarksColor();
                     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
                 
-                    float angle = startAt;
+                    float tickMarkAngle = getMinorTickMarksAngle();
+                    float angle = startAt - fmod(startAt, tickMarkAngle) + tickMarkAngle; 
                     float angleInRadians = glm::radians(angle);
                     float tickMarkLength = getMinorTickMarksLength();
                     float startRadius = (tickMarkLength > 0.0f) ? innerRadius : outerRadius;
@@ -208,7 +210,7 @@ void Circle3DOverlay::render() {
                         glVertex2f(thisPointA.x, thisPointA.y);
                         glVertex2f(thisPointB.x, thisPointB.y);
                 
-                        angle += getMinorTickMarksAngle();
+                        angle += tickMarkAngle;
                     }
                 }
 

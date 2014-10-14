@@ -186,8 +186,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
 
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
-
     setApplicationName(applicationInfo.value("name").toString());
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
@@ -205,6 +203,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
+
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
@@ -1546,10 +1546,9 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 FaceTracker* Application::getActiveFaceTracker() {
     return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-            (_cara.isActive() ? static_cast<FaceTracker*>(&_cara) :
              (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
               (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)))));
+               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL))));
 }
 
 struct SendVoxelsOperationArgs {
@@ -2008,19 +2007,6 @@ void Application::updateDDE() {
     _dde.update();
 }
 
-void Application::updateCara() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::updateCara()");
-    
-    //  Update Cara
-    _cara.update();
-    
-    //  Copy angular velocity if measured by cara, to the head
-    if (_cara.isActive()) {
-        _myAvatar->getHead()->setAngularVelocity(_cara.getHeadAngularVelocity());
-    }
-}
-
 void Application::updateMyAvatarLookAtPosition() {
     PerformanceTimer perfTimer("lookAt");
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
@@ -2120,7 +2106,6 @@ void Application::updateMetavoxels(float deltaTime) {
 }
 
 void Application::cameraMenuChanged() {
-    float modeShiftPeriod = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? 0.0f : 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);

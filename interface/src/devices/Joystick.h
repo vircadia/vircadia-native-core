@@ -15,7 +15,7 @@
 #include <qobject.h>
 #include <qvector.h>
 
-#ifdef HAVE_SDL
+#ifdef HAVE_SDL2
 #include <SDL.h>
 #undef main
 #endif
@@ -24,6 +24,10 @@ class Joystick : public QObject {
     Q_OBJECT
     
     Q_PROPERTY(QString name READ getName)
+
+#ifdef HAVE_SDL2
+    Q_PROPERTY(int instanceId READ getInstanceId)
+#endif
     
     Q_PROPERTY(int numAxes READ getNumAxes)
     Q_PROPERTY(int numButtons READ getNumButtons)
@@ -31,19 +35,21 @@ public:
     Joystick();
     ~Joystick();
     
-#ifdef HAVE_SDL
-    Joystick(const QString& name, SDL_Joystick* sdlJoystick);
+#ifdef HAVE_SDL2
+    Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController);
 #endif
     
-    void update();
-    
     void closeJoystick();
-    
-#ifdef HAVE_SDL
-    void setSDLJoystick(SDL_Joystick* sdlJoystick) { _sdlJoystick = sdlJoystick; }
+
+#ifdef HAVE_SDL2
+    void handleAxisEvent(const SDL_ControllerAxisEvent& event);
+    void handleButtonEvent(const SDL_ControllerButtonEvent& event);
 #endif
     
     const QString& getName() const { return _name; }
+#ifdef HAVE_SDL2
+    int getInstanceId() const { return _instanceId; }
+#endif
     
     const QVector<float>& getAxes() const { return _axes; }
     const QVector<bool>& getButtons() const { return _buttons; }
@@ -55,13 +61,15 @@ signals:
     void axisValueChanged(int axis, float newValue, float oldValue);
     void buttonStateChanged(int button, float newValue, float oldValue);
 private:
+#ifdef HAVE_SDL2
+    SDL_GameController* _sdlGameController;
+    SDL_Joystick* _sdlJoystick;
+    SDL_JoystickID _instanceId;
+#endif
+
     QString _name;
     QVector<float> _axes;
     QVector<bool> _buttons;
-    
-#ifdef HAVE_SDL
-    SDL_Joystick* _sdlJoystick;
-#endif
 };
 
 #endif // hifi_JoystickTracker_h
