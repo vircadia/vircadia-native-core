@@ -1027,7 +1027,7 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                     settings.listener = coefficientObject.value(LISTENER).toString();
                     settings.coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
                     
-                    if (ok && coefficient >= 0.0f && coefficient <= 1.0f &&
+                    if (ok && settings.coefficient >= 0.0f && settings.coefficient <= 1.0f &&
                         _audioZones.contains(settings.source) && _audioZones.contains(settings.listener)) {
                         
                         _zonesSettings.push_back(settings);
