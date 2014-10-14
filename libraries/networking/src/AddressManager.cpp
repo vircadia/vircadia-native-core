@@ -10,6 +10,7 @@
 //
 
 #include <qdebug.h>
+#include <qjsondocument.h>
 #include <qregexp.h>
 #include <qstringlist.h>
 
@@ -134,8 +135,9 @@ void AddressManager::handleLookupString(const QString& lookupString) {
     }
 }
 
-void AddressManager::handleAPIResponse(const QJsonObject &jsonObject) {
-    QJsonObject dataObject = jsonObject["data"].toObject();
+void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
+    QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    QJsonObject dataObject = responseObject["data"].toObject();
     
     const QString ADDRESS_API_DOMAIN_KEY = "domain";
     const QString ADDRESS_API_ONLINE_KEY = "online";

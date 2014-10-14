@@ -282,14 +282,12 @@ void AccountManager::processReply() {
 }
 
 void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
-
     JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
 
     if (callbackParams.jsonCallbackReceiver) {
         // invoke the right method on the callback receiver
         QMetaObject::invokeMethod(callbackParams.jsonCallbackReceiver, qPrintable(callbackParams.jsonCallbackMethod),
-                                  Q_ARG(const QJsonObject&, jsonResponse.object()));
+                                  Q_ARG(QNetworkReply&, *requestReply));
 
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);
@@ -297,7 +295,7 @@ void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "Received JSON response from data-server that has no matching callback.";
-            qDebug() << jsonResponse;
+            qDebug() << QJsonDocument::fromJson(requestReply->readAll());
         }
     }
 }
