@@ -187,8 +187,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
 
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
-
     setApplicationName(applicationInfo.value("name").toString());
     setApplicationVersion(BUILD_VERSION);
     setOrganizationName(applicationInfo.value("organizationName").toString());
@@ -206,6 +204,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _window->setWindowTitle("Interface");
 
     qInstallMessageHandler(messageHandler);
+
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
