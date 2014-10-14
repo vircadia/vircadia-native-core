@@ -31,6 +31,9 @@ Script.include("libraries/ToolTip.js");
 Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
+Script.include("libraries/entityCameraTool.js");
+var entityCameraTool = new EntityCameraTool();
+
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
@@ -241,6 +244,9 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 selectionDisplay.unselectAll();
+                entityCameraTool.disable();
+            } else {
+                entityCameraTool.enable();
             }
             return true;
         }
@@ -316,6 +322,7 @@ var toolBar = (function () {
         }
 
 
+
         return false;
     };
 
@@ -363,7 +370,8 @@ function mousePressEvent(event) {
     mouseLastPosition = { x: event.x, y: event.y };
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)
+        || entityCameraTool.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
@@ -466,8 +474,8 @@ function mouseMoveEvent(event) {
         return;
     }
     
-    // allow the selectionDisplay to handle the event first, if it doesn't handle it, then do our own thing
-    if (selectionDisplay.mouseMoveEvent(event)) {
+    // allow the selectionDisplay and entityCameraTool to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event) || entityCameraTool.mouseMoveEvent(event)) {
         return;
     }
 
@@ -506,6 +514,7 @@ function mouseReleaseEvent(event) {
     if (entitySelected) {
         tooltip.show(false);
     }
+    entityCameraTool.mouseReleaseEvent(event);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -637,6 +646,10 @@ Controller.keyReleaseEvent.connect(function (event) {
     }
     if (event.text == "BACKSPACE") {
         handeMenuEvent("Delete");
+    } else if (event.text == "f") {
+        if (entitySelected) {
+            entityCameraTool.focus(selectedEntityProperties);
+        }
     }
 });
 
