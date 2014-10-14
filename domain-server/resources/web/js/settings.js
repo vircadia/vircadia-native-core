@@ -35,7 +35,9 @@ var viewHelpers = {
       + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
     
     if (setting.type === 'checkbox') {
-      form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
+      if (setting.label) {
+        form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
+      }
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
       form_group += "<input type='checkbox'" + common_attrs + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
@@ -45,8 +47,10 @@ var viewHelpers = {
       form_group += makeTable(setting, setting_name, setting_value);
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
-      
-      form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
+
+      if (setting.label) {
+        form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
+      }
       
       if (setting.type === 'select') {
         form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
@@ -235,7 +239,7 @@ $('body').on('click', '.save-button', function(e){
 function makeTable(setting, setting_name, setting_value) {
   var isArray = !_.has(setting, 'key')
   
-  var html = "<label class='control-label'>" + setting.label + "</label>"
+  var html = (setting.label) ? "<label class='control-label'>" + setting.label + "</label>" : ""
   html += "<span class='help-block'>" + setting.help + "</span>"
   html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
@@ -317,7 +321,7 @@ function makeTableInputs(setting) {
   
   _.each(setting.columns, function(col) {
     html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
-             <input type='text' class='form-control' placeholder='" + (col.key ? col.key : "") + "' value=''>\
+             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
              </td>"
   })
   
@@ -487,7 +491,7 @@ function deleteTableRow(delete_glyphicon) {
     
       row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
       row.addClass('empty-array-row')
-    
+      
       row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
         + "' data-changed='true' value=''>");
     }
