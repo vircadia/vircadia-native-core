@@ -11,6 +11,7 @@
 
 #include <openssl/rsa.h>
 
+#include <qjsondocument.h>
 #include <QtCore/QDebug>
 
 #include "DataServerAccountInfo.h"
@@ -101,7 +102,8 @@ void DataServerAccountInfo::setBalance(qint64 balance) {
     }
 }
 
-void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
+void DataServerAccountInfo::setBalanceFromJSON(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toDouble();
         setBalance(balanceInSatoshis);

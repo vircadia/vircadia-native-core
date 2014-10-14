@@ -13,6 +13,7 @@
 #define hifi_DataServerAccountInfo_h
 
 #include <QtCore/QObject>
+#include <qnetworkreply.h>
 #include <QtCore/QUuid>
 
 #include "OAuthAccessToken.h"
@@ -50,7 +51,7 @@ public:
     void setBalance(qint64 balance);
     bool hasBalance() const { return _hasBalance; }
     void setHasBalance(bool hasBalance) { _hasBalance = hasBalance; }
-    Q_INVOKABLE void setBalanceFromJSON(const QJsonObject& jsonObject);
+    Q_INVOKABLE void setBalanceFromJSON(QNetworkReply& requestReply);
 
     bool hasProfile() const;
 
