@@ -371,18 +371,30 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
     }
 
     QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
-    if (isHidden() && message.body().contains(usernameMention)) {
-        if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
-            // get random sound
-            QFileInfo inf = QFileInfo(Application::resourcesPath()  +
-                                      mentionSoundsPath +
-                                      _mentionSounds.at(rand() % _mentionSounds.size()));
-            _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-            _effectPlayer.play();
-        }
+    if (message.body().contains(usernameMention)) {
 
-        _trayIcon.show();
-        _trayIcon.showMessage(windowTitle(), message.body());
+        // Don't show messages already seen in icon tray at start-up.
+        QSettings* settings = Application::getInstance()->lockSettings();
+        bool showMessage = settings->value("usernameMentionTimestamp").toDateTime() < _lastMessageStamp;
+        if (showMessage) {
+            settings->setValue("usernameMentionTimestamp", _lastMessageStamp);
+        }
+        Application::getInstance()->unlockSettings();
+
+        if (isHidden() && showMessage) {
+
+            if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
+                // get random sound
+                QFileInfo inf = QFileInfo(Application::resourcesPath()  +
+                                          mentionSoundsPath +
+                                          _mentionSounds.at(rand() % _mentionSounds.size()));
+                _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+                _effectPlayer.play();
+            }
+
+            _trayIcon.show();
+            _trayIcon.showMessage(windowTitle(), message.body());
+        }
     }
 }
 #endif // HAVE_QXMPP
