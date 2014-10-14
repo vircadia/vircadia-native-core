@@ -20,7 +20,8 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _discourseApiKey(),
     _walletID(),
     _balance(0),
-    _hasBalance(false)
+    _hasBalance(false),
+    _privateKey()
 {
 
 }
@@ -33,6 +34,7 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _walletID = otherInfo._walletID;
     _balance = otherInfo._balance;
     _hasBalance = otherInfo._hasBalance;
+    _privateKey = otherInfo._privateKey;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -51,6 +53,7 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_walletID, otherInfo._walletID);
     swap(_balance, otherInfo._balance);
     swap(_hasBalance, otherInfo._hasBalance);
+    swap(_privateKey, otherInfo._privateKey);
 }
 
 void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
@@ -112,11 +115,13 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
 }
 
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
-    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey << info._walletID;
+    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey
+        << info._walletID << info._privateKey;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
-    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey >> info._walletID;
+    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey
+        >> info._walletID >> info._privateKey;
     return in;
 }
