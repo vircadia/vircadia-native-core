@@ -3468,7 +3468,7 @@ void Application::updateLocationInServer() {
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
-        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
 }

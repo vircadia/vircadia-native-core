@@ -434,7 +434,7 @@ void AccountManager::requestProfile() {
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl profileURL = _authURL;
-    profileURL.setPath("/api/v1/users/profile");
+    profileURL.setPath("/api/v1/user/profile");
     
     QNetworkRequest profileRequest(profileURL);
     profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());

@@ -1685,7 +1685,7 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
     
     // fire off a request to get this user's identity so we can see if we will let them in
     QUrl profileURL = _oauthProviderURL;
-    profileURL.setPath("/api/v1/users/profile");
+    profileURL.setPath("/api/v1/user/profile");
     profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
     
     return NetworkAccessManager::getInstance().get(QNetworkRequest(profileURL));
