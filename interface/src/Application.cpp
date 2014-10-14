@@ -64,7 +64,6 @@
 #include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
-#include <RSAKeypairGenerator.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 

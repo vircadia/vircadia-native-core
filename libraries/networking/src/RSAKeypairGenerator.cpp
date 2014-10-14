@@ -11,7 +11,7 @@
 
 #include <openssl/err.h>
 #include <openssl/rsa.h>
-#include <openssl/pem.h>
+#include <openssl/x509.h>
 
 #include <qdebug.h>
 
@@ -44,24 +44,28 @@ void RSAKeypairGenerator::generateKeypair() {
     BN_free(exponent);
     
     // grab the public key and private key from the file
-    BIO *privateKeyBIO = BIO_new(BIO_s_mem());
-    int privateWrite = PEM_write_bio_RSAPrivateKey(privateKeyBIO, keyPair, NULL, NULL, 0, NULL, NULL);
+    unsigned char* publicKeyDER = NULL;
+    int publicKeyLength = i2d_RSA_PUBKEY(keyPair, &publicKeyDER);
     
-    BIO *publicKeyBIO = BIO_new(BIO_s_mem());
-    int publicWrite = PEM_write_bio_RSAPublicKey(publicKeyBIO, keyPair);
+    unsigned char* privateKeyDER = NULL;
+    int privateKeyLength = i2d_RSAPrivateKey(keyPair, &privateKeyDER);
     
-    if (privateWrite == 0 || publicWrite == 0) {
-        // we had a error grabbing either the private or public key from the RSA
+    if (publicKeyLength <= 0 || privateKeyLength <= 0) {
+        qDebug() << "Error getting DER public or private key from RSA struct -" << ERR_get_error();
         
-        // bubble up our error
         emit errorGeneratingKeypair();
         
         // cleanup the RSA struct
         RSA_free(keyPair);
         
-        // cleanup the BIOs
-        BIO_free(privateKeyBIO);
-        BIO_free(publicKeyBIO);
+        // cleanup the public and private key DER data, if required
+        if (publicKeyLength > 0) {
+            delete publicKeyDER;
+        }
+        
+        if (privateKeyLength > 0) {
+            delete privateKeyDER;
+        }
         
         return;
     }
@@ -70,14 +74,12 @@ void RSAKeypairGenerator::generateKeypair() {
     // we can cleanup the RSA struct before we continue on
     RSA_free(keyPair);
     
-    char* publicKeyData;
-    int publicKeyLength = BIO_get_mem_data(publicKeyBIO, &publicKeyData);
+    QByteArray publicKeyArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength);
+    QByteArray privateKeyArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
     
-    char* privateKeyData;
-    int privateKeyLength = BIO_get_mem_data(privateKeyBIO, &privateKeyData);
-    
-    QByteArray publicKeyArray(publicKeyData, publicKeyLength);
-    QByteArray privateKeyArray(privateKeyData, privateKeyLength);
+    // cleanup the publicKeyDER and publicKeyDER data
+    delete publicKeyDER;
+    delete privateKeyDER;
     
     emit generatedKeypair(publicKeyArray, privateKeyArray);
 }
