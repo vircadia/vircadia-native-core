@@ -448,6 +448,7 @@ namespace MenuOption {
     const QString RenderResolutionThird = "1/3";
     const QString RenderResolutionQuarter = "1/4";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";

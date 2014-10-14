@@ -44,16 +44,16 @@ void Resource::Sysmem::deallocateMemory(Byte* dataAllocated, Size size) {
 }
 
 Resource::Sysmem::Sysmem() :
-    _data(NULL),
+    _stamp(0),
     _size(0),
-    _stamp(0)
+    _data(NULL)
 {
 }
 
 Resource::Sysmem::Sysmem(Size size, const Byte* bytes) :
-    _data(NULL),
+    _stamp(0),
     _size(0),
-    _stamp(0)
+    _data(NULL)
 {
     if (size > 0) {
         _size = allocateMemory(&_data, size);

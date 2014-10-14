@@ -63,7 +63,6 @@
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
-#include "devices/CaraFaceTracker.h"
 #include "devices/DdeFaceTracker.h"
 #include "entities/EntityTreeRenderer.h"
 #include "particles/ParticleTreeRenderer.h"
@@ -219,7 +218,6 @@ public:
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
     DdeFaceTracker* getDDE() { return &_dde; }
-    CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
     PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -369,6 +367,8 @@ public slots:
 
     void setRenderResolutionScale(float scale);
 
+    void resetSensors();
+
 private slots:
     void timer();
     void idle();
@@ -385,7 +385,6 @@ private slots:
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
-    void resetSensors();
 
     void parseVersionXml();
 
@@ -411,7 +410,6 @@ private:
     void updateFaceshift();
     void updateVisage();
     void updateDDE();
-    void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
@@ -512,7 +510,6 @@ private:
     Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
-    CaraFaceTracker _cara;
     DdeFaceTracker _dde;
 
     PrioVR _prioVR;

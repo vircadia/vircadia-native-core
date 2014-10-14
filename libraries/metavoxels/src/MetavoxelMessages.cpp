@@ -848,3 +848,108 @@ void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObject
     VoxelMaterialSpannerEditVisitor visitor(spanner, material, averageColor);
     data.guide(visitor);
 }
+
+PaintVoxelMaterialEdit::PaintVoxelMaterialEdit(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& averageColor) :
+    position(position),
+    radius(radius),
+    material(material),
+    averageColor(averageColor) {
+}
+
+class PaintVoxelMaterialEditVisitor : public MetavoxelVisitor {
+public:
+    
+    PaintVoxelMaterialEditVisitor(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& color);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    glm::vec3 _position;
+    float _radius;
+    SharedObjectPointer _material;
+    QColor _color;
+    Box _bounds;
+};
+
+PaintVoxelMaterialEditVisitor::PaintVoxelMaterialEditVisitor(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& color) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+            AttributeRegistry::getInstance()->getVoxelMaterialAttribute()),
+    _position(position),
+    _radius(radius),
+    _material(material),
+    _color(color) {
+    
+    glm::vec3 extents(_radius, _radius, _radius);
+    _bounds = Box(_position - extents, _position + extents);
+}
+
+int PaintVoxelMaterialEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
+    VoxelMaterialDataPointer materialPointer = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
+    if (!(colorPointer && materialPointer && colorPointer->getSize() == materialPointer->getSize())) {
+        return STOP_RECURSION;
+    }
+    QVector<QRgb> colorContents = colorPointer->getContents();
+    QByteArray materialContents = materialPointer->getContents();
+    QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
+    
+    Box overlap = info.getBounds().getIntersection(_bounds);
+    int size = colorPointer->getSize();
+    int area = size * size;
+    float scale = (size - 1.0f) / info.size;
+    overlap.minimum = (overlap.minimum - info.minimum) * scale;
+    overlap.maximum = (overlap.maximum - info.minimum) * scale;
+    int minX = glm::ceil(overlap.minimum.x);
+    int minY = glm::ceil(overlap.minimum.y);
+    int minZ = glm::ceil(overlap.minimum.z);
+    int sizeX = (int)overlap.maximum.x - minX + 1;
+    int sizeY = (int)overlap.maximum.y - minY + 1;
+    int sizeZ = (int)overlap.maximum.z - minZ + 1;
+    
+    QRgb rgb = _color.rgba();
+    float step = 1.0f / scale;
+    glm::vec3 position(0.0f, 0.0f, info.minimum.z + minZ * step);
+    uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
+    QRgb* colorData = colorContents.data();
+    uchar* materialData = (uchar*)materialContents.data();
+    for (int destZ = minZ * area + minY * size + minX, endZ = destZ + sizeZ * area; destZ != endZ;
+            destZ += area, position.z += step) {
+        position.y = info.minimum.y + minY * step;
+        for (int destY = destZ, endY = destY + sizeY * size; destY != endY; destY += size, position.y += step) {
+            position.x = info.minimum.x + minX * step;
+            for (int destX = destY, endX = destX + sizeX; destX != endX; destX++, position.x += step) {
+                QRgb& color = colorData[destX];
+                if (qAlpha(color) != 0 && glm::distance(position, _position) <= _radius) {
+                    color = rgb;
+                    materialData[destX] = materialIndex;    
+                }
+            }
+        }
+    }
+    VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, size));
+    info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
+        encodeInline<VoxelColorDataPointer>(newColorPointer));
+    
+    clearUnusedMaterials(materials, materialContents);
+    VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, size, materials));
+    info.outputValues[1] = AttributeValue(_inputs.at(1), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
+    
+    return STOP_RECURSION;
+}
+
+void PaintVoxelMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    PaintVoxelMaterialEditVisitor visitor(position, radius, material, averageColor);
+    data.guide(visitor);
+}
