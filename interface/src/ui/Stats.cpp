@@ -222,11 +222,11 @@ void Stats::display(
 
     lines = _expanded ? 5 : 3;
     int columnOneWidth = _generalStatsWidth;
+
+    PerformanceTimer::tallyAllTimerRecords(); // do this even if we're not displaying them, so they don't stack up
     
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
 
-        PerformanceTimer::tallyAllTimerRecords();
-    
         columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // make it 3 columns wide...
         // we will also include room for 1 line per timing record and a header of 4 lines
         lines += 4;
