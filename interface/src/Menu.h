@@ -367,6 +367,7 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DontCullMeshParts = "Don't Cull Mesh Parts";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
