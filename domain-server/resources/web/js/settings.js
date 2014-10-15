@@ -13,6 +13,10 @@ var Settings = {
   MOVE_DOWN_BUTTON_CLASS: 'move-down',
   MOVE_DOWN_SPAN_CLASSES: 'glyphicon glyphicon-chevron-down move-down',
   TABLE_BUTTONS_CLASS: 'buttons',
+  ADD_DEL_BUTTONS_CLASS: 'add-del-buttons',
+  ADD_DEL_BUTTONS_CLASSES: 'buttons add-del-buttons',
+  REORDER_BUTTONS_CLASS: 'reorder-buttons',
+  REORDER_BUTTONS_CLASSES: 'buttons reorder-buttons',
   NEW_ROW_CLASS: 'new-row'
 };
 
@@ -132,7 +136,7 @@ $(document).ready(function(){
       if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
         // set focus to next input
         sibling.find('input').focus()
-      } else if (sibling.hasClass(Settings.TABLE_BUTTONS_CLASS)) {
+      } else if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
         sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
         
         // set focus to the first input in the new row
@@ -276,9 +280,11 @@ function makeTable(setting, setting_name, setting_value) {
   })
   
   if (setting.can_order) {
-    html += "<td class='edit-buttons'><span class='glyphicon glyphicon-sort'></span></td>";
+    html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
+            "><span class='glyphicon glyphicon-sort'></span></td>";
   }
-  html += "<td class='buttons'><strong>+/-</strong></td></tr>"
+    html += "<td class=" + Settings.ADD_DEL_BUTTONS_CLASSES +
+            "><strong>+/-</strong></td></tr>"
     
   // populate rows in the table from existing values
   var row_num = 1
@@ -313,10 +319,12 @@ function makeTable(setting, setting_name, setting_value) {
     })
     
     if (setting.can_order) {
-      html += "<td class='edit-buttons'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
-                Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+      html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
+              "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
+              Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
     }
-    html += "<td class='buttons'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
+      html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+              "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
     html += "</tr>"
     
     row_num++
@@ -349,9 +357,10 @@ function makeTableInputs(setting) {
   })
     
   if (setting.can_order) {
-    html += "<td class='edit-buttons'></td>"
+    html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
   }
-  html += "<td class='buttons'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
+    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+            "'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
   html += "</tr>"
     
   return html
@@ -444,7 +453,10 @@ function addTableRow(add_glyphicon) {
       } else {
         $(element).html(1)
       }
-    } else if ($(element).hasClass("buttons")) { 
+  } else if ($(element).hasClass(Settings.REORDER_BUTTONS_CLASS)) {
+    $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES +
+                    "'></span><span class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
+  } else if ($(element).hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
       // Change buttons
       var span = $(element).children("span")
       span.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
@@ -473,9 +485,6 @@ function addTableRow(add_glyphicon) {
       input.attr("data-changed", "true")
              
       $(element).append(input.val())
-    } else if ($(element).hasClass("edit-buttons")) {
-         $(element).html("<td class='edit-buttons'><span class='" + Settings.MOVE_UP_SPAN_CLASSES +
-                         "'></span><span class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
     } else {
       console.log("Unknown table element")
     }

@@ -75,17 +75,17 @@ span.port {
   margin-bottom: 15px;
 }
 
-td.buttons td.edit-buttons {
+td.buttons {
   width: 14px;
 }
 
-td.buttons .glyphicon {
+td.add-del-buttons .glyphicon {
   display: block;
   text-align: center;
   font-size: 12px;
 }
 
-td.edit-buttons .glyphicon {
+td.reorder-buttons .glyphicon {
   display: inherit;
   text-align: center;
   font-size: 12px;
