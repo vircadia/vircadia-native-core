@@ -994,7 +994,7 @@ void DomainServer::sendPendingTransactionsToServer() {
 void DomainServer::publicKeyJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     
-    if (jsonObject["status"] == "success") {
+    if (jsonObject["status"].toString() == "success") {
         // figure out which user this is for
         
         const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
