@@ -44,6 +44,7 @@ public:
     void setWalletID(const QUuid& walletID);
     
     const QByteArray& getUsernameSignature();
+    bool hasPrivateKey() const { return !_privateKey.isEmpty(); }
     void setPrivateKey(const QByteArray& privateKey);
 
     qint64 getBalance() const { return _balance; }

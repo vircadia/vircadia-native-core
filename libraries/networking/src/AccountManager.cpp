@@ -146,6 +146,12 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
                     } else {
                         requestProfile();
                     }
+                    
+                    // if we don't have a private key in settings we should generate a new keypair
+                    if (!_accountInfo.hasPrivateKey()) {
+                        qDebug() << "No private key present - generating a new key-pair.";
+                        generateNewKeypair();
+                    }
                 }
             }
         }
