@@ -63,10 +63,33 @@ public:
 
     /// clears the tree
     virtual void clear();
+    
+    int getElementsTouched() const { return _elementsTouched; }
+    int getItemsRendered() const { return _itemsRendered; }
+    int getItemsOutOfView() const { return _itemsOutOfView; }
+
+    int getMeshesConsidered() const { return _meshesConsidered; }
+    int getMeshesRendered() const { return _meshesRendered; }
+    int getMeshesOutOfView() const { return _meshesOutOfView; }
+
+    int getTrianglesRendered() const { return _trianglesRendered; }
+    int getQuadsRendered() const { return _quadsRendered; }
+    
 protected:
     Octree* _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;
+
+    int _elementsTouched;
+    int _itemsRendered;
+    int _itemsOutOfView;
+
+    int _meshesConsidered;
+    int _meshesRendered;
+    int _meshesOutOfView;
+
+    int _trianglesRendered;
+    int _quadsRendered;
 };
 
 class RenderArgs {
@@ -80,6 +103,13 @@ public:
     int _elementsTouched;
     int _itemsRendered;
     int _itemsOutOfView;
+
+    int _meshesConsidered;
+    int _meshesRendered;
+    int _meshesOutOfView;
+
+    int _trianglesRendered;
+    int _quadsRendered;
 };
 
 
