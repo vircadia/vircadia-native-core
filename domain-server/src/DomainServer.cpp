@@ -81,6 +81,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         
         // setup automatic networking settings with data server
         setupAutomaticNetworking();
+        
+        // preload some user public keys so they can connect on first request
+        preloadAllowedUserPublicKeys();
     }
 }
 
@@ -508,8 +511,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
-const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
-
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
@@ -609,6 +610,8 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     }
 }
 
+const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+
 bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const HifiSockAddr& senderSockAddr) {
@@ -664,17 +667,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                     }
                 }
             
-                // even if we have a public key for them right now, request a new one in case it has just changed
-                JSONCallbackParameters callbackParams;
-                callbackParams.jsonCallbackReceiver = this;
-                callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
-                
-                const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
-                
-                qDebug() << "Requesting public key for user" << username;
-                
-                AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
-                                                                     QNetworkAccessManager::GetOperation, callbackParams);
+                requestUserPublicKey(username);
             }
         }
     } else {
@@ -683,6 +676,33 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
     }
     
     return false;
+}
+
+void DomainServer::preloadAllowedUserPublicKeys() {
+    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_USERS_SETTINGS_KEYPATH);
+    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    
+    if (allowedUsers.size() > 0) {
+        // in the future we may need to limit how many requests here - for now assume that lists of allowed users are not
+        // going to create > 100 requests
+        foreach(const QString& username, allowedUsers) {
+            requestUserPublicKey(username);
+        }
+    }
+}
+
+void DomainServer::requestUserPublicKey(const QString& username) {
+    // even if we have a public key for them right now, request a new one in case it has just changed
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
+    
+    const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
+    
+    qDebug() << "Requesting public key for user" << username;
+    
+    AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
+                                                         QNetworkAccessManager::GetOperation, callbackParams);
 }
 
 QUrl DomainServer::oauthRedirectURL() {

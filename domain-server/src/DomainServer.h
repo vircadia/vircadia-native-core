@@ -85,6 +85,10 @@ private:
     void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
                                        const HifiSockAddr& senderSockAddr);
+    
+    void preloadAllowedUserPublicKeys();
+    void requestUserPublicKey(const QString& username);
+    
     int parseNodeDataFromByteArray(QDataStream& packetStream,
                                    NodeType_t& nodeType,
                                    HifiSockAddr& publicSockAddr,
