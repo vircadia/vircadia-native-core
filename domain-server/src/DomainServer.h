@@ -83,6 +83,8 @@ private:
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
     void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
+                                       const HifiSockAddr& senderSockAddr);
     int parseNodeDataFromByteArray(QDataStream& packetStream,
                                    NodeType_t& nodeType,
                                    HifiSockAddr& publicSockAddr,

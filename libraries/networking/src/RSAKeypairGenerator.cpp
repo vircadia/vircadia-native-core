@@ -51,7 +51,7 @@ void RSAKeypairGenerator::generateKeypair() {
     
     // grab the public key and private key from the file
     unsigned char* publicKeyDER = NULL;
-    int publicKeyLength = i2d_RSA_PUBKEY(keyPair, &publicKeyDER);
+    int publicKeyLength = i2d_RSAPublicKey(keyPair, &publicKeyDER);
     
     unsigned char* privateKeyDER = NULL;
     int privateKeyLength = i2d_RSAPrivateKey(keyPair, &privateKeyDER);

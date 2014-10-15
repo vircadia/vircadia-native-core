@@ -143,6 +143,9 @@ const QByteArray& DataServerAccountInfo::getUsernameSignature() {
                     qDebug() << "Will re-attempt on next domain-server check in.";
                     _usernameSignature = QByteArray();
                 }
+                
+                // free the private key RSA struct now that we are done with it
+                RSA_free(rsaPrivateKey);
             } else {
                 qDebug() << "Could not create RSA struct from QByteArray private key.";
                 qDebug() << "Will re-attempt on next domain-server check in.";

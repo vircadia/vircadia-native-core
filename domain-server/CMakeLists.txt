@@ -38,4 +38,12 @@ endif ()
 # link the shared hifi libraries
 link_hifi_libraries(embedded-webserver networking shared)
 
+# find OpenSSL
+find_package(OpenSSL REQUIRED)
+
+include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
+
+# append OpenSSL to our list of libraries to link
+list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}")
+
 link_shared_dependencies()

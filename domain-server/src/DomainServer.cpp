@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+
 #include <QtCore/QDir>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -558,48 +561,14 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
     
     packetStream >> nodeInterestList >> username >> usernameSignature;
     
-    static const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
-                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
-    static QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
-    
-    if (!isAssignment && allowedUsers.count() > 0) {
-        // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in        
-        // we always let in a user who is sending a packet from our local socket or from the localhost address
-
-//        if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
-//            && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
-        if (true) {
-            bool canConnect = false;
-            
-            if (allowedUsers.contains(username)) {
-                // it's possible this user can be allowed to connect, but we need to check their username signature
-                
-                // even if we have a public key for them right now, request a new one in case it has just changed
-                JSONCallbackParameters callbackParams;
-                callbackParams.jsonCallbackReceiver = this;
-                callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
-                
-                const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
-                
-                qDebug() << "Requesting public key for user" << username;
-                
-                AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
-                                                                     QNetworkAccessManager::GetOperation, callbackParams);
-                
-                if (_userPublicKeys.contains(username)) {
-                    // if we do have a public key for the user, check for a signature match
-                }
-            }
-            
-            if (!canConnect) {
-                QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
-                
-                // send this oauth request datagram back to the client
-                LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
-                
-                return;
-            }
-        }
+    if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr)) {
+        // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
+        QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
+        
+        // send this oauth request datagram back to the client
+        LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+        
+        return;
     }
 
     if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
@@ -638,6 +607,83 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         // reply back to the user with a PacketTypeDomainList
         sendDomainListToNode(newNode, senderSockAddr, nodeInterestList.toSet());
     }
+}
+
+bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
+                                                 const QByteArray& usernameSignature,
+                                                 const HifiSockAddr& senderSockAddr) {
+    static const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
+    static QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    
+    if (allowedUsers.count() > 0) {
+        // this is an agent, we need to ask them to provide us with their signed username to see if they are allowed in
+        // we always let in a user who is sending a packet from our local socket or from the localhost address
+        
+        if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
+            && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
+            if (allowedUsers.contains(username)) {
+                // it's possible this user can be allowed to connect, but we need to check their username signature
+                
+                QByteArray publicKeyArray = _userPublicKeys.value(username);
+                if (!publicKeyArray.isEmpty()) {
+                    // if we do have a public key for the user, check for a signature match
+                    
+                    const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKeyArray.constData());
+                    
+                    // first load up the public key into an RSA struct
+                    RSA* rsaPublicKey = d2i_RSAPublicKey(NULL, &publicKeyData, publicKeyArray.size());
+                    
+                    if (rsaPublicKey) {
+                        QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
+                        int decryptResult = RSA_public_decrypt(usernameSignature.size(),
+                                                               reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
+                                                               reinterpret_cast<unsigned char*>(decryptedArray.data()),
+                                                               rsaPublicKey, RSA_PKCS1_PADDING);
+                        
+                        if (decryptResult != -1) {
+                            if (username == decryptedArray) {
+                                qDebug() << "Username signature matches for" << username << "- allowing connection.";
+                                
+                                // free up the public key before we return
+                                RSA_free(rsaPublicKey);
+                                
+                                return true;
+                            } else {
+                                qDebug() << "Username signature did not match for" << username << "- denying connection.";
+                            }
+                        } else {
+                            qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
+                        }
+                        
+                        // free up the public key, we don't need it anymore
+                        RSA_free(rsaPublicKey);
+                    } else {
+                        // we can't let this user in since we couldn't convert their public key to an RSA key we could use
+                        qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
+                    }
+                }
+            
+                // even if we have a public key for them right now, request a new one in case it has just changed
+                JSONCallbackParameters callbackParams;
+                callbackParams.jsonCallbackReceiver = this;
+                callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
+                
+                const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
+                
+                qDebug() << "Requesting public key for user" << username;
+                
+                AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
+                                                                     QNetworkAccessManager::GetOperation, callbackParams);
+            
+            }
+        }
+    } else {
+        // since we have no allowed user list, let them all in
+        return true;
+    }
+    
+    return false;
 }
 
 QUrl DomainServer::oauthRedirectURL() {
