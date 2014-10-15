@@ -2462,6 +2462,19 @@ SelectionDisplay = (function () {
                     size: grabberSize,
                 });
             }
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
+            Overlays.editOverlay(yawHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(pitchHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(rollHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(grabberMoveUp, {
+                scale: handleSize,
+            });
         }
     }
     Script.update.connect(that.updateHandleSizes);
