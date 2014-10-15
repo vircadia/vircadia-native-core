@@ -18,6 +18,7 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
+#include <PerfStat.h>
 #include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
@@ -44,7 +45,8 @@ Model::Model(QObject* parent) :
     _pupilDilation(0.0f),
     _url("http://invalid.com"),
     _blendNumber(0),
-    _appliedBlendNumber(0) {
+    _appliedBlendNumber(0),
+    _calculatedMeshBoxesValid(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -384,13 +386,30 @@ void Model::setJointStates(QVector<JointState> states) {
     _boundingRadius = radius;
 }
 
-bool Model::render(float alpha, RenderMode mode) {
+bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha, mode);
     }
     if (_meshStates.isEmpty()) {
         return false;
+    }
+
+    // if we don't have valid mesh boxes, calculate them now, this only matters in cases
+    // where our caller has passed RenderArgs which will include a view frustum we can cull
+    // against. We cache the results of these calculations so long as the model hasn't been
+    // simulated and the mesh hasn't changed.
+    if (args && !_calculatedMeshBoxesValid) {
+        PerformanceTimer perfTimer("calculatedMeshBoxes");
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        int numberOfMeshes = geometry.meshes.size();
+        _calculatedMeshBoxes.resize(numberOfMeshes);
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
+            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
+            _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
+        }
+        _calculatedMeshBoxesValid = true;
     }
     
     // set up dilated textures on first render after load/simulate
@@ -431,11 +450,12 @@ bool Model::render(float alpha, RenderMode mode) {
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
     
-    renderMeshes(mode, false);
+    const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
+    renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, args);
     
     // render translucent meshes afterwards
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
-    renderMeshes(mode, true, 0.75f);
+    renderMeshes(mode, true, 0.75f, args);
     
     glDisable(GL_ALPHA_TEST);
     glEnable(GL_BLEND);
@@ -445,7 +465,7 @@ bool Model::render(float alpha, RenderMode mode) {
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
-        renderMeshes(mode, true, 0.0f);
+        renderMeshes(mode, true, 0.0f, args);
     }
     
     glDepthMask(true);
@@ -510,6 +530,22 @@ Extents Model::getUnscaledMeshExtents() const {
         
     return scaledExtents;
 }
+
+Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
+    // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+
+    Extents scaledOffsetExtents = { ((minimum + _offset) * _scale), 
+                                    ((maximum + _offset) * _scale) };
+
+    Extents rotatedExtents = scaledOffsetExtents.getRotated(_rotation);
+
+    Extents translatedExtents = { rotatedExtents.minimum + _translation, 
+                                  rotatedExtents.maximum + _translation };
+    return translatedExtents;
+}
+
 
 bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
@@ -790,6 +826,8 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
+        _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
+
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
             scaleToFit();
@@ -1200,10 +1238,12 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold) {
+void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args) {
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+
+    bool cullMeshParts = args && !Menu::getInstance()->isOptionChecked(MenuOption::DontCullMeshParts);
     
     for (int i = 0; i < networkMeshes.size(); i++) {
         // exit early if the translucency doesn't match what we're drawing
@@ -1219,6 +1259,23 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
         if (vertexCount == 0) {
             // sanity check
             continue;
+        }
+        
+        // if we got here, then check to see if this mesh is in view
+        if (args) {
+            bool shouldRender = true;
+            args->_meshesConsidered++;
+
+            if (cullMeshParts && args->_viewFrustum) {
+                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+            }
+
+            if (shouldRender) {
+                args->_meshesRendered++;
+            } else {
+                args->_meshesOutOfView++;
+                continue; // skip this mesh
+            }
         }
         
         const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
@@ -1372,6 +1429,13 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
                 GL_UNSIGNED_INT, (void*)offset);
             offset += part.triangleIndices.size() * sizeof(int);
+
+            if (args) {
+                const int INDICES_PER_TRIANGLE = 3;
+                const int INDICES_PER_QUAD = 4;
+                args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+                args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+            }
         }
         
         if (!mesh.colors.isEmpty()) {

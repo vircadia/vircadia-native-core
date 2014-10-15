@@ -15,9 +15,9 @@
 
 #include "Joystick.h"
 
-const float MAX_AXIS = 32768.0f;
 
 #ifdef HAVE_SDL2
+const float MAX_AXIS = 32768.0f;
 
 Joystick::Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController) :
     _instanceId(instanceId),
