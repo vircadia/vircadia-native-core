@@ -1557,9 +1557,8 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 FaceTracker* Application::getActiveFaceTracker() {
     return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-             (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-              (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL))));
+            (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+             (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1847,7 +1846,6 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     _faceshift.init();
-    _faceplus.init();
     _visage.init();
 
     Leapmotion::init();
@@ -3391,7 +3389,6 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
-    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
     _dde.reset();
