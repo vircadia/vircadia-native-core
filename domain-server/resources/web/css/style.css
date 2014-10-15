@@ -79,16 +79,17 @@ td.buttons {
   width: 14px;
 }
 
-td.add-del-buttons .glyphicon {
-  display: block;
+td .glyphicon {
   text-align: center;
   font-size: 12px;
 }
 
+td.add-del-buttons .glyphicon {
+  display: block;
+}
+
 td.reorder-buttons .glyphicon {
   display: inherit;
-  text-align: center;
-  font-size: 12px;
 }
 
 tr.new-row {
