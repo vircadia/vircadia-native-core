@@ -251,7 +251,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(RenderMode mode, bool translucent, float alphaThreshold = 0.5f, RenderArgs* args = NULL);
+    int renderMeshes(RenderMode mode, bool translucent, float alphaThreshold = 0.5f, RenderArgs* args = NULL);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -332,6 +332,13 @@ private:
 
     QVector<AABox> _calculatedMeshBoxes;
     bool _calculatedMeshBoxesValid;
+
+    void calculateTranslucentMeshes(); // used to calculate our list of translucent vs opaque meshes
+
+    bool _translucentMeshesKnown;
+    QList<int> _translucentMeshes; // indices of the meshes that are translucent
+    QList<int> _opaqueMeshes; // indices of the meshes that are opaque
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

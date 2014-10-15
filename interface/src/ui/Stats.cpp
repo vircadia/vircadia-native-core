@@ -461,7 +461,7 @@ void Stats::display(
 
     lines = _expanded ? 14 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
-        lines += 9; // spatial audio processing adds 1 spacing line and 8 extra lines of info
+        lines += 10; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
 
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
@@ -483,6 +483,12 @@ void Stats::display(
 
         voxelStats.str("");
         voxelStats << "Triangles: " << entities->getTrianglesRendered() << " Quads:" << entities->getQuadsRendered();
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
+        voxelStats.str("");
+        voxelStats << "Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
+                    << " Translucent:" << entities->getTranslucentMeshPartsRendered();
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 

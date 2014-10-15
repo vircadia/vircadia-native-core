@@ -46,7 +46,8 @@ Model::Model(QObject* parent) :
     _url("http://invalid.com"),
     _blendNumber(0),
     _appliedBlendNumber(0),
-    _calculatedMeshBoxesValid(false) {
+    _calculatedMeshBoxesValid(false),
+    _translucentMeshesKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -271,6 +272,8 @@ void Model::reset() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation, 0.0f);
     }
+    
+    _translucentMeshesKnown = false;
 }
 
 bool Model::updateGeometry() {
@@ -421,6 +424,10 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
             _dilatedTextures.append(dilated);
         }
     }
+    
+    if (!_translucentMeshesKnown) {
+        calculateTranslucentMeshes();
+    }
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
@@ -451,11 +458,11 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         mode == DEFAULT_RENDER_MODE);
     
     const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
-    renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, args);
+    int opaqueMeshPartsRendered = renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, args);
     
     // render translucent meshes afterwards
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
-    renderMeshes(mode, true, 0.75f, args);
+    int translucentMeshPartsRendered = renderMeshes(mode, true, 0.75f, args);
     
     glDisable(GL_ALPHA_TEST);
     glEnable(GL_BLEND);
@@ -465,7 +472,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
-        renderMeshes(mode, true, 0.0f, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, 0.0f, args);
     }
     
     glDepthMask(true);
@@ -488,6 +495,11 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     
     // restore all the default material settings
     Application::getInstance()->setupWorldLight();
+    
+    if (args) {
+        args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
+        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
+    }
 
     return true;
 }
@@ -1238,21 +1250,45 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args) {
+void Model::calculateTranslucentMeshes() {
+    _translucentMeshes.clear();
+    _opaqueMeshes.clear();
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+
+    for (int i = 0; i < networkMeshes.size(); i++) {
+        const NetworkMesh& networkMesh = networkMeshes.at(i);
+        const FBXMesh& mesh = geometry.meshes.at(i);
+
+        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+        if (translucentMesh) {
+            _translucentMeshes.append(i);
+        } else {
+            _opaqueMeshes.append(i);
+        }
+    }
+    _translucentMeshesKnown = true;
+}
+
+int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args) {
+    int meshPartsRendered = 0;
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
     bool cullMeshParts = args && !Menu::getInstance()->isOptionChecked(MenuOption::DontCullMeshParts);
     
-    for (int i = 0; i < networkMeshes.size(); i++) {
+    // if we're called in translucent mode, then use our translucent list vs opaque list
+    QList<int>& list = translucent ? _translucentMeshes : _opaqueMeshes;
+    
+    
+    // i is the "index" from the original networkMeshes QVector...
+    foreach (int i, list) {
+        
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);    
-        if (translucent ? (networkMesh.getTranslucentPartCount(mesh) == 0) :
-                (networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size())) {
-            continue;
-        }
+
         const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
 
         int vertexCount = mesh.vertices.size();
@@ -1424,11 +1460,19 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
                     glActiveTexture(GL_TEXTURE0);
                 }
             }
-            glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
-            offset += part.quadIndices.size() * sizeof(int);
-            glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
-                GL_UNSIGNED_INT, (void*)offset);
-            offset += part.triangleIndices.size() * sizeof(int);
+            
+            meshPartsRendered++;
+            
+            if (part.quadIndices.size() > 0) {
+                glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
+                offset += part.quadIndices.size() * sizeof(int);
+            }
+            
+            if (part.triangleIndices.size() > 0) {
+                glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
+                    GL_UNSIGNED_INT, (void*)offset);
+                offset += part.triangleIndices.size() * sizeof(int);
+            }
 
             if (args) {
                 const int INDICES_PER_TRIANGLE = 3;
@@ -1467,6 +1511,8 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
 
         activeProgram->release();
     }
+    
+    return meshPartsRendered;
 }
 
 void AnimationHandle::setURL(const QUrl& url) {
