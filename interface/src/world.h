@@ -13,6 +13,5 @@
 #define hifi_world_h
 
 const float GRAVITY_EARTH = 9.80665f;
-const float EDGE_SIZE_GROUND_PLANE = 20.f;
 
 #endif // hifi_world_h
