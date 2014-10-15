@@ -221,8 +221,30 @@ void Stats::display(
     int totalServers = NodeList::getInstance()->size();
 
     lines = _expanded ? 5 : 3;
-    drawBackground(backgroundColor, horizontalOffset, 0, _generalStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+    int columnOneWidth = _generalStatsWidth;
+    
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+
+        PerformanceTimer::tallyAllTimerRecords();
+    
+        columnOneWidth = _generalStatsWidth + _pingStatsWidth + _geoStatsWidth; // make it 3 columns wide...
+        // we will also include room for 1 line per timing record and a header of 4 lines
+        lines += 4;
+
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                lines++;
+            }
+        }
+    }
+    
+    drawBackground(backgroundColor, horizontalOffset, 0, columnOneWidth, lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
+    
+    int columnOneHorizontalOffset = horizontalOffset;
 
     char serverNodes[30];
     sprintf(serverNodes, "Servers: %d", totalServers);
@@ -248,6 +270,46 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, averageMegabitsPerSecond, color);
+    }
+    
+    // TODO: the display of these timing details should all be moved to JavaScript
+    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
+        // Timing details...
+        const int TIMER_OUTPUT_LINE_LENGTH = 1000;
+        char perfLine[TIMER_OUTPUT_LINE_LENGTH];
+        verticalOffset += STATS_PELS_PER_LINE * 4; // skip 4 lines to be under the other columns
+        drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, 
+                "-------------------------------------------------------- Function "
+                "------------------------------------------------------- --msecs- -calls--", color);
+
+        // First iterate all the records, and for the ones that should be included, insert them into 
+        // a new Map sorted by average time...
+        QMap<float, QString> sortedRecords;
+        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
+        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
+
+        while (i.hasNext()) {
+            i.next();
+            if (includeTimingRecord(i.key())) {
+                float averageTime = (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC;
+                sortedRecords.insertMulti(averageTime, i.key());
+            }
+        }
+
+        QMapIterator<float, QString> j(sortedRecords);
+        j.toBack();
+        while (j.hasPrevious()) {
+            j.previous();
+            QString functionName = j.value(); 
+            const PerformanceTimerRecord& record = allRecords.value(functionName);
+
+            sprintf(perfLine, "%120s: %8.4f [%6llu]", qPrintable(functionName),
+                        (float)record.getMovingAverage() / (float)USECS_PER_MSEC,
+                        record.getCount());
+        
+            verticalOffset += STATS_PELS_PER_LINE;
+            drawText(columnOneHorizontalOffset, verticalOffset, scale, rotation, font, perfLine, color);
+        }
     }
 
     verticalOffset = 0;
@@ -283,7 +345,11 @@ void Stats::display(
         }
 
         lines = _expanded ? 4 : 3;
-        drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+        
+        // only draw our background if column one didn't draw a wide background
+        if (columnOneWidth == _generalStatsWidth) {
+            drawBackground(backgroundColor, horizontalOffset, 0, _pingStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+        }
         horizontalOffset += 5;
 
         
@@ -319,7 +385,9 @@ void Stats::display(
 
     lines = _expanded ? 8 : 3;
 
-    drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+    if (columnOneWidth == _generalStatsWidth) {
+        drawBackground(backgroundColor, horizontalOffset, 0, _geoStatsWidth, lines * STATS_PELS_PER_LINE + 10);
+    }
     horizontalOffset += 5;
 
     char avatarPosition[200];
@@ -396,20 +464,6 @@ void Stats::display(
         lines += 9; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
 
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
-        // we will also include room for 1 line per timing record and a header
-        lines += 1;
-
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
-        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
-        while (i.hasNext()) {
-            i.next();
-            if (includeTimingRecord(i.key())) {
-                lines++;
-            }
-        }
-    }
-    
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
         lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
@@ -583,32 +637,6 @@ void Stats::display(
         voxelStats << "LOD: You can see " << qPrintable(displayLODDetails.trimmed());
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-    }
-
-    PerformanceTimer::tallyAllTimerRecords();
-
-    // TODO: the display of these timing details should all be moved to JavaScript
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::DisplayTimingDetails)) {
-        // Timing details...
-        const int TIMER_OUTPUT_LINE_LENGTH = 300;
-        char perfLine[TIMER_OUTPUT_LINE_LENGTH];
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, 
-                "--------------------- Function -------------------- --msecs- -calls--", color);
-
-        const QMap<QString, PerformanceTimerRecord>& allRecords = PerformanceTimer::getAllTimerRecords();
-        QMapIterator<QString, PerformanceTimerRecord> i(allRecords);
-        while (i.hasNext()) {
-            i.next();
-            if (includeTimingRecord(i.key())) {
-                sprintf(perfLine, "%50s: %8.4f [%6llu]", qPrintable(i.key()),
-                            (float)i.value().getMovingAverage() / (float)USECS_PER_MSEC,
-                            i.value().getCount());
-            
-                verticalOffset += STATS_PELS_PER_LINE;
-                drawText(horizontalOffset, verticalOffset, scale, rotation, font, perfLine, color);
-            }
-        }
     }
 
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
