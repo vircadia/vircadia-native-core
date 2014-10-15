@@ -1,7 +1,7 @@
 #version 120
 
 //
-//  metavoxel_voxel_cursor.frag
+//  metavoxel_cursor.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 10/10/14.
