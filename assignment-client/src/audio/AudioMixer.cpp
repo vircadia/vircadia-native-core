@@ -57,8 +57,6 @@
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
 
-
-
 #include "AudioMixer.h"
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
