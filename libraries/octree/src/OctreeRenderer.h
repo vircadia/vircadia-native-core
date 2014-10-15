@@ -74,7 +74,10 @@ public:
 
     int getTrianglesRendered() const { return _trianglesRendered; }
     int getQuadsRendered() const { return _quadsRendered; }
-    
+
+    int getTranslucentMeshPartsRendered() const { return _translucentMeshPartsRendered; }
+    int getOpaqueMeshPartsRendered() const { return _opaqueMeshPartsRendered; }
+
 protected:
     Octree* _tree;
     bool _managedTree;
@@ -90,6 +93,9 @@ protected:
 
     int _trianglesRendered;
     int _quadsRendered;
+
+    int _translucentMeshPartsRendered;
+    int _opaqueMeshPartsRendered;
 };
 
 class RenderArgs {
@@ -110,6 +116,9 @@ public:
 
     int _trianglesRendered;
     int _quadsRendered;
+
+    int _translucentMeshPartsRendered;
+    int _opaqueMeshPartsRendered;
 };
 
 

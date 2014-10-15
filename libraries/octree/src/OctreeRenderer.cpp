@@ -179,6 +179,9 @@ void OctreeRenderer::render(RenderMode renderMode) {
     _trianglesRendered = args._trianglesRendered;
     _quadsRendered = args._quadsRendered;
 
+    _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
+    _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+
 }
 
 void OctreeRenderer::clear() { 
