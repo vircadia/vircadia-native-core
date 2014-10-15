@@ -675,7 +675,6 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                 
                 AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
                                                                      QNetworkAccessManager::GetOperation, callbackParams);
-            
             }
         }
     } else {
