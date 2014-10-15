@@ -846,6 +846,113 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
+class HeightfieldClearVisitor : public MetavoxelVisitor {
+public:
+    
+    HeightfieldClearVisitor(const Box& bounds, float granularity);
+
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Box _bounds;
+};
+
+HeightfieldClearVisitor::HeightfieldClearVisitor(const Box& bounds, float granularity) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), QVector<AttributePointer>() <<
+            AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+            AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
+            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute()) {
+     
+    // find the bounds of all voxel nodes intersected
+    float nodeSize = VOXEL_BLOCK_SIZE * glm::pow(2.0f, glm::floor(glm::log(granularity) / glm::log(2.0f)));
+    _bounds.minimum = glm::floor(bounds.minimum / nodeSize) * nodeSize;
+    _bounds.maximum = glm::ceil(bounds.maximum / nodeSize) * nodeSize;
+    
+    // expand to include edges
+    float increment = nodeSize / VOXEL_BLOCK_SIZE;
+    _bounds.maximum.x += increment;
+    _bounds.maximum.z += increment;
+}
+
+int HeightfieldClearVisitor::visit(MetavoxelInfo& info) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldHeightDataPointer heightPointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
+    if (!heightPointer) {
+        return STOP_RECURSION;
+    }
+    QByteArray contents(heightPointer->getContents());
+    int size = glm::sqrt((float)contents.size());
+    float heightScale = size / info.size;
+    
+    Box overlap = bounds.getIntersection(_bounds);
+    int destX = (overlap.minimum.x - info.minimum.x) * heightScale;
+    int destY = (overlap.minimum.z - info.minimum.z) * heightScale;
+    int destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) * heightScale);
+    int destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) * heightScale);
+    char* dest = contents.data() + destY * size + destX;
+    
+    for (int y = 0; y < destHeight; y++, dest += size) {
+        memset(dest, 0, destWidth);
+    }
+    
+    HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
+    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
+    
+    HeightfieldColorDataPointer colorPointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
+    if (colorPointer) {
+        contents = colorPointer->getContents();
+        size = glm::sqrt((float)contents.size() / DataBlock::COLOR_BYTES);
+        heightScale = size / info.size;
+        
+        int destX = (overlap.minimum.x - info.minimum.x) * heightScale;
+        int destY = (overlap.minimum.z - info.minimum.z) * heightScale;
+        int destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) * heightScale);
+        int destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) * heightScale);
+        char* dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
+        
+        for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
+            memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+        }
+        
+        HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
+        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newColorPointer));
+    }
+    
+    HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
+    if (materialPointer) {
+        contents = materialPointer->getContents();
+        size = glm::sqrt((float)contents.size());
+        heightScale = size / info.size;
+        
+        int destX = (overlap.minimum.x - info.minimum.x) * heightScale;
+        int destY = (overlap.minimum.z - info.minimum.z) * heightScale;
+        int destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) * heightScale);
+        int destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) * heightScale);
+        char* dest = contents.data() + destY * size + destX;
+        
+        for (int y = 0; y < destHeight; y++, dest += size) {
+            memset(dest, 0, destWidth);
+        }
+        
+        QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
+        clearUnusedMaterials(materials, contents);
+        HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
+        info.outputValues[2] = AttributeValue(_outputs.at(2),
+            encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
+    }
+    
+    return STOP_RECURSION;
+}
+
 void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     // expand to fit the entire edit
     Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
@@ -857,6 +964,10 @@ void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObject
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
     VoxelMaterialSpannerEditVisitor visitor(spanner, material, color);
     data.guide(visitor);
+    
+    // clear any heightfield data
+    HeightfieldClearVisitor clearVisitor(spanner->getBounds(), spanner->getVoxelizationGranularity());
+    data.guide(clearVisitor);
 }
 
 PaintVoxelMaterialEdit::PaintVoxelMaterialEdit(const glm::vec3& position, float radius,
