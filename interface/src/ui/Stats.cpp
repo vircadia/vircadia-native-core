@@ -391,7 +391,7 @@ void Stats::display(
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
-    lines = _expanded ? 11 : 3;
+    lines = _expanded ? 14 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         lines += 9; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
@@ -415,6 +415,24 @@ void Stats::display(
     horizontalOffset += 5;
 
     if (_expanded) {
+        // Model/Entity render details
+        EntityTreeRenderer* entities = Application::getInstance()->getEntities();
+        voxelStats.str("");
+        voxelStats << "Entity Items rendered: " << entities->getItemsRendered() << " Out of view:" << entities->getItemsOutOfView();
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
+        voxelStats.str("");
+        voxelStats << "Meshes rendered: " << entities->getMeshesRendered() << " Out of view:" << entities->getMeshesOutOfView();
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
+        voxelStats.str("");
+        voxelStats << "Triangles: " << entities->getTrianglesRendered() << " Quads:" << entities->getQuadsRendered();
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
+
         // Local Voxel Memory Usage
         voxelStats.str("");
         voxelStats << "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
