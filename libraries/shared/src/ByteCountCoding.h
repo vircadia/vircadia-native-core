@@ -129,26 +129,31 @@ template<typename T> inline void ByteCountCoded<T>::decode(const QByteArray& fro
     
     // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
     int encodedByteCount = 0;
+    int leadBits = 1;
     int bitAt;
     for (bitAt = 0; bitAt < bitCount; bitAt++) {
         if (encodedBits.at(bitAt)) {
             encodedByteCount++;
+            leadBits++;
         } else {
             break;
         }
     }
     encodedByteCount++; // always at least one byte
     int expectedBitCount = encodedByteCount * BITS_IN_BYTE;
-    
-    // Now, keep reading...
-    int valueStartsAt = bitAt + 1; 
+
     T value = 0;
-    T bitValue = 1;
-    for (bitAt = valueStartsAt; bitAt < expectedBitCount; bitAt++) {
-        if(encodedBits.at(bitAt)) {
-            value += bitValue;
+    
+    if (expectedBitCount <= (encodedBits.size() - leadBits)) {
+        // Now, keep reading...
+        int valueStartsAt = bitAt + 1; 
+        T bitValue = 1;
+        for (bitAt = valueStartsAt; bitAt < expectedBitCount; bitAt++) {
+            if(encodedBits.at(bitAt)) {
+                value += bitValue;
+            }
+            bitValue *= 2;
         }
-        bitValue *= 2;
     }
     data = value;
 }
