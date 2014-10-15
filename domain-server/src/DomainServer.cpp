@@ -988,7 +988,6 @@ void DomainServer::sendPendingTransactionsToServer() {
             ++i;
         }
     }
-
 }
 
 void DomainServer::publicKeyJSONCallback(QNetworkReply& requestReply) {
