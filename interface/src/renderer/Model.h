@@ -251,7 +251,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(RenderMode mode, bool translucent, float alphaThreshold = 0.5f, RenderArgs* args = NULL);
+    int renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -332,6 +332,31 @@ private:
 
     QVector<AABox> _calculatedMeshBoxes;
     bool _calculatedMeshBoxesValid;
+
+    void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
+
+    bool _meshesGroupsKnown;
+
+    QList<int> _meshesTranslucent;
+    QList<int> _meshesTranslucentTangents;
+    QList<int> _meshesTranslucentTangentsSpecular;
+    QList<int> _meshesTranslucentSpecular;
+
+    QList<int> _meshesTranslucentSkinned;
+    QList<int> _meshesTranslucentTangentsSkinned;
+    QList<int> _meshesTranslucentTangentsSpecularSkinned;
+    QList<int> _meshesTranslucentSpecularSkinned;
+
+    QList<int> _meshesOpaque;
+    QList<int> _meshesOpaqueTangents;
+    QList<int> _meshesOpaqueTangentsSpecular;
+    QList<int> _meshesOpaqueSpecular;
+
+    QList<int> _meshesOpaqueSkinned;
+    QList<int> _meshesOpaqueTangentsSkinned;
+    QList<int> _meshesOpaqueTangentsSpecularSkinned;
+    QList<int> _meshesOpaqueSpecularSkinned;
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
