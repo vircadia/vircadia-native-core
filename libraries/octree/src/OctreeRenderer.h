@@ -74,6 +74,7 @@ public:
     int getMeshesOutOfView() const { return _meshesOutOfView; }
     int getMeshesTooSmall() const { return _meshesTooSmall; }
 
+    int getMaterialSwitches() const { return _materialSwitches; }
     int getTrianglesRendered() const { return _trianglesRendered; }
     int getQuadsRendered() const { return _quadsRendered; }
 
@@ -95,6 +96,7 @@ protected:
     int _meshesOutOfView;
     int _meshesTooSmall;
 
+    int _materialSwitches;
     int _trianglesRendered;
     int _quadsRendered;
 
@@ -120,6 +122,7 @@ public:
     int _meshesOutOfView;
     int _meshesTooSmall;
 
+    int _materialSwitches;
     int _trianglesRendered;
     int _quadsRendered;
 

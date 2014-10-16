@@ -426,6 +426,7 @@ Menu::Menu() :
     QMenu* modelCullingMenu = modelDebugMenu->addMenu("Culling");
     addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
     addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);

@@ -163,7 +163,7 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
 
 void OctreeRenderer::render(RenderMode renderMode) {
     RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
-                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     if (_tree) {
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
@@ -179,6 +179,7 @@ void OctreeRenderer::render(RenderMode renderMode) {
     _itemsOutOfView = args._itemsOutOfView;
     _itemsTooSmall = args._itemsTooSmall;
 
+    _materialSwitches = args._materialSwitches;
     _trianglesRendered = args._trianglesRendered;
     _quadsRendered = args._quadsRendered;
 
