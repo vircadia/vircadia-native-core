@@ -132,7 +132,8 @@
         "type": "table",
         "label": "Attenuation Coefficients",
         "help": "In this table you can set custom attenuation coefficients between audio zones",
-        "numbered": false,
+        "numbered": true,
+        "can_order": true,
         "columns": [
           {
             "name": "source",
@@ -158,7 +159,7 @@
   },
   {
     "name": "audio_buffer",
-    "label": "Audio Buffer",
+    "label": "Audio Buffers",
     "assignment-types": [0],
     "settings": [
       {
