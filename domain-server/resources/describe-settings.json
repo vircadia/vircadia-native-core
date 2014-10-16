@@ -59,6 +59,20 @@
         "type": "password",
         "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
         "value-hidden": true
+      },
+      {
+        "name": "allowed_users",
+        "type": "table",
+        "label": "Allowed Users",
+        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from this machine.",
+        "numbered": false,
+        "columns": [
+          {
+            "name": "username",
+            "label": "Username",
+            "can_set": true
+          }
+        ]
       }
     ]
   },

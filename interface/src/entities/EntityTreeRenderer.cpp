@@ -314,6 +314,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                     glower = new Glower(entityItem->getGlowLevel());
                 }
                 entityItem->render(args);
+                args->_itemsRendered++;
                 if (glower) {
                     delete glower;
                 }

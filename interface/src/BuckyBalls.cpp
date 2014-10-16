@@ -35,7 +35,6 @@ BuckyBalls::BuckyBalls() {
     colors[1] = glm::vec3(0.64f, 0.16f, 0.16f);
     colors[2] = glm::vec3(0.31f, 0.58f, 0.80f);
 
-    qDebug("Creating buckyballs...");
     for (int i = 0; i < NUM_BBALLS; i++) {
         _bballPosition[i] = CORNER_BBALLS + randVector() * RANGE_BBALLS;
         int element = (rand() % NUM_ELEMENTS);

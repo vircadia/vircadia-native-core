@@ -407,10 +407,6 @@ Menu::Menu() :
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
 #endif
-#ifdef HAVE_FACEPLUS
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Faceplus, 0, true,
-            appInstance->getFaceplus(), SLOT(updateEnabled()));
-#endif
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
             appInstance->getVisage(), SLOT(updateEnabled()));
@@ -423,6 +419,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     
     QMenu* modelDebugMenu = developerMenu->addMenu("Models");
+    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DontCullMeshParts, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelBounds, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);

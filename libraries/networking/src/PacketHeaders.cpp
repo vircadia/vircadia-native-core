@@ -114,7 +114,7 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainListRequest);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeRequestAssignment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeCreateAssignment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainOAuthRequest);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectionDenied);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeMuteEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioStreamStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDataServerConfirm);

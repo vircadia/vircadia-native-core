@@ -40,9 +40,9 @@ public slots:
     void send();
     
 private slots:
-    void checkJSON(const QJsonObject& jsonResponse);
+    void checkJSON(QNetworkReply& requestReply);
     void uploadUpdate(qint64 bytesSent, qint64 bytesTotal);
-    void uploadSuccess(const QJsonObject& jsonResponse);
+    void uploadSuccess(QNetworkReply& requestReply);
     void uploadFailed(QNetworkReply& errorReply);
     void checkS3();
     void processCheck();

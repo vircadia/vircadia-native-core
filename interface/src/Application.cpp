@@ -72,7 +72,6 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
-#include "PaymentManager.h"
 #include "Util.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
@@ -90,7 +89,6 @@
 #include "scripting/WindowScriptingInterface.h"
 
 #include "ui/InfoView.h"
-#include "ui/OAuthWebViewHandler.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
@@ -220,10 +218,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         listenPort = atoi(portStr);
     }
     
-    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
-    // make sure it is ready before the NodeList might need it
-    OAuthWebViewHandler::getInstance();
-
     // start the nodeThread so its event loop is running
     _nodeThread->start();
 
@@ -255,11 +249,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
-
-    // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
-    const PaymentManager& paymentManager = PaymentManager::getInstance();
-    connect(&_voxelEditSender, &VoxelEditPacketSender::octreePaymentRequired,
-            &paymentManager, &PaymentManager::sendSignedPayment);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -1557,9 +1546,8 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 FaceTracker* Application::getActiveFaceTracker() {
     return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-             (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-              (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL))));
+            (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+             (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1847,7 +1835,6 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     _faceshift.init();
-    _faceplus.init();
     _visage.init();
 
     Leapmotion::init();
@@ -3391,7 +3378,6 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
-    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
     _dde.reset();
@@ -3486,7 +3472,7 @@ void Application::updateLocationInServer() {
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
-        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
 }
@@ -3529,20 +3515,18 @@ void Application::domainChanged(const QString& domainHostname) {
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
-
-    // reset the auth URL for OAuth web view handler
-    OAuthWebViewHandler::getInstance().clearLastAuthorizationURL();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
     AccountManager& accountManager = AccountManager::getInstance();
+    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    
+    if (accountManager.isLoggedIn() && !domainID.isNull()) {
+        // update our data-server with the domain-server we're logged in with
 
-    if (accountManager.isLoggedIn()) {
-        // update our domain-server with the data-server we're logged in with
+        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
 
-        QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
-
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
     }
 }

@@ -11,11 +11,11 @@
 
 #include <QtCore/QWeakPointer>
 
+#include <AccountManager.h>
 #include <PerfStat.h>
 
 #include "Application.h"
 #include "Menu.h"
-#include "ui/OAuthWebViewHandler.h"
 
 #include "DatagramProcessor.h"
 
@@ -136,16 +136,11 @@ void DatagramProcessor::processDatagrams() {
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
-                case PacketTypeDomainOAuthRequest: {
-                    QDataStream readStream(incomingPacket);
-                    readStream.skipRawData(numBytesForPacketHeader(incomingPacket));
-                    
-                    QUrl authorizationURL;
-                    readStream >> authorizationURL;
-                    
-                    QMetaObject::invokeMethod(&OAuthWebViewHandler::getInstance(), "displayWebviewForAuthorizationURL",
-                                              Q_ARG(const QUrl&, authorizationURL));
-                    
+                case PacketTypeDomainConnectionDenied: {
+                    // output to the log so the user knows they got a denied connection request
+                    // and check and signal for an access token so that we can make sure they are logged in
+                    qDebug() << "The domain-server denied a connection request.";
+                    AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
                 }
                 case PacketTypeMuteEnvironment: {

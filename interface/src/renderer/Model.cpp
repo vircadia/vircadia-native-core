@@ -18,6 +18,7 @@
 
 #include <CapsuleShape.h>
 #include <GeometryUtil.h>
+#include <PerfStat.h>
 #include <PhysicsEntity.h>
 #include <ShapeCollider.h>
 #include <SphereShape.h>
@@ -44,7 +45,9 @@ Model::Model(QObject* parent) :
     _pupilDilation(0.0f),
     _url("http://invalid.com"),
     _blendNumber(0),
-    _appliedBlendNumber(0) {
+    _appliedBlendNumber(0),
+    _calculatedMeshBoxesValid(false),
+    _meshesGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -269,6 +272,8 @@ void Model::reset() {
     for (int i = 0; i < _jointStates.size(); i++) {
         _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation, 0.0f);
     }
+    
+    _meshesGroupsKnown = false;
 }
 
 bool Model::updateGeometry() {
@@ -318,6 +323,7 @@ bool Model::updateGeometry() {
         deleteGeometry();
         _dilatedTextures.clear();
         _geometry = geometry;
+        _meshesGroupsKnown = false;
         setJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -384,13 +390,30 @@ void Model::setJointStates(QVector<JointState> states) {
     _boundingRadius = radius;
 }
 
-bool Model::render(float alpha, RenderMode mode) {
+bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha, mode);
     }
     if (_meshStates.isEmpty()) {
         return false;
+    }
+
+    // if we don't have valid mesh boxes, calculate them now, this only matters in cases
+    // where our caller has passed RenderArgs which will include a view frustum we can cull
+    // against. We cache the results of these calculations so long as the model hasn't been
+    // simulated and the mesh hasn't changed.
+    if (args && !_calculatedMeshBoxesValid) {
+        PerformanceTimer perfTimer("calculatedMeshBoxes");
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        int numberOfMeshes = geometry.meshes.size();
+        _calculatedMeshBoxes.resize(numberOfMeshes);
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
+            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
+            _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
+        }
+        _calculatedMeshBoxesValid = true;
     }
     
     // set up dilated textures on first render after load/simulate
@@ -401,6 +424,10 @@ bool Model::render(float alpha, RenderMode mode) {
             dilated.resize(mesh.parts.size());
             _dilatedTextures.append(dilated);
         }
+    }
+    
+    if (!_meshesGroupsKnown) {
+        segregateMeshGroups();
     }
 
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -431,11 +458,31 @@ bool Model::render(float alpha, RenderMode mode) {
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
     
-    renderMeshes(mode, false);
+    const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
+    
+    //renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, book isSkinned, args);
+    int opaqueMeshPartsRendered = 0;
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
     
     // render translucent meshes afterwards
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
-    renderMeshes(mode, true, 0.75f);
+    int translucentMeshPartsRendered = 0;
+    const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
     
     glDisable(GL_ALPHA_TEST);
     glEnable(GL_BLEND);
@@ -445,7 +492,15 @@ bool Model::render(float alpha, RenderMode mode) {
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
-        renderMeshes(mode, true, 0.0f);
+        const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
     }
     
     glDepthMask(true);
@@ -468,6 +523,11 @@ bool Model::render(float alpha, RenderMode mode) {
     
     // restore all the default material settings
     Application::getInstance()->setupWorldLight();
+    
+    if (args) {
+        args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
+        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
+    }
 
     return true;
 }
@@ -510,6 +570,22 @@ Extents Model::getUnscaledMeshExtents() const {
         
     return scaledExtents;
 }
+
+Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
+    // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
+    glm::vec3 minimum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.minimum, 1.0f));
+    glm::vec3 maximum = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(extents.maximum, 1.0f));
+
+    Extents scaledOffsetExtents = { ((minimum + _offset) * _scale), 
+                                    ((maximum + _offset) * _scale) };
+
+    Extents rotatedExtents = scaledOffsetExtents.getRotated(_rotation);
+
+    Extents translatedExtents = { rotatedExtents.minimum + _translation, 
+                                  rotatedExtents.maximum + _translation };
+    return translatedExtents;
+}
+
 
 bool Model::getJointState(int index, glm::quat& rotation) const {
     if (index == -1 || index >= _jointStates.size()) {
@@ -790,6 +866,8 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
+        _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
+
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {
             scaleToFit();
@@ -1169,6 +1247,7 @@ void Model::applyNextGeometry() {
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
     _baseGeometry = _nextBaseGeometry;
     _geometry = _nextGeometry;
+    _meshesGroupsKnown = false;
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -1200,19 +1279,218 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
-void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold) {
+void Model::segregateMeshGroups() {
+    _meshesTranslucentTangents.clear();
+    _meshesTranslucent.clear();
+    _meshesTranslucentTangentsSpecular.clear();
+    _meshesTranslucentSpecular.clear();
+
+    _meshesTranslucentTangentsSkinned.clear();
+    _meshesTranslucentSkinned.clear();
+    _meshesTranslucentTangentsSpecularSkinned.clear();
+    _meshesTranslucentSpecularSkinned.clear();
+
+    _meshesOpaqueTangents.clear();
+    _meshesOpaque.clear();
+    _meshesOpaqueTangentsSpecular.clear();
+    _meshesOpaqueSpecular.clear();
+
+    _meshesOpaqueTangentsSkinned.clear();
+    _meshesOpaqueSkinned.clear();
+    _meshesOpaqueTangentsSpecularSkinned.clear();
+    _meshesOpaqueSpecularSkinned.clear();
+
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+
+    for (int i = 0; i < networkMeshes.size(); i++) {
+        const NetworkMesh& networkMesh = networkMeshes.at(i);
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        const MeshState& state = _meshStates.at(i);
+
+        bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
+        bool hasTangents = !mesh.tangents.isEmpty();
+        bool hasSpecular = mesh.hasSpecularTexture();
+        bool isSkinned = state.clusterMatrices.size() > 1;
+
+        if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
+
+            _meshesTranslucent.append(i);
+
+        } else if (translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
+
+            _meshesTranslucentTangents.append(i);
+
+        } else if (translucentMesh && hasTangents && hasSpecular && !isSkinned) {
+
+            _meshesTranslucentTangentsSpecular.append(i);
+
+        } else if (translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
+
+            _meshesTranslucentSpecular.append(i);
+
+        } else if (translucentMesh && hasTangents && !hasSpecular && isSkinned) {
+
+            _meshesTranslucentTangentsSkinned.append(i);
+
+        } else if (translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
+
+            _meshesTranslucentSkinned.append(i);
+
+        } else if (translucentMesh && hasTangents && hasSpecular && isSkinned) {
+
+            _meshesTranslucentTangentsSpecularSkinned.append(i);
+
+        } else if (translucentMesh && !hasTangents && hasSpecular && isSkinned) {
+
+            _meshesTranslucentSpecularSkinned.append(i);
+
+        } else if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
+
+            _meshesOpaque.append(i);
+
+        } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
+
+            _meshesOpaqueTangents.append(i);
+
+        } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
+
+            _meshesOpaqueTangentsSpecular.append(i);
+
+        } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
+
+            _meshesOpaqueSpecular.append(i);
+
+        } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
+
+            _meshesOpaqueTangentsSkinned.append(i);
+
+        } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
+
+            _meshesOpaqueSkinned.append(i);
+
+        } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
+
+            _meshesOpaqueTangentsSpecularSkinned.append(i);
+
+        } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
+
+            _meshesOpaqueSpecularSkinned.append(i);
+        } else {
+            qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+        }
+    }
+    _meshesGroupsKnown = true;
+}
+
+int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, 
+                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+    int meshPartsRendered = 0;
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+
+    bool cullMeshParts = args && !Menu::getInstance()->isOptionChecked(MenuOption::DontCullMeshParts);
+
+    // depending on which parameters we were called with, pick the correct mesh group to render
+    QList<int>* whichList = NULL;
+    if (translucent && !hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesTranslucent;
+    } else if (translucent && hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesTranslucentTangents;
+    } else if (translucent && hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesTranslucentTangentsSpecular;
+    } else if (translucent && !hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesTranslucentSpecular;
+    } else if (translucent && hasTangents && !hasSpecular && isSkinned) {
+        whichList = &_meshesTranslucentTangentsSkinned;
+    } else if (translucent && !hasTangents && !hasSpecular && isSkinned) {
+        whichList = &_meshesTranslucentSkinned;
+    } else if (translucent && hasTangents && hasSpecular && isSkinned) {
+        whichList = &_meshesTranslucentTangentsSpecularSkinned;
+    } else if (translucent && !hasTangents && hasSpecular && isSkinned) {
+        whichList = &_meshesTranslucentSpecularSkinned;
+    } else if (!translucent && !hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaque;
+    } else if (!translucent && hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueTangents;
+    } else if (!translucent && hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueTangentsSpecular;
+    } else if (!translucent && !hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueSpecular;
+    } else if (!translucent && hasTangents && !hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueTangentsSkinned;
+    } else if (!translucent && !hasTangents && !hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueSkinned;
+    } else if (!translucent && hasTangents && hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueTangentsSpecularSkinned;
+    } else if (!translucent && !hasTangents && hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueSpecularSkinned;
+    } else {
+        qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+    }
     
-    for (int i = 0; i < networkMeshes.size(); i++) {
+    if (!whichList) {
+        qDebug() << "unexpected!!! we don't know which list of meshes to render...";
+        return 0;
+    }
+    QList<int>& list = *whichList;
+
+    ProgramObject* program = &_program;
+    Locations* locations = &_locations;
+    ProgramObject* skinProgram = &_skinProgram;
+    SkinLocations* skinLocations = &_skinLocations;
+    GLenum specularTextureUnit = 0;
+    if (mode == SHADOW_RENDER_MODE) {
+        program = &_shadowProgram;
+        skinProgram = &_skinShadowProgram;
+        skinLocations = &_skinShadowLocations;
+    } else if (translucent && alphaThreshold == 0.0f) {
+        program = &_translucentProgram;
+        locations = &_translucentLocations;
+        skinProgram = &_skinTranslucentProgram;
+        skinLocations = &_skinTranslucentLocations;
+        
+    } else if (hasTangents) {
+        if (hasSpecular) {
+            program = &_normalSpecularMapProgram;
+            locations = &_normalSpecularMapLocations;
+            skinProgram = &_skinNormalSpecularMapProgram;
+            skinLocations = &_skinNormalSpecularMapLocations;
+            specularTextureUnit = GL_TEXTURE2;
+        } else {
+            program = &_normalMapProgram;
+            locations = &_normalMapLocations;
+            skinProgram = &_skinNormalMapProgram;
+            skinLocations = &_skinNormalMapLocations;
+        }
+    } else if (hasSpecular) {
+        program = &_specularMapProgram;
+        locations = &_specularMapLocations;
+        skinProgram = &_skinSpecularMapProgram;
+        skinLocations = &_skinSpecularMapLocations;
+        specularTextureUnit = GL_TEXTURE1;   
+    }
+    
+    ProgramObject* activeProgram = program;
+    Locations* activeLocations = locations;
+    
+    if (isSkinned) {
+        skinProgram->bind();
+        activeProgram = skinProgram;
+        activeLocations = skinLocations;
+    } else {
+        program->bind();
+    }
+    activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
+    
+    // i is the "index" from the original networkMeshes QVector...
+    foreach (int i, list) {
+        
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);    
-        if (translucent ? (networkMesh.getTranslucentPartCount(mesh) == 0) :
-                (networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size())) {
-            continue;
-        }
+
         const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
 
         int vertexCount = mesh.vertices.size();
@@ -1221,54 +1499,30 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
             continue;
         }
         
-        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
-        
-        ProgramObject* program = &_program;
-        Locations* locations = &_locations;
-        ProgramObject* skinProgram = &_skinProgram;
-        SkinLocations* skinLocations = &_skinLocations;
-        GLenum specularTextureUnit = 0;
-        if (mode == SHADOW_RENDER_MODE) {
-            program = &_shadowProgram;
-            skinProgram = &_skinShadowProgram;
-            skinLocations = &_skinShadowLocations;
-        
-        } else if (translucent && alphaThreshold == 0.0f) {
-            program = &_translucentProgram;
-            locations = &_translucentLocations;
-            skinProgram = &_skinTranslucentProgram;
-            skinLocations = &_skinTranslucentLocations;
-            
-        } else if (!mesh.tangents.isEmpty()) {
-            if (mesh.hasSpecularTexture()) {
-                program = &_normalSpecularMapProgram;
-                locations = &_normalSpecularMapLocations;
-                skinProgram = &_skinNormalSpecularMapProgram;
-                skinLocations = &_skinNormalSpecularMapLocations;
-                specularTextureUnit = GL_TEXTURE2;
-                
-            } else {
-                program = &_normalMapProgram;
-                locations = &_normalMapLocations;
-                skinProgram = &_skinNormalMapProgram;
-                skinLocations = &_skinNormalMapLocations;
+        // if we got here, then check to see if this mesh is in view
+        if (args) {
+            bool shouldRender = true;
+            args->_meshesConsidered++;
+
+            if (cullMeshParts && args->_viewFrustum) {
+                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
             }
-        } else if (mesh.hasSpecularTexture()) {
-            program = &_specularMapProgram;
-            locations = &_specularMapLocations;
-            skinProgram = &_skinSpecularMapProgram;
-            skinLocations = &_skinSpecularMapLocations;
-            specularTextureUnit = GL_TEXTURE1;   
+
+            if (shouldRender) {
+                args->_meshesRendered++;
+            } else {
+                args->_meshesOutOfView++;
+                continue; // skip this mesh
+            }
         }
         
-        const MeshState& state = _meshStates.at(i);
-        ProgramObject* activeProgram = program;
-        Locations* activeLocations = locations;
+        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
+        
         glPushMatrix();
         Application::getInstance()->loadTranslatedViewMatrix(_translation);
-        
+
+        const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
-            skinProgram->bind();
             glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
             int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
@@ -1279,15 +1533,9 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
                 offset + vertexCount * sizeof(glm::vec4), 4);
             skinProgram->enableAttributeArray(skinLocations->clusterIndices);
             skinProgram->enableAttributeArray(skinLocations->clusterWeights);
-            activeProgram = skinProgram;
-            activeLocations = skinLocations;
-            
         } else {
             glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
-            program->bind();
         }
-        
-        activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
         
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
@@ -1367,11 +1615,26 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
                     glActiveTexture(GL_TEXTURE0);
                 }
             }
-            glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
-            offset += part.quadIndices.size() * sizeof(int);
-            glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
-                GL_UNSIGNED_INT, (void*)offset);
-            offset += part.triangleIndices.size() * sizeof(int);
+            
+            meshPartsRendered++;
+            
+            if (part.quadIndices.size() > 0) {
+                glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
+                offset += part.quadIndices.size() * sizeof(int);
+            }
+            
+            if (part.triangleIndices.size() > 0) {
+                glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
+                    GL_UNSIGNED_INT, (void*)offset);
+                offset += part.triangleIndices.size() * sizeof(int);
+            }
+
+            if (args) {
+                const int INDICES_PER_TRIANGLE = 3;
+                const int INDICES_PER_QUAD = 4;
+                args->_trianglesRendered += part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+                args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
+            }
         }
         
         if (!mesh.colors.isEmpty()) {
@@ -1401,8 +1664,10 @@ void Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold
         } 
         glPopMatrix();
 
-        activeProgram->release();
     }
+    activeProgram->release();
+    
+    return meshPartsRendered;
 }
 
 void AnimationHandle::setURL(const QUrl& url) {

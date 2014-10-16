@@ -1,16 +1,38 @@
-var MOUSE_SENSITIVITY = 0.5;
+//
+//  entityCameraTool.js
+//  examples
+//
+//  Created by Ryan Huffman on 10/14/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+var MOUSE_SENSITIVITY = 0.9;
 var SCROLL_SENSITIVITY = 0.05;
-var PAN_ZOOM_SCALE_RATIO = 0.1;
+var PAN_ZOOM_SCALE_RATIO = 0.4;
+
+// Scaling applied based on the size of the object being focused
+var FOCUS_ZOOM_SCALE = 1.3;
+
+// Minimum zoom level when focusing on an object
+var FOCUS_MIN_ZOOM = 0.5;
+
+// Scaling applied based on the current zoom level
 var ZOOM_SCALING = 0.02;
 
 var MIN_ZOOM_DISTANCE = 0.01;
-var MAX_ZOOM_DISTANCE = 100;
+var MAX_ZOOM_DISTANCE = 200;
 
 var MODE_INACTIVE = null;
 var MODE_ORBIT = 'orbit';
 var MODE_PAN = 'pan';
 
-var INITIAL_ZOOM_DISTANCE = 4;
+var EASING_MULTIPLIER = 8;
+
+var INITIAL_ZOOM_DISTANCE = 2;
+var INITIAL_ZOOM_DISTANCE_FIRST_PERSON = 3;
 
 EntityCameraTool = function() {
     var that = {};
@@ -19,9 +41,15 @@ EntityCameraTool = function() {
     that.mode = MODE_INACTIVE;
 
     that.zoomDistance = INITIAL_ZOOM_DISTANCE;
+    that.targetZoomDistance = INITIAL_ZOOM_DISTANCE;
+
     that.yaw = 0;
     that.pitch = 0;
+    that.targetYaw = 0;
+    that.targetPitch = 0;
+
     that.focalPoint = { x: 0, y: 0, z: 0 };
+    that.targetFocalPoint = { x: 0, y: 0, z: 0 };
 
     that.previousCameraMode = null;
 
@@ -32,19 +60,26 @@ EntityCameraTool = function() {
         that.enabled = true;
         that.mode = MODE_INACTIVE;
 
-        // Pick a point INITIAL_ZOOM_DISTANCE in front of the camera to use
-        // as a focal point
+        // Pick a point INITIAL_ZOOM_DISTANCE in front of the camera to use as a focal point
         that.zoomDistance = INITIAL_ZOOM_DISTANCE;
+        that.targetZoomDistance = that.zoomDistance;
         var focalPoint = Vec3.sum(Camera.getPosition(),
                         Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
+
+        if (Camera.getMode() == 'first person') {
+            that.targetZoomDistance = INITIAL_ZOOM_DISTANCE_FIRST_PERSON;
+        }
 
         // Determine the correct yaw and pitch to keep the camera in the same location
         var dPos = Vec3.subtract(focalPoint, Camera.getPosition());
         var xzDist = Math.sqrt(dPos.x * dPos.x + dPos.z * dPos.z);
 
-        that.pitch = -Math.atan2(dPos.y, xzDist) * 180 / Math.PI;
-        that.yaw = Math.atan2(dPos.x, dPos.z) * 180 / Math.PI;
+        that.targetPitch = -Math.atan2(dPos.y, xzDist) * 180 / Math.PI;
+        that.targetYaw = Math.atan2(dPos.x, dPos.z) * 180 / Math.PI;
+        that.pitch = that.targetPitch;
+        that.yaw = that.targetYaw;
 
+        that.focalPoint = focalPoint;
         that.setFocalPoint(focalPoint);
         that.previousCameraMode = Camera.getMode();
         Camera.setMode("independent");
@@ -61,6 +96,11 @@ EntityCameraTool = function() {
     }
 
     that.focus = function(entityProperties) {
+        var dim = entityProperties.dimensions;
+        var size = Math.max(dim.x, Math.max(dim.y, dim.z));
+
+        that.targetZoomDistance = Math.max(size * FOCUS_ZOOM_SCALE, FOCUS_MIN_ZOOM);
+
         that.setFocalPoint(entityProperties.position);
 
         that.updateCamera();
@@ -71,7 +111,7 @@ EntityCameraTool = function() {
     }
 
     that.setFocalPoint = function(pos) {
-        that.focalPoint = pos
+        that.targetFocalPoint = pos
         that.updateCamera();
     }
 
@@ -80,14 +120,14 @@ EntityCameraTool = function() {
             if (that.mode == MODE_ORBIT) {
                 var diffX = event.x - that.lastMousePosition.x;
                 var diffY = event.y - that.lastMousePosition.y;
-                that.yaw -= MOUSE_SENSITIVITY * (diffX / 5.0)
-                that.pitch += MOUSE_SENSITIVITY * (diffY / 10.0)
+                that.targetYaw -= MOUSE_SENSITIVITY * (diffX / 5.0)
+                that.targetPitch += MOUSE_SENSITIVITY * (diffY / 10.0)
 
-                while (that.yaw > 180.0) that.yaw -= 360;
-                while (that.yaw < -180.0) that.yaw += 360;
+                while (that.targetYaw > 180.0) that.targetYaw -= 360;
+                while (that.targetYaw < -180.0) that.targetYaw += 360;
 
-                if (that.pitch > 90) that.pitch = 90;
-                if (that.pitch < -90) that.pitch = -90;
+                if (that.targetPitch > 90) that.targetPitch = 90;
+                if (that.targetPitch < -90) that.targetPitch = -90;
 
                 that.updateCamera();
             } else if (that.mode == MODE_PAN) {
@@ -142,9 +182,9 @@ EntityCameraTool = function() {
         var dZoom = -event.delta * SCROLL_SENSITIVITY;
 
         // Scale based on current zoom level
-        dZoom *= that.zoomDistance * ZOOM_SCALING;
+        dZoom *= that.targetZoomDistance * ZOOM_SCALING;
 
-        that.zoomDistance = Math.max(Math.min(that.zoomDistance + dZoom, MAX_ZOOM_DISTANCE), MIN_ZOOM_DISTANCE);
+        that.targetZoomDistance = Math.max(Math.min(that.targetZoomDistance + dZoom, MAX_ZOOM_DISTANCE), MIN_ZOOM_DISTANCE);
 
         that.updateCamera();
     }
@@ -165,6 +205,40 @@ EntityCameraTool = function() {
 
         Camera.setOrientation(q);
     }
+
+    function normalizeDegrees(degrees) {
+        while (degrees > 180) degrees -= 360;
+        while (degrees < -180) degrees += 360;
+        return degrees;
+    }
+
+    // Ease the position and orbit of the camera
+    that.update = function(dt) {
+        var scale = Math.min(dt * EASING_MULTIPLIER, 1.0);
+
+        var dYaw = that.targetYaw - that.yaw;
+        if (dYaw > 180) dYaw -= 360;
+        if (dYaw < -180) dYaw += 360;
+
+        var dPitch = that.targetPitch - that.pitch;
+
+        that.yaw += scale * dYaw;
+        that.pitch += scale * dPitch;
+
+        // Normalize between [-180, 180]
+        that.yaw = normalizeDegrees(that.yaw);
+        that.pitch = normalizeDegrees(that.pitch);
+
+        var dFocal = Vec3.subtract(that.targetFocalPoint, that.focalPoint);
+        that.focalPoint = Vec3.sum(that.focalPoint, Vec3.multiply(scale, dFocal));
+
+        var dZoom = that.targetZoomDistance - that.zoomDistance;
+        that.zoomDistance += scale * dZoom;
+
+        that.updateCamera();
+    }
+
+    Script.update.connect(that.update);
 
     Controller.wheelEvent.connect(that.wheelEvent);
 

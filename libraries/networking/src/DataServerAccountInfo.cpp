@@ -9,6 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <openssl/rsa.h>
+
+#include <qjsondocument.h>
 #include <QtCore/QDebug>
 
 #include "DataServerAccountInfo.h"
@@ -20,7 +23,9 @@ DataServerAccountInfo::DataServerAccountInfo() :
     _discourseApiKey(),
     _walletID(),
     _balance(0),
-    _hasBalance(false)
+    _hasBalance(false),
+    _privateKey(),
+    _usernameSignature()
 {
 
 }
@@ -33,6 +38,7 @@ DataServerAccountInfo::DataServerAccountInfo(const DataServerAccountInfo& otherI
     _walletID = otherInfo._walletID;
     _balance = otherInfo._balance;
     _hasBalance = otherInfo._hasBalance;
+    _privateKey = otherInfo._privateKey;
 }
 
 DataServerAccountInfo& DataServerAccountInfo::operator=(const DataServerAccountInfo& otherInfo) {
@@ -51,6 +57,7 @@ void DataServerAccountInfo::swap(DataServerAccountInfo& otherInfo) {
     swap(_walletID, otherInfo._walletID);
     swap(_balance, otherInfo._balance);
     swap(_hasBalance, otherInfo._hasBalance);
+    swap(_privateKey, otherInfo._privateKey);
 }
 
 void DataServerAccountInfo::setAccessTokenFromJSON(const QJsonObject& jsonObject) {
@@ -61,6 +68,9 @@ void DataServerAccountInfo::setUsername(const QString& username) {
     if (_username != username) {
         _username = username;
 
+        // clear our username signature so it has to be re-created
+        _usernameSignature = QByteArray();
+        
         qDebug() << "Username changed to" << username;
     }
 }
@@ -92,7 +102,8 @@ void DataServerAccountInfo::setBalance(qint64 balance) {
     }
 }
 
-void DataServerAccountInfo::setBalanceFromJSON(const QJsonObject& jsonObject) {
+void DataServerAccountInfo::setBalanceFromJSON(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     if (jsonObject["status"].toString() == "success") {
         qint64 balanceInSatoshis = jsonObject["data"].toObject()["wallet"].toObject()["balance"].toDouble();
         setBalance(balanceInSatoshis);
@@ -111,12 +122,58 @@ void DataServerAccountInfo::setProfileInfoFromJSON(const QJsonObject& jsonObject
     setWalletID(QUuid(user["wallet_id"].toString()));
 }
 
+const QByteArray& DataServerAccountInfo::getUsernameSignature() {
+    if (_usernameSignature.isEmpty()) {
+        if (!_privateKey.isEmpty()) {
+            const char* privateKeyData = _privateKey.constData();
+            RSA* rsaPrivateKey = d2i_RSAPrivateKey(NULL,
+                                                   reinterpret_cast<const unsigned char**>(&privateKeyData),
+                                                   _privateKey.size());
+            if (rsaPrivateKey) {
+                QByteArray usernameByteArray = _username.toUtf8();
+                _usernameSignature.resize(RSA_size(rsaPrivateKey));
+                
+                int encryptReturn = RSA_private_encrypt(usernameByteArray.size(),
+                                                        reinterpret_cast<const unsigned char*>(usernameByteArray.constData()),
+                                                        reinterpret_cast<unsigned char*>(_usernameSignature.data()),
+                                                        rsaPrivateKey, RSA_PKCS1_PADDING);
+                
+                if (encryptReturn == -1) {
+                    qDebug() << "Error encrypting username signature.";
+                    qDebug() << "Will re-attempt on next domain-server check in.";
+                    _usernameSignature = QByteArray();
+                }
+                
+                // free the private key RSA struct now that we are done with it
+                RSA_free(rsaPrivateKey);
+            } else {
+                qDebug() << "Could not create RSA struct from QByteArray private key.";
+                qDebug() << "Will re-attempt on next domain-server check in.";
+            }
+        } else {
+            qDebug() << "No private key present in DataServerAccountInfo. Re-log to generate new key.";
+            qDebug() << "Returning empty username signature.";
+        }
+    }
+    
+    return _usernameSignature;
+}
+
+void DataServerAccountInfo::setPrivateKey(const QByteArray& privateKey) {
+    _privateKey = privateKey;
+    
+    // clear our username signature so it has to be re-created
+    _usernameSignature = QByteArray();
+}
+
 QDataStream& operator<<(QDataStream &out, const DataServerAccountInfo& info) {
-    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey << info._walletID;
+    out << info._accessToken << info._username << info._xmppPassword << info._discourseApiKey
+        << info._walletID << info._privateKey;
     return out;
 }
 
 QDataStream& operator>>(QDataStream &in, DataServerAccountInfo& info) {
-    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey >> info._walletID;
+    in >> info._accessToken >> info._username >> info._xmppPassword >> info._discourseApiKey
+        >> info._walletID >> info._privateKey;
     return in;
 }

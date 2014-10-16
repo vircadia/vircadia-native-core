@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <mmintrin.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fstream>
@@ -57,8 +56,6 @@
 #include "AudioMixerDatagramProcessor.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
-
-
 
 #include "AudioMixer.h"
 

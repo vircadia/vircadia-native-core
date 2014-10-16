@@ -52,6 +52,7 @@ public slots:
     /// Called by NodeList to inform us a node has been killed
     void nodeKilled(SharedNodePointer node);
     
+    void publicKeyJSONCallback(QNetworkReply& requestReply);
     void transactionJSONCallback(const QJsonObject& data);
     
     void restart();
@@ -82,8 +83,17 @@ private:
     void processDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
     
     void handleConnectRequest(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
-    int parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
-                                    HifiSockAddr& localSockAddr, const QByteArray& packet, const HifiSockAddr& senderSockAddr);
+    bool shouldAllowConnectionFromNode(const QString& username, const QByteArray& usernameSignature,
+                                       const HifiSockAddr& senderSockAddr);
+    
+    void preloadAllowedUserPublicKeys();
+    void requestUserPublicKey(const QString& username);
+    
+    int parseNodeDataFromByteArray(QDataStream& packetStream,
+                                   NodeType_t& nodeType,
+                                   HifiSockAddr& publicSockAddr,
+                                   HifiSockAddr& localSockAddr,
+                                   const HifiSockAddr& senderSockAddr);
     NodeSet nodeInterestListFromPacket(const QByteArray& packet, int numPreceedingBytes);
     void sendDomainListToNode(const SharedNodePointer& node, const HifiSockAddr& senderSockAddr,
                               const NodeSet& nodeInterestList);
@@ -131,13 +141,11 @@ private:
     QString _oauthClientID;
     QString _oauthClientSecret;
     QString _hostname;
-    QMap<QNetworkReply*, QUuid> _networkReplyUUIDMap;
-    QHash<QUuid, QString> _sessionAuthenticationHash;
     
     QSet<QUuid> _webAuthenticationStateSet;
     QHash<QUuid, DomainServerWebSessionData> _cookieSessionHash;
     
-    HifiSockAddr _localSockAddr;
+    QHash<QString, QByteArray> _userPublicKeys;
     
     QHash<QUuid, NetworkPeer> _connectingICEPeers;
     QHash<QUuid, HifiSockAddr> _connectedICEPeers;

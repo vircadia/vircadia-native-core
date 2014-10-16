@@ -162,12 +162,26 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
 }
 
 void OctreeRenderer::render(RenderMode renderMode) {
-    RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 0, 0, 0 };
+    RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 0, 0, 0, 0, 0, 0, 0, 0 };
     if (_tree) {
         _tree->lockForRead();
         _tree->recurseTreeWithOperation(renderOperation, &args);
         _tree->unlock();
     }
+    _meshesConsidered = args._meshesConsidered;
+    _meshesRendered = args._meshesRendered;
+    _meshesOutOfView = args._meshesOutOfView;
+
+    _elementsTouched = args._elementsTouched;
+    _itemsRendered = args._itemsRendered;
+    _itemsOutOfView = args._itemsOutOfView;
+
+    _trianglesRendered = args._trianglesRendered;
+    _quadsRendered = args._quadsRendered;
+
+    _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
+    _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+
 }
 
 void OctreeRenderer::clear() { 
