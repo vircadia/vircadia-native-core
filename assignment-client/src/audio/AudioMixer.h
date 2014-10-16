@@ -74,8 +74,14 @@ private:
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;
+    
     QHash<QString, AABox> _audioZones;
-    QHash<QString, QHash<QString, float> > _attenuationCoefficients;
+    struct ZonesSettings {
+        QString source;
+        QString listener;
+        float coefficient;
+    };
+    QVector<ZonesSettings> _zonesSettings;
 
     static InboundAudioStream::Settings _streamSettings;
 

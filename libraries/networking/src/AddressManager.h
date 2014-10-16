@@ -42,7 +42,7 @@ public:
 public slots:
     void handleLookupString(const QString& lookupString);
     
-    void handleAPIResponse(const QJsonObject& jsonObject);
+    void handleAPIResponse(QNetworkReply& requestReply);
     void handleAPIError(QNetworkReply& errorReply);
     void goToUser(const QString& username);
 signals:

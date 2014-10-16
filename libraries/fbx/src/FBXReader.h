@@ -115,6 +115,8 @@ public:
     FBXTexture diffuseTexture;
     FBXTexture normalTexture;
     FBXTexture specularTexture;
+
+    QString materialID;
 };
 
 /// A single mesh (with optional blendshapes) extracted from an FBX document.

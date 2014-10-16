@@ -22,7 +22,7 @@
       <ul class="nav nav-pills nav-stacked">
       </ul>
       
-      <button id="advanced-toggle-button" class="btn btn-info">Show advanced</button>
+      <button id="advanced-toggle-button" hidden=true class="btn btn-info">Show advanced</button>
       <button class="btn btn-success save-button">Save and restart</button>
     </div>
   </div>
@@ -32,25 +32,32 @@
   
       <script id="panels-template" type="text/template">
         <% _.each(descriptions, function(group){ %>
-          <div class="panel panel-default" id="<%- group.name %>">
+          <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
+          <% isAdvanced = _.isEmpty(split_settings[0]) %>
+          <% if (isAdvanced) { %>
+            <% $("a[href=#" + group.name + "]").addClass('advanced-setting').hide() %>
+          <% } %>
+          <div class="panel panel-default <%- (isAdvanced) ? 'advanced-setting' : '' %>" id="<%- group.name %>">
             <div class="panel-heading">
               <h3 class="panel-title"><%- group.label %></h3>
             </div>
             <div class="panel-body">
-              <% split_settings = _.partition(group.settings, function(value, index) { return !value.advanced }) %>
               <% _.each(split_settings[0], function(setting) { %>
                 <%= getFormGroup(group.name, setting, values, false, 
                   (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
               <% }); %>
-              <% _.each(split_settings[1], function(setting) { %>
-                <%= getFormGroup(group.name, setting, values, true, 
-                  (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
-              <% }); %>
+              <% if (!_.isEmpty(split_settings[1])) { %>
+                <% $("#advanced-toggle-button").show() %>
+                <% _.each(split_settings[1], function(setting) { %>
+                  <%= getFormGroup(group.name, setting, values, true, 
+                    (_.has(locked, group.name) && _.has(locked[group.name], setting.name))) %>
+                <% }); %>
+              <% }%>
             </div>
           </div>
         <% }); %>
       </script>
-
+      
       <div id="panels"></div>
       
      </form>
