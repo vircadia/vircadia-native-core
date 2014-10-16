@@ -66,11 +66,11 @@ void RSAKeypairGenerator::generateKeypair() {
         
         // cleanup the public and private key DER data, if required
         if (publicKeyLength > 0) {
-            delete publicKeyDER;
+            delete[] publicKeyDER;
         }
         
         if (privateKeyLength > 0) {
-            delete privateKeyDER;
+            delete[] privateKeyDER;
         }
         
         return;
