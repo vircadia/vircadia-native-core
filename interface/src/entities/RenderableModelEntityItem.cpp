@@ -59,7 +59,7 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
 
 
 void RenderableModelEntityItem::render(RenderArgs* args) {
-    PerformanceTimer perfTimer("RenderableModelEntityItem::render");
+    PerformanceTimer perfTimer("RMEIrender");
     assert(getType() == EntityTypes::Model);
     
     bool drawAsModel = hasModel();
@@ -119,7 +119,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
                     // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
                     PerformanceTimer perfTimer("model->render");
-                    _model->render(alpha, modelRenderMode);
+                    _model->render(alpha, modelRenderMode, args);
                 } else {
                     // if we couldn't get a model, then just draw a cube
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);

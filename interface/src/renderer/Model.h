@@ -16,9 +16,9 @@
 #include <QObject>
 #include <QUrl>
 
-#include <PhysicsEntity.h>
-
+#include <AABox.h>
 #include <AnimationCache.h>
+#include <PhysicsEntity.h>
 
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
@@ -30,6 +30,8 @@ class QScriptEngine;
 
 class AnimationHandle;
 class Shape;
+class RenderArgs;
+class ViewFrustum;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
@@ -84,7 +86,7 @@ public:
     
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
-    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE);
+    bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -106,6 +108,9 @@ public:
 
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
+
+    /// Returns the scaled equivalent of some extents in model space.
+    Extents calculateScaledOffsetExtents(const Extents& extents) const;
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -247,7 +252,7 @@ private:
     
     void applyNextGeometry();
     void deleteGeometry();
-    void renderMeshes(RenderMode mode, bool translucent, float alphaThreshold = 0.5f);
+    int renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -325,6 +330,54 @@ private:
     static SkinLocations _skinTranslucentLocations;
         
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
+
+    QVector<AABox> _calculatedMeshBoxes;
+    bool _calculatedMeshBoxesValid;
+
+    void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
+
+    bool _meshGroupsKnown;
+
+    QMap<QString, int> _unsortedMeshesTranslucent;
+    QMap<QString, int> _unsortedMeshesTranslucentTangents;
+    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecular;
+    QMap<QString, int> _unsortedMeshesTranslucentSpecular;
+
+    QMap<QString, int> _unsortedMeshesTranslucentSkinned;
+    QMap<QString, int> _unsortedMeshesTranslucentTangentsSkinned;
+    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecularSkinned;
+    QMap<QString, int> _unsortedMeshesTranslucentSpecularSkinned;
+
+    QMap<QString, int> _unsortedMeshesOpaque;
+    QMap<QString, int> _unsortedMeshesOpaqueTangents;
+    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecular;
+    QMap<QString, int> _unsortedMeshesOpaqueSpecular;
+
+    QMap<QString, int> _unsortedMeshesOpaqueSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueTangentsSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecularSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueSpecularSkinned;
+
+    QVector<int> _meshesTranslucent;
+    QVector<int> _meshesTranslucentTangents;
+    QVector<int> _meshesTranslucentTangentsSpecular;
+    QVector<int> _meshesTranslucentSpecular;
+
+    QVector<int> _meshesTranslucentSkinned;
+    QVector<int> _meshesTranslucentTangentsSkinned;
+    QVector<int> _meshesTranslucentTangentsSpecularSkinned;
+    QVector<int> _meshesTranslucentSpecularSkinned;
+
+    QVector<int> _meshesOpaque;
+    QVector<int> _meshesOpaqueTangents;
+    QVector<int> _meshesOpaqueTangentsSpecular;
+    QVector<int> _meshesOpaqueSpecular;
+
+    QVector<int> _meshesOpaqueSkinned;
+    QVector<int> _meshesOpaqueTangentsSkinned;
+    QVector<int> _meshesOpaqueTangentsSpecularSkinned;
+    QVector<int> _meshesOpaqueSpecularSkinned;
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

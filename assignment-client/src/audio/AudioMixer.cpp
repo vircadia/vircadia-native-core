@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <mmintrin.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <fstream>
@@ -57,8 +56,6 @@
 #include "AudioMixerDatagramProcessor.h"
 #include "AvatarAudioStream.h"
 #include "InjectedAudioStream.h"
-
-
 
 #include "AudioMixer.h"
 
@@ -197,20 +194,12 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         
         attenuationCoefficient *= offAxisCoefficient;
     }
-   
-    bool wantBreak = false;
+    
     float attenuationPerDoublingInDistance = _attenuationPerDoublingInDistance;
-    foreach (const QString& source, _attenuationCoefficients.keys()) {
-        if (_audioZones[source].contains(streamToAdd->getPosition())) {
-            foreach (const QString& listener, _attenuationCoefficients[source].keys()) {
-                if (_audioZones[listener].contains(listeningNodeStream->getPosition())) {
-                    attenuationPerDoublingInDistance = _attenuationCoefficients[source][listener];
-                    wantBreak = true;
-                    break;
-                }
-            }
-        }
-        if (wantBreak) {
+    for (int i = 0; i < _zonesSettings.length(); ++i) {
+        if (_audioZones[_zonesSettings[i].source].contains(streamToAdd->getPosition()) &&
+            _audioZones[_zonesSettings[i].listener].contains(listeningNodeStream->getPosition())) {
+            attenuationPerDoublingInDistance = _zonesSettings[i].coefficient;
             break;
         }
     }
@@ -1028,21 +1017,18 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                     coefficientObject.contains(LISTENER) &&
                     coefficientObject.contains(COEFFICIENT)) {
                     
-                    bool ok;
-                    QString source = coefficientObject.value(SOURCE).toString();
-                    QString listener = coefficientObject.value(LISTENER).toString();
-                    float coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
+                    ZonesSettings settings;
                     
-                    if (ok && coefficient >= 0.0f && coefficient <= 1.0f &&
-                        _audioZones.contains(source) && _audioZones.contains(listener)) {
+                    bool ok;
+                    settings.source = coefficientObject.value(SOURCE).toString();
+                    settings.listener = coefficientObject.value(LISTENER).toString();
+                    settings.coefficient = coefficientObject.value(COEFFICIENT).toString().toFloat(&ok);
+                    
+                    if (ok && settings.coefficient >= 0.0f && settings.coefficient <= 1.0f &&
+                        _audioZones.contains(settings.source) && _audioZones.contains(settings.listener)) {
                         
-                        if (!_attenuationCoefficients.contains(source)) {
-                            _attenuationCoefficients.insert(source, QHash<QString, float>());
-                        }
-                        if (!_attenuationCoefficients[source].contains(listener)) {
-                            _attenuationCoefficients[source].insert(listener, coefficient);
-                            qDebug() << "Added Coefficient:" << source << listener << coefficient;
-                        }
+                        _zonesSettings.push_back(settings);
+                        qDebug() << "Added Coefficient:" << settings.source << settings.listener << settings.coefficient;
                     }
                 }
             }

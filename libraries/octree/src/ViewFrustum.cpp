@@ -876,3 +876,10 @@ void ViewFrustum::getFurthestPointFromCameraVoxelScale(const AACube& box, glm::v
     }
 }
 
+float ViewFrustum::distanceToCamera(const glm::vec3& point) const {
+    glm::vec3 temp = getPosition() - point;
+    float distanceToPoint = sqrtf(glm::dot(temp, temp));
+    return distanceToPoint;
+}
+
+

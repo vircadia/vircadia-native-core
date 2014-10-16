@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceplus" "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "GVERB")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "GVERB") 
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -108,7 +108,6 @@ link_hifi_libraries(shared octree voxels fbx metavoxels networking particles ent
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)
-find_package(OpenSSL REQUIRED)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -178,10 +177,9 @@ endif (GVERB_FOUND)
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
-include_directories("${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
-  ${TARGET_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES}
+  ${TARGET_NAME} ${ZLIB_LIBRARIES}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 

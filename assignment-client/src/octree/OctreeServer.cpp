@@ -861,8 +861,6 @@ void OctreeServer::readPendingDatagram(const QByteArray& receivedPacket, const H
             }
         } else if (packetType == PacketTypeJurisdictionRequest) {
             _jurisdictionSender->queueReceivedPacket(matchingNode, receivedPacket);
-        } else if (packetType == PacketTypeSignedTransactionPayment) {
-            handleSignedTransactionPayment(packetType, receivedPacket);
         } else if (_octreeInboundPacketProcessor && getOctree()->handlesEditPacketType(packetType)) {
             _octreeInboundPacketProcessor->queueReceivedPacket(matchingNode, receivedPacket);
         } else {
@@ -1243,51 +1241,6 @@ QString OctreeServer::getStatusLink() {
         result = "Status port not enabled.";
     }
     return result;
-}
-
-void OctreeServer::handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram) {
-    // for now we're not verifying that this is actual payment for any octree edits
-    // just use the AccountManager to send it up to the data server and have it redeemed
-    AccountManager& accountManager = AccountManager::getInstance();
-    
-    const int NUM_BYTES_SIGNED_TRANSACTION_BINARY_MESSAGE = 72;
-    const int NUM_BYTES_SIGNED_TRANSACTION_BINARY_SIGNATURE = 256;
-    
-    int numBytesPacketHeader = numBytesForPacketHeaderGivenPacketType(packetType);
-    
-    // pull out the transaction message in binary
-    QByteArray messageHex = datagram.mid(numBytesPacketHeader, NUM_BYTES_SIGNED_TRANSACTION_BINARY_MESSAGE).toHex();
-    // pull out the binary signed message digest
-    QByteArray signatureHex = datagram.mid(numBytesPacketHeader + NUM_BYTES_SIGNED_TRANSACTION_BINARY_MESSAGE,
-                                           NUM_BYTES_SIGNED_TRANSACTION_BINARY_SIGNATURE).toHex();
-    
-    // setup the QJSONObject we are posting
-    QJsonObject postObject;
-    
-    const QString TRANSACTION_OBJECT_MESSAGE_KEY = "message";
-    const QString TRANSACTION_OBJECT_SIGNATURE_KEY = "signature";
-    const QString POST_OBJECT_TRANSACTION_KEY = "transaction";
-    
-    QJsonObject transactionObject;
-    transactionObject.insert(TRANSACTION_OBJECT_MESSAGE_KEY, QString(messageHex));
-    transactionObject.insert(TRANSACTION_OBJECT_SIGNATURE_KEY, QString(signatureHex));
-    
-    postObject.insert(POST_OBJECT_TRANSACTION_KEY, transactionObject);
-    
-    // setup our callback params
-    JSONCallbackParameters callbackParameters;
-    callbackParameters.jsonCallbackReceiver = this;
-    callbackParameters.jsonCallbackMethod = "handleSignedTransactionPaymentResponse";
-    
-    accountManager.unauthenticatedRequest("/api/v1/transactions/redeem", QNetworkAccessManager::PostOperation,
-                                          callbackParameters, QJsonDocument(postObject).toJson());
-    
-}
-
-void OctreeServer::handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject) {
-    // pull the ID to debug the transaction
-    QString transactionIDString = jsonObject["data"].toObject()["transaction"].toObject()["id"].toString();
-    qDebug() << "Redeemed transaction with ID" << transactionIDString << "successfully.";
 }
 
 void OctreeServer::sendStatsPacket() {
