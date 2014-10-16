@@ -625,6 +625,192 @@ VoxelMaterialSpannerEdit::VoxelMaterialSpannerEdit(const SharedObjectPointer& sp
     spanner(spanner) {
 }
 
+class VoxelHeightfieldFetchVisitor : public MetavoxelVisitor {
+public:
+    
+    VoxelHeightfieldFetchVisitor();
+    
+    void init(const Box& bounds);
+    
+    bool isEmpty() const { return _heightContents.isEmpty(); }
+    
+    int getContentsWidth() const { return _contentsWidth; }
+    int getContentsHeight() const { return _contentsHeight; }
+    
+    const Box& getHeightBounds() const { return _heightBounds; }
+    
+    float getInterpolatedHeight(float x, float y) const;
+    
+    QRgb getInterpolatedColor(float x, float y) const;
+    
+    int getNearestMaterial(float x, float y) const;
+    
+    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Box _bounds;
+    Box _expandedBounds;
+    int _contentsWidth;
+    int _contentsHeight;
+    QByteArray _heightContents;
+    QByteArray _colorContents;
+    QByteArray _materialContents;
+    QVector<SharedObjectPointer> _materials;
+    Box _heightBounds;
+};
+
+VoxelHeightfieldFetchVisitor::VoxelHeightfieldFetchVisitor() :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute()) {
+}
+
+void VoxelHeightfieldFetchVisitor::init(const Box& bounds) {
+    _expandedBounds = _bounds = bounds;
+    float increment = (bounds.maximum.x - bounds.minimum.x) / VOXEL_BLOCK_SIZE;
+    _expandedBounds.maximum.x += increment;
+    _expandedBounds.maximum.z += increment;
+    _heightContents.clear();
+    _colorContents.clear();
+    _materialContents.clear();
+    _materials.clear();
+}
+
+float VoxelHeightfieldFetchVisitor::getInterpolatedHeight(float x, float y) const {
+    int floorX = glm::floor(x), floorY = glm::floor(y);
+    int ceilX = glm::ceil(x), ceilY = glm::ceil(y);
+    const uchar* src = (const uchar*)_heightContents.constData();
+    float upperLeft = src[floorY * _contentsWidth + floorX];
+    float lowerRight = src[ceilY * _contentsWidth + ceilX];
+    float fractX = glm::fract(x), fractY = glm::fract(y);
+    float interpolatedHeight = glm::mix(upperLeft, lowerRight, fractY);
+    if (fractX >= fractY) {
+        float upperRight = src[floorY * _contentsWidth + ceilX];
+        interpolatedHeight = glm::mix(interpolatedHeight, glm::mix(upperRight, lowerRight, fractY),
+            (fractX - fractY) / (1.0f - fractY));
+        
+    } else {
+        float lowerLeft = src[ceilY * _contentsWidth + floorX];
+        interpolatedHeight = glm::mix(glm::mix(upperLeft, lowerLeft, fractY), interpolatedHeight, fractX / fractY);
+    }
+    return interpolatedHeight;
+}
+
+QRgb VoxelHeightfieldFetchVisitor::getInterpolatedColor(float x, float y) const {
+    int floorX = glm::floor(x), floorY = glm::floor(y);
+    int ceilX = glm::ceil(x), ceilY = glm::ceil(y);
+    const uchar* src = (const uchar*)_colorContents.constData();
+    const uchar* upperLeft = src + (floorY * _contentsWidth + floorX) * DataBlock::COLOR_BYTES;
+    const uchar* lowerRight = src + (ceilY * _contentsWidth + ceilX) * DataBlock::COLOR_BYTES;
+    float fractX = glm::fract(x), fractY = glm::fract(y);
+    glm::vec3 interpolatedColor = glm::mix(glm::vec3(upperLeft[0], upperLeft[1], upperLeft[2]),
+        glm::vec3(lowerRight[0], lowerRight[1], lowerRight[2]), fractY);
+    if (fractX >= fractY) {
+        const uchar* upperRight = src + (floorY * _contentsWidth + ceilX) * DataBlock::COLOR_BYTES;
+        interpolatedColor = glm::mix(interpolatedColor, glm::mix(glm::vec3(upperRight[0], upperRight[1], upperRight[2]),
+            glm::vec3(lowerRight[0], lowerRight[1], lowerRight[2]), fractY), (fractX - fractY) / (1.0f - fractY));
+        
+    } else {
+        const uchar* lowerLeft = src + (ceilY * _contentsWidth + floorX) * DataBlock::COLOR_BYTES;
+        interpolatedColor = glm::mix(glm::mix(glm::vec3(upperLeft[0], upperLeft[1], upperLeft[2]),
+            glm::vec3(lowerLeft[0], lowerLeft[1], lowerLeft[2]), fractY), interpolatedColor, fractX / fractY);
+    }
+    return qRgb(interpolatedColor.r, interpolatedColor.g, interpolatedColor.b);
+}
+
+int VoxelHeightfieldFetchVisitor::getNearestMaterial(float x, float y) const {
+    const uchar* src = (const uchar*)_materialContents.constData();
+    return src[(int)glm::round(y) * _contentsWidth + (int)glm::round(x)];
+}
+
+int VoxelHeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_expandedBounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldHeightDataPointer heightPointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
+    if (!heightPointer) {
+        return STOP_RECURSION;
+    }
+    const QByteArray& heightContents = heightPointer->getContents();
+    int size = glm::sqrt((float)heightContents.size());
+    float heightIncrement = info.size / size;
+    
+    // the first heightfield we encounter determines the resolution
+    if (_heightContents.isEmpty()) {
+        _heightBounds.minimum = glm::floor(_bounds.minimum / heightIncrement) * heightIncrement;
+        _heightBounds.maximum = (glm::ceil(_bounds.maximum / heightIncrement) + glm::vec3(1.0f, 0.0f, 1.0f)) * heightIncrement;
+        _heightBounds.minimum.y = bounds.minimum.y;
+        _heightBounds.maximum.y = bounds.maximum.y;
+        _contentsWidth = (int)glm::round((_heightBounds.maximum.x - _heightBounds.minimum.x) / heightIncrement);
+        _contentsHeight = (int)glm::round((_heightBounds.maximum.z - _heightBounds.minimum.z) / heightIncrement);
+        _heightContents = QByteArray(_contentsWidth * _contentsHeight, 0);
+        _colorContents = QByteArray(_contentsWidth * _contentsHeight * DataBlock::COLOR_BYTES, 0);
+        _materialContents = QByteArray(_contentsWidth * _contentsHeight, 0);
+    }
+    
+    Box overlap = _heightBounds.getIntersection(bounds);
+    if (overlap.isEmpty()) {
+        return STOP_RECURSION;
+    }
+    
+    int srcX = (overlap.minimum.x - bounds.minimum.x) / heightIncrement;
+    int srcY = (overlap.minimum.z - bounds.minimum.z) / heightIncrement;
+    int destX = (overlap.minimum.x - _heightBounds.minimum.x) / heightIncrement;
+    int destY = (overlap.minimum.z - _heightBounds.minimum.z) / heightIncrement;
+    int width = (overlap.maximum.x - overlap.minimum.x) / heightIncrement;
+    int height = (overlap.maximum.z - overlap.minimum.z) / heightIncrement;
+    char* heightDest = _heightContents.data() + destY * _contentsWidth + destX;
+    const char* heightSrc = heightContents.constData() + srcY * size + srcX;
+    
+    for (int y = 0; y < height; y++, heightDest += _contentsWidth, heightSrc += size) {
+        memcpy(heightDest, heightSrc, width);
+    }
+    
+    HeightfieldColorDataPointer colorPointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
+    if (colorPointer && colorPointer->getContents().size() == heightContents.size() * DataBlock::COLOR_BYTES) {
+        char* colorDest = _colorContents.data() + (destY * _contentsWidth + destX) * DataBlock::COLOR_BYTES;
+        const char* colorSrc = colorPointer->getContents().constData() + (srcY * size + srcX) * DataBlock::COLOR_BYTES;
+        
+        for (int y = 0; y < height; y++, colorDest += _contentsWidth * DataBlock::COLOR_BYTES,
+                colorSrc += size * DataBlock::COLOR_BYTES) {
+            memcpy(colorDest, colorSrc, width * DataBlock::COLOR_BYTES);
+        }     
+    }
+    
+    HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
+    if (materialPointer && materialPointer->getContents().size() == heightContents.size()) {
+        uchar* materialDest = (uchar*)_materialContents.data() + destY * _contentsWidth + destX;
+        const uchar* materialSrc = (const uchar*)materialPointer->getContents().constData() + srcY * size + srcX;
+        const QVector<SharedObjectPointer>& materials = materialPointer->getMaterials();
+        QHash<int, int> materialMap;
+        
+        for (int y = 0; y < height; y++, materialDest += _contentsWidth, materialSrc += size) {
+            const uchar* lineSrc = materialSrc;
+            for (uchar* lineDest = materialDest, *end = lineDest + width; lineDest != end; lineDest++, lineSrc++) {
+                int value = *lineSrc;
+                if (value == 0) {
+                    continue;
+                }
+                int& mapping = materialMap[value];
+                if (mapping == 0) {
+                    _materials.append(materials.at(value - 1));
+                    mapping = _materials.size();
+                }
+                *lineDest = mapping;
+            }
+        }
+    }
+    
+    return STOP_RECURSION;
+}
+
 class VoxelMaterialSpannerEditVisitor : public MetavoxelVisitor {
 public:
     
@@ -638,6 +824,7 @@ private:
     SharedObjectPointer _material;
     QColor _color;
     float _blockSize;
+    VoxelHeightfieldFetchVisitor _heightfieldVisitor;
 };
 
 VoxelMaterialSpannerEditVisitor::VoxelMaterialSpannerEditVisitor(Spanner* spanner,
@@ -662,13 +849,98 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     if (info.size > _blockSize) {
         return DEFAULT_ORDER;
     }
+    bool fetchFromHeightfield = false;
+    QVector<QRgb> oldColorContents;
     VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    QVector<QRgb> oldColorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
-        colorPointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    if (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        oldColorContents = colorPointer->getContents();
+    } else {
+        oldColorContents = QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+        fetchFromHeightfield = true;
+    }
+    
+    QVector<QRgb> hermiteContents;
+    VoxelHermiteDataPointer hermitePointer = info.inputValues.at(1).getInlineValue<VoxelHermiteDataPointer>();
+    if (hermitePointer && hermitePointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        hermiteContents = hermitePointer->getContents();
+    } else {
+        hermiteContents = QVector<QRgb>(VOXEL_BLOCK_VOLUME * VoxelHermiteData::EDGE_COUNT);
+        fetchFromHeightfield = true;
+    }
+    
+    QByteArray materialContents;
+    QVector<SharedObjectPointer> materials;
+    VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
+    if (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        materialContents = materialPointer->getContents();
+        materials = materialPointer->getMaterials();        
+    } else {
+        materialContents = QByteArray(VOXEL_BLOCK_VOLUME, 0);
+        fetchFromHeightfield = true;
+    }
+    
+    float scale = VOXEL_BLOCK_SIZE / info.size;
+    if (fetchFromHeightfield) {
+        // the first time we touch a voxel block, we have to look up any intersecting heightfield data
+        _heightfieldVisitor.init(bounds);
+        _data->guide(_heightfieldVisitor);
+        if (!_heightfieldVisitor.isEmpty()) {
+            QRgb* colorDest = oldColorContents.data();
+            QRgb* hermiteDest = hermiteContents.data();
+            uchar* materialDest = (uchar*)materialContents.data();
+            const Box& heightBounds = _heightfieldVisitor.getHeightBounds();
+            float heightStepX = (heightBounds.maximum.x - heightBounds.minimum.x) /
+                (_heightfieldVisitor.getContentsWidth() - 1);
+            float heightStepY = (heightBounds.maximum.z - heightBounds.minimum.z) /
+                (_heightfieldVisitor.getContentsHeight() - 1);
+            float lineHeightX = (bounds.minimum.x - heightBounds.minimum.x) / heightStepX;
+            float heightY = (bounds.minimum.z - heightBounds.minimum.z) / heightStepY;
+            float heightScale = (heightBounds.maximum.y - heightBounds.minimum.y) / EIGHT_BIT_MAXIMUM;
+            QHash<int, int> materialMap;
+            
+            for (int z = 0; z < VOXEL_BLOCK_SAMPLES; z++, heightY += heightStepY) {
+                float heightX = lineHeightX;
+                for (int x = 0; x < VOXEL_BLOCK_SAMPLES; x++, colorDest++, hermiteDest += VoxelHermiteData::EDGE_COUNT,
+                        materialDest++, heightX += heightStepX) {
+                    float height = _heightfieldVisitor.getInterpolatedHeight(heightX, heightY);   
+                    if (height == 0.0f) {
+                        continue;
+                    }
+                    height = heightBounds.minimum.y + height * heightScale;
+                    if (height < bounds.minimum.y) {
+                        continue;
+                    }
+                    height = (height - bounds.minimum.y) * scale;
+                    int clampedHeight = qMin((int)height, VOXEL_BLOCK_SIZE);
+                    QRgb color = _heightfieldVisitor.getInterpolatedColor(heightX, heightY);
+                    uchar* lineMaterialDest = materialDest;
+                    uchar material = _heightfieldVisitor.getNearestMaterial(heightX, heightY);
+                    if (material != 0) {
+                        int& mapping = materialMap[material];
+                        if (mapping == 0) {
+                            materials.append(_heightfieldVisitor.getMaterials().at(material - 1));
+                            mapping = materials.size();
+                        }
+                        material = mapping;
+                    }
+                    for (QRgb* lineColorDest = colorDest, *end = lineColorDest + clampedHeight * VOXEL_BLOCK_SAMPLES;
+                            lineColorDest != end; lineColorDest += VOXEL_BLOCK_SAMPLES,
+                                lineMaterialDest += VOXEL_BLOCK_SAMPLES) {
+                        *lineColorDest = color;
+                        *lineMaterialDest = material;
+                    }
+                    hermiteDest[clampedHeight * VOXEL_BLOCK_SAMPLES * VoxelHermiteData::EDGE_COUNT + 1] = packNormal(
+                        glm::vec3(0.0f, 1.0f, 0.0f), (height - clampedHeight) * EIGHT_BIT_MAXIMUM);
+                }
+                colorDest += VOXEL_BLOCK_AREA - VOXEL_BLOCK_SAMPLES;
+                hermiteDest += (VOXEL_BLOCK_AREA - VOXEL_BLOCK_SAMPLES) * VoxelHermiteData::EDGE_COUNT;
+                materialDest += VOXEL_BLOCK_AREA - VOXEL_BLOCK_SAMPLES;
+            }
+        }
+    }
     QVector<QRgb> colorContents = oldColorContents;
     
     Box overlap = info.getBounds().getIntersection(_spanner->getBounds());
-    float scale = VOXEL_BLOCK_SIZE / info.size;
     overlap.minimum = (overlap.minimum - info.minimum) * scale;
     overlap.maximum = (overlap.maximum - info.minimum) * scale;
     int minX = glm::ceil(overlap.minimum.x);
@@ -695,17 +967,12 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
             }
         }
     }
-    
     VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
         encodeInline<VoxelColorDataPointer>(newColorPointer));
     
-    VoxelHermiteDataPointer hermitePointer = info.inputValues.at(1).getInlineValue<VoxelHermiteDataPointer>();
-    QVector<QRgb> hermiteContents = (hermitePointer && hermitePointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
-        hermitePointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME * VoxelHermiteData::EDGE_COUNT);
     int hermiteArea = VOXEL_BLOCK_AREA * VoxelHermiteData::EDGE_COUNT;
     int hermiteSamples = VOXEL_BLOCK_SAMPLES * VoxelHermiteData::EDGE_COUNT;
-    
     int hermiteMinX = minX, hermiteMinY = minY, hermiteMinZ = minZ;
     int hermiteSizeX = sizeX, hermiteSizeY = sizeY, hermiteSizeZ = sizeZ;
     if (minX > 0) {
@@ -806,22 +1073,10 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
                 }
             }
         }
-    } 
-    
+    }
     VoxelHermiteDataPointer newHermitePointer(new VoxelHermiteData(hermiteContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[1] = AttributeValue(info.inputValues.at(1).getAttribute(),
         encodeInline<VoxelHermiteDataPointer>(newHermitePointer));
-    
-    VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
-    QByteArray materialContents;
-    QVector<SharedObjectPointer> materials;
-    if (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
-        materialContents = materialPointer->getContents();
-        materials = materialPointer->getMaterials();
-        
-    } else {
-        materialContents = QByteArray(VOXEL_BLOCK_VOLUME, 0);
-    }
     
     uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
     position.z = info.minimum.z + minZ * step;
@@ -838,7 +1093,6 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
             }
         }
     }
-    
     clearUnusedMaterials(materials, materialContents);
     VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, VOXEL_BLOCK_SAMPLES, materials));
     info.outputValues[2] = AttributeValue(_inputs.at(2), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
