@@ -47,7 +47,7 @@ Model::Model(QObject* parent) :
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshBoxesValid(false),
-    _meshesGroupsKnown(false) {
+    _meshGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -273,7 +273,7 @@ void Model::reset() {
         _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation, 0.0f);
     }
     
-    _meshesGroupsKnown = false;
+    _meshGroupsKnown = false;
 }
 
 bool Model::updateGeometry() {
@@ -323,7 +323,7 @@ bool Model::updateGeometry() {
         deleteGeometry();
         _dilatedTextures.clear();
         _geometry = geometry;
-        _meshesGroupsKnown = false;
+        _meshGroupsKnown = false;
         setJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -426,7 +426,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         }
     }
     
-    if (!_meshesGroupsKnown) {
+    if (!_meshGroupsKnown) {
         segregateMeshGroups();
     }
 
@@ -1247,7 +1247,7 @@ void Model::applyNextGeometry() {
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
     _baseGeometry = _nextBaseGeometry;
     _geometry = _nextGeometry;
-    _meshesGroupsKnown = false;
+    _meshGroupsKnown = false;
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -1380,7 +1380,7 @@ void Model::segregateMeshGroups() {
             qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
         }
     }
-    _meshesGroupsKnown = true;
+    _meshGroupsKnown = true;
 }
 
 int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, 
@@ -1487,11 +1487,11 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     // i is the "index" from the original networkMeshes QVector...
     foreach (int i, list) {
     
-        // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshesGroupsKnown
+        // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
         // to false to rebuild out mesh groups.
         
         if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
-            _meshesGroupsKnown = false; // regenerate these lists next time around.
+            _meshGroupsKnown = false; // regenerate these lists next time around.
             continue;
         }
         

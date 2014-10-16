@@ -335,7 +335,7 @@ private:
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 
-    bool _meshesGroupsKnown;
+    bool _meshGroupsKnown;
 
     QVector<int> _meshesTranslucent;
     QVector<int> _meshesTranslucentTangents;
