@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  Creates single flexible vertlet-integrated strands that can be used for hair/fur/grass
+//  Creates single flexible verlet-integrated strands that can be used for hair/fur/grass
 
 #include "Hair.h"
 
@@ -39,7 +39,7 @@ Hair::Hair(int strands,
     _angularVelocity(0.0f),
     _angularAcceleration(0.0f),
     _gravity(0.0f),
-    _loudness()
+    _loudness(0.0f)
 {
     _hairPosition = new glm::vec3[_strands * _links];
     _hairOriginalPosition = new glm::vec3[_strands * _links];
@@ -90,7 +90,9 @@ Hair::Hair(int strands,
             }
         }
     }
- }
+}
+
+const float SOUND_THRESHOLD = 50.0f;
 
 void Hair::simulate(float deltaTime) {
     deltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 30.0f);
@@ -119,10 +121,10 @@ void Hair::simulate(float deltaTime) {
                     (_radius - glm::length(_hairPosition[vertexIndex]));
                 }
                 //  Add random thing driven by loudness
-                const float LOUD_BASE = 0.0005f;
-                float loudnessFactor = (_loudness > 0.0f) ? logf(_loudness) / 2000.0f : 0.0f;
+                float loudnessFactor = (_loudness > SOUND_THRESHOLD) ? logf(_loudness - SOUND_THRESHOLD) / 8000.0f : 0.0f;
 
-                _hairPosition[vertexIndex] += randVector() * (LOUD_BASE + loudnessFactor) * ((float)link / (float)_links);
+                const float QUIESCENT_LOUDNESS = 0.0f;
+                _hairPosition[vertexIndex] += randVector() * (QUIESCENT_LOUDNESS + loudnessFactor) * ((float)link / (float)_links);
 
                 //  Add gravity
                 const float SCALE_GRAVITY = 0.10f;
@@ -178,7 +180,7 @@ void Hair::simulate(float deltaTime) {
                     }
                 }
                 
-                //  Store start position for next vertlet pass
+                //  Store start position for next verlet pass
                 _hairLastPosition[vertexIndex] = thisPosition;
             }
         }
@@ -189,9 +191,9 @@ void Hair::render() {
     //
     //  Before calling this function, translate/rotate to the origin of the owning object
     //
-    float loudnessFactor = (_loudness > 0.0f) ? logf(_loudness) / 16.0f : 0.0f;
+    float loudnessFactor = (_loudness > SOUND_THRESHOLD) ? logf(_loudness - SOUND_THRESHOLD) / 16.0f : 0.0f;
     const int SPARKLE_EVERY = 5;
-    const float HAIR_SETBACK = 0.125f;
+    const float HAIR_SETBACK = 0.0f;
     int sparkleIndex = (int) (randFloat() * SPARKLE_EVERY);
     glPushMatrix();
     glTranslatef(0.f, 0.f, HAIR_SETBACK);
