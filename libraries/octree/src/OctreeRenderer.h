@@ -67,10 +67,12 @@ public:
     int getElementsTouched() const { return _elementsTouched; }
     int getItemsRendered() const { return _itemsRendered; }
     int getItemsOutOfView() const { return _itemsOutOfView; }
+    int getItemsTooSmall() const { return _itemsTooSmall; }
 
     int getMeshesConsidered() const { return _meshesConsidered; }
     int getMeshesRendered() const { return _meshesRendered; }
     int getMeshesOutOfView() const { return _meshesOutOfView; }
+    int getMeshesTooSmall() const { return _meshesTooSmall; }
 
     int getTrianglesRendered() const { return _trianglesRendered; }
     int getQuadsRendered() const { return _quadsRendered; }
@@ -86,10 +88,12 @@ protected:
     int _elementsTouched;
     int _itemsRendered;
     int _itemsOutOfView;
+    int _itemsTooSmall;
 
     int _meshesConsidered;
     int _meshesRendered;
     int _meshesOutOfView;
+    int _meshesTooSmall;
 
     int _trianglesRendered;
     int _quadsRendered;
@@ -109,10 +113,12 @@ public:
     int _elementsTouched;
     int _itemsRendered;
     int _itemsOutOfView;
+    int _itemsTooSmall;
 
     int _meshesConsidered;
     int _meshesRendered;
     int _meshesOutOfView;
+    int _meshesTooSmall;
 
     int _trianglesRendered;
     int _quadsRendered;

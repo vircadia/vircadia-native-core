@@ -459,7 +459,7 @@ void Stats::display(
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
-    lines = _expanded ? 14 : 3;
+    lines = _expanded ? 15 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         lines += 10; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
@@ -472,12 +472,16 @@ void Stats::display(
         // Model/Entity render details
         EntityTreeRenderer* entities = Application::getInstance()->getEntities();
         voxelStats.str("");
-        voxelStats << "Entity Items rendered: " << entities->getItemsRendered() << " Out of view:" << entities->getItemsOutOfView();
+        voxelStats << "Entity Items rendered: " << entities->getItemsRendered() 
+                    << " Out of view:" << entities->getItemsOutOfView()
+                    << " Too small:" << entities->getItemsTooSmall();
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         voxelStats.str("");
-        voxelStats << "Meshes rendered: " << entities->getMeshesRendered() << " Out of view:" << entities->getMeshesOutOfView();
+        voxelStats << "Meshes rendered: " << entities->getMeshesRendered() 
+                    << " Out of view:" << entities->getMeshesOutOfView()
+                    << " Too small:" << entities->getMeshesTooSmall();
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 

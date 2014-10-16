@@ -143,6 +143,8 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
+    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
+
 #ifdef Q_OS_MAC
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
@@ -310,6 +312,9 @@ private:
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
+    
+    bool _shouldRenderTableNeedsRebuilding;
+    QMap<float, float> _shouldRenderTable;
 
 };
 
@@ -367,7 +372,8 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
-    const QString DontCullMeshParts = "Don't Cull Mesh Parts";
+    const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
+    const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";

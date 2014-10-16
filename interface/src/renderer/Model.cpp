@@ -47,7 +47,7 @@ Model::Model(QObject* parent) :
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshBoxesValid(false),
-    _meshesGroupsKnown(false) {
+    _meshGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -273,7 +273,7 @@ void Model::reset() {
         _jointStates[i].setRotationInConstrainedFrame(geometry.joints.at(i).rotation, 0.0f);
     }
     
-    _meshesGroupsKnown = false;
+    _meshGroupsKnown = false;
 }
 
 bool Model::updateGeometry() {
@@ -323,7 +323,7 @@ bool Model::updateGeometry() {
         deleteGeometry();
         _dilatedTextures.clear();
         _geometry = geometry;
-        _meshesGroupsKnown = false;
+        _meshGroupsKnown = false;
         setJointStates(newJointStates);
         needToRebuild = true;
     } else if (_jointStates.isEmpty()) {
@@ -426,7 +426,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         }
     }
     
-    if (!_meshesGroupsKnown) {
+    if (!_meshGroupsKnown) {
         segregateMeshGroups();
     }
 
@@ -1247,7 +1247,7 @@ void Model::applyNextGeometry() {
     // we retain a reference to the base geometry so that its reference count doesn't fall to zero
     _baseGeometry = _nextBaseGeometry;
     _geometry = _nextGeometry;
-    _meshesGroupsKnown = false;
+    _meshGroupsKnown = false;
     _nextBaseGeometry.reset();
     _nextGeometry.reset();
 }
@@ -1380,7 +1380,7 @@ void Model::segregateMeshGroups() {
             qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
         }
     }
-    _meshesGroupsKnown = true;
+    _meshGroupsKnown = true;
 }
 
 int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, 
@@ -1390,10 +1390,8 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
-    bool cullMeshParts = args && !Menu::getInstance()->isOptionChecked(MenuOption::DontCullMeshParts);
-
     // depending on which parameters we were called with, pick the correct mesh group to render
-    QList<int>* whichList = NULL;
+    QVector<int>* whichList = NULL;
     if (translucent && !hasTangents && !hasSpecular && !isSkinned) {
         whichList = &_meshesTranslucent;
     } else if (translucent && hasTangents && !hasSpecular && !isSkinned) {
@@ -1434,7 +1432,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         qDebug() << "unexpected!!! we don't know which list of meshes to render...";
         return 0;
     }
-    QList<int>& list = *whichList;
+    QVector<int>& list = *whichList;
 
     ProgramObject* program = &_program;
     Locations* locations = &_locations;
@@ -1486,6 +1484,14 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     
     // i is the "index" from the original networkMeshes QVector...
     foreach (int i, list) {
+    
+        // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshGroupsKnown
+        // to false to rebuild out mesh groups.
+        
+        if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
+            _meshGroupsKnown = false; // regenerate these lists next time around.
+            continue;
+        }
         
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
@@ -1501,17 +1507,30 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         
         // if we got here, then check to see if this mesh is in view
         if (args) {
+            bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
+            bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
+
             bool shouldRender = true;
             args->_meshesConsidered++;
 
-            if (cullMeshParts && args->_viewFrustum) {
-                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+            if (args->_viewFrustum) {
+                shouldRender = dontCullOutOfViewMeshParts || 
+                                args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+                if (shouldRender && cullTooSmallMeshParts) {
+                    float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
+                    shouldRender = Menu::getInstance()->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(), 
+                                                                            distance);
+                    if (!shouldRender) {
+                        args->_meshesTooSmall++;
+                    }
+                } else {
+                    args->_meshesOutOfView++;
+                }
             }
 
             if (shouldRender) {
                 args->_meshesRendered++;
             } else {
-                args->_meshesOutOfView++;
                 continue; // skip this mesh
             }
         }

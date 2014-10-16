@@ -31,6 +31,7 @@ class QScriptEngine;
 class AnimationHandle;
 class Shape;
 class RenderArgs;
+class ViewFrustum;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
@@ -335,27 +336,27 @@ private:
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 
-    bool _meshesGroupsKnown;
+    bool _meshGroupsKnown;
 
-    QList<int> _meshesTranslucent;
-    QList<int> _meshesTranslucentTangents;
-    QList<int> _meshesTranslucentTangentsSpecular;
-    QList<int> _meshesTranslucentSpecular;
+    QVector<int> _meshesTranslucent;
+    QVector<int> _meshesTranslucentTangents;
+    QVector<int> _meshesTranslucentTangentsSpecular;
+    QVector<int> _meshesTranslucentSpecular;
 
-    QList<int> _meshesTranslucentSkinned;
-    QList<int> _meshesTranslucentTangentsSkinned;
-    QList<int> _meshesTranslucentTangentsSpecularSkinned;
-    QList<int> _meshesTranslucentSpecularSkinned;
+    QVector<int> _meshesTranslucentSkinned;
+    QVector<int> _meshesTranslucentTangentsSkinned;
+    QVector<int> _meshesTranslucentTangentsSpecularSkinned;
+    QVector<int> _meshesTranslucentSpecularSkinned;
 
-    QList<int> _meshesOpaque;
-    QList<int> _meshesOpaqueTangents;
-    QList<int> _meshesOpaqueTangentsSpecular;
-    QList<int> _meshesOpaqueSpecular;
+    QVector<int> _meshesOpaque;
+    QVector<int> _meshesOpaqueTangents;
+    QVector<int> _meshesOpaqueTangentsSpecular;
+    QVector<int> _meshesOpaqueSpecular;
 
-    QList<int> _meshesOpaqueSkinned;
-    QList<int> _meshesOpaqueTangentsSkinned;
-    QList<int> _meshesOpaqueTangentsSpecularSkinned;
-    QList<int> _meshesOpaqueSpecularSkinned;
+    QVector<int> _meshesOpaqueSkinned;
+    QVector<int> _meshesOpaqueTangentsSkinned;
+    QVector<int> _meshesOpaqueTangentsSpecularSkinned;
+    QVector<int> _meshesOpaqueSpecularSkinned;
 
 };
 
