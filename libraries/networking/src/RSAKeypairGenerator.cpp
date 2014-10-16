@@ -84,8 +84,8 @@ void RSAKeypairGenerator::generateKeypair() {
     QByteArray privateKeyArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
     
     // cleanup the publicKeyDER and publicKeyDER data
-    delete publicKeyDER;
-    delete privateKeyDER;
+    delete[] publicKeyDER;
+    delete[] privateKeyDER;
     
     emit generatedKeypair(publicKeyArray, privateKeyArray);
 }
