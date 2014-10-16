@@ -338,6 +338,26 @@ private:
 
     bool _meshGroupsKnown;
 
+    QMap<QString, int> _unsortedMeshesTranslucent;
+    QMap<QString, int> _unsortedMeshesTranslucentTangents;
+    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecular;
+    QMap<QString, int> _unsortedMeshesTranslucentSpecular;
+
+    QMap<QString, int> _unsortedMeshesTranslucentSkinned;
+    QMap<QString, int> _unsortedMeshesTranslucentTangentsSkinned;
+    QMap<QString, int> _unsortedMeshesTranslucentTangentsSpecularSkinned;
+    QMap<QString, int> _unsortedMeshesTranslucentSpecularSkinned;
+
+    QMap<QString, int> _unsortedMeshesOpaque;
+    QMap<QString, int> _unsortedMeshesOpaqueTangents;
+    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecular;
+    QMap<QString, int> _unsortedMeshesOpaqueSpecular;
+
+    QMap<QString, int> _unsortedMeshesOpaqueSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueTangentsSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecularSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueSpecularSkinned;
+
     QVector<int> _meshesTranslucent;
     QVector<int> _meshesTranslucentTangents;
     QVector<int> _meshesTranslucentTangentsSpecular;

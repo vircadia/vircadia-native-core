@@ -1299,10 +1299,32 @@ void Model::segregateMeshGroups() {
     _meshesOpaqueSkinned.clear();
     _meshesOpaqueTangentsSpecularSkinned.clear();
     _meshesOpaqueSpecularSkinned.clear();
+    
+    _unsortedMeshesTranslucentTangents.clear();
+    _unsortedMeshesTranslucent.clear();
+    _unsortedMeshesTranslucentTangentsSpecular.clear();
+    _unsortedMeshesTranslucentSpecular.clear();
+
+    _unsortedMeshesTranslucentTangentsSkinned.clear();
+    _unsortedMeshesTranslucentSkinned.clear();
+    _unsortedMeshesTranslucentTangentsSpecularSkinned.clear();
+    _unsortedMeshesTranslucentSpecularSkinned.clear();
+
+    _unsortedMeshesOpaqueTangents.clear();
+    _unsortedMeshesOpaque.clear();
+    _unsortedMeshesOpaqueTangentsSpecular.clear();
+    _unsortedMeshesOpaqueSpecular.clear();
+
+    _unsortedMeshesOpaqueTangentsSkinned.clear();
+    _unsortedMeshesOpaqueSkinned.clear();
+    _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
+    _unsortedMeshesOpaqueSpecularSkinned.clear();
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
+
+    // Run through all of the meshes, and place them into their segregated, but unsorted buckets
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);
@@ -1312,79 +1334,171 @@ void Model::segregateMeshGroups() {
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
+        QString materialID = mesh.parts.at(0).materialID;
 
         if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
-            _meshesTranslucent.append(i);
+            _unsortedMeshesTranslucent.insertMulti(materialID, i);
 
         } else if (translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
 
-            _meshesTranslucentTangents.append(i);
+            _unsortedMeshesTranslucentTangents.insertMulti(materialID, i);
 
         } else if (translucentMesh && hasTangents && hasSpecular && !isSkinned) {
 
-            _meshesTranslucentTangentsSpecular.append(i);
+            _unsortedMeshesTranslucentTangentsSpecular.insertMulti(materialID, i);
 
         } else if (translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
 
-            _meshesTranslucentSpecular.append(i);
+            _unsortedMeshesTranslucentSpecular.insertMulti(materialID, i);
 
         } else if (translucentMesh && hasTangents && !hasSpecular && isSkinned) {
 
-            _meshesTranslucentTangentsSkinned.append(i);
+            _unsortedMeshesTranslucentTangentsSkinned.insertMulti(materialID, i);
 
         } else if (translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
 
-            _meshesTranslucentSkinned.append(i);
+            _unsortedMeshesTranslucentSkinned.insertMulti(materialID, i);
 
         } else if (translucentMesh && hasTangents && hasSpecular && isSkinned) {
 
-            _meshesTranslucentTangentsSpecularSkinned.append(i);
+            _unsortedMeshesTranslucentTangentsSpecularSkinned.insertMulti(materialID, i);
 
         } else if (translucentMesh && !hasTangents && hasSpecular && isSkinned) {
 
-            _meshesTranslucentSpecularSkinned.append(i);
+            _unsortedMeshesTranslucentSpecularSkinned.insertMulti(materialID, i);
 
         } else if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
-            _meshesOpaque.append(i);
+            _unsortedMeshesOpaque.insertMulti(materialID, i);
 
         } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
 
-            _meshesOpaqueTangents.append(i);
+            _unsortedMeshesOpaqueTangents.insertMulti(materialID, i);
 
         } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
 
-            _meshesOpaqueTangentsSpecular.append(i);
+            _unsortedMeshesOpaqueTangentsSpecular.insertMulti(materialID, i);
 
         } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
 
-            _meshesOpaqueSpecular.append(i);
+            _unsortedMeshesOpaqueSpecular.insertMulti(materialID, i);
 
         } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
 
-            _meshesOpaqueTangentsSkinned.append(i);
+            _unsortedMeshesOpaqueTangentsSkinned.insertMulti(materialID, i);
 
         } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
 
-            _meshesOpaqueSkinned.append(i);
+            _unsortedMeshesOpaqueSkinned.insertMulti(materialID, i);
 
         } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
 
-            _meshesOpaqueTangentsSpecularSkinned.append(i);
+            _unsortedMeshesOpaqueTangentsSpecularSkinned.insertMulti(materialID, i);
 
         } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
 
-            _meshesOpaqueSpecularSkinned.append(i);
+            _unsortedMeshesOpaqueSpecularSkinned.insertMulti(materialID, i);
         } else {
             qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
         }
     }
+    
+    foreach(int i, _unsortedMeshesTranslucent) {
+        _meshesTranslucent.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentTangents) {
+        _meshesTranslucentTangents.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentTangentsSpecular) {
+        _meshesTranslucentTangentsSpecular.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentSpecular) {
+        _meshesTranslucentSpecular.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentSkinned) {
+        _meshesTranslucentSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentTangentsSkinned) {
+        _meshesTranslucentTangentsSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentTangentsSpecularSkinned) {
+        _meshesTranslucentTangentsSpecularSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesTranslucentSpecularSkinned) {
+        _meshesTranslucentSpecularSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaque) {
+        _meshesOpaque.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueTangents) {
+        _meshesOpaqueTangents.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueTangentsSpecular) {
+        _meshesOpaqueTangentsSpecular.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueSpecular) {
+        _meshesOpaqueSpecular.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueSkinned) {
+        _meshesOpaqueSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueTangentsSkinned) {
+        _meshesOpaqueTangentsSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueTangentsSpecularSkinned) {
+        _meshesOpaqueTangentsSpecularSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueSpecularSkinned) {
+        _meshesOpaqueSpecularSkinned.append(i);
+    }
+
+    _unsortedMeshesTranslucentTangents.clear();
+    _unsortedMeshesTranslucent.clear();
+    _unsortedMeshesTranslucentTangentsSpecular.clear();
+    _unsortedMeshesTranslucentSpecular.clear();
+
+    _unsortedMeshesTranslucentTangentsSkinned.clear();
+    _unsortedMeshesTranslucentSkinned.clear();
+    _unsortedMeshesTranslucentTangentsSpecularSkinned.clear();
+    _unsortedMeshesTranslucentSpecularSkinned.clear();
+
+    _unsortedMeshesOpaqueTangents.clear();
+    _unsortedMeshesOpaque.clear();
+    _unsortedMeshesOpaqueTangentsSpecular.clear();
+    _unsortedMeshesOpaqueSpecular.clear();
+
+    _unsortedMeshesOpaqueTangentsSkinned.clear();
+    _unsortedMeshesOpaqueSkinned.clear();
+    _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
+    _unsortedMeshesOpaqueSpecularSkinned.clear();
+
     _meshGroupsKnown = true;
 }
 
 int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, 
                             bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+
+    bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
+    bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
+    bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
+                            
+    QString lastMaterialID;
     int meshPartsRendered = 0;
     updateVisibleJointStates();
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
@@ -1507,9 +1621,6 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         
         // if we got here, then check to see if this mesh is in view
         if (args) {
-            bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
-            bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
-
             bool shouldRender = true;
             args->_meshesConsidered++;
 
@@ -1600,39 +1711,49 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
                 glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
-                glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
-                if (!(translucent && alphaThreshold == 0.0f)) {
-                    glAlphaFunc(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
-                }
-                glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
-                glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-                glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-                glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
+                if (dontReduceMaterialSwitches || lastMaterialID != part.materialID) {
+                    //qDebug() << "Material Changed ---------------------------------------------";
+                    //qDebug() << "NEW part.materialID:" << part.materialID;
+
+                    glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
+                    if (!(translucent && alphaThreshold == 0.0f)) {
+                        glAlphaFunc(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
+                    }
+                    glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
+                    glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+                    glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+                    glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+                    glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
             
-                Texture* diffuseMap = networkPart.diffuseTexture.data();
-                if (mesh.isEye && diffuseMap) {
-                    diffuseMap = (_dilatedTextures[i][j] =
-                        static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
-                }
-                glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
-                    Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
+                    Texture* diffuseMap = networkPart.diffuseTexture.data();
+                    if (mesh.isEye && diffuseMap) {
+                        diffuseMap = (_dilatedTextures[i][j] =
+                            static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
+                    }
+                    glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
+                        Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
                 
-                if (!mesh.tangents.isEmpty()) {                 
-                    glActiveTexture(GL_TEXTURE1);                
-                    Texture* normalMap = networkPart.normalTexture.data();
-                    glBindTexture(GL_TEXTURE_2D, !normalMap ?
-                        Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
-                    glActiveTexture(GL_TEXTURE0);
-                }
+                    if (!mesh.tangents.isEmpty()) {                 
+                        glActiveTexture(GL_TEXTURE1);                
+                        Texture* normalMap = networkPart.normalTexture.data();
+                        glBindTexture(GL_TEXTURE_2D, !normalMap ?
+                            Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
+                        glActiveTexture(GL_TEXTURE0);
+                    }
                 
-                if (specularTextureUnit) {
-                    glActiveTexture(specularTextureUnit);
-                    Texture* specularMap = networkPart.specularTexture.data();
-                    glBindTexture(GL_TEXTURE_2D, !specularMap ?
-                        Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
-                    glActiveTexture(GL_TEXTURE0);
+                    if (specularTextureUnit) {
+                        glActiveTexture(specularTextureUnit);
+                        Texture* specularMap = networkPart.specularTexture.data();
+                        glBindTexture(GL_TEXTURE_2D, !specularMap ?
+                            Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
+                        glActiveTexture(GL_TEXTURE0);
+                    }
+                    if (args) {
+                        args->_materialSwitches++;
+                    }
+
                 }
+                lastMaterialID = part.materialID;
             }
             
             meshPartsRendered++;

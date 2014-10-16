@@ -459,7 +459,7 @@ void Stats::display(
 
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
-    lines = _expanded ? 15 : 3;
+    lines = _expanded ? 14 : 3;
     if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
         lines += 10; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
@@ -468,44 +468,54 @@ void Stats::display(
         lines * STATS_PELS_PER_LINE + 10);
     horizontalOffset += 5;
 
+    // Model/Entity render details
+    EntityTreeRenderer* entities = Application::getInstance()->getEntities();
+    voxelStats.str("");
+    voxelStats << "Entity Items rendered: " << entities->getItemsRendered() 
+                << " / Out of view:" << entities->getItemsOutOfView()
+                << " / Too small:" << entities->getItemsTooSmall();
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
     if (_expanded) {
-        // Model/Entity render details
-        EntityTreeRenderer* entities = Application::getInstance()->getEntities();
         voxelStats.str("");
-        voxelStats << "Entity Items rendered: " << entities->getItemsRendered() 
-                    << " Out of view:" << entities->getItemsOutOfView()
-                    << " Too small:" << entities->getItemsTooSmall();
+        voxelStats << "  Meshes rendered: " << entities->getMeshesRendered() 
+                    << " / Out of view:" << entities->getMeshesOutOfView()
+                    << " / Too small:" << entities->getMeshesTooSmall();
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         voxelStats.str("");
-        voxelStats << "Meshes rendered: " << entities->getMeshesRendered() 
-                    << " Out of view:" << entities->getMeshesOutOfView()
-                    << " Too small:" << entities->getMeshesTooSmall();
+        voxelStats << "  Triangles: " << entities->getTrianglesRendered() 
+                    << " / Quads:" << entities->getQuadsRendered()
+                    << " / Material Switches:" << entities->getMaterialSwitches();
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         voxelStats.str("");
-        voxelStats << "Triangles: " << entities->getTrianglesRendered() << " Quads:" << entities->getQuadsRendered();
+        voxelStats << "  Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
+                    << " / Translucent:" << entities->getTranslucentMeshPartsRendered();
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+    }
 
-        voxelStats.str("");
-        voxelStats << "Mesh Parts Rendered Opaque: " << entities->getOpaqueMeshPartsRendered() 
-                    << " Translucent:" << entities->getTranslucentMeshPartsRendered();
-        verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+    voxelStats.str("");
+    voxelStats.precision(4);
+    voxelStats << "Voxels Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
+        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K ";
+    verticalOffset += STATS_PELS_PER_LINE;
+    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
-
+    if (_expanded) {
         // Local Voxel Memory Usage
         voxelStats.str("");
-        voxelStats << "Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
+        voxelStats << "  Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         voxelStats.str("");
         voxelStats << 
-                "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
+                "  Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
                 "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.f << "MB";
         if (voxels->hasVoxelMemoryUsageGPU()) {
             voxelStats << " / GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.f << "MB";
@@ -516,17 +526,10 @@ void Stats::display(
         // Voxel Rendering
         voxelStats.str("");
         voxelStats.precision(4);
-        voxelStats << "Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.f << "K";
+        voxelStats << "  Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.f << "K";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
-
-    voxelStats.str("");
-    voxelStats.precision(4);
-    voxelStats << "Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K ";
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
     // iterate all the current voxel stats, and list their sending modes, and total voxel counts
     std::stringstream sendingMode("");
@@ -598,44 +601,44 @@ void Stats::display(
     }
 
     QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
+    unsigned long localTotal = VoxelTreeElement::getNodeCount();
+    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
 
-    // Server Voxels
-    voxelStats.str("");
-    voxelStats << "Server voxels: " << qPrintable(serversTotalString);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
-    if (_expanded) {
-        QString serversInternalString = locale.toString((uint)totalInternal);
-        QString serversLeavesString = locale.toString((uint)totalLeaves);
-
+    // Server Octree Elements
+    if (!_expanded) {
         voxelStats.str("");
-        voxelStats <<
-            "Internal: " << qPrintable(serversInternalString) << "  " <<
-            "Leaves: " << qPrintable(serversLeavesString) << "";
+        voxelStats << "Octree Elements Server: " << qPrintable(serversTotalString)
+                        << " Local:" << qPrintable(localTotalString);
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
-    unsigned long localTotal = VoxelTreeElement::getNodeCount();
-    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
-
-    // Local Voxels
-    voxelStats.str("");
-    voxelStats << "Local voxels: " << qPrintable(localTotalString);
-    verticalOffset += STATS_PELS_PER_LINE;
-    drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
-
     if (_expanded) {
+        voxelStats.str("");
+        voxelStats << "Octree Elements -";
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
+        QString serversInternalString = locale.toString((uint)totalInternal);
+        QString serversLeavesString = locale.toString((uint)totalLeaves);
+
+        voxelStats.str("");
+        voxelStats << "  Server: " << qPrintable(serversTotalString) <<
+            " Internal: " << qPrintable(serversInternalString) <<
+            " Leaves: " << qPrintable(serversLeavesString);
+        verticalOffset += STATS_PELS_PER_LINE;
+        drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
+
+        // Local Voxels
         unsigned long localInternal = VoxelTreeElement::getInternalNodeCount();
         unsigned long localLeaves = VoxelTreeElement::getLeafNodeCount();
         QString localInternalString = locale.toString((uint)localInternal);
         QString localLeavesString = locale.toString((uint)localLeaves);
 
         voxelStats.str("");
-        voxelStats <<
-            "Internal: " << qPrintable(localInternalString) << "  " <<
-            "Leaves: " << qPrintable(localLeavesString) << "";
+        voxelStats << "  Local: " << qPrintable(serversTotalString) <<
+            " Internal: " << qPrintable(localInternalString) <<
+            " Leaves: " << qPrintable(localLeavesString) << "";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
