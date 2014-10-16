@@ -648,7 +648,9 @@ Controller.keyReleaseEvent.connect(function (event) {
         handeMenuEvent("Delete");
     } else if (event.text == "f") {
         if (entitySelected) {
-            entityCameraTool.focus(selectedEntityProperties);
+            // Get latest properties
+            var properties = Entities.getEntityProperties(selectedEntityID);
+            entityCameraTool.focus(properties);
         }
     }
 });
