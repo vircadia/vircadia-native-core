@@ -315,8 +315,6 @@ void NodeList::sendDomainServerCheckIn() {
             if (!usernameSignature.isEmpty()) {
                 qDebug() << "Including username signature in domain connect request.";
                 packetStream << usernameSignature;
-            } else {
-                qDebug() << "Private key not present - domain connect request cannot include username signature";
             }
         }
         
