@@ -66,11 +66,11 @@ void RSAKeypairGenerator::generateKeypair() {
         
         // cleanup the public and private key DER data, if required
         if (publicKeyLength > 0) {
-            delete publicKeyDER;
+            delete[] publicKeyDER;
         }
         
         if (privateKeyLength > 0) {
-            delete privateKeyDER;
+            delete[] privateKeyDER;
         }
         
         return;
@@ -84,8 +84,8 @@ void RSAKeypairGenerator::generateKeypair() {
     QByteArray privateKeyArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength);
     
     // cleanup the publicKeyDER and publicKeyDER data
-    delete publicKeyDER;
-    delete privateKeyDER;
+    delete[] publicKeyDER;
+    delete[] privateKeyDER;
     
     emit generatedKeypair(publicKeyArray, privateKeyArray);
 }
