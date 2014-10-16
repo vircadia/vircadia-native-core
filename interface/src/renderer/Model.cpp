@@ -1393,7 +1393,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     bool cullMeshParts = args && !Menu::getInstance()->isOptionChecked(MenuOption::DontCullMeshParts);
 
     // depending on which parameters we were called with, pick the correct mesh group to render
-    QList<int>* whichList = NULL;
+    QVector<int>* whichList = NULL;
     if (translucent && !hasTangents && !hasSpecular && !isSkinned) {
         whichList = &_meshesTranslucent;
     } else if (translucent && hasTangents && !hasSpecular && !isSkinned) {
@@ -1434,7 +1434,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         qDebug() << "unexpected!!! we don't know which list of meshes to render...";
         return 0;
     }
-    QList<int>& list = *whichList;
+    QVector<int>& list = *whichList;
 
     ProgramObject* program = &_program;
     Locations* locations = &_locations;
@@ -1486,6 +1486,14 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     
     // i is the "index" from the original networkMeshes QVector...
     foreach (int i, list) {
+    
+        // if our index is ever out of range for either meshes or networkMeshes, then skip it, and set our _meshesGroupsKnown
+        // to false to rebuild out mesh groups.
+        
+        if (i < 0 || i >= networkMeshes.size() || i > geometry.meshes.size()) {
+            _meshesGroupsKnown = false; // regenerate these lists next time around.
+            continue;
+        }
         
         // exit early if the translucency doesn't match what we're drawing
         const NetworkMesh& networkMesh = networkMeshes.at(i);
