@@ -1205,17 +1205,20 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                     QDataStream packetStream(receivedPacket);
                     packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
                     
-                    int numNodeInfoBytes = parseNodeDataFromByteArray(packetStream, throwawayNodeType,
-                                                                      nodePublicAddress, nodeLocalAddress,
-                                                                      senderSockAddr);
+                    parseNodeDataFromByteArray(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress,
+                                               senderSockAddr);
                     
-                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
+                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID,
+                                                                                   nodePublicAddress, nodeLocalAddress);
                     
                     // update last receive to now
                     quint64 timeNow = usecTimestampNow();
                     checkInNode->setLastHeardMicrostamp(timeNow);
                     
-                    sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+                    QList<NodeType_t> nodeInterestList;
+                    packetStream >> nodeInterestList;
+                    
+                    sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestList.toSet());
                 }
                 
                 break;
