@@ -122,7 +122,8 @@ Menu::Menu() :
     _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
-    _walletPrivateKey()
+    _walletPrivateKey(),
+    _shouldRenderTableNeedsRebuilding(true)
 {
     Application *appInstance = Application::getInstance();
 
@@ -419,10 +420,12 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     
     QMenu* modelDebugMenu = developerMenu->addMenu("Models");
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DontCullMeshParts, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelBounds, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
+    QMenu* modelCullingMenu = modelDebugMenu->addMenu("Culling");
+    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
@@ -1547,6 +1550,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
             && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
 
         _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+
         if (_voxelSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
             _voxelSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
         }
@@ -1569,6 +1573,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
     }
 
     if (changed) {
+        _shouldRenderTableNeedsRebuilding = true;
         if (_lodToolsDialog) {
             _lodToolsDialog->reloadSliders();
         }
@@ -1583,13 +1588,55 @@ void Menu::resetLODAdjust() {
 
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
+    _shouldRenderTableNeedsRebuilding = true;
     bumpSettings();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
+    _shouldRenderTableNeedsRebuilding = true;
     bumpSettings();
 }
+
+// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
+//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
+bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
+    const float voxelToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float voxelSizeScale = getVoxelSizeScale();
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    float maxScale = (float)TREE_SCALE;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToMeshRatio;
+    
+    if (_shouldRenderTableNeedsRebuilding) {
+        _shouldRenderTable.clear();
+
+        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
+        float scale = maxScale;
+        float visibleDistanceAtScale = visibleDistanceAtMaxScale;
+
+        while (scale > SMALLEST_SCALE_IN_TABLE) {
+            scale /= 2.0f;
+            visibleDistanceAtScale /= 2.0f;
+            _shouldRenderTable[scale] = visibleDistanceAtScale;
+        }
+        _shouldRenderTableNeedsRebuilding = false;
+    }
+
+    float closestScale = maxScale;
+    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
+    QMap<float, float>::const_iterator lowerBound = _shouldRenderTable.lowerBound(largestDimension);
+    if (lowerBound != _shouldRenderTable.constEnd()) {
+        closestScale = lowerBound.key();
+        visibleDistanceAtClosestScale = lowerBound.value();
+    }
+    
+    if (closestScale < largestDimension) {
+        visibleDistanceAtClosestScale *= 2.0f;
+    }
+
+    return (distanceToCamera <= visibleDistanceAtClosestScale);
+}
+
 
 void Menu::lodTools() {
     if (!_lodToolsDialog) {
