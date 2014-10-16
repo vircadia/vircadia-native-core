@@ -1334,7 +1334,22 @@ void Model::segregateMeshGroups() {
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
-        QString materialID = mesh.parts.at(0).materialID;
+        QString materialID;
+
+        // create a material name from all the parts. If there's one part, this will be a single material and its
+        // true name. If however the mesh has multiple parts the name will be all the part's materials mashed together
+        // which will result in those parts being sorted away from single material parts.
+        QString lastPartMaterialID;
+        foreach(FBXMeshPart part, mesh.parts) {
+            if (part.materialID != lastPartMaterialID) {
+                materialID += part.materialID;
+            }
+            lastPartMaterialID = part.materialID;
+        }
+        const bool wantDebug = false;
+        if (wantDebug) {
+            qDebug() << "materialID:" << materialID << "parts:" << mesh.parts.size();
+        }
 
         if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
@@ -1712,8 +1727,12 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
                 
             } else {
                 if (dontReduceMaterialSwitches || lastMaterialID != part.materialID) {
-                    //qDebug() << "Material Changed ---------------------------------------------";
-                    //qDebug() << "NEW part.materialID:" << part.materialID;
+                    const bool wantDebug = false;
+                    if (wantDebug) {
+                        qDebug() << "Material Changed ---------------------------------------------";
+                        qDebug() << "part INDEX:" << j;
+                        qDebug() << "NEW part.materialID:" << part.materialID;
+                    }
 
                     glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
                     if (!(translucent && alphaThreshold == 0.0f)) {
