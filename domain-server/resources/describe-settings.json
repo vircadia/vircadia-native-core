@@ -145,7 +145,7 @@
   },
   {
     "name": "audio_buffer",
-    "label": "Audio Buffer",
+    "label": "Audio Buffers",
     "assignment-types": [0],
     "settings": [
       {
