@@ -22,8 +22,8 @@ SelectionDisplay = (function () {
     
     var mode = "UNKNOWN";
     var overlayNames = new Array();
-    var lastAvatarPosition = MyAvatar.position;
-    var lastAvatarOrientation = MyAvatar.orientation;
+    var lastCameraPosition = Camera.getPosition();
+    var lastCameraOrientation = Camera.getOrientation();
     var lastPlaneIntersection;
 
     var currentSelection = { id: -1, isKnownID: false };
@@ -452,15 +452,15 @@ SelectionDisplay = (function () {
         currentSelection = entityID;
         entitySelected = true;
         
-        lastAvatarPosition = MyAvatar.position;
-        lastAvatarOrientation = MyAvatar.orientation;
+        lastCameraPosition = Camera.getPosition();
+        lastCameraOrientation = Camera.getOrientation();
 
         if (event !== false) {
             selectedEntityProperties = properties;
             selectedEntityPropertiesOriginalPosition = properties.position;
             selectedEntityPropertiesOriginalDimensions = properties.dimensions;
             pickRay = Camera.computePickRay(event.x, event.y);
-            lastPlaneIntersection = rayPlaneIntersection(pickRay, properties.position, Quat.getFront(lastAvatarOrientation));
+            lastPlaneIntersection = rayPlaneIntersection(pickRay, properties.position, Quat.getFront(lastCameraOrientation));
 
             var wantDebug = false;
             if (wantDebug) {
@@ -838,7 +838,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -877,7 +877,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
         
@@ -914,7 +914,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -967,7 +967,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1017,7 +1017,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1066,7 +1066,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1115,7 +1115,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1164,7 +1164,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1213,7 +1213,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1280,7 +1280,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1347,7 +1347,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1414,7 +1414,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1481,7 +1481,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1548,7 +1548,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1615,7 +1615,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1682,7 +1682,7 @@ SelectionDisplay = (function () {
         // translate mode left/right based on view toward entity
         var newIntersection = rayPlaneIntersection(pickRay,
                                                    selectedEntityPropertiesOriginalPosition,
-                                                   Quat.getFront(lastAvatarOrientation));
+                                                   Quat.getFront(lastCameraOrientation));
 
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
@@ -1981,7 +1981,7 @@ SelectionDisplay = (function () {
 
     that.checkMove = function() {
         if (currentSelection.isKnownID && 
-            (!Vec3.equal(MyAvatar.position, lastAvatarPosition) || !Quat.equal(MyAvatar.orientation, lastAvatarOrientation))){
+            (!Vec3.equal(Camera.getPosition(), lastCameraPosition) || !Quat.equal(Camera.getOrientation(), lastCameraOrientation))){
             that.select(currentSelection, false);
         }
     };
@@ -2277,7 +2277,7 @@ SelectionDisplay = (function () {
         if (somethingClicked) {
             pickRay = Camera.computePickRay(event.x, event.y);
             lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
-                                                            Quat.getFront(lastAvatarOrientation));
+                                                            Quat.getFront(lastCameraOrientation));
             if (wantDebug) {
                      print("mousePressEvent()...... " + overlayNames[result.overlayID]);
                 Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
