@@ -1390,8 +1390,6 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
-    bool cullMeshParts = args && !Menu::getInstance()->isOptionChecked(MenuOption::DontCullMeshParts);
-
     // depending on which parameters we were called with, pick the correct mesh group to render
     QVector<int>* whichList = NULL;
     if (translucent && !hasTangents && !hasSpecular && !isSkinned) {
@@ -1509,12 +1507,16 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         
         // if we got here, then check to see if this mesh is in view
         if (args) {
+            bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
+            bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
+
             bool shouldRender = true;
             args->_meshesConsidered++;
 
-            if (cullMeshParts && args->_viewFrustum) {
-                shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
-                if (shouldRender) {
+            if (args->_viewFrustum) {
+                shouldRender = dontCullOutOfViewMeshParts || 
+                                args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+                if (shouldRender && cullTooSmallMeshParts) {
                     float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
                     shouldRender = Menu::getInstance()->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(), 
                                                                             distance);
