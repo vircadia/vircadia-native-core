@@ -143,7 +143,7 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
-    bool shouldRenderMesh(float largestDimension, float distanceToCamera) const;
+    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
 #ifdef Q_OS_MAC
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
@@ -312,6 +312,9 @@ private:
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
+    
+    bool _shouldRenderTableNeedsRebuilding;
+    QMap<float, float> _shouldRenderTable;
 
 };
 
