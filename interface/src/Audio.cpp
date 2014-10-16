@@ -951,6 +951,10 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         numNetworkOutputSamples,
         numDeviceOutputSamples,
         _desiredOutputFormat, _outputFormat);
+    
+    if(_reverb) {
+        addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
+    }
 }
 
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
@@ -1124,110 +1128,6 @@ void Audio::toggleStereoInput() {
     if (oldChannelCount != _desiredInputFormat.channelCount()) {
         // change in channel count for desired input format, restart the input device
         switchInputToAudioDevice(_inputAudioDeviceName);
-    }
-}
-
-void Audio::processReceivedAudio(const QByteArray& audioByteArray) {
-    _ringBuffer.parseData(audioByteArray);
-    
-    float networkOutputToOutputRatio = (_desiredOutputFormat.sampleRate() / (float) _outputFormat.sampleRate())
-        * (_desiredOutputFormat.channelCount() / (float) _outputFormat.channelCount());
-    
-    if (!_ringBuffer.isStarved() && _audioOutput && _audioOutput->bytesFree() == _audioOutput->bufferSize()) {
-        // we don't have any audio data left in the output buffer
-        // we just starved
-        //qDebug() << "Audio output just starved.";
-        _ringBuffer.setIsStarved(true);
-        _numFramesDisplayStarve = 10;
-    }
-    
-    // if there is anything in the ring buffer, decide what to do
-    if (_ringBuffer.samplesAvailable() > 0) {
-        
-        int numNetworkOutputSamples = _ringBuffer.samplesAvailable();
-        int numDeviceOutputSamples = numNetworkOutputSamples / networkOutputToOutputRatio;
-        
-        QByteArray outputBuffer;
-        outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
-        
-        int numSamplesNeededToStartPlayback = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (_jitterBufferSamples * 2);
-        
-        if (!_ringBuffer.isNotStarvedOrHasMinimumSamples(numSamplesNeededToStartPlayback)) {
-            //  We are still waiting for enough samples to begin playback
-            // qDebug() << numNetworkOutputSamples << " samples so far, waiting for " << numSamplesNeededToStartPlayback;
-        } else {
-            //  We are either already playing back, or we have enough audio to start playing back.
-            //qDebug() << "pushing " << numNetworkOutputSamples;
-            _ringBuffer.setIsStarved(false);
-
-            int16_t* ringBufferSamples = new int16_t[numNetworkOutputSamples];
-            if (_processSpatialAudio) {
-                unsigned int sampleTime = _spatialAudioStart;
-                QByteArray buffer;
-                buffer.resize(numNetworkOutputSamples * sizeof(int16_t));
-
-                _ringBuffer.readSamples((int16_t*)buffer.data(), numNetworkOutputSamples);
-                // Accumulate direct transmission of audio from sender to receiver
-                if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
-                    emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-                    addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
-                }
-
-                // Send audio off for spatial processing
-                emit processInboundAudio(sampleTime, buffer, _desiredOutputFormat);
-
-                // copy the samples we'll resample from the spatial audio ring buffer - this also
-                // pushes the read pointer of the spatial audio ring buffer forwards
-                _spatialAudioRingBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-
-                // Advance the start point for the next packet of audio to arrive
-                _spatialAudioStart += numNetworkOutputSamples / _desiredOutputFormat.channelCount();
-            } else {
-                // copy the samples we'll resample from the ring buffer - this also
-                // pushes the read pointer of the ring buffer forwards
-                _ringBuffer.readSamples(ringBufferSamples, numNetworkOutputSamples);
-            }
-
-            // copy the packet from the RB to the output
-            linearResampling(ringBufferSamples,
-                             (int16_t*) outputBuffer.data(),
-                             numNetworkOutputSamples,
-                             numDeviceOutputSamples,
-                             _desiredOutputFormat, _outputFormat);
-
-            if(_reverb) {
-                addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
-            }
-
-            if (_outputDevice) {
-                _outputDevice->write(outputBuffer);
-            }
-
-            if (_scopeEnabled && !_scopeEnabledPause) {
-                unsigned int numAudioChannels = _desiredOutputFormat.channelCount();
-                int16_t* samples = ringBufferSamples;
-                for (int numSamples = numNetworkOutputSamples / numAudioChannels; numSamples > 0; numSamples -= NETWORK_SAMPLES_PER_FRAME) {
-
-                    unsigned int audioChannel = 0;
-                    addBufferToScope(
-                        _scopeOutputLeft, 
-                        _scopeOutputOffset, 
-                        samples, audioChannel, numAudioChannels); 
-
-                    audioChannel = 1;
-                    addBufferToScope(
-                        _scopeOutputRight, 
-                        _scopeOutputOffset, 
-                        samples, audioChannel, numAudioChannels); 
-                
-                    _scopeOutputOffset += NETWORK_SAMPLES_PER_FRAME;
-                    _scopeOutputOffset %= _samplesPerScope;
-                    samples += NETWORK_SAMPLES_PER_FRAME * numAudioChannels;
-                }
-            }
-
-            delete[] ringBufferSamples;
-        }
     }
 }
 
