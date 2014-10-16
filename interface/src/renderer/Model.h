@@ -31,6 +31,7 @@ class QScriptEngine;
 class AnimationHandle;
 class Shape;
 class RenderArgs;
+class ViewFrustum;
 
 typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
 typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;

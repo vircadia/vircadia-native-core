@@ -1514,12 +1514,21 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
 
             if (cullMeshParts && args->_viewFrustum) {
                 shouldRender = args->_viewFrustum->boxInFrustum(_calculatedMeshBoxes.at(i)) != ViewFrustum::OUTSIDE;
+                if (shouldRender) {
+                    float distance = args->_viewFrustum->distanceToCamera(_calculatedMeshBoxes.at(i).calcCenter());
+                    shouldRender = Menu::getInstance()->shouldRenderMesh(_calculatedMeshBoxes.at(i).getLargestDimension(), 
+                                                                            distance);
+                    if (!shouldRender) {
+                        args->_meshesTooSmall++;
+                    }
+                } else {
+                    args->_meshesOutOfView++;
+                }
             }
 
             if (shouldRender) {
                 args->_meshesRendered++;
             } else {
-                args->_meshesOutOfView++;
                 continue; // skip this mesh
             }
         }

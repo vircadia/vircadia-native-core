@@ -1595,6 +1595,31 @@ void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     bumpSettings();
 }
 
+// TODO: This could be optimized to be a table, or something that doesn't require recalculation on every
+//       render call for every entity
+// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
+//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
+bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) const {
+    const float voxelToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float voxelSizeScale = getVoxelSizeScale();
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    
+    float scale = (float)TREE_SCALE;
+    float visibleDistanceAtScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToMeshRatio;
+
+    while (scale > largestDimension) {
+        scale /= 2.0f;
+        visibleDistanceAtScale /= 2.0f;
+    }
+    
+    if (scale < largestDimension) {
+        visibleDistanceAtScale *= 2.0f;
+    }
+
+    return (distanceToCamera <= visibleDistanceAtScale);
+}
+
+
 void Menu::lodTools() {
     if (!_lodToolsDialog) {
         _lodToolsDialog = new LodToolsDialog(Application::getInstance()->getGLWidget());

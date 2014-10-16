@@ -143,6 +143,8 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
+    bool shouldRenderMesh(float largestDimension, float distanceToCamera) const;
+
 #ifdef Q_OS_MAC
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
