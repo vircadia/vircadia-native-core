@@ -1120,16 +1120,16 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
+        var oldRIGHT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
         var newRIGHT = oldRIGHT + vector.x;
-        var changeInDimensions = { x: (newRIGHT - oldRIGHT), y: 0 , z: 0 };
+        var changeInDimensions = { x: (oldRIGHT - newRIGHT), y: 0 , z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
 
         if (newDimensions.x < MINIMUM_DIMENSION) {
             newDimensions.x = MINIMUM_DIMENSION;
         }
 
-        var changeInPosition = { x: (newRIGHT - oldRIGHT) * 0.5, y: 0, z: 0 };
+        var changeInPosition = { x: (oldRIGHT - newRIGHT) * -0.5, y: 0, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
         var wantDebug = false;
         if (wantDebug) {
@@ -1169,18 +1169,18 @@ SelectionDisplay = (function () {
         var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
 
         var halfDimensions = Vec3.multiply(selectedEntityPropertiesOriginalDimensions, 0.5);
-        var oldLEFT = selectedEntityPropertiesOriginalPosition.x - halfDimensions.x;
+        var oldLEFT = selectedEntityPropertiesOriginalPosition.x + halfDimensions.x;
         var newLEFT = oldLEFT + vector.x;
-        var changeInDimensions = { x: (oldLEFT - newLEFT), y: 0, z: 0 };
+        var changeInDimensions = { x: (newLEFT - oldLEFT), y: 0, z: 0 };
         var newDimensions = Vec3.sum(selectedEntityPropertiesOriginalDimensions, changeInDimensions);
 
         if (newDimensions.x < MINIMUM_DIMENSION) {
             newDimensions.x = MINIMUM_DIMENSION;
         }
 
-        var changeInPosition = { x: (oldLEFT - newLEFT) * -0.5, y: 0, z: 0 };
+        var changeInPosition = { x: (newLEFT - oldLEFT) * 0.5, y: 0, z: 0 };
         var newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, changeInPosition);
-        var wantDebug = false;
+        var wantDebug = true;
         if (wantDebug) {
             print("stretchLEFT... ");
             Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
