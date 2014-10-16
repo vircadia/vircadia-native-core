@@ -20,10 +20,10 @@
 const float MAX_AXIS = 32768.0f;
 
 Joystick::Joystick(SDL_JoystickID instanceId, const QString& name, SDL_GameController* sdlGameController) :
-    _instanceId(instanceId),
-    _name(name),
     _sdlGameController(sdlGameController),
     _sdlJoystick(SDL_GameControllerGetJoystick(_sdlGameController)),
+    _instanceId(instanceId),
+    _name(name),
     _axes(QVector<float>(SDL_JoystickNumAxes(_sdlJoystick))),
     _buttons(QVector<bool>(SDL_JoystickNumButtons(_sdlJoystick)))
 {

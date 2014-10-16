@@ -259,7 +259,7 @@ function makeTable(setting, setting_name, setting_value) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   
-  html += "<td class='buttons'><strong>+/-</strong></td></tr>"
+  html += "<td class='buttons'></td></tr>"
     
   // populate rows in the table from existing values
   var row_num = 1
@@ -279,13 +279,13 @@ function makeTable(setting, setting_name, setting_value) {
       html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
       
       if (isArray) {
-        colIsArray = _.isArray(row)
-        colValue = colIsArray ? row : row[col.name]
+        rowIsObject = setting.columns.length > 1
+        colValue = rowIsObject ? row[col.name] : row
         html += colValue
         
         // for arrays we add a hidden input to this td so that values can be posted appropriately
         html += "<input type='hidden' name='" + setting_name + "[" + indexOrName + "]" 
-          + (colIsArray ? "" : "." + col.name) + "' value='" + colValue + "'/>"
+          + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
       } else if (row.hasOwnProperty(col.name)) {
         html += row[col.name] 
       }

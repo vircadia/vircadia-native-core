@@ -127,8 +127,6 @@ public slots:
     void nodeKilled(SharedNodePointer node);
     void sendStatsPacket();
     
-    void handleSignedTransactionPaymentResponse(const QJsonObject& jsonObject);
-
     void readPendingDatagrams() { }; // this will not be called since our datagram processing thread will handle
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
@@ -141,7 +139,6 @@ protected:
     QString getConfiguration();
     QString getStatusLink();
 
-    void handleSignedTransactionPayment(PacketType packetType, const QByteArray& datagram);
     void setupDatagramProcessingThread();
     
     int _argc;
