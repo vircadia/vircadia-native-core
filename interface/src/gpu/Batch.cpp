@@ -30,35 +30,35 @@ void Batch::clear() {
 }
 
 void Batch::draw( Primitive primitiveType, int nbVertices, int startVertex) {
-    _commands.push(COMMAND_DRAW);
-    _params.push(startVertex);
-    _params.push(nbVertices);
-    _params.push(primitiveType);
+    _commands.push_back(COMMAND_DRAW);
+    _params.push_back(startVertex);
+    _params.push_back(nbVertices);
+    _params.push_back(primitiveType);
 }
 
 void Batch::drawIndexed( Primitive primitiveType, int nbIndices, int startIndex) {
-    _commands.push(COMMAND_DRAW_INDEXED);
-    _params.push(startIndex);
-    _params.push(nbIndices);
-    _params.push(primitiveType);
+    _commands.push_back(COMMAND_DRAW_INDEXED);
+    _params.push_back(startIndex);
+    _params.push_back(nbIndices);
+    _params.push_back(primitiveType);
 }
 
 void Batch::drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex, int startInstance) {
-    _commands.push(COMMAND_DRAW_INSTANCED);
-    _params.push(startInstance);
-    _params.push(startVertex);
-    _params.push(nbVertices);
-    _params.push(primitiveType);
-    _params.push(nbInstances);
+    _commands.push_back(COMMAND_DRAW_INSTANCED);
+    _params.push_back(startInstance);
+    _params.push_back(startVertex);
+    _params.push_back(nbVertices);
+    _params.push_back(primitiveType);
+    _params.push_back(nbInstances);
 }
 
 void Batch::drawIndexedInstanced( uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex, int startInstance) {
-    _commands.push(COMMAND_DRAW_INDEXED_INSTANCED);
-    _params.push(startInstance);
-    _params.push(startIndex);
-    _params.push(nbIndices);
-    _params.push(primitiveType);
-    _params.push(nbInstances);
+    _commands.push_back(COMMAND_DRAW_INDEXED_INSTANCED);
+    _params.push_back(startInstance);
+    _params.push_back(startIndex);
+    _params.push_back(nbIndices);
+    _params.push_back(primitiveType);
+    _params.push_back(nbInstances);
 }
 
 

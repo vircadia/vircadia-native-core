@@ -14,10 +14,15 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include <vector>
+
 namespace gpu {
 
 class Buffer;
+class Resource;
 typedef int  Stamp;
+typedef unsigned int uint32;
+typedef int int32;
 
 // TODO: move the backend namespace into dedicated files, for now we keep it close to the gpu objects definition for convenience
 namespace backend {
@@ -47,7 +52,6 @@ public:
     void drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex = 0, int startInstance = 0);
     void drawIndexedInstanced( uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex = 0, int startInstance = 0);
 
-    void glBindBuffer( GLenum
 protected:
 
     enum Command {
