@@ -25,30 +25,30 @@
 
 #include "OctreeTests.h"
 
-enum ParticlePropertyList {
-    PARTICLE_PROP_PAGED_PROPERTY,
-    PARTICLE_PROP_CUSTOM_PROPERTIES_INCLUDED,
-    PARTICLE_PROP_VISIBLE,
-    PARTICLE_PROP_POSITION,
-    PARTICLE_PROP_RADIUS,
-    PARTICLE_PROP_MODEL_URL,
-    PARTICLE_PROP_ROTATION,
-    PARTICLE_PROP_COLOR,
-    PARTICLE_PROP_SCRIPT,
-    PARTICLE_PROP_ANIMATION_URL,
-    PARTICLE_PROP_ANIMATION_FPS,
-    PARTICLE_PROP_ANIMATION_FRAME_INDEX,
-    PARTICLE_PROP_ANIMATION_PLAYING,
-    PARTICLE_PROP_SHOULD_BE_DELETED,
-    PARTICLE_PROP_VELOCITY,
-    PARTICLE_PROP_GRAVITY,
-    PARTICLE_PROP_DAMPING,
-    PARTICLE_PROP_MASS,
-    PARTICLE_PROP_LIFETIME,
-    PARTICLE_PROP_PAUSE_SIMULATION,
+enum ExamplePropertyList {
+    EXAMPLE_PROP_PAGED_PROPERTY,
+    EXAMPLE_PROP_CUSTOM_PROPERTIES_INCLUDED,
+    EXAMPLE_PROP_VISIBLE,
+    EXAMPLE_PROP_POSITION,
+    EXAMPLE_PROP_RADIUS,
+    EXAMPLE_PROP_MODEL_URL,
+    EXAMPLE_PROP_ROTATION,
+    EXAMPLE_PROP_COLOR,
+    EXAMPLE_PROP_SCRIPT,
+    EXAMPLE_PROP_ANIMATION_URL,
+    EXAMPLE_PROP_ANIMATION_FPS,
+    EXAMPLE_PROP_ANIMATION_FRAME_INDEX,
+    EXAMPLE_PROP_ANIMATION_PLAYING,
+    EXAMPLE_PROP_SHOULD_BE_DELETED,
+    EXAMPLE_PROP_VELOCITY,
+    EXAMPLE_PROP_GRAVITY,
+    EXAMPLE_PROP_DAMPING,
+    EXAMPLE_PROP_MASS,
+    EXAMPLE_PROP_LIFETIME,
+    EXAMPLE_PROP_PAUSE_SIMULATION,
 };
 
-typedef PropertyFlags<ParticlePropertyList> ParticlePropertyFlags;
+typedef PropertyFlags<ExamplePropertyList> ExamplePropertyFlags;
 
 
 void OctreeTests::propertyFlagsTests(bool verbose) {
@@ -96,17 +96,16 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
 
     {    
         if (verbose) {
-            qDebug() << "Test 2: ParticlePropertyFlags: using setHasProperty()";
+            qDebug() << "Test 2: ExamplePropertyFlags: using setHasProperty()";
         }
         testsTaken++;
 
-        ParticlePropertyFlags props2;
-        props2.setHasProperty(PARTICLE_PROP_VISIBLE);
-        props2.setHasProperty(PARTICLE_PROP_ANIMATION_URL);
-        props2.setHasProperty(PARTICLE_PROP_ANIMATION_FPS);
-        props2.setHasProperty(PARTICLE_PROP_ANIMATION_FRAME_INDEX);
-        props2.setHasProperty(PARTICLE_PROP_ANIMATION_PLAYING);
-        props2.setHasProperty(PARTICLE_PROP_PAUSE_SIMULATION);
+        EntityPropertyFlags props2;
+        props2.setHasProperty(PROP_VISIBLE);
+        props2.setHasProperty(PROP_ANIMATION_URL);
+        props2.setHasProperty(PROP_ANIMATION_FPS);
+        props2.setHasProperty(PROP_ANIMATION_FRAME_INDEX);
+        props2.setHasProperty(PROP_ANIMATION_PLAYING);
     
         QByteArray encoded = props2.encode();
 
@@ -122,17 +121,15 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 2: ParticlePropertyFlags: using setHasProperty()";
+            qDebug() << "FAILED - Test 2: ExamplePropertyFlags: using setHasProperty()";
         }
 
         
         if (verbose) {
-            qDebug() << "Test 2b: remove flag with setHasProperty() PARTICLE_PROP_PAUSE_SIMULATION";
+            qDebug() << "Test 2b: remove flag with setHasProperty() PROP_PAUSE_SIMULATION";
         }
         testsTaken++;
 
-        props2.setHasProperty(PARTICLE_PROP_PAUSE_SIMULATION, false);
-    
         encoded = props2.encode();
 
         if (verbose) {
@@ -147,24 +144,24 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 2b: remove flag with setHasProperty() PARTICLE_PROP_PAUSE_SIMULATION";
+            qDebug() << "FAILED - Test 2b: remove flag with setHasProperty() EXAMPLE_PROP_PAUSE_SIMULATION";
         }
     }
 
     {    
         if (verbose) {
-            qDebug() << "Test 3: ParticlePropertyFlags: using | operator";
+            qDebug() << "Test 3: ExamplePropertyFlags: using | operator";
         }
         testsTaken++;
         
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
-                    | ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_URL)
-                    | ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FPS)
-                    | ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FRAME_INDEX)
-                    | ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_PLAYING) 
-                    | ParticlePropertyFlags(PARTICLE_PROP_PAUSE_SIMULATION);
+        props = ExamplePropertyFlags(EXAMPLE_PROP_VISIBLE) 
+                    | ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_URL)
+                    | ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_FPS)
+                    | ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_FRAME_INDEX)
+                    | ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_PLAYING) 
+                    | ExamplePropertyFlags(EXAMPLE_PROP_PAUSE_SIMULATION);
     
         QByteArray encoded = props.encode();
 
@@ -179,16 +176,16 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 3: ParticlePropertyFlags: using | operator";
+            qDebug() << "FAILED - Test 3: ExamplePropertyFlags: using | operator";
         }
 
 
         if (verbose) {
-            qDebug() << "Test 3b: remove flag with -= PARTICLE_PROP_PAUSE_SIMULATION";
+            qDebug() << "Test 3b: remove flag with -= EXAMPLE_PROP_PAUSE_SIMULATION";
         }
         testsTaken++;
         
-        props -= PARTICLE_PROP_PAUSE_SIMULATION;
+        props -= EXAMPLE_PROP_PAUSE_SIMULATION;
     
         encoded = props.encode();
     
@@ -204,25 +201,25 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 3b: remove flag with -= PARTICLE_PROP_PAUSE_SIMULATION";
+            qDebug() << "FAILED - Test 3b: remove flag with -= EXAMPLE_PROP_PAUSE_SIMULATION";
         }
         
     }
 
     {    
         if (verbose) {
-            qDebug() << "Test 3c: ParticlePropertyFlags: using |= operator";
+            qDebug() << "Test 3c: ExamplePropertyFlags: using |= operator";
         }
         testsTaken++;
 
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props |= PARTICLE_PROP_VISIBLE;
-        props |= PARTICLE_PROP_ANIMATION_URL;
-        props |= PARTICLE_PROP_ANIMATION_FPS;
-        props |= PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props |= PARTICLE_PROP_ANIMATION_PLAYING;
-        props |= PARTICLE_PROP_PAUSE_SIMULATION;
+        props |= EXAMPLE_PROP_VISIBLE;
+        props |= EXAMPLE_PROP_ANIMATION_URL;
+        props |= EXAMPLE_PROP_ANIMATION_FPS;
+        props |= EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props |= EXAMPLE_PROP_ANIMATION_PLAYING;
+        props |= EXAMPLE_PROP_PAUSE_SIMULATION;
 
         QByteArray encoded = props.encode();
 
@@ -238,24 +235,24 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - 3c: ParticlePropertyFlags: using |= operator";
+            qDebug() << "FAILED - 3c: ExamplePropertyFlags: using |= operator";
         }
     }
 
     {    
         if (verbose) {
-            qDebug() << "Test 4: ParticlePropertyFlags: using + operator";
+            qDebug() << "Test 4: ExamplePropertyFlags: using + operator";
         }
         testsTaken++;
 
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
-                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_URL)
-                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FPS)
-                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FRAME_INDEX)
-                    + ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_PLAYING) 
-                    + ParticlePropertyFlags(PARTICLE_PROP_PAUSE_SIMULATION);
+        props = ExamplePropertyFlags(EXAMPLE_PROP_VISIBLE) 
+                    + ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_URL)
+                    + ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_FPS)
+                    + ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_FRAME_INDEX)
+                    + ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_PLAYING) 
+                    + ExamplePropertyFlags(EXAMPLE_PROP_PAUSE_SIMULATION);
     
         QByteArray encoded = props.encode();
 
@@ -271,23 +268,23 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 4: ParticlePropertyFlags: using + operator";
+            qDebug() << "FAILED - Test 4: ExamplePropertyFlags: using + operator";
         }
     }
 
     {    
         if (verbose) {
-            qDebug() << "Test 5: ParticlePropertyFlags: using += operator";
+            qDebug() << "Test 5: ExamplePropertyFlags: using += operator";
         }
         testsTaken++;
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props += PARTICLE_PROP_VISIBLE;
-        props += PARTICLE_PROP_ANIMATION_URL;
-        props += PARTICLE_PROP_ANIMATION_FPS;
-        props += PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props += PARTICLE_PROP_ANIMATION_PLAYING;
-        props += PARTICLE_PROP_PAUSE_SIMULATION;
+        props += EXAMPLE_PROP_VISIBLE;
+        props += EXAMPLE_PROP_ANIMATION_URL;
+        props += EXAMPLE_PROP_ANIMATION_FPS;
+        props += EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props += EXAMPLE_PROP_ANIMATION_PLAYING;
+        props += EXAMPLE_PROP_PAUSE_SIMULATION;
     
         QByteArray encoded = props.encode();
 
@@ -303,24 +300,24 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 5: ParticlePropertyFlags: using += operator";
+            qDebug() << "FAILED - Test 5: ExamplePropertyFlags: using += operator";
         }
     }
 
     {    
         if (verbose) {
-            qDebug() << "Test 6: ParticlePropertyFlags: using = ... << operator";
+            qDebug() << "Test 6: ExamplePropertyFlags: using = ... << operator";
         }
         testsTaken++;
         
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props = ParticlePropertyFlags(PARTICLE_PROP_VISIBLE) 
-                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_URL)
-                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FPS)
-                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_FRAME_INDEX)
-                    << ParticlePropertyFlags(PARTICLE_PROP_ANIMATION_PLAYING) 
-                    << ParticlePropertyFlags(PARTICLE_PROP_PAUSE_SIMULATION);
+        props = ExamplePropertyFlags(EXAMPLE_PROP_VISIBLE) 
+                    << ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_URL)
+                    << ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_FPS)
+                    << ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_FRAME_INDEX)
+                    << ExamplePropertyFlags(EXAMPLE_PROP_ANIMATION_PLAYING) 
+                    << ExamplePropertyFlags(EXAMPLE_PROP_PAUSE_SIMULATION);
     
         QByteArray encoded = props.encode();
 
@@ -336,24 +333,24 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 6: ParticlePropertyFlags: using = ... << operator";
+            qDebug() << "FAILED - Test 6: ExamplePropertyFlags: using = ... << operator";
         }
     }
 
     {
         if (verbose) {
-            qDebug() << "Test 7: ParticlePropertyFlags: using <<= operator";
+            qDebug() << "Test 7: ExamplePropertyFlags: using <<= operator";
         }
         testsTaken++;
         
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props <<= PARTICLE_PROP_VISIBLE;
-        props <<= PARTICLE_PROP_ANIMATION_URL;
-        props <<= PARTICLE_PROP_ANIMATION_FPS;
-        props <<= PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props <<= PARTICLE_PROP_ANIMATION_PLAYING;
-        props <<= PARTICLE_PROP_PAUSE_SIMULATION;
+        props <<= EXAMPLE_PROP_VISIBLE;
+        props <<= EXAMPLE_PROP_ANIMATION_URL;
+        props <<= EXAMPLE_PROP_ANIMATION_FPS;
+        props <<= EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props <<= EXAMPLE_PROP_ANIMATION_PLAYING;
+        props <<= EXAMPLE_PROP_PAUSE_SIMULATION;
     
         QByteArray encoded = props.encode();
 
@@ -369,24 +366,24 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 7: ParticlePropertyFlags: using <<= operator";
+            qDebug() << "FAILED - Test 7: ExamplePropertyFlags: using <<= operator";
         }
     }
 
     {
         if (verbose) {
-            qDebug() << "Test 8: ParticlePropertyFlags: using << enum operator";
+            qDebug() << "Test 8: ExamplePropertyFlags: using << enum operator";
         }
         testsTaken++;
         
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props << PARTICLE_PROP_VISIBLE;
-        props << PARTICLE_PROP_ANIMATION_URL;
-        props << PARTICLE_PROP_ANIMATION_FPS;
-        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props << PARTICLE_PROP_ANIMATION_PLAYING;
-        props << PARTICLE_PROP_PAUSE_SIMULATION;
+        props << EXAMPLE_PROP_VISIBLE;
+        props << EXAMPLE_PROP_ANIMATION_URL;
+        props << EXAMPLE_PROP_ANIMATION_FPS;
+        props << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props << EXAMPLE_PROP_ANIMATION_PLAYING;
+        props << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         QByteArray encoded = props.encode();
 
@@ -402,26 +399,26 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 8: ParticlePropertyFlags: using << enum operator";
+            qDebug() << "FAILED - Test 8: ExamplePropertyFlags: using << enum operator";
         }
     }
 
     {
         if (verbose) {
-            qDebug() << "Test 9: ParticlePropertyFlags: using << flags operator ";
+            qDebug() << "Test 9: ExamplePropertyFlags: using << flags operator ";
         }
         testsTaken++;
 
-        ParticlePropertyFlags props;
-        ParticlePropertyFlags props2;
+        ExamplePropertyFlags props;
+        ExamplePropertyFlags props2;
 
-        props << PARTICLE_PROP_VISIBLE;
-        props << PARTICLE_PROP_ANIMATION_URL;
-        props << PARTICLE_PROP_ANIMATION_FPS;
+        props << EXAMPLE_PROP_VISIBLE;
+        props << EXAMPLE_PROP_ANIMATION_URL;
+        props << EXAMPLE_PROP_ANIMATION_FPS;
 
-        props2 << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props2 << PARTICLE_PROP_ANIMATION_PLAYING;
-        props2 << PARTICLE_PROP_PAUSE_SIMULATION;
+        props2 << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props2 << EXAMPLE_PROP_ANIMATION_PLAYING;
+        props2 << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         props << props2;
 
@@ -439,15 +436,15 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 9: ParticlePropertyFlags: using << flags operator";
+            qDebug() << "FAILED - Test 9: ExamplePropertyFlags: using << flags operator";
         }
     }
   
     {
         if (verbose) {
-            qDebug() << "Test 10: ParticlePropertyFlags comparison";
+            qDebug() << "Test 10: ExamplePropertyFlags comparison";
         }
-        ParticlePropertyFlags propsA;
+        ExamplePropertyFlags propsA;
 
         if (verbose) {
             qDebug() << "!propsA:" << (!propsA) << "{ expect true }";
@@ -459,15 +456,15 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 10a: ParticlePropertyFlags comparison, uninitialized !propsA";
+            qDebug() << "FAILED - Test 10a: ExamplePropertyFlags comparison, uninitialized !propsA";
         }
 
-        propsA << PARTICLE_PROP_VISIBLE;
-        propsA << PARTICLE_PROP_ANIMATION_URL;
-        propsA << PARTICLE_PROP_ANIMATION_FPS;
-        propsA << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        propsA << PARTICLE_PROP_ANIMATION_PLAYING;
-        propsA << PARTICLE_PROP_PAUSE_SIMULATION;
+        propsA << EXAMPLE_PROP_VISIBLE;
+        propsA << EXAMPLE_PROP_ANIMATION_URL;
+        propsA << EXAMPLE_PROP_ANIMATION_FPS;
+        propsA << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        propsA << EXAMPLE_PROP_ANIMATION_PLAYING;
+        propsA << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         if (verbose) {
             qDebug() << "!propsA:" << (!propsA) << "{ expect false }";
@@ -479,16 +476,16 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 10b: ParticlePropertyFlags comparison, initialized !propsA";
+            qDebug() << "FAILED - Test 10b: ExamplePropertyFlags comparison, initialized !propsA";
         }
 
-        ParticlePropertyFlags propsB;
-        propsB << PARTICLE_PROP_VISIBLE;
-        propsB << PARTICLE_PROP_ANIMATION_URL;
-        propsB << PARTICLE_PROP_ANIMATION_FPS;
-        propsB << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        propsB << PARTICLE_PROP_ANIMATION_PLAYING;
-        propsB << PARTICLE_PROP_PAUSE_SIMULATION;
+        ExamplePropertyFlags propsB;
+        propsB << EXAMPLE_PROP_VISIBLE;
+        propsB << EXAMPLE_PROP_ANIMATION_URL;
+        propsB << EXAMPLE_PROP_ANIMATION_FPS;
+        propsB << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        propsB << EXAMPLE_PROP_ANIMATION_PLAYING;
+        propsB << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         if (verbose) {
             qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect true }";
@@ -501,7 +498,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 10c: ParticlePropertyFlags comparison, propsA == propsB";
+            qDebug() << "FAILED - Test 10c: ExamplePropertyFlags comparison, propsA == propsB";
         }
 
         testsTaken++;
@@ -511,14 +508,14 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 10d: ParticlePropertyFlags comparison, propsA != propsB";
+            qDebug() << "FAILED - Test 10d: ExamplePropertyFlags comparison, propsA != propsB";
         }
         
         if (verbose) {
-            qDebug() << "AFTER propsB -= PARTICLE_PROP_PAUSE_SIMULATION...";
+            qDebug() << "AFTER propsB -= EXAMPLE_PROP_PAUSE_SIMULATION...";
         }
         
-        propsB -= PARTICLE_PROP_PAUSE_SIMULATION;
+        propsB -= EXAMPLE_PROP_PAUSE_SIMULATION;
 
         if (verbose) {
             qDebug() << "propsA == propsB:" << (propsA == propsB) << "{ expect false }";
@@ -531,7 +528,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 10e: ParticlePropertyFlags comparison, AFTER propsB -= PARTICLE_PROP_PAUSE_SIMULATION";
+            qDebug() << "FAILED - Test 10e: ExamplePropertyFlags comparison, AFTER propsB -= EXAMPLE_PROP_PAUSE_SIMULATION";
         }
         
         if (verbose) {
@@ -549,18 +546,18 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 10f: ParticlePropertyFlags comparison, AFTER propsB = propsA";
+            qDebug() << "FAILED - Test 10f: ExamplePropertyFlags comparison, AFTER propsB = propsA";
         }
     }
 
     {
         if (verbose) {
-            qDebug() << "Test 11: ParticlePropertyFlags testing individual properties";
+            qDebug() << "Test 11: ExamplePropertyFlags testing individual properties";
         }
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
         if (verbose) {
-            qDebug() << "ParticlePropertyFlags props;";
+            qDebug() << "ExamplePropertyFlags props;";
         }
         
         QByteArray encoded = props.encode();
@@ -578,36 +575,36 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11a: ParticlePropertyFlags testing individual properties";
+            qDebug() << "FAILED - Test 11a: ExamplePropertyFlags testing individual properties";
         }
 
 
         if (verbose) {
-            qDebug() << "Test 11b: props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+            qDebug() << "Test 11b: props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
                         << "{ expect false }";
         }
         testsTaken++;
-        bool resultB = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool resultB = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
         bool expectedB = false;
         if (resultB == expectedB) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11b: props.getHasProperty(PARTICLE_PROP_VISIBLE)";
+            qDebug() << "FAILED - Test 11b: props.getHasProperty(EXAMPLE_PROP_VISIBLE)";
         }
 
         if (verbose) {
-            qDebug() << "props << PARTICLE_PROP_VISIBLE;";
+            qDebug() << "props << EXAMPLE_PROP_VISIBLE;";
         }
-        props << PARTICLE_PROP_VISIBLE;
+        props << EXAMPLE_PROP_VISIBLE;
         testsTaken++;
-        bool resultC = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool resultC = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
         bool expectedC = true;
         if (resultC == expectedC) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11c: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << PARTICLE_PROP_VISIBLE";
+            qDebug() << "FAILED - Test 11c: props.getHasProperty(EXAMPLE_PROP_VISIBLE) after props << EXAMPLE_PROP_VISIBLE";
         }
 
         encoded = props.encode();
@@ -615,7 +612,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
         if (verbose) {
             qDebug() << "props... encoded=";
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-            qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+            qDebug() << "props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
                             << "{ expect true }";
         }
 
@@ -627,19 +624,19 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11c: ParticlePropertyFlags testing individual properties";
+            qDebug() << "FAILED - Test 11c: ExamplePropertyFlags testing individual properties";
         }
 
         if (verbose) {
-            qDebug() << "props << PARTICLE_PROP_ANIMATION_URL;";
+            qDebug() << "props << EXAMPLE_PROP_ANIMATION_URL;";
         }
-        props << PARTICLE_PROP_ANIMATION_URL;
+        props << EXAMPLE_PROP_ANIMATION_URL;
 
         encoded = props.encode();
         if (verbose) {
             qDebug() << "props... encoded=";
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-            qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+            qDebug() << "props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
                             << "{ expect true }";
         }
         char expectedBytesD[] = { (char)136, (char)16 };
@@ -650,61 +647,61 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11d: ParticlePropertyFlags testing individual properties";
+            qDebug() << "FAILED - Test 11d: ExamplePropertyFlags testing individual properties";
         }
         testsTaken++;
-        bool resultE = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool resultE = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
         bool expectedE = true;
         if (resultE == expectedE) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11e: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << PARTICLE_PROP_ANIMATION_URL";
+            qDebug() << "FAILED - Test 11e: props.getHasProperty(EXAMPLE_PROP_VISIBLE) after props << EXAMPLE_PROP_ANIMATION_URL";
         }
 
 
         if (verbose) {
             qDebug() << "props << ... more ...";
         }
-        props << PARTICLE_PROP_ANIMATION_FPS;
-        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props << PARTICLE_PROP_ANIMATION_PLAYING;
-        props << PARTICLE_PROP_PAUSE_SIMULATION;
+        props << EXAMPLE_PROP_ANIMATION_FPS;
+        props << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props << EXAMPLE_PROP_ANIMATION_PLAYING;
+        props << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         encoded = props.encode();
         if (verbose) {
             qDebug() << "props... encoded=";
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
-            qDebug() << "props.getHasProperty(PARTICLE_PROP_VISIBLE)" << (props.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+            qDebug() << "props.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (props.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
                             << "{ expect true }";
         }
         testsTaken++;
-        bool resultF = props.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool resultF = props.getHasProperty(EXAMPLE_PROP_VISIBLE);
         bool expectedF = true;
         if (resultF == expectedF) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11f: props.getHasProperty(PARTICLE_PROP_VISIBLE) after props << more";
+            qDebug() << "FAILED - Test 11f: props.getHasProperty(EXAMPLE_PROP_VISIBLE) after props << more";
         }
 
         if (verbose) {
-            qDebug() << "ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;";
+            qDebug() << "ExamplePropertyFlags propsB = props & EXAMPLE_PROP_VISIBLE;";
         }
-        ParticlePropertyFlags propsB = props & PARTICLE_PROP_VISIBLE;
+        ExamplePropertyFlags propsB = props & EXAMPLE_PROP_VISIBLE;
 
         if (verbose) {
-            qDebug() << "propsB.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsB.getHasProperty(PARTICLE_PROP_VISIBLE)) 
+            qDebug() << "propsB.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (propsB.getHasProperty(EXAMPLE_PROP_VISIBLE)) 
                         << "{ expect true }";
         }
         testsTaken++;
-        bool resultG = propsB.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool resultG = propsB.getHasProperty(EXAMPLE_PROP_VISIBLE);
         bool expectedG = true;
         if (resultG == expectedG) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11g: propsB = props & PARTICLE_PROP_VISIBLE";
+            qDebug() << "FAILED - Test 11g: propsB = props & EXAMPLE_PROP_VISIBLE";
         }
 
         encoded = propsB.encode();
@@ -720,20 +717,20 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 11h: ParticlePropertyFlags testing individual properties";
+            qDebug() << "FAILED - Test 11h: ExamplePropertyFlags testing individual properties";
         }
 
         if (verbose) {
-            qDebug() << "ParticlePropertyFlags propsC = ~propsB;";
+            qDebug() << "ExamplePropertyFlags propsC = ~propsB;";
         }
-        ParticlePropertyFlags propsC = ~propsB;
+        ExamplePropertyFlags propsC = ~propsB;
         
         if (verbose) {
-            qDebug() << "propsC.getHasProperty(PARTICLE_PROP_VISIBLE)" << (propsC.getHasProperty(PARTICLE_PROP_VISIBLE))
+            qDebug() << "propsC.getHasProperty(EXAMPLE_PROP_VISIBLE)" << (propsC.getHasProperty(EXAMPLE_PROP_VISIBLE))
                         << "{ expect false }";
         }
         testsTaken++;
-        bool resultI = propsC.getHasProperty(PARTICLE_PROP_VISIBLE);
+        bool resultI = propsC.getHasProperty(EXAMPLE_PROP_VISIBLE);
         bool expectedI = false;
         if (resultI == expectedI) {
             testsPassed++;
@@ -751,16 +748,16 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
     
     {
         if (verbose) {
-            qDebug() << "Test 12: ParticlePropertyFlags: decode tests";
+            qDebug() << "Test 12: ExamplePropertyFlags: decode tests";
         }
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props << PARTICLE_PROP_VISIBLE;
-        props << PARTICLE_PROP_ANIMATION_URL;
-        props << PARTICLE_PROP_ANIMATION_FPS;
-        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props << PARTICLE_PROP_ANIMATION_PLAYING;
-        props << PARTICLE_PROP_PAUSE_SIMULATION;
+        props << EXAMPLE_PROP_VISIBLE;
+        props << EXAMPLE_PROP_ANIMATION_URL;
+        props << EXAMPLE_PROP_ANIMATION_FPS;
+        props << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props << EXAMPLE_PROP_ANIMATION_PLAYING;
+        props << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         QByteArray encoded = props.encode();
         if (verbose) {
@@ -769,7 +766,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             qDebug() << "encoded.size()=" << encoded.size();
         }
 
-        ParticlePropertyFlags propsDecoded;
+        ExamplePropertyFlags propsDecoded;
         propsDecoded.decode(encoded);
         
         if (verbose) {
@@ -812,7 +809,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             qDebug() << "encoded.size()=" << encoded.size() << "includes extra garbage";
         }
 
-        ParticlePropertyFlags propsDecodedExtra;
+        ExamplePropertyFlags propsDecodedExtra;
         propsDecodedExtra.decode(encoded);
         
         if (verbose) {
@@ -838,16 +835,16 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
     
     {
         if (verbose) {
-            qDebug() << "Test 13: ParticlePropertyFlags: QByteArray << / >> tests";
+            qDebug() << "Test 13: ExamplePropertyFlags: QByteArray << / >> tests";
         }
-        ParticlePropertyFlags props;
+        ExamplePropertyFlags props;
 
-        props << PARTICLE_PROP_VISIBLE;
-        props << PARTICLE_PROP_ANIMATION_URL;
-        props << PARTICLE_PROP_ANIMATION_FPS;
-        props << PARTICLE_PROP_ANIMATION_FRAME_INDEX;
-        props << PARTICLE_PROP_ANIMATION_PLAYING;
-        props << PARTICLE_PROP_PAUSE_SIMULATION;
+        props << EXAMPLE_PROP_VISIBLE;
+        props << EXAMPLE_PROP_ANIMATION_URL;
+        props << EXAMPLE_PROP_ANIMATION_FPS;
+        props << EXAMPLE_PROP_ANIMATION_FRAME_INDEX;
+        props << EXAMPLE_PROP_ANIMATION_PLAYING;
+        props << EXAMPLE_PROP_PAUSE_SIMULATION;
 
         if (verbose) {
             qDebug() << "testing encoded << props";
@@ -859,7 +856,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             outputBufferBits((const unsigned char*)encoded.constData(), encoded.size());
         }
 
-        ParticlePropertyFlags propsDecoded;
+        ExamplePropertyFlags propsDecoded;
         if (verbose) {
             qDebug() << "testing encoded >> propsDecoded";
         }
@@ -876,7 +873,7 @@ void OctreeTests::propertyFlagsTests(bool verbose) {
             testsPassed++;
         } else {
             testsFailed++;
-            qDebug() << "FAILED - Test 13: ParticlePropertyFlags: QByteArray << / >> tests";
+            qDebug() << "FAILED - Test 13: ExamplePropertyFlags: QByteArray << / >> tests";
         }
     }
 

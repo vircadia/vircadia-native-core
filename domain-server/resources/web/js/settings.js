@@ -41,6 +41,7 @@ var viewHelpers = {
     
     common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
       + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
+      + "id='" + setting_name + "'"
     
     if (setting.type === 'checkbox') {
       if (setting.label) {
@@ -51,8 +52,6 @@ var viewHelpers = {
       form_group += "<input type='checkbox'" + common_attrs + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
-    } else if (setting.type === 'table') {
-      form_group += makeTable(setting, setting_name, setting_value);
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
 
@@ -60,29 +59,33 @@ var viewHelpers = {
         form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
       }
       
-      if (setting.type === 'select') {
-        form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
-        
-        _.each(setting.options, function(option) {
-          form_group += "<option value='" + option.value + "'" + 
-          (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
-        })
-        
-        form_group += "</select>"
-        
-        form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+      if (input_type === 'table') {
+        form_group += makeTable(setting, setting_name, setting_value, isLocked)
       } else {
+        if (input_type === 'select') {
+          form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
         
-        if (input_type == 'integer') {
-          input_type = "text"
+          _.each(setting.options, function(option) {
+            form_group += "<option value='" + option.value + "'" + 
+            (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
+          })
+        
+          form_group += "</select>"
+        
+          form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+        } else {
+        
+          if (input_type == 'integer') {
+            input_type = "text"
+          }
+        
+          form_group += "<input type='" + input_type + "'" +  common_attrs +
+            "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+            "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
         }
-        
-        form_group += "<input type='" + input_type + "'" +  common_attrs +
-          "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-          "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
-      }
       
-      form_group += "<span class='help-block'>" + setting.help + "</span>" 
+        form_group += "<span class='help-block'>" + setting.help + "</span>"
+      } 
     }
     
     form_group += "</div>"
@@ -201,7 +204,10 @@ function reloadSettings() {
       title: 'This setting is in the master config file and cannot be changed'
     })
     
-    appendDomainSelectionModal()
+    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
+      // append the domain selection modal, as long as it's not locked
+      appendDomainSelectionModal()
+    }   
   });
 }
 
@@ -252,16 +258,15 @@ $('body').on('click', '.save-button', function(e){
   return false;
 });
 
-function makeTable(setting, setting_name, setting_value) {
+function makeTable(setting, setting_name, setting_value, isLocked) {
   var isArray = !_.has(setting, 'key')
   
   if (!isArray && setting.can_order) {
     setting.can_order = false;
   }
   
-  var html = (setting.label) ? "<label class='control-label'>" + setting.label + "</label>" : ""
-  html += "<span class='help-block'>" + setting.help + "</span>"
-  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
+  var html = "<span class='help-block'>" + setting.help + "</span>"
+  html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
   // Column names
@@ -279,11 +284,13 @@ function makeTable(setting, setting_name, setting_value) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   
-  if (setting.can_order) {
-    html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
-            "><span class='glyphicon glyphicon-sort'></span></td>";
-  }
+  if (!isLocked) {
+    if (setting.can_order) {
+      html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
+              "><span class='glyphicon glyphicon-sort'></span></td>";
+    }
     html += "<td class=" + Settings.ADD_DEL_BUTTONS_CLASSES + "></td></tr>"
+  }
     
   // populate rows in the table from existing values
   var row_num = 1
@@ -317,20 +324,25 @@ function makeTable(setting, setting_name, setting_value) {
       html += "</td>"
     })
     
-    if (setting.can_order) {
-      html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
-              "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
-              Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
-    }
+    if (!isLocked) {
+      if (setting.can_order) {
+        html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
+                "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
+                Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+      }
       html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
               "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
+    }
+    
     html += "</tr>"
     
     row_num++
   })
     
   // populate inputs in the table for new values
-  html += makeTableInputs(setting)
+  if (!isLocked) {
+     html += makeTableInputs(setting)
+  }
   html += "</table>"
     
   return html;

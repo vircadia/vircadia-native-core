@@ -104,7 +104,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels fbx metavoxels networking particles entities avatars audio animation script-engine)
+link_hifi_libraries(shared octree voxels fbx metavoxels networking entities avatars audio animation script-engine)
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)
