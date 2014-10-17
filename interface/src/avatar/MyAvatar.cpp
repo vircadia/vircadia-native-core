@@ -218,6 +218,7 @@ void MyAvatar::simulate(float deltaTime) {
             _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setLoudness((float)getHeadData()->getAudioLoudness());
             _hair.simulate(deltaTime);
         }
     }

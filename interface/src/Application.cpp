@@ -71,7 +71,6 @@
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
-#include "PaymentManager.h"
 #include "Util.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
@@ -89,7 +88,6 @@
 #include "scripting/WindowScriptingInterface.h"
 
 #include "ui/InfoView.h"
-#include "ui/OAuthWebViewHandler.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
@@ -178,15 +176,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
-        _lastSendDownstreamAudioStats(usecTimestampNow())
+        _lastSendDownstreamAudioStats(usecTimestampNow()),
+        _renderResolutionScale(1.0f)
 {
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
     // set the associated application properties
     applicationInfo.beginGroup("INFO");
-
-    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
 
     setApplicationName(applicationInfo.value("name").toString());
     setApplicationVersion(BUILD_VERSION);
@@ -206,6 +203,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     qInstallMessageHandler(messageHandler);
 
+    qDebug() << "[VERSION] Build sequence: " << qPrintable(applicationVersion());
+
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
 
@@ -218,10 +217,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         listenPort = atoi(portStr);
     }
     
-    // call the OAuthWebviewHandler static getter so that its instance lives in our thread
-    // make sure it is ready before the NodeList might need it
-    OAuthWebViewHandler::getInstance();
-
     // start the nodeThread so its event loop is running
     _nodeThread->start();
 
@@ -253,11 +248,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
-
-    // hookup VoxelEditSender to PaymentManager so we can pay for octree edits
-    const PaymentManager& paymentManager = PaymentManager::getInstance();
-    connect(&_voxelEditSender, &VoxelEditPacketSender::octreePaymentRequired,
-            &paymentManager, &PaymentManager::sendSignedPayment);
 
     // update our location every 5 seconds in the data-server, assuming that we are authenticated with one
     const qint64 DATA_SERVER_LOCATION_CHANGE_UPDATE_MSECS = 5 * 1000;
@@ -589,7 +579,8 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        _textureCache.setFrameBufferSize(_glWidget->getDeviceSize());
+        QSize fbSize = _glWidget->getDeviceSize() * _renderResolutionScale;
+        _textureCache.setFrameBufferSize(fbSize);
     }
 
     glEnable(GL_LINE_SMOOTH);
@@ -686,6 +677,10 @@ void Application::paintGL() {
 
     } else {
         _glowEffect.prepare();
+
+        // Viewport is assigned to the size of the framebuffer
+        QSize size = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->size();
+        glViewport(0, 0, size.width(), size.height());
 
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -1541,9 +1536,8 @@ glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVox
 
 FaceTracker* Application::getActiveFaceTracker() {
     return (_dde.isActive() ? static_cast<FaceTracker*>(&_dde) :
-             (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
-              (_faceplus.isActive() ? static_cast<FaceTracker*>(&_faceplus) :
-               (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL))));
+            (_faceshift.isActive() ? static_cast<FaceTracker*>(&_faceshift) :
+             (_visage.isActive() ? static_cast<FaceTracker*>(&_visage) : NULL)));
 }
 
 struct SendVoxelsOperationArgs {
@@ -1831,7 +1825,6 @@ void Application::init() {
 
     // initialize our face trackers after loading the menu settings
     _faceshift.init();
-    _faceplus.init();
     _visage.init();
 
     Leapmotion::init();
@@ -3045,6 +3038,10 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 }
 
 void Application::renderRearViewMirror(const QRect& region, bool billboard) {
+    // Grab current viewport to reset it at the end
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
     bool eyeRelativeCamera = false;
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
@@ -3076,14 +3073,17 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
 
     // set the bounds of rear mirror view
     if (billboard) {
-        glViewport(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());
-        glScissor(region.x(), _glWidget->getDeviceHeight() - region.y() - region.height(), region.width(), region.height());    
+        QSize size = getTextureCache()->getFrameBufferSize();
+        glViewport(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());
+        glScissor(region.x(), size.height() - region.y() - region.height(), region.width(), region.height());    
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
+        QSize size = getTextureCache()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        ratio = size.height() / (float)_glWidget->getDeviceHeight();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
-        glViewport(x, _glWidget->getDeviceHeight() - y - height, width, height);
-        glScissor(x, _glWidget->getDeviceHeight() - y - height, width, height);
+        glViewport(x, size.height() - y - height, width, height);
+        glScissor(x, size.height() - y - height, width, height);
     }
     bool updateViewFrustum = false;
     updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
@@ -3151,7 +3151,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     }
 
     // reset Viewport and projection matrix
-    glViewport(0, 0, _glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
+    glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
     glDisable(GL_SCISSOR_TEST);
     updateProjectionMatrix(_myCamera, updateViewFrustum);
 }
@@ -3336,7 +3336,6 @@ void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
 
-    _faceplus.reset();
     _faceshift.reset();
     _visage.reset();
     _dde.reset();
@@ -3431,7 +3430,7 @@ void Application::updateLocationInServer() {
 
         rootObject.insert(LOCATION_KEY_IN_ROOT, locationObject);
 
-        accountManager.authenticatedRequest("/api/v1/users/location", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), QJsonDocument(rootObject).toJson());
      }
 }
@@ -3467,20 +3466,18 @@ void Application::domainChanged(const QString& domainHostname) {
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
-
-    // reset the auth URL for OAuth web view handler
-    OAuthWebViewHandler::getInstance().clearLastAuthorizationURL();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
     AccountManager& accountManager = AccountManager::getInstance();
+    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    
+    if (accountManager.isLoggedIn() && !domainID.isNull()) {
+        // update our data-server with the domain-server we're logged in with
 
-    if (accountManager.isLoggedIn()) {
-        // update our domain-server with the data-server we're logged in with
+        QString domainPutJsonString = "{\"location\":{\"domain_id\":\"" + uuidStringWithoutCurlyBraces(domainID) + "\"}}";
 
-        QString domainPutJsonString = "{\"address\":{\"domain\":\"" + hostname + "\"}}";
-
-        accountManager.authenticatedRequest("/api/v1/users/address", QNetworkAccessManager::PutOperation,
+        accountManager.authenticatedRequest("/api/v1/user/location", QNetworkAccessManager::PutOperation,
                                             JSONCallbackParameters(), domainPutJsonString.toUtf8());
     }
 }
@@ -4136,4 +4133,8 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
+}
+
+void Application::setRenderResolutionScale(float scale) {
+    _renderResolutionScale = scale;
 }

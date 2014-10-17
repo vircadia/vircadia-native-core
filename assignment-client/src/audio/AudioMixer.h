@@ -29,7 +29,6 @@ class AudioMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AudioMixer(const QByteArray& packet);
-    ~AudioMixer();
 public slots:
     /// threaded run of assignment
     void run();
@@ -66,6 +65,8 @@ private:
     QString getReadPendingDatagramsTimeStatsString() const;
     QString getReadPendingDatagramsHashMatchTimeStatsString() const;
     
+    void parseSettingsObject(const QJsonObject& settingsObject);
+    
     float _trailingSleepRatio;
     float _minAudibilityThreshold;
     float _performanceThrottlingRatio;
@@ -73,8 +74,14 @@ private:
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;
-    AABox* _sourceUnattenuatedZone;
-    AABox* _listenerUnattenuatedZone;
+    
+    QHash<QString, AABox> _audioZones;
+    struct ZonesSettings {
+        QString source;
+        QString listener;
+        float coefficient;
+    };
+    QVector<ZonesSettings> _zonesSettings;
 
     static InboundAudioStream::Settings _streamSettings;
 

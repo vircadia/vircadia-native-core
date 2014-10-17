@@ -364,7 +364,9 @@ void ModelUploader::send() {
     _progressBar = NULL;
 }
 
-void ModelUploader::checkJSON(const QJsonObject& jsonResponse) {
+void ModelUploader::checkJSON(QNetworkReply& requestReply) {
+    QJsonObject jsonResponse = QJsonDocument::fromJson(requestReply.readAll()).object();
+    
     if (jsonResponse.contains("status") && jsonResponse.value("status").toString() == "success") {
         qDebug() << "status : success";
         JSONCallbackParameters callbackParams;
@@ -426,7 +428,7 @@ void ModelUploader::uploadUpdate(qint64 bytesSent, qint64 bytesTotal) {
     }
 }
 
-void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
+void ModelUploader::uploadSuccess(QNetworkReply& requestReply) {
     if (_progressDialog) {
         _progressDialog->accept();
     }

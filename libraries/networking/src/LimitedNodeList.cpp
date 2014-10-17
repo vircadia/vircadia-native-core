@@ -679,7 +679,6 @@ void LimitedNodeList::updateLocalSockAddr() {
             qDebug() << "Local socket has changed from" << _localSockAddr << "to" << newSockAddr;
         }
         
-        
         _localSockAddr = newSockAddr;
         
         emit localSockAddrChanged(_localSockAddr);

@@ -122,7 +122,8 @@ Menu::Menu() :
     _hasLoginDialogDisplayed(false),
     _snapshotsLocation(),
     _scriptsLocation(),
-    _walletPrivateKey()
+    _walletPrivateKey(),
+    _shouldRenderTableNeedsRebuilding(true)
 {
     Application *appInstance = Application::getInstance();
 
@@ -158,7 +159,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::LoadScriptURL,
                                     Qt::CTRL | Qt::SHIFT | Qt::Key_O, appInstance, SLOT(loadScriptURLDialog()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::StopAllScripts, 0, appInstance, SLOT(stopAllScripts()));
-    addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::SHIFT | Qt::Key_R,
+    addActionToQMenuAndActionHash(fileMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
                                   appInstance, SLOT(reloadAllScripts()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
                                   appInstance, SLOT(toggleRunningScriptsWidget()));
@@ -246,10 +247,16 @@ Menu::Menu() :
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
-            MenuOption::Console,
-            Qt::CTRL | Qt::ALT | Qt::Key_J,
-            this,
-            SLOT(toggleConsole()));
+                                  MenuOption::Console,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_J,
+                                  this,
+                                  SLOT(toggleConsole()));
+
+    addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ResetSensors,
+                                  Qt::Key_Apostrophe,
+                                  appInstance,
+                                  SLOT(resetSensors()));
 
     QMenu* avatarMenu = addMenu("Avatar");
 
@@ -365,7 +372,15 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
 
-        
+    QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
+    QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, false));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionTwoThird, 0, false));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionHalf, 0, false));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, true));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
+    connect(resolutionMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderResolution(QAction*)));
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
                                            MenuOption::Voxels,
@@ -374,11 +389,7 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::EnableGlowEffect, 0, true);
-    addActionToQMenuAndActionHash(renderOptionsMenu,
-                                  MenuOption::GlowMode,
-                                  0,
-                                  appInstance->getGlowEffect(),
-                                  SLOT(cycleRenderMode()));
+
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Wireframe, Qt::ALT | Qt::Key_W, false);
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
@@ -390,10 +401,6 @@ Menu::Menu() :
                                            true,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
-#endif
-#ifdef HAVE_FACEPLUS
-    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Faceplus, 0, true,
-            appInstance->getFaceplus(), SLOT(updateEnabled()));
 #endif
 #ifdef HAVE_VISAGE
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::Visage, 0, false,
@@ -410,6 +417,10 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelBounds, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
     addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
+    QMenu* modelCullingMenu = modelDebugMenu->addMenu("Culling");
+    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
@@ -1219,6 +1230,23 @@ void Menu::muteEnvironment() {
     free(packet);
 }
 
+void Menu::changeRenderResolution(QAction* action) {
+    QString text = action->text();
+    if (text == MenuOption::RenderResolutionOne) {
+        Application::getInstance()->setRenderResolutionScale(1.f);
+    } else if (text == MenuOption::RenderResolutionTwoThird) {
+        Application::getInstance()->setRenderResolutionScale(0.666f);
+    } else if (text == MenuOption::RenderResolutionHalf) {
+        Application::getInstance()->setRenderResolutionScale(0.5f);
+    } else if (text == MenuOption::RenderResolutionThird) {
+        Application::getInstance()->setRenderResolutionScale(0.333f);
+    } else if (text == MenuOption::RenderResolutionQuarter) {
+        Application::getInstance()->setRenderResolutionScale(0.25f);
+    } else {
+        Application::getInstance()->setRenderResolutionScale(1.f);
+    }
+}
+
 void Menu::displayNameLocationResponse(const QString& errorString) {
 
     if (!errorString.isEmpty()) {
@@ -1517,6 +1545,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
             && _voxelSizeScale > ADJUST_LOD_MIN_SIZE_SCALE) {
 
         _voxelSizeScale *= ADJUST_LOD_DOWN_BY;
+
         if (_voxelSizeScale < ADJUST_LOD_MIN_SIZE_SCALE) {
             _voxelSizeScale = ADJUST_LOD_MIN_SIZE_SCALE;
         }
@@ -1539,6 +1568,7 @@ void Menu::autoAdjustLOD(float currentFPS) {
     }
 
     if (changed) {
+        _shouldRenderTableNeedsRebuilding = true;
         if (_lodToolsDialog) {
             _lodToolsDialog->reloadSliders();
         }
@@ -1553,13 +1583,55 @@ void Menu::resetLODAdjust() {
 
 void Menu::setVoxelSizeScale(float sizeScale) {
     _voxelSizeScale = sizeScale;
+    _shouldRenderTableNeedsRebuilding = true;
     bumpSettings();
 }
 
 void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
     _boundaryLevelAdjust = boundaryLevelAdjust;
+    _shouldRenderTableNeedsRebuilding = true;
     bumpSettings();
 }
+
+// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
+//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
+bool Menu::shouldRenderMesh(float largestDimension, float distanceToCamera) {
+    const float voxelToMeshRatio = 4.0f; // must be this many times closer to a mesh than a voxel to see it.
+    float voxelSizeScale = getVoxelSizeScale();
+    int boundaryLevelAdjust = getBoundaryLevelAdjust();
+    float maxScale = (float)TREE_SCALE;
+    float visibleDistanceAtMaxScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToMeshRatio;
+    
+    if (_shouldRenderTableNeedsRebuilding) {
+        _shouldRenderTable.clear();
+
+        float SMALLEST_SCALE_IN_TABLE = 0.001f; // 1mm is plenty small
+        float scale = maxScale;
+        float visibleDistanceAtScale = visibleDistanceAtMaxScale;
+
+        while (scale > SMALLEST_SCALE_IN_TABLE) {
+            scale /= 2.0f;
+            visibleDistanceAtScale /= 2.0f;
+            _shouldRenderTable[scale] = visibleDistanceAtScale;
+        }
+        _shouldRenderTableNeedsRebuilding = false;
+    }
+
+    float closestScale = maxScale;
+    float visibleDistanceAtClosestScale = visibleDistanceAtMaxScale;
+    QMap<float, float>::const_iterator lowerBound = _shouldRenderTable.lowerBound(largestDimension);
+    if (lowerBound != _shouldRenderTable.constEnd()) {
+        closestScale = lowerBound.key();
+        visibleDistanceAtClosestScale = lowerBound.value();
+    }
+    
+    if (closestScale < largestDimension) {
+        visibleDistanceAtClosestScale *= 2.0f;
+    }
+
+    return (distanceToCamera <= visibleDistanceAtClosestScale);
+}
+
 
 void Menu::lodTools() {
     if (!_lodToolsDialog) {

@@ -17,6 +17,8 @@ SelectionDisplay = (function () {
     var that = {};
     
     var MINIMUM_DIMENSION = 0.001;
+
+    var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.015;
     
     var mode = "UNKNOWN";
     var overlayNames = new Array();
@@ -60,9 +62,17 @@ SelectionDisplay = (function () {
     var rotateHandleColor = { red: 0, green: 0, blue: 0 };
     var rotateHandleAlpha = 0.7;
 
+    var highlightedHandleColor = { red: 255, green: 0, blue: 0 };
+    var highlightedHandleAlpha = 0.7;
+    
+    var previousHandle = false;
+    var previousHandleColor;
+    var previousHandleAlpha;
+
     var grabberSizeCorner = 0.025;
     var grabberSizeEdge = 0.015;
     var grabberSizeFace = 0.025;
+    var grabberAlpha = 1;
     var grabberColorCorner = { red: 120, green: 120, blue: 120 };
     var grabberColorEdge = { red: 0, green: 0, blue: 0 };
     var grabberColorFace = { red: 120, green: 120, blue: 120 };
@@ -166,6 +176,34 @@ SelectionDisplay = (function () {
     var grabberEdgeFR = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberEdgeFL = Overlays.addOverlay("cube", grabberPropertiesEdge);
 
+    var cornerEdgeFaceGrabbers = [
+        grabberLBN,
+        grabberRBN,
+        grabberLBF,
+        grabberRBF,
+        grabberLTN,
+        grabberRTN,
+        grabberLTF,
+        grabberRTF,
+        grabberTOP,
+        grabberBOTTOM,
+        grabberLEFT,
+        grabberRIGHT,
+        grabberNEAR,
+        grabberFAR,
+        grabberEdgeTR,
+        grabberEdgeTL,
+        grabberEdgeTF,
+        grabberEdgeTN,
+        grabberEdgeBR,
+        grabberEdgeBL,
+        grabberEdgeBF,
+        grabberEdgeBN,
+        grabberEdgeNR,
+        grabberEdgeNL,
+        grabberEdgeFR,
+        grabberEdgeFL,
+    ];
 
     var baseOverlayAngles = { x: 0, y: 0, z: 0 };
     var baseOverlayRotation = Quat.fromVec3Degrees(baseOverlayAngles);
@@ -2320,11 +2358,126 @@ SelectionDisplay = (function () {
                 that.stretchLEFT(event);
                 break;
             default:
-                // nothing to do by default
+                // if not in any specific mode, then just look for handles to highlight...
+                var pickRay = Camera.computePickRay(event.x, event.y);
+                var result = Overlays.findRayIntersection(pickRay);
+                var pickedColor;
+                var pickedAlpha;
+                var highlightNeeded = false;
+
+                if (result.intersects) {
+                    switch(result.overlayID) {
+                        case yawHandle:
+                        case pitchHandle:
+                        case rollHandle:
+                            pickedColor = rotateHandleColor;
+                            pickedAlpha = rotateHandleAlpha;
+                            highlightNeeded = true;
+                            break;
+                            
+                        case grabberMoveUp:
+                            pickedColor = rotateHandleColor;
+                            pickedAlpha = rotateHandleAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        case grabberLBN:
+                        case grabberLBF:
+                        case grabberRBN:
+                        case grabberRBF:
+                        case grabberLTN:
+                        case grabberLTF:
+                        case grabberRTN:
+                        case grabberRTF:
+                            pickedColor = grabberColorCorner;
+                            pickedAlpha = grabberAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        case grabberTOP:
+                        case grabberBOTTOM:
+                        case grabberLEFT:
+                        case grabberRIGHT:
+                        case grabberNEAR:
+                        case grabberFAR:
+                            pickedColor = grabberColorFace;
+                            pickedAlpha = grabberAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        case grabberEdgeTR:
+                        case grabberEdgeTL:
+                        case grabberEdgeTF:
+                        case grabberEdgeTN:
+                        case grabberEdgeBR:
+                        case grabberEdgeBL:
+                        case grabberEdgeBF:
+                        case grabberEdgeBN:
+                        case grabberEdgeNR:
+                        case grabberEdgeNL:
+                        case grabberEdgeFR:
+                        case grabberEdgeFL:
+                            pickedColor = grabberColorEdge;
+                            pickedAlpha = grabberAlpha;
+                            highlightNeeded = true;
+                            break;
+
+                        default:
+                            if (previousHandle) {
+                                Overlays.editOverlay(previousHandle, { color: previousHandleColor, alpha: previousHandleAlpha });
+                                previousHandle = false;
+                            }
+                            break;
+                    }
+                    
+                    if (highlightNeeded) {
+                        if (previousHandle) {
+                            Overlays.editOverlay(previousHandle, { color: previousHandleColor, alpha: previousHandleAlpha });
+                            previousHandle = false;
+                        }
+                        Overlays.editOverlay(result.overlayID, { color: highlightedHandleColor, alpha: highlightedHandleAlpha });
+                        previousHandle = result.overlayID;
+                        previousHandleColor = pickedColor;
+                        previousHandleAlpha = pickedAlpha;
+                    }
+                    
+                } else {
+                    if (previousHandle) {
+                        Overlays.editOverlay(previousHandle, { color: previousHandleColor, alpha: previousHandleAlpha });
+                        previousHandle = false;
+                    }
+                }
+                
                 return false;
         }
         return true;
     };
+
+    that.updateHandleSizes = function() {
+        if (selectedEntityProperties) {
+            var diff = Vec3.subtract(selectedEntityProperties.position, Camera.getPosition());
+            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO;
+            for (var i = 0; i < cornerEdgeFaceGrabbers.length; i++) {
+                Overlays.editOverlay(cornerEdgeFaceGrabbers[i], {
+                    size: grabberSize,
+                });
+            }
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
+            Overlays.editOverlay(yawHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(pitchHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(rollHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(grabberMoveUp, {
+                scale: handleSize,
+            });
+        }
+    }
+    Script.update.connect(that.updateHandleSizes);
 
     that.mouseReleaseEvent = function(event) {
         var showHandles = false;

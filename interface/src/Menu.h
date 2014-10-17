@@ -143,6 +143,8 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
 
+    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
+
 #ifdef Q_OS_MAC
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
@@ -225,6 +227,7 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
+    void changeRenderResolution(QAction* action);
 
 private:
     static Menu* _instance;
@@ -309,6 +312,9 @@ private:
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
+    
+    bool _shouldRenderTableNeedsRebuilding;
+    QMap<float, float> _shouldRenderTable;
 
 };
 
@@ -365,6 +371,9 @@ namespace MenuOption {
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
+    const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
+    const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -389,7 +398,6 @@ namespace MenuOption {
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandUpdateTiming = "Expand /update";
-    const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
@@ -397,7 +405,6 @@ namespace MenuOption {
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
-    const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
@@ -439,7 +446,14 @@ namespace MenuOption {
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderResolution = "Scale Resolution";
+    const QString RenderResolutionOne = "1";
+    const QString RenderResolutionTwoThird = "2/3";
+    const QString RenderResolutionHalf = "1/2";
+    const QString RenderResolutionThird = "1/3";
+    const QString RenderResolutionQuarter = "1/4";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
