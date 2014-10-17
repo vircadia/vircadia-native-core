@@ -785,7 +785,9 @@ QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
         box->addItem("(none)");
     }
     foreach (const FBXJoint& joint, _geometry.joints) {
-        box->addItem(joint.name);
+        if (joint.isSkeletonJoint || !_geometry.hasSkeletonJoints) {
+            box->addItem(joint.name);
+        }
     }
     return box;
 }

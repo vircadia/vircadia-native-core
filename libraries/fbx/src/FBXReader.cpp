@@ -1015,6 +1015,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, QByteArray> textureFilenames;
     QHash<QByteArray, QByteArray> textureContent;
     QHash<QString, Material> materials;
+    QHash<QString, QString> typeFlags;
     QHash<QString, QString> diffuseTextures;
     QHash<QString, QString> bumpTextures;
     QHash<QString, QString> specularTextures;
@@ -1323,6 +1324,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     material.id = getID(object.properties);
                     materials.insert(material.id, material);
 
+                } else if (object.name == "NodeAttribute") {
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "TypeFlags") {
+                            typeFlags.insert(getID(object.properties), subobject.properties.at(0).toString());
+                        }
+                    }
                 } else if (object.name == "Deformer") {
                     if (object.properties.last() == "Cluster") {
                         Cluster cluster;
@@ -1461,12 +1468,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     // convert the models to joints
     QVariantList freeJoints = mapping.values("freeJoint");
+    geometry.hasSkeletonJoints = false;
     foreach (const QString& modelID, modelIDs) {
         const FBXModel& model = models[modelID];
         FBXJoint joint;
         joint.isFree = freeJoints.contains(model.name);
         joint.parentIndex = model.parentIndex;
-
+ 
         // get the indices of all ancestors starting with the first free one (if any)
         int jointIndex = geometry.joints.size();
         joint.freeLineage.append(jointIndex);
@@ -1506,6 +1514,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.name = model.name;
         joint.shapePosition = glm::vec3(0.f);
         joint.shapeType = UNKNOWN_SHAPE;
+        
+        foreach (const QString& childID, childMap.values(modelID)) {
+            QString type = typeFlags.value(childID);
+            if (!type.isEmpty()) {
+                geometry.hasSkeletonJoints |= (joint.isSkeletonJoint = type.toLower().contains("Skeleton"));
+                break;
+            }
+        }
+        
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size());
         

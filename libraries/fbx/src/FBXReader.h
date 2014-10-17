@@ -80,6 +80,7 @@ public:
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
     Shape::Type shapeType;
+    bool isSkeletonJoint;
 };
 
 
@@ -182,6 +183,7 @@ public:
 
     QVector<FBXJoint> joints;
     QHash<QString, int> jointIndices; ///< 1-based, so as to more easily detect missing indices
+    bool hasSkeletonJoints;
     
     QVector<FBXMesh> meshes;
     
