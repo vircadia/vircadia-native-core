@@ -64,7 +64,7 @@
         "name": "allowed_users",
         "type": "table",
         "label": "Allowed Users",
-        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from this machine.",
+        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from the domain-server machine.",
         "numbered": false,
         "columns": [
           {
