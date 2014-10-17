@@ -161,13 +161,15 @@ bool ModelUploader::zip() {
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
-        joints.insert("jointEyeLeft", geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye");
+        joints.insert("jointEyeLeft", geometry.jointIndices.contains("jointEyeLeft") ? "jointEyeLeft" :
+            (geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye"));
     }
     if (!joints.contains("jointEyeRight")) {
-        joints.insert("jointEyeRight", geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
+        joints.insert("jointEyeRight", geometry.jointIndices.contains("jointEyeRight") ? "jointEyeRight" :
+            geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
     }
     if (!joints.contains("jointNeck")) {
-        joints.insert("jointNeck", "Neck");
+        joints.insert("jointNeck", geometry.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
     }
     if (!joints.contains("jointRoot")) {
         joints.insert("jointRoot", "Hips");
