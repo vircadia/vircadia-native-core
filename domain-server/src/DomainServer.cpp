@@ -616,13 +616,13 @@ const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
 bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                  const QByteArray& usernameSignature,
                                                  const HifiSockAddr& senderSockAddr) {
-    static const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
                                                                  ALLOWED_USERS_SETTINGS_KEYPATH);
-    static QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
     
     // we always let in a user who is sending a packet from our local socket or from the localhost address
-    if (senderSockAddr.getAddress() != LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
-        && senderSockAddr.getAddress() != QHostAddress::LocalHost) {
+    if (senderSockAddr.getAddress() == LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
+        && senderSockAddr.getAddress() == QHostAddress::LocalHost) {
         return true;
     }
     
@@ -670,6 +670,8 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
             }
         
             requestUserPublicKey(username);
+        } else {
+            qDebug() << "Connect request denied for user" << username << "not in allowed users list.";
         }
     } else {
         // since we have no allowed user list, let them all in
