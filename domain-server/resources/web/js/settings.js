@@ -41,6 +41,7 @@ var viewHelpers = {
     
     common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
       + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
+      + "id='" + setting_name + "'"
     
     if (setting.type === 'checkbox') {
       if (setting.label) {
@@ -51,8 +52,6 @@ var viewHelpers = {
       form_group += "<input type='checkbox'" + common_attrs + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
-    } else if (setting.type === 'table') {
-      form_group += makeTable(setting, setting_name, setting_value);
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
 
@@ -60,29 +59,33 @@ var viewHelpers = {
         form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
       }
       
-      if (setting.type === 'select') {
-        form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
-        
-        _.each(setting.options, function(option) {
-          form_group += "<option value='" + option.value + "'" + 
-          (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
-        })
-        
-        form_group += "</select>"
-        
-        form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+      if (input_type === 'table') {
+        form_group += makeTable(setting, setting_name, setting_value)
       } else {
+        if (input_type === 'select') {
+          form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
         
-        if (input_type == 'integer') {
-          input_type = "text"
+          _.each(setting.options, function(option) {
+            form_group += "<option value='" + option.value + "'" + 
+            (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
+          })
+        
+          form_group += "</select>"
+        
+          form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+        } else {
+        
+          if (input_type == 'integer') {
+            input_type = "text"
+          }
+        
+          form_group += "<input type='" + input_type + "'" +  common_attrs +
+            "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+            "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
         }
-        
-        form_group += "<input type='" + input_type + "'" +  common_attrs +
-          "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-          "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
-      }
       
-      form_group += "<span class='help-block'>" + setting.help + "</span>" 
+        form_group += "<span class='help-block'>" + setting.help + "</span>"
+      } 
     }
     
     form_group += "</div>"
@@ -259,8 +262,7 @@ function makeTable(setting, setting_name, setting_value) {
     setting.can_order = false;
   }
   
-  var html = (setting.label) ? "<label class='control-label'>" + setting.label + "</label>" : ""
-  html += "<span class='help-block'>" + setting.help + "</span>"
+  var html = "<span class='help-block'>" + setting.help + "</span>"
   html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
