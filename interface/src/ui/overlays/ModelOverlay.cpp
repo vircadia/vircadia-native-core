@@ -132,7 +132,7 @@ bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 overlayFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
 
-    // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
+    // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
     // and testing intersection there.
     if (overlayFrameBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face)) {
         return true;
