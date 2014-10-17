@@ -848,4 +848,32 @@ private:
     QUrl _url;
 };
 
+/// A heightfield represented as a spanner.
+class Heightfield : public Transformable {
+    Q_OBJECT
+
+public:
+    
+    Heightfield(const Box& bounds, float increment, const QByteArray& height, const QByteArray& color,
+        const QByteArray& material, const QVector<SharedObjectPointer>& materials);
+    
+    QByteArray& getHeight() { return _height; }
+    QByteArray& getColor() { return _color; }
+    QByteArray& getMaterial() { return _material; }
+    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
+    
+    virtual bool contains(const glm::vec3& point);
+    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
+
+private:
+    
+    float _increment;
+    int _width;
+    float _heightScale;
+    QByteArray _height;
+    QByteArray _color;
+    QByteArray _material;
+    QVector<SharedObjectPointer> _materials;
+};
+
 #endif // hifi_MetavoxelData_h
