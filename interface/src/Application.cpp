@@ -61,7 +61,6 @@
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
-#include <ParticlesScriptingInterface.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
 #include <UserActivityLogger.h>
@@ -313,12 +312,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // tell the NodeList instance who to tell the domain server we care about
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
-                                                 << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
+                                                 << NodeType::VoxelServer << NodeType::EntityServer
                                                  << NodeType::MetavoxelServer);
 
-    // connect to the packet sent signal of the _voxelEditSender and the _particleEditSender
+    // connect to the packet sent signal of the _voxelEditSender and the _entityEditSender
     connect(&_voxelEditSender, &VoxelEditPacketSender::packetSent, this, &Application::packetSent);
-    connect(&_particleEditSender, &ParticleEditPacketSender::packetSent, this, &Application::packetSent);
     connect(&_entityEditSender, &EntityEditPacketSender::packetSent, this, &Application::packetSent);
 
     // move the silentNodeTimer to the _nodeThread
@@ -361,16 +359,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // Tell our voxel edit sender about our known jurisdictions
     _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
-    _particleEditSender.setServerJurisdictions(&_particleServerJurisdictions);
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
-
-    Particle::setVoxelEditPacketSender(&_voxelEditSender);
-    Particle::setParticleEditPacketSender(&_particleEditSender);
 
     // For now we're going to set the PPS for outbound packets to be super high, this is
     // probably not the right long term solution. But for now, we're going to do this to
-    // allow you to move a particle around in your hand
-    _particleEditSender.setPacketsPerSecond(3000); // super high!!
+    // allow you to move an entity around in your hand
     _entityEditSender.setPacketsPerSecond(3000); // super high!!
 
     checkVersion();
@@ -447,7 +440,6 @@ Application::~Application() {
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
-    _particleEditSender.terminate();
     _entityEditSender.terminate();
 
 
@@ -542,7 +534,6 @@ void Application::initializeGL() {
     _octreeProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     _voxelHideShowThread.initialize(_enableProcessVoxelsThread);
-    _particleEditSender.initialize(_enableProcessVoxelsThread);
     _entityEditSender.initialize(_enableProcessVoxelsThread);
 
     if (_enableProcessVoxelsThread) {
@@ -798,7 +789,6 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
                 channel = BandwidthMeter::AVATARS;
                 break;
             case NodeType::VoxelServer:
-            case NodeType::ParticleServer:
             case NodeType::EntityServer:
                 channel = BandwidthMeter::VOXELS;
                 break;
@@ -1361,7 +1351,7 @@ void Application::dropEvent(QDropEvent *event) {
 void Application::sendPingPackets() {
     QByteArray pingPacket = NodeList::getInstance()->constructPingPacket();
     controlledBroadcastToNodes(pingPacket, NodeSet()
-                               << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
+                               << NodeType::VoxelServer << NodeType::EntityServer
                                << NodeType::AudioMixer << NodeType::AvatarMixer
                                << NodeType::MetavoxelServer);
 }
@@ -1849,28 +1839,23 @@ void Application::init() {
     _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
 
-    _particles.init();
-    _particles.setViewFrustum(getViewFrustum());
-
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
     _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+
+    // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
+            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithVoxel);
+
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
+            ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
 
     _metavoxels.init();
-
-    _particleCollisionSystem.init(&_particleEditSender, _particles.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
-
-    // connect the _particleCollisionSystem to our script engine's ParticlesScriptingInterface
-    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithVoxel,
-            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithVoxel);
-
-    connect(&_particleCollisionSystem, &ParticleCollisionSystem::particleCollisionWithParticle,
-            ScriptEngine::getParticlesScriptingInterface(), &ParticlesScriptingInterface::particleCollisionWithParticle);
 
     _audio.init(_glWidget);
 
@@ -2088,7 +2073,6 @@ void Application::updateThreads(float deltaTime) {
         _octreeProcessor.threadRoutine();
         _voxelHideShowThread.threadRoutine();
         _voxelEditSender.threadRoutine();
-        _particleEditSender.threadRoutine();
         _entityEditSender.threadRoutine();
     }
 }
@@ -2209,15 +2193,6 @@ void Application::update(float deltaTime) {
     updateCursor(deltaTime); // Handle cursor updates
 
     {
-        PerformanceTimer perfTimer("particles");
-        _particles.update(); // update the particles...
-        {
-            PerformanceTimer perfTimer("collisions");
-            _particleCollisionSystem.update(); // collide the particles...
-        }
-    }
-
-    {
         PerformanceTimer perfTimer("entities");
         _entities.update(); // update the models...
         {
@@ -2270,9 +2245,6 @@ void Application::update(float deltaTime) {
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
                 queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
-            }
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
-                queryOctree(NodeType::ParticleServer, PacketTypeParticleQuery, _particleServerJurisdictions);
             }
             if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
                 queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
@@ -2331,7 +2303,6 @@ int Application::sendNackPackets() {
         
         if (node->getActiveSocket() &&
             ( node->getType() == NodeType::VoxelServer
-            || node->getType() == NodeType::ParticleServer
             || node->getType() == NodeType::EntityServer)
             ) {
 
@@ -2723,11 +2694,6 @@ void Application::updateShadowMap() {
         }
 
         {
-            PerformanceTimer perfTimer("particles");
-            _particles.render(OctreeRenderer::SHADOW_RENDER_MODE);
-        }
-
-        {
             PerformanceTimer perfTimer("entities");
             _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
         }
@@ -2917,14 +2883,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... metavoxels...");
             _metavoxels.render();
-        }
-
-        // render particles...
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Particles)) {
-            PerformanceTimer perfTimer("particles");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... particles...");
-            _particles.render();
         }
 
         // render models...
@@ -3503,13 +3461,6 @@ void Application::domainChanged(const QString& domainHostname) {
 
     _octreeServerSceneStats.clear();
 
-    _particleServerJurisdictions.lockForWrite();
-    _particleServerJurisdictions.clear();
-    _particleServerJurisdictions.unlock();
-
-    // reset the particle renderer
-    _particles.clear();
-
     // reset the model renderer
     _entities.clear();
 
@@ -3547,7 +3498,6 @@ void Application::nodeKilled(SharedNodePointer node) {
     _octreeProcessor.nodeKilled(node);
 
     _voxelEditSender.nodeKilled(node);
-    _particleEditSender.nodeKilled(node);
     _entityEditSender.nodeKilled(node);
 
     if (node->getType() == NodeType::AudioMixer) {
@@ -3583,43 +3533,6 @@ void Application::nodeKilled(SharedNodePointer node) {
             _voxelServerJurisdictions.erase(_voxelServerJurisdictions.find(nodeUUID));
         }
         _voxelServerJurisdictions.unlock();
-
-        // also clean up scene stats for that server
-        _octreeSceneStatsLock.lockForWrite();
-        if (_octreeServerSceneStats.find(nodeUUID) != _octreeServerSceneStats.end()) {
-            _octreeServerSceneStats.erase(nodeUUID);
-        }
-        _octreeSceneStatsLock.unlock();
-
-    } else if (node->getType() == NodeType::ParticleServer) {
-        QUuid nodeUUID = node->getUUID();
-        // see if this is the first we've heard of this node...
-        _particleServerJurisdictions.lockForRead();
-        if (_particleServerJurisdictions.find(nodeUUID) != _particleServerJurisdictions.end()) {
-            unsigned char* rootCode = _particleServerJurisdictions[nodeUUID].getRootOctalCode();
-            VoxelPositionSize rootDetails;
-            voxelDetailsForCode(rootCode, rootDetails);
-            _particleServerJurisdictions.unlock();
-
-            qDebug("particle server going away...... v[%f, %f, %f, %f]",
-                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
-
-            // Add the jurisditionDetails object to the list of "fade outs"
-            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
-                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-                fade.voxelDetails = rootDetails;
-                const float slightly_smaller = 0.99f;
-                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-                _voxelFadesLock.lockForWrite();
-                _voxelFades.push_back(fade);
-                _voxelFadesLock.unlock();
-            }
-
-            // If the particle server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
-            _particleServerJurisdictions.lockForWrite();
-            _particleServerJurisdictions.erase(_particleServerJurisdictions.find(nodeUUID));
-        }
-        _particleServerJurisdictions.unlock();
 
         // also clean up scene stats for that server
         _octreeSceneStatsLock.lockForWrite();
@@ -3719,9 +3632,6 @@ int Application::parseOctreeStats(const QByteArray& packet, const SharedNodePoin
         if (sendingNode->getType() == NodeType::VoxelServer) {
             jurisdiction = &_voxelServerJurisdictions;
             serverType = "Voxel";
-        } else if (sendingNode->getType() == NodeType::ParticleServer) {
-            jurisdiction = &_particleServerJurisdictions;
-            serverType = "Particle";
         } else {
             jurisdiction = &_entityServerJurisdictions;
             serverType = "Entity";
@@ -3847,9 +3757,6 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
     scriptEngine->getVoxelsScriptingInterface()->setVoxelTree(_voxels.getTree());
     scriptEngine->getVoxelsScriptingInterface()->setUndoStack(&_undoStack);
-    scriptEngine->getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
-    scriptEngine->getParticlesScriptingInterface()->setParticleTree(_particles.getTree());
-
     scriptEngine->getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
     scriptEngine->getEntityScriptingInterface()->setEntityTree(_entities.getTree());
 

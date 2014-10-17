@@ -6,9 +6,9 @@
 //
 //  Copyright 2013 High Fidelity, Inc.
 //
-//  This is an example script that turns the hydra controllers and mouse into a particle gun.
-//  It reads the controller, watches for trigger pulls, and launches particles.
-//  When particles collide with voxels they blow big holes out of the voxels. 
+//  This is an example script that turns the hydra controllers and mouse into a entity gun.
+//  It reads the controller, watches for trigger pulls, and launches entities.
+//  When entities collide with voxels they blow big holes out of the voxels. 
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -97,9 +97,11 @@ function shootBullet(position, velocity) {
     var BULLET_GRAVITY = -3.0;
     //Creates a grenade with a reasonable lifetime so that one is less likely to accidentally blow up
     //far away voxels
-    Particles.addParticle(
-        { position: position, 
-          radius: BULLET_SIZE, 
+    Entities.addEntity(
+        { type: "Sphere",
+          position: position, 
+          collisionsWillMove: true,
+          dimensions: { x: BULLET_SIZE, y: BULLET_SIZE, z: BULLET_SIZE },
           color: {  red: 10, green: 10, blue: 10 },  
           velocity: velocity, 
           gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 }, 
@@ -133,9 +135,11 @@ function shootTarget() {
     velocity.y += TARGET_UP_VELOCITY;
     //printVector("velocity", velocity);
     
-    Particles.addParticle(
-        { position: newPosition, 
-          radius: TARGET_SIZE, 
+    Entities.addEntity(
+        { type: "Sphere",
+          position: newPosition, 
+          collisionsWillMove: true,
+          dimensions: { x: TARGET_SIZE, y: TARGET_SIZE, z: TARGET_SIZE },
           color: {  red: 0, green: 200, blue: 200 },  
           velocity: velocity, 
           gravity: {  x: 0, y: TARGET_GRAVITY, z: 0 }, 
@@ -152,13 +156,16 @@ function shootTarget() {
 
 
 
-function particleCollisionWithVoxel(particle, voxel, collision) {
+function entityCollisionWithVoxel(entity, voxel, collision) {
+
+print("entityCollisionWithVoxel....");
+
     var VOXEL_SIZE = 0.5;
     // Don't make this big. I mean it.
     var CRATER_RADIUS = 5;
-    var particleProperties = Particles.getParticleProperties(particle);
-    var position = particleProperties.position; 
-    Particles.deleteParticle(particle);
+    var entityProperties = Entities.getEntityProperties(entity);
+    var position = entityProperties.position; 
+    Entities.deleteEntity(entity);
     
     audioOptions.position = collision.contactPoint;
     Audio.playSound(impactSound, audioOptions); 
@@ -186,7 +193,7 @@ function particleCollisionWithVoxel(particle, voxel, collision) {
     }
 }
 
-function particleCollisionWithParticle(particle1, particle2, collision) {
+function entityCollisionWithEntity(entity1, entity2, collision) {
     score++;
     if (showScore) {
         Overlays.editOverlay(text, { text: "Score: " + score } );
@@ -198,8 +205,8 @@ function particleCollisionWithParticle(particle1, particle2, collision) {
     //print("hit, msecs = " + msecs);
     //Vec3.print("penetration = ", collision.penetration);
     //Vec3.print("contactPoint = ", collision.contactPoint);
-    Particles.deleteParticle(particle1);
-    Particles.deleteParticle(particle2);
+    Entities.deleteEntity(entity1);
+    Entities.deleteEntity(entity2);
     // play the sound near the camera so the shooter can hear it
     audioOptions.position = Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()));   
     Audio.playSound(targetHitSound, audioOptions);
@@ -347,8 +354,8 @@ function scriptEnding() {
     MyAvatar.detachOne(gunModel);
 }
 
-Particles.particleCollisionWithVoxel.connect(particleCollisionWithVoxel);
-Particles.particleCollisionWithParticle.connect(particleCollisionWithParticle);
+Entities.entityCollisionWithVoxel.connect(entityCollisionWithVoxel);
+Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 Script.scriptEnding.connect(scriptEnding);
 Script.update.connect(update);
 Controller.mousePressEvent.connect(mousePressEvent);

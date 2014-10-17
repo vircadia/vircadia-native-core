@@ -31,7 +31,6 @@ typedef quint8 NodeType_t;
 namespace NodeType {
     const NodeType_t DomainServer = 'D';
     const NodeType_t VoxelServer = 'V';
-    const NodeType_t ParticleServer = 'P';
     const NodeType_t EntityServer = 'o'; // was ModelServer
     const NodeType_t MetavoxelServer = 'm';
     const NodeType_t EnvironmentServer = 'E';
