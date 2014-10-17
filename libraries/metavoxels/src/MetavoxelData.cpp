@@ -2045,6 +2045,27 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
+bool Spanner::hasOwnColors() const {
+    return false;
+}
+
+bool Spanner::hasOwnMaterials() const {
+    return false;
+}
+
+QRgb Spanner::getColor(const glm::vec3& point) {
+    return 0;
+}
+
+int Spanner::getMaterial(const glm::vec3& point) {
+    return 0;
+}
+
+QVector<SharedObjectPointer>& Spanner::getMaterials() {
+    static QVector<SharedObjectPointer> emptyMaterials;
+    return emptyMaterials;
+}
+
 bool Spanner::contains(const glm::vec3& point) {
     return false;
 }
@@ -2379,6 +2400,53 @@ Heightfield::Heightfield(const Box& bounds, float increment, const QByteArray& h
     _materials(materials) {
     
     setBounds(bounds);
+}
+
+bool Heightfield::hasOwnColors() const {
+    return true;
+}
+
+bool Heightfield::hasOwnMaterials() const {
+    return true;
+}
+
+QRgb Heightfield::getColor(const glm::vec3& point) {
+    glm::vec3 relative = (point - getBounds().minimum) / _increment;
+    glm::vec3 floors = glm::floor(relative);
+    glm::vec3 ceils = glm::ceil(relative);
+    glm::vec3 fracts = glm::fract(relative);
+    int floorX = (int)floors.x;
+    int floorZ = (int)floors.z;
+    int ceilX = (int)ceils.x;
+    int ceilZ = (int)ceils.z;
+    const uchar* src = (const uchar*)_color.constData();
+    const uchar* upperLeft = src + (floorZ * _width + floorX) * DataBlock::COLOR_BYTES;
+    const uchar* lowerRight = src + (ceilZ * _width + ceilX) * DataBlock::COLOR_BYTES;
+    glm::vec3 interpolatedColor = glm::mix(glm::vec3(upperLeft[0], upperLeft[1], upperLeft[2]),
+        glm::vec3(lowerRight[0], lowerRight[1], lowerRight[2]), fracts.z);
+    
+    // the final vertex (and thus which triangle we check) depends on which half we're on
+    if (fracts.x >= fracts.z) {
+        const uchar* upperRight = src + (floorZ * _width + ceilX) * DataBlock::COLOR_BYTES;
+        interpolatedColor = glm::mix(interpolatedColor, glm::mix(glm::vec3(upperRight[0], upperRight[1], upperRight[2]),
+            glm::vec3(lowerRight[0], lowerRight[1], lowerRight[2]), fracts.z), (fracts.x - fracts.z) / (1.0f - fracts.z));
+        
+    } else {
+        const uchar* lowerLeft = src + (ceilZ * _width + floorX) * DataBlock::COLOR_BYTES;
+        interpolatedColor = glm::mix(glm::mix(glm::vec3(upperLeft[0], upperLeft[1], upperLeft[2]),
+            glm::vec3(lowerLeft[0], lowerLeft[1], lowerLeft[2]), fracts.z), interpolatedColor, fracts.x / fracts.z);
+    }
+    return qRgb(interpolatedColor.r, interpolatedColor.g, interpolatedColor.b);
+}
+
+int Heightfield::getMaterial(const glm::vec3& point) {
+    glm::vec3 relative = (point - getBounds().minimum) / _increment;
+    const uchar* src = (const uchar*)_material.constData();
+    return src[(int)glm::round(relative.z) * _width + (int)glm::round(relative.x)];
+}
+
+QVector<SharedObjectPointer>& Heightfield::getMaterials() {
+    return _materials;
 }
 
 bool Heightfield::contains(const glm::vec3& point) {

@@ -644,8 +644,23 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 
+    /// Checks whether this spanner has its own colors.
+    virtual bool hasOwnColors() const;
+
+    /// Checks whether this spanner has its own materials.
+    virtual bool hasOwnMaterials() const;
+
     /// Checks whether the spanner contains the specified point.
     virtual bool contains(const glm::vec3& point);
+
+    /// Retrieves the color at the specified point.
+    virtual QRgb getColor(const glm::vec3& point);
+    
+    /// Retrieves the material at the specified point.
+    virtual int getMaterial(const glm::vec3& point);
+
+    /// Retrieves a reference to the list of materials.
+    virtual QVector<SharedObjectPointer>& getMaterials();
 
     /// Finds the intersection, if any, between the specified line segment and the spanner.
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
@@ -860,7 +875,12 @@ public:
     QByteArray& getHeight() { return _height; }
     QByteArray& getColor() { return _color; }
     QByteArray& getMaterial() { return _material; }
-    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
+    
+    virtual bool hasOwnColors() const;
+    virtual bool hasOwnMaterials() const;
+    virtual QRgb getColor(const glm::vec3& point);
+    virtual int getMaterial(const glm::vec3& point);
+    virtual QVector<SharedObjectPointer>& getMaterials();
     
     virtual bool contains(const glm::vec3& point);
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
