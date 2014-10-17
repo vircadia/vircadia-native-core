@@ -60,7 +60,7 @@ var viewHelpers = {
       }
       
       if (input_type === 'table') {
-        form_group += makeTable(setting, setting_name, setting_value)
+        form_group += makeTable(setting, setting_name, setting_value, isLocked)
       } else {
         if (input_type === 'select') {
           form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
@@ -255,7 +255,7 @@ $('body').on('click', '.save-button', function(e){
   return false;
 });
 
-function makeTable(setting, setting_name, setting_value) {
+function makeTable(setting, setting_name, setting_value, isLocked) {
   var isArray = !_.has(setting, 'key')
   
   if (!isArray && setting.can_order) {
@@ -332,7 +332,9 @@ function makeTable(setting, setting_name, setting_value) {
   })
     
   // populate inputs in the table for new values
-  html += makeTableInputs(setting)
+  if (!isLocked) {
+     html += makeTableInputs(setting)
+  }
   html += "</table>"
     
   return html;
