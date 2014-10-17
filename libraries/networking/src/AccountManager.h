@@ -80,6 +80,7 @@ public slots:
     void logout();
     void updateBalance();
     void accountInfoBalanceChanged(qint64 newBalance);
+    void generateNewKeypair();
 signals:
     void authRequired();
     void authEndpointChanged();
@@ -102,8 +103,6 @@ private:
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);
-    
-    void generateNewKeypair();
 
     Q_INVOKABLE void invokedRequest(const QString& path,
                                     bool requiresAuthentication,
