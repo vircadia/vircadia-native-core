@@ -1,5 +1,5 @@
 //
-//  collidingParticles.js
+//  collidingEntities.js
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 12/31/13.
