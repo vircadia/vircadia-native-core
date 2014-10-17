@@ -8,6 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
+
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
@@ -85,8 +88,23 @@ void Volume3DOverlay::setProperties(const QScriptValue& properties) {
 bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) const {
 
-    // TODO: this is not exactly accurate because it doesn't properly handle rotation... but it's close enough for our
-    // current use cases. We do need to improve it to be more accurate
-    AABox myBox(getCorner(), _dimensions);
-    return myBox.findRayIntersection(origin, direction, distance, face);
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::vec3 position = getPosition();
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 translation = glm::translate(position);
+    glm::mat4 entityToWorldMatrix = translation * rotation;
+    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+
+    glm::vec3 dimensions = _dimensions;
+    glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the overlay frame of reference
+    AABox overlayFrameBox(corner, dimensions);
+    glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 overlayFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
+
+    // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
+    // and testing intersection there.
+    if (overlayFrameBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face)) {
+        return true;
+    }
+    return false;
 }

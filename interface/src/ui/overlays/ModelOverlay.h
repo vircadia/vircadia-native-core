@@ -24,6 +24,8 @@ public:
     virtual void update(float deltatime);
     virtual void render();
     virtual void setProperties(const QScriptValue& properties);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+
 private:
     
     Model _model;
