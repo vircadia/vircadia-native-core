@@ -1033,6 +1033,39 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                 }
             }
         }
+        
+        const QString REVERB = "reverb";
+        if (audioEnvGroupObject[REVERB].isArray()) {
+            const QJsonArray& reverb = audioEnvGroupObject[REVERB].toArray();
+            
+            const QString ZONE = "zone";
+            const QString REVERB_TIME = "reverb_time";
+            const QString WET_LEVEL = "wet_level";
+            for (int i = 0; i < reverb.count(); ++i) {
+                QJsonObject reverbObject = reverb[i].toObject();
+                
+                if (reverbObject.contains(ZONE) &&
+                    reverbObject.contains(REVERB_TIME) &&
+                    reverbObject.contains(WET_LEVEL)) {
+                    
+                    bool okReverbTime, okWetLevel;
+                    QString zone = reverbObject.value(ZONE).toString();
+                    float reverbTime = reverbObject.value(REVERB_TIME).toString().toFloat(&okReverbTime);
+                    float wetLevel = reverbObject.value(WET_LEVEL).toString().toFloat(&okWetLevel);
+                    
+                    if (okReverbTime && okWetLevel && _audioZones.contains(zone)) {
+                        
+                        ReverbSettings settings;
+                        settings.zone = zone;
+                        settings.reverbTime = reverbTime;
+                        settings.wetLevel = wetLevel;
+                        
+                        _zoneReverbSettings.push_back(settings);
+                        qDebug() << "Added Reverb:" << zone << reverbTime << wetLevel;
+                    }
+                }
+            }
+        }
     }
 }
 
