@@ -622,7 +622,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
     
     // we always let in a user who is sending a packet from our local socket or from the localhost address
     if (senderSockAddr.getAddress() == LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
-        && senderSockAddr.getAddress() == QHostAddress::LocalHost) {
+        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
         return true;
     }
     
