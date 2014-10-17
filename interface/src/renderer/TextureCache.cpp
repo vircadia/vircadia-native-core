@@ -210,7 +210,7 @@ QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
 
     if (!_primaryFramebufferObject) {
         _primaryFramebufferObject = createFramebufferObject();
-       
+
         glGenTextures(1, &_primaryDepthTextureID);
         glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _frameBufferSize.width(), _frameBufferSize.height(),

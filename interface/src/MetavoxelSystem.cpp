@@ -23,6 +23,7 @@
 
 #include <SharedUtil.h>
 
+#include <MetavoxelMessages.h>
 #include <MetavoxelUtil.h>
 #include <ScriptCache.h>
 
@@ -454,6 +455,36 @@ float MetavoxelSystem::getHeightfieldHeight(const glm::vec3& location) {
     return visitor.height;
 }
 
+void MetavoxelSystem::paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius, SharedObjectPointer(), color)) };
+    applyEdit(edit, true);
+}
+
+void MetavoxelSystem::paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldMaterialEdit(position, radius, material)) };
+    applyMaterialEdit(edit, true);
+}
+
+void MetavoxelSystem::paintVoxelColor(const glm::vec3& position, float radius, const QColor& color) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(PaintVoxelMaterialEdit(position, radius, SharedObjectPointer(), color)) };
+    applyEdit(edit, true);
+}
+
+void MetavoxelSystem::paintVoxelMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(PaintVoxelMaterialEdit(position, radius, material)) };
+    applyMaterialEdit(edit, true);
+}
+
+void MetavoxelSystem::setVoxelColor(const SharedObjectPointer& spanner, const QColor& color) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, SharedObjectPointer(), color)) };
+    applyEdit(edit, true);
+}
+
+void MetavoxelSystem::setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material) {
+    MetavoxelEditMessage edit = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner, material)) };
+    applyMaterialEdit(edit, true);
+}
+
 class CursorRenderVisitor : public MetavoxelVisitor {
 public:
     
@@ -561,6 +592,55 @@ void MetavoxelSystem::deleteTextures(int heightID, int colorID, int textureID) {
     glDeleteTextures(1, (GLuint*)&heightID);
     glDeleteTextures(1, (GLuint*)&colorID);
     glDeleteTextures(1, (GLuint*)&textureID);
+}
+
+class MaterialEditApplier : public SignalHandler {
+public:
+
+    MaterialEditApplier(const MetavoxelEditMessage& message, const QSharedPointer<NetworkTexture> texture);
+    
+    virtual void handle();
+
+protected:
+    
+    MetavoxelEditMessage _message;
+    QSharedPointer<NetworkTexture> _texture;
+};
+
+MaterialEditApplier::MaterialEditApplier(const MetavoxelEditMessage& message, const QSharedPointer<NetworkTexture> texture) :
+    _message(message),
+    _texture(texture) {
+}
+
+void MaterialEditApplier::handle() {
+    static_cast<MaterialEdit*>(_message.edit.data())->averageColor = _texture->getAverageColor();
+    Application::getInstance()->getMetavoxels()->applyEdit(_message, true);
+    deleteLater();
+}
+
+void MetavoxelSystem::applyMaterialEdit(const MetavoxelEditMessage& message, bool reliable) {
+    const MaterialEdit* edit = static_cast<const MaterialEdit*>(message.edit.constData());
+    MaterialObject* material = static_cast<MaterialObject*>(edit->material.data());
+    if (material && material->getDiffuse().isValid()) {
+        if (QThread::currentThread() != thread()) {
+            QMetaObject::invokeMethod(this, "applyMaterialEdit", Q_ARG(const MetavoxelEditMessage&, message),
+                Q_ARG(bool, reliable));
+            return;
+        }
+        QSharedPointer<NetworkTexture> texture = Application::getInstance()->getTextureCache()->getTexture(
+            material->getDiffuse(), SPLAT_TEXTURE);
+        if (texture->isLoaded()) {
+            MetavoxelEditMessage newMessage = message;
+            static_cast<MaterialEdit*>(newMessage.edit.data())->averageColor = texture->getAverageColor();
+            applyEdit(newMessage, true);    
+        
+        } else {
+            MaterialEditApplier* applier = new MaterialEditApplier(message, texture);
+            connect(texture.data(), &Resource::loaded, applier, &SignalHandler::handle);
+        }
+    } else {
+        applyEdit(message, true);
+    }
 }
 
 MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {

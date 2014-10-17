@@ -659,6 +659,7 @@ public:
     glm::vec3 emissive;
     float shininess;
     float opacity;
+    QString id;
 };
 
 class Cluster {
@@ -1319,7 +1320,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             }
                         }
                     }
-                    materials.insert(getID(object.properties), material);
+                    material.id = getID(object.properties);
+                    materials.insert(material.id, material);
 
                 } else if (object.name == "Deformer") {
                     if (object.properties.last() == "Cluster") {
@@ -1621,6 +1623,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         if (!specularTexture.filename.isNull()) {
                             part.specularTexture = specularTexture;
                         }
+                        part.materialID = material.id;
                     }
                 }
                 materialIndex++;

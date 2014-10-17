@@ -58,7 +58,6 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
@@ -214,7 +213,6 @@ public:
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
-    Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
     DdeFaceTracker* getDDE() { return &_dde; }
@@ -301,6 +299,8 @@ public:
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
+    float getRenderResolutionScale() const { return _renderResolutionScale; }
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
@@ -363,6 +363,8 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void setRenderResolutionScale(float scale);
+
     void resetSensors();
 
 private slots:
@@ -402,7 +404,6 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
     void updateDDE();
@@ -503,7 +504,6 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
-    Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
     DdeFaceTracker _dde;
@@ -618,6 +618,8 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
+
+    float _renderResolutionScale;
 };
 
 #endif // hifi_Application_h

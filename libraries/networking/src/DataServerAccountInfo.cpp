@@ -150,9 +150,6 @@ const QByteArray& DataServerAccountInfo::getUsernameSignature() {
                 qDebug() << "Could not create RSA struct from QByteArray private key.";
                 qDebug() << "Will re-attempt on next domain-server check in.";
             }
-        } else {
-            qDebug() << "No private key present in DataServerAccountInfo. Re-log to generate new key.";
-            qDebug() << "Returning empty username signature.";
         }
     }
     

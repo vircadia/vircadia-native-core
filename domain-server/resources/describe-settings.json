@@ -6,7 +6,7 @@
       {
         "name": "access_token",
         "label": "Access Token",
-        "help": "This is an access token generated on the <a href='https://data.highfidelity.io/tokens' target='_blank'>My Tokens</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
+        "help": "This is an access token generated on the <a href='https://data.highfidelity.io/user/security' target='_blank'>My Security</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
       },
       {
         "name": "id",
@@ -64,7 +64,7 @@
         "name": "allowed_users",
         "type": "table",
         "label": "Allowed Users",
-        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from this machine.",
+        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from the domain-server machine.",
         "numbered": false,
         "columns": [
           {
@@ -77,10 +77,24 @@
     ]
   },
   {
-    "name": "audio",
-    "label": "Audio",
+    "name": "audio_env",
+    "label": "Audio Environment",
     "assignment-types": [0],
     "settings": [
+      {
+        "name": "attenuation_per_doubling_in_distance",
+        "label": "Default Domain Attenuation",
+        "help": "Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)",
+        "placeholder": "0.18",
+        "default": "0.18",
+        "advanced": false
+      },
+      {
+        "name": "enable_filter",
+        "type": "checkbox",
+        "help": "positional audio stream uses lowpass filter",
+        "default": true
+      },
       {
         "name": "zones",
         "type": "table",
@@ -90,7 +104,7 @@
         "key": {
           "name": "name",
           "label": "Name",
-          "placeholder": "Zone name"
+          "placeholder": "Zone_Name"
         },
         "columns": [
           {
@@ -118,7 +132,8 @@
         "type": "table",
         "label": "Attenuation Coefficients",
         "help": "In this table you can set custom attenuation coefficients between audio zones",
-        "numbered": false,
+        "numbered": true,
+        "can_order": true,
         "columns": [
           {
             "name": "source",
@@ -139,28 +154,14 @@
             "placeholder": "0.18"
           }
         ]
-      },
-      {
-        "name": "enable_filter",
-        "type": "checkbox",
-        "label": "Positional filter",
-        "help": "positional audio stream uses lowpass filter",
-        "default": true
-      },
-      {
-        "name": "unattenuated_zone",
-        "label": "Unattenuated Zone",
-        "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
-        "placeholder": "no zone"
-      },
-      {
-        "name": "attenuation_per_doubling_in_distance",
-        "label": "Attenuation per doubling in distance",
-        "help": "Factor between 0.0 and 1.0 (0.0: No attenuation, 1.0: extreme attenuation)",
-        "placeholder": "0.18",
-        "default": "0.18",
-        "advanced": false
-      },
+      }
+    ]
+  },
+  {
+    "name": "audio_buffer",
+    "label": "Audio Buffers",
+    "assignment-types": [0],
+    "settings": [
       {
         "name": "dynamic_jitter_buffer",
         "type": "checkbox",
