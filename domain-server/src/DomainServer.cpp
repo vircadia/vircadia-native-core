@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <openssl/err.h>
+#include <openssl/rsa.h>
+#include <openssl/x509.h>
+
 #include <QtCore/QDir>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QJsonObject>
@@ -44,8 +48,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _oauthProviderURL(),
     _oauthClientID(),
     _hostname(),
-    _networkReplyUUIDMap(),
-    _sessionAuthenticationHash(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _settingsManager()
@@ -80,6 +82,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         
         // setup automatic networking settings with data server
         setupAutomaticNetworking();
+        
+        // preload some user public keys so they can connect on first request
+        preloadAllowedUserPublicKeys();
     }
 }
 
@@ -507,8 +512,6 @@ void DomainServer::populateDefaultStaticAssignmentsExcludingTypes(const QSet<Ass
     }
 }
 
-const QString ALLOWED_ROLES_CONFIG_KEY = "allowed-roles";
-
 const NodeSet STATICALLY_ASSIGNED_NODES = NodeSet() << NodeType::AudioMixer
     << NodeType::AvatarMixer << NodeType::VoxelServer << NodeType::ParticleServer << NodeType::EntityServer
     << NodeType::MetavoxelServer;
@@ -517,8 +520,11 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
     NodeType_t nodeType;
     HifiSockAddr publicSockAddr, localSockAddr;
+    
+    QDataStream packetStream(packet);
+    packetStream.skipRawData(numBytesForPacketHeader(packet));
 
-    int numPreInterestBytes = parseNodeDataFromByteArray(nodeType, publicSockAddr, localSockAddr, packet, senderSockAddr);
+    parseNodeDataFromByteArray(packetStream, nodeType, publicSockAddr, localSockAddr, senderSockAddr);
 
     QUuid packetUUID = uuidFromPacketHeader(packet);
 
@@ -551,33 +557,20 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
 
     }
     
-    QString connectedUsername;
-
-    if (!isAssignment && !_oauthProviderURL.isEmpty() && _settingsManager.getSettingsMap().contains(ALLOWED_ROLES_CONFIG_KEY)) {
-        // this is an Agent, and we require authentication so we can compare the user's roles to our list of allowed ones
-        if (_sessionAuthenticationHash.contains(packetUUID)) {
-            connectedUsername = _sessionAuthenticationHash.take(packetUUID);
-            if (connectedUsername.isEmpty()) {
-                // we've decided this is a user that isn't allowed in, return out
-                // TODO: provide information to the user so they know why they can't connect
-                return;
-            } else {
-                // we're letting this user in, don't return and remove their UUID from the hash
-                _sessionAuthenticationHash.remove(packetUUID);
-            }
-        } else {
-            // we don't know anything about this client
-            // we have an OAuth provider, ask this interface client to auth against it
-            QByteArray oauthRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainOAuthRequest);
-            QDataStream oauthRequestStream(&oauthRequestByteArray, QIODevice::Append);
-            QUrl authorizationURL = packetUUID.isNull() ? oauthAuthorizationURL() : oauthAuthorizationURL(packetUUID);
-            oauthRequestStream << authorizationURL;
-
-            // send this oauth request datagram back to the client
-            LimitedNodeList::getInstance()->writeUnverifiedDatagram(oauthRequestByteArray, senderSockAddr);
-
-            return;
-        }
+    QList<NodeType_t> nodeInterestList;
+    QString username;
+    QByteArray usernameSignature;
+    
+    packetStream >> nodeInterestList >> username >> usernameSignature;
+    
+    if (!isAssignment && !shouldAllowConnectionFromNode(username, usernameSignature, senderSockAddr)) {
+        // this is an agent and we've decided we won't let them connect - send them a packet to deny connection
+        QByteArray usernameRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeDomainConnectionDenied);
+        
+        // send this oauth request datagram back to the client
+        LimitedNodeList::getInstance()->writeUnverifiedDatagram(usernameRequestByteArray, senderSockAddr);
+        
+        return;
     }
 
     if ((!isAssignment && !STATICALLY_ASSIGNED_NODES.contains(nodeType))
@@ -610,13 +603,109 @@ void DomainServer::handleConnectRequest(const QByteArray& packet, const HifiSock
         }
         
         // if we have a username from an OAuth connect request, set it on the DomainServerNodeData
-        nodeData->setUsername(connectedUsername);
-
+        nodeData->setUsername(username);
         nodeData->setSendingSockAddr(senderSockAddr);
 
         // reply back to the user with a PacketTypeDomainList
-        sendDomainListToNode(newNode, senderSockAddr, nodeInterestListFromPacket(packet, numPreInterestBytes));
+        sendDomainListToNode(newNode, senderSockAddr, nodeInterestList.toSet());
     }
+}
+
+const QString ALLOWED_USERS_SETTINGS_KEYPATH = "security.allowed_users";
+
+bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
+                                                 const QByteArray& usernameSignature,
+                                                 const HifiSockAddr& senderSockAddr) {
+    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                                 ALLOWED_USERS_SETTINGS_KEYPATH);
+    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    
+    // we always let in a user who is sending a packet from our local socket or from the localhost address
+    if (senderSockAddr.getAddress() == LimitedNodeList::getInstance()->getLocalSockAddr().getAddress()
+        || senderSockAddr.getAddress() == QHostAddress::LocalHost) {
+        return true;
+    }
+    
+    if (allowedUsers.count() > 0) {
+        if (allowedUsers.contains(username)) {
+            // it's possible this user can be allowed to connect, but we need to check their username signature
+            
+            QByteArray publicKeyArray = _userPublicKeys.value(username);
+            if (!publicKeyArray.isEmpty()) {
+                // if we do have a public key for the user, check for a signature match
+                
+                const unsigned char* publicKeyData = reinterpret_cast<const unsigned char*>(publicKeyArray.constData());
+                
+                // first load up the public key into an RSA struct
+                RSA* rsaPublicKey = d2i_RSA_PUBKEY(NULL, &publicKeyData, publicKeyArray.size());
+                
+                if (rsaPublicKey) {
+                    QByteArray decryptedArray(RSA_size(rsaPublicKey), 0);
+                    int decryptResult = RSA_public_decrypt(usernameSignature.size(),
+                                                           reinterpret_cast<const unsigned char*>(usernameSignature.constData()),
+                                                           reinterpret_cast<unsigned char*>(decryptedArray.data()),
+                                                           rsaPublicKey, RSA_PKCS1_PADDING);
+                    
+                    if (decryptResult != -1) {
+                        if (username == decryptedArray) {
+                            qDebug() << "Username signature matches for" << username << "- allowing connection.";
+                            
+                            // free up the public key before we return
+                            RSA_free(rsaPublicKey);
+                            
+                            return true;
+                        } else {
+                            qDebug() << "Username signature did not match for" << username << "- denying connection.";
+                        }
+                    } else {
+                        qDebug() << "Couldn't decrypt user signature for" << username << "- denying connection.";
+                    }
+                    
+                    // free up the public key, we don't need it anymore
+                    RSA_free(rsaPublicKey);
+                } else {
+                    // we can't let this user in since we couldn't convert their public key to an RSA key we could use
+                    qDebug() << "Couldn't convert data to RSA key for" << username << "- denying connection.";
+                }
+            }
+        
+            requestUserPublicKey(username);
+        } else {
+            qDebug() << "Connect request denied for user" << username << "not in allowed users list.";
+        }
+    } else {
+        // since we have no allowed user list, let them all in
+        return true;
+    }
+    
+    return false;
+}
+
+void DomainServer::preloadAllowedUserPublicKeys() {
+    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(), ALLOWED_USERS_SETTINGS_KEYPATH);
+    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    
+    if (allowedUsers.size() > 0) {
+        // in the future we may need to limit how many requests here - for now assume that lists of allowed users are not
+        // going to create > 100 requests
+        foreach(const QString& username, allowedUsers) {
+            requestUserPublicKey(username);
+        }
+    }
+}
+
+void DomainServer::requestUserPublicKey(const QString& username) {
+    // even if we have a public key for them right now, request a new one in case it has just changed
+    JSONCallbackParameters callbackParams;
+    callbackParams.jsonCallbackReceiver = this;
+    callbackParams.jsonCallbackMethod = "publicKeyJSONCallback";
+    
+    const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
+    
+    qDebug() << "Requesting public key for user" << username;
+    
+    AccountManager::getInstance().unauthenticatedRequest(USER_PUBLIC_KEY_PATH.arg(username),
+                                                         QNetworkAccessManager::GetOperation, callbackParams);
 }
 
 QUrl DomainServer::oauthRedirectURL() {
@@ -653,12 +742,9 @@ QUrl DomainServer::oauthAuthorizationURL(const QUuid& stateUUID) {
     return authorizationURL;
 }
 
-int DomainServer::parseNodeDataFromByteArray(NodeType_t& nodeType, HifiSockAddr& publicSockAddr,
-                                              HifiSockAddr& localSockAddr, const QByteArray& packet,
-                                              const HifiSockAddr& senderSockAddr) {
-    QDataStream packetStream(packet);
-    packetStream.skipRawData(numBytesForPacketHeader(packet));
-
+int DomainServer::parseNodeDataFromByteArray(QDataStream& packetStream, NodeType_t& nodeType,
+                                             HifiSockAddr& publicSockAddr, HifiSockAddr& localSockAddr,
+                                             const HifiSockAddr& senderSockAddr) {
     packetStream >> nodeType;
     packetStream >> publicSockAddr >> localSockAddr;
 
@@ -925,7 +1011,30 @@ void DomainServer::sendPendingTransactionsToServer() {
             ++i;
         }
     }
+}
 
+void DomainServer::publicKeyJSONCallback(QNetworkReply& requestReply) {
+    QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
+    
+    if (jsonObject["status"].toString() == "success") {
+        // figure out which user this is for
+        
+        const QString PUBLIC_KEY_URL_REGEX_STRING = "api\\/v1\\/users\\/([A-Za-z0-9_\\.]+)\\/public_key";
+        QRegExp usernameRegex(PUBLIC_KEY_URL_REGEX_STRING);
+        
+        if (usernameRegex.indexIn(requestReply.url().toString()) != -1) {
+            QString username = usernameRegex.cap(1);
+            
+            qDebug() << "Storing a public key for user" << username;
+            
+            // pull the public key as a QByteArray from this response
+            const QString JSON_DATA_KEY = "data";
+            const QString JSON_PUBLIC_KEY_KEY = "public_key";
+            
+            _userPublicKeys[username] =
+                QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
+        }
+    }
 }
 
 void DomainServer::transactionJSONCallback(const QJsonObject& data) {
@@ -1095,17 +1204,24 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                 if (!nodeUUID.isNull() && nodeList->nodeWithUUID(nodeUUID)) {
                     NodeType_t throwawayNodeType;
                     HifiSockAddr nodePublicAddress, nodeLocalAddress;
+                
+                    QDataStream packetStream(receivedPacket);
+                    packetStream.skipRawData(numBytesForPacketHeader(receivedPacket));
                     
-                    int numNodeInfoBytes = parseNodeDataFromByteArray(throwawayNodeType, nodePublicAddress, nodeLocalAddress,
-                                                                      receivedPacket, senderSockAddr);
+                    parseNodeDataFromByteArray(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress,
+                                               senderSockAddr);
                     
-                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID, nodePublicAddress, nodeLocalAddress);
+                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID,
+                                                                                   nodePublicAddress, nodeLocalAddress);
                     
                     // update last receive to now
                     quint64 timeNow = usecTimestampNow();
                     checkInNode->setLastHeardMicrostamp(timeNow);
                     
-                    sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestListFromPacket(receivedPacket, numNodeInfoBytes));
+                    QList<NodeType_t> nodeInterestList;
+                    packetStream >> nodeInterestList;
+                    
+                    sendDomainListToNode(checkInNode, senderSockAddr, nodeInterestList.toSet());
                 }
                 
                 break;
@@ -1545,13 +1661,6 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
                 // we've redirected the user back to our homepage
                 return true;
                 
-            } else {
-                qDebug() << "Requesting a token for user with session UUID" << uuidStringWithoutCurlyBraces(stateUUID);
-                
-                // insert this to our pending token replies so we can associate the returned access token with the right UUID
-                _networkReplyUUIDMap.insert(tokenReply, stateUUID);
-                
-                connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::handleTokenRequestFinished);
             }
         }
 
@@ -1695,22 +1804,6 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
 
 const QString OAUTH_JSON_ACCESS_TOKEN_KEY = "access_token";
 
-void DomainServer::handleTokenRequestFinished() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
-    QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
-
-    if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
-        
-        qDebug() << "Received access token for user with UUID" << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-            << "-" << "requesting profile.";
-        
-        QNetworkReply* profileReply = profileRequestGivenTokenReply(networkReply);
-
-        connect(profileReply, &QNetworkReply::finished, this, &DomainServer::handleProfileRequestFinished);
-
-        _networkReplyUUIDMap.insert(profileReply, matchingSessionUUID);
-    }
-}
 
 QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenReply) {
     // pull the access token from the returned JSON and store it with the matching session UUID
@@ -1719,53 +1812,11 @@ QNetworkReply* DomainServer::profileRequestGivenTokenReply(QNetworkReply* tokenR
     
     // fire off a request to get this user's identity so we can see if we will let them in
     QUrl profileURL = _oauthProviderURL;
-    profileURL.setPath("/api/v1/users/profile");
+    profileURL.setPath("/api/v1/user/profile");
     profileURL.setQuery(QString("%1=%2").arg(OAUTH_JSON_ACCESS_TOKEN_KEY, accessToken));
     
     return NetworkAccessManager::getInstance().get(QNetworkRequest(profileURL));
 }
-
-void DomainServer::handleProfileRequestFinished() {
-    QNetworkReply* networkReply = reinterpret_cast<QNetworkReply*>(sender());
-    QUuid matchingSessionUUID = _networkReplyUUIDMap.take(networkReply);
-
-    if (!matchingSessionUUID.isNull() && networkReply->error() == QNetworkReply::NoError) {
-        QJsonDocument profileJSON = QJsonDocument::fromJson(networkReply->readAll());
-
-        if (profileJSON.object()["status"].toString() == "success") {
-            // pull the user roles from the response
-            QJsonArray userRolesArray = profileJSON.object()["data"].toObject()["user"].toObject()["roles"].toArray();
-
-            QStringList allowedRolesArray = _settingsManager.getSettingsMap().value(ALLOWED_ROLES_CONFIG_KEY).toStringList();
-
-            QString connectableUsername;
-            QString profileUsername = profileJSON.object()["data"].toObject()["user"].toObject()["username"].toString();
-
-            foreach(const QJsonValue& roleValue, userRolesArray) {
-                if (allowedRolesArray.contains(roleValue.toString())) {
-                    // the user has a role that lets them in
-                    // set the bool to true and break
-                    connectableUsername = profileUsername;
-                    break;
-                }
-            }
-            
-            if (connectableUsername.isEmpty()) {
-                qDebug() << "User" << profileUsername << "with session UUID"
-                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-                    << "does not have an allowable role. Refusing connection.";
-            } else {
-                qDebug() << "User" << profileUsername << "with session UUID"
-                    << uuidStringWithoutCurlyBraces(matchingSessionUUID)
-                    << "has an allowable role. Can connect.";
-            }
-
-            // insert this UUID and a flag that indicates if they are allowed to connect
-            _sessionAuthenticationHash.insert(matchingSessionUUID, connectableUsername);
-        }
-    }
-}
-
 
 const QString DS_SETTINGS_SESSIONS_GROUP = "web-sessions";
 

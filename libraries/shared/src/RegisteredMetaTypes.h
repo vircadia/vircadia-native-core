@@ -20,6 +20,7 @@
 #include "SharedUtil.h"
 
 class QColor;
+class QUrl;
 
 Q_DECLARE_METATYPE(glm::vec4)
 Q_DECLARE_METATYPE(glm::vec3)
@@ -46,6 +47,9 @@ void xColorFromScriptValue(const QScriptValue &object, xColor& color);
 
 QScriptValue qColorToScriptValue(QScriptEngine* engine, const QColor& color);
 void qColorFromScriptValue(const QScriptValue& object, QColor& color);
+
+QScriptValue qURLToScriptValue(QScriptEngine* engine, const QUrl& url);
+void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
 class PickRay {
 public:

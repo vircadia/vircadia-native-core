@@ -302,11 +302,20 @@ void NodeList::sendDomainServerCheckIn() {
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr << _localSockAddr << (quint8) _nodeTypesOfInterest.size();
+        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
         
-        // copy over the bytes for node types of interest, if required
-        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
-            packetStream << nodeTypeOfInterest;
+        
+        // if this is a connect request, and we can present a username signature, send it along
+        if (!_domainHandler.isConnected()) {
+            DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
+            packetStream << accountInfo.getUsername();
+            
+            const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature();
+            
+            if (!usernameSignature.isEmpty()) {
+                qDebug() << "Including username signature in domain connect request.";
+                packetStream << usernameSignature;
+            }
         }
         
         if (!isUsingDTLS) {

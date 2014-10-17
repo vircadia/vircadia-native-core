@@ -162,36 +162,6 @@ void renderElementProxy(EntityTreeElement* entityTreeElement) {
     }
 }
 
-float EntityTreeRenderer::distanceToCamera(const glm::vec3& center, const ViewFrustum& viewFrustum) const {
-    glm::vec3 temp = viewFrustum.getPosition() - center;
-    float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
-    return distanceToVoxelCenter;
-}
-
-// TODO: This could be optimized to be a table, or something that doesn't require recalculation on every 
-//       render call for every entity
-// TODO: This is essentially the same logic used to render voxels, but since models are more detailed then voxels
-//       I've added a voxelToModelRatio that adjusts how much closer to a model you have to be to see it.
-bool EntityTreeRenderer::shouldRenderEntity(float largestDimension, float distanceToCamera) const {
-    const float voxelToModelRatio = 4.0f; // must be this many times closer to a model than a voxel to see it.
-    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
-    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
-    
-    float scale = (float)TREE_SCALE;
-    float visibleDistanceAtScale = boundaryDistanceForRenderLevel(boundaryLevelAdjust, voxelSizeScale) / voxelToModelRatio;
-
-    while (scale > largestDimension) {
-        scale /= 2.0f;
-        visibleDistanceAtScale /= 2.0f;
-    }
-    
-    if (scale < largestDimension) {
-        visibleDistanceAtScale *= 2.0f;
-    }
-
-    return (distanceToCamera <= visibleDistanceAtScale);
-}
-
 void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* args) {
     bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
     bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
@@ -287,7 +257,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
         
             // TODO: some entity types (like lights) might want to be rendered even
             // when they are outside of the view frustum...
-            float distance = distanceToCamera(entityBox.calcCenter(), *args->_viewFrustum);
+            float distance = args->_viewFrustum->distanceToCamera(entityBox.calcCenter());
             
             if (wantDebug) {
                 qDebug() << "------- renderElement() ----------";
@@ -299,23 +269,28 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
                 qDebug() << "            entityBox:" << entityItem->getAABox();
                 qDebug() << "           dimensions:" << entityItem->getDimensionsInMeters() << "in meters";
                 qDebug() << "     largestDimension:" << entityBox.getLargestDimension() << "in meters";
-                qDebug() << "         shouldRender:" << shouldRenderEntity(entityBox.getLargestDimension(), distance);
+                qDebug() << "         shouldRender:" << Menu::getInstance()->shouldRenderMesh(entityBox.getLargestDimension(), distance);
                 qDebug() << "           in frustum:" << (args->_viewFrustum->boxInFrustum(entityBox) != ViewFrustum::OUTSIDE);
             }
-            
-            if (shouldRenderEntity(entityBox.getLargestDimension(), distance) &&
-                    args->_viewFrustum->boxInFrustum(entityBox) != ViewFrustum::OUTSIDE) {
-                    
-                    
-                renderProxies(entityItem, args);
 
-                Glower* glower = NULL;
-                if (entityItem->getGlowLevel() > 0.0f) {
-                    glower = new Glower(entityItem->getGlowLevel());
-                }
-                entityItem->render(args);
-                if (glower) {
-                    delete glower;
+            bool outOfView = args->_viewFrustum->boxInFrustum(entityBox) == ViewFrustum::OUTSIDE;
+            if (!outOfView) {
+                bool bigEnoughToRender = Menu::getInstance()->shouldRenderMesh(entityBox.getLargestDimension(), distance);
+                
+                if (bigEnoughToRender) {
+                    renderProxies(entityItem, args);
+
+                    Glower* glower = NULL;
+                    if (entityItem->getGlowLevel() > 0.0f) {
+                        glower = new Glower(entityItem->getGlowLevel());
+                    }
+                    entityItem->render(args);
+                    args->_itemsRendered++;
+                    if (glower) {
+                        delete glower;
+                    }
+                } else {
+                    args->_itemsTooSmall++;
                 }
             } else {
                 args->_itemsOutOfView++;

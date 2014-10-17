@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-//  Creates single flexible vertlet-integrated strands that can be used for hair/fur/grass
+//  Creates single flexible verlet-integrated strands that can be used for hair/fur/grass
 
 #include "Hair.h"
 
@@ -17,13 +17,13 @@
 
 const float HAIR_DAMPING = 0.99f;
 const float CONSTRAINT_RELAXATION = 10.0f;
-const float HAIR_ACCELERATION_COUPLING = 0.025f;
-const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.01f;
-const float HAIR_ANGULAR_ACCELERATION_COUPLING = 0.001f;
+const float HAIR_ACCELERATION_COUPLING = 0.045f;
+const float HAIR_ANGULAR_VELOCITY_COUPLING = 0.020f;
+const float HAIR_ANGULAR_ACCELERATION_COUPLING = 0.003f;
 const float HAIR_MAX_LINEAR_ACCELERATION = 4.0f;
-const float HAIR_STIFFNESS = 0.005f;
-const glm::vec3 HAIR_COLOR1(0.98f, 0.92f, 0.843f);
-const glm::vec3 HAIR_COLOR2(0.545f, 0.533f, 0.47f);
+const float HAIR_STIFFNESS = 0.00f;
+const glm::vec3 HAIR_COLOR1(0.98f, 0.76f, 0.075f);
+const glm::vec3 HAIR_COLOR2(0.912f, 0.184f, 0.101f);
 
 Hair::Hair(int strands,
            int links,
@@ -38,7 +38,8 @@ Hair::Hair(int strands,
     _acceleration(0.0f),
     _angularVelocity(0.0f),
     _angularAcceleration(0.0f),
-    _gravity(0.0f)
+    _gravity(0.0f),
+    _loudness(0.0f)
 {
     _hairPosition = new glm::vec3[_strands * _links];
     _hairOriginalPosition = new glm::vec3[_strands * _links];
@@ -48,12 +49,15 @@ Hair::Hair(int strands,
     _hairColors = new glm::vec3[_strands * _links];
     _hairIsMoveable = new int[_strands * _links];
     _hairConstraints = new int[_strands * _links * HAIR_CONSTRAINTS];     // Hair can link to two others
-    const float FACE_WIDTH =  PI / 4.0f;
     glm::vec3 thisVertex;
     for (int strand = 0; strand < _strands; strand++) {
         float strandAngle = randFloat() * PI;
-        float azimuth = FACE_WIDTH / 2.0f + (randFloat() * (2.0 * PI - FACE_WIDTH));
-        float elevation = PI_OVER_TWO - (randFloat() * 0.75 * PI);
+        float azimuth;
+        float elevation = PI_OVER_TWO - (randFloat() * 0.10f * PI);
+        azimuth = PI_OVER_TWO;
+        if (randFloat() < 0.5f) {
+            azimuth *= -1.0f;
+        }
         glm::vec3 thisStrand(sinf(azimuth) * cosf(elevation), sinf(elevation), -cosf(azimuth) * cosf(elevation));
         thisStrand *= _radius;
         
@@ -77,7 +81,7 @@ Hair::Hair(int strands,
             _hairOriginalPosition[vertexIndex] = _hairLastPosition[vertexIndex] = _hairPosition[vertexIndex] = thisVertex;
             
             _hairQuadDelta[vertexIndex] = glm::vec3(cos(strandAngle) * _hairThickness, 0.f, sin(strandAngle) * _hairThickness);
-            _hairQuadDelta[vertexIndex] *= 1.f - ((float)link / _links);
+            _hairQuadDelta[vertexIndex] *= ((float)link / _links);
             _hairNormals[vertexIndex] = glm::normalize(randVector());
             if (randFloat() < elevation / PI_OVER_TWO) {
                 _hairColors[vertexIndex] = HAIR_COLOR1 * ((float)(link + 1) / (float)_links);
@@ -86,7 +90,9 @@ Hair::Hair(int strands,
             }
         }
     }
- }
+}
+
+const float SOUND_THRESHOLD = 50.0f;
 
 void Hair::simulate(float deltaTime) {
     deltaTime = glm::clamp(deltaTime, 0.0f, 1.0f / 30.0f);
@@ -114,9 +120,15 @@ void Hair::simulate(float deltaTime) {
                     _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex]) *
                     (_radius - glm::length(_hairPosition[vertexIndex]));
                 }
-                
+                //  Add random thing driven by loudness
+                float loudnessFactor = (_loudness > SOUND_THRESHOLD) ? logf(_loudness - SOUND_THRESHOLD) / 8000.0f : 0.0f;
+
+                const float QUIESCENT_LOUDNESS = 0.0f;
+                _hairPosition[vertexIndex] += randVector() * (QUIESCENT_LOUDNESS + loudnessFactor) * ((float)link / (float)_links);
+
                 //  Add gravity
-                _hairPosition[vertexIndex] += _gravity * deltaTime;
+                const float SCALE_GRAVITY = 0.10f;
+                _hairPosition[vertexIndex] += _gravity * deltaTime * SCALE_GRAVITY;
                 
                 //  Add linear acceleration
                 _hairPosition[vertexIndex] -= acceleration * HAIR_ACCELERATION_COUPLING * deltaTime;
@@ -168,7 +180,7 @@ void Hair::simulate(float deltaTime) {
                     }
                 }
                 
-                //  Store start position for next vertlet pass
+                //  Store start position for next verlet pass
                 _hairLastPosition[vertexIndex] = thisPosition;
             }
         }
@@ -179,11 +191,23 @@ void Hair::render() {
     //
     //  Before calling this function, translate/rotate to the origin of the owning object
     //
+    float loudnessFactor = (_loudness > SOUND_THRESHOLD) ? logf(_loudness - SOUND_THRESHOLD) / 16.0f : 0.0f;
+    const int SPARKLE_EVERY = 5;
+    const float HAIR_SETBACK = 0.0f;
+    int sparkleIndex = (int) (randFloat() * SPARKLE_EVERY);
+    glPushMatrix();
+    glTranslatef(0.f, 0.f, HAIR_SETBACK);
     glBegin(GL_QUADS);
     for (int strand = 0; strand < _strands; strand++) {
         for (int link = 0; link < _links - 1; link++) {
             int vertexIndex = strand * _links + link;
-            glColor3fv(&_hairColors[vertexIndex].x);
+            glm::vec3 thisColor = _hairColors[vertexIndex];
+            if (sparkleIndex % SPARKLE_EVERY == 0) {
+                thisColor.x += (1.f - thisColor.x) * loudnessFactor;
+                thisColor.y += (1.f - thisColor.y) * loudnessFactor;
+                thisColor.z += (1.f - thisColor.z) * loudnessFactor;
+            }
+            glColor3fv(&thisColor.x);
             glNormal3fv(&_hairNormals[vertexIndex].x);
             glVertex3f(_hairPosition[vertexIndex].x - _hairQuadDelta[vertexIndex].x,
                        _hairPosition[vertexIndex].y - _hairQuadDelta[vertexIndex].y,
@@ -198,9 +222,11 @@ void Hair::render() {
             glVertex3f(_hairPosition[vertexIndex + 1].x - _hairQuadDelta[vertexIndex].x,
                        _hairPosition[vertexIndex + 1].y - _hairQuadDelta[vertexIndex].y,
                        _hairPosition[vertexIndex + 1].z - _hairQuadDelta[vertexIndex].z);
+            sparkleIndex++;
         }
     }
     glEnd();
+    glPopMatrix();
 }
 
 

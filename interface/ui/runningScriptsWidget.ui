@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>319</width>
-    <height>481</height>
+    <width>364</width>
+    <height>728</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,19 +16,7 @@
   <property name="styleSheet">
    <string notr="true">* { font-family: Helvetica, Arial, sans-serif; }</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
-   <property name="leftMargin">
-    <number>14</number>
-   </property>
-   <property name="topMargin">
-    <number>20</number>
-   </property>
-   <property name="rightMargin">
-    <number>14</number>
-   </property>
-   <property name="bottomMargin">
-    <number>20</number>
-   </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="3,2">
    <item>
     <widget class="QWidget" name="runningScriptsArea" native="true">
      <property name="sizePolicy">
@@ -196,6 +184,25 @@ font: bold 16px;
           <number>0</number>
          </property>
          <item>
+          <widget class="QLabel" name="noRunningScriptsLabel">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">font: 14px; color: #5f5f5f; margin: 2px;</string>
+           </property>
+           <property name="text">
+            <string>There are no scripts running.</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QScrollArea" name="runningScriptsList">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
@@ -219,10 +226,10 @@ font: bold 16px;
             <number>0</number>
            </property>
            <property name="verticalScrollBarPolicy">
-            <enum>Qt::ScrollBarAlwaysOn</enum>
+            <enum>Qt::ScrollBarAsNeeded</enum>
            </property>
            <property name="horizontalScrollBarPolicy">
-            <enum>Qt::ScrollBarAsNeeded</enum>
+            <enum>Qt::ScrollBarAlwaysOff</enum>
            </property>
            <property name="sizeAdjustPolicy">
             <enum>QAbstractScrollArea::AdjustToContents</enum>
@@ -238,8 +245,8 @@ font: bold 16px;
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>264</width>
-              <height>16</height>
+              <width>328</width>
+              <height>18</height>
              </rect>
             </property>
             <property name="sizePolicy">
@@ -254,7 +261,7 @@ font: bold 16px;
             <property name="styleSheet">
              <string notr="true">font-size: 14px;</string>
             </property>
-            <layout class="QVBoxLayout" name="verticalLayout_5">
+            <layout class="QVBoxLayout" name="verticalLayout_3">
              <property name="spacing">
               <number>0</number>
              </property>
@@ -270,27 +277,39 @@ font: bold 16px;
              <property name="bottomMargin">
               <number>0</number>
              </property>
+             <item>
+              <widget class="QWidget" name="scriptListWidget" native="true">
+               <layout class="QVBoxLayout" name="verticalLayout_5">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="tipLabel">
+               <property name="styleSheet">
+                <string notr="true">font: 14px; color: #5f5f5f; margin: 2px;</string>
+               </property>
+               <property name="text">
+                <string>Tip</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="noRunningScriptsLabel">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">font: 14px; color: #5f5f5f;</string>
-           </property>
-           <property name="text">
-            <string>There are no scripts running.</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-           </property>
           </widget>
          </item>
         </layout>

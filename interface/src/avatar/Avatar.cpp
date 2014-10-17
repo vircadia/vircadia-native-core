@@ -192,6 +192,7 @@ void Avatar::simulate(float deltaTime) {
             _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setLoudness((float) getHeadData()->getAudioLoudness());
             _hair.simulate(deltaTime);
         }
     }
@@ -694,7 +695,7 @@ void Avatar::renderDisplayName() {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
+        float scaleFactor = Application::getInstance()->getRenderResolutionScale() *
             ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
         glScalef(scaleFactor, scaleFactor, 1.0);  
         

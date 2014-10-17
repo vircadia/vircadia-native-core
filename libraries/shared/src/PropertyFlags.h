@@ -214,10 +214,12 @@ template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray
     
     // next, read the leading bits to determine the correct number of bytes to decode (may not match the QByteArray)
     int encodedByteCount = 0;
+    int leadBits = 1;
     int bitAt;
     for (bitAt = 0; bitAt < bitCount; bitAt++) {
         if (encodedBits.at(bitAt)) {
             encodedByteCount++;
+            leadBits++;
         } else {
             break;
         }
@@ -228,10 +230,12 @@ template<typename Enum> inline void PropertyFlags<Enum>::decode(const QByteArray
     int expectedBitCount = encodedByteCount * BITS_PER_BYTE;
     
     // Now, keep reading...
-    int flagsStartAt = bitAt + 1; 
-    for (bitAt = flagsStartAt; bitAt < expectedBitCount; bitAt++) {
-        if (encodedBits.at(bitAt)) {
-            setHasProperty((Enum)(bitAt - flagsStartAt));
+    if (expectedBitCount <= (encodedBits.size() - leadBits)) {
+        int flagsStartAt = bitAt + 1; 
+        for (bitAt = flagsStartAt; bitAt < expectedBitCount; bitAt++) {
+            if (encodedBits.at(bitAt)) {
+                setHasProperty((Enum)(bitAt - flagsStartAt));
+            }
         }
     }
 }

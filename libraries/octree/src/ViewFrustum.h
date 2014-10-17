@@ -118,6 +118,8 @@ public:
     
     // assumes box is in voxel scale, not TREE_SCALE, will scale view frustum's position accordingly
     void getFurthestPointFromCameraVoxelScale(const AACube& box, glm::vec3& furthestPoint) const;
+
+    float distanceToCamera(const glm::vec3& point) const;
     
 private:
     // Used for keyhole calculations
