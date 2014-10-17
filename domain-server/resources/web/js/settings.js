@@ -204,7 +204,10 @@ function reloadSettings() {
       title: 'This setting is in the master config file and cannot be changed'
     })
     
-    appendDomainSelectionModal()
+    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
+      // append the domain selection modal, as long as it's not locked
+      appendDomainSelectionModal()
+    }   
   });
 }
 
