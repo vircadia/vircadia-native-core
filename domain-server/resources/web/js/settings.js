@@ -281,11 +281,13 @@ function makeTable(setting, setting_name, setting_value, isLocked) {
     html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
   })
   
-  if (setting.can_order) {
-    html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
-            "><span class='glyphicon glyphicon-sort'></span></td>";
-  }
+  if (!isLocked) {
+    if (setting.can_order) {
+      html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
+              "><span class='glyphicon glyphicon-sort'></span></td>";
+    }
     html += "<td class=" + Settings.ADD_DEL_BUTTONS_CLASSES + "></td></tr>"
+  }
     
   // populate rows in the table from existing values
   var row_num = 1
@@ -319,13 +321,16 @@ function makeTable(setting, setting_name, setting_value, isLocked) {
       html += "</td>"
     })
     
-    if (setting.can_order) {
-      html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
-              "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
-              Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
-    }
+    if (!isLocked) {
+      if (setting.can_order) {
+        html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
+                "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
+                Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+      }
       html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
               "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
+    }
+    
     html += "</tr>"
     
     row_num++
