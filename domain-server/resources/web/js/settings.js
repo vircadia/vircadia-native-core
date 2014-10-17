@@ -263,7 +263,7 @@ function makeTable(setting, setting_name, setting_value, isLocked) {
   }
   
   var html = "<span class='help-block'>" + setting.help + "</span>"
-  html += "<table class='table table-bordered' data-short-name='" + setting.name + "' name='" + setting_name 
+  html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name + "' name='" + setting_name 
     + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
     
   // Column names
