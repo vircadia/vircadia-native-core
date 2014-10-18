@@ -26,6 +26,9 @@
 #include "Application.h"
 #include "Model.h"
 
+#include "gpu/Batch.h"
+#define GLBATCH( call ) batch._##call
+
 using namespace std;
 
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
@@ -1616,6 +1619,10 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     }
     activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
     
+    // Try to use the Batch
+    gpu::Batch batch;
+
+
     // i is the "index" from the original networkMeshes QVector...
     foreach (int i, list) {
     
@@ -1631,7 +1638,8 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);    
 
-        const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
+        //const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
+        GLBATCH(glBindBuffer)( GL_INDEX_ARRAY, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId() );
 
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
@@ -1668,12 +1676,16 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         
         const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
         
-        glPushMatrix();
-        Application::getInstance()->loadTranslatedViewMatrix(_translation);
+        GLBATCH(glPushMatrix)();
+        //Application::getInstance()->loadTranslatedViewMatrix(_translation);
+        GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
+        glm::vec3 viewMatTranslation = Application::getInstance()->getViewMatrixTranslation();
+        GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y,
+            _translation.z + viewMatTranslation.z);
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
-            glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
+            GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
             int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
                 mesh.texCoords.size() * sizeof(glm::vec2) +
@@ -1684,7 +1696,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
             skinProgram->enableAttributeArray(skinLocations->clusterIndices);
             skinProgram->enableAttributeArray(skinLocations->clusterWeights);
         } else {
-            glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
+            GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
         }
         
         if (mesh.blendshapes.isEmpty()) {
@@ -1692,9 +1704,9 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
                 activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 activeProgram->enableAttributeArray(activeLocations->tangent);
             }
-            glColorPointer(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
+            GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
                 mesh.tangents.size() * sizeof(glm::vec3)));
-            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
+            GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
@@ -1702,20 +1714,20 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
                 activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
                 activeProgram->enableAttributeArray(activeLocations->tangent);
             }
-            glColorPointer(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
-            glTexCoordPointer(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
+            GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
+            GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
             _blendedVertexBuffers[i].bind();
         }
-        glVertexPointer(3, GL_FLOAT, 0, 0);
-        glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        GLBATCH(glVertexPointer)(3, GL_FLOAT, 0, 0);
+        GLBATCH(glNormalPointer)(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
         
         if (!mesh.colors.isEmpty()) {
-            glEnableClientState(GL_COLOR_ARRAY);
+            GLBATCH(glEnableClientState)(GL_COLOR_ARRAY);
         } else {
-            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+            GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
         }
         if (!mesh.texCoords.isEmpty()) {
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            GLBATCH(glEnableClientState)(GL_TEXTURE_COORD_ARRAY);
         }
         
         qint64 offset = 0;
@@ -1728,7 +1740,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
             }
             // apply material properties
             if (mode == SHADOW_RENDER_MODE) {
-                glBindTexture(GL_TEXTURE_2D, 0);
+                GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
                 
             } else {
                 if (dontReduceMaterialSwitches || lastMaterialID != part.materialID) {
@@ -1741,36 +1753,36 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
 
                     glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
                     if (!(translucent && alphaThreshold == 0.0f)) {
-                        glAlphaFunc(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
+                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
                     }
                     glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
-                    glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-                    glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-                    glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                    glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
+                    GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+                    GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+                    GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, part.shininess);
             
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {
                         diffuseMap = (_dilatedTextures[i][j] =
                             static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                     }
-                    glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
+                    GLBATCH(glBindTexture)(GL_TEXTURE_2D, !diffuseMap ?
                         Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
                 
                     if (!mesh.tangents.isEmpty()) {                 
-                        glActiveTexture(GL_TEXTURE1);                
+                        GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
-                        glBindTexture(GL_TEXTURE_2D, !normalMap ?
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
                             Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
-                        glActiveTexture(GL_TEXTURE0);
+                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
                 
                     if (specularTextureUnit) {
-                        glActiveTexture(specularTextureUnit);
+                        GLBATCH(glActiveTexture)(specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
-                        glBindTexture(GL_TEXTURE_2D, !specularMap ?
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
                             Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
-                        glActiveTexture(GL_TEXTURE0);
+                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
                     if (args) {
                         args->_materialSwitches++;
@@ -1783,12 +1795,12 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
             meshPartsRendered++;
             
             if (part.quadIndices.size() > 0) {
-                glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
+                GLBATCH(glDrawRangeElements)(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
                 offset += part.quadIndices.size() * sizeof(int);
             }
             
             if (part.triangleIndices.size() > 0) {
-                glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
+                GLBATCH(glDrawRangeElements)(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
                     GL_UNSIGNED_INT, (void*)offset);
                 offset += part.triangleIndices.size() * sizeof(int);
             }
@@ -1802,35 +1814,39 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         }
         
         if (!mesh.colors.isEmpty()) {
-            glDisableClientState(GL_COLOR_ARRAY);
+            GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
         }
         if (!mesh.texCoords.isEmpty()) {
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
         }
         
         if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glActiveTexture(GL_TEXTURE0);
+            GLBATCH(glActiveTexture)(GL_TEXTURE1);
+            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+            GLBATCH(glActiveTexture)(GL_TEXTURE0);
             
-            activeProgram->disableAttributeArray(activeLocations->tangent);
+           // activeProgram->disableAttributeArray(activeLocations->tangent);
+            GLBATCH(glDisableVertexArrayAttrib)(activeLocations->tangent);
         }
         
         if (specularTextureUnit) {
-            glActiveTexture(specularTextureUnit);
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glActiveTexture(GL_TEXTURE0);
+            GLBATCH(glActiveTexture)(specularTextureUnit);
+            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+            GLBATCH(glActiveTexture)(GL_TEXTURE0);
         }
         
         if (state.clusterMatrices.size() > 1) {
-            skinProgram->disableAttributeArray(skinLocations->clusterIndices);
-            skinProgram->disableAttributeArray(skinLocations->clusterWeights);  
+           // skinProgram->disableAttributeArray(skinLocations->clusterIndices);
+            GLBATCH(glDisableVertexArrayAttrib)(skinLocations->clusterIndices);
+          //  skinProgram->disableAttributeArray(skinLocations->clusterWeights);
+            GLBATCH(glDisableVertexArrayAttrib)(skinLocations->clusterWeights);
         } 
-        glPopMatrix();
+        GLBATCH(glPopMatrix)();
 
     }
-    activeProgram->release();
-    
+    //activeProgram->release();
+    GLBATCH(glUseProgram)(0);
+
     return meshPartsRendered;
 }
 
