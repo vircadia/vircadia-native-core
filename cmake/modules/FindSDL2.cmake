@@ -102,6 +102,8 @@
 #=============================================================================
 # (To distribute this file outside of CMake, substitute the full
 # License text for the above reference.)
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("sdl2")
 
 FIND_PATH(SDL2_INCLUDE_DIR SDL.h
 	HINTS
@@ -118,6 +120,7 @@ FIND_PATH(SDL2_INCLUDE_DIR SDL.h
 	/opt/local # DarwinPorts
 	/opt/csw # Blastwave
 	/opt
+	Include HINTS ${SDL2_SEARCH_DIRS}
 )
 
 # Lookup the 64 bit libs on x64
@@ -133,6 +136,7 @@ IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		/opt/local
 		/opt/csw
 		/opt
+		Include HINTS ${SDL2_SEARCH_DIRS}
 	)
 # On 32bit build find the 32bit libs
 ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -147,6 +151,7 @@ ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		/opt/local
 		/opt/csw
 		/opt
+		Include HINTS ${SDL2_SEARCH_DIRS}
 	)
 ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
@@ -170,6 +175,7 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 				/opt/local
 				/opt/csw
 				/opt
+				Include HINTS ${SDL2_SEARCH_DIRS}
 				)
 			# On 32bit build find the 32bit libs
 		ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -185,6 +191,7 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 				/opt/local
 				/opt/csw
 				/opt
+				Include HINTS ${SDL2_SEARCH_DIRS}
 				)
 		ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	ENDIF(NOT ${SDL2_INCLUDE_DIR} MATCHES ".framework")
