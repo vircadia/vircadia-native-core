@@ -54,8 +54,8 @@ public:
     void updateCollisionSound(EntityItem* Entity, const glm::vec3 &penetration, float frequency);
 
 signals:
-    void EntityCollisionWithVoxel(const EntityItemID& entityItemID, const VoxelDetail& voxel, const CollisionInfo& penetration);
-    void EntityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& penetration);
+    void entityCollisionWithVoxel(const EntityItemID& entityItemID, const VoxelDetail& voxel, const CollisionInfo& penetration);
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& penetration);
 
 private:
     void applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo);

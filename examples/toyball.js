@@ -6,10 +6,10 @@
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  This is an example script that turns the hydra controllers into a toy ball catch and throw game.
-//  It reads the controller, watches for button presses and trigger pulls, and launches particles.
+//  It reads the controller, watches for button presses and trigger pulls, and launches entities.
 //
-//  The particles it creates have a script that when they collide with Voxels, the
-//  particle will change it's color to match the voxel it hits.
+//  The entities it creates have a script that when they collide with Voxels, the
+//  entity will change it's color to match the voxel it hits.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -36,8 +36,8 @@ var THROWN_COLOR = { red: 128, green: 0, blue: 0 };
 
 var leftBallAlreadyInHand = false;
 var rightBallAlreadyInHand = false;
-var leftHandParticle;
-var rightHandParticle;
+var leftHandEntity;
+var rightHandEntity;
 
 var newSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
@@ -90,18 +90,18 @@ function checkControllerSide(whichSide) {
 
     // If I don't currently have a ball in my hand, then try to catch closest one
     if (!ballAlreadyInHand && grabButtonPressed) {
-        var closestParticle = Particles.findClosestParticle(palmPosition, targetRadius);
+        var closestEntity = Entities.findClosestEntity(palmPosition, targetRadius);
 
-        if (closestParticle.isKnownID) {
+        if (closestEntity.isKnownID) {
 
             debugPrint(handMessage + " HAND- CAUGHT SOMETHING!!");
 
             if (whichSide == LEFT_PALM) {
                 leftBallAlreadyInHand = true;
-                leftHandParticle = closestParticle;
+                leftHandEntity = closestEntity;
             } else {
                 rightBallAlreadyInHand = true;
-                rightHandParticle = closestParticle;
+                rightHandEntity = closestEntity;
             }
             var ballPosition = getBallHoldPosition(whichSide);
             var properties = { position: { x: ballPosition.x, 
@@ -111,7 +111,7 @@ function checkControllerSide(whichSide) {
                                 velocity : { x: 0, y: 0, z: 0}, 
                                 lifetime : 600,
                                 inHand: true };
-            Particles.editParticle(closestParticle, properties);
+            Entities.editEntity(closestEntity, properties);
             
     		var options = new AudioInjectionOptions();
 			options.position = ballPosition;
@@ -131,26 +131,28 @@ function checkControllerSide(whichSide) {
     //  If '3' is pressed, and not holding a ball, make a new one
     if (grabButtonPressed && !ballAlreadyInHand) {
         var ballPosition = getBallHoldPosition(whichSide);
-        var properties = { position: { x: ballPosition.x, 
-                                       y: ballPosition.y, 
-                                       z: ballPosition.z }, 
+        var properties = { 
+                type: "Sphere",
+                position: { x: ballPosition.x, 
+                            y: ballPosition.y, 
+                            z: ballPosition.z }, 
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
-                radius: BALL_RADIUS,
+                radius: { x: BALL_RADIUS * 2, y: BALL_RADIUS * 2, z: BALL_RADIUS * 2 },
                 damping: 0.999,
                 color: HELD_COLOR,
 
                 lifetime: 600 // 10 seconds - same as default, not needed but here as an example
             };
 
-        newParticle = Particles.addParticle(properties);
+        newEntity = Entities.addEntity(properties);
         if (whichSide == LEFT_PALM) {
             leftBallAlreadyInHand = true;
-            leftHandParticle = newParticle;
+            leftHandEntity = newEntity;
         } else {
             rightBallAlreadyInHand = true;
-            rightHandParticle = newParticle;
+            rightHandEntity = newEntity;
         }
 
         // Play a new ball sound
@@ -164,10 +166,10 @@ function checkControllerSide(whichSide) {
 
     if (ballAlreadyInHand) {
         if (whichSide == LEFT_PALM) {
-            handParticle = leftHandParticle;
+            handEntity = leftHandEntity;
             whichTip = LEFT_TIP;
         } else {
-            handParticle = rightHandParticle;
+            handEntity = rightHandEntity;
             whichTip = RIGHT_TIP;
         }
 
@@ -179,7 +181,7 @@ function checkControllerSide(whichSide) {
                                            y: ballPosition.y, 
                                            z: ballPosition.z }, 
                 };
-            Particles.editParticle(handParticle, properties);
+            Entities.editEntity(handEntity, properties);
         } else {
             debugPrint(">>>>> " + handMessage + "-BALL IN HAND, not grabbing, THROW!!!");
             //  If toy ball just released, add velocity to it!
@@ -195,14 +197,14 @@ function checkControllerSide(whichSide) {
                     gravity: { x: 0, y: -GRAVITY_STRENGTH, z: 0}, 
                 };
 
-            Particles.editParticle(handParticle, properties);
+            Entities.editEntity(handEntity, properties);
 
             if (whichSide == LEFT_PALM) {
                 leftBallAlreadyInHand = false;
-                leftHandParticle = false;
+                leftHandEntity = false;
             } else {
                 rightBallAlreadyInHand = false;
-                rightHandParticle = false;
+                rightHandEntity = false;
             }
 
     		var options = new AudioInjectionOptions();

@@ -330,7 +330,7 @@ void Stats::display(
         int voxelServerCount = 0;
 
         foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-            // TODO: this should also support particles and models
+            // TODO: this should also support entities
             if (node->getType() == NodeType::VoxelServer) {
                 totalPingVoxel += node->getPingMs();
                 voxelServerCount++;

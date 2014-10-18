@@ -26,7 +26,6 @@
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <ParticlesScriptingInterface.h>
 #include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
@@ -43,7 +42,6 @@
 #include "XMLHttpRequestClass.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
-ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
@@ -236,7 +234,6 @@ void ScriptEngine::init() {
     _isInitialized = true;
 
     _voxelsScriptingInterface.init();
-    _particlesScriptingInterface.init();
 
     // register various meta-types
     registerMetaTypes(this);
@@ -247,10 +244,6 @@ void ScriptEngine::init() {
     registerAnimationTypes(this);
     registerAvatarTypes(this);
     Bitstream::registerTypes(this);
-
-    qScriptRegisterMetaType(this, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
-    qScriptRegisterMetaType(this, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<ParticleID> >(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
@@ -286,7 +279,6 @@ void ScriptEngine::init() {
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Entities", &_entityScriptingInterface);
-    registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
@@ -299,14 +291,12 @@ void ScriptEngine::init() {
     globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
     globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
     globalObject().setProperty("COLLISION_GROUP_VOXELS", newVariant(QVariant(COLLISION_GROUP_VOXELS)));
-    globalObject().setProperty("COLLISION_GROUP_PARTICLES", newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
 
     globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
     globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
 
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
-    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -418,16 +408,6 @@ void ScriptEngine::run() {
             // since we're in non-threaded mode, call process so that the packets are sent
             if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
                 _voxelsScriptingInterface.getVoxelPacketSender()->process();
-            }
-        }
-
-        if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-            // release the queue of edit voxel messages.
-            _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
-
-            // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
-                _particlesScriptingInterface.getParticlePacketSender()->process();
             }
         }
 
@@ -565,16 +545,6 @@ void ScriptEngine::run() {
         // since we're in non-threaded mode, call process so that the packets are sent
         if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
             _voxelsScriptingInterface.getVoxelPacketSender()->process();
-        }
-    }
-
-    if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-        // release the queue of edit voxel messages.
-        _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
-
-        // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
-            _particlesScriptingInterface.getParticlePacketSender()->process();
         }
     }
 

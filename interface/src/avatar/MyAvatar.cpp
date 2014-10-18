@@ -1971,7 +1971,6 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
     menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
     menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
-    menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
     if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
         // no collision with voxels --> disable standing on floors
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;

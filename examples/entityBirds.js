@@ -5,7 +5,7 @@
 //  Created by Benjamin Arnold on May 29, 2014
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This sample script creates a swarm of tweeting bird particles that fly around the avatar.
+//  This sample script creates a swarm of tweeting bird entities that fly around the avatar.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -91,15 +91,16 @@ function addBird()
         size = 0.15;
     } 
     var properties = {
+        type: "Sphere",
         lifetime: birdLifetime,
         position: Vec3.sum(randVector(-range, range), myPosition),  
         velocity: { x: 0, y: 0, z: 0 },
         gravity: { x: 0, y: BIRD_GRAVITY, z: 0 },
-        radius : size,
+        dimensions: { x: size * 2, y: size * 2, z: size * 2 },
         color: color
     };
     
-    birds.push(new Bird(Particles.addParticle(properties), tweet, properties.position));
+    birds.push(new Bird(Entities.addEntity(properties), tweet, properties.position));
 }
 
 var numBirds = 30;
@@ -129,7 +130,7 @@ function updateBirds(deltaTime) {
         // Update all the birds
         for (var i = 0; i < numBirds; i++) {
             particleID = birds[i].particleID;
-            var properties = Particles.getParticleProperties(particleID);
+            var properties = Entities.getEntityProperties(particleID);
 
             // Tweeting behavior
             if (birds[i].tweeting == 0) {
@@ -180,19 +181,19 @@ function updateBirds(deltaTime) {
                     
                 properties.velocity = vInterpolate(properties.velocity, desiredVelocity, 0.2);
                 // If we are near the target, we should get a new target
-                if (Vec3.length(Vec3.subtract(properties.position, birds[i].targetPosition)) < (properties.radius / 5.0)) {
+                if (Vec3.length(Vec3.subtract(properties.position, birds[i].targetPosition)) < (properties.dimensions.x / 5.0)) {
                     birds[i].moving = false;
                 }
             }
             
             // Use a cosine wave offset to make it look like its flapping. 
-            var offset = Math.cos(nowTimeInSeconds * BIRD_FLAP_SPEED) * properties.radius;
+            var offset = Math.cos(nowTimeInSeconds * BIRD_FLAP_SPEED) * properties.dimensions.x;
             properties.position.y = properties.position.y + (offset - birds[i].previousFlapOffset);
             // Change position relative to previous offset.
             birds[i].previousFlapOffset = offset;
             
             // Update the particle
-            Particles.editParticle(particleID, properties);
+            Entities.editEntity(particleID, properties);
         }
     }
 }

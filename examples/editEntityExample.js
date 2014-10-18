@@ -17,6 +17,7 @@ var stopAfter = moveUntil + 100;
 var expectedLifetime = (moveUntil/60) + 1; // 1 second after done moving...
 
 var originalProperties = {
+    type: "Sphere",
     position: { x: 10,
                 y: 0,
                 z: 0 },
@@ -30,8 +31,6 @@ var originalProperties = {
                 z: 0 },
 
 
-    radius : 0.1,
-
     color: { red: 0,
              green: 255,
              blue: 0 },
@@ -43,15 +42,15 @@ var originalProperties = {
 var positionDelta = { x: 0.05, y: 0, z: 0 };
 
 
-var particleID = Particles.addParticle(originalProperties);
+var entityID = Entities.addEntity(originalProperties);
 
-function moveParticle(deltaTime) {
+function moveEntity(deltaTime) {
     if (count >= moveUntil) {
 
         // delete it...
         if (count == moveUntil) {
-            print("calling Particles.deleteParticle()");
-            Particles.deleteParticle(particleID);
+            print("calling Entities.deleteEntity()");
+            Entities.deleteEntity(entityID);
         }
 
         // stop it...
@@ -67,7 +66,7 @@ function moveParticle(deltaTime) {
     print("count =" + count);
     count++;
 
-    print("particleID.creatorTokenID = " + particleID.creatorTokenID);
+    print("entityID.creatorTokenID = " + entityID.creatorTokenID);
 
     var newProperties = {
         position: {
@@ -80,13 +79,13 @@ function moveParticle(deltaTime) {
     };
 
 
-    //print("particleID = " + particleID);
+    //print("entityID = " + entityID);
     print("newProperties.position = " + newProperties.position.x + "," + newProperties.position.y+ "," + newProperties.position.z);
 
-    Particles.editParticle(particleID, newProperties);
+    Entities.editEntity(entityID, newProperties);
 }
 
 
 // register the call back so it fires before each data send
-Script.update.connect(moveParticle);
+Script.update.connect(moveEntity);
 
