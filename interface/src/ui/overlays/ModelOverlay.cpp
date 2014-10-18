@@ -87,8 +87,56 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
         }
         _updateModel = true;
     }
-    
+
+    QScriptValue dimensionsValue = properties.property("dimensions");
+    if (dimensionsValue.isValid()) {
+        QScriptValue x = dimensionsValue.property("x");
+        QScriptValue y = dimensionsValue.property("y");
+        QScriptValue z = dimensionsValue.property("z");
+        if (x.isValid() && y.isValid() && z.isValid()) {
+            glm::vec3 dimensions;
+            dimensions.x = x.toVariant().toFloat();
+            dimensions.y = y.toVariant().toFloat();
+            dimensions.z = z.toVariant().toFloat();
+            _model.setScaleToFit(true, dimensions);
+        }
+        _updateModel = true;
+    }
+
     if (properties.property("position").isValid()) {
         _updateModel = true;
     }
+}
+
+bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face) const {
+
+    // if our model isn't active, we can't ray pick yet...
+    if (!_model.isActive()) {
+        return false;
+    }
+
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::vec3 position = getPosition();
+    glm::mat4 rotation = glm::mat4_cast(getRotation());
+    glm::mat4 translation = glm::translate(position);
+    glm::mat4 entityToWorldMatrix = translation * rotation;
+    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+
+    Extents modelExtents = _model.getMeshExtents(); // NOTE: unrotated
+    
+    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
+    glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the overlay frame of reference
+    AABox overlayFrameBox(corner, dimensions);
+
+    glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 overlayFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
+
+    // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
+    // and testing intersection there.
+    if (overlayFrameBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face)) {
+        return true;
+    }
+
+    return false;
 }
