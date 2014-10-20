@@ -237,7 +237,7 @@ void MetavoxelSession::update() {
         
         // go back to the beginning with the current packet and note that there's a delta pending
         _sequencer.getOutputStream().getUnderlying().device()->seek(start);
-        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID };
+        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID, _lod };
         out << QVariant::fromValue(msg);
         _sequencer.endPacket();
         
@@ -290,7 +290,7 @@ void MetavoxelSession::sendPacketGroup(int alreadySent) {
     for (int i = 0; i < additionalPackets; i++) {
         Bitstream& out = _sequencer.startPacket();
         if (_reliableDeltaChannel) {
-            MetavoxelDeltaPendingMessage msg = { _reliableDeltaID };
+            MetavoxelDeltaPendingMessage msg = { _reliableDeltaID, _reliableDeltaLOD };
             out << QVariant::fromValue(msg);
         } else {
             out << QVariant();

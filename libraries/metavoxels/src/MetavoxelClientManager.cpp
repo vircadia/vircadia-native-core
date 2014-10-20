@@ -255,12 +255,12 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
         }
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
         // check the id to make sure this is not a delta we've already processed
-        int id = message.value<MetavoxelDeltaPendingMessage>().id;
-        if (id > _reliableDeltaID) {
-            _reliableDeltaID = id;
+        MetavoxelDeltaPendingMessage pending = message.value<MetavoxelDeltaPendingMessage>();
+        if (pending.id > _reliableDeltaID) {
+            _reliableDeltaID = pending.id;
             _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
             _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
-            _reliableDeltaLOD = getLastAcknowledgedSendRecord()->getLOD();
+            _reliableDeltaLOD = pending.lod;
             PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
             _remoteDataLOD = receiveRecord->getLOD();
             _remoteData = receiveRecord->getData();
