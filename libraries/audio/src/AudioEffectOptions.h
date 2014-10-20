@@ -74,26 +74,26 @@ private:
     // http://wiki.audacityteam.org/wiki/GVerb#Instant_Reverberb_settings
 
     // Meters Square
-    float _maxRoomSize = 50.0f;
-    float _roomSize = 50.0f;
+    float _maxRoomSize;
+    float _roomSize;
 
     // Seconds
-    float _reverbTime = 4.0f;
+    float _reverbTime;
 
     // Ratio between 0 and 1
-    float _damping = 0.5f;
+    float _damping;
 
     // ? (Does not appear to be set externally very often)
-    float _spread = 15.0f;
+    float _spread;
 
     // Ratio between 0 and 1
-    float _inputBandwidth = 0.75f;
+    float _inputBandwidth;
 
     // dB
-    float _earlyLevel = -22.0f;
-    float _tailLevel = -28.0f;
-    float _dryLevel = 0.0f;
-    float _wetLevel = 6.0f;
+    float _earlyLevel;
+    float _tailLevel;
+    float _dryLevel;
+    float _wetLevel;
 };
 
 #endif /* defined(__hifi__AudioEffectOptions__) */
