@@ -1999,6 +1999,9 @@ bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {
     const int VERTEX_COUNT = FACE_COUNT * VERTICES_PER_FACE;
     const float EIGHT_BIT_MAXIMUM = 255.0f;
     glm::vec3 color = glm::vec3(voxel->getColor()[0], voxel->getColor()[1], voxel->getColor()[2]) / EIGHT_BIT_MAXIMUM;
+    QString colorName;
+    colorName.sprintf("%d,%d,%d",(int)voxel->getColor()[0], (int)voxel->getColor()[1], (int)voxel->getColor()[2]);
+    part.materialID = colorName;
     for (int i = 0; i < VERTEX_COUNT; i++) {
         part.quadIndices.append(part.quadIndices.size());
         mesh.colors.append(color);
@@ -2053,6 +2056,7 @@ bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {
     for (int i = 0; i < VERTICES_PER_FACE; i++) {
         mesh.normals.append(glm::vec3(0.0f, 0.0f, 1.0f));
     }
+    mesh.meshExtents.maximum = glm::vec3(1.0f, 1.0f, 1.0f);
 
     return true;
 }
