@@ -714,7 +714,7 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
                 position.x = info.minimum.x + minX * step;
                 for (QRgb* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
                     if (_spanner->contains(position)) {
-                        *destX = _spanner->getColor(position);
+                        *destX = _spanner->getColorAt(position);
                     }
                 }
             }
@@ -856,7 +856,7 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
                 position.x = info.minimum.x + minX * step;
                 for (uchar* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
                     if (_spanner->contains(position)) { 
-                        int material = _spanner->getMaterial(position);
+                        int material = _spanner->getMaterialAt(position);
                         if (material != 0) {
                             int& mapping = materialMap[material];
                             if (mapping == 0) {
