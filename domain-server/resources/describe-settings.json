@@ -170,7 +170,7 @@
           },
           {
             "name": "reverb_time",
-            "label": "Reverb Time",
+            "label": "Reverb Decay Time",
             "can_set": true,
             "placeholder": "(in sec)"
           },
