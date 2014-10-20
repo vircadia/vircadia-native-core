@@ -428,8 +428,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 }
 
 int AudioMixer::prepareMixForListeningNode(Node* node) {
-    AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
-    AudioMixerClientData* listenerNodeData = (AudioMixerClientData*)node->getLinkedData();
+    AvatarAudioStream* nodeAudioStream = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream();
+    AudioMixerClientData* listenerNodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
     
     // zero out the client mix for this node
     memset(_preMixSamples, 0, sizeof(_preMixSamples));
@@ -730,6 +730,30 @@ void AudioMixer::run() {
                         memcpy(dataAt, &sequence, sizeof(quint16));
                         dataAt += sizeof(quint16);
 
+                        // Pack stream properties
+                        for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
+                            glm::vec3 streamPosition = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream()->getPosition();
+                            if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
+                                bool hasReverb = true;
+                                float reverbTime = _zoneReverbSettings[i].reverbTime;
+                                float wetLevel = _zoneReverbSettings[i].wetLevel;
+                                
+                                memcpy(dataAt, &hasReverb, sizeof(bool));
+                                dataAt += sizeof(bool);
+                                memcpy(dataAt, &reverbTime, sizeof(float));
+                                dataAt += sizeof(float);
+                                memcpy(dataAt, &wetLevel, sizeof(float));
+                                dataAt += sizeof(float);
+                                
+                                qDebug() << "Out" << sequence << reverbTime << wetLevel;
+                            } else {
+                                bool hasReverb = false;
+                                memcpy(dataAt, &hasReverb, sizeof(bool));
+                                dataAt += sizeof(bool);
+                            }
+                        }
+                        
+                        
                         // pack mixed audio samples
                         memcpy(dataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                         dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;

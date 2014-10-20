@@ -787,7 +787,6 @@ void Audio::handleAudioInput() {
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixer = nodeList->soloNodeOfType(NodeType::AudioMixer);
         
-        
         if (_recorder && _recorder.data()->isRecording()) {
             _recorder.data()->record(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
         }
@@ -907,11 +906,9 @@ void Audio::addLastFrameRepeatedWithFadeToScope(int samplesPerChannel) {
 }
 
 void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer) {
-
     const int numNetworkOutputSamples = inputBuffer.size() / sizeof(int16_t);
     const int numDeviceOutputSamples = numNetworkOutputSamples * (_outputFormat.sampleRate() * _outputFormat.channelCount())
         / (_desiredOutputFormat.sampleRate() * _desiredOutputFormat.channelCount());
-
 
     outputBuffer.resize(numDeviceOutputSamples * sizeof(int16_t));
 
@@ -952,13 +949,28 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         numDeviceOutputSamples,
         _desiredOutputFormat, _outputFormat);
     
-    if(_reverb) {
+    if (_receivedAudioStream.hasReverb()) {
+        bool reverbChanged = false;
+        
+        if (_reverbOptions.getReverbTime() != _receivedAudioStream.getRevebTime()) {
+            _reverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
+            reverbChanged = true;
+        }
+        if (_reverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
+            _reverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
+            reverbChanged = true;
+        }
+        if (reverbChanged) {
+            initGverb();
+        }
+    }
+    
+    if(_reverb || _receivedAudioStream.hasReverb()) {
         addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
     }
 }
 
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
-
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
         _receivedAudioStream.parseData(audioByteArray);
