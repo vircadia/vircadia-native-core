@@ -277,6 +277,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     connect(&accountManager, &AccountManager::authRequired, Menu::getInstance(), &Menu::loginForCurrentDomain);
     connect(&accountManager, &AccountManager::usernameChanged, this, &Application::updateWindowTitle);
+    
+    // once we have a profile in account manager make sure we generate a new keypair
+    connect(&accountManager, &AccountManager::profileChanged, &accountManager, &AccountManager::generateNewKeypair);
 
     // set the account manager's root URL and trigger a login request if we don't have the access token
     accountManager.setAuthURL(DEFAULT_NODE_AUTH_URL);
