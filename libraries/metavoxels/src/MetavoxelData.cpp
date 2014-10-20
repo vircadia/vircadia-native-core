@@ -2053,11 +2053,11 @@ bool Spanner::hasOwnMaterials() const {
     return false;
 }
 
-QRgb Spanner::getColor(const glm::vec3& point) {
+QRgb Spanner::getColorAt(const glm::vec3& point) {
     return 0;
 }
 
-int Spanner::getMaterial(const glm::vec3& point) {
+int Spanner::getMaterialAt(const glm::vec3& point) {
     return 0;
 }
 
@@ -2410,7 +2410,7 @@ bool Heightfield::hasOwnMaterials() const {
     return true;
 }
 
-QRgb Heightfield::getColor(const glm::vec3& point) {
+QRgb Heightfield::getColorAt(const glm::vec3& point) {
     glm::vec3 relative = (point - getBounds().minimum) / _increment;
     glm::vec3 floors = glm::floor(relative);
     glm::vec3 ceils = glm::ceil(relative);
@@ -2439,7 +2439,7 @@ QRgb Heightfield::getColor(const glm::vec3& point) {
     return qRgb(interpolatedColor.r, interpolatedColor.g, interpolatedColor.b);
 }
 
-int Heightfield::getMaterial(const glm::vec3& point) {
+int Heightfield::getMaterialAt(const glm::vec3& point) {
     glm::vec3 relative = (point - getBounds().minimum) / _increment;
     const uchar* src = (const uchar*)_material.constData();
     return src[(int)glm::round(relative.z) * _width + (int)glm::round(relative.x)];
