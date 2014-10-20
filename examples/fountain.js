@@ -48,13 +48,15 @@ function vInterpolate(a, b, fraction) {
 var position = { x: 5.0, y: 0.6, z: 5.0 }; 
 Voxels.setVoxel(position.x, 0, position.z, 0.5, 0, 0, 255);
 	
-var totalParticles = 0;
+var totalEntities = 0;
 function makeFountain(deltaTime) {
 	if (Math.random() < 0.10) {
-	    //print("Made particle!\n");
+	    //print("Made entity!\n");
+	    var radius = (0.02 + (Math.random() * 0.05));
         var properties = {
+            type: "Sphere",
             position: position, 
-            radius: (0.02 + (Math.random() * 0.05)), 
+            dimensions: { x: radius, y: radius, z: radius}, 
             color: {  red: 0, green: 0, blue: 128 }, 
             velocity: { x: (Math.random() * 1.0 - 0.5),
                          y: (1.0 + (Math.random() * 2.0)),
@@ -64,10 +66,10 @@ function makeFountain(deltaTime) {
             lifetime: 1
         }
 
-        Particles.addParticle(properties);
-        totalParticles++;
+        Entities.addEntity(properties);
+        totalEntities++;
     }
-    if (totalParticles > 100) {
+    if (totalEntities > 100) {
         Script.stop();
     }
 }

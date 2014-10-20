@@ -66,7 +66,7 @@ void EntityCollisionSystem::checkEntity(EntityItem* entity) {
 void EntityCollisionSystem::emitGlobalEntityCollisionWithVoxel(EntityItem* entity, 
                                             VoxelDetail* voxelDetails, const CollisionInfo& collision) {
     EntityItemID entityItemID = entity->getEntityItemID();
-    emit EntityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
+    emit entityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* entityA, 
@@ -74,7 +74,7 @@ void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* enti
                                             
     EntityItemID idA = entityA->getEntityItemID();
     EntityItemID idB = entityB->getEntityItemID();
-    emit EntityCollisionWithEntity(idA, idB, collision);
+    emit entityCollisionWithEntity(idA, idB, collision);
 }
 
 void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
