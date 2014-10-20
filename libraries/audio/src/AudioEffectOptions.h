@@ -36,7 +36,7 @@ class AudioEffectOptions : public QObject {
     Q_PROPERTY(float wetLevel READ getWetLevel WRITE setWetLevel)
 
 public:
-    AudioEffectOptions();
+    AudioEffectOptions(QScriptValue arguments = QScriptValue());
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
