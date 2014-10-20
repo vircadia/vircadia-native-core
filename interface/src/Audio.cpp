@@ -92,6 +92,8 @@ Audio::Audio(QObject* parent) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _muted(false),
+    _reverb(false),
+    _reverbOptions(&_scriptReverbOptions),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
@@ -531,7 +533,7 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
 void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
     float dryFraction = DB_CO(_reverbOptions->getDryLevel());
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-
+    
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
         // Run GVerb
@@ -953,10 +955,9 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         _desiredOutputFormat, _outputFormat);
     
     if(_reverb || _receivedAudioStream.hasReverb()) {
+        bool reverbChanged = false;
         if (_receivedAudioStream.hasReverb()) {
-            _reverbOptions = &_zoneReverbOptions;
             
-            bool reverbChanged = false;
             if (_zoneReverbOptions.getReverbTime() != _receivedAudioStream.getRevebTime()) {
                 _zoneReverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
                 reverbChanged = true;
@@ -965,13 +966,19 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
                 _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
                 reverbChanged = true;
             }
-            if (reverbChanged) {
-                initGverb();
+            
+            if (_reverbOptions != &_zoneReverbOptions) {
+                _reverbOptions = &_zoneReverbOptions;
+                reverbChanged = true;
             }
-        } else {
+        } else if (_reverbOptions != &_scriptReverbOptions) {
             _reverbOptions = &_scriptReverbOptions;
+            reverbChanged = true;
         }
         
+        if (reverbChanged) {
+            initGverb();
+        }
         addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
     }
 }
