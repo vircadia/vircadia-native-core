@@ -654,10 +654,10 @@ public:
     virtual bool contains(const glm::vec3& point);
 
     /// Retrieves the color at the specified point.
-    virtual QRgb getColor(const glm::vec3& point);
+    virtual QRgb getColorAt(const glm::vec3& point);
     
     /// Retrieves the material at the specified point.
-    virtual int getMaterial(const glm::vec3& point);
+    virtual int getMaterialAt(const glm::vec3& point);
 
     /// Retrieves a reference to the list of materials.
     virtual QVector<SharedObjectPointer>& getMaterials();
@@ -878,8 +878,8 @@ public:
     
     virtual bool hasOwnColors() const;
     virtual bool hasOwnMaterials() const;
-    virtual QRgb getColor(const glm::vec3& point);
-    virtual int getMaterial(const glm::vec3& point);
+    virtual QRgb getColorAt(const glm::vec3& point);
+    virtual int getMaterialAt(const glm::vec3& point);
     virtual QVector<SharedObjectPointer>& getMaterials();
     
     virtual bool contains(const glm::vec3& point);
