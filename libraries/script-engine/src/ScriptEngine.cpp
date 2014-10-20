@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
+#include <AudioEffectOptions.h>
 #include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
@@ -40,7 +41,6 @@
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
-#include "AudioEffectOptions.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
