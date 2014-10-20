@@ -173,7 +173,6 @@ int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray&
             read += sizeof(float);
             memcpy(&_wetLevel, packetAfterSeqNum.data() + read, sizeof(float));
             read += sizeof(float);
-            qDebug() << "In" << _reverbTime << _wetLevel;
         }
     }
     

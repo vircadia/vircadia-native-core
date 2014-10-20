@@ -494,40 +494,43 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void Audio::initGverb() {
     // Initialize a new gverb instance
-    _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions.getMaxRoomSize(), _reverbOptions.getRoomSize(), _reverbOptions.getReverbTime(),
-                       _reverbOptions.getDamping(), _reverbOptions.getSpread(), _reverbOptions.getInputBandwidth(), _reverbOptions.getEarlyLevel(),
-                       _reverbOptions.getTailLevel());
+    _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
+                       _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
+                       _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
+                       _reverbOptions->getTailLevel());
 
     // Configure the instance (these functions are not super well named - they actually set several internal variables)
-    gverb_set_roomsize(_gverb, _reverbOptions.getRoomSize());
-    gverb_set_revtime(_gverb, _reverbOptions.getReverbTime());
-    gverb_set_damping(_gverb, _reverbOptions.getDamping());
-    gverb_set_inputbandwidth(_gverb, _reverbOptions.getInputBandwidth());
-    gverb_set_earlylevel(_gverb, DB_CO(_reverbOptions.getEarlyLevel()));
-    gverb_set_taillevel(_gverb, DB_CO(_reverbOptions.getTailLevel()));
+    gverb_set_roomsize(_gverb, _reverbOptions->getRoomSize());
+    gverb_set_revtime(_gverb, _reverbOptions->getReverbTime());
+    gverb_set_damping(_gverb, _reverbOptions->getDamping());
+    gverb_set_inputbandwidth(_gverb, _reverbOptions->getInputBandwidth());
+    gverb_set_earlylevel(_gverb, DB_CO(_reverbOptions->getEarlyLevel()));
+    gverb_set_taillevel(_gverb, DB_CO(_reverbOptions->getTailLevel()));
 }
 
 void Audio::setReverbOptions(const AudioEffectOptions* options) {
     // Save the new options
-    _reverbOptions.setMaxRoomSize(options->getMaxRoomSize());
-    _reverbOptions.setRoomSize(options->getRoomSize());
-    _reverbOptions.setReverbTime(options->getReverbTime());
-    _reverbOptions.setDamping(options->getDamping());
-    _reverbOptions.setSpread(options->getSpread());
-    _reverbOptions.setInputBandwidth(options->getInputBandwidth());
-    _reverbOptions.setEarlyLevel(options->getEarlyLevel());
-    _reverbOptions.setTailLevel(options->getTailLevel());
+    _scriptReverbOptions.setMaxRoomSize(options->getMaxRoomSize());
+    _scriptReverbOptions.setRoomSize(options->getRoomSize());
+    _scriptReverbOptions.setReverbTime(options->getReverbTime());
+    _scriptReverbOptions.setDamping(options->getDamping());
+    _scriptReverbOptions.setSpread(options->getSpread());
+    _scriptReverbOptions.setInputBandwidth(options->getInputBandwidth());
+    _scriptReverbOptions.setEarlyLevel(options->getEarlyLevel());
+    _scriptReverbOptions.setTailLevel(options->getTailLevel());
 
-    _reverbOptions.setDryLevel(options->getDryLevel());
-    _reverbOptions.setWetLevel(options->getWetLevel());
+    _scriptReverbOptions.setDryLevel(options->getDryLevel());
+    _scriptReverbOptions.setWetLevel(options->getWetLevel());
 
-    // Apply them to the reverb instance(s)
-    initGverb();
+    if (_reverbOptions == &_scriptReverbOptions) {
+        // Apply them to the reverb instance(s)
+        initGverb();
+    }
 }
 
 void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
-    float dryFraction = DB_CO(_reverbOptions.getDryLevel());
-    float wetFraction = DB_CO(_reverbOptions.getWetLevel());
+    float dryFraction = DB_CO(_reverbOptions->getDryLevel());
+    float wetFraction = DB_CO(_reverbOptions->getWetLevel());
 
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -949,23 +952,26 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         numDeviceOutputSamples,
         _desiredOutputFormat, _outputFormat);
     
-    if (_receivedAudioStream.hasReverb()) {
-        bool reverbChanged = false;
-        
-        if (_reverbOptions.getReverbTime() != _receivedAudioStream.getRevebTime()) {
-            _reverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
-            reverbChanged = true;
-        }
-        if (_reverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
-            _reverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-            reverbChanged = true;
-        }
-        if (reverbChanged) {
-            initGverb();
-        }
-    }
-    
     if(_reverb || _receivedAudioStream.hasReverb()) {
+        if (_receivedAudioStream.hasReverb()) {
+            _reverbOptions = &_zoneReverbOptions;
+            
+            bool reverbChanged = false;
+            if (_zoneReverbOptions.getReverbTime() != _receivedAudioStream.getRevebTime()) {
+                _zoneReverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
+                reverbChanged = true;
+            }
+            if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
+                _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
+                reverbChanged = true;
+            }
+            if (reverbChanged) {
+                initGverb();
+            }
+        } else {
+            _reverbOptions = &_scriptReverbOptions;
+        }
+        
         addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
     }
 }

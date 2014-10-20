@@ -744,8 +744,6 @@ void AudioMixer::run() {
                                 dataAt += sizeof(float);
                                 memcpy(dataAt, &wetLevel, sizeof(float));
                                 dataAt += sizeof(float);
-                                
-                                qDebug() << "Out" << sequence << reverbTime << wetLevel;
                             } else {
                                 bool hasReverb = false;
                                 memcpy(dataAt, &hasReverb, sizeof(bool));

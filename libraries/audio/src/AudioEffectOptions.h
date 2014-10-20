@@ -37,6 +37,8 @@ class AudioEffectOptions : public QObject {
 
 public:
     AudioEffectOptions(QScriptValue arguments = QScriptValue());
+    AudioEffectOptions(const AudioEffectOptions &other);
+    AudioEffectOptions& operator=(const AudioEffectOptions &other);
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 

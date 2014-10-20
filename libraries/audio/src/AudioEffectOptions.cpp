@@ -57,7 +57,25 @@ AudioEffectOptions::AudioEffectOptions(QScriptValue arguments) :
         if (arguments.property(WET_LEVEL_HANDLE).isNumber()) {
             _wetLevel = arguments.property(WET_LEVEL_HANDLE).toNumber();
         }
-        
+}
+
+AudioEffectOptions::AudioEffectOptions(const AudioEffectOptions &other) {
+    *this = other;
+}
+
+AudioEffectOptions& AudioEffectOptions::operator=(const AudioEffectOptions &other) {
+    _maxRoomSize = other._maxRoomSize;
+    _roomSize = other._roomSize;
+    _reverbTime = other._reverbTime;
+    _damping = other._damping;
+    _spread = other._spread;
+    _inputBandwidth = other._inputBandwidth;
+    _earlyLevel = other._earlyLevel;
+    _tailLevel = other._tailLevel;
+    _dryLevel = other._dryLevel;
+    _wetLevel = other._wetLevel;
+    
+    return *this;
 }
 
 QScriptValue AudioEffectOptions::constructor(QScriptContext* context, QScriptEngine* engine) {

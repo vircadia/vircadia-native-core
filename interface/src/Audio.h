@@ -241,7 +241,9 @@ private:
     bool _muted;
     bool _localEcho;
     bool _reverb;
-    AudioEffectOptions _reverbOptions;
+    AudioEffectOptions _scriptReverbOptions;
+    AudioEffectOptions _zoneReverbOptions;
+    AudioEffectOptions* _reverbOptions;
     ty_gverb *_gverb;
     GLuint _micTextureId;
     GLuint _muteTextureId;
