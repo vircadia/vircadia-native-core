@@ -16,7 +16,9 @@
 #include "SpeechRecognizer.h"
 
 SpeechRecognizer::SpeechRecognizer() :
-    QObject() {
+    QObject(),
+    _enabled(false),
+    _commands() {
 
 }
 
@@ -25,19 +27,32 @@ SpeechRecognizer::~SpeechRecognizer() {
 }
 
 void SpeechRecognizer::handleCommandRecognized(const char* command) {
-
+    emit commandRecognized(QString(command));
 }
 
 void SpeechRecognizer::setEnabled(bool enabled) {
+    if (enabled == _enabled) {
+        return;
+    }
 
+    _enabled = enabled;
+    if (_enabled) {
+
+    } else {
+
+    }
+
+    emit enabledUpdated(_enabled);
 }
 
 void SpeechRecognizer::addCommand(const QString& command) {
-
+    _commands.insert(command);
+    reloadCommands();
 }
 
 void SpeechRecognizer::removeCommand(const QString& command) {
-
+    _commands.remove(command);
+    reloadCommands();
 }
 
 void SpeechRecognizer::reloadCommands() {
