@@ -296,6 +296,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     } else if (OculusManager::isConnected()) {
         estimatedPosition = OculusManager::getRelativePosition();
         estimatedPosition.x *= -1.0f;
+        _trackedHeadPosition = estimatedPosition;
         
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
@@ -303,6 +304,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {
             estimatedPosition = tracker->getHeadTranslation();
+            _trackedHeadPosition = estimatedPosition;
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
         }
     }
@@ -1971,7 +1973,6 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
     menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
     menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
-    menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
     if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
         // no collision with voxels --> disable standing on floors
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;

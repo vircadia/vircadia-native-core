@@ -21,7 +21,8 @@ void main(void) {
     gl_Position = gl_ProjectionMatrix * viewPosition;
 
     // generate the texture coordinates from the view position
-    gl_TexCoord[0] = vec4(dot(viewPosition, gl_EyePlaneS[4]), dot(viewPosition, gl_EyePlaneT[4]), 0.0, 1.0);
+    gl_TexCoord[0] = vec4(dot(viewPosition, gl_EyePlaneS[4]), dot(viewPosition, gl_EyePlaneT[4]),
+        dot(viewPosition, gl_EyePlaneR[4]), 1.0);
     
     // the zero height should be invisible
     gl_FrontColor = vec4(1.0, 1.0, 1.0, 1.0 - step(height, 0.0));

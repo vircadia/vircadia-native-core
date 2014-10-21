@@ -533,8 +533,10 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     float scale = 1.0f / radius;
     glm::vec4 sCoefficients(scale, 0.0f, 0.0f, -scale * position.x);
     glm::vec4 tCoefficients(0.0f, 0.0f, scale, -scale * position.z);
+    glm::vec4 rCoefficients(0.0f, 0.0f, 0.0f, 0.0f);
     glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&sCoefficients);
     glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&tCoefficients);
+    glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&rCoefficients);
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
@@ -575,12 +577,23 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
-    CursorRenderVisitor visitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(),
-        Box(position - extents, position + extents));
-    guideToAugmented(visitor);
+    Box bounds(position - extents, position + extents);
+    CursorRenderVisitor voxelVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), bounds);
+    guideToAugmented(voxelVisitor);
     
     DefaultMetavoxelRendererImplementation::getVoxelCursorProgram().release();
     
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().bind();
+    
+    CursorRenderVisitor heightfieldVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(),
+        bounds);
+    guideToAugmented(heightfieldVisitor);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_POLYGON_OFFSET_FILL);
@@ -1450,7 +1463,7 @@ void DefaultMetavoxelRendererImplementation::init() {
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
             "shaders/metavoxel_heightfield_cursor.vert");
         _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_heightfield_cursor.frag");
+            "shaders/metavoxel_cursor.frag");
         _heightfieldCursorProgram.link();
         
         _heightfieldCursorProgram.bind();
@@ -1468,7 +1481,7 @@ void DefaultMetavoxelRendererImplementation::init() {
         _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
             "shaders/metavoxel_voxel_cursor.vert");
         _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_voxel_cursor.frag");
+            "shaders/metavoxel_cursor.frag");
         _voxelCursorProgram.link();
     }
 }

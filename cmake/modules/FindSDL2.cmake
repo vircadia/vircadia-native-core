@@ -102,9 +102,12 @@
 #=============================================================================
 # (To distribute this file outside of CMake, substitute the full
 # License text for the above reference.)
+include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+hifi_library_search_hints("sdl2")
 
 FIND_PATH(SDL2_INCLUDE_DIR SDL.h
 	HINTS
+	${SDL2_SEARCH_DIRS}
 	$ENV{SDL2}
 	PATH_SUFFIXES include/SDL2 include SDL2
 	i686-w64-mingw32/include/SDL2
@@ -124,6 +127,7 @@ FIND_PATH(SDL2_INCLUDE_DIR SDL.h
 IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	FIND_LIBRARY(SDL2_LIBRARY_TEMP SDL2
 		HINTS
+		${SDL2_SEARCH_DIRS}
 		$ENV{SDL2}
 		PATH_SUFFIXES lib64 lib
 		lib/x64
@@ -138,6 +142,7 @@ IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	FIND_LIBRARY(SDL2_LIBRARY_TEMP SDL2
 		HINTS
+		${SDL2_SEARCH_DIRS}
 		$ENV{SDL2}
 		PATH_SUFFIXES lib
 		lib/x86
@@ -161,6 +166,7 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 			FIND_LIBRARY(SDL2MAIN_LIBRARY
 				NAMES SDL2main
 				HINTS
+				${SDL2_SEARCH_DIRS}
 				$ENV{SDL2}
 				PATH_SUFFIXES lib64 lib
 				lib/x64
@@ -176,6 +182,7 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 			FIND_LIBRARY(SDL2MAIN_LIBRARY
 				NAMES SDL2main
 				HINTS
+				${SDL2_SEARCH_DIRS}
 				$ENV{SDL2}
 				PATH_SUFFIXES lib
 				lib/x86

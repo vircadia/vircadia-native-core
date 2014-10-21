@@ -23,7 +23,6 @@ class Shape;
 const quint32 COLLISION_GROUP_ENVIRONMENT = 1U << 0;
 const quint32 COLLISION_GROUP_AVATARS     = 1U << 1;
 const quint32 COLLISION_GROUP_VOXELS      = 1U << 2;
-const quint32 COLLISION_GROUP_PARTICLES   = 1U << 3;
 const quint32 VALID_COLLISION_GROUPS = 0x0f;
 
 // CollisionInfo contains details about the collision between two things: BodyA and BodyB.
