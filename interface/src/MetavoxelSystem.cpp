@@ -849,7 +849,7 @@ private:
 
 SendDelayer::SendDelayer(const SharedNodePointer& node, const QByteArray& data) :
     _node(node),
-    _data(data) {
+    _data(data.constData(), data.size()) {
 }
 
 void SendDelayer::timerEvent(QTimerEvent* event) {
