@@ -21,6 +21,7 @@ Script.include("libraries/progressDialog.js");
 
 Script.include("libraries/entitySelectionTool.js");
 var selectionDisplay = SelectionDisplay;
+var selectionManager = SelectionManager;
 
 Script.include("libraries/ModelImporter.js");
 var modelImporter = new ModelImporter();
@@ -33,6 +34,8 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 Script.include("libraries/entityCameraTool.js");
 var entityCameraTool = new EntityCameraTool();
+
+selectionManager.setEventListener(selectionDisplay.updateHandles());
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -440,6 +443,11 @@ function mousePressEvent(event) {
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
+                if (!event.isShifted) {
+                    selectionManager.clearSelections();
+                }
+                selectionManager.addEntity(foundEntity);
+
                 print("Model selected selectedEntityID:" + selectedEntityID.id);
 
             }
@@ -641,11 +649,16 @@ Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
+    print(event.text);
     if (event.text == "`") {
         handeMenuEvent("Edit Properties...");
     }
     if (event.text == "BACKSPACE") {
         handeMenuEvent("Delete");
+    } else if (event.text == "TAB") {
+        selectionDisplay.toggleSpaceMode();
+    } else if (event.text == "ESC") {
+        selectionDisplay.cancelTool();
     } else if (event.text == "f") {
         if (entitySelected) {
             // Get latest properties

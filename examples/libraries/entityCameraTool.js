@@ -97,11 +97,12 @@ EntityCameraTool = function() {
 
     that.focus = function(entityProperties) {
         var dim = entityProperties.dimensions;
+        dim = SelectionManager.worldDimensions;
         var size = Math.max(dim.x, Math.max(dim.y, dim.z));
 
         that.targetZoomDistance = Math.max(size * FOCUS_ZOOM_SCALE, FOCUS_MIN_ZOOM);
 
-        that.setFocalPoint(entityProperties.position);
+        that.setFocalPoint(SelectionManager.worldPosition);//entityProperties.position);
 
         that.updateCamera();
     }
@@ -184,7 +185,7 @@ EntityCameraTool = function() {
         // Scale based on current zoom level
         dZoom *= that.targetZoomDistance * ZOOM_SCALING;
 
-        that.targetZoomDistance = Math.max(Math.min(that.targetZoomDistance + dZoom, MAX_ZOOM_DISTANCE), MIN_ZOOM_DISTANCE);
+        that.targetZoomDistance = Math.max(that.targetZoomDistance + dZoom, MIN_ZOOM_DISTANCE);
 
         that.updateCamera();
     }
