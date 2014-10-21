@@ -23,6 +23,7 @@
 #include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
+#include "Text3DOverlay.h"
 
 Overlays::Overlays() : _nextOverlayID(1) {
 }
@@ -131,6 +132,9 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = new ImageOverlay();
     } else if (type == "text") {
         thisOverlay = new TextOverlay();
+    } else if (type == "text3d") {
+        thisOverlay = new Text3DOverlay();
+qDebug() << "created Text3DOverlay:" << thisOverlay;
     } else if (type == "cube") {
         thisOverlay = new Cube3DOverlay();
     } else if (type == "sphere") {
@@ -167,8 +171,7 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
     _nextOverlayID++;
-    bool is3D = typeid(*overlay) != typeid(ImageOverlay) && typeid(*overlay) != typeid(TextOverlay);
-    if (is3D) {
+    if (overlay->is3D()) {
         _overlays3D[thisID] = overlay;
     } else {
         _overlays2D[thisID] = overlay;
