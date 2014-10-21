@@ -35,8 +35,6 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <ParticleCollisionSystem.h>
-#include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
 #include <ViewFrustum.h>
@@ -64,7 +62,6 @@
 #include "devices/Visage.h"
 #include "devices/DdeFaceTracker.h"
 #include "entities/EntityTreeRenderer.h"
-#include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
@@ -197,7 +194,6 @@ public:
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
     bool getImportSucceded() { return _importSucceded; }
@@ -286,7 +282,6 @@ public:
 
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
-    NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
@@ -478,9 +473,6 @@ private:
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
-    ParticleTreeRenderer _particles;
-    ParticleCollisionSystem _particleCollisionSystem;
-
     EntityTreeRenderer _entities;
     EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
@@ -492,7 +484,7 @@ private:
     MetavoxelSystem _metavoxels;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
@@ -569,7 +561,6 @@ private:
     OctreePacketProcessor _octreeProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
-    ParticleEditPacketSender _particleEditSender;
     EntityEditPacketSender _entityEditSender;
 
     int _packetsPerSecond;
@@ -582,7 +573,6 @@ private:
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
-    NodeToJurisdictionMap _particleServerJurisdictions;
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;

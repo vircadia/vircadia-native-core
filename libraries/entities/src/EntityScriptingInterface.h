@@ -97,6 +97,10 @@ public slots:
 
     Q_INVOKABLE void dumpTree() const;
 
+signals:
+    void entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const CollisionInfo& collision);
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& collision);
+
 private:
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 
