@@ -26,6 +26,7 @@ public:
     ~Base3DOverlay();
 
     // getters
+    virtual bool is3D() const { return true; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::vec3& getCenter() const { return _position; } // TODO: consider implementing registration points in this class
     float getLineWidth() const { return _lineWidth; }

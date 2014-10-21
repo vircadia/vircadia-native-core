@@ -41,11 +41,7 @@ var warpLine = Overlays.addOverlay("line3d", {
 
 var movingWithHead = false; 
 var headStartPosition, headStartDeltaPitch, headStartFinalPitch, headStartRoll, headStartYaw;
-var timeSinceLastTurn = 0.0;
-var timeSinceLastStep = 0.0;
-var isTurning = false; 
 var deltaYaw = 0.0;
-var turnAmount = 0.0;
 var keyDownTime = 0.0;
 var watchAvatar = false; 
 var oldMode; 
@@ -56,7 +52,6 @@ function saveCameraState() {
 }
 
 function restoreCameraState() {
-    //Camera.stopLooking();
     Camera.setMode(oldMode);
 }
 
@@ -67,8 +62,6 @@ function activateWarp() {
     updateWarp();
 }
 
-var WARP_PITCH_DEAD_ZONE = 4.0;
-var WARP_SENSITIVITY = 0.35;
 var TRIGGER_PULLBACK_DISTANCE = 0.04;
 var WATCH_AVATAR_DISTANCE = 1.5;
 var MAX_WARP_YAW = 40.0;
@@ -83,26 +76,32 @@ function playSound() {
     Audio.playSound(sound, options);
 }
 
+var WARP_SMOOTHING = 0.90;
+var WARP_START_TIME = 0.50;
+var WARP_START_DISTANCE = 1.0;
+var WARP_SENSITIVITY = 0.15;
+
 function updateWarp() {
     if (!warpActive) return;
 
     var look = Quat.getFront(Camera.getOrientation());
     var deltaPosition = Vec3.subtract(MyAvatar.getTrackedHeadPosition(), headStartPosition);
-    var deltaPitch = Math.abs(MyAvatar.getHeadFinalPitch() - headStartFinalPitch);
+    var deltaPitch = MyAvatar.getHeadFinalPitch() - headStartFinalPitch;
     deltaYaw = MyAvatar.getHeadFinalYaw() - headStartYaw;
 
-    willMove = (!watchAvatar && (Math.abs(deltaYaw) < MAX_WARP_YAW) && (deltaPitch > WARP_PITCH_DEAD_ZONE));
+    willMove = (!watchAvatar && (Math.abs(deltaYaw) < MAX_WARP_YAW) && (keyDownTime > WARP_START_TIME));
 
     if (willMove) {
-        var distance = Math.pow((deltaPitch - WARP_PITCH_DEAD_ZONE) * WARP_SENSITIVITY, 2.0);
+        //var distance = Math.pow((deltaPitch - WARP_PITCH_DEAD_ZONE) * WARP_SENSITIVITY, 2.0);
+        var distance = Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE;
         var warpDirection = Vec3.normalize({ x: look.x, y: 0, z: look.z });
-        warpPosition = Vec3.multiply(warpDirection, distance);
-        warpPosition = Vec3.sum(MyAvatar.position, warpPosition);
+        warpPosition = Vec3.mix(Vec3.sum(MyAvatar.position, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
     }
+
+    var height = MyAvatar.getEyePosition().y - MyAvatar.position.y;
 
     if (!watchAvatar && (Math.abs(deltaYaw) < MAX_PULLBACK_YAW) && (deltaPosition.z > TRIGGER_PULLBACK_DISTANCE)) {
         saveCameraState();
-        var height = MyAvatar.getEyePosition().y - MyAvatar.position.y;
         var cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -height, z: -height * WATCH_AVATAR_DISTANCE }));
         Camera.setPosition(cameraPosition);
         watchAvatar = true;
@@ -132,39 +131,14 @@ function finishWarp() {
     if (willMove) {
         MyAvatar.position = warpPosition;
         playSound();
-    } else if (!watchAvatar) {
-        isTurning = true;
-        turnAmount = deltaYaw;
-        timeSinceLastTurn = TURN_INTERVAL;
-        playSound();
     } 
 }
-
-var EPSILON_YAW = 180.0;
-var TURN_INTERVAL = 0.175; 
 
 function update(deltaTime) {
 
     if (movingWithHead) {
         keyDownTime += deltaTime;
         updateWarp();
-    }
-
-    if (isTurning) {
-        timeSinceLastTurn += deltaTime; 
-        if (timeSinceLastTurn > TURN_INTERVAL) {
-            if (Math.abs(turnAmount) <= EPSILON_YAW) {
-                var thisTurn = turnAmount;
-                isTurning = false;
-            } else {
-                var thisTurn = turnAmount / 2.0;
-                turnAmount = turnAmount / 2.0;
-            }
-            var orientation = MyAvatar.orientation;
-            orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, thisTurn, 0), orientation) ;
-            MyAvatar.orientation = orientation;
-            timeSinceLastTurn = 0.0;
-        }
     }
 }
 
@@ -178,19 +152,25 @@ Controller.keyPressEvent.connect(function(event) {
         headStartRoll = MyAvatar.getHeadFinalRoll();
         headStartYaw = MyAvatar.getHeadFinalYaw();
         deltaYaw = 0.0;
+        warpPosition = MyAvatar.position;
         activateWarp();
     }
 });
 
-var TIME_FOR_TURNAROUND = 0.15;
+var TIME_FOR_TURN_AROUND = 0.50;
+var TIME_FOR_TURN = 0.25;
 var TURN_AROUND = 180.0;
 
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SPACE") {
         movingWithHead = false;
-        isTurning = false;
-        if (keyDownTime < TIME_FOR_TURNAROUND) {
-            MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, TURN_AROUND, 0), MyAvatar.orientation);
+        if (keyDownTime < TIME_FOR_TURN_AROUND) {
+            if (keyDownTime < TIME_FOR_TURN) {
+                var currentYaw = MyAvatar.getHeadFinalYaw();
+                MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, currentYaw, 0), MyAvatar.orientation);
+            } else {
+                MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, TURN_AROUND, 0), MyAvatar.orientation);
+            }
             playSound();
         }
         finishWarp();
