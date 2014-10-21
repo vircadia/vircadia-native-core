@@ -1609,18 +1609,28 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     
     ProgramObject* activeProgram = program;
     Locations* activeLocations = locations;
-    
-    if (isSkinned) {
+
+    // Try to use the Batch
+    gpu::Batch batch;
+
+    /*if (isSkinned) {
         skinProgram->bind();
         activeProgram = skinProgram;
         activeLocations = skinLocations;
     } else {
         program->bind();
+    }*/
+    if (isSkinned) {
+        activeProgram = skinProgram;
+        activeLocations = skinLocations;
     }
-    activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
-    
-    // Try to use the Batch
-    gpu::Batch batch;
+    if (!activeProgram->isLinked()) {
+        activeProgram->link();
+    }
+    GLBATCH(glUseProgram)(activeProgram->programId());
+   // activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
+    GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+
 
 
     // i is the "index" from the original networkMeshes QVector...
@@ -1639,7 +1649,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         const FBXMesh& mesh = geometry.meshes.at(i);    
 
         //const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
-        GLBATCH(glBindBuffer)( GL_INDEX_ARRAY, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId() );
+        GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId());
 
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
@@ -1674,8 +1684,9 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
             }
         }
         
-        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
-        
+        //const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
+        GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bufferId());
+
         GLBATCH(glPushMatrix)();
         //Application::getInstance()->loadTranslatedViewMatrix(_translation);
         GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
@@ -1690,19 +1701,25 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
             int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
                 mesh.texCoords.size() * sizeof(glm::vec2) +
                 (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
-            skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-            skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
-                offset + vertexCount * sizeof(glm::vec4), 4);
-            skinProgram->enableAttributeArray(skinLocations->clusterIndices);
-            skinProgram->enableAttributeArray(skinLocations->clusterWeights);
+            //skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
+            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0, (const void*) offset);
+            //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
+            //    offset + vertexCount * sizeof(glm::vec4), 4);
+            GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
+            //skinProgram->enableAttributeArray(skinLocations->clusterIndices);
+            GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterIndices);
+            //skinProgram->enableAttributeArray(skinLocations->clusterWeights);
+            GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterWeights);
         } else {
             GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
         }
         
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-                activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
-                activeProgram->enableAttributeArray(activeLocations->tangent);
+                //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
+                GLBATCH(glVertexAttribPointer)(activeLocations->tangent, 3, GL_FLOAT, GL_TRUE, 0, (const void*)(vertexCount * 2 * sizeof(glm::vec3)));
+                //activeProgram->enableAttributeArray(activeLocations->tangent);
+                GLBATCH(glEnableVertexAttribArray)(activeLocations->tangent);
             }
             GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
                 mesh.tangents.size() * sizeof(glm::vec3)));
@@ -1711,12 +1728,15 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         
         } else {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-                activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
-                activeProgram->enableAttributeArray(activeLocations->tangent);
+                //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
+                GLBATCH(glVertexAttribPointer)(activeLocations->tangent, 3, GL_FLOAT, GL_TRUE, 0, 0);
+                //activeProgram->enableAttributeArray(activeLocations->tangent);
+                GLBATCH(glEnableVertexAttribArray)(activeLocations->tangent);
             }
             GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
             GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
-            _blendedVertexBuffers[i].bind();
+           // _blendedVertexBuffers[i].bind();
+            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, _blendedVertexBuffers[i].bufferId());
         }
         GLBATCH(glVertexPointer)(3, GL_FLOAT, 0, 0);
         GLBATCH(glNormalPointer)(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
@@ -1738,6 +1758,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
+
             // apply material properties
             if (mode == SHADOW_RENDER_MODE) {
                 GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
@@ -1826,7 +1847,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
             
            // activeProgram->disableAttributeArray(activeLocations->tangent);
-            GLBATCH(glDisableVertexArrayAttrib)(activeLocations->tangent);
+            GLBATCH(glDisableVertexAttribArray)(activeLocations->tangent);
         }
         
         if (specularTextureUnit) {
@@ -1837,9 +1858,9 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
         
         if (state.clusterMatrices.size() > 1) {
            // skinProgram->disableAttributeArray(skinLocations->clusterIndices);
-            GLBATCH(glDisableVertexArrayAttrib)(skinLocations->clusterIndices);
+            GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterIndices);
           //  skinProgram->disableAttributeArray(skinLocations->clusterWeights);
-            GLBATCH(glDisableVertexArrayAttrib)(skinLocations->clusterWeights);
+            GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterWeights);
         } 
         GLBATCH(glPopMatrix)();
 
@@ -1847,6 +1868,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     //activeProgram->release();
     GLBATCH(glUseProgram)(0);
 
+    ::gpu::backend::renderBatch(batch);
     return meshPartsRendered;
 }
 

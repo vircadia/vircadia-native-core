@@ -12,14 +12,21 @@
 
 #include <QDebug>
 
-#define DO_IT_NOW(call, offset) int param = _params.size() - (offset); do##call(param);
+#define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandCalls.push_back(&gpu::Batch::do_##call); _commandOffsets.push_back(_params.size());
+
+//#define DO_IT_NOW(call, offset) uint32 __param = _params.size() - (offset); do##call(__param);
+//#define DO_IT_NOW(call, offset) uint32 __param = _commandOffsets.back(); CommandCall call = _commandCalls.back(); (this->*(call))(__param);
+//#define DO_IT_NOW(call, offset) runLastCommand();
+//#define DO_IT_NOW(call, offset) uint32 __param = _params.size() - (offset); runCommand(_commands.size() -1);// do##call(__param);
+#define DO_IT_NOW(call, offset) 
 
 using namespace gpu;
 
 Batch::Batch() :
     _commands(),
     _params(),
-    _resources(){
+    _resources(),
+    _data(){
 }
 
 Batch::~Batch() {
@@ -29,24 +36,99 @@ void Batch::clear() {
     _commands.clear();
     _params.clear();
     _resources.clear();
+    _data.clear();
+}
+
+uint32 Batch::cacheResource(Resource* res) {
+    uint32 offset = _resources.size();
+    _resources.push_back(ResourceCache(res));
+    
+    return offset;
+}
+
+uint32 Batch::cacheResource(const void* pointer) {
+    uint32 offset = _resources.size();
+    _resources.push_back(ResourceCache(pointer));
+
+    return offset;
+}
+
+uint32 Batch::cacheData(uint32 size, const void* data) {
+    uint32 offset = _data.size();
+    uint32 nbBytes = size;
+    _data.resize(offset + nbBytes);
+    memcpy(_data.data() + offset, data, size);
+
+    return offset;
+}
+
+#define CASE_COMMAND(call) case COMMAND_##call: { do_##call(offset); } break;
+
+void Batch::runCommand(Command com, uint32 offset) {
+    switch (com) {
+        CASE_COMMAND(draw);
+        CASE_COMMAND(drawIndexed);
+        CASE_COMMAND(drawInstanced);
+        CASE_COMMAND(drawIndexedInstanced);
+        CASE_COMMAND(glEnable);
+        CASE_COMMAND(glDisable);
+        CASE_COMMAND(glEnableClientState);
+        CASE_COMMAND(glDisableClientState);
+        CASE_COMMAND(glCullFace);
+        CASE_COMMAND(glAlphaFunc);
+        CASE_COMMAND(glDepthFunc);
+        CASE_COMMAND(glDepthMask);
+        CASE_COMMAND(glDepthRange);
+        CASE_COMMAND(glBindBuffer);
+        CASE_COMMAND(glBindTexture);
+        CASE_COMMAND(glActiveTexture);
+        CASE_COMMAND(glDrawBuffers);
+        CASE_COMMAND(glUseProgram);
+        CASE_COMMAND(glUniform1f);
+        CASE_COMMAND(glUniformMatrix4fv);
+        CASE_COMMAND(glMatrixMode);
+        CASE_COMMAND(glPushMatrix);
+        CASE_COMMAND(glPopMatrix);
+        CASE_COMMAND(glMultMatrixf);
+        CASE_COMMAND(glLoadMatrixf);
+        CASE_COMMAND(glLoadIdentity);
+        CASE_COMMAND(glRotatef);
+        CASE_COMMAND(glScalef);
+        CASE_COMMAND(glTranslatef);
+        CASE_COMMAND(glDrawArrays);
+        CASE_COMMAND(glDrawRangeElements);
+        CASE_COMMAND(glColorPointer);
+        CASE_COMMAND(glNormalPointer);
+        CASE_COMMAND(glTexCoordPointer);
+        CASE_COMMAND(glVertexPointer);
+        CASE_COMMAND(glVertexAttribPointer);
+        CASE_COMMAND(glEnableVertexAttribArray);
+        CASE_COMMAND(glDisableVertexAttribArray);
+        CASE_COMMAND(glColor4f);
+        CASE_COMMAND(glMaterialf);
+        CASE_COMMAND(glMaterialfv);
+    }
 }
 
 void Batch::draw( Primitive primitiveType, int nbVertices, int startVertex) {
-    _commands.push_back(COMMAND_DRAW);
+    ADD_COMMAND(draw);
+
     _params.push_back(startVertex);
     _params.push_back(nbVertices);
     _params.push_back(primitiveType);
 }
 
 void Batch::drawIndexed( Primitive primitiveType, int nbIndices, int startIndex) {
-    _commands.push_back(COMMAND_DRAW_INDEXED);
+    ADD_COMMAND(drawIndexed);
+
     _params.push_back(startIndex);
     _params.push_back(nbIndices);
     _params.push_back(primitiveType);
 }
 
 void Batch::drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex, int startInstance) {
-    _commands.push_back(COMMAND_DRAW_INSTANCED);
+    ADD_COMMAND(drawInstanced);
+
     _params.push_back(startInstance);
     _params.push_back(startVertex);
     _params.push_back(nbVertices);
@@ -55,7 +137,8 @@ void Batch::drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVe
 }
 
 void Batch::drawIndexedInstanced( uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex, int startInstance) {
-    _commands.push_back(COMMAND_DRAW_INDEXED_INSTANCED);
+    ADD_COMMAND(drawIndexedInstanced);
+
     _params.push_back(startInstance);
     _params.push_back(startIndex);
     _params.push_back(nbIndices);
@@ -68,233 +151,257 @@ void Batch::drawIndexedInstanced( uint32 nbInstances, Primitive primitiveType, i
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
 
 void Batch::_glEnable(GLenum cap) {
-    _commands.push_back(COMMAND_glEnable);
+    ADD_COMMAND(glEnable);
+
     _params.push_back(cap);
 
     DO_IT_NOW(_glEnable, 1);
 }
-void Batch::do_glEnable(int &paramOffset) {
+void Batch::do_glEnable(uint32& paramOffset) {
     glEnable(_params[paramOffset++]._uint);
 }
 
 void Batch::_glDisable(GLenum cap) {
-    _commands.push_back(COMMAND_glDisable);
+    ADD_COMMAND(glDisable);
+
     _params.push_back(cap);
 
     DO_IT_NOW(_glDisable, 1);
 }
-void Batch::do_glDisable(int &paramOffset) {
+void Batch::do_glDisable(uint32& paramOffset) {
     glDisable(_params[paramOffset++]._uint);
 }
 
 void Batch::_glEnableClientState(GLenum array) {
-    _commands.push_back(COMMAND_glEnableClientState);
+    ADD_COMMAND(glEnableClientState);
+
     _params.push_back(array);
 
     DO_IT_NOW(_glEnableClientState, 1 );
 }
-void Batch::do_glEnableClientState(int &paramOffset) {
+void Batch::do_glEnableClientState(uint32& paramOffset) {
     glEnableClientState(_params[paramOffset++]._uint);
 }
 
 void Batch::_glDisableClientState(GLenum array) {
-    _commands.push_back(COMMAND_glDisableClientState);
+    ADD_COMMAND(glDisableClientState);
+
     _params.push_back(array);
 
     DO_IT_NOW(_glDisableClientState, 1);
 }
-void Batch::do_glDisableClientState(int &paramOffset) {
+void Batch::do_glDisableClientState(uint32& paramOffset) {
     glDisableClientState(_params[paramOffset++]._uint);
 }
 
 void Batch::_glCullFace(GLenum mode) {
-    _commands.push_back(COMMAND_glCullFace);
+    ADD_COMMAND(glCullFace);
+
     _params.push_back(mode);
 
     DO_IT_NOW(_glCullFace, 1);
 }
-void Batch::do_glCullFace(int &paramOffset) {
+void Batch::do_glCullFace(uint32& paramOffset) {
     glCullFace(_params[paramOffset++]._uint);
 }
 
 void Batch::_glAlphaFunc(GLenum func, GLclampf ref) {
-    _commands.push_back(COMMAND_glAlphaFunc);
+    ADD_COMMAND(glAlphaFunc);
+
     _params.push_back(ref);
     _params.push_back(func);
 
-    DO_IT_NOW(_glAlphaFunc, 1);
+    DO_IT_NOW(_glAlphaFunc, 2);
 }
-void Batch::do_glAlphaFunc(int &paramOffset) {
+void Batch::do_glAlphaFunc(uint32& paramOffset) {
     glAlphaFunc(_params[paramOffset++]._uint, _params[paramOffset++]._float);
 }
 
 void Batch::_glDepthFunc(GLenum func) {
-    _commands.push_back(COMMAND_glDepthFunc);
+    ADD_COMMAND(glDepthFunc);
+
     _params.push_back(func);
 
     DO_IT_NOW(_glDepthFunc, 1);
 }
-void Batch::do_glDepthFunc(int &paramOffset) {
+void Batch::do_glDepthFunc(uint32& paramOffset) {
     glDepthFunc(_params[paramOffset++]._uint);
 }
 
 void Batch::_glDepthMask(GLboolean flag) {
-    _commands.push_back(COMMAND_glDepthMask);
+    ADD_COMMAND(glDepthMask);
+
     _params.push_back(flag);
 
     DO_IT_NOW(_glDepthMask, 1);
 }
-void Batch::do_glDepthMask(int &paramOffset) {
+void Batch::do_glDepthMask(uint32& paramOffset) {
     glDepthMask(_params[paramOffset++]._uint);
 }
 
 void Batch::_glDepthRange(GLclampd zNear, GLclampd zFar) {
-    _commands.push_back(COMMAND_glDepthRange);
+    ADD_COMMAND(glDepthRange);
+
     _params.push_back(zFar);
     _params.push_back(zNear);
 
     DO_IT_NOW(_glDepthRange, 2);
 }
-void Batch::do_glDepthRange(int &paramOffset) {
+void Batch::do_glDepthRange(uint32& paramOffset) {
     glDepthRange(_params[paramOffset++]._double, _params[paramOffset++]._double);
 }
 
 void Batch::_glBindBuffer(GLenum target, GLuint buffer) {
-    _commands.push_back(COMMAND_glBindBuffer);
+    ADD_COMMAND(glBindBuffer);
+
     _params.push_back(buffer);
     _params.push_back(target);
 
     DO_IT_NOW(_glBindBuffer, 2);
 }
-void Batch::do_glBindBuffer(int &paramOffset) {
+void Batch::do_glBindBuffer(uint32& paramOffset) {
     glBindBuffer(_params[paramOffset++]._uint, _params[paramOffset++]._uint);
 }
 
 void Batch::_glBindTexture(GLenum target, GLuint texture) {
-    _commands.push_back(COMMAND_glBindTexture);
+    ADD_COMMAND(glBindTexture);
+
     _params.push_back(texture);
     _params.push_back(target);
 
     DO_IT_NOW(_glBindTexture, 2);
 }
-void Batch::do_glBindTexture(int &paramOffset) {
+void Batch::do_glBindTexture(uint32& paramOffset) {
     glBindTexture(_params[paramOffset++]._uint, _params[paramOffset++]._uint);
 }
 
 void Batch::_glActiveTexture(GLenum texture) {
-    _commands.push_back(COMMAND_glActiveTexture);
+    ADD_COMMAND(glActiveTexture);
+
     _params.push_back(texture);
 
     DO_IT_NOW(_glActiveTexture, 1);
 }
-void Batch::do_glActiveTexture(int &paramOffset) {
+void Batch::do_glActiveTexture(uint32& paramOffset) {
     glActiveTexture(_params[paramOffset++]._uint);
 }
 
 void Batch::_glDrawBuffers(GLsizei n, const GLenum* bufs) {
-    _commands.push_back(COMMAND_glDrawBuffers);
-    _params.push_back(bufs);
+    ADD_COMMAND(glDrawBuffers);
+
+    _params.push_back(cacheData(n * sizeof(GLenum), bufs));
     _params.push_back(n);
 
     DO_IT_NOW(_glDrawBuffers, 2);
 }
-void Batch::do_glDrawBuffers(int &paramOffset) {
-    glDrawBuffers(_params[paramOffset++]._uint, (const GLenum*) _params[paramOffset++]._constPointer);
+void Batch::do_glDrawBuffers(uint32& paramOffset) {
+    glDrawBuffers(_params[paramOffset++]._uint, (const GLenum*) editData(_params[paramOffset++]._uint));
 }
 
 void Batch::_glUseProgram(GLuint program) {
-    _commands.push_back(COMMAND_glUseProgram);
+    ADD_COMMAND(glUseProgram);
+
     _params.push_back(program);
 
     DO_IT_NOW(_glUseProgram, 1);
 }
-void Batch::do_glUseProgram(int &paramOffset) {
+void Batch::do_glUseProgram(uint32& paramOffset) {
     glUseProgram(_params[paramOffset++]._uint);
 }
 
 void Batch::_glUniform1f(GLint location, GLfloat v0) {
-    _commands.push_back(COMMAND_glUniform1f);
+    ADD_COMMAND(glUniform1f);
+
     _params.push_back(v0);
     _params.push_back(location);
 
     DO_IT_NOW(_glUniform1f, 1);
 }
-void Batch::do_glUniform1f(int &paramOffset) {
-    glUniform1f(_params[paramOffset++]._float);
+void Batch::do_glUniform1f(uint32& paramOffset) {
+    glUniform1f(_params[paramOffset++]._int, _params[paramOffset++]._float);
 }
 
 void Batch::_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
-    _commands.push_back(COMMAND_glUniformMatrix4fv);
-    _params.push_back(value);
+    ADD_COMMAND(glUniformMatrix4fv);
+
+    const int MATRIX4_SIZE = 16 * sizeof(float);
+    _params.push_back(cacheData(count * MATRIX4_SIZE, value));
     _params.push_back(transpose);
     _params.push_back(count);
     _params.push_back(location);
 
     DO_IT_NOW(_glUniformMatrix4fv, 4);
 }
-void Batch::do_glUniformMatrix4fv(int &paramOffset) {
-    glUniformMatrix4fv(_params[paramOffset++]._int, _params[paramOffset++]._uint, _params[paramOffset++]._uint, _params[paramOffset++]._constPointer);
+void Batch::do_glUniformMatrix4fv(uint32& paramOffset) {
+    glUniformMatrix4fv(_params[paramOffset++]._int, _params[paramOffset++]._uint,
+        _params[paramOffset++]._uint, (const GLfloat*) editData(_params[paramOffset++]._uint));
 }
 
 void Batch::_glMatrixMode(GLenum mode) {
-    _commands.push_back(COMMAND_glMatrixMode);
+    ADD_COMMAND(glMatrixMode);
+
     _params.push_back(mode);
 
     DO_IT_NOW(_glMatrixMode, 1);
 }
-void Batch::do_glMatrixMode(int &paramOffset) {
+void Batch::do_glMatrixMode(uint32& paramOffset) {
     glMatrixMode(_params[paramOffset++]._uint);
 }
 
 void Batch::_glPushMatrix() {
-    _commands.push_back(COMMAND_glPushMatrix);
+    ADD_COMMAND(glPushMatrix);
 
     DO_IT_NOW(_glPushMatrix, 0);
 }
-void Batch::do_glPushMatrix(int &paramOffset) {
+void Batch::do_glPushMatrix(uint32& paramOffset) {
     glPushMatrix();
 }
 
 void Batch::_glPopMatrix() {
-    _commands.push_back(COMMAND_glPopMatrix);
+    ADD_COMMAND(glPopMatrix);
 
     DO_IT_NOW(_glPopMatrix, 0);
 }
-void Batch::do_glPopMatrix(int &paramOffset) {
+void Batch::do_glPopMatrix(uint32& paramOffset) {
     glPopMatrix();
 }
 
 void Batch::_glMultMatrixf(const GLfloat *m) {
-    _commands.push_back(COMMAND_glMultMatrixf);
-    _params.push_back(m);
+    ADD_COMMAND(glMultMatrixf);
+
+    const int MATRIX4_SIZE = 16 * sizeof(float);
+    _params.push_back(cacheData(MATRIX4_SIZE, m));
 
     DO_IT_NOW(_glMultMatrixf, 1);
 }
-void Batch::do_glMultMatrixf(int &paramOffset) {
-    glMultMatrixf((const GLfloat*) _params[paramOffset++]._constPointer);
+void Batch::do_glMultMatrixf(uint32& paramOffset) {
+    glMultMatrixf((const GLfloat*) editData(_params[paramOffset++]._uint));
 }
 
 void Batch::_glLoadMatrixf(const GLfloat *m) {
-    _commands.push_back(COMMAND_glLoadMatrixf);
-    _params.push_back(m);
+    ADD_COMMAND(glLoadMatrixf);
+
+    const int MATRIX4_SIZE = 16 * sizeof(float);
+    _params.push_back(cacheData(MATRIX4_SIZE, m));
 
     DO_IT_NOW(_glLoadMatrixf, 1);
 }
-void Batch::do_glLoadMatrixf(int &paramOffset) {
-    glLoadMatrixf((const GLfloat*)_params[paramOffset++]._constPointer);
+void Batch::do_glLoadMatrixf(uint32& paramOffset) {
+    glLoadMatrixf((const GLfloat*)editData(_params[paramOffset++]._uint));
 }
 
 void Batch::_glLoadIdentity(void) {
-    _commands.push_back(COMMAND_glLoadIdentity);
+    ADD_COMMAND(glLoadIdentity);
 
     DO_IT_NOW(_glLoadIdentity, 0);
 }
-void Batch::do_glLoadIdentity(int &paramOffset) {
+void Batch::do_glLoadIdentity(uint32& paramOffset) {
     glLoadIdentity();
 }
 
 void Batch::_glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
-    _commands.push_back(COMMAND_glRotatef);
+    ADD_COMMAND(glRotatef);
+
     _params.push_back(z);
     _params.push_back(y);
     _params.push_back(x);
@@ -302,167 +409,215 @@ void Batch::_glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
 
     DO_IT_NOW(_glRotatef, 4);
 }
-void Batch::do_glRotatef(int &paramOffset) {
+void Batch::do_glRotatef(uint32& paramOffset) {
     glRotatef(_params[paramOffset++]._float, _params[paramOffset++]._float, _params[paramOffset++]._float, _params[paramOffset++]._float);
 }
 
 void Batch::_glScalef(GLfloat x, GLfloat y, GLfloat z) {
-    _commands.push_back(COMMAND_glScalef);
+    ADD_COMMAND(glScalef);
+
     _params.push_back(z);
     _params.push_back(y);
     _params.push_back(x);
 
     DO_IT_NOW(_glScalef, 3);
 }
-void Batch::do_glScalef(int &paramOffset) {
+void Batch::do_glScalef(uint32& paramOffset) {
     glScalef(_params[paramOffset++]._float, _params[paramOffset++]._float, _params[paramOffset++]._float);
 }
 
 void Batch::_glTranslatef(GLfloat x, GLfloat y, GLfloat z) {
-    _commands.push_back(COMMAND_glTranslatef);
+    ADD_COMMAND(glTranslatef);
+
     _params.push_back(z);
     _params.push_back(y);
     _params.push_back(x);
 
     DO_IT_NOW(_glTranslatef, 3);
 }
-void Batch::do_glTranslatef(int &paramOffset) {
+void Batch::do_glTranslatef(uint32& paramOffset) {
     glTranslatef(_params[paramOffset++]._float, _params[paramOffset++]._float, _params[paramOffset++]._float);
 }
 
 void Batch::_glDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    _commands.push_back(COMMAND_glDrawArrays);
+    ADD_COMMAND(glDrawArrays);
+
     _params.push_back(count);
     _params.push_back(first);
     _params.push_back(mode);
 
     DO_IT_NOW(_glDrawArrays, 3);
 }
-void Batch::do_glDrawArrays(int &paramOffset) {
+void Batch::do_glDrawArrays(uint32& paramOffset) {
     glDrawArrays(_params[paramOffset++]._uint, _params[paramOffset++]._int, _params[paramOffset++]._int);
 }
 
 void Batch::_glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) {
-    _commands.push_back(COMMAND_glDrawRangeElements);
-    _params.push_back(indices);
+    ADD_COMMAND(glDrawRangeElements);
+
+    _params.push_back(cacheResource(indices));
     _params.push_back(type);
     _params.push_back(count);
     _params.push_back(end);
     _params.push_back(start);
     _params.push_back(mode);
 
+    //do_glDrawRangeElements(_commandOffsets.back());
+  // runCommand(_commands.size() - 1);
     DO_IT_NOW(_glDrawRangeElements, 6);
 }
-void Batch::do_glDrawRangeElements(int &paramOffset) {
-    glDrawRangeElements(_params[paramOffset++]._uint, _params[paramOffset++]._uint, _params[paramOffset++]._uint, _params[paramOffset++]._int, _params[paramOffset++]._uint, _params[paramOffset++]._constPointer);
+void Batch::do_glDrawRangeElements(uint32& paramOffset) {
+    glDrawRangeElements(_params[paramOffset++]._uint, _params[paramOffset++]._uint,
+        _params[paramOffset++]._uint, _params[paramOffset++]._int,
+        _params[paramOffset++]._uint, editResource(_params[paramOffset++]._uint)->_pointer);
 }
 
 void Batch::_glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    _commands.push_back(COMMAND_glColorPointer);
-    _params.push_back(pointer);
+    ADD_COMMAND(glColorPointer);
+
+    _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
     _params.push_back(type);
     _params.push_back(size);
 
     DO_IT_NOW(_glColorPointer, 4);
 }
-void Batch::do_glColorPointer(int &paramOffset) {
-    glColorPointer(_params[paramOffset++]._int, _params[paramOffset++]._uint, _params[paramOffset++]._int, _params[paramOffset++]._constPointer);
+void Batch::do_glColorPointer(uint32& paramOffset) {
+    glColorPointer(_params[paramOffset++]._int, _params[paramOffset++]._uint,
+        _params[paramOffset++]._int, editResource(_params[paramOffset++]._uint)->_pointer);
 }
 
 void Batch::_glNormalPointer(GLenum type, GLsizei stride, const void *pointer) {
-    _commands.push_back(COMMAND_glNormalPointer);
-    _params.push_back(pointer);
+    ADD_COMMAND(glNormalPointer);
+
+    _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
     _params.push_back(type);
 
-    DO_IT_NOW(_glNormalPointer, 4);
+    DO_IT_NOW(_glNormalPointer, 3);
 }
-void Batch::do_glNormalPointer(int &paramOffset) {
-    glNormalPointer(_params[paramOffset++]._uint, _params[paramOffset++]._int, _params[paramOffset++]._constPointer);
+void Batch::do_glNormalPointer(uint32& paramOffset) {
+    glNormalPointer(_params[paramOffset++]._uint, _params[paramOffset++]._int,
+        editResource(_params[paramOffset++]._uint)->_pointer);
 }
 
 void Batch::_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    _commands.push_back(COMMAND_glTexCoordPointer);
-    _params.push_back(pointer);
+    ADD_COMMAND(glTexCoordPointer);
+
+    _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
     _params.push_back(type);
     _params.push_back(size);
+
+    DO_IT_NOW(_glTexCoordPointer, 4);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glTexCoordPointer(uint32& paramOffset) {
+    glTexCoordPointer(_params[paramOffset++]._int, _params[paramOffset++]._uint,
+        _params[paramOffset++]._int, editResource(_params[paramOffset++]._uint)->_pointer);
 }
 
 void Batch::_glVertexPointer(GLint size, GLenum type, GLsizei stride,  const void *pointer) {
-    _commands.push_back(COMMAND_glVertexPointer);
-    _params.push_back(pointer);
+    ADD_COMMAND(glVertexPointer);
+
+    _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
     _params.push_back(type);
     _params.push_back(size);
+
+    DO_IT_NOW(_glVertexPointer, 4);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glVertexPointer(uint32& paramOffset) {
+    glVertexPointer(_params[paramOffset++]._int, _params[paramOffset++]._uint,
+                _params[paramOffset++]._int, editResource(_params[paramOffset++]._uint)->_pointer);
 }
 
 
 void Batch::_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer) {
-    _commands.push_back(COMMAND_glVertexPointer);
-    _params.push_back(pointer);
+    ADD_COMMAND(glVertexAttribPointer);
+
+    _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
     _params.push_back(normalized);
     _params.push_back(type);
     _params.push_back(size);
     _params.push_back(index);
+
+    DO_IT_NOW(_glVertexAttribPointer, 6);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glVertexAttribPointer(uint32& paramOffset) {
+    glVertexAttribPointer(_params[paramOffset++]._uint, _params[paramOffset++]._int,
+                        _params[paramOffset++]._uint, _params[paramOffset++]._uint, 
+                        _params[paramOffset++]._int, editResource(_params[paramOffset++]._uint)->_pointer);
 }
 
-void Batch::_glEnableVertexArrayAttrib(GLint location) {
-    _commands.push_back(COMMAND_glEnableVertexArrayAttrib);
+
+
+void Batch::_glEnableVertexAttribArray(GLint location) {
+    ADD_COMMAND(glEnableVertexAttribArray);
+
     _params.push_back(location);
+
+    DO_IT_NOW(_glEnableVertexAttribArray, 1);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glEnableVertexAttribArray(uint32& paramOffset) {
+    glEnableVertexAttribArray(_params[paramOffset++]._uint);
 }
 
-void Batch::_glDisableVertexArrayAttrib(GLint location) {
-    _commands.push_back(COMMAND_glDisableVertexArrayAttrib);
+void Batch::_glDisableVertexAttribArray(GLint location) {
+    ADD_COMMAND(glDisableVertexAttribArray);
+
     _params.push_back(location);
+
+    DO_IT_NOW(_glDisableVertexAttribArray, 1);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glDisableVertexAttribArray(uint32& paramOffset) {
+    glDisableVertexAttribArray(_params[paramOffset++]._uint);
 }
 
 void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-    _commands.push_back(COMMAND_glColor4f);
+    ADD_COMMAND(glColor4f);
+
     _params.push_back(alpha);
     _params.push_back(blue);
     _params.push_back(green);
     _params.push_back(red);
+
+    DO_IT_NOW(_glColor4f, 4);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glColor4f(uint32& paramOffset) {
+    glColor4f(_params[paramOffset++]._float, _params[paramOffset++]._float, _params[paramOffset++]._float, _params[paramOffset++]._float);
 }
 
 void Batch::_glMaterialf(GLenum face, GLenum pname, GLfloat param) {
-    _commands.push_back(COMMAND_glMaterialf);
+    ADD_COMMAND(glMaterialf);
+
     _params.push_back(param);
     _params.push_back(pname);
     _params.push_back(face);
+
+    DO_IT_NOW(_glMaterialf, 3);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glMaterialf(uint32& paramOffset) {
+    glMaterialf(_params[paramOffset++]._uint, _params[paramOffset++]._uint, _params[paramOffset++]._float);
 }
 
 void Batch::_glMaterialfv(GLenum face, GLenum pname, const GLfloat *params) {
-    _commands.push_back(COMMAND_glMaterialfv);
-    _params.push_back(params);
+    ADD_COMMAND(glMaterialfv);
+
+    _params.push_back(cacheData(4 * sizeof(float), params));
     _params.push_back(pname);
     _params.push_back(face);
+
+    DO_IT_NOW(_glMaterialfv, 3);
 }
-void Batch::do_glCullFace(int &paramOffset) {
-    glCullFace(_params[paramOffset++]._uint);
+void Batch::do_glMaterialfv(uint32& paramOffset) {
+    glMaterialfv(_params[paramOffset++]._uint, _params[paramOffset++]._uint, (const GLfloat*) editData(_params[paramOffset++]._uint));
 }
 
 
+
+void backend::renderBatch(Batch& batch) {
+    for (int i = 0; i < batch._commands.size(); i++) {
+        batch.runCommand(i);
+    }
+}

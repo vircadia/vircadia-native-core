@@ -18,6 +18,13 @@
 
 namespace gpu {
 
+class Batch;
+// TODO: move the backend namespace into dedicated files, for now we keep it close to the gpu objects definition for convenience
+namespace backend {
+
+    void renderBatch(Batch& batch);
+};
+
 class Buffer;
 class Resource;
 typedef int  Stamp;
@@ -98,21 +105,22 @@ public:
     void _glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer);
 
     void _glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
-    void _glEnableVertexArrayAttrib(GLint location);
-    void _glDisableVertexArrayAttrib(GLint location);
+    void _glEnableVertexAttribArray(GLint location);
+    void _glDisableVertexAttribArray(GLint location);
 
     void _glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 
     void _glMaterialf(GLenum face, GLenum pname, GLfloat param);
     void _glMaterialfv(GLenum face, GLenum pname, const GLfloat *params);
 
+
 protected:
 
     enum Command {
-        COMMAND_DRAW = 0,
-        COMMAND_DRAW_INDEXED,
-        COMMAND_DRAW_INSTANCED,
-        COMMAND_DRAW_INDEXED_INSTANCED,
+        COMMAND_draw = 0,
+        COMMAND_drawIndexed,
+        COMMAND_drawInstanced,
+        COMMAND_drawIndexedInstanced,
         
         COMMAND_SET_PIPE_STATE,
         COMMAND_SET_VIEWPORT,
@@ -167,8 +175,8 @@ protected:
         COMMAND_glVertexPointer,
 
         COMMAND_glVertexAttribPointer,
-        COMMAND_glEnableVertexArrayAttrib,
-        COMMAND_glDisableVertexArrayAttrib,
+        COMMAND_glEnableVertexAttribArray,
+        COMMAND_glDisableVertexAttribArray,
 
         COMMAND_glColor4f,
 
@@ -176,6 +184,10 @@ protected:
         COMMAND_glMaterialfv,
     };
     typedef std::vector<Command> Commands;
+    typedef void (Batch::*CommandCall)(uint32&);
+    typedef std::vector<CommandCall> CommandCalls;
+    typedef std::vector<uint32> CommandOffsets;
+
 
     class Param {
     public:
@@ -184,80 +196,136 @@ protected:
             uint32 _uint;
             float   _float;
             char _chars[4];
-            const void* _constPointer;
             double _double;
         };
         Param(int32 val) : _int(val) {}
         Param(uint32 val) : _uint(val) {}
         Param(float val) : _float(val) {}
-        Param(const void* val) : _constPointer(val) {}
         Param(double val) : _double(val) {}
     };
     typedef std::vector<Param> Params;
 
     class ResourceCache {
     public:
-        Resource* _resource;
+        union {
+            Resource* _resource;
+            const void* _pointer;
+        };
+        ResourceCache(Resource* res) : _resource(res) {}
+        ResourceCache(const void* pointer) : _pointer(pointer) {}
     };
     typedef std::vector<ResourceCache> Resources;
 
+    typedef unsigned char Byte;
+    typedef std::vector<Byte> Bytes;
+
     Commands _commands;
+    CommandCalls _commandCalls;
+    CommandOffsets _commandOffsets;
     Params _params;
     Resources _resources;
+    Bytes _data;
+
+
+    uint32 cacheResource(Resource* res);
+    uint32 cacheResource(const void* pointer);
+    ResourceCache* editResource(uint32 offset) {
+        if (offset >= _resources.size())
+            return 0;
+        return (_resources.data() + offset);
+    }
+
+    uint32 cacheData(uint32 size, const void* data);
+    Byte* editData(uint32 offset) {
+        if (offset >= _data.size())
+            return 0;
+        return (_data.data() + offset);
+    }
+
+    void runCommand(uint32 index) {
+        uint32 offset = _commandOffsets[index];
+        CommandCall call = _commandCalls[index];
+        (this->*(call))(offset);
+        uint32 nextOFfset = offset;
+
+        GLenum error = glGetError();
+        if (error) {
+            error++;
+        }
+    }
+
+    void runLastCommand() {
+        uint32 index = _commands.size() - 1;
+        uint32 offset = _commandOffsets[index];
+       /* CommandCall call = _commandCalls[index];
+        (this->*(call))(offset);
+        uint32 nextOFfset = offset;
+        */
+        runCommand(_commands[index], offset);
+    }
+
+    void runCommand(Command com, uint32 offset);
+
+    void do_draw(uint32& paramOffset) {}
+    void do_drawIndexed(uint32& paramOffset) {}
+    void do_drawInstanced(uint32& paramOffset) {}
+    void do_drawIndexedInstanced(uint32& paramOffset) {}
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    void do_glEnable(int &paramOffset);
-    void do_glDisable(int &paramOffset);
+    void do_glEnable(uint32& paramOffset);
+    void do_glDisable(uint32& paramOffset);
 
-    void do_glEnableClientState(int &paramOffset);
-    void do_glDisableClientState(int &paramOffset);
+    void do_glEnableClientState(uint32& paramOffset);
+    void do_glDisableClientState(uint32& paramOffset);
 
-    void do_glCullFace(int &paramOffset);
-    void do_glAlphaFunc(int &paramOffset);
+    void do_glCullFace(uint32& paramOffset);
+    void do_glAlphaFunc(uint32& paramOffset);
 
-    void do_glDepthFunc(int &paramOffset);
-    void do_glDepthMask(int &paramOffset);
-    void do_glDepthRange(int &paramOffset);
+    void do_glDepthFunc(uint32& paramOffset);
+    void do_glDepthMask(uint32& paramOffset);
+    void do_glDepthRange(uint32& paramOffset);
 
-    void do_glBindBuffer(int &paramOffset);
+    void do_glBindBuffer(uint32& paramOffset);
 
-    void do_glBindTexture(int &paramOffset);
-    void do_glActiveTexture(int &paramOffset);
+    void do_glBindTexture(uint32& paramOffset);
+    void do_glActiveTexture(uint32& paramOffset);
 
-    void do_glDrawBuffers(int &paramOffset);
+    void do_glDrawBuffers(uint32& paramOffset);
 
-    void do_glUseProgram(int &paramOffset);
-    void do_glUniform1f(int &paramOffset);
-    void do_glUniformMatrix4fv(int &paramOffset);
+    void do_glUseProgram(uint32& paramOffset);
+    void do_glUniform1f(uint32& paramOffset);
+    void do_glUniformMatrix4fv(uint32& paramOffset);
 
-    void do_glMatrixMode(int &paramOffset);
-    void do_glPushMatrix(int &paramOffset);
-    void do_glPopMatrix(int &paramOffset);
-    void do_glMultMatrixf(int &paramOffset);
-    void do_glLoadMatrixf(int &paramOffset);
-    void do_glLoadIdentity(int &paramOffset);
-    void do_glRotatef(int &paramOffset);
-    void do_glScalef(int &paramOffset);
-    void do_glTranslatef(int &paramOffset);
+    void do_glMatrixMode(uint32& paramOffset);
+    void do_glPushMatrix(uint32& paramOffset);
+    void do_glPopMatrix(uint32& paramOffset);
+    void do_glMultMatrixf(uint32& paramOffset);
+    void do_glLoadMatrixf(uint32& paramOffset);
+    void do_glLoadIdentity(uint32& paramOffset);
+    void do_glRotatef(uint32& paramOffset);
+    void do_glScalef(uint32& paramOffset);
+    void do_glTranslatef(uint32& paramOffset);
 
-    void do_glDrawArrays(int &paramOffset);
-    void do_glDrawRangeElements(int &paramOffset);
+    void do_glDrawArrays(uint32& paramOffset);
+    void do_glDrawRangeElements(uint32& paramOffset);
 
-    void do_glColorPointer(int &paramOffset);
-    void do_glNormalPointer(int &paramOffset);
-    void do_glTexCoordPointer(int &paramOffset);
-    void do_glVertexPointer(int &paramOffset);
+    void do_glColorPointer(uint32& paramOffset);
+    void do_glNormalPointer(uint32& paramOffset);
+    void do_glTexCoordPointer(uint32& paramOffset);
+    void do_glVertexPointer(uint32& paramOffset);
 
-    void do_glVertexAttribPointer(int &paramOffset);
-    void do_glEnableVertexArrayAttrib(int &paramOffset);
-    void do_glDisableVertexArrayAttrib(int &paramOffset);
+    void do_glVertexAttribPointer(uint32& paramOffset);
+    void do_glEnableVertexAttribArray(uint32& paramOffset);
+    void do_glDisableVertexAttribArray(uint32& paramOffset);
 
-    void do_glColor4f(int &paramOffset);
+    void do_glColor4f(uint32& paramOffset);
 
-    void do_glMaterialf(int &paramOffset);
-    void do_glMaterialfv(int &paramOffset);
+    void do_glMaterialf(uint32& paramOffset);
+    void do_glMaterialfv(uint32& paramOffset);
+
+    friend void backend::renderBatch(Batch& batch);
 };
 
 };
