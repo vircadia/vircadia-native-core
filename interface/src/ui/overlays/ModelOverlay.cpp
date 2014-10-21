@@ -102,6 +102,16 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
         }
         _updateModel = true;
     }
+    
+    QScriptValue texturesValue = properties.property("textures");
+    if (texturesValue.isValid()) {
+        QVariantMap textureMap = texturesValue.toVariant().toMap();
+        foreach(const QString& key, textureMap.keys()) {
+            QUrl newTextureURL = textureMap[key].toUrl();
+            qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
+            _model.setTextureWithNameToURL(key, newTextureURL);
+        }
+    }
 
     if (properties.property("position").isValid()) {
         _updateModel = true;
