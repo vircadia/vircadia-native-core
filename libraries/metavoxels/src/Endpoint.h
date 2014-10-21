@@ -32,7 +32,7 @@ public:
         PacketRecord* baselineReceiveRecord = NULL);
     virtual ~Endpoint();
     
-    const DatagramSequencer& getSequencer() const { return _sequencer; }
+    DatagramSequencer& getSequencer() { return _sequencer; }
     
     virtual void update();
     

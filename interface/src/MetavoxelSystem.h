@@ -31,11 +31,24 @@ class MetavoxelSystem : public MetavoxelClientManager {
 
 public:
 
+    class NetworkSimulation {
+    public:
+        float dropRate;
+        float repeatRate;
+        int minimumDelay;
+        int maximumDelay;
+        
+        NetworkSimulation(float dropRate = 0.0f, float repeatRate = 0.0f, int minimumDelay = 0, int maximumDelay = 0);
+    };
+
     virtual void init();
 
     virtual MetavoxelLOD getLOD();
 
     const Frustum& getFrustum() const { return _frustum; }
+    
+    void setNetworkSimulation(const NetworkSimulation& simulation);
+    NetworkSimulation getNetworkSimulation();
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
@@ -93,6 +106,9 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
+    
+    NetworkSimulation _networkSimulation;
+    QReadWriteLock _networkSimulationLock;
 };
 
 /// Generic abstract base class for objects that handle a signal.

@@ -78,6 +78,7 @@ class AttachmentsDialog;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
+class MetavoxelNetworkSimulator;
 class ChatWindow;
 class OctreeStatsDialog;
 class MenuItemProperties;
@@ -218,6 +219,7 @@ private slots:
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showMetavoxelNetworkSimulator();
     void showScriptEditor();
     void showChat();
     void toggleConsole();
@@ -274,6 +276,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     QDialog* _jsConsole;
@@ -430,6 +433,7 @@ namespace MenuOption {
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";
     const QString NameLocation = "Name this location";
+    const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString OctreeStats = "Voxel and Entity Statistics";
