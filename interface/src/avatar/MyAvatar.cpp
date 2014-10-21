@@ -296,6 +296,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     } else if (OculusManager::isConnected()) {
         estimatedPosition = OculusManager::getRelativePosition();
         estimatedPosition.x *= -1.0f;
+        _trackedHeadPosition = estimatedPosition;
         
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
@@ -303,6 +304,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {
             estimatedPosition = tracker->getHeadTranslation();
+            _trackedHeadPosition = estimatedPosition;
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
         }
     }
