@@ -107,6 +107,7 @@ hifi_library_search_hints("sdl2")
 
 FIND_PATH(SDL2_INCLUDE_DIR SDL.h
 	HINTS
+	${SDL2_SEARCH_DIRS}
 	$ENV{SDL2}
 	PATH_SUFFIXES include/SDL2 include SDL2
 	i686-w64-mingw32/include/SDL2
@@ -120,13 +121,13 @@ FIND_PATH(SDL2_INCLUDE_DIR SDL.h
 	/opt/local # DarwinPorts
 	/opt/csw # Blastwave
 	/opt
-	${SDL2_SEARCH_DIRS}
 )
 
 # Lookup the 64 bit libs on x64
 IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	FIND_LIBRARY(SDL2_LIBRARY_TEMP SDL2
 		HINTS
+		${SDL2_SEARCH_DIRS}
 		$ENV{SDL2}
 		PATH_SUFFIXES lib64 lib
 		lib/x64
@@ -136,12 +137,12 @@ IF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		/opt/local
 		/opt/csw
 		/opt
-		${SDL2_SEARCH_DIRS}
 	)
 # On 32bit build find the 32bit libs
 ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	FIND_LIBRARY(SDL2_LIBRARY_TEMP SDL2
 		HINTS
+		${SDL2_SEARCH_DIRS}
 		$ENV{SDL2}
 		PATH_SUFFIXES lib
 		lib/x86
@@ -151,7 +152,6 @@ ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
 		/opt/local
 		/opt/csw
 		/opt
-		${SDL2_SEARCH_DIRS}
 	)
 ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 
@@ -166,6 +166,7 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 			FIND_LIBRARY(SDL2MAIN_LIBRARY
 				NAMES SDL2main
 				HINTS
+				${SDL2_SEARCH_DIRS}
 				$ENV{SDL2}
 				PATH_SUFFIXES lib64 lib
 				lib/x64
@@ -175,13 +176,13 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 				/opt/local
 				/opt/csw
 				/opt
-				${SDL2_SEARCH_DIRS}
 				)
 			# On 32bit build find the 32bit libs
 		ELSE(CMAKE_SIZEOF_VOID_P EQUAL 8)
 			FIND_LIBRARY(SDL2MAIN_LIBRARY
 				NAMES SDL2main
 				HINTS
+				${SDL2_SEARCH_DIRS}
 				$ENV{SDL2}
 				PATH_SUFFIXES lib
 				lib/x86
@@ -191,7 +192,6 @@ IF(NOT SDL2_BUILDING_LIBRARY)
 				/opt/local
 				/opt/csw
 				/opt
-				${SDL2_SEARCH_DIRS}
 				)
 		ENDIF(CMAKE_SIZEOF_VOID_P EQUAL 8)
 	ENDIF(NOT ${SDL2_INCLUDE_DIR} MATCHES ".framework")
