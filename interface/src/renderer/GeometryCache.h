@@ -107,6 +107,8 @@ public:
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
+    void setTextureWithNameToURL(const QString& name, const QUrl& url);
+    
 protected:
 
     virtual void init();

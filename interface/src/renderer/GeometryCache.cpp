@@ -613,6 +613,24 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
     }
 }
 
+void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
+    for (int i = 0; i < _meshes.size(); i++) {
+        NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            NetworkMeshPart& part = mesh.parts[j];
+            
+            QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
+            if (part.diffuseTexture->getName() == name) {
+                part.diffuseTexture =
+                    Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                        _geometry.meshes[i].isEye, QByteArray());
+                part.diffuseTexture->setName(name);
+                part.diffuseTexture->setLoadPriorities(_loadPriorities);
+            }
+        }
+    }
+}
+
 /// Reads geometry in a worker thread.
 class GeometryReader : public QRunnable {
 public:
