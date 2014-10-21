@@ -134,7 +134,6 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = new TextOverlay();
     } else if (type == "text3d") {
         thisOverlay = new Text3DOverlay();
-qDebug() << "created Text3DOverlay:" << thisOverlay;
     } else if (type == "cube") {
         thisOverlay = new Cube3DOverlay();
     } else if (type == "sphere") {
