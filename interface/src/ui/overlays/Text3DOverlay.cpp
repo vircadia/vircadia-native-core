@@ -109,32 +109,23 @@ void Text3DOverlay::render() {
                                  (dimensions.y - (_topMargin + _bottomMargin)) / scaleFactor);
 
         glScalef(scaleFactor, -scaleFactor, 1.0);
-        int x = 0;
-        int y = 0;
-        
-        bool wantClipping = true;
-
-        if (wantClipping) {
-            enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
-            enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
-            enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
-            enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
-        }
+        enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipDimensions.x);
+        enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
+        enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipDimensions.y);
+        enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {
-            textRenderer->draw(x, y + lineOffset, qPrintable(thisLine));
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine));
             lineOffset += maxHeight;
         }
 
-        if (wantClipping) {
-            glDisable(GL_CLIP_PLANE0);
-            glDisable(GL_CLIP_PLANE1);
-            glDisable(GL_CLIP_PLANE2);
-            glDisable(GL_CLIP_PLANE3);
-        }
+        glDisable(GL_CLIP_PLANE0);
+        glDisable(GL_CLIP_PLANE1);
+        glDisable(GL_CLIP_PLANE2);
+        glDisable(GL_CLIP_PLANE3);
         
     } glPopMatrix();
     
