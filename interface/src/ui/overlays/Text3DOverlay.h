@@ -14,18 +14,7 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
-#include <QImage>
-#include <QNetworkReply>
-#include <QRect>
-#include <QScriptValue>
 #include <QString>
-#include <QUrl>
-
-#include <SharedUtil.h>
-
-//#include "Overlay.h"
-//#include "Overlay3D.h"
 #include "Planar3DOverlay.h"
 
 class Text3DOverlay : public Planar3DOverlay {

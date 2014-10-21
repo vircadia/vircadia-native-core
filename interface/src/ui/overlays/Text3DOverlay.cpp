@@ -11,9 +11,6 @@
 // include this before QGLWidget, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
-#include <QGLWidget>
-#include <SharedUtil.h>
-
 #include "Application.h"
 #include "Text3DOverlay.h"
 #include "ui/TextRenderer.h"
@@ -90,9 +87,6 @@ void Text3DOverlay::render() {
             glVertex3f(-halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
         glEnd();
         
-        //TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
-        //             EffectType effect = NO_EFFECT, int effectThickness = 1);
-
         const int FIXED_FONT_POINT_SIZE = 40;
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
