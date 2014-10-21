@@ -145,6 +145,9 @@ public:
 
     /// Returns the lazily-computed average texture color.
     const QColor& getAverageColor() const { return _averageColor; }
+    
+    const QString& getName() const  { return _name; }
+    void setName(const QString& name) { _name = name; }
 
 protected:
 
@@ -156,7 +159,7 @@ protected:
     virtual void imageLoaded(const QImage& image);
 
 private:
-
+    QString _name;
     TextureType _type;
     bool _translucent;
     QColor _averageColor;

@@ -136,7 +136,7 @@ private:
 
 /// The state associated with a single mesh part.
 class NetworkMeshPart {
-public:
+public: 
     
     QSharedPointer<NetworkTexture> diffuseTexture;
     QSharedPointer<NetworkTexture> normalTexture;

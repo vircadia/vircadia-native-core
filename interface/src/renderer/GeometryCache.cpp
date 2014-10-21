@@ -405,6 +405,7 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
 }
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
+    qDebug() << "Getting a resource at" << url;
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
@@ -727,18 +728,21 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.diffuseTexture.filename)), DEFAULT_TEXTURE,
                     mesh.isEye, part.diffuseTexture.content);
+                networkPart.diffuseTexture->setName(part.diffuseTexture.name);
                 networkPart.diffuseTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.normalTexture.filename.isEmpty()) {
                 networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.normalTexture.filename)), NORMAL_TEXTURE,
                     false, part.normalTexture.content);
+                networkPart.normalTexture->setName(part.normalTexture.name);
                 networkPart.normalTexture->setLoadPriorities(_loadPriorities);
             }
             if (!part.specularTexture.filename.isEmpty()) {
                 networkPart.specularTexture = Application::getInstance()->getTextureCache()->getTexture(
                     _textureBase.resolved(QUrl(part.specularTexture.filename)), SPECULAR_TEXTURE,
                     false, part.specularTexture.content);
+                networkPart.specularTexture->setName(part.specularTexture.name);
                 networkPart.specularTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);
