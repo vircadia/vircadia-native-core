@@ -26,7 +26,7 @@ const int HAIR_CONSTRAINTS = 2;
 const int DEFAULT_HAIR_STRANDS = 20;
 const int DEFAULT_HAIR_LINKS = 10;
 const float DEFAULT_HAIR_RADIUS = 0.15f;
-const float DEFAULT_HAIR_LINK_LENGTH = 0.04f;
+const float DEFAULT_HAIR_LINK_LENGTH = 0.06f;
 const float DEFAULT_HAIR_THICKNESS = 0.025f;
 
 class Hair {
