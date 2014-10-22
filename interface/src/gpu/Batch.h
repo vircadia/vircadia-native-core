@@ -49,10 +49,10 @@ public:
 
     void clear();
 
-    void draw( Primitive primitiveType, int nbVertices, int startVertex = 0);
-    void drawIndexed( Primitive primitiveType, int nbIndices, int startIndex = 0 );
-    void drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex = 0, int startInstance = 0);
-    void drawIndexedInstanced( uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex = 0, int startInstance = 0);
+    void draw(Primitive primitiveType, int nbVertices, int startVertex = 0);
+    void drawIndexed(Primitive primitiveType, int nbIndices, int startIndex = 0);
+    void drawInstanced(uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex = 0, int startInstance = 0);
+    void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex = 0, int startInstance = 0);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

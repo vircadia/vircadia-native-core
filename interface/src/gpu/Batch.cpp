@@ -111,7 +111,7 @@ void Batch::runCommand(Command com, uint32 offset) {
     }
 }
 
-void Batch::draw( Primitive primitiveType, int nbVertices, int startVertex) {
+void Batch::draw(Primitive primitiveType, int nbVertices, int startVertex) {
     ADD_COMMAND(draw);
 
     _params.push_back(startVertex);
@@ -119,7 +119,7 @@ void Batch::draw( Primitive primitiveType, int nbVertices, int startVertex) {
     _params.push_back(primitiveType);
 }
 
-void Batch::drawIndexed( Primitive primitiveType, int nbIndices, int startIndex) {
+void Batch::drawIndexed(Primitive primitiveType, int nbIndices, int startIndex) {
     ADD_COMMAND(drawIndexed);
 
     _params.push_back(startIndex);
@@ -127,7 +127,7 @@ void Batch::drawIndexed( Primitive primitiveType, int nbIndices, int startIndex)
     _params.push_back(primitiveType);
 }
 
-void Batch::drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex, int startInstance) {
+void Batch::drawInstanced(uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex, int startInstance) {
     ADD_COMMAND(drawInstanced);
 
     _params.push_back(startInstance);
@@ -137,7 +137,7 @@ void Batch::drawInstanced( uint32 nbInstances, Primitive primitiveType, int nbVe
     _params.push_back(nbInstances);
 }
 
-void Batch::drawIndexedInstanced( uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex, int startInstance) {
+void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex, int startInstance) {
     ADD_COMMAND(drawIndexedInstanced);
 
     _params.push_back(startInstance);
