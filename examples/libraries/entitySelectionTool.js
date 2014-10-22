@@ -927,7 +927,7 @@ SelectionDisplay = (function () {
     };
 
     that.updateHandles = function(entityID) {
-        if (!entitySelected) {
+        if (SelectionManager.selections.length == 0) {
             that.setOverlaysVisible(false);
             return;
         }
