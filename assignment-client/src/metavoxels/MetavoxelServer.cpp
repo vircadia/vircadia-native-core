@@ -237,8 +237,7 @@ void MetavoxelSession::update() {
         
         // go back to the beginning with the current packet and note that there's a delta pending
         _sequencer.getOutputStream().getUnderlying().device()->seek(start);
-        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID, sendRecord->getPacketNumber(),
-            _sequencer.getIncomingPacketNumber() };
+        MetavoxelDeltaPendingMessage msg = { ++_reliableDeltaID, sendRecord->getPacketNumber(), _lodPacketNumber };
         out << (_reliableDeltaMessage = QVariant::fromValue(msg));
         _sequencer.endPacket();
         
@@ -265,7 +264,8 @@ void MetavoxelSession::handleMessage(const QVariant& message) {
     if (userType == ClientStateMessage::Type) {
         ClientStateMessage state = message.value<ClientStateMessage>();
         _lod = state.lod;
-    
+        _lodPacketNumber = _sequencer.getIncomingPacketNumber();
+        
     } else if (userType == MetavoxelEditMessage::Type) {
         QMetaObject::invokeMethod(_sender->getServer(), "applyEdit", Q_ARG(const MetavoxelEditMessage&,
             message.value<MetavoxelEditMessage>()));
