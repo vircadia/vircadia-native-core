@@ -732,7 +732,8 @@ void AudioMixer::run() {
 
                         // Pack stream properties
                         for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
-                            glm::vec3 streamPosition = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream()->getPosition();
+                            AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
+                            glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
                             if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
                                 bool hasReverb = true;
                                 float reverbTime = _zoneReverbSettings[i].reverbTime;
@@ -750,7 +751,6 @@ void AudioMixer::run() {
                                 dataAt += sizeof(bool);
                             }
                         }
-                        
                         
                         // pack mixed audio samples
                         memcpy(dataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
@@ -1076,7 +1076,6 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                     float wetLevel = reverbObject.value(WET_LEVEL).toString().toFloat(&okWetLevel);
                     
                     if (okReverbTime && okWetLevel && _audioZones.contains(zone)) {
-                        
                         ReverbSettings settings;
                         settings.zone = zone;
                         settings.reverbTime = reverbTime;

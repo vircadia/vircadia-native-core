@@ -544,15 +544,11 @@ void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioF
         for (unsigned int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
-                int lResult = (int)(samplesData[j] * dryFraction + lValue * wetFraction);
-                if (lResult > 32767) lResult = 32767;
-                if (lResult < -32768) lResult = -32768;
+                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction), -32768, 32767);
                 samplesData[j] = (int16_t)lResult;
             } else if (j == (sample + 1)) {
                 // right channel
-                int rResult = (int)(samplesData[j] * dryFraction + rValue * wetFraction);
-                if (rResult > 32767) rResult = 32767;
-                if (rResult < -32768) rResult = -32768;
+                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction), -32768, 32767);
                 samplesData[j] = (int16_t)rResult;
             } else {
                 // ignore channels above 2
