@@ -624,8 +624,8 @@ SelectionDisplay = (function () {
             
         }
 
-        var diagonal = (Vec3.length(properties.dimensions) / 2) * 1.1;
-        var halfDimensions = Vec3.multiply(properties.dimensions, 0.5);
+        var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
+        var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
         innerRadius = diagonal;
         outerRadius = diagonal * 1.15;
         var innerActive = false;
