@@ -12,6 +12,8 @@
 #include <QtGlobal>
 #include <QDebug>
 
+#include <sphelper.h>
+
 #include "SpeechRecognizer.h"
 
 #ifdef Q_OS_WIN
@@ -21,6 +23,7 @@ SpeechRecognizer::SpeechRecognizer() :
     _enabled(false),
     _commands(),
     _comInitialized(false),
+    _speechRecognizer(NULL),
     _speechRecognizerContext(NULL),
     _speechRecognizerGrammar(NULL),
     _commandRecognizedEvent(NULL),
@@ -43,6 +46,7 @@ SpeechRecognizer::~SpeechRecognizer() {
 
     if (_enabled) {
         _speechRecognizerContext.Release();
+        _speechRecognizer.Release();
     }
 
     if (_comInitialized) {
@@ -65,9 +69,27 @@ void SpeechRecognizer::setEnabled(bool enabled) {
 
         HRESULT hr = S_OK;
 
-        // Create a shared recognizer.
+        // Set up dedicated recognizer instead of using shared Windows recognizer.
+        // - By default, shared recognizer's commands like "move left" override any added here.
+        // - Unless do SetGrammarState(SPGS_EXCLUSIVE) on shared recognizer but then non-Interface commands don't work at all.
+        // - With dedicated recognizer, user can choose whether to have Windows recognizer running in addition to Interface's.
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizerContext.CoCreateInstance(CLSID_SpSharedRecoContext);
+            hr = _speechRecognizer.CoCreateInstance(CLSID_SpInprocRecognizer);
+        }
+        if (SUCCEEDED(hr))
+        {
+            CComPtr<ISpObjectToken> cpAudioToken;
+            hr = SpGetDefaultTokenFromCategoryId(SPCAT_AUDIOIN, &cpAudioToken);
+            if (SUCCEEDED(hr))
+            {
+                hr = _speechRecognizer->SetInput(cpAudioToken, TRUE);
+            }
+        }
+        if (SUCCEEDED(hr)) {
+            hr = _speechRecognizer->CreateRecoContext(&_speechRecognizerContext);
+            if (FAILED(hr)) {
+                _speechRecognizer.Release();
+            }
         }
 
         // Set up event notification mechanism.
@@ -99,9 +121,13 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         
         _enabled = SUCCEEDED(hr);
 
+        qDebug() << "Speech recognition" << (_enabled ? "enabled" : "enable failed");
+
     } else {
         _commandRecognizedNotifier->setEnabled(false);
         _speechRecognizerContext.Release();
+        _speechRecognizer.Release();
+        qDebug() << "Speech recognition disabled";
     }
 
     emit enabledUpdated(_enabled);
