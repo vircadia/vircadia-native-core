@@ -21,6 +21,7 @@
 #include "AvatarData.h"
 
 typedef QSharedPointer<AvatarData> AvatarSharedPointer;
+typedef QWeakPointer<AvatarData> AvatarWeakPointer;
 typedef QHash<QUuid, AvatarSharedPointer> AvatarHash;
 
 class AvatarHashMap : public QObject {
@@ -34,6 +35,7 @@ public:
 public slots:
     void processAvatarMixerDatagram(const QByteArray& datagram, const QWeakPointer<Node>& mixerWeakPointer);
     bool containsAvatarWithDisplayName(const QString& displayName);
+    AvatarData* avatarWithDisplayName(const QString& displayname);
     
 private slots:
     void sessionUUIDChanged(const QUuid& sessionUUID, const QUuid& oldUUID);
