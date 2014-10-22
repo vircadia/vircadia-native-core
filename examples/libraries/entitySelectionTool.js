@@ -78,6 +78,8 @@ SelectionManager = (function() {
             that.worldDimensions = null;
             that.worldPosition = null;
         } else if (that.selections.length == 1) {
+            SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+
             var properties = Entities.getEntityProperties(that.selections[0]);
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
