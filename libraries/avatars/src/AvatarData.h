@@ -381,6 +381,8 @@ private:
     AvatarData& operator= (const AvatarData&);
 };
 
+Q_DECLARE_METATYPE(AvatarData*)
+
 class JointData {
 public:
     bool valid;

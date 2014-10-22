@@ -21,6 +21,7 @@ AvatarHashMap::AvatarHashMap() :
     connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
+
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
     qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
     return _avatarHash.erase(iterator);
@@ -53,7 +54,10 @@ void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const
 }
 
 bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
-    
+    return avatarWithDisplayName(displayName) == NULL ? false : true;
+}
+
+AvatarData* AvatarHashMap::avatarWithDisplayName(const QString& displayName) {
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
         AvatarSharedPointer sharedAvatar = avatarIterator.value();
@@ -62,7 +66,7 @@ bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
             // check if this avatar should still be around
             if (!shouldKillAvatar(sharedAvatar)) {
                 // we have a match, return true
-                return true;
+                return sharedAvatar.data();
             } else {
                 // we should remove this avatar, do that now
                 erase(avatarIterator);
@@ -75,7 +79,7 @@ bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
     }
     
     // return false, no match
-    return false;
+    return NULL;
 }
 
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
