@@ -35,7 +35,7 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 Script.include("libraries/entityCameraTool.js");
 var entityCameraTool = new EntityCameraTool();
 
-selectionManager.setEventListener(selectionDisplay.updateHandles());
+selectionManager.setEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";

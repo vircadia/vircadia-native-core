@@ -845,7 +845,7 @@ SelectionDisplay = (function () {
 
         Overlays.editOverlay(grabberMoveUp, { visible: translateHandlesVisible, position: { x: boundsCenter.x, y: top + grabberMoveUpOffset, z: boundsCenter.z } });
 
-        that.updateHandles(entityID);
+        that.updateHandles();
 
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, 
@@ -926,18 +926,17 @@ SelectionDisplay = (function () {
         entitySelected = false;
     };
 
-    that.updateHandles = function(entityID) {
+    that.updateHandles = function() {
+        // print("Updating handles");
         if (SelectionManager.selections.length == 0) {
             that.setOverlaysVisible(false);
             return;
         }
 
-        var properties = Entities.getEntityProperties(entityID);
-
         var rotation, dimensions, position;
 
         if (spaceMode == SPACE_LOCAL) {
-            rotation = properties.rotation;
+            rotation = SelectionManager.localRotation;
             dimensions = SelectionManager.localDimensions;
             position = SelectionManager.localPosition;
         } else {
@@ -1097,6 +1096,44 @@ SelectionDisplay = (function () {
         entitySelected = false;
     };
 
+    function applyEntityProperties(data) {
+        for (var i = 0; i < data.length; i++) {
+            var entityID = data[i].entityID;
+            var properties = data[i].properties;
+            Entities.editEntity(entityID, properties);
+        }
+        selectionManager._update();
+    };
+
+    // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
+    // redo command, and the saved properties for the undo command.
+    function pushCommandForSelections() {
+        var undoData = [];
+        var redoData = [];
+        for (var i = 0; i < SelectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            var initialProperties = SelectionManager.savedProperties[entityID.id];
+            var currentProperties = Entities.getEntityProperties(entityID);
+            undoData.push({
+                entityID: entityID,
+                properties: {
+                    position: initialProperties.position,
+                    rotation: initialProperties.rotation,
+                    dimensions: initialProperties.dimensions,
+                },
+            });
+            redoData.push({
+                entityID: entityID,
+                properties: {
+                    position: currentProperties.position,
+                    rotation: currentProperties.rotation,
+                    dimensions: currentProperties.dimensions,
+                },
+            });
+        }
+        UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
+    }
+
     var lastXZPick = null;
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
@@ -1116,6 +1153,8 @@ SelectionDisplay = (function () {
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
                     Entities.editEntity(entityID, initialProperties);
                 }
+            } else {
+                pushCommandForSelections();
             }
         },
         onMove: function(event) {
@@ -1174,6 +1213,8 @@ SelectionDisplay = (function () {
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
                     Entities.editEntity(entityID, initialProperties);
                 }
+            } else {
+                pushCommandForSelections();
             }
         },
         onMove: function(event) {
@@ -1336,6 +1377,8 @@ SelectionDisplay = (function () {
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
                     Entities.editEntity(entityID, initialProperties);
                 }
+            } else {
+                pushCommandForSelections();
             }
         };
 
@@ -1498,6 +1541,8 @@ SelectionDisplay = (function () {
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
                     Entities.editEntity(entityID, initialProperties);
                 }
+            } else {
+                pushCommandForSelections();
             }
         },
         onMove: function(event) {
@@ -1604,6 +1649,8 @@ SelectionDisplay = (function () {
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
                     Entities.editEntity(entityID, initialProperties);
                 }
+            } else {
+                pushCommandForSelections();
             }
         },
         onMove: function(event) {
@@ -1708,6 +1755,8 @@ SelectionDisplay = (function () {
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
                     Entities.editEntity(entityID, initialProperties);
                 }
+            } else {
+                pushCommandForSelections();
             }
         },
         onMove: function(event) {
