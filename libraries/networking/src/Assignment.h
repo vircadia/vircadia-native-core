@@ -30,7 +30,7 @@ public:
         AvatarMixerType,
         AgentType,
         VoxelServerType,
-        ParticleServerType,
+        UNUSED,
         MetavoxelServerType,
         EntityServerType,
         AllTypes

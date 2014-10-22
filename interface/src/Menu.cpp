@@ -45,6 +45,7 @@
 #include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
+#include "ui/MetavoxelNetworkSimulator.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
@@ -298,8 +299,6 @@ Menu::Menu() :
             0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithVoxels,
             0, false, avatar, SLOT(updateCollisionGroups()));
-    addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithParticles,
-            0, true, avatar, SLOT(updateCollisionGroups()));
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideWithEnvironment,
             0, false, avatar, SLOT(updateCollisionGroups()));
 
@@ -346,9 +345,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersEntityNodes,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_2, false,
                                            &nodeBounds, SLOT(setShowEntityNodes(bool)));
-    addCheckableActionToQMenuAndActionHash(nodeBordersMenu, MenuOption::ShowBordersParticleNodes,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_3, false,
-                                           &nodeBounds, SLOT(setShowParticleNodes(bool)));
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
@@ -370,7 +366,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Particles, 0, true);
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
@@ -437,6 +432,8 @@ Menu::Menu() :
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
+    addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
+        SLOT(showMetavoxelNetworkSimulator()));
     
     QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
@@ -1382,6 +1379,13 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
+}
+
+void Menu::showMetavoxelNetworkSimulator() {
+    if (!_metavoxelNetworkSimulator) {
+        _metavoxelNetworkSimulator = new MetavoxelNetworkSimulator();
+    }
+    _metavoxelNetworkSimulator->raise();
 }
 
 void Menu::showScriptEditor() {

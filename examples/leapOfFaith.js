@@ -10,9 +10,6 @@
 //
 
 
-
-
-
 var jointList = MyAvatar.getJointNames();
 var jointMappings = "\n# Joint list start";
 for (var i = 0; i < jointList.length; i++) {
@@ -66,24 +63,25 @@ function controlerToSkeletonOri( jointName, isRightSide, event ) {
 }
 
 
-var jointParticles = [];
-function updateJointParticle( joint, pos, ori, look ) {
+var jointShperes = [];
+function updateJointShpere( joint, pos, ori, look ) {
  /*   print( "debug 1" );
-    var jointID = jointParticles[ joint ];
+    var jointID = jointShperes[ joint ];
     if ( jointID == null ) {
         print( "debug create " + joint );
 */
         var radius = 0.005* look.r;
         var ballProperties = {
+            type: "Sphere",
             position: pos,
             velocity: { x: 0, y: 0, z: 0},
             gravity: { x: 0, y: 0, z: 0 },
             damping: 0, 
-            radius : radius,
+            dimensions: { x: radius, y: radius, z: radius },
             color: look.c,
             lifetime: 0.05
         };
-        var atomPos = Particles.addParticle(ballProperties);
+        var atomPos = Entities.addEntity(ballProperties);
  
 /*        // Zaxis
         var Zaxis = Vec3.multiply( Quat.getFront( ori ), - 1.5 * radius ) ;
@@ -91,31 +89,31 @@ function updateJointParticle( joint, pos, ori, look ) {
         ballProperties.radius = 0.35* radius;
         ballProperties.color= { red: 255, green: 255, blue: 255 };
 
-        var atomZ = Particles.addParticle(ballProperties);
+        var atomZ = Entities.addEntity(ballProperties);
 
         var up = Vec3.multiply( Quat.getUp( ori ), 1.5 * radius ) ;
         ballProperties.position = Vec3.sum(pos, up) ;
-        ballProperties.radius = 0.35* radius;
+        ballProperties.dimensions = { x: 0.35* radius, y: 0.35* radius, z: 0.35* radius };
         ballProperties.color= { red: 0, green: 255, blue: 0 };
 
-        var atomY = Particles.addParticle(ballProperties);
+        var atomY = Entities.addEntity(ballProperties);
 
        var right = Vec3.multiply( Quat.getRight( ori ), 1.5 * radius ) ;
         ballProperties.position = Vec3.sum(pos, right) ;
-        ballProperties.radius = 0.35* radius;
+        ballProperties.dimensions = { x: 0.35* radius, y: 0.35* radius, z: 0.35* radius };
         ballProperties.color= { red: 255, green: 0, blue: 225 };
 
-        var atomX = Particles.addParticle(ballProperties);
+        var atomX = Entities.addEntity(ballProperties);
 */
-    //    jointParticles[ joint ] = { p: atomPos, x: atomX, y: atomY, z: atomZ };
+    //    jointShperes[ joint ] = { p: atomPos, x: atomX, y: atomY, z: atomZ };
 /*
     } else {
         //print( "debug update " + joint );
 
-        var p = Particles.getParticleProperties( jointID.p );
+        var p = Entities.getEntityProperties( jointID.p );
         p.position = pos;
        // p.lifetime = 1.0;
-        Particles.editParticle( jointID.p, p );
+        Entities.editEntity( jointID.p, p );
 
 
     }*/
@@ -212,7 +210,7 @@ function onSpatialEventHandler( jointName, look ) {
         // MyAvatar.setJointRotationFromBindSpace(_jointName, controlerToSkeletonOri( _jointName, _side, spatialEvent ));
 
 
-        updateJointParticle(_jointName,
+        updateJointShpere(_jointName,
             avatarToWorldPos( spatialEvent.absTranslation ),
             avatarToWorldQuat( spatialEvent.absRotation ),
             _look );       

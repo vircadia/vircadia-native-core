@@ -41,8 +41,8 @@ const QString mentionRegex("@(\\b%1\\b)");
 ChatWindow::ChatWindow(QWidget* parent) :
     QWidget(parent, Qt::Window | Qt::CustomizeWindowHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint |
             Qt::WindowCloseButtonHint),
-    ui(new Ui::ChatWindow),
-    numMessagesAfterLastTimeStamp(0),
+    _ui(new Ui::ChatWindow),
+    _numMessagesAfterLastTimeStamp(0),
     _mousePressed(false),
     _mouseStartPosition(),
     _trayIcon(parent),
@@ -50,15 +50,15 @@ ChatWindow::ChatWindow(QWidget* parent) :
 {
     setAttribute(Qt::WA_DeleteOnClose, false);
 
-    ui->setupUi(this);
+    _ui->setupUi(this);
 
     FlowLayout* flowLayout = new FlowLayout(0, 4, 4);
-    ui->usersWidget->setLayout(flowLayout);
+    _ui->usersWidget->setLayout(flowLayout);
 
-    ui->messagePlainTextEdit->installEventFilter(this);
-    ui->messagePlainTextEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    _ui->messagePlainTextEdit->installEventFilter(this);
+    _ui->messagePlainTextEdit->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
 
-    QTextCursor cursor(ui->messagePlainTextEdit->textCursor());
+    QTextCursor cursor(_ui->messagePlainTextEdit->textCursor());
 
     cursor.movePosition(QTextCursor::Start);
 
@@ -67,10 +67,10 @@ ChatWindow::ChatWindow(QWidget* parent) :
 
     cursor.setBlockFormat(format);
 
-    ui->messagePlainTextEdit->setTextCursor(cursor);
+    _ui->messagePlainTextEdit->setTextCursor(cursor);
 
     if (!AccountManager::getInstance().isLoggedIn()) {
-        ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
+        _ui->connectingToXMPPLabel->setText(tr("You must be logged in to chat with others."));
     }
 
 #ifdef HAVE_QXMPP
@@ -79,13 +79,13 @@ ChatWindow::ChatWindow(QWidget* parent) :
         participantsChanged();
         const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
         connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
-        ui->connectingToXMPPLabel->hide();
+        _ui->connectingToXMPPLabel->hide();
         startTimerForTimeStamps();
     } else {
-        ui->numOnlineLabel->hide();
-        ui->usersArea->hide();
-        ui->messagesScrollArea->hide();
-        ui->messagePlainTextEdit->hide();
+        _ui->numOnlineLabel->hide();
+        _ui->usersArea->hide();
+        _ui->messagesScrollArea->hide();
+        _ui->messagePlainTextEdit->hide();
         connect(&XmppClient::getInstance(), SIGNAL(joinedPublicChatRoom()), this, SLOT(connected()));
     }
     connect(&xmppClient, SIGNAL(messageReceived(QXmppMessage)), this, SLOT(messageReceived(QXmppMessage)));
@@ -106,7 +106,7 @@ ChatWindow::~ChatWindow() {
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     disconnect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
 #endif // HAVE_QXMPP
-    delete ui;
+    delete _ui;
 }
 
 void ChatWindow::keyPressEvent(QKeyEvent* event) {
@@ -122,7 +122,7 @@ void ChatWindow::showEvent(QShowEvent* event) {
     QWidget::showEvent(event);
 
     if (!event->spontaneous()) {
-        ui->messagePlainTextEdit->setFocus();
+        _ui->messagePlainTextEdit->setFocus();
     }
     const QRect parentGeometry = parentWidget()->geometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
@@ -145,14 +145,14 @@ void ChatWindow::showEvent(QShowEvent* event) {
 }
 
 bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
-    if (sender == ui->messagePlainTextEdit) {
+    if (sender == _ui->messagePlainTextEdit) {
         if (event->type() != QEvent::KeyPress) {
             return false;
         }
         QKeyEvent* keyEvent = static_cast<QKeyEvent*>(event);
         if ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) &&
             (keyEvent->modifiers() & Qt::ShiftModifier) == 0) {
-            QString messageText = ui->messagePlainTextEdit->document()->toPlainText().trimmed();
+            QString messageText = _ui->messagePlainTextEdit->document()->toPlainText().trimmed();
             if (!messageText.isEmpty()) {
 #ifdef HAVE_QXMPP
                 const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
@@ -162,7 +162,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
                 message.setBody(messageText);
                 XmppClient::getInstance().getXMPPClient().sendPacket(message);
 #endif // HAVE_QXMPP
-                QTextCursor cursor = ui->messagePlainTextEdit->textCursor();
+                QTextCursor cursor = _ui->messagePlainTextEdit->textCursor();
                 cursor.select(QTextCursor::Document);
                 cursor.removeSelectedText();
             }
@@ -179,7 +179,7 @@ bool ChatWindow::eventFilter(QObject* sender, QEvent* event) {
 }
 
 void ChatWindow::addTimeStamp() {
-    QTimeSpan timePassed = QDateTime::currentDateTime() - lastMessageStamp;
+    QTimeSpan timePassed = QDateTime::currentDateTime() - _lastMessageStamp;
     int times[] = { timePassed.daysPart(), timePassed.hoursPart(), timePassed.minutesPart() };
     QString strings[] = { tr("%n day(s)", 0, times[0]), tr("%n hour(s)", 0, times[1]), tr("%n minute(s)", 0, times[2]) };
     QString timeString = "";
@@ -200,11 +200,11 @@ void ChatWindow::addTimeStamp() {
 
         bool atBottom = isNearBottom();
 
-        ui->messagesVBoxLayout->addWidget(timeLabel);
-        ui->messagesVBoxLayout->parentWidget()->updateGeometry();
+        _ui->messagesVBoxLayout->addWidget(timeLabel);
+        _ui->messagesVBoxLayout->parentWidget()->updateGeometry();
 
         Application::processEvents();
-        numMessagesAfterLastTimeStamp = 0;
+        _numMessagesAfterLastTimeStamp = 0;
 
         if (atBottom) {
             scrollToBottom();
@@ -220,12 +220,12 @@ void ChatWindow::startTimerForTimeStamps() {
 }
 
 void ChatWindow::connected() {
-    ui->connectingToXMPPLabel->hide();
-    ui->numOnlineLabel->show();
-    ui->usersArea->show();
-    ui->messagesScrollArea->show();
-    ui->messagePlainTextEdit->show();
-    ui->messagePlainTextEdit->setFocus();
+    _ui->connectingToXMPPLabel->hide();
+    _ui->numOnlineLabel->show();
+    _ui->usersArea->show();
+    _ui->messagesScrollArea->show();
+    _ui->messagePlainTextEdit->show();
+    _ui->messagePlainTextEdit->setFocus();
 #ifdef HAVE_QXMPP
     const QXmppMucRoom* publicChatRoom = XmppClient::getInstance().getPublicChatRoom();
     connect(publicChatRoom, SIGNAL(participantsChanged()), this, SLOT(participantsChanged()));
@@ -234,7 +234,7 @@ void ChatWindow::connected() {
 }
 
 void ChatWindow::timeout() {
-    if (numMessagesAfterLastTimeStamp >= NUM_MESSAGES_TO_TIME_STAMP) {
+    if (_numMessagesAfterLastTimeStamp >= NUM_MESSAGES_TO_TIME_STAMP) {
         addTimeStamp();
     }
 }
@@ -249,15 +249,15 @@ void ChatWindow::notificationClicked() {
     }
 
     // find last mention
-    int messageCount = ui->messagesVBoxLayout->count();
+    int messageCount = _ui->messagesVBoxLayout->count();
     for (unsigned int i = messageCount; i > 0; i--) {
-        ChatMessageArea* area = (ChatMessageArea*)ui->messagesVBoxLayout->itemAt(i - 1)->widget();
+        ChatMessageArea* area = (ChatMessageArea*)_ui->messagesVBoxLayout->itemAt(i - 1)->widget();
         QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
         if (area->toPlainText().contains(usernameMention)) {
             int top = area->geometry().top();
             int height = area->geometry().height();
 
-            QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+            QScrollBar* verticalScrollBar = _ui->messagesScrollArea->verticalScrollBar();
             verticalScrollBar->setSliderPosition(top - verticalScrollBar->size().height() + height);
             return;
         }
@@ -273,16 +273,16 @@ QString ChatWindow::getParticipantName(const QString& participant) {
 }
 
 void ChatWindow::error(QXmppClient::Error error) {
-    ui->connectingToXMPPLabel->setText(QString::number(error));
+    _ui->connectingToXMPPLabel->setText(QString::number(error));
 }
 
 void ChatWindow::participantsChanged() {
     bool atBottom = isNearBottom();
 
     QStringList participants = XmppClient::getInstance().getPublicChatRoom()->participants();
-    ui->numOnlineLabel->setText(tr("%1 online now:").arg(participants.count()));
+    _ui->numOnlineLabel->setText(tr("%1 online now:").arg(participants.count()));
 
-    while (QLayoutItem* item = ui->usersWidget->layout()->takeAt(0)) {
+    while (QLayoutItem* item = _ui->usersWidget->layout()->takeAt(0)) {
         delete item->widget();
         delete item;
     }
@@ -303,7 +303,7 @@ void ChatWindow::participantsChanged() {
         userLabel->setProperty("user", participantName);
         userLabel->setCursor(Qt::PointingHandCursor);
         userLabel->installEventFilter(this);
-        ui->usersWidget->layout()->addWidget(userLabel);
+        _ui->usersWidget->layout()->addWidget(userLabel);
     }
     Application::processEvents();
 
@@ -355,52 +355,64 @@ void ChatWindow::messageReceived(const QXmppMessage& message) {
 
     bool atBottom = isNearBottom();
 
-    ui->messagesVBoxLayout->addWidget(messageArea);
-    ui->messagesVBoxLayout->parentWidget()->updateGeometry();
+    _ui->messagesVBoxLayout->addWidget(messageArea);
+    _ui->messagesVBoxLayout->parentWidget()->updateGeometry();
     Application::processEvents();
 
     if (atBottom || fromSelf) {
         scrollToBottom();
     }
 
-    ++numMessagesAfterLastTimeStamp;
+    ++_numMessagesAfterLastTimeStamp;
     if (message.stamp().isValid()) {
-        lastMessageStamp = message.stamp().toLocalTime();
+        _lastMessageStamp = message.stamp().toLocalTime();
     } else {
-        lastMessageStamp = QDateTime::currentDateTime();
+        _lastMessageStamp = QDateTime::currentDateTime();
     }
 
     QRegularExpression usernameMention(mentionRegex.arg(AccountManager::getInstance().getAccountInfo().getUsername()));
-    if (isHidden() && message.body().contains(usernameMention)) {
-        if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
-            // get random sound
-            QFileInfo inf = QFileInfo(Application::resourcesPath()  +
-                                      mentionSoundsPath +
-                                      _mentionSounds.at(rand() % _mentionSounds.size()));
-            _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
-            _effectPlayer.play();
-        }
+    if (message.body().contains(usernameMention)) {
 
-        _trayIcon.show();
-        _trayIcon.showMessage(windowTitle(), message.body());
+        // Don't show messages already seen in icon tray at start-up.
+        QSettings* settings = Application::getInstance()->lockSettings();
+        bool showMessage = settings->value("usernameMentionTimestamp").toDateTime() < _lastMessageStamp;
+        if (showMessage) {
+            settings->setValue("usernameMentionTimestamp", _lastMessageStamp);
+        }
+        Application::getInstance()->unlockSettings();
+
+        if (isHidden() && showMessage) {
+
+            if (_effectPlayer.state() != QMediaPlayer::PlayingState) {
+                // get random sound
+                QFileInfo inf = QFileInfo(Application::resourcesPath()  +
+                                          mentionSoundsPath +
+                                          _mentionSounds.at(rand() % _mentionSounds.size()));
+                _effectPlayer.setMedia(QUrl::fromLocalFile(inf.absoluteFilePath()));
+                _effectPlayer.play();
+            }
+
+            _trayIcon.show();
+            _trayIcon.showMessage(windowTitle(), message.body());
+        }
     }
 }
 #endif // HAVE_QXMPP
 
 bool ChatWindow::isNearBottom() {
-    QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+    QScrollBar* verticalScrollBar = _ui->messagesScrollArea->verticalScrollBar();
     return verticalScrollBar->value() >= verticalScrollBar->maximum() - Ui::AUTO_SCROLL_THRESHOLD;
 }
 
 // Scroll chat message area to bottom.
 void ChatWindow::scrollToBottom() {
-    QScrollBar* verticalScrollBar = ui->messagesScrollArea->verticalScrollBar();
+    QScrollBar* verticalScrollBar = _ui->messagesScrollArea->verticalScrollBar();
     verticalScrollBar->setValue(verticalScrollBar->maximum());
 }
 
 bool ChatWindow::event(QEvent* event) {
     if (event->type() == QEvent::WindowActivate) {
-        ui->messagePlainTextEdit->setFocus();
+        _ui->messagePlainTextEdit->setFocus();
     }
     return QWidget::event(event);
 }

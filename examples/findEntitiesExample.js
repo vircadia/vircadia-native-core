@@ -1,11 +1,11 @@
 //
-//  findParticleExample.js
+//  findEntityExample.js
 //  examples
 //
 //  Created by Brad Hefta-Gaub on 1/24/14.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This is an example script that demonstrates "finding" particles
+//  This is an example script that demonstrates "finding" entities
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -13,21 +13,23 @@
 
 var iteration = 0;
 
-var particleA = Particles.addParticle(
+var entityA = Entities.addEntity(
                     {
+                        type: "Sphere",
                         position: { x: 2, y: 0, z: 2 },
                         velocity: { x: 0, y: 0, z: 0 },
                         gravity: { x: 0, y: 0, z: 0 },
-                        radius : 0.1,
+                        dimensions: { x: 0.1, y: 0.1, z: 0.1 },
                         color: { red: 0, green: 255, blue: 0 }
                     });
 
-var particleB = Particles.addParticle(
+var entityB = Entities.addEntity(
                     {
+                        type: "Sphere",
                         position: { x: 5, y: 0, z: 5 },
                         velocity: { x: 0, y: 0, z: 0 },
                         gravity: { x: 0, y: 0, z: 0 },
-                        radius : 0.1,
+                        dimensions: { x: 0.1, y: 0.1, z: 0.1 },
                         color: { red: 0, green: 255, blue: 255 }
                     });
 
@@ -36,14 +38,14 @@ var moveSearch = { x: 0.1, y: 0, z: 0.1};
 var searchRadius = 1;
 var searchRadiusChange = 0;
 
-print("particleA.creatorTokenID = " + particleA.creatorTokenID);
-print("particleB.creatorTokenID = " + particleB.creatorTokenID);
+print("entityA.creatorTokenID = " + entityA.creatorTokenID);
+print("entityB.creatorTokenID = " + entityB.creatorTokenID);
 
 
 function scriptEnding() {
-    print("calling Particles.deleteParticle()");
-    Particles.deleteParticle(particleA);
-    Particles.deleteParticle(particleB);
+    print("calling Entities.deleteEntity()");
+    Entities.deleteEntity(entityA);
+    Entities.deleteEntity(entityB);
 }
 
 function printProperties(properties) {
@@ -63,7 +65,7 @@ function printProperties(properties) {
     }
 }
 
-function findParticles(deltaTime) {
+function findEntities(deltaTime) {
 
     // run for a while, then clean up
     // stop it...
@@ -76,35 +78,37 @@ function findParticles(deltaTime) {
     print("iteration =" + iteration);
     iteration++;
 
-    // Check to see if we've been notified of the actual identity of the particles we created
-    if (!particleA.isKnownID) {
-        var identifyA = Particles.identifyParticle(particleA);
+    // Check to see if we've been notified of the actual identity of the entities we created
+    if (!entityA.isKnownID) {
+        var identifyA = Entities.identifyEntity(entityA);
         if (identifyA.isKnownID) {
-            particleA = identifyA;
-            print(">>>> identified particleA.id = " + particleA.id);
+            entityA = identifyA;
+            print(">>>> identified entityA.id = " + entityA.id);
         }
     }
-    if (!particleB.isKnownID) {
-        var identifyB = Particles.identifyParticle(particleB);
+    if (!entityB.isKnownID) {
+        var identifyB = Entities.identifyEntity(entityB);
         if (identifyB.isKnownID) {
-            particleB = identifyB;
-            print(">>>> identified particleB.id = " + particleB.id);
+            entityB = identifyB;
+            print(">>>> identified entityB.id = " + entityB.id);
         }
     }
     
-    // also check to see if we can "find" particles...
-    print("searching for particles at:" + searchAt.x + ", " + searchAt.y + ", " + searchAt.z + " radius:" + searchRadius);
-    var foundParticles = Particles.findParticles(searchAt, searchRadius);
-    print("found this many particles: "+ foundParticles.length);
-    for (var i = 0; i < foundParticles.length; i++) {
-        print("   particle[" + i + "].id:" + foundParticles[i].id);
-        if (foundParticles[i].id == particleA.id) {
-            print(">>>> found particleA!!");
-            var propertiesA = Particles.getParticleProperties(particleA);
+    // also check to see if we can "find" entities...
+    print("searching for entities at:" + searchAt.x + ", " + searchAt.y + ", " + searchAt.z + " radius:" + searchRadius);
+    var foundEntities = Entities.findEntities(searchAt, searchRadius);
+    print("found this many entities: "+ foundEntities.length);
+    for (var i = 0; i < foundEntities.length; i++) {
+        print("   foundEntities[" + i + "].id:" + foundEntities[i].id);
+        if (foundEntities[i].id == entityA.id) {
+            print(">>>> found entityA!!");
+            var propertiesA = Entities.getEntityProperties(entityA);
             printProperties(propertiesA);
         }
-        if (foundParticles[i].id == particleB.id) {
-            print(">>>> found particleB!!");
+        if (foundEntities[i].id == entityB.id) {
+            print(">>>> found entityB!!");
+            var propertiesB = Entities.getEntityProperties(entityB);
+            printProperties(propertiesB);
         }
     }
     // move search
@@ -125,7 +129,7 @@ function findParticles(deltaTime) {
 
 
 // register the call back so it fires before each data send
-Script.update.connect(findParticles);
+Script.update.connect(findEntities);
 
 // register our scriptEnding callback
 Script.scriptEnding.connect(scriptEnding);

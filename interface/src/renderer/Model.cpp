@@ -1563,6 +1563,11 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     }
     QVector<int>& list = *whichList;
 
+    // If this list has nothing to render, then don't bother proceeding. This saves us on binding to programs    
+    if (list.size() == 0) {
+        return 0;
+    }
+
     ProgramObject* program = &_program;
     Locations* locations = &_locations;
     ProgramObject* skinProgram = &_skinProgram;

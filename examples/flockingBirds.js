@@ -24,7 +24,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var birdsInFlock = 40;
+var birdsInFlock = 20;
 
 var birdLifetime = 60; // 2 minutes
 var count=0; // iterations
@@ -60,7 +60,7 @@ var flockStartPosition = MyAvatar.position;
 var flockStartVelocity = { x: 0, y: 0, z: 0};
 var flockStartThrust =  { x: 0, y: 0, z: 0}; // slightly upward against gravity
 var INITIAL_XY_VELOCITY_SCALE = 2;
-var birdRadius = 0.0925;
+var birdRadius = 0.2;
 var baseBirdColor = { red: 0, green: 255, blue: 255 };
 var glidingColor = { red: 255, green: 0, blue: 0 };
 var thrustUpwardColor = { red: 0, green: 255, blue: 0 };
@@ -153,12 +153,13 @@ function createBirds() {
         } else {
             velocity = { x: 0, y: 0, z: 0};
         }
-        birds[i].particle = Particles.addParticle({
+        birds[i].particle = Entities.addEntity({
+                                type: "Sphere",
                                 position: position,
                                 velocity: velocity,
                                 gravity: flockGravity,
                                 damping: 0,
-                                radius: birdRadius,
+                                dimensions: { x: birdRadius, y: birdRadius, z: birdRadius},
                                 color: baseBirdColor,
                                 lifetime: birdLifetime
                             });
@@ -179,10 +180,10 @@ function updateBirds(deltaTime) {
         // identifyParticle() will check to see that the particle handle we have is in sync with the domain/server
         // context. If the handle is for a created particle that now has a known ID it will be updated to be a
         // handle with a known ID.
-        birds[i].particle = Particles.identifyParticle(birds[i].particle);
+        birds[i].particle = Entities.identifyEntity(birds[i].particle);
         
         if (birds[i].particle.isKnownID) {
-            birds[i].properties = Particles.getParticleProperties(birds[i].particle);
+            birds[i].properties = Entities.getEntityProperties(birds[i].particle);
             if (birds[i].properties.isKnownID) {
                 knownBirds++;
                 averageVelocity = Vec3.sum(averageVelocity, birds[i].properties.velocity);
@@ -455,7 +456,7 @@ function updateBirds(deltaTime) {
                 Vec3.print("birds["+i+"].newVelocity=", newVelocity);
             }
             
-            birds[i].particle = Particles.editParticle(birds[i].particle,{ velocity: newVelocity, color: color });
+            birds[i].particle = Entities.editEntity(birds[i].particle,{ velocity: newVelocity, color: color });
             
         }
     }    

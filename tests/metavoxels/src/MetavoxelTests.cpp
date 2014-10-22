@@ -603,31 +603,27 @@ int RandomVisitor::visit(MetavoxelInfo& info) {
 class TestSendRecord : public PacketRecord {
 public:
     
-    TestSendRecord(const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData(),
-        const SharedObjectPointer& localState = SharedObjectPointer(), int packetNumber = 0);
+    TestSendRecord(int packetNumber = 0, const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData(),
+        const SharedObjectPointer& localState = SharedObjectPointer());
     
     const SharedObjectPointer& getLocalState() const { return _localState; }
-    int getPacketNumber() const { return _packetNumber; }
     
 private:
     
     SharedObjectPointer _localState;
-    int _packetNumber;
-    
 };
 
-TestSendRecord::TestSendRecord(const MetavoxelLOD& lod, const MetavoxelData& data,
-        const SharedObjectPointer& localState, int packetNumber) :
-    PacketRecord(lod, data),
-    _localState(localState),
-    _packetNumber(packetNumber) {
+TestSendRecord::TestSendRecord(int packetNumber, const MetavoxelLOD& lod, const MetavoxelData& data,
+        const SharedObjectPointer& localState) :
+    PacketRecord(packetNumber, lod, data),
+    _localState(localState) {
 }
 
 class TestReceiveRecord : public PacketRecord {
 public:
     
-    TestReceiveRecord(const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData(),
-        const SharedObjectPointer& remoteState = SharedObjectPointer());
+    TestReceiveRecord(int packetNumber = 0, const MetavoxelLOD& lod = MetavoxelLOD(),
+        const MetavoxelData& data = MetavoxelData(), const SharedObjectPointer& remoteState = SharedObjectPointer());
 
     const SharedObjectPointer& getRemoteState() const { return _remoteState; }
 
@@ -636,9 +632,9 @@ private:
     SharedObjectPointer _remoteState;
 };
 
-TestReceiveRecord::TestReceiveRecord(const MetavoxelLOD& lod,
+TestReceiveRecord::TestReceiveRecord(int packetNumber, const MetavoxelLOD& lod,
         const MetavoxelData& data, const SharedObjectPointer& remoteState) :
-    PacketRecord(lod, data),
+    PacketRecord(packetNumber, lod, data),
     _remoteState(remoteState) {
 }
 
@@ -1110,14 +1106,14 @@ void TestEndpoint::handleMessage(const QVariant& message, Bitstream& in) {
 
 PacketRecord* TestEndpoint::maybeCreateSendRecord() const {
     if (_reliableDeltaChannel) {
-        return new TestSendRecord(_reliableDeltaLOD, _reliableDeltaData, _localState, _sequencer.getOutgoingPacketNumber());
+        return new TestSendRecord(_sequencer.getOutgoingPacketNumber(), _reliableDeltaLOD, _reliableDeltaData, _localState);
     }
-    return new TestSendRecord(_lod, (_mode == METAVOXEL_CLIENT_MODE) ? MetavoxelData() : _data,
-        _localState, _sequencer.getOutgoingPacketNumber());
+    return new TestSendRecord(_sequencer.getOutgoingPacketNumber(), _lod,
+        (_mode == METAVOXEL_CLIENT_MODE) ? MetavoxelData() : _data, _localState);
 }
 
 PacketRecord* TestEndpoint::maybeCreateReceiveRecord() const {
-    return new TestReceiveRecord(_remoteDataLOD, _remoteData, _remoteState);
+    return new TestReceiveRecord(_sequencer.getIncomingPacketNumber(), _remoteDataLOD, _remoteData, _remoteState);
 }
 
 void TestEndpoint::handleHighPriorityMessage(const QVariant& message) {
