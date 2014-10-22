@@ -26,10 +26,6 @@
 #include "Application.h"
 #include "Model.h"
 
-#include "gpu/Batch.h"
-#define GLBATCH( call ) batch._##call
-//#define GLBATCH( call ) call
-
 using namespace std;
 
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
@@ -434,135 +430,97 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         segregateMeshGroups();
     }
 
-    // Let's introduce a gpu::Batch to capture all the calls to the graphics api
-    gpu::Batch batch;
-
-    GLBATCH(glEnableClientState)(GL_VERTEX_ARRAY);
-    GLBATCH(glEnableClientState)(GL_NORMAL_ARRAY);
-
-    GLBATCH(glDisable)(GL_COLOR_MATERIAL);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    
+    glDisable(GL_COLOR_MATERIAL);
     
     if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
-        GLBATCH(glDisable)(GL_CULL_FACE);
+        glDisable(GL_CULL_FACE);
     } else {
-        GLBATCH(glEnable)(GL_CULL_FACE);
+        glEnable(GL_CULL_FACE);
         if (mode == SHADOW_RENDER_MODE) {
-            GLBATCH(glCullFace)(GL_FRONT);
+            glCullFace(GL_FRONT);
         }
     }
     
     // render opaque meshes with alpha testing
-
-    GLBATCH(glDisable)(GL_BLEND);
-    GLBATCH(glEnable)(GL_ALPHA_TEST);
+    
+    glDisable(GL_BLEND);
+    glEnable(GL_ALPHA_TEST);
     
     if (mode == SHADOW_RENDER_MODE) {
-        GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
+        glAlphaFunc(GL_EQUAL, 0.0f);
     }
-
-
-    /*Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
+    
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
-        */
-    {
-        GLenum buffers[3];
-        int bufferCount = 0;
-        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        }
-        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-        }
-        if (mode == DEFAULT_RENDER_MODE) {
-            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        }
-        GLBATCH(glDrawBuffers)(bufferCount, buffers);
-    }
-
+    
     const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
     
-
     //renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, book isSkinned, args);
     int opaqueMeshPartsRendered = 0;
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+    
     // render translucent meshes afterwards
-    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
-    {
-        GLenum buffers[2];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
-        GLBATCH(glDrawBuffers)(bufferCount, buffers);
-    }
-
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
     int translucentMeshPartsRendered = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-
-    GLBATCH(glDisable)(GL_ALPHA_TEST);
-    GLBATCH(glEnable)(GL_BLEND);
-    GLBATCH(glDepthMask)(false);
-    GLBATCH(glDepthFunc)(GL_LEQUAL);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
     
-    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
-    {
-        GLenum buffers[1];
-        int bufferCount = 0;
-        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
-        GLBATCH(glDrawBuffers)(bufferCount, buffers);
-    }
-
+    glDisable(GL_ALPHA_TEST);
+    glEnable(GL_BLEND);
+    glDepthMask(false);
+    glDepthFunc(GL_LEQUAL);
+    
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
+    
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
     }
-
-    GLBATCH(glDepthMask)(true);
-    GLBATCH(glDepthFunc)(GL_LESS);
-    GLBATCH(glDisable)(GL_CULL_FACE);
+    
+    glDepthMask(true);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_CULL_FACE);
     
     if (mode == SHADOW_RENDER_MODE) {
-        GLBATCH(glCullFace)(GL_BACK);
+        glCullFace(GL_BACK);
     }
-
+    
     // deactivate vertex arrays after drawing
-    GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
-    GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
-    GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     
     // bind with 0 to switch back to normal operation
-    GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
-    GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
-    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-
-    // Render!
-    ::gpu::backend::renderBatch(batch);
-    batch.clear();
-
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     // restore all the default material settings
     Application::getInstance()->setupWorldLight();
     
@@ -1548,7 +1506,7 @@ void Model::segregateMeshGroups() {
     _meshGroupsKnown = true;
 }
 
-int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, 
                             bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
     bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
@@ -1648,30 +1606,16 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     
     ProgramObject* activeProgram = program;
     Locations* activeLocations = locations;
-
-    // Try to use the Batch
-    //gpu::Batch batch;
-
-    /*if (isSkinned) {
+    
+    if (isSkinned) {
         skinProgram->bind();
         activeProgram = skinProgram;
         activeLocations = skinLocations;
     } else {
         program->bind();
-    }*/
-    if (isSkinned) {
-        activeProgram = skinProgram;
-        activeLocations = skinLocations;
     }
-    if (!activeProgram->isLinked()) {
-        activeProgram->link();
-    }
-    GLBATCH(glUseProgram)(activeProgram->programId());
-   // activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
-    GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
-
-
-
+    activeProgram->setUniformValue(activeLocations->alphaThreshold, alphaThreshold);
+    
     // i is the "index" from the original networkMeshes QVector...
     foreach (int i, list) {
     
@@ -1687,8 +1631,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);    
 
-        //const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
-        GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId());
+        const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
 
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
@@ -1723,70 +1666,56 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             }
         }
         
-        //const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
-        GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bufferId());
-
-        GLBATCH(glPushMatrix)();
-        //Application::getInstance()->loadTranslatedViewMatrix(_translation);
-        GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
-        glm::vec3 viewMatTranslation = Application::getInstance()->getViewMatrixTranslation();
-        GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y,
-            _translation.z + viewMatTranslation.z);
+        const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
+        
+        glPushMatrix();
+        Application::getInstance()->loadTranslatedViewMatrix(_translation);
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
-            GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
+            glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
             int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
                 mesh.texCoords.size() * sizeof(glm::vec2) +
                 (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
-            //skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0, (const void*) offset);
-            //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
-            //    offset + vertexCount * sizeof(glm::vec4), 4);
-            GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
-            //skinProgram->enableAttributeArray(skinLocations->clusterIndices);
-            GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterIndices);
-            //skinProgram->enableAttributeArray(skinLocations->clusterWeights);
-            GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterWeights);
+            skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
+            skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
+                offset + vertexCount * sizeof(glm::vec4), 4);
+            skinProgram->enableAttributeArray(skinLocations->clusterIndices);
+            skinProgram->enableAttributeArray(skinLocations->clusterWeights);
         } else {
-            GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
+            glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
         }
         
         if (mesh.blendshapes.isEmpty()) {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-                //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
-                GLBATCH(glVertexAttribPointer)(activeLocations->tangent, 3, GL_FLOAT, GL_TRUE, 0, (const void*)(vertexCount * 2 * sizeof(glm::vec3)));
-                //activeProgram->enableAttributeArray(activeLocations->tangent);
-                GLBATCH(glEnableVertexAttribArray)(activeLocations->tangent);
+                activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
+                activeProgram->enableAttributeArray(activeLocations->tangent);
             }
-            GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
+            glColorPointer(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
                 mesh.tangents.size() * sizeof(glm::vec3)));
-            GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
+            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-                //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
-                GLBATCH(glVertexAttribPointer)(activeLocations->tangent, 3, GL_FLOAT, GL_TRUE, 0, 0);
-                //activeProgram->enableAttributeArray(activeLocations->tangent);
-                GLBATCH(glEnableVertexAttribArray)(activeLocations->tangent);
+                activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
+                activeProgram->enableAttributeArray(activeLocations->tangent);
             }
-            GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
-            GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
-           // _blendedVertexBuffers[i].bind();
-            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, _blendedVertexBuffers[i].bufferId());
+            glColorPointer(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
+            glTexCoordPointer(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
+            _blendedVertexBuffers[i].bind();
         }
-        GLBATCH(glVertexPointer)(3, GL_FLOAT, 0, 0);
-        GLBATCH(glNormalPointer)(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+        glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
         
         if (!mesh.colors.isEmpty()) {
-            GLBATCH(glEnableClientState)(GL_COLOR_ARRAY);
+            glEnableClientState(GL_COLOR_ARRAY);
         } else {
-            GLBATCH(glColor4f)(1.0f, 1.0f, 1.0f, 1.0f);
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         }
         if (!mesh.texCoords.isEmpty()) {
-            GLBATCH(glEnableClientState)(GL_TEXTURE_COORD_ARRAY);
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
         qint64 offset = 0;
@@ -1797,10 +1726,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 offset += (part.quadIndices.size() + part.triangleIndices.size()) * sizeof(int);
                 continue;
             }
-
             // apply material properties
             if (mode == SHADOW_RENDER_MODE) {
-                GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+                glBindTexture(GL_TEXTURE_2D, 0);
                 
             } else {
                 if (dontReduceMaterialSwitches || lastMaterialID != part.materialID) {
@@ -1813,36 +1741,36 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
                     glm::vec4 diffuse = glm::vec4(part.diffuseColor, part.opacity);
                     if (!(translucent && alphaThreshold == 0.0f)) {
-                        GLBATCH(glAlphaFunc)(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
+                        glAlphaFunc(GL_EQUAL, diffuse.a = Application::getInstance()->getGlowEffect()->getIntensity());
                     }
                     glm::vec4 specular = glm::vec4(part.specularColor, 1.0f);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-                    GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, part.shininess);
+                    glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+                    glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+                    glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+                    glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
             
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {
                         diffuseMap = (_dilatedTextures[i][j] =
                             static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                     }
-                    GLBATCH(glBindTexture)(GL_TEXTURE_2D, !diffuseMap ?
+                    glBindTexture(GL_TEXTURE_2D, !diffuseMap ?
                         Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
                 
                     if (!mesh.tangents.isEmpty()) {                 
-                        GLBATCH(glActiveTexture)(GL_TEXTURE1);
+                        glActiveTexture(GL_TEXTURE1);                
                         Texture* normalMap = networkPart.normalTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !normalMap ?
+                        glBindTexture(GL_TEXTURE_2D, !normalMap ?
                             Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        glActiveTexture(GL_TEXTURE0);
                     }
                 
                     if (specularTextureUnit) {
-                        GLBATCH(glActiveTexture)(specularTextureUnit);
+                        glActiveTexture(specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
+                        glBindTexture(GL_TEXTURE_2D, !specularMap ?
                             Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                        glActiveTexture(GL_TEXTURE0);
                     }
                     if (args) {
                         args->_materialSwitches++;
@@ -1855,12 +1783,12 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             meshPartsRendered++;
             
             if (part.quadIndices.size() > 0) {
-                GLBATCH(glDrawRangeElements)(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
+                glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
                 offset += part.quadIndices.size() * sizeof(int);
             }
             
             if (part.triangleIndices.size() > 0) {
-                GLBATCH(glDrawRangeElements)(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
+                glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
                     GL_UNSIGNED_INT, (void*)offset);
                 offset += part.triangleIndices.size() * sizeof(int);
             }
@@ -1874,39 +1802,35 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         }
         
         if (!mesh.colors.isEmpty()) {
-            GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
+            glDisableClientState(GL_COLOR_ARRAY);
         }
         if (!mesh.texCoords.isEmpty()) {
-            GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
         if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
-            GLBATCH(glActiveTexture)(GL_TEXTURE1);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glActiveTexture(GL_TEXTURE0);
             
-           // activeProgram->disableAttributeArray(activeLocations->tangent);
-            GLBATCH(glDisableVertexAttribArray)(activeLocations->tangent);
+            activeProgram->disableAttributeArray(activeLocations->tangent);
         }
         
         if (specularTextureUnit) {
-            GLBATCH(glActiveTexture)(specularTextureUnit);
-            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
-            GLBATCH(glActiveTexture)(GL_TEXTURE0);
+            glActiveTexture(specularTextureUnit);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glActiveTexture(GL_TEXTURE0);
         }
         
         if (state.clusterMatrices.size() > 1) {
-           // skinProgram->disableAttributeArray(skinLocations->clusterIndices);
-            GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterIndices);
-          //  skinProgram->disableAttributeArray(skinLocations->clusterWeights);
-            GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterWeights);
+            skinProgram->disableAttributeArray(skinLocations->clusterIndices);
+            skinProgram->disableAttributeArray(skinLocations->clusterWeights);  
         } 
-        GLBATCH(glPopMatrix)();
+        glPopMatrix();
 
     }
-    //activeProgram->release();
-    GLBATCH(glUseProgram)(0);
-
+    activeProgram->release();
+    
     return meshPartsRendered;
 }
 
