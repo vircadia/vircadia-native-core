@@ -18,21 +18,22 @@
 if (GVERB_INCLUDE_DIRS)
   # in cache already
   set(GVERB_FOUND TRUE)
-else ()
+else (GVERB_INCLUDE_DIRS)
 
-include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
-hifi_library_search_hints("gverb")
+  include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
+  hifi_library_search_hints("gverb")
 
-find_path(GVERB_INCLUDE_DIRS gverb.h PATH_SUFFIXES include HINTS ${GVERB_SEARCH_DIRS})
-find_path(GVERB_SRC_DIRS gverb.c PATH_SUFFIXES src HINTS ${GVERB_SEARCH_DIRS})
+  find_path(GVERB_INCLUDE_DIRS gverb.h PATH_SUFFIXES include HINTS ${GVERB_SEARCH_DIRS})
+  find_path(GVERB_SRC_DIRS gverb.c PATH_SUFFIXES src HINTS ${GVERB_SEARCH_DIRS})
 
-if (GVERB_INCLUDE_DIRS)
-  set(GVERB_FOUND TRUE)
-endif (GVERB_INCLUDE_DIRS)
+  if (GVERB_INCLUDE_DIRS)
+    set(GVERB_FOUND TRUE)
+  endif (GVERB_INCLUDE_DIRS)
 
-if (GVERB_FOUND)
-  message(STATUS "Found Gverb: ${GVERB_INCLUDE_DIRS}")
-else (GVERB_FOUND)
-  message(FATAL_ERROR "Could NOT find Gverb. Read ./interface/externals/gverb/readme.txt")
-endif (GVERB_FOUND)
+  if (GVERB_FOUND)
+    message(STATUS "Found Gverb: ${GVERB_INCLUDE_DIRS}")
+  else (GVERB_FOUND)
+    message(FATAL_ERROR "Could NOT find Gverb. Read ./interface/externals/gverb/readme.txt")
+  endif (GVERB_FOUND)
 
+endif(GVERB_INCLUDE_DIR)
