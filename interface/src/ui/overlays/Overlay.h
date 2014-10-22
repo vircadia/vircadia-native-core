@@ -40,6 +40,7 @@ public:
     virtual void render() = 0;
 
     // getters
+    virtual bool is3D() const = 0;
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
     xColor getColor();

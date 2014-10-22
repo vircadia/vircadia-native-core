@@ -107,7 +107,8 @@ PacketRecord* Endpoint::maybeCreateReceiveRecord() const {
     return NULL;
 }
 
-PacketRecord::PacketRecord(const MetavoxelLOD& lod, const MetavoxelData& data) :
+PacketRecord::PacketRecord(int packetNumber, const MetavoxelLOD& lod, const MetavoxelData& data) :
+    _packetNumber(packetNumber),
     _lod(lod),
     _data(data) {
 }
