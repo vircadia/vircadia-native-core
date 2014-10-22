@@ -37,8 +37,10 @@ public:
         float repeatRate;
         int minimumDelay;
         int maximumDelay;
+        int bandwidthLimit;
         
-        NetworkSimulation(float dropRate = 0.0f, float repeatRate = 0.0f, int minimumDelay = 0, int maximumDelay = 0);
+        NetworkSimulation(float dropRate = 0.0f, float repeatRate = 0.0f, int minimumDelay = 0,
+            int maximumDelay = 0, int bandwidthLimit = 0);
     };
 
     virtual void init();
@@ -132,6 +134,28 @@ typedef QVector<BufferPoint> BufferPointVector;
 
 Q_DECLARE_METATYPE(BufferPointVector)
 
+/// Simple throttle for limiting bandwidth on a per-second basis.
+class Throttle {
+public:
+    
+    Throttle();
+    
+    /// Sets the per-second limit.
+    void setLimit(int limit) { _limit = limit; }
+    
+    /// Determines whether the message with the given size should be throttled (discarded).  If not, registers the message
+    /// as having been processed (i.e., contributing to later throttling).
+    bool shouldThrottle(int bytes);
+
+private:
+    
+    int _limit;
+    int _total;
+    
+    typedef QPair<qint64, int> Bucket;
+    QList<Bucket> _buckets;
+};
+
 /// A client session associated with a single server.
 class MetavoxelSystemClient : public MetavoxelClient {
     Q_OBJECT    
@@ -161,6 +185,9 @@ private:
     MetavoxelData _augmentedData;
     MetavoxelData _renderedAugmentedData;
     QReadWriteLock _augmentedDataLock;
+    
+    Throttle _sendThrottle;
+    Throttle _receiveThrottle;
 };
 
 /// Base class for cached static buffers.

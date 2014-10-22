@@ -18,6 +18,8 @@
 #include "Application.h"
 #include "MetavoxelNetworkSimulator.h"
 
+const int BYTES_PER_KILOBYTE = 1024;
+
 MetavoxelNetworkSimulator::MetavoxelNetworkSimulator() :
     QWidget(Application::getInstance()->getGLWidget(), Qt::Dialog) {
     
@@ -58,6 +60,13 @@ MetavoxelNetworkSimulator::MetavoxelNetworkSimulator() :
     connect(_maximumDelay, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this,
         &MetavoxelNetworkSimulator::updateMetavoxelSystem);
     
+    form->addRow("Bandwidth Limit:", _bandwidthLimit = new QSpinBox());
+    _bandwidthLimit->setMaximum(1024 * 1024);
+    _bandwidthLimit->setSuffix("KB/s");
+    _bandwidthLimit->setValue(simulation.bandwidthLimit / BYTES_PER_KILOBYTE);
+    connect(_bandwidthLimit, static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), this,
+        &MetavoxelNetworkSimulator::updateMetavoxelSystem);
+    
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok, this);
     topLayout->addWidget(buttons);
     connect(buttons, &QDialogButtonBox::accepted, this, &QWidget::close);
@@ -66,7 +75,13 @@ MetavoxelNetworkSimulator::MetavoxelNetworkSimulator() :
 }
 
 void MetavoxelNetworkSimulator::updateMetavoxelSystem() {
+    int bandwidthLimit = _bandwidthLimit->value() * BYTES_PER_KILOBYTE;
+    if (bandwidthLimit > 0) {
+        // make sure the limit is enough to let at least one packet through
+        const int MINIMUM_BANDWIDTH_LIMIT = 2048;
+        bandwidthLimit = qMax(bandwidthLimit, MINIMUM_BANDWIDTH_LIMIT);
+    }
     Application::getInstance()->getMetavoxels()->setNetworkSimulation(MetavoxelSystem::NetworkSimulation(
         _dropRate->value() / 100.0, _repeatRate->value() / 100.0, qMin(_minimumDelay->value(), _maximumDelay->value()),
-            qMax(_minimumDelay->value(), _maximumDelay->value())));
+            qMax(_minimumDelay->value(), _maximumDelay->value()), bandwidthLimit));
 }

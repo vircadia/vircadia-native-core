@@ -35,6 +35,7 @@ private:
     QDoubleSpinBox* _repeatRate;
     QSpinBox* _minimumDelay;
     QSpinBox* _maximumDelay;
+    QSpinBox* _bandwidthLimit;
 };
 
 #endif // hifi_MetavoxelNetworkSimulator_h

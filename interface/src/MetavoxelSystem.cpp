@@ -39,11 +39,13 @@ REGISTER_META_OBJECT(StaticModelRenderer)
 
 static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 
-MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repeatRate, int minimumDelay, int maximumDelay) :
+MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repeatRate,
+        int minimumDelay, int maximumDelay, int bandwidthLimit) :
     dropRate(dropRate),
     repeatRate(repeatRate),
     minimumDelay(minimumDelay),
-    maximumDelay(maximumDelay) {
+    maximumDelay(maximumDelay),
+    bandwidthLimit(bandwidthLimit) {
 }    
 
 void MetavoxelSystem::init() {
@@ -695,6 +697,28 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
     }
 }
 
+Throttle::Throttle() :
+    _limit(INT_MAX),
+    _total(0) {
+}
+
+bool Throttle::shouldThrottle(int bytes) {
+    // clear expired buckets
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    while (!_buckets.isEmpty() && _buckets.first().first >= now) {
+        _total -= _buckets.takeFirst().second;
+    }
+    
+    // if possible, add the new bucket
+    if (_total + bytes > _limit) {
+        return true;
+    }
+    const int BUCKET_DURATION = 1000;
+    _buckets.append(Bucket(now + BUCKET_DURATION, bytes));
+    _total += bytes;
+    return false;
+}
+
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
     MetavoxelClient(node, updater) {
 }
@@ -746,6 +770,12 @@ int MetavoxelSystemClient::parseData(const QByteArray& packet) {
     }
     int count = (randFloat() < simulation.repeatRate) ? 2 : 1;
     for (int i = 0; i < count; i++) {
+        if (simulation.bandwidthLimit > 0) {
+            _receiveThrottle.setLimit(simulation.bandwidthLimit);
+            if (_receiveThrottle.shouldThrottle(packet.size())) {
+                continue;
+            }
+        }
         int delay = randIntInRange(simulation.minimumDelay, simulation.maximumDelay);
         if (delay > 0) {
             ReceiveDelayer* delayer = new ReceiveDelayer(_node, packet);
@@ -864,6 +894,12 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
     }
     int count = (randFloat() < simulation.repeatRate) ? 2 : 1;
     for (int i = 0; i < count; i++) {
+        if (simulation.bandwidthLimit > 0) {
+            _sendThrottle.setLimit(simulation.bandwidthLimit);
+            if (_sendThrottle.shouldThrottle(data.size())) {
+                continue;
+            }
+        }
         int delay = randIntInRange(simulation.minimumDelay, simulation.maximumDelay);
         if (delay > 0) {
             SendDelayer* delayer = new SendDelayer(_node, data);
