@@ -52,7 +52,6 @@ private:
     void* _speechRecognizer;
 #elif defined(Q_OS_WIN)
     bool _comInitialized;
-    CComPtr<ISpRecognizer> _speechRecognizer;
     CComPtr<ISpRecoContext> _speechRecognizerContext;
     CComPtr<ISpRecoGrammar> _speechRecognizerGrammar;
     HANDLE _commandRecognizedEvent;

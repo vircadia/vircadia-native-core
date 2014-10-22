@@ -21,7 +21,6 @@ SpeechRecognizer::SpeechRecognizer() :
     _enabled(false),
     _commands(),
     _comInitialized(false),
-    _speechRecognizer(NULL),
     _speechRecognizerContext(NULL),
     _speechRecognizerGrammar(NULL),
     _commandRecognizedEvent(NULL),
@@ -32,16 +31,22 @@ SpeechRecognizer::SpeechRecognizer() :
     if (SUCCEEDED(hr)) {
         _comInitialized = true;
     }
+
+    _commandRecognizedNotifier = new QWinEventNotifier();
+    connect(_commandRecognizedNotifier, SIGNAL(activated(HANDLE)), SLOT(notifyCommandRecognized(HANDLE)));
 }
 
 SpeechRecognizer::~SpeechRecognizer() {
+    if (_speechRecognizerGrammar) {
+        _speechRecognizerGrammar.Release();
+    }
+
+    if (_enabled) {
+        _speechRecognizerContext.Release();
+    }
 
     if (_comInitialized) {
         ::CoUninitialize();
-    }
-
-    if (_speechRecognizerGrammar) {
-        _speechRecognizerGrammar.Release();
     }
 }
 
@@ -71,13 +76,12 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         }
         if (SUCCEEDED(hr)) {
             _commandRecognizedEvent = _speechRecognizerContext->GetNotifyEventHandle();
-            if (_commandRecognizedEvent == NULL) {
+            if (_commandRecognizedEvent) {
+                _commandRecognizedNotifier->setHandle(_commandRecognizedEvent);
+                _commandRecognizedNotifier->setEnabled(true);
+            } else {
                 hr = S_FALSE;
             }
-        }
-        if (SUCCEEDED(hr)) {
-            _commandRecognizedNotifier = new QWinEventNotifier(_commandRecognizedEvent);
-            connect(_commandRecognizedNotifier, SIGNAL(activated(HANDLE)), SLOT(notifyCommandRecognized(HANDLE)));
         }
         
         // Set which events to be notified of.
@@ -96,6 +100,7 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         _enabled = SUCCEEDED(hr);
 
     } else {
+        _commandRecognizedNotifier->setEnabled(false);
         _speechRecognizerContext.Release();
     }
 
@@ -144,7 +149,7 @@ void SpeechRecognizer::reloadCommands() {
     }
 
     if (SUCCEEDED(hr)) {
-        hr = _speechRecognizerGrammar->Commit(0);
+        hr = _speechRecognizerGrammar->Commit(NULL);
     }
 
     if (SUCCEEDED(hr)) {
