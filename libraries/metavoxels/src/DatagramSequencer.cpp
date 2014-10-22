@@ -301,10 +301,10 @@ void DatagramSequencer::clearReliableChannel(QObject* object) {
 void DatagramSequencer::sendRecordAcknowledged(const SendRecord& record) {
     // stop acknowledging the recorded packets
     while (!_receiveRecords.isEmpty() && _receiveRecords.first().packetNumber <= record.lastReceivedPacketNumber) {
+        emit receiveAcknowledged(0);
         const ReceiveRecord& received = _receiveRecords.first();
         _inputStream.persistReadMappings(received.mappings);
         _receivedHighPriorityMessages -= received.newHighPriorityMessages;
-        emit receiveAcknowledged(0);
         _receiveRecords.removeFirst();
     }
     _outputStream.persistWriteMappings(record.mappings);
