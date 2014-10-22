@@ -705,7 +705,7 @@ Throttle::Throttle() :
 bool Throttle::shouldThrottle(int bytes) {
     // clear expired buckets
     qint64 now = QDateTime::currentMSecsSinceEpoch();
-    while (!_buckets.isEmpty() && _buckets.first().first >= now) {
+    while (!_buckets.isEmpty() && now >= _buckets.first().first) {
         _total -= _buckets.takeFirst().second;
     }
     
