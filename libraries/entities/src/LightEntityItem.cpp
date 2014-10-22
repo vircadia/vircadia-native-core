@@ -82,6 +82,7 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
     requestedProperties += PROP_COLOR;
+    requestedProperties += PROP_IS_SPOTLIGHT;
     return requestedProperties;
 }
 
