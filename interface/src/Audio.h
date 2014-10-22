@@ -49,7 +49,6 @@
 
 extern "C" {
     #include <gverb.h>
-    #include <gverbdsp.h>
 }
 
 static const int NUM_AUDIO_CHANNELS = 2;
