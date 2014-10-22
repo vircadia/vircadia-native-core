@@ -139,12 +139,14 @@ void SpeechRecognizer::reloadCommands() {
         ruleID += 1;
 
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizerGrammar->GetRule(NULL, ruleID, SPRAF_TopLevel | SPRAF_Active | SPRAF_Dynamic, TRUE, &initialState);
+            hr = _speechRecognizerGrammar->
+                GetRule(NULL, ruleID, SPRAF_TopLevel | SPRAF_Active | SPRAF_Dynamic, TRUE, &initialState);
         }
 
         if (SUCCEEDED(hr)) {
-            const std::wstring command = (*iter).toStdWString();  // DJRTODO: Better, shorter name
-            hr = _speechRecognizerGrammar->AddWordTransition(initialState, NULL, command.c_str(), L" ", SPWT_LEXICAL, 1.0, NULL);
+            const std::wstring command = (*iter).toStdWString();
+            hr = _speechRecognizerGrammar->
+                AddWordTransition(initialState, NULL, command.c_str(), L" ", SPWT_LEXICAL, 1.0, NULL);
         }
     }
 
@@ -161,12 +163,11 @@ void SpeechRecognizer::reloadCommands() {
     }
 
     if (FAILED(hr)) {
-        qDebug() << "ERROR: Didn't successfully reload commands";
+        qDebug() << "ERROR: Didn't successfully reload speech commands";
     }
 }
 
 void SpeechRecognizer::notifyCommandRecognized(HANDLE handle) {
-
     SPEVENT eventItem;
     memset(&eventItem, 0, sizeof(SPEVENT));
     HRESULT hr = _speechRecognizerContext->GetEvents(1, &eventItem, NULL);
