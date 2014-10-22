@@ -621,7 +621,7 @@ function handeMenuEvent(menuItem) {
         // good place to put the properties dialog
 
         editModelID = -1;
-        if (entitySelected) {
+        if (selectionManager.selections.length == 1) {
             print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
             editModelID = selectedEntityID;
         } else {
