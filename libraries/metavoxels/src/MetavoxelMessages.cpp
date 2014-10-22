@@ -734,6 +734,22 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
             }
         }
     }
+    
+    // if there are no visible colors, we can clear everything
+    bool foundOpaque = false;
+    for (const QRgb* src = colorContents.constData(), *end = src + colorContents.size(); src != end; src++) {
+        if (qAlpha(*src) != 0) {
+            foundOpaque = true;
+            break;
+        }
+    }
+    if (!foundOpaque) {
+        info.outputValues[0] = AttributeValue(_outputs.at(0));
+        info.outputValues[1] = AttributeValue(_outputs.at(1));
+        info.outputValues[2] = AttributeValue(_outputs.at(2));
+        return STOP_RECURSION;
+    }
+    
     VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
         encodeInline<VoxelColorDataPointer>(newColorPointer));

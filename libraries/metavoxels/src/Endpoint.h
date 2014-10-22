@@ -32,7 +32,7 @@ public:
         PacketRecord* baselineReceiveRecord = NULL);
     virtual ~Endpoint();
     
-    const DatagramSequencer& getSequencer() const { return _sequencer; }
+    DatagramSequencer& getSequencer() { return _sequencer; }
     
     virtual void update();
     
@@ -45,10 +45,10 @@ protected slots:
     virtual void handleMessage(const QVariant& message, Bitstream& in); 
     
     void recordSend();
-    void recordReceive();
+    virtual void recordReceive();
     
-    void clearSendRecordsBefore(int index);
-    void clearReceiveRecordsBefore(int index);
+    virtual void clearSendRecordsBefore(int index);
+    virtual void clearReceiveRecordsBefore(int index);
 
 protected:
 
@@ -71,14 +71,16 @@ protected:
 class PacketRecord {
 public:
 
-    PacketRecord(const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData());
+    PacketRecord(int packetNumber = 0, const MetavoxelLOD& lod = MetavoxelLOD(), const MetavoxelData& data = MetavoxelData());
     virtual ~PacketRecord();
     
+    int getPacketNumber() const { return _packetNumber; }
     const MetavoxelLOD& getLOD() const { return _lod; }
     const MetavoxelData& getData() const { return _data; }
     
 private:
     
+    int _packetNumber;
     MetavoxelLOD _lod;
     MetavoxelData _data;
 };

@@ -39,6 +39,15 @@ REGISTER_META_OBJECT(StaticModelRenderer)
 
 static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
 
+MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repeatRate,
+        int minimumDelay, int maximumDelay, int bandwidthLimit) :
+    dropRate(dropRate),
+    repeatRate(repeatRate),
+    minimumDelay(minimumDelay),
+    maximumDelay(maximumDelay),
+    bandwidthLimit(bandwidthLimit) {
+}    
+
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     DefaultMetavoxelRendererImplementation::init();
@@ -59,6 +68,16 @@ void MetavoxelSystem::init() {
 MetavoxelLOD MetavoxelSystem::getLOD() {
     QReadLocker locker(&_lodLock);
     return _lod;
+}
+
+void MetavoxelSystem::setNetworkSimulation(const NetworkSimulation& simulation) {
+    QWriteLocker locker(&_networkSimulationLock);
+    _networkSimulation = simulation;
+}
+
+MetavoxelSystem::NetworkSimulation MetavoxelSystem::getNetworkSimulation() {
+    QReadLocker locker(&_networkSimulationLock);
+    return _networkSimulation;
 }
 
 class SimulateVisitor : public MetavoxelVisitor {
@@ -678,6 +697,28 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
     }
 }
 
+Throttle::Throttle() :
+    _limit(INT_MAX),
+    _total(0) {
+}
+
+bool Throttle::shouldThrottle(int bytes) {
+    // clear expired buckets
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    while (!_buckets.isEmpty() && now >= _buckets.first().first) {
+        _total -= _buckets.takeFirst().second;
+    }
+    
+    // if possible, add the new bucket
+    if (_total + bytes > _limit) {
+        return true;
+    }
+    const int BUCKET_DURATION = 1000;
+    _buckets.append(Bucket(now + BUCKET_DURATION, bytes));
+    _total += bytes;
+    return false;
+}
+
 MetavoxelSystemClient::MetavoxelSystemClient(const SharedNodePointer& node, MetavoxelUpdater* updater) :
     MetavoxelClient(node, updater) {
 }
@@ -692,10 +733,59 @@ MetavoxelData MetavoxelSystemClient::getAugmentedData() {
     return _augmentedData;
 }
 
+class ReceiveDelayer : public QObject {
+public:
+    
+    ReceiveDelayer(const SharedNodePointer& node, const QByteArray& packet);
+
+protected:
+
+    virtual void timerEvent(QTimerEvent* event);
+
+private:
+    
+    SharedNodePointer _node;
+    QByteArray _packet;
+};
+
+ReceiveDelayer::ReceiveDelayer(const SharedNodePointer& node, const QByteArray& packet) :
+    _node(node),
+    _packet(packet) {
+}
+
+void ReceiveDelayer::timerEvent(QTimerEvent* event) {
+    QMutexLocker locker(&_node->getMutex());
+    MetavoxelClient* client = static_cast<MetavoxelClient*>(_node->getLinkedData());
+    if (client) {
+        QMetaObject::invokeMethod(&client->getSequencer(), "receivedDatagram", Q_ARG(const QByteArray&, _packet));
+    }
+    deleteLater();
+}
+
 int MetavoxelSystemClient::parseData(const QByteArray& packet) {
     // process through sequencer
-    QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
-    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
+    MetavoxelSystem::NetworkSimulation simulation = Application::getInstance()->getMetavoxels()->getNetworkSimulation();
+    if (randFloat() < simulation.dropRate) {
+        return packet.size();
+    }
+    int count = (randFloat() < simulation.repeatRate) ? 2 : 1;
+    for (int i = 0; i < count; i++) {
+        if (simulation.bandwidthLimit > 0) {
+            _receiveThrottle.setLimit(simulation.bandwidthLimit);
+            if (_receiveThrottle.shouldThrottle(packet.size())) {
+                continue;
+            }
+        }
+        int delay = randIntInRange(simulation.minimumDelay, simulation.maximumDelay);
+        if (delay > 0) {
+            ReceiveDelayer* delayer = new ReceiveDelayer(_node, packet);
+            delayer->startTimer(delay);
+            
+        } else {
+            QMetaObject::invokeMethod(&_sequencer, "receivedDatagram", Q_ARG(const QByteArray&, packet));
+        }
+        Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::METAVOXELS).updateValue(packet.size());
+    }
     return packet.size();
 }
 
@@ -774,9 +864,52 @@ void MetavoxelSystemClient::dataChanged(const MetavoxelData& oldData) {
     QThreadPool::globalInstance()->start(new Augmenter(_node, _data, getAugmentedData(), _remoteDataLOD));
 }
 
+class SendDelayer : public QObject {
+public:
+    
+    SendDelayer(const SharedNodePointer& node, const QByteArray& data);
+
+    virtual void timerEvent(QTimerEvent* event);
+
+private:
+    
+    SharedNodePointer _node;
+    QByteArray _data;
+};
+
+SendDelayer::SendDelayer(const SharedNodePointer& node, const QByteArray& data) :
+    _node(node),
+    _data(data.constData(), data.size()) {
+}
+
+void SendDelayer::timerEvent(QTimerEvent* event) {
+    NodeList::getInstance()->writeDatagram(_data, _node);
+    deleteLater();
+}
+
 void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
-    NodeList::getInstance()->writeDatagram(data, _node);
-    Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
+    MetavoxelSystem::NetworkSimulation simulation = Application::getInstance()->getMetavoxels()->getNetworkSimulation();
+    if (randFloat() < simulation.dropRate) {
+        return;
+    }
+    int count = (randFloat() < simulation.repeatRate) ? 2 : 1;
+    for (int i = 0; i < count; i++) {
+        if (simulation.bandwidthLimit > 0) {
+            _sendThrottle.setLimit(simulation.bandwidthLimit);
+            if (_sendThrottle.shouldThrottle(data.size())) {
+                continue;
+            }
+        }
+        int delay = randIntInRange(simulation.minimumDelay, simulation.maximumDelay);
+        if (delay > 0) {
+            SendDelayer* delayer = new SendDelayer(_node, data);
+            delayer->startTimer(delay);
+            
+        } else {
+            NodeList::getInstance()->writeDatagram(data, _node);
+        }
+        Application::getInstance()->getBandwidthMeter()->outputStream(BandwidthMeter::METAVOXELS).updateValue(data.size());
+    }
 }
 
 BufferData::~BufferData() {
