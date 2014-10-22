@@ -16,6 +16,13 @@
 #include <QSet>
 #include <QString>
 
+#ifdef Q_OS_WIN
+#include <QWinEventNotifier>
+
+#include <atlbase.h>
+#include <sapi.h>
+#endif
+
 class SpeechRecognizer : public QObject {
     Q_OBJECT
 public:
@@ -40,8 +47,22 @@ protected:
 private:
     bool _enabled;
     QSet<QString> _commands;
+#if defined(Q_OS_MAC)
     void* _speechRecognizerDelegate;
     void* _speechRecognizer;
+#elif defined(Q_OS_WIN)
+    bool _comInitialized;
+    CComPtr<ISpRecognizer> _speechRecognizer;
+    CComPtr<ISpRecoContext> _speechRecognizerContext;
+    CComPtr<ISpRecoGrammar> _speechRecognizerGrammar;
+    HANDLE _commandRecognizedEvent;
+    QWinEventNotifier* _commandRecognizedNotifier;
+#endif
+
+#if defined(Q_OS_WIN)
+private slots:
+    void notifyCommandRecognized(HANDLE handle);
+#endif
 };
 
 #endif // hifi_SpeechRecognizer_h
