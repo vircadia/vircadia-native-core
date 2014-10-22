@@ -133,7 +133,7 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Visible:", value: properties.visible });
         index++;
     
-        if (properties.type == "Box" || properties.type == "Sphere") {
+        if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "Light") {
             array.push({ label: "Color:", type: "header" });
             index++;
             array.push({ label: "Red:", value: properties.color.red });
@@ -141,6 +141,11 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Green:", value: properties.color.green });
             index++;
             array.push({ label: "Blue:", value: properties.color.blue });
+            index++;
+        }
+
+        if (properties.type == "Light") {
+            array.push({ label: "Spot Light:", value: properties.isSpotlight });
             index++;
         }
         array.push({ button: "Cancel" });
@@ -237,12 +242,16 @@ EntityPropertyDialogBox = (function () {
             properties.lifetime = array[index++].value;
             properties.visible = array[index++].value;
 
-            if (properties.type == "Box" || properties.type == "Sphere") {
+            if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "Light") {
                 index++; // skip header
                 properties.color.red = array[index++].value;
                 properties.color.green = array[index++].value;
                 properties.color.blue = array[index++].value;
             }
+            if (properties.type == "Light") {
+                properties.isSpotlight = array[index++].value;
+            }
+
             Entities.editEntity(editModelID, properties);
             selectionDisplay.select(editModelID, false);
         }

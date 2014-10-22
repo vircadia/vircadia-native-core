@@ -65,7 +65,10 @@ enum EntityPropertyList {
     PROP_IGNORE_FOR_COLLISIONS,
     PROP_COLLISIONS_WILL_MOVE,
 
-    PROP_LAST_ITEM = PROP_COLLISIONS_WILL_MOVE
+    // property used by Light entity
+    PROP_IS_SPOTLIGHT,
+
+    PROP_LAST_ITEM = PROP_IS_SPOTLIGHT
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -83,6 +86,7 @@ class EntityItemProperties {
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class BoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties() { };
@@ -233,6 +237,9 @@ public:
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; _collisionsWillMoveChanged = true; }
 
+    bool getIsSpotlight() const { return _isSpotlight; }
+    void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
+
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
 private:
@@ -288,8 +295,10 @@ private:
     float _animationFPS;
     float _glowLevel;
     float _localRenderAlpha;
+    bool _isSpotlight;
     QVector<SittingPoint> _sittingPoints;
     glm::vec3 _naturalDimensions;
+    
 
     bool _colorChanged;
     bool _modelURLChanged;
@@ -299,6 +308,7 @@ private:
     bool _animationFPSChanged;
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
+    bool _isSpotlightChanged;
 
     bool _defaultSettings;
 };

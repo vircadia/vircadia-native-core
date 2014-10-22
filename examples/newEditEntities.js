@@ -73,6 +73,7 @@ var toolBar = (function () {
         newModelButton,
         newCubeButton,
         newSphereButton,
+        newLightButton,
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
@@ -149,6 +150,15 @@ var toolBar = (function () {
         });
 
         newSphereButton = toolBar.addTool({
+            imageURL: toolIconUrl + "add-sphere.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true
+        });
+
+        newLightButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-sphere.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
@@ -319,7 +329,23 @@ var toolBar = (function () {
                                 color: { red: 255, green: 0, blue: 0 }
                                 });
             } else {
-                print("Can't create box: Box would be out of bounds.");
+                print("Can't create sphere: Sphere would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newLightButton === toolBar.clicked(clickedOverlay)) {
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                Entities.addEntity({ 
+                                type: "Light",
+                                position: position,
+                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                color: { red: 255, green: 0, blue: 0 }
+                                });
+            } else {
+                print("Can't create Light: Light would be out of bounds.");
             }
             return true;
         }

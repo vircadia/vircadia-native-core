@@ -68,6 +68,7 @@ EntityItemProperties::EntityItemProperties() :
     _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
     _localRenderAlpha(1.0f),
+    _isSpotlight(false),
 
     _naturalDimensions(1.0f, 1.0f, 1.0f),
     _colorChanged(false),
@@ -78,7 +79,6 @@ EntityItemProperties::EntityItemProperties() :
     _animationFPSChanged(false),
     _glowLevelChanged(false),
     _localRenderAlphaChanged(false),
-
     _defaultSettings(true)
 {
 }
@@ -120,6 +120,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
     CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
+    CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
 
     return changedProperties;
 }
@@ -161,6 +162,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(isSpotlight);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -220,6 +222,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localRenderAlpha, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(collisionsWillMove, setCollisionsWillMove);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(isSpotlight, setIsSpotlight);
 
     _lastEdited = usecTimestampNow();
 }
@@ -370,6 +373,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, properties.getIgnoreForCollisions());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
+            APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -568,6 +572,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
 
     return valid;
 }
@@ -622,6 +627,7 @@ void EntityItemProperties::markAllChanged() {
     _animationFPSChanged = true;
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
+    _isSpotlightChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {
