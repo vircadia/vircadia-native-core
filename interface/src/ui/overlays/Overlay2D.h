@@ -29,6 +29,8 @@ class Overlay2D : public Overlay {
 public:
     Overlay2D();
     ~Overlay2D();
+    
+    virtual bool is3D() const { return false; }
 
     // getters
     int getX() const { return _bounds.x(); }
