@@ -19,7 +19,7 @@ if (GVERB_INCLUDE_DIRS)
   # in cache already
   set(GVERB_FOUND TRUE)
 else ()
-  find_path(GVERB_INCLUDE_DIRS gverb.h ${GVERB_ROOT_DIR}/src)
+  find_path(GVERB_INCLUDE_DIRS gverb.h ${GVERB_ROOT_DIR}/include)
 
   if (GVERB_INCLUDE_DIRS)
     set(GVERB_FOUND TRUE)
