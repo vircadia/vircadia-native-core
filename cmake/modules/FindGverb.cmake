@@ -36,4 +36,4 @@ else (GVERB_INCLUDE_DIRS)
     message(FATAL_ERROR "Could NOT find Gverb. Read ./interface/externals/gverb/readme.txt")
   endif (GVERB_FOUND)
 
-endif(GVERB_INCLUDE_DIR)
+endif(GVERB_INCLUDE_DIRS)
