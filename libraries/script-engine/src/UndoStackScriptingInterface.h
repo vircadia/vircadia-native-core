@@ -28,7 +28,8 @@ private:
     QUndoStack* _undoStack;
 };
 
-class ScriptUndoCommand : public QUndoCommand {
+class ScriptUndoCommand : public QObject, public QUndoCommand {
+    Q_OBJECT
 public:
     ScriptUndoCommand(QScriptValue undoFunction, QScriptValue undoData, QScriptValue redoFunction, QScriptValue redoData);
 
@@ -36,6 +37,10 @@ public:
     virtual void redo();
     virtual bool mergeWith(const QUndoCommand* command) { return false; }
     virtual int id() const { return -1; }
+
+public slots:
+    void doUndo();
+    void doRedo();
 
 private:
     QScriptValue _undoFunction;

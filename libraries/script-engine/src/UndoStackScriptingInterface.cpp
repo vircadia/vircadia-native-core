@@ -10,6 +10,7 @@
 //
 
 #include <QDebug>
+#include <QScriptValue>
 #include <QScriptValueList>
 #include <QScriptEngine>
 
@@ -20,9 +21,11 @@ UndoStackScriptingInterface::UndoStackScriptingInterface(QUndoStack* undoStack) 
 
 void UndoStackScriptingInterface::pushCommand(QScriptValue undoFunction, QScriptValue undoData,
                                               QScriptValue redoFunction, QScriptValue redoData) {
-    ScriptUndoCommand* undoCommand = new ScriptUndoCommand(undoFunction, undoData, redoFunction, redoData);
-    qDebug() << "Pushing command";
-    _undoStack->push(undoCommand);
+    if (undoFunction.engine()) {
+        ScriptUndoCommand* undoCommand = new ScriptUndoCommand(undoFunction, undoData, redoFunction, redoData);
+        undoCommand->moveToThread(undoFunction.engine()->thread());
+        _undoStack->push(undoCommand);
+    }
 }
 
 ScriptUndoCommand::ScriptUndoCommand(QScriptValue undoFunction, QScriptValue undoData,
@@ -34,12 +37,21 @@ ScriptUndoCommand::ScriptUndoCommand(QScriptValue undoFunction, QScriptValue und
 }
 
 void ScriptUndoCommand::undo() {
+    QMetaObject::invokeMethod(this, "doUndo");
+}
+
+void ScriptUndoCommand::redo() {
+    QMetaObject::invokeMethod(this, "doRedo");
+}
+
+void ScriptUndoCommand::doUndo() {
     QScriptValueList args;
     args << _undoData;
     _undoFunction.call(QScriptValue(), args);
 }
 
-void ScriptUndoCommand::redo() {
+
+void ScriptUndoCommand::doRedo() {
     QScriptValueList args;
     args << _redoData;
     _redoFunction.call(QScriptValue(), args);
