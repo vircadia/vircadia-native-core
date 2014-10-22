@@ -14,16 +14,15 @@
 
 #define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandCalls.push_back(&gpu::Batch::do_##call); _commandOffsets.push_back(_params.size());
 
-//#define DO_IT_NOW(call, offset) uint32 __param = _params.size() - (offset); do##call(__param);
-//#define DO_IT_NOW(call, offset) uint32 __param = _commandOffsets.back(); CommandCall call = _commandCalls.back(); (this->*(call))(__param);
 //#define DO_IT_NOW(call, offset) runLastCommand();
-//#define DO_IT_NOW(call, offset) uint32 __param = _params.size() - (offset); runCommand(_commands.size() -1);// do##call(__param);
 #define DO_IT_NOW(call, offset) 
 
 using namespace gpu;
 
 Batch::Batch() :
     _commands(),
+    _commandCalls(),
+    _commandOffsets(),
     _params(),
     _resources(),
     _data(){
@@ -34,6 +33,8 @@ Batch::~Batch() {
 
 void Batch::clear() {
     _commands.clear();
+    _commandCalls.clear();
+    _commandOffsets.clear();
     _params.clear();
     _resources.clear();
     _data.clear();

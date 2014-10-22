@@ -28,6 +28,7 @@
 
 #include "gpu/Batch.h"
 #define GLBATCH( call ) batch._##call
+//#define GLBATCH( call ) call
 
 using namespace std;
 
@@ -433,97 +434,135 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         segregateMeshGroups();
     }
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    
-    glDisable(GL_COLOR_MATERIAL);
+    // Let's introduce a gpu::Batch to capture all the calls to the graphics api
+    gpu::Batch batch;
+
+    GLBATCH(glEnableClientState)(GL_VERTEX_ARRAY);
+    GLBATCH(glEnableClientState)(GL_NORMAL_ARRAY);
+
+    GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
     if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
-        glDisable(GL_CULL_FACE);
+        GLBATCH(glDisable)(GL_CULL_FACE);
     } else {
-        glEnable(GL_CULL_FACE);
+        GLBATCH(glEnable)(GL_CULL_FACE);
         if (mode == SHADOW_RENDER_MODE) {
-            glCullFace(GL_FRONT);
+            GLBATCH(glCullFace)(GL_FRONT);
         }
     }
     
     // render opaque meshes with alpha testing
-    
-    glDisable(GL_BLEND);
-    glEnable(GL_ALPHA_TEST);
+
+    GLBATCH(glDisable)(GL_BLEND);
+    GLBATCH(glEnable)(GL_ALPHA_TEST);
     
     if (mode == SHADOW_RENDER_MODE) {
-        glAlphaFunc(GL_EQUAL, 0.0f);
+        GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
     }
-    
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
+
+
+    /*Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
         mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
         mode == DEFAULT_RENDER_MODE);
-    
+        */
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        }
+        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        }
+        if (mode == DEFAULT_RENDER_MODE) {
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        }
+        GLBATCH(glDrawBuffers)(bufferCount, buffers);
+    }
+
     const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
     
+
     //renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, book isSkinned, args);
     int opaqueMeshPartsRendered = 0;
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-    
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+
     // render translucent meshes afterwards
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    {
+        GLenum buffers[2];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        GLBATCH(glDrawBuffers)(bufferCount, buffers);
+    }
+
     int translucentMeshPartsRendered = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+
+    GLBATCH(glDisable)(GL_ALPHA_TEST);
+    GLBATCH(glEnable)(GL_BLEND);
+    GLBATCH(glDepthMask)(false);
+    GLBATCH(glDepthFunc)(GL_LEQUAL);
     
-    glDisable(GL_ALPHA_TEST);
-    glEnable(GL_BLEND);
-    glDepthMask(false);
-    glDepthFunc(GL_LEQUAL);
-    
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
-    
+    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
+    {
+        GLenum buffers[1];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        GLBATCH(glDrawBuffers)(bufferCount, buffers);
+    }
+
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
     }
-    
-    glDepthMask(true);
-    glDepthFunc(GL_LESS);
-    glDisable(GL_CULL_FACE);
+
+    GLBATCH(glDepthMask)(true);
+    GLBATCH(glDepthFunc)(GL_LESS);
+    GLBATCH(glDisable)(GL_CULL_FACE);
     
     if (mode == SHADOW_RENDER_MODE) {
-        glCullFace(GL_BACK);
+        GLBATCH(glCullFace)(GL_BACK);
     }
-    
+
     // deactivate vertex arrays after drawing
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
+    GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
+    GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
     
     // bind with 0 to switch back to normal operation
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
+    GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
+    GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
+    // Render!
+    ::gpu::backend::renderBatch(batch);
+    batch.clear();
+
     // restore all the default material settings
     Application::getInstance()->setupWorldLight();
     
@@ -1509,7 +1548,7 @@ void Model::segregateMeshGroups() {
     _meshGroupsKnown = true;
 }
 
-int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, 
+int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
     bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
@@ -1611,7 +1650,7 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     Locations* activeLocations = locations;
 
     // Try to use the Batch
-    gpu::Batch batch;
+    //gpu::Batch batch;
 
     /*if (isSkinned) {
         skinProgram->bind();
@@ -1868,7 +1907,6 @@ int Model::renderMeshes(RenderMode mode, bool translucent, float alphaThreshold,
     //activeProgram->release();
     GLBATCH(glUseProgram)(0);
 
-    ::gpu::backend::renderBatch(batch);
     return meshPartsRendered;
 }
 

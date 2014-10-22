@@ -31,11 +31,6 @@ typedef int  Stamp;
 typedef unsigned int uint32;
 typedef int int32;
 
-// TODO: move the backend namespace into dedicated files, for now we keep it close to the gpu objects definition for convenience
-namespace backend {
-
-};
-
 enum Primitive {
     PRIMITIVE_POINTS = 0,
     PRIMITIVE_LINES,
@@ -226,7 +221,6 @@ protected:
     Resources _resources;
     Bytes _data;
 
-
     uint32 cacheResource(Resource* res);
     uint32 cacheResource(const void* pointer);
     ResourceCache* editResource(uint32 offset) {
@@ -246,22 +240,11 @@ protected:
         uint32 offset = _commandOffsets[index];
         CommandCall call = _commandCalls[index];
         (this->*(call))(offset);
-        uint32 nextOFfset = offset;
-
-        GLenum error = glGetError();
-        if (error) {
-            error++;
-        }
     }
 
     void runLastCommand() {
         uint32 index = _commands.size() - 1;
-        uint32 offset = _commandOffsets[index];
-       /* CommandCall call = _commandCalls[index];
-        (this->*(call))(offset);
-        uint32 nextOFfset = offset;
-        */
-        runCommand(_commands[index], offset);
+        runCommand(index);
     }
 
     void runCommand(Command com, uint32 offset);
