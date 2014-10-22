@@ -23,6 +23,8 @@ class Batch;
 namespace backend {
 
     void renderBatch(Batch& batch);
+
+    void checkGLError();
 };
 
 class Buffer;
@@ -179,7 +181,7 @@ protected:
         COMMAND_glMaterialfv,
     };
     typedef std::vector<Command> Commands;
-    typedef void (Batch::*CommandCall)(uint32&);
+    typedef void (Batch::*CommandCall)(uint32);
     typedef std::vector<CommandCall> CommandCalls;
     typedef std::vector<uint32> CommandOffsets;
 
@@ -249,64 +251,64 @@ protected:
 
     void runCommand(Command com, uint32 offset);
 
-    void do_draw(uint32& paramOffset) {}
-    void do_drawIndexed(uint32& paramOffset) {}
-    void do_drawInstanced(uint32& paramOffset) {}
-    void do_drawIndexedInstanced(uint32& paramOffset) {}
+    void do_draw(uint32 paramOffset) {}
+    void do_drawIndexed(uint32 paramOffset) {}
+    void do_drawInstanced(uint32 paramOffset) {}
+    void do_drawIndexedInstanced(uint32 paramOffset) {}
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    void do_glEnable(uint32& paramOffset);
-    void do_glDisable(uint32& paramOffset);
+    void do_glEnable(uint32 paramOffset);
+    void do_glDisable(uint32 paramOffset);
 
-    void do_glEnableClientState(uint32& paramOffset);
-    void do_glDisableClientState(uint32& paramOffset);
+    void do_glEnableClientState(uint32 paramOffset);
+    void do_glDisableClientState(uint32 paramOffset);
 
-    void do_glCullFace(uint32& paramOffset);
-    void do_glAlphaFunc(uint32& paramOffset);
+    void do_glCullFace(uint32 paramOffset);
+    void do_glAlphaFunc(uint32 paramOffset);
 
-    void do_glDepthFunc(uint32& paramOffset);
-    void do_glDepthMask(uint32& paramOffset);
-    void do_glDepthRange(uint32& paramOffset);
+    void do_glDepthFunc(uint32 paramOffset);
+    void do_glDepthMask(uint32 paramOffset);
+    void do_glDepthRange(uint32 paramOffset);
 
-    void do_glBindBuffer(uint32& paramOffset);
+    void do_glBindBuffer(uint32 paramOffset);
 
-    void do_glBindTexture(uint32& paramOffset);
-    void do_glActiveTexture(uint32& paramOffset);
+    void do_glBindTexture(uint32 paramOffset);
+    void do_glActiveTexture(uint32 paramOffset);
 
-    void do_glDrawBuffers(uint32& paramOffset);
+    void do_glDrawBuffers(uint32 paramOffset);
 
-    void do_glUseProgram(uint32& paramOffset);
-    void do_glUniform1f(uint32& paramOffset);
-    void do_glUniformMatrix4fv(uint32& paramOffset);
+    void do_glUseProgram(uint32 paramOffset);
+    void do_glUniform1f(uint32 paramOffset);
+    void do_glUniformMatrix4fv(uint32 paramOffset);
 
-    void do_glMatrixMode(uint32& paramOffset);
-    void do_glPushMatrix(uint32& paramOffset);
-    void do_glPopMatrix(uint32& paramOffset);
-    void do_glMultMatrixf(uint32& paramOffset);
-    void do_glLoadMatrixf(uint32& paramOffset);
-    void do_glLoadIdentity(uint32& paramOffset);
-    void do_glRotatef(uint32& paramOffset);
-    void do_glScalef(uint32& paramOffset);
-    void do_glTranslatef(uint32& paramOffset);
+    void do_glMatrixMode(uint32 paramOffset);
+    void do_glPushMatrix(uint32 paramOffset);
+    void do_glPopMatrix(uint32 paramOffset);
+    void do_glMultMatrixf(uint32 paramOffset);
+    void do_glLoadMatrixf(uint32 paramOffset);
+    void do_glLoadIdentity(uint32 paramOffset);
+    void do_glRotatef(uint32 paramOffset);
+    void do_glScalef(uint32 paramOffset);
+    void do_glTranslatef(uint32 paramOffset);
 
-    void do_glDrawArrays(uint32& paramOffset);
-    void do_glDrawRangeElements(uint32& paramOffset);
+    void do_glDrawArrays(uint32 paramOffset);
+    void do_glDrawRangeElements(uint32 paramOffset);
 
-    void do_glColorPointer(uint32& paramOffset);
-    void do_glNormalPointer(uint32& paramOffset);
-    void do_glTexCoordPointer(uint32& paramOffset);
-    void do_glVertexPointer(uint32& paramOffset);
+    void do_glColorPointer(uint32 paramOffset);
+    void do_glNormalPointer(uint32 paramOffset);
+    void do_glTexCoordPointer(uint32 paramOffset);
+    void do_glVertexPointer(uint32 paramOffset);
 
-    void do_glVertexAttribPointer(uint32& paramOffset);
-    void do_glEnableVertexAttribArray(uint32& paramOffset);
-    void do_glDisableVertexAttribArray(uint32& paramOffset);
+    void do_glVertexAttribPointer(uint32 paramOffset);
+    void do_glEnableVertexAttribArray(uint32 paramOffset);
+    void do_glDisableVertexAttribArray(uint32 paramOffset);
 
-    void do_glColor4f(uint32& paramOffset);
+    void do_glColor4f(uint32 paramOffset);
 
-    void do_glMaterialf(uint32& paramOffset);
-    void do_glMaterialfv(uint32& paramOffset);
+    void do_glMaterialf(uint32 paramOffset);
+    void do_glMaterialfv(uint32 paramOffset);
 
     friend void backend::renderBatch(Batch& batch);
 };

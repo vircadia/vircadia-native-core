@@ -1819,7 +1819,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, part.shininess);
+                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, (part.shininess > 128.f ? 128.f: part.shininess));
             
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {
