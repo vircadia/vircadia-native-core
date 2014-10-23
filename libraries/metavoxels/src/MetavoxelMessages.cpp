@@ -1049,18 +1049,13 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
     }
     
     // if all is gone, clear the node
-    if (!foundNonZero) {
-        info.outputValues[0] = AttributeValue(_outputs.at(0), 
-            encodeInline<HeightfieldHeightDataPointer>(HeightfieldHeightDataPointer()));
-        info.outputValues[1] = AttributeValue(_outputs.at(1),
-            encodeInline<HeightfieldColorDataPointer>(HeightfieldColorDataPointer()));
-        info.outputValues[2] = AttributeValue(_outputs.at(2),
-            encodeInline<HeightfieldMaterialDataPointer>(HeightfieldMaterialDataPointer()));
-        return STOP_RECURSION;
+    if (foundNonZero) {
+        HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
+        
+    } else {
+        info.outputValues[0] = AttributeValue(_outputs.at(0));
     }
-    
-    HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
     
     // allow a border for what we clear in terms of color/material
     innerBounds.minimum.x += increment;
@@ -1090,19 +1085,24 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
             memcpy(dest, src, destWidth * DataBlock::COLOR_BYTES);
         }
         
-        destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-        destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-        destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-        destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-        if (destWidth > 0 && destHeight > 0) {
-            dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
-            
-            for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
-                memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+        if (foundNonZero) {
+            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+            if (destWidth > 0 && destHeight > 0) {
+                dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
+                
+                for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
+                    memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+                }
+                
+                HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
+                info.outputValues[1] = AttributeValue(_outputs.at(1),
+                    encodeInline<HeightfieldColorDataPointer>(newColorPointer));
             }
-            
-            HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
-            info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newColorPointer));
+        } else {
+            info.outputValues[1] = AttributeValue(_outputs.at(1));
         }
     }
     
@@ -1139,21 +1139,25 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
             }
         }
         
-        destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-        destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-        destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-        destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-        if (destWidth > 0 && destHeight > 0) {
-            dest = (uchar*)contents.data() + destY * size + destX;
-            
-            for (int y = 0; y < destHeight; y++, dest += size) {
-                memset(dest, 0, destWidth);
+        if (foundNonZero) {
+            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+            if (destWidth > 0 && destHeight > 0) {
+                dest = (uchar*)contents.data() + destY * size + destX;
+                
+                for (int y = 0; y < destHeight; y++, dest += size) {
+                    memset(dest, 0, destWidth);
+                }
+                
+                clearUnusedMaterials(materials, contents);
+                HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
+                info.outputValues[2] = AttributeValue(_outputs.at(2),
+                    encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
             }
-            
-            clearUnusedMaterials(materials, contents);
-            HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
-            info.outputValues[2] = AttributeValue(_outputs.at(2),
-                encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
+        } else {
+            info.outputValues[2] = AttributeValue(_outputs.at(2));
         }
     }
     
