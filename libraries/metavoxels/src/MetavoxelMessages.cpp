@@ -701,8 +701,7 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     int sizeY = (int)overlap.maximum.y - minY + 1;
     int sizeZ = (int)overlap.maximum.z - minZ + 1;
     
-    QRgb rgb = _color.rgba();
-    bool flipped = (qAlpha(rgb) == 0);
+    bool flipped = false;
     float step = 1.0f / scale;
     glm::vec3 position(0.0f, 0.0f, info.minimum.z + minZ * step);
     if (_spanner->hasOwnColors()) {
@@ -720,6 +719,8 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
             }
         }
     } else {
+        QRgb rgb = _color.rgba();
+        flipped = (qAlpha(rgb) == 0);
         for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
                 *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
             position.y = info.minimum.y + minY * step;
