@@ -62,7 +62,7 @@ void EntityTests::entityTreeTests(bool verbose) {
         properties.setPosition(positionAtCenterInMeters);
         // TODO: Fix these unit tests.
         //properties.setRadius(halfMeter);
-        //properties.setModelURL("https://s3.amazonaws.com/hifi-public/ozan/theater.fbx");
+        //properties.setModelURL("http://s3.amazonaws.com/hifi-public/ozan/theater.fbx");
 
         tree.addEntity(entityID, properties);
         
@@ -269,7 +269,7 @@ void EntityTests::entityTreeTests(bool verbose) {
             
             // TODO: fix these unit tests
             //properties.setRadius(halfMeter);
-            //properties.setModelURL("https://s3.amazonaws.com/hifi-public/ozan/theater.fbx");
+            //properties.setModelURL("http://s3.amazonaws.com/hifi-public/ozan/theater.fbx");
 
             if (extraVerbose) {
                 qDebug() << "iteration:" << i

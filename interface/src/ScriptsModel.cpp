@@ -21,7 +21,7 @@
 
 #include "ScriptsModel.h"
 
-static const QString S3_URL = "https://s3.amazonaws.com/hifi-public";
+static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
 static const QString MODELS_LOCATION = "scripts/";
 

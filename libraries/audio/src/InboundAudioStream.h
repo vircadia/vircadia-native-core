@@ -154,6 +154,10 @@ public:
     int getOverflowCount() const { return _ringBuffer.getOverflowCount(); }
 
     int getPacketsReceived() const { return _incomingSequenceNumberStats.getReceived(); }
+    
+    bool hasReverb() const { return _hasReverb; }
+    float getRevebTime() const { return _reverbTime; }
+    float getWetLevel() const { return _wetLevel; }
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
@@ -243,6 +247,11 @@ protected:
     MovingMinMaxAvg<quint64> _timeGapStatsForStatsPacket;
 
     bool _repetitionWithFade;
+    
+    // Reverb properties
+    bool _hasReverb;
+    float _reverbTime;
+    float _wetLevel;
 };
 
 float calculateRepeatedFrameFadeFactor(int indexOfRepeat);

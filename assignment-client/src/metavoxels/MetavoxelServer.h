@@ -127,6 +127,7 @@ private:
     MetavoxelSender* _sender;
     
     MetavoxelLOD _lod;
+    int _lodPacketNumber;
     
     ReliableChannel* _reliableDeltaChannel;
     int _reliableDeltaReceivedOffset;

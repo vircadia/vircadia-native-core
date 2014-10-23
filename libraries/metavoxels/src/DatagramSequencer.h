@@ -108,6 +108,9 @@ public:
     /// Returns the intput channel at the specified index, creating it if necessary.
     ReliableChannel* getReliableInputChannel(int index = 0);
     
+    /// Returns a reference to the stored receive mappings at the specified index.
+    const Bitstream::ReadMappings& getReadMappings(int index) const { return _receiveRecords.at(index).mappings; }
+    
     /// Adds stats for all reliable channels to the referenced variables.
     void addReliableChannelStats(int& sendProgress, int& sendTotal, int& receiveProgress, int& receiveTotal) const;
     
