@@ -17,7 +17,6 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
-#include <AudioEffectOptions.h>
 #include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
@@ -278,9 +277,6 @@ void ScriptEngine::init() {
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
-
-    QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
-    globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
     
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
