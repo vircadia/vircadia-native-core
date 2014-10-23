@@ -358,6 +358,7 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void setRenderTargetFramerate(int framerate);
     void setRenderResolutionScale(float scale);
 
     void resetSensors();
@@ -609,6 +610,7 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
+    int _renderTargetFramerate;
     float _renderResolutionScale;
 };
 

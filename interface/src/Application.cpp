@@ -94,6 +94,10 @@
 
 #include "devices/Leapmotion.h"
 
+#ifdef WIN32
+#include <gl/wglew.h>
+#endif
+
 using namespace std;
 
 //  Starfield information
@@ -177,8 +181,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
+        _renderTargetFramerate(60),
         _renderResolutionScale(1.0f)
 {
+
+
+ /*   QGLFormat trueFormat = _glWidget->format();
+    trueFormat.setSwapInterval(0);
+    _glWidget->setFormat(trueFormat);*/
+    int swapInterval = _glWidget->format().swapInterval();
+    swapInterval++;
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -518,7 +531,14 @@ void Application::initializeGL() {
       qDebug("Error: %s\n", glewGetErrorString(err));
     }
     qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        wglSwapIntervalEXT(0);
+        int swapInterval = wglGetSwapIntervalEXT();
+        swapInterval++;
+    }
     #endif
+
 
 
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
@@ -1391,9 +1411,14 @@ void Application::idle() {
     PerformanceWarning warn(showWarnings, "idle()");
 
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
-
+    double targetFramePeriod = 0.0;
+    if (_renderTargetFramerate > 0) {
+        targetFramePeriod = 1000.0 / _renderTargetFramerate;
+    } else if (_renderTargetFramerate < 0) {
+        targetFramePeriod = IDLE_SIMULATE_MSECS;
+    }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
-    if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
+    if (timeSinceLastUpdate > targetFramePeriod) {
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -4136,6 +4161,10 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
+}
+
+void Application::setRenderTargetFramerate(int framerate) {
+    _renderTargetFramerate = framerate;
 }
 
 void Application::setRenderResolutionScale(float scale) {

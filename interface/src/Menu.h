@@ -227,6 +227,7 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
+    void toggleUnleashFramerate();
     void changeRenderResolution(QAction* action);
 
 private:
@@ -446,6 +447,7 @@ namespace MenuOption {
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderUnleashFramerate = "Unleash Framerate";
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

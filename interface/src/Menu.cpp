@@ -372,6 +372,8 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
 
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderUnleashFramerate, 0, false, this, SLOT(toggleUnleashFramerate()));
+
     QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, false));
@@ -1228,6 +1230,14 @@ void Menu::muteEnvironment() {
     }
 
     free(packet);
+}
+
+void Menu::toggleUnleashFramerate() {
+    if (isOptionChecked(MenuOption::RenderUnleashFramerate)) {
+        Application::getInstance()->setRenderTargetFramerate(0);
+    } else {
+        Application::getInstance()->setRenderTargetFramerate(-1);
+    }
 }
 
 void Menu::changeRenderResolution(QAction* action) {
