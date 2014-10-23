@@ -19,7 +19,6 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
-
     that.savedProperties = {};
 
     that.eventListener = null;
