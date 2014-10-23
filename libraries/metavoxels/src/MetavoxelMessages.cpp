@@ -998,10 +998,13 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
         _spannerBounds.maximum = (glm::ceil(_bounds.maximum / increment) + glm::vec3(1.0f, 0.0f, 1.0f)) * increment;
         _spannerBounds.minimum.y = bounds.minimum.y;
         _spannerBounds.maximum.y = bounds.maximum.y;
-        _heightfieldWidth = (int)glm::round((_spannerBounds.maximum.x - _spannerBounds.minimum.x) / increment) + 1;
-        _heightfieldHeight = (int)glm::round((_spannerBounds.maximum.z - _spannerBounds.minimum.z) / increment) + 1;
+        _heightfieldWidth = (int)glm::round((_spannerBounds.maximum.x - _spannerBounds.minimum.x) / increment);
+        _heightfieldHeight = (int)glm::round((_spannerBounds.maximum.z - _spannerBounds.minimum.z) / increment);
         int heightfieldArea = _heightfieldWidth * _heightfieldHeight;
-        _spanner = spanner = new Heightfield(_spannerBounds, increment, QByteArray(heightfieldArea, 0),
+        Box innerBounds = _spannerBounds;
+        innerBounds.maximum.x -= increment;
+        innerBounds.maximum.z -= increment;
+        _spanner = spanner = new Heightfield(innerBounds, increment, QByteArray(heightfieldArea, 0),
             QByteArray(heightfieldArea * DataBlock::COLOR_BYTES, 0), QByteArray(heightfieldArea, 0),
             QVector<SharedObjectPointer>());
     }
