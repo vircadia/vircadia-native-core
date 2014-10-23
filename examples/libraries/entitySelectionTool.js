@@ -926,7 +926,6 @@ SelectionDisplay = (function () {
     };
 
     that.updateHandles = function() {
-        // print("Updating handles");
         if (SelectionManager.selections.length == 0) {
             that.setOverlaysVisible(false);
             return;
@@ -1287,7 +1286,6 @@ SelectionDisplay = (function () {
         var rotation = null;
 
         var onBegin = function(event) {
-            print("STARTING: " + stretchMode);
             var properties = Entities.getEntityProperties(currentSelection);
             initialProperties = properties;
             rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -1365,7 +1363,6 @@ SelectionDisplay = (function () {
         };
 
         var onEnd = function(event, reason) {
-            print("ENDING: " + stretchMode);
             Overlays.editOverlay(xRailOverlay, { visible: false });
             Overlays.editOverlay(yRailOverlay, { visible: false });
             Overlays.editOverlay(zRailOverlay, { visible: false });
@@ -1414,7 +1411,6 @@ SelectionDisplay = (function () {
                 var absX = Math.abs(changeInDimensions.x);
                 var absY = Math.abs(changeInDimensions.y);
                 var absZ = Math.abs(changeInDimensions.z);
-                print('abs: ' + absX + ', ' + absY + ', ' + absZ);
                 var pctChange = 0;
                 if (absX > absY && absX > absZ) {
                     pctChange = changeInDimensions.x / initialProperties.dimensions.x;
@@ -1426,7 +1422,6 @@ SelectionDisplay = (function () {
                     pctChange = changeInDimensions.z / initialProperties.dimensions.z;
                     pctChange = changeInDimensions.z / initialDimensions.z;
                 }
-                print('change: ' + pctChange);
                 pctChange += 1.0;
                 newDimensions = Vec3.multiply(pctChange, initialDimensions);
             } else {
@@ -1880,7 +1875,6 @@ SelectionDisplay = (function () {
 
             var tool = grabberTools[result.overlayID];
             if (tool) {
-                print("FOUND TOOL! " + tool.mode);
                 activeTool = tool;
                 mode = tool.mode;
                 somethingClicked = true;
@@ -1980,7 +1974,6 @@ SelectionDisplay = (function () {
             if (result.intersects) {
                 var tool = grabberTools[result.overlayID];
                 if (tool) {
-                    print("FOUND TOOL! " + tool.mode);
                     activeTool = tool;
                     mode = tool.mode;
                     somethingClicked = true;
