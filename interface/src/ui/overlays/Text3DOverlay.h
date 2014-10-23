@@ -32,6 +32,7 @@ public:
     float getTopMargin() const { return _topMargin; }
     float getRightMargin() const { return _rightMargin; }
     float getBottomMargin() const { return _bottomMargin; }
+    bool getIsFacingAvatar() const { return _isFacingAvatar; }
     xColor getBackgroundColor();
 
     // setters
@@ -41,6 +42,7 @@ public:
     void setTopMargin(float margin) { _topMargin = margin; }
     void setRightMargin(float margin) { _rightMargin = margin; }
     void setBottomMargin(float margin) { _bottomMargin = margin; }
+    void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     virtual void setProperties(const QScriptValue& properties);
 
