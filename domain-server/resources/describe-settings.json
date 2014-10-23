@@ -154,6 +154,33 @@
             "placeholder": "0.18"
           }
         ]
+      },
+      {
+        "name": "reverb",
+        "type": "table",
+        "label": "Reverb Settings",
+        "help": "In this table you can set custom reverb values for each audio zones",
+        "numbered": true,
+        "columns": [
+          {
+            "name": "zone",
+            "label": "Zone",
+            "can_set": true,
+            "placeholder": "Audio_Zone"
+          },
+          {
+            "name": "reverb_time",
+            "label": "Reverb Decay Time",
+            "can_set": true,
+            "placeholder": "(in sec)"
+          },
+          {
+            "name": "wet_level",
+            "label": "Wet Level",
+            "can_set": true,
+            "placeholder": "(in db)"
+          }
+        ]
       }
     ]
   },
