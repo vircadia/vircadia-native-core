@@ -529,7 +529,7 @@ function deleteTableRow(delete_glyphicon) {
     row.html("<input type='hidden' class='form-control' name='" 
       + row.attr('name') + "' data-changed='true' value=''>");
   } else {
-    if (table.find('.' + Settings.DATA_ROW_CLASS).length) {
+    if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
       updateDataChangedForSiblingRows(row)
     
       // this isn't the last row - we can just remove it
