@@ -35,7 +35,7 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 Script.include("libraries/entityCameraTool.js");
 var entityCameraTool = new EntityCameraTool();
 
-selectionManager.setEventListener(selectionDisplay.updateHandles());
+selectionManager.setEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -608,9 +608,12 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Delete") {
         if (entitySelected) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
-            Entities.deleteEntity(selectedEntityID);
+            for (var i = 0; i < selectionManager.selections.length; i++) {
+                Entities.deleteEntity(selectionManager.selections[i]);
+            }
             selectionDisplay.unselect(selectedEntityID);
             entitySelected = false;
+            selectionManager.clearSelections();
         } else {
             print("  Delete Entity.... not holding...");
         }
@@ -618,7 +621,7 @@ function handeMenuEvent(menuItem) {
         // good place to put the properties dialog
 
         editModelID = -1;
-        if (entitySelected) {
+        if (selectionManager.selections.length == 1) {
             print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
             editModelID = selectedEntityID;
         } else {
@@ -653,7 +656,7 @@ Controller.keyReleaseEvent.connect(function (event) {
     if (event.text == "`") {
         handeMenuEvent("Edit Properties...");
     }
-    if (event.text == "BACKSPACE") {
+    if (event.text == "BACKSPACE" || event.text == "DELETE") {
         handeMenuEvent("Delete");
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();

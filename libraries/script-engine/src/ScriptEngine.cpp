@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
+#include <AudioEffectOptions.h>
 #include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
@@ -63,7 +64,15 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     return QScriptValue();
 }
 
-QScriptValue injectorToScriptValue(QScriptEngine *engine, AudioInjector* const &in) {
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
+    return engine->newQObject(in);
+}
+
+void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
+    out = qobject_cast<AvatarData*>(object.toQObject());
+}
+
+QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
     return engine->newQObject(in);
 }
 
@@ -269,10 +278,13 @@ void ScriptEngine::init() {
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
+
+    QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
+    globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
     
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
-
+    qScriptRegisterMetaType(this, avatarDataToScriptValue, avatarDataFromScriptValue);
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 
     registerGlobalObject("Script", this);
