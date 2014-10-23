@@ -53,7 +53,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeSilentAudioFrame:
             return 4;
         case PacketTypeMixedAudio:
-            return 2;
+            return 3;
         case PacketTypeAvatarData:
             return 3;
         case PacketTypeAvatarIdentity:
