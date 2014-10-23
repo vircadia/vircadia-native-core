@@ -125,8 +125,13 @@ void Faceshift::reset() {
 }
 
 void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, QVector<float>& coefficients) const {
-    coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
+        float jawOpen, float mouth2, float mouth3, float mouth4, QVector<float>& coefficients) const {
+    const int MMMM_BLENDSHAPE = 34;
+    const int FUNNEL_BLENDSHAPE = 40;
+    const int SMILE_LEFT_BLENDSHAPE = 28;
+    const int SMILE_RIGHT_BLENDSHAPE = 29;
+    coefficients.resize(max((int)coefficients.size(), FUNNEL_BLENDSHAPE + 1));
+    coefficients.resize(max((int)coefficients.size(), 48));
     qFill(coefficients.begin(), coefficients.end(), 0.0f);
     coefficients[_leftBlinkIndex] = leftBlink;
     coefficients[_rightBlinkIndex] = rightBlink;
@@ -134,6 +139,9 @@ void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float 
     coefficients[_browUpLeftIndex] = browUp;
     coefficients[_browUpRightIndex] = browUp;
     coefficients[_jawOpenIndex] = jawOpen;
+    coefficients[SMILE_LEFT_BLENDSHAPE] = coefficients[SMILE_RIGHT_BLENDSHAPE] = mouth4;
+    coefficients[MMMM_BLENDSHAPE] = mouth2;
+    coefficients[FUNNEL_BLENDSHAPE] = mouth3;
 }
 
 void Faceshift::setTCPEnabled(bool enabled) {
