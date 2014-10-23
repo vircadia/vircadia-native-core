@@ -130,8 +130,9 @@ void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float 
     const int FUNNEL_BLENDSHAPE = 40;
     const int SMILE_LEFT_BLENDSHAPE = 28;
     const int SMILE_RIGHT_BLENDSHAPE = 29;
-    coefficients.resize(max((int)coefficients.size(), FUNNEL_BLENDSHAPE + 1));
-    coefficients.resize(max((int)coefficients.size(), 48));
+    const int MAX_FAKE_BLENDSHAPE = 40;  //  Largest modified blendshape from above and below
+
+    coefficients.resize(max((int)coefficients.size(), MAX_FAKE_BLENDSHAPE + 1));
     qFill(coefficients.begin(), coefficients.end(), 0.0f);
     coefficients[_leftBlinkIndex] = leftBlink;
     coefficients[_rightBlinkIndex] = rightBlink;
