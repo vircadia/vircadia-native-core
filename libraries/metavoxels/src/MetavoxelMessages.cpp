@@ -1062,6 +1062,13 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
     HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
     info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
     
+    // allow a border for what we clear in terms of color/material
+    innerBounds.minimum.x += increment;
+    innerBounds.minimum.z += increment;
+    innerBounds.maximum.x -= increment;
+    innerBounds.maximum.z -= increment;
+    innerOverlap = bounds.getIntersection(innerBounds);
+    
     HeightfieldColorDataPointer colorPointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
     if (colorPointer) {
         contents = colorPointer->getContents();
@@ -1087,14 +1094,16 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
         destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
         destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
         destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-        dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
-        
-        for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
-            memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+        if (destWidth > 0 && destHeight > 0) {
+            dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
+            
+            for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
+                memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+            }
+            
+            HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
+            info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newColorPointer));
         }
-        
-        HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
-        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newColorPointer));
     }
     
     HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
@@ -1134,16 +1143,18 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
         destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
         destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
         destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-        dest = (uchar*)contents.data() + destY * size + destX;
-        
-        for (int y = 0; y < destHeight; y++, dest += size) {
-            memset(dest, 0, destWidth);
+        if (destWidth > 0 && destHeight > 0) {
+            dest = (uchar*)contents.data() + destY * size + destX;
+            
+            for (int y = 0; y < destHeight; y++, dest += size) {
+                memset(dest, 0, destWidth);
+            }
+            
+            clearUnusedMaterials(materials, contents);
+            HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
+            info.outputValues[2] = AttributeValue(_outputs.at(2),
+                encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
         }
-        
-        clearUnusedMaterials(materials, contents);
-        HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
-        info.outputValues[2] = AttributeValue(_outputs.at(2),
-            encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
     }
     
     return STOP_RECURSION;
