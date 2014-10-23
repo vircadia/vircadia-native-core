@@ -176,6 +176,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
+        _undoStack(),
+        _undoStackScriptingInterface(&_undoStack),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -3791,8 +3793,9 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     // AvatarManager has some custom types
     AvatarManager::registerMetaTypes(scriptEngine);
 
-    // hook our avatar object into this script engine
+    // hook our avatar and avatar hash map object into this script engine
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
+    scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
 
     CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
@@ -3834,6 +3837,8 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     
     scriptEngine->registerGlobalObject("Joysticks", &JoystickScriptingInterface::getInstance());
     qScriptRegisterMetaType(scriptEngine, joystickToScriptValue, joystickFromScriptValue);
+
+    scriptEngine->registerGlobalObject("UndoStack", &_undoStackScriptingInterface);
 
 #ifdef HAVE_RTMIDI
     scriptEngine->registerGlobalObject("MIDI", &MIDIManager::getInstance());

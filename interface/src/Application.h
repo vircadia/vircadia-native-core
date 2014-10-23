@@ -91,6 +91,9 @@
 #include "voxels/VoxelSystem.h"
 
 
+#include "UndoStackScriptingInterface.h"
+
+
 class QAction;
 class QActionGroup;
 class QGLWidget;
@@ -451,6 +454,7 @@ private:
     int _numChangedSettings;
 
     QUndoStack _undoStack;
+    UndoStackScriptingInterface _undoStackScriptingInterface;
 
     glm::vec3 _gravity;
 

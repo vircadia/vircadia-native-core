@@ -116,8 +116,16 @@ public:
 
 protected:
 
+    PacketRecord* getAcknowledgedSendRecord(int packetNumber) const;
+    PacketRecord* getAcknowledgedReceiveRecord(int packetNumber) const;
+
     virtual void dataChanged(const MetavoxelData& oldData);
 
+    virtual void recordReceive();
+    
+    virtual void clearSendRecordsBefore(int index);
+    virtual void clearReceiveRecordsBefore(int index);
+    
     virtual void writeUpdateMessage(Bitstream& out);
     virtual void handleMessage(const QVariant& message, Bitstream& in);
 
@@ -132,9 +140,18 @@ protected:
     ReliableChannel* _reliableDeltaChannel;
     MetavoxelLOD _reliableDeltaLOD;
     int _reliableDeltaID;
+    QVariant _reliableDeltaMessage;
     
     MetavoxelData _dataCopy;
     QReadWriteLock _dataCopyLock;
+    
+    QDataStream _dummyDataStream;
+    Bitstream _dummyInputStream;
+    int _dummyPacketNumber;
+    QList<PacketRecord*> _clearedSendRecords;
+    
+    typedef QPair<PacketRecord*, Bitstream::ReadMappings> ClearedReceiveRecord;
+    QList<ClearedReceiveRecord> _clearedReceiveRecords;
 };
 
 #endif // hifi_MetavoxelClientManager_h

@@ -1649,20 +1649,11 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     ProgramObject* activeProgram = program;
     Locations* activeLocations = locations;
 
-    // Try to use the Batch
-    //gpu::Batch batch;
-
-    /*if (isSkinned) {
-        skinProgram->bind();
-        activeProgram = skinProgram;
-        activeLocations = skinLocations;
-    } else {
-        program->bind();
-    }*/
     if (isSkinned) {
         activeProgram = skinProgram;
         activeLocations = skinLocations;
     }
+    // This code replace the "bind()" on the QGLProgram
     if (!activeProgram->isLinked()) {
         activeProgram->link();
     }

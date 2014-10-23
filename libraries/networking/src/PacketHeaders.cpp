@@ -53,7 +53,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeSilentAudioFrame:
             return 4;
         case PacketTypeMixedAudio:
-            return 1;
+            return 2;
         case PacketTypeAvatarData:
             return 3;
         case PacketTypeAvatarIdentity:
@@ -81,7 +81,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
-            return 7;
+            return 8;
         case PacketTypeVoxelData:
             return VERSION_VOXELS_HAS_FILE_BREAKS;
         default:

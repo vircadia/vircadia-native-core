@@ -64,7 +64,6 @@ function activateWarp() {
 
 var TRIGGER_PULLBACK_DISTANCE = 0.04;
 var WATCH_AVATAR_DISTANCE = 1.5;
-var MAX_WARP_YAW = 40.0;
 var MAX_PULLBACK_YAW = 5.0;
 
 var sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
@@ -72,7 +71,7 @@ function playSound() {
     var options = new AudioInjectionOptions();
     var position = MyAvatar.position; 
     options.position = position;
-    options.volume = 0.5;
+    options.volume = 1.0;
     Audio.playSound(sound, options);
 }
 
@@ -89,7 +88,7 @@ function updateWarp() {
     var deltaPitch = MyAvatar.getHeadFinalPitch() - headStartFinalPitch;
     deltaYaw = MyAvatar.getHeadFinalYaw() - headStartYaw;
 
-    willMove = (!watchAvatar && (Math.abs(deltaYaw) < MAX_WARP_YAW) && (keyDownTime > WARP_START_TIME));
+    willMove = (!watchAvatar && (keyDownTime > WARP_START_TIME));
 
     if (willMove) {
         //var distance = Math.pow((deltaPitch - WARP_PITCH_DEAD_ZONE) * WARP_SENSITIVITY, 2.0);

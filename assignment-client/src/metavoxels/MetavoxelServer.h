@@ -127,6 +127,7 @@ private:
     MetavoxelSender* _sender;
     
     MetavoxelLOD _lod;
+    int _lodPacketNumber;
     
     ReliableChannel* _reliableDeltaChannel;
     int _reliableDeltaReceivedOffset;
@@ -134,6 +135,7 @@ private:
     MetavoxelLOD _reliableDeltaLOD;
     Bitstream::WriteMappings _reliableDeltaWriteMappings;
     int _reliableDeltaID;
+    QVariant _reliableDeltaMessage;
 };
 
 /// Handles persistence in a separate thread.

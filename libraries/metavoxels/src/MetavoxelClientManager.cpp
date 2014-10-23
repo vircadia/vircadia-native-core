@@ -188,7 +188,9 @@ MetavoxelClient::MetavoxelClient(const SharedNodePointer& node, MetavoxelUpdater
     Endpoint(node, new PacketRecord(), new PacketRecord()),
     _updater(updater),
     _reliableDeltaChannel(NULL),
-    _reliableDeltaID(0) {
+    _reliableDeltaID(0),
+    _dummyInputStream(_dummyDataStream),
+    _dummyPacketNumber(0) {
     
     connect(_sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX),
         SIGNAL(receivedMessage(const QVariant&, Bitstream&)), SLOT(handleMessage(const QVariant&, Bitstream&)));
@@ -216,10 +218,75 @@ void MetavoxelClient::applyEdit(const MetavoxelEditMessage& edit, bool reliable)
     }
 }
 
+PacketRecord* MetavoxelClient::getAcknowledgedSendRecord(int packetNumber) const {
+    PacketRecord* lastAcknowledged = getLastAcknowledgedSendRecord();
+    if (lastAcknowledged->getPacketNumber() == packetNumber) {
+        return lastAcknowledged;
+    }
+    foreach (PacketRecord* record, _clearedSendRecords) {
+        if (record->getPacketNumber() == packetNumber) {
+            return record;
+        }
+    }
+    return NULL;
+}
+
+PacketRecord* MetavoxelClient::getAcknowledgedReceiveRecord(int packetNumber) const {
+    PacketRecord* lastAcknowledged = getLastAcknowledgedReceiveRecord();
+    if (lastAcknowledged->getPacketNumber() == packetNumber) {
+        return lastAcknowledged;
+    }
+    foreach (const ClearedReceiveRecord& record, _clearedReceiveRecords) {
+        if (record.first->getPacketNumber() == packetNumber) {
+            return record.first;
+        }
+    }
+    return NULL;
+}
+
 void MetavoxelClient::dataChanged(const MetavoxelData& oldData) {
     // make thread-safe copy
     QWriteLocker locker(&_dataCopyLock);
     _dataCopy = _data;
+}
+
+void MetavoxelClient::recordReceive() {
+    Endpoint::recordReceive();
+    
+    // clear the cleared lists
+    foreach (PacketRecord* record, _clearedSendRecords) {
+        delete record;
+    }
+    _clearedSendRecords.clear();
+    
+    foreach (const ClearedReceiveRecord& record, _clearedReceiveRecords) {
+        delete record.first;
+    }
+    _clearedReceiveRecords.clear();
+}
+
+void MetavoxelClient::clearSendRecordsBefore(int index) {
+    // move to cleared list
+    QList<PacketRecord*>::iterator end = _sendRecords.begin() + index + 1;
+    for (QList<PacketRecord*>::const_iterator it = _sendRecords.begin(); it != end; it++) {
+        _clearedSendRecords.append(*it);
+    }
+    _sendRecords.erase(_sendRecords.begin(), end);
+}
+
+void MetavoxelClient::clearReceiveRecordsBefore(int index) {
+    // copy the mappings on first call per packet
+    if (_sequencer.getIncomingPacketNumber() > _dummyPacketNumber) {
+        _dummyPacketNumber = _sequencer.getIncomingPacketNumber();
+        _dummyInputStream.copyPersistentMappings(_sequencer.getInputStream());
+    }
+    
+    // move to cleared list
+    QList<PacketRecord*>::iterator end = _receiveRecords.begin() + index + 1;
+    for (QList<PacketRecord*>::const_iterator it = _receiveRecords.begin(); it != end; it++) {
+        _clearedReceiveRecords.append(ClearedReceiveRecord(*it, _sequencer.getReadMappings(index)));
+    }
+    _receiveRecords.erase(_receiveRecords.begin(), end);
 }
 
 void MetavoxelClient::writeUpdateMessage(Bitstream& out) {
@@ -230,14 +297,16 @@ void MetavoxelClient::writeUpdateMessage(Bitstream& out) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType(); 
     if (userType == MetavoxelDeltaMessage::Type) {
-        PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
         if (_reliableDeltaChannel) {    
-            _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in, _remoteDataLOD = _reliableDeltaLOD);
+            MetavoxelData reference = _remoteData;
+            MetavoxelLOD referenceLOD = _remoteDataLOD;
+            _remoteData.readDelta(reference, referenceLOD, in, _remoteDataLOD = _reliableDeltaLOD);
             _sequencer.getInputStream().persistReadMappings(in.getAndResetReadMappings());
             in.clearPersistentMappings();
             _reliableDeltaChannel = NULL;
         
         } else {
+            PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
             _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
                 _remoteDataLOD = getLastAcknowledgedSendRecord()->getLOD());
             in.reset();
@@ -255,15 +324,36 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
         }
     } else if (userType == MetavoxelDeltaPendingMessage::Type) {
         // check the id to make sure this is not a delta we've already processed
-        int id = message.value<MetavoxelDeltaPendingMessage>().id;
-        if (id > _reliableDeltaID) {
-            _reliableDeltaID = id;
-            _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
-            _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
-            _reliableDeltaLOD = getLastAcknowledgedSendRecord()->getLOD();
-            PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
+        MetavoxelDeltaPendingMessage pending = message.value<MetavoxelDeltaPendingMessage>();
+        if (pending.id > _reliableDeltaID) {
+            _reliableDeltaID = pending.id;
+            PacketRecord* sendRecord = getAcknowledgedSendRecord(pending.receivedPacketNumber);
+            if (!sendRecord) {
+                qWarning() << "Missing send record for delta" << pending.receivedPacketNumber;
+                return;
+            }
+            _reliableDeltaLOD = sendRecord->getLOD();
+            PacketRecord* receiveRecord = getAcknowledgedReceiveRecord(pending.sentPacketNumber);
+            if (!receiveRecord) {
+                qWarning() << "Missing receive record for delta" << pending.sentPacketNumber;
+                return;
+            }
             _remoteDataLOD = receiveRecord->getLOD();
             _remoteData = receiveRecord->getData();
+            
+            _reliableDeltaChannel = _sequencer.getReliableInputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
+            if (receiveRecord == getLastAcknowledgedReceiveRecord()) {
+                _reliableDeltaChannel->getBitstream().copyPersistentMappings(_sequencer.getInputStream());
+                
+            } else {
+                _reliableDeltaChannel->getBitstream().copyPersistentMappings(_dummyInputStream);
+                foreach (const ClearedReceiveRecord& record, _clearedReceiveRecords) {
+                    _reliableDeltaChannel->getBitstream().persistReadMappings(record.second);
+                    if (record.first == receiveRecord) {
+                        break;
+                    }
+                }
+            }
         }
     } else {
         Endpoint::handleMessage(message, in);
@@ -271,10 +361,11 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
 }
 
 PacketRecord* MetavoxelClient::maybeCreateSendRecord() const {
-    return new PacketRecord(_reliableDeltaChannel ? _reliableDeltaLOD : _updater->getLOD());
+    return new PacketRecord(_sequencer.getOutgoingPacketNumber(),
+        _reliableDeltaChannel ? _reliableDeltaLOD : _updater->getLOD());
 }
 
 PacketRecord* MetavoxelClient::maybeCreateReceiveRecord() const {
-    return new PacketRecord(_remoteDataLOD, _remoteData);
+    return new PacketRecord(_sequencer.getIncomingPacketNumber(), _remoteDataLOD, _remoteData);
 }
 
