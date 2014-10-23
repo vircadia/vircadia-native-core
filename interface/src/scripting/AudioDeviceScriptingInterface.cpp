@@ -70,11 +70,3 @@ float AudioDeviceScriptingInterface::getInputVolume() {
 void AudioDeviceScriptingInterface::setInputVolume(float volume) {
     Application::getInstance()->getAudio()->setInputVolume(volume);
 }
-
-void AudioDeviceScriptingInterface::setReverb(bool reverb) {
-    Application::getInstance()->getAudio()->setReverb(reverb);
-}
-
-void AudioDeviceScriptingInterface::setReverbOptions(const AudioEffectOptions* options) {
-    Application::getInstance()->getAudio()->setReverbOptions(options);
-}

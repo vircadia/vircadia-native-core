@@ -428,8 +428,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
 }
 
 int AudioMixer::prepareMixForListeningNode(Node* node) {
-    AvatarAudioStream* nodeAudioStream = static_cast<AudioMixerClientData*>(node->getLinkedData())->getAvatarAudioStream();
-    AudioMixerClientData* listenerNodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+    AvatarAudioStream* nodeAudioStream = ((AudioMixerClientData*) node->getLinkedData())->getAvatarAudioStream();
+    AudioMixerClientData* listenerNodeData = (AudioMixerClientData*)node->getLinkedData();
     
     // zero out the client mix for this node
     memset(_preMixSamples, 0, sizeof(_preMixSamples));
@@ -730,28 +730,6 @@ void AudioMixer::run() {
                         memcpy(dataAt, &sequence, sizeof(quint16));
                         dataAt += sizeof(quint16);
 
-                        // Pack stream properties
-                        for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
-                            AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
-                            glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
-                            if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
-                                bool hasReverb = true;
-                                float reverbTime = _zoneReverbSettings[i].reverbTime;
-                                float wetLevel = _zoneReverbSettings[i].wetLevel;
-                                
-                                memcpy(dataAt, &hasReverb, sizeof(bool));
-                                dataAt += sizeof(bool);
-                                memcpy(dataAt, &reverbTime, sizeof(float));
-                                dataAt += sizeof(float);
-                                memcpy(dataAt, &wetLevel, sizeof(float));
-                                dataAt += sizeof(float);
-                            } else {
-                                bool hasReverb = false;
-                                memcpy(dataAt, &hasReverb, sizeof(bool));
-                                dataAt += sizeof(bool);
-                            }
-                        }
-                        
                         // pack mixed audio samples
                         memcpy(dataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                         dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
@@ -1051,38 +1029,6 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                         
                         _zonesSettings.push_back(settings);
                         qDebug() << "Added Coefficient:" << settings.source << settings.listener << settings.coefficient;
-                    }
-                }
-            }
-        }
-        
-        const QString REVERB = "reverb";
-        if (audioEnvGroupObject[REVERB].isArray()) {
-            const QJsonArray& reverb = audioEnvGroupObject[REVERB].toArray();
-            
-            const QString ZONE = "zone";
-            const QString REVERB_TIME = "reverb_time";
-            const QString WET_LEVEL = "wet_level";
-            for (int i = 0; i < reverb.count(); ++i) {
-                QJsonObject reverbObject = reverb[i].toObject();
-                
-                if (reverbObject.contains(ZONE) &&
-                    reverbObject.contains(REVERB_TIME) &&
-                    reverbObject.contains(WET_LEVEL)) {
-                    
-                    bool okReverbTime, okWetLevel;
-                    QString zone = reverbObject.value(ZONE).toString();
-                    float reverbTime = reverbObject.value(REVERB_TIME).toString().toFloat(&okReverbTime);
-                    float wetLevel = reverbObject.value(WET_LEVEL).toString().toFloat(&okWetLevel);
-                    
-                    if (okReverbTime && okWetLevel && _audioZones.contains(zone)) {
-                        ReverbSettings settings;
-                        settings.zone = zone;
-                        settings.reverbTime = reverbTime;
-                        settings.wetLevel = wetLevel;
-                        
-                        _zoneReverbSettings.push_back(settings);
-                        qDebug() << "Added Reverb:" << zone << reverbTime << wetLevel;
                     }
                 }
             }
