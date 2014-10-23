@@ -13,6 +13,7 @@
 
 #include "InboundAudioStream.h"
 #include "PacketHeaders.h"
+#include <SharedUtil.h>
 
 const int STARVE_HISTORY_CAPACITY = 50;
 
@@ -81,6 +82,12 @@ void InboundAudioStream::clearBuffer() {
     _ringBuffer.clear();
     _framesAvailableStat.reset();
     _currentJitterBufferFrames = 0;
+}
+
+void InboundAudioStream::setReverb(float reverbTime, float wetLevel) {
+    _hasReverb = true;
+    _reverbTime = reverbTime;
+    _wetLevel = wetLevel;
 }
 
 void InboundAudioStream::perSecondCallbackForUpdatingStats() {
@@ -165,14 +172,19 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
     int read = 0;
     if (type == PacketTypeMixedAudio) {
-        memcpy(&_hasReverb, packetAfterSeqNum.data() + read, sizeof(bool));
-        read += sizeof(bool);
+        char bitset;
+        memcpy(&bitset, packetAfterSeqNum.data() + read, sizeof(char));
+        read += sizeof(char);
         
-        if (_hasReverb) {
-            memcpy(&_reverbTime, packetAfterSeqNum.data() + read, sizeof(float));
-            read += sizeof(float);
-            memcpy(&_wetLevel, packetAfterSeqNum.data() + read, sizeof(float));
-            read += sizeof(float);
+        bool hasData = oneAtBit(bitset, HAS_DATA_BIT);
+        if (hasData) {
+            _hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);
+            if (_hasReverb) {
+                memcpy(&_reverbTime, packetAfterSeqNum.data() + read, sizeof(float));
+                read += sizeof(float);
+                memcpy(&_wetLevel, packetAfterSeqNum.data() + read, sizeof(float));
+                read += sizeof(float);
+            }
         }
     }
     
@@ -206,7 +218,7 @@ int InboundAudioStream::writeDroppableSilentSamples(int silentSamples) {
 
         _framesAvailableStat.reset();
     }
-
+ 
     int ret = _ringBuffer.addSilentSamples(silentSamples - numSilentFramesToDrop * samplesPerFrame);
     
     return ret;

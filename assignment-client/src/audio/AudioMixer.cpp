@@ -731,30 +731,56 @@ void AudioMixer::run() {
                         dataAt += sizeof(quint16);
 
                         // Pack stream properties
-                        bool inAZone = false;
+                        bool hasReverb = false;
+                        float reverbTime;
+                        float wetLevel;
+                        
+                        // find reverb properties
                         for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
                             AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
-                            glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
+                            AvatarAudioStream* stream = data->getAvatarAudioStream();
+                            glm::vec3 streamPosition = stream->getPosition();
                             if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
-                                bool hasReverb = true;
-                                float reverbTime = _zoneReverbSettings[i].reverbTime;
-                                float wetLevel = _zoneReverbSettings[i].wetLevel;
-                                
-                                memcpy(dataAt, &hasReverb, sizeof(bool));
-                                dataAt += sizeof(bool);
+                                hasReverb = true;
+                                reverbTime = _zoneReverbSettings[i].reverbTime;
+                                wetLevel = _zoneReverbSettings[i].wetLevel;
+                                break;
+                            }
+                        }
+                        AvatarAudioStream* stream = nodeData->getAvatarAudioStream();
+                        bool dataChanged = (stream->hasReverb() != hasReverb) ||
+                                            (stream->hasReverb() && (stream->getRevebTime() != reverbTime ||
+                                                                     stream->getWetLevel() != wetLevel));
+                        // Update stream
+                        if (hasReverb) {
+                            stream->setReverb(reverbTime, wetLevel);
+                        } else {
+                            stream->clearReverb();
+                        }
+                        
+                        // Send at change or every so often
+                        float CHANCE_OF_SEND = 0.01;
+                        bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
+                        
+                        unsigned char bitset = 0;
+                        if (sendData) {
+                            setAtBit(bitset, HAS_DATA_BIT);
+                            if (hasReverb) {
+                                setAtBit(bitset, HAS_REVERB_BIT);
+                            }
+                            
+                            memcpy(dataAt, &bitset, sizeof(unsigned char));
+                            dataAt += sizeof(unsigned char);
+                            
+                            if (hasReverb) {
                                 memcpy(dataAt, &reverbTime, sizeof(float));
                                 dataAt += sizeof(float);
                                 memcpy(dataAt, &wetLevel, sizeof(float));
                                 dataAt += sizeof(float);
-                                
-                                inAZone = true;
-                                break;
                             }
-                        }
-                        if (!inAZone) {
-                            bool hasReverb = false;
-                            memcpy(dataAt, &hasReverb, sizeof(bool));
-                            dataAt += sizeof(bool);
+                        } else {
+                            memcpy(dataAt, &bitset, sizeof(unsigned char));
+                            dataAt += sizeof(unsigned char);
                         }
                         
                         // pack mixed audio samples
