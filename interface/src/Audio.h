@@ -43,6 +43,14 @@
 #include <StdDev.h>
 
 #include "MixedProcessedAudioStream.h"
+#include "AudioEffectOptions.h"
+#include <AudioRingBuffer.h>
+#include <StdDev.h>
+
+extern "C" {
+    #include <gverb.h>
+    #include <gverbdsp.h>
+}
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -159,6 +167,8 @@ public slots:
 
     float getInputVolume() const { return (_audioInput) ? _audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
+    void setReverb(bool reverb) { _reverb = reverb; }
+    void setReverbOptions(const AudioEffectOptions* options);
 
     const AudioStreamStats& getAudioMixerAvatarStreamAudioStats() const { return _audioMixerAvatarStreamAudioStats; }
     const QHash<QUuid, AudioStreamStats>& getAudioMixerInjectedStreamAudioStatsMap() const { return _audioMixerInjectedStreamAudioStatsMap; }
@@ -230,6 +240,11 @@ private:
     int _proceduralEffectSample;
     bool _muted;
     bool _localEcho;
+    bool _reverb;
+    AudioEffectOptions _scriptReverbOptions;
+    AudioEffectOptions _zoneReverbOptions;
+    AudioEffectOptions* _reverbOptions;
+    ty_gverb *_gverb;
     GLuint _micTextureId;
     GLuint _muteTextureId;
     GLuint _boxTextureId;
@@ -248,6 +263,10 @@ private:
     //  1. Echo to the local procedural output device
     //  2. Mix with the audio input
     void processProceduralAudio(int16_t* monoInput, int numSamples);
+
+    // Adds Reverb
+    void initGverb();
+    void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
 
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
