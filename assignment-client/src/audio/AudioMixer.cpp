@@ -731,6 +731,7 @@ void AudioMixer::run() {
                         dataAt += sizeof(quint16);
 
                         // Pack stream properties
+                        bool inAZone = false;
                         for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
                             AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
                             glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
@@ -745,11 +746,15 @@ void AudioMixer::run() {
                                 dataAt += sizeof(float);
                                 memcpy(dataAt, &wetLevel, sizeof(float));
                                 dataAt += sizeof(float);
-                            } else {
-                                bool hasReverb = false;
-                                memcpy(dataAt, &hasReverb, sizeof(bool));
-                                dataAt += sizeof(bool);
+                                
+                                inAZone = true;
+                                break;
                             }
+                        }
+                        if (!inAZone) {
+                            bool hasReverb = false;
+                            memcpy(dataAt, &hasReverb, sizeof(bool));
+                            dataAt += sizeof(bool);
                         }
                         
                         // pack mixed audio samples
