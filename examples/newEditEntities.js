@@ -178,7 +178,7 @@ var toolBar = (function () {
         position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Entities.addEntity({
+            var entityId = Entities.addEntity({
                 type: "Model",
                 position: position,
                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
