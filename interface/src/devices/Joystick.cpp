@@ -45,12 +45,15 @@ void Joystick::closeJoystick() {
 
 #ifdef HAVE_SDL2
 void Joystick::handleAxisEvent(const SDL_ControllerAxisEvent& event) {
-    if (event.axis < _axes.size() - 1) {
-        float oldValue = _axes[event.axis];
-        float newValue = event.value / MAX_AXIS;
-        _axes[event.axis] = newValue;
-        emit axisValueChanged(event.axis, newValue, oldValue);
+    if (_axes.size() <= event.axis) {
+        _axes.resize(event.axis + 1);
     }
+    
+    float oldValue = _axes[event.axis];
+    float newValue = event.value / MAX_AXIS;
+    _axes[event.axis] = newValue;
+    
+    emit axisValueChanged(event.axis, newValue, oldValue);
 }
 
 void Joystick::handleButtonEvent(const SDL_ControllerButtonEvent& event) {
