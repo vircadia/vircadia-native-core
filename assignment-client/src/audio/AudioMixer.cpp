@@ -638,8 +638,9 @@ void AudioMixer::run() {
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
-
+    
     char clientMixBuffer[MAX_PACKET_SIZE];
+    char clientEnvBuffer[MAX_PACKET_SIZE];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
     
@@ -718,23 +719,25 @@ void AudioMixer::run() {
                     && nodeData->getAvatarAudioStream()) {
 
                     int streamsMixed = prepareMixForListeningNode(node.data());
-
-                    char* dataAt;
+                    
+                    char* mixDataAt;
                     if (streamsMixed > 0) {
-                        // pack header
-                        int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
-                        dataAt = clientMixBuffer + numBytesPacketHeader;
-
+                        // pack headers
+                        int numBytesMixPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
+                        mixDataAt = clientMixBuffer + numBytesMixPacketHeader;
+                        
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                        memcpy(dataAt, &sequence, sizeof(quint16));
-                        dataAt += sizeof(quint16);
-
-                        // Pack stream properties
-                        bool hasReverb = false;
-                        float reverbTime;
-                        float wetLevel;
+                        memcpy(mixDataAt, &sequence, sizeof(quint16));
+                        mixDataAt  += sizeof(quint16);
                         
+                        // pack mixed audio samples
+                        memcpy(mixDataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
+                        mixDataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
+
+                        // Send stream properties
+                        bool hasReverb = false;
+                        float reverbTime, wetLevel;
                         // find reverb properties
                         for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
                             AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
@@ -762,48 +765,45 @@ void AudioMixer::run() {
                         float CHANCE_OF_SEND = 0.01f;
                         bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
                         
-                        unsigned char bitset = 0;
                         if (sendData) {
+                            int numBytesEnvPacketHeader = populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
+                            char* envDataAt = clientEnvBuffer + numBytesEnvPacketHeader;
+                            
+                            unsigned char bitset = 0;
                             setAtBit(bitset, HAS_DATA_BIT);
                             if (hasReverb) {
                                 setAtBit(bitset, HAS_REVERB_BIT);
                             }
                             
-                            memcpy(dataAt, &bitset, sizeof(unsigned char));
-                            dataAt += sizeof(unsigned char);
+                            memcpy(envDataAt, &bitset, sizeof(unsigned char));
+                            envDataAt += sizeof(unsigned char);
                             
                             if (hasReverb) {
-                                memcpy(dataAt, &reverbTime, sizeof(float));
-                                dataAt += sizeof(float);
-                                memcpy(dataAt, &wetLevel, sizeof(float));
-                                dataAt += sizeof(float);
+                                memcpy(envDataAt, &reverbTime, sizeof(float));
+                                envDataAt += sizeof(float);
+                                memcpy(envDataAt, &wetLevel, sizeof(float));
+                                envDataAt += sizeof(float);
                             }
-                        } else {
-                            memcpy(dataAt, &bitset, sizeof(unsigned char));
-                            dataAt += sizeof(unsigned char);
+                            nodeList->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
                         }
-                        
-                        // pack mixed audio samples
-                        memcpy(dataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
-                        dataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
                     } else {
                         // pack header
                         int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
-                        dataAt = clientMixBuffer + numBytesPacketHeader;
+                        mixDataAt = clientMixBuffer + numBytesPacketHeader;
 
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
-                        memcpy(dataAt, &sequence, sizeof(quint16));
-                        dataAt += sizeof(quint16);
+                        memcpy(mixDataAt, &sequence, sizeof(quint16));
+                        mixDataAt += sizeof(quint16);
 
                         // pack number of silent audio samples
                         quint16 numSilentSamples = NETWORK_BUFFER_LENGTH_SAMPLES_STEREO;
-                        memcpy(dataAt, &numSilentSamples, sizeof(quint16));
-                        dataAt += sizeof(quint16);
+                        memcpy(mixDataAt, &numSilentSamples, sizeof(quint16));
+                        mixDataAt += sizeof(quint16);
                     }
 
                     // send mixed audio packet
-                    nodeList->writeDatagram(clientMixBuffer, dataAt - clientMixBuffer, node);
+                    nodeList->writeDatagram(clientMixBuffer, mixDataAt - clientMixBuffer, node);
                     nodeData->incrementOutgoingMixedAudioSequenceNumber();
 
                     // send an audio stream stats packet if it's time
