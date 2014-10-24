@@ -759,7 +759,7 @@ void AudioMixer::run() {
                         }
                         
                         // Send at change or every so often
-                        float CHANCE_OF_SEND = 0.01;
+                        float CHANCE_OF_SEND = 0.01f;
                         bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
                         
                         unsigned char bitset = 0;
