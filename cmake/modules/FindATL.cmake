@@ -29,4 +29,4 @@ endif ()
 set(ATL_LIBRARIES "${ATL_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(ATL DEFAULT_MSG ATL_LIBRARIES ATL_INCLUDE_DIRS)
+find_package_handle_standard_args(ATL DEFAULT_MSG ATL_INCLUDE_DIRS ATL_LIBRARIES)
