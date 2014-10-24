@@ -166,6 +166,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
         
         // use data to update fake Faceshift blendshape coefficients
+        
         const float JAW_OPEN_SCALE = 0.015f;
         const float JAW_OPEN_RATE = 0.9f;
         const float JAW_CLOSE_RATE = 0.90f;
@@ -177,10 +178,28 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
         }
         _audioJawOpen = glm::clamp(_audioJawOpen, 0.0f, 1.0f);
         
+        // _mouth2 = "mmmm" shape
+        // _mouth3 = "funnel" shape
+        // _mouth4 = "smile" shape
+        const float FUNNEL_PERIOD = 0.985f;
+        const float FUNNEL_RANDOM_PERIOD = 0.01f;
+        const float MMMM_POWER = 0.25f;
+        const float MMMM_PERIOD = 0.91f;
+        const float MMMM_RANDOM_PERIOD = 0.15f;
+        const float SMILE_PERIOD = 0.925f;
+        const float SMILE_RANDOM_PERIOD = 0.05f;
+
+        _mouth3 = glm::mix(_audioJawOpen, _mouth3, FUNNEL_PERIOD + randFloat() * FUNNEL_RANDOM_PERIOD);
+        _mouth2 = glm::mix(_audioJawOpen * MMMM_POWER, _mouth2, MMMM_PERIOD + randFloat() * MMMM_RANDOM_PERIOD);
+        _mouth4 = glm::mix(_audioJawOpen, _mouth4, SMILE_PERIOD + randFloat() * SMILE_RANDOM_PERIOD);
+        
         Application::getInstance()->getFaceshift()->updateFakeCoefficients(_leftEyeBlink,
                                                                            _rightEyeBlink,
             _browAudioLift,
             _audioJawOpen,
+            _mouth2,
+            _mouth3,
+            _mouth4,
             _blendshapeCoefficients);
     }
     
