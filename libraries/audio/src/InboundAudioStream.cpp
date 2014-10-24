@@ -13,7 +13,6 @@
 
 #include "InboundAudioStream.h"
 #include "PacketHeaders.h"
-#include <SharedUtil.h>
 
 const int STARVE_HISTORY_CAPACITY = 50;
 

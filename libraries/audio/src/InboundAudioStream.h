@@ -45,9 +45,8 @@ const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION = 10;
 const bool DEFAULT_REPETITION_WITH_FADE = true;
 
-// Mixed Audio bitset
-const int HAS_DATA_BIT = 0; // 1st bit
-const int HAS_REVERB_BIT = 1; // 2nd bit
+// Audio Env bitset
+const int HAS_REVERB_BIT = 0; // 1st bit
 
 class InboundAudioStream : public NodeData {
     Q_OBJECT

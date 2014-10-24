@@ -638,7 +638,7 @@ void AudioMixer::run() {
     int nextFrame = 0;
     QElapsedTimer timer;
     timer.start();
-    
+
     char clientMixBuffer[MAX_PACKET_SIZE];
     char clientEnvBuffer[MAX_PACKET_SIZE];
     
@@ -719,13 +719,13 @@ void AudioMixer::run() {
                     && nodeData->getAvatarAudioStream()) {
 
                     int streamsMixed = prepareMixForListeningNode(node.data());
-                    
+
                     char* mixDataAt;
                     if (streamsMixed > 0) {
-                        // pack headers
+                        // pack header
                         int numBytesMixPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeMixedAudio);
                         mixDataAt = clientMixBuffer + numBytesMixPacketHeader;
-                        
+
                         // pack sequence number
                         quint16 sequence = nodeData->getOutgoingSequenceNumber();
                         memcpy(mixDataAt, &sequence, sizeof(quint16));
@@ -741,8 +741,7 @@ void AudioMixer::run() {
                         // find reverb properties
                         for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
                             AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
-                            AvatarAudioStream* stream = data->getAvatarAudioStream();
-                            glm::vec3 streamPosition = stream->getPosition();
+                            glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
                             if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
                                 hasReverb = true;
                                 reverbTime = _zoneReverbSettings[i].reverbTime;
@@ -754,11 +753,13 @@ void AudioMixer::run() {
                         bool dataChanged = (stream->hasReverb() != hasReverb) ||
                                             (stream->hasReverb() && (stream->getRevebTime() != reverbTime ||
                                                                      stream->getWetLevel() != wetLevel));
-                        // Update stream
-                        if (hasReverb) {
-                            stream->setReverb(reverbTime, wetLevel);
-                        } else {
-                            stream->clearReverb();
+                        if (dataChanged) {                            
+                            // Update stream
+                            if (hasReverb) {
+                                stream->setReverb(reverbTime, wetLevel);
+                            } else {
+                                stream->clearReverb();
+                            }
                         }
                         
                         // Send at change or every so often
@@ -770,7 +771,6 @@ void AudioMixer::run() {
                             char* envDataAt = clientEnvBuffer + numBytesEnvPacketHeader;
                             
                             unsigned char bitset = 0;
-                            setAtBit(bitset, HAS_DATA_BIT);
                             if (hasReverb) {
                                 setAtBit(bitset, HAS_REVERB_BIT);
                             }
