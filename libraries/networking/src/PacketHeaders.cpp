@@ -135,8 +135,13 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelEditNack);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeat);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeatResponse);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
         default:
             return QString("Type: ") + QString::number((int)type);
     }
