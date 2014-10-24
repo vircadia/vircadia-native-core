@@ -142,7 +142,7 @@ function update(deltaTime) {
 }
 
 Controller.keyPressEvent.connect(function(event) {
-    if (event.text == "SPACE" && !movingWithHead) {
+    if (event.text == "SPACE" && !event.isAutoRepeat && !movingWithHead) {
         keyDownTime = 0.0;
         movingWithHead = true;
         headStartPosition = MyAvatar.getTrackedHeadPosition();
@@ -161,7 +161,7 @@ var TIME_FOR_TURN = 0.25;
 var TURN_AROUND = 180.0;
 
 Controller.keyReleaseEvent.connect(function(event) {
-    if (event.text == "SPACE") {
+    if (event.text == "SPACE" && !event.isAutoRepeat) {
         movingWithHead = false;
         if (keyDownTime < TIME_FOR_TURN_AROUND) {
             if (keyDownTime < TIME_FOR_TURN) {
