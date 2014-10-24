@@ -30,7 +30,8 @@ KeyEvent::KeyEvent() :
     isMeta(false),
     isAlt(false),
     isKeypad(false),
-    isValid(false)
+    isValid(false),
+    isAutoRepeat(false)
 {
 };
 
@@ -44,6 +45,7 @@ KeyEvent::KeyEvent(const QKeyEvent& event) {
     isAlt = event.modifiers().testFlag(Qt::AltModifier);
     isKeypad = event.modifiers().testFlag(Qt::KeypadModifier);
     isValid = true;
+    isAutoRepeat = event.isAutoRepeat();
 
     // handle special text for special characters...
     if (key == Qt::Key_F1) {
@@ -127,7 +129,8 @@ bool KeyEvent::operator==(const KeyEvent& other) const {
         && other.isControl == isControl
         && other.isMeta == isMeta
         && other.isAlt == isAlt
-        && other.isKeypad == isKeypad; 
+        && other.isKeypad == isKeypad
+        && other.isAutoRepeat == isAutoRepeat;
 }
 
 
@@ -163,6 +166,7 @@ QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event)
     obj.setProperty("isControl", event.isControl);
     obj.setProperty("isAlt", event.isAlt);
     obj.setProperty("isKeypad", event.isKeypad);
+    obj.setProperty("isAutoRepeat", event.isAutoRepeat);
     return obj;
 }
 
@@ -173,6 +177,7 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
     event.isControl = object.property("isControl").toVariant().toBool();
     event.isAlt = object.property("isAlt").toVariant().toBool();
     event.isKeypad = object.property("isKeypad").toVariant().toBool();
+    event.isAutoRepeat = object.property("isAutoRepeat").toVariant().toBool();
 
     QScriptValue key = object.property("key");
     if (key.isValid()) {
@@ -286,7 +291,8 @@ void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event) {
             << " event.isControl=" << event.isControl
             << " event.isMeta=" << event.isMeta
             << " event.isAlt=" << event.isAlt
-            << " event.isKeypad=" << event.isKeypad;
+            << " event.isKeypad=" << event.isKeypad
+            << " event.isAutoRepeat=" << event.isAutoRepeat;
     }
 }
 
