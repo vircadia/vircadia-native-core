@@ -78,6 +78,7 @@ class AttachmentsDialog;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
+class MetavoxelNetworkSimulator;
 class ChatWindow;
 class OctreeStatsDialog;
 class MenuItemProperties;
@@ -218,6 +219,7 @@ private slots:
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showMetavoxelNetworkSimulator();
     void showScriptEditor();
     void showChat();
     void toggleConsole();
@@ -274,6 +276,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     QDialog* _jsConsole;
@@ -430,6 +433,7 @@ namespace MenuOption {
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";
     const QString NameLocation = "Name this location";
+    const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
     const QString OctreeStats = "Voxel and Entity Statistics";
@@ -442,8 +446,10 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
+    const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
     const QString RenderResolution = "Scale Resolution";

@@ -36,6 +36,7 @@ public slots:
     float distance(const glm::vec3& v1, const glm::vec3& v2);
     float orientedAngle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3);
     glm::vec3 normalize(const glm::vec3& v);
+    glm::vec3 mix(const glm::vec3& v1, const glm::vec3& v2, float m);
     void print(const QString& lable, const glm::vec3& v);
     bool equal(const glm::vec3& v1, const glm::vec3& v2);
 };

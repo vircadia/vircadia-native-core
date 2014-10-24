@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -13,6 +13,10 @@ endforeach()
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
+
+
+# As Gverb is currently the only reverb library, it's required.
+find_package(Gverb REQUIRED)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -172,6 +176,13 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
   # assume we're linking a static Qt on windows
   add_definitions(-DQXMPP_STATIC) 
 endif ()
+
+if (GVERB_FOUND)
+  file(GLOB GVERB_SRCS ${GVERB_SRC_DIRS}/*.c)
+  include_directories(${GVERB_INCLUDE_DIRS})
+  add_library(gverb STATIC ${GVERB_SRCS})
+  target_link_libraries(${TARGET_NAME} gverb)
+endif (GVERB_FOUND)
 
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")

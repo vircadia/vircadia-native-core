@@ -68,6 +68,8 @@ class MetavoxelDeltaPendingMessage {
 public:
     
     STREAM int id;
+    STREAM int sentPacketNumber;
+    STREAM int receivedPacketNumber;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaPendingMessage)

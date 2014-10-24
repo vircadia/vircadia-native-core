@@ -21,6 +21,7 @@ Script.include("libraries/progressDialog.js");
 
 Script.include("libraries/entitySelectionTool.js");
 var selectionDisplay = SelectionDisplay;
+var selectionManager = SelectionManager;
 
 Script.include("libraries/ModelImporter.js");
 var modelImporter = new ModelImporter();
@@ -33,6 +34,8 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 Script.include("libraries/entityCameraTool.js");
 var entityCameraTool = new EntityCameraTool();
+
+selectionManager.setEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -440,6 +443,11 @@ function mousePressEvent(event) {
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
+                if (!event.isShifted) {
+                    selectionManager.clearSelections();
+                }
+                selectionManager.addEntity(foundEntity);
+
                 print("Model selected selectedEntityID:" + selectedEntityID.id);
 
             }
@@ -600,9 +608,12 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Delete") {
         if (entitySelected) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
-            Entities.deleteEntity(selectedEntityID);
+            for (var i = 0; i < selectionManager.selections.length; i++) {
+                Entities.deleteEntity(selectionManager.selections[i]);
+            }
             selectionDisplay.unselect(selectedEntityID);
             entitySelected = false;
+            selectionManager.clearSelections();
         } else {
             print("  Delete Entity.... not holding...");
         }
@@ -610,7 +621,7 @@ function handeMenuEvent(menuItem) {
         // good place to put the properties dialog
 
         editModelID = -1;
-        if (entitySelected) {
+        if (selectionManager.selections.length == 1) {
             print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
             editModelID = selectedEntityID;
         } else {
@@ -641,14 +652,21 @@ Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
+    print(event.text);
     if (event.text == "`") {
         handeMenuEvent("Edit Properties...");
     }
-    if (event.text == "BACKSPACE") {
+    if (event.text == "BACKSPACE" || event.text == "DELETE") {
         handeMenuEvent("Delete");
+    } else if (event.text == "TAB") {
+        selectionDisplay.toggleSpaceMode();
+    } else if (event.text == "ESC") {
+        selectionDisplay.cancelTool();
     } else if (event.text == "f") {
         if (entitySelected) {
-            entityCameraTool.focus(selectedEntityProperties);
+            // Get latest properties
+            var properties = Entities.getEntityProperties(selectedEntityID);
+            entityCameraTool.focus(properties);
         }
     }
 });

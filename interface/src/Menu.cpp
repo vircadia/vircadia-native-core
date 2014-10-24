@@ -45,6 +45,7 @@
 #include "ui/AttachmentsDialog.h"
 #include "ui/InfoView.h"
 #include "ui/MetavoxelEditor.h"
+#include "ui/MetavoxelNetworkSimulator.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/LoginDialog.h"
 #include "ui/NodeBounds.h"
@@ -431,6 +432,10 @@ Menu::Menu() :
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderHeightfields, 0, true);
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
+    addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
+        SLOT(showMetavoxelNetworkSimulator()));
     
     QMenu* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::AlignForearmsWithWrists, 0, false);
@@ -1376,6 +1381,13 @@ void Menu::showMetavoxelEditor() {
         _MetavoxelEditor = new MetavoxelEditor();
     }
     _MetavoxelEditor->raise();
+}
+
+void Menu::showMetavoxelNetworkSimulator() {
+    if (!_metavoxelNetworkSimulator) {
+        _metavoxelNetworkSimulator = new MetavoxelNetworkSimulator();
+    }
+    _metavoxelNetworkSimulator->raise();
 }
 
 void Menu::showScriptEditor() {

@@ -21,6 +21,7 @@ AvatarHashMap::AvatarHashMap() :
     connect(NodeList::getInstance(), &NodeList::uuidChanged, this, &AvatarHashMap::sessionUUIDChanged);
 }
 
+
 AvatarHash::iterator AvatarHashMap::erase(const AvatarHash::iterator& iterator) {
     qDebug() << "Removing Avatar with UUID" << iterator.key() << "from AvatarHashMap.";
     return _avatarHash.erase(iterator);
@@ -53,29 +54,26 @@ void AvatarHashMap::processAvatarMixerDatagram(const QByteArray& datagram, const
 }
 
 bool AvatarHashMap::containsAvatarWithDisplayName(const QString& displayName) {
-    
-    AvatarHash::iterator avatarIterator = _avatarHash.begin();
-    while (avatarIterator != _avatarHash.end()) {
-        AvatarSharedPointer sharedAvatar = avatarIterator.value();
-        if (avatarIterator.value()->getDisplayName() == displayName) {
+    return avatarWithDisplayName(displayName) == NULL ? false : true;
+}
+
+AvatarData* AvatarHashMap::avatarWithDisplayName(const QString& displayName) {
+    foreach(const AvatarSharedPointer& sharedAvatar, _avatarHash) {
+        if (sharedAvatar->getDisplayName() == displayName) {
             // this is a match
             // check if this avatar should still be around
             if (!shouldKillAvatar(sharedAvatar)) {
-                // we have a match, return true
-                return true;
+                // we have a match, return the AvatarData
+                return sharedAvatar.data();
             } else {
-                // we should remove this avatar, do that now
-                erase(avatarIterator);
+                // we should remove this avatar, but we might not be on a thread that is allowed
+                // so we just return NULL to the caller
+                return NULL;
             }
-            
-            break;
-        } else {
-            ++avatarIterator;
         }
     }
-    
-    // return false, no match
-    return false;
+        
+    return NULL;
 }
 
 AvatarSharedPointer AvatarHashMap::newSharedAvatar() {
