@@ -61,8 +61,14 @@ public:
     void update();
     void reset();
     
-    void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
-        float jawOpen, QVector<float>& coefficients) const;
+    void updateFakeCoefficients(float leftBlink,
+                                float rightBlink,
+                                float browUp,
+                                float jawOpen,
+                                float mouth2,
+                                float mouth3,
+                                float mouth4,
+                                QVector<float>& coefficients) const;
     
 signals:
 
