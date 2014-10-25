@@ -43,8 +43,10 @@ var movingWithHead = false;
 var headStartPosition, headStartDeltaPitch, headStartFinalPitch, headStartRoll, headStartYaw;
 var deltaYaw = 0.0;
 var keyDownTime = 0.0;
+var timeSinceLastUp = 0.0;
 var watchAvatar = false; 
 var oldMode; 
+var lastYawTurned = 0.0;
 
 function saveCameraState() {
     oldMode = Camera.getMode();
@@ -134,7 +136,7 @@ function finishWarp() {
 }
 
 function update(deltaTime) {
-
+    timeSinceLastUp += deltaTime;
     if (movingWithHead) {
         keyDownTime += deltaTime;
         updateWarp();
@@ -156,22 +158,26 @@ Controller.keyPressEvent.connect(function(event) {
     }
 });
 
-var TIME_FOR_TURN_AROUND = 0.50;
 var TIME_FOR_TURN = 0.25;
+var DOUBLE_CLICK_TIME = 0.50;
 var TURN_AROUND = 180.0;
 
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SPACE" && !event.isAutoRepeat) {
         movingWithHead = false;
-        if (keyDownTime < TIME_FOR_TURN_AROUND) {
-            if (keyDownTime < TIME_FOR_TURN) {
-                var currentYaw = MyAvatar.getHeadFinalYaw();
-                MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, currentYaw, 0), MyAvatar.orientation);
-            } else {
-                MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, TURN_AROUND, 0), MyAvatar.orientation);
-            }
+        if (timeSinceLastUp < DOUBLE_CLICK_TIME) {
+            // Turn all the way around 
+            var turnRemaining = TURN_AROUND - lastYawTurned;
+            lastYawTurned = 0.0;
+            MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, TURN_AROUND, 0), MyAvatar.orientation);
+            playSound();
+        } else if (keyDownTime < TIME_FOR_TURN) {
+            var currentYaw = MyAvatar.getHeadFinalYaw();
+            lastYawTurned = currentYaw;
+            MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, currentYaw, 0), MyAvatar.orientation);
             playSound();
         }
+        timeSinceLastUp = 0.0;
         finishWarp();
         if (watchAvatar) {
             restoreCameraState();
