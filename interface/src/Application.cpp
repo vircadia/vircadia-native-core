@@ -414,6 +414,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
+
+    this->installEventFilter(this);
 }
 
 Application::~Application() {
@@ -834,6 +836,19 @@ bool Application::event(QEvent* event) {
     }
     
     return QApplication::event(event);
+}
+
+bool Application::eventFilter(QObject* object, QEvent* event) {
+
+    if (event->type() == QEvent::ShortcutOverride) {
+        // Filter out captured keys before they're used for shortcut actions.
+        if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
+            event->accept();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
