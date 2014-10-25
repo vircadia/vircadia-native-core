@@ -361,6 +361,11 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void setRenderTargetFramerate(unsigned int framerate, bool vsyncOn = true);
+    bool isVSyncOn() { return _isVSyncOn; }
+    bool isVSyncEditable();
+    unsigned int  getRenderTargetFramerate() const { return _renderTargetFramerate; }
+
     void setRenderResolutionScale(float scale);
 
     void resetSensors();
@@ -613,6 +618,8 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
+    int _renderTargetFramerate;
+    bool _isVSyncOn;
     float _renderResolutionScale;
 };
 
