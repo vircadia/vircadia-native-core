@@ -38,6 +38,7 @@ public:
     bool isAlt;
     bool isKeypad;
     bool isValid;
+    bool isAutoRepeat;
 };
 
 
