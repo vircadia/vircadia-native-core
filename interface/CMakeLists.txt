@@ -53,7 +53,8 @@ endforeach(SUBDIR)
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
     # Use .cpp and .h files as is.
-	find_package(ATL)
+	find_package(ATL REQUIRED)
+	include_directories(SYSTEM ${ATL_INCLUDE_DIRS})
 elseif (APPLE)
     file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
     set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
