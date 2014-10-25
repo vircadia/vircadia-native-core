@@ -30,10 +30,10 @@ elseif (UNIX)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 elseif (WIN32)
-    add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-    add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
-    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
+  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
 endif ()
 
 # set up the external glm library
@@ -52,19 +52,19 @@ endforeach(SUBDIR)
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
-    # Use .cpp and .h files as is.
-	find_package(ATL REQUIRED)
-	include_directories(SYSTEM ${ATL_INCLUDE_DIRS})
+  # Use .cpp and .h files as is.
+  find_package(ATL REQUIRED)
+  include_directories(SYSTEM ${ATL_INCLUDE_DIRS})
 elseif (APPLE)
-    file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
-    set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
-    get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
-    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
+  file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
+  get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
+  list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 else ()
-    get_filename_component(SPEECHRECOGNIZER_H "src/SpeechRecognizer.h" ABSOLUTE)
-    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
-    get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
-    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
+  get_filename_component(SPEECHRECOGNIZER_H "src/SpeechRecognizer.h" ABSOLUTE)
+  list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
+  get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
+  list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
 find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
@@ -197,20 +197,20 @@ target_link_libraries(
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
-    # link in required OS X frameworks and include the right GL headers
-    find_library(CoreAudio CoreAudio)
-    find_library(CoreFoundation CoreFoundation)
-    find_library(GLUT GLUT)
-    find_library(OpenGL OpenGL)
-    find_library(AppKit AppKit)
+  # link in required OS X frameworks and include the right GL headers
+  find_library(CoreAudio CoreAudio)
+  find_library(CoreFoundation CoreFoundation)
+  find_library(GLUT GLUT)
+  find_library(OpenGL OpenGL)
+  find_library(AppKit AppKit)
 
-    target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL} ${AppKit})
     
-    # install command for OS X bundle
-    INSTALL(TARGETS ${TARGET_NAME}
-        BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-        RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    )
+  # install command for OS X bundle
+  INSTALL(TARGETS ${TARGET_NAME}
+    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+  )
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
