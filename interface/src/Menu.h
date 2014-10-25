@@ -229,7 +229,8 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
-    void toggleUnleashFramerate();
+    void changeRenderTargetFramerate(QAction* action);
+    void changeVSync();
     void changeRenderResolution(QAction* action);
 
 private:
@@ -453,7 +454,14 @@ namespace MenuOption {
     const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
-    const QString RenderUnleashFramerate = "Unleash Framerate";
+    const QString RenderTargetFramerate = "Framerate";
+    const QString RenderTargetFramerateUnlimited = "Unlimited";
+    const QString RenderTargetFramerate60 = "60";
+    const QString RenderTargetFramerate50 = "50";
+    const QString RenderTargetFramerate40 = "40";
+    const QString RenderTargetFramerate30 = "30";
+    const QString RenderTargetFramerateVSyncOn = "V-Sync On";
+
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";

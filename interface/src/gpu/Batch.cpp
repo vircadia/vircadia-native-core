@@ -17,7 +17,8 @@
 //#define DO_IT_NOW(call, offset) runLastCommand();
 #define DO_IT_NOW(call, offset) 
 
-#define CHECK_GL_ERROR() ::gpu::backend::checkGLError()
+//#define CHECK_GL_ERROR() ::gpu::backend::checkGLError()
+#define CHECK_GL_ERROR()
 
 using namespace gpu;
 

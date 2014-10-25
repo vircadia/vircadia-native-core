@@ -373,7 +373,23 @@ Menu::Menu() :
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::SimpleShadows, 0, false));
     shadowGroup->addAction(addCheckableActionToQMenuAndActionHash(shadowMenu, MenuOption::CascadedShadows, 0, false));
 
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderUnleashFramerate, 0, false, this, SLOT(toggleUnleashFramerate()));
+    {
+        QMenu* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
+        QActionGroup* framerateGroup = new QActionGroup(framerateMenu);
+
+        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerateUnlimited, 0, true));
+        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate60, 0, false));
+        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate50, 0, false));
+        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate40, 0, false));
+        framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate30, 0, false));
+        connect(framerateMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderTargetFramerate(QAction*)));
+
+#if defined(Q_OS_MAC)
+#else
+        QAction* vsyncAction = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
+#endif
+    }
+
 
     QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
@@ -1237,11 +1253,30 @@ void Menu::muteEnvironment() {
     free(packet);
 }
 
-void Menu::toggleUnleashFramerate() {
-    if (isOptionChecked(MenuOption::RenderUnleashFramerate)) {
-        Application::getInstance()->setRenderTargetFramerate(0);
-    } else {
-        Application::getInstance()->setRenderTargetFramerate(-1);
+void Menu::changeVSync() {
+    Application::getInstance()->setRenderTargetFramerate(
+        Application::getInstance()->getRenderTargetFramerate(),
+        isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
+}
+void Menu::changeRenderTargetFramerate(QAction* action) {
+    bool vsynOn = Application::getInstance()->isVSyncOn();
+    unsigned int framerate = Application::getInstance()->getRenderTargetFramerate();
+
+    QString text = action->text();
+    if (text == MenuOption::RenderTargetFramerateUnlimited) {
+        Application::getInstance()->setRenderTargetFramerate(0, vsynOn);
+    }
+    else if (text == MenuOption::RenderTargetFramerate60) {
+        Application::getInstance()->setRenderTargetFramerate(60, vsynOn);
+    }
+    else if (text == MenuOption::RenderTargetFramerate50) {
+        Application::getInstance()->setRenderTargetFramerate(50, vsynOn);
+    }
+    else if (text == MenuOption::RenderTargetFramerate40) {
+        Application::getInstance()->setRenderTargetFramerate(40, vsynOn);
+    }
+    else if (text == MenuOption::RenderTargetFramerate30) {
+        Application::getInstance()->setRenderTargetFramerate(30, vsynOn);
     }
 }
 

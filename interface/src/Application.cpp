@@ -94,10 +94,6 @@
 
 #include "devices/Leapmotion.h"
 
-#ifdef WIN32
-#include <gl/wglew.h>
-#endif
-
 using namespace std;
 
 //  Starfield information
@@ -183,16 +179,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _renderTargetFramerate(60),
+        _renderTargetFramerate(0),
+        _isVSyncOn(true),
         _renderResolutionScale(1.0f)
 {
-
-
- /*   QGLFormat trueFormat = _glWidget->format();
-    trueFormat.setSwapInterval(0);
-    _glWidget->setFormat(trueFormat);*/
-    int swapInterval = _glWidget->format().swapInterval();
-    swapInterval++;
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
@@ -535,13 +525,18 @@ void Application::initializeGL() {
     qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
 
     if (wglewGetExtension("WGL_EXT_swap_control")) {
-        wglSwapIntervalEXT(0);
         int swapInterval = wglGetSwapIntervalEXT();
-        swapInterval++;
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
     }
     #endif
 
-
+#if defined(Q_OS_LINUX)
+    // TODO: Write the correct  code for Linux...
+    /* if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    }*/
+#endif
 
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
@@ -4168,8 +4163,51 @@ void Application::takeSnapshot() {
     _snapshotShareDialog->show();
 }
 
-void Application::setRenderTargetFramerate(int framerate) {
+void Application::setRenderTargetFramerate(unsigned int framerate, bool vsyncOn) {
+    if (vsyncOn != _isVSyncOn) {
+#if defined(Q_OS_WIN)
+        if (wglewGetExtension("WGL_EXT_swap_control")) {
+            wglSwapIntervalEXT(vsyncOn);
+            int swapInterval = wglGetSwapIntervalEXT();
+            _isVSyncOn = swapInterval;
+            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        } else {
+            qDebug("V-Sync is FORCED ON on this system\n");
+        }
+#elif defined(Q_OS_LINUX)
+        // TODO: write the poper code for linux
+        /*
+        if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+            glxSwapIntervalEXT(vsyncOn);
+            int swapInterval = xglGetSwapIntervalEXT();
+            _isVSyncOn = swapInterval;
+            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        } else {
+        qDebug("V-Sync is FORCED ON on this system\n");
+        }
+        */
+#else
+        qDebug("V-Sync is FORCED ON on this system\n");
+#endif
+    }
     _renderTargetFramerate = framerate;
+}
+
+bool Application::isVSyncEditable() {
+#if defined(Q_OS_WIN)
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        return true;
+    }
+#elif defined(Q_OS_LINUX)
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        return true;
+    }
+    */
+#else
+#endif
+    return false;
 }
 
 void Application::setRenderResolutionScale(float scale) {
