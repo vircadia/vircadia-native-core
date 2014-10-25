@@ -144,7 +144,7 @@ void SpeechRecognizer::removeCommand(const QString& command) {
 }
 
 void SpeechRecognizer::reloadCommands() {
-    if (!_enabled) {
+    if (!_enabled || _commands.count() == 0) {
         return;
     }
 
