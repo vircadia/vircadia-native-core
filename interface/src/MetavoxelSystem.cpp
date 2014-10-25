@@ -110,11 +110,9 @@ int SimulateVisitor::visit(MetavoxelInfo& info) {
 void MetavoxelSystem::simulate(float deltaTime) {
     // update the lod
     {
-        // the LOD threshold is temporarily tied to the avatar LOD parameter
         QWriteLocker locker(&_lodLock);
-        const float BASE_LOD_THRESHOLD = 0.01f;
-        _lod = MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(),
-            BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
+        const float DEFAULT_LOD_THRESHOLD = 0.01f;
+        _lod = MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), DEFAULT_LOD_THRESHOLD);
     }
 
     SimulateVisitor simulateVisitor(deltaTime, getLOD());

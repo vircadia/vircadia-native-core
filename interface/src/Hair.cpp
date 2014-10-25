@@ -38,7 +38,7 @@ Hair::Hair(int strands,
     _acceleration(0.0f),
     _angularVelocity(0.0f),
     _angularAcceleration(0.0f),
-    _gravity(0.0f),
+    _gravity(DEFAULT_GRAVITY),
     _loudness(0.0f)
 {
     _hairPosition = new glm::vec3[_strands * _links];
@@ -53,7 +53,7 @@ Hair::Hair(int strands,
     for (int strand = 0; strand < _strands; strand++) {
         float strandAngle = randFloat() * PI;
         float azimuth;
-        float elevation = PI_OVER_TWO - (randFloat() * 0.10f * PI);
+        float elevation = - (randFloat() * PI);
         azimuth = PI_OVER_TWO;
         if (randFloat() < 0.5f) {
             azimuth *= -1.0f;
@@ -127,7 +127,7 @@ void Hair::simulate(float deltaTime) {
                 _hairPosition[vertexIndex] += randVector() * (QUIESCENT_LOUDNESS + loudnessFactor) * ((float)link / (float)_links);
 
                 //  Add gravity
-                const float SCALE_GRAVITY = 0.13f;
+                const float SCALE_GRAVITY = 0.001f;
                 _hairPosition[vertexIndex] += _gravity * deltaTime * SCALE_GRAVITY;
                 
                 //  Add linear acceleration
