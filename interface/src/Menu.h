@@ -23,7 +23,7 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
 #include "SpeechRecognizer.h"
 #endif
 
@@ -146,7 +146,7 @@ public:
 
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
 
@@ -284,7 +284,7 @@ private:
     LodToolsDialog* _lodToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
     SpeechRecognizer _speechRecognizer;
 #endif
     int _maxVoxels;

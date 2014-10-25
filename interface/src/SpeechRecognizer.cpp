@@ -16,7 +16,7 @@
 
 #include "SpeechRecognizer.h"
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && defined(HAVE_ATL)
 
 SpeechRecognizer::SpeechRecognizer() :
     QObject(),
@@ -216,4 +216,4 @@ void SpeechRecognizer::notifyCommandRecognized(HANDLE handle) {
     }
 }
 
-#endif // Q_OS_WIN
+#endif // defined(Q_OS_WIN) && defined(HAVE_ATL)

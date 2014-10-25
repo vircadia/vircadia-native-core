@@ -99,7 +99,7 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
     _speechRecognizer(),
 #endif
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
@@ -224,7 +224,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
 
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
     QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
             Qt::CTRL | Qt::SHIFT | Qt::Key_C, _speechRecognizer.getEnabled(), &_speechRecognizer, SLOT(setEnabled(bool)));
     connect(&_speechRecognizer, SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
@@ -750,7 +750,7 @@ void Menu::loadSettings(QSettings* settings) {
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
 
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
     _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
 #endif
 
@@ -814,7 +814,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
-#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
+#if defined(Q_OS_MAC) || (defined(Q_OS_WIN) && defined(HAVE_ATL))
     settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
 #endif
     settings->beginGroup("View Frustum Offset Camera");

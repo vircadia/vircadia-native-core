@@ -16,7 +16,7 @@
 #include <QSet>
 #include <QString>
 
-#ifdef Q_OS_WIN
+#if defined(Q_OS_WIN) && defined(HAVE_ATL)
 #include <QWinEventNotifier>
 
 #include <atlbase.h>
@@ -50,7 +50,7 @@ private:
 #if defined(Q_OS_MAC)
     void* _speechRecognizerDelegate;
     void* _speechRecognizer;
-#elif defined(Q_OS_WIN)
+#elif defined(Q_OS_WIN) && defined(HAVE_ATL)
     bool _comInitialized;
     CComPtr<ISpRecognizer> _speechRecognizer;
     CComPtr<ISpRecoContext> _speechRecognizerContext;
@@ -59,7 +59,7 @@ private:
     QWinEventNotifier* _commandRecognizedNotifier;
 #endif
 
-#if defined(Q_OS_WIN)
+#if defined(Q_OS_WIN) && defined(HAVE_ATL)
 private slots:
     void notifyCommandRecognized(HANDLE handle);
 #endif
