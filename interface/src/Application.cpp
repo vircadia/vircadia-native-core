@@ -3104,7 +3104,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
-        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * _renderResolutionScale;
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
