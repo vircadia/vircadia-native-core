@@ -24,7 +24,6 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
-#include <StreamUtils.h>    // adebug
 
 #include "Application.h"
 #include "Avatar.h"
@@ -773,7 +772,6 @@ void Avatar::setSkeletonOffset(const glm::vec3& offset) {
     } else {
         _skeletonOffset = offset;
     }
-    std::cout << "adebug set offset = " << offset << std::endl;  // adebug
 }
 
 glm::vec3 Avatar::getSkeletonPosition() const { 
