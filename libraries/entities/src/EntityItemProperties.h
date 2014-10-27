@@ -32,7 +32,6 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 
-// PropertyFlags support
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
@@ -52,6 +51,7 @@ enum EntityPropertyList {
 
     // these properties are supported by some derived classes
     PROP_COLOR,
+    PROP_DIFFUSE_COLOR = PROP_COLOR, // used by light class
     PROP_MODEL_URL,
     PROP_ANIMATION_URL,
     PROP_ANIMATION_FPS,
@@ -67,8 +67,15 @@ enum EntityPropertyList {
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
+    PROP_AMBIENT_COLOR,
+    PROP_SPECULAR_COLOR,
+    PROP_CONSTANT_ATTENUATION,
+    PROP_LINEAR_ATTENUATION,
+    PROP_QUADRATIC_ATTENUATION,
+    PROP_EXPONENT,
+    PROP_CUTOFF,
 
-    PROP_LAST_ITEM = PROP_IS_SPOTLIGHT
+    PROP_LAST_ITEM = PROP_CUTOFF
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -240,6 +247,11 @@ public:
     bool getIsSpotlight() const { return _isSpotlight; }
     void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
 
+    void setDiffuseColor(const xColor& value) { }
+    void setAmbientColor(const xColor& value) { }
+    void setSpecularColor(const xColor& value) { }
+    
+
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
 private:
@@ -309,6 +321,8 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _isSpotlightChanged;
+    bool _ambientColorChanged;
+    bool _specularColorChanged;
 
     bool _defaultSettings;
 };

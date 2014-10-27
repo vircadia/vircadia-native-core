@@ -64,8 +64,8 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties, bool
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setDiffuseColor);
     //SET_ENTITY_PROPERTY_FROM_PROPERTIES(diffuseColor, setDiffuseColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientColor, setAmbientColor);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(specularColor, setSpecularColor);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientColor, setAmbientColor);
+    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(specularColor, setSpecularColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
 
     if (somethingChanged) {
