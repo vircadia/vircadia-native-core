@@ -18,8 +18,11 @@
 #undef main
 #endif
 
+#include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <PerfStat.h>
+
+#include "Application.h" 
 
 #include "JoystickScriptingInterface.h"
 
@@ -112,13 +115,24 @@ void JoystickScriptingInterface::update() {
                 }
                 
                 if (event.cbutton.button == SDL_CONTROLLER_BUTTON_BACK) {
-                    // this will either start or stop a cancel event
+                    // this will either start or stop a global back event
                     QEvent::Type backType = (event.type == SDL_CONTROLLERBUTTONDOWN)
                         ? HFBackEvent::startType()
                         : HFBackEvent::endType();
                     HFBackEvent backEvent(backType);
                     
                     qApp->sendEvent(qApp, &backEvent);
+                } else if (event.cbutton.button == SDL_CONTROLLER_BUTTON_A) {
+                    // this will either start or stop a global action event
+                    QEvent::Type actionType = (event.type == SDL_CONTROLLERBUTTONDOWN)
+                        ? HFActionEvent::startType()
+                        : HFActionEvent::endType();
+                    
+                    // global action events fire in the center of the screen
+                    QPointF centerPoint = Application::getInstance()->getViewportCenter();
+                    HFActionEvent actionEvent(actionType, centerPoint);
+                    
+                    qApp->sendEvent(qApp, &actionEvent);
                 }
                 
             } else if (event.type == SDL_CONTROLLERDEVICEADDED) {
