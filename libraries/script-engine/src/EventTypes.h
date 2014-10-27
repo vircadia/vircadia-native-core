@@ -22,23 +22,6 @@
 #include <QWheelEvent>
 
 
-class MouseEvent {
-public:
-    MouseEvent(); 
-    MouseEvent(const QMouseEvent& event, const unsigned int deviceID = 0);
-    int x;
-    int y;
-    unsigned int deviceID;
-    QString button;
-    bool isLeftButton;
-    bool isRightButton;
-    bool isMiddleButton;
-    bool isShifted;
-    bool isControl;
-    bool isMeta;
-    bool isAlt;
-};
-
 class TouchEvent {
 public:
     TouchEvent();
@@ -103,16 +86,12 @@ public:
 private:
 };
 
-Q_DECLARE_METATYPE(MouseEvent)
 Q_DECLARE_METATYPE(TouchEvent)
 Q_DECLARE_METATYPE(WheelEvent)
 Q_DECLARE_METATYPE(SpatialEvent)
 
 void registerEventTypes(QScriptEngine* engine);
 
-
-QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event);
-void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event);
 
 QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event);
 void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event);

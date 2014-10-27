@@ -19,6 +19,7 @@
 
 #include "EventTypes.h"
 #include "KeyEvent.h"
+#include "MouseEvent.h"
 
 class AbstractInputController : public QObject {
     Q_OBJECT

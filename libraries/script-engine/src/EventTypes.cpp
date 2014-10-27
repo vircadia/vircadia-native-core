@@ -13,85 +13,16 @@
 #include <RegisteredMetaTypes.h>
 
 #include "KeyEvent.h"
+#include "MouseEvent.h"
 
 #include "EventTypes.h"
 
-
 void registerEventTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, KeyEvent::toScriptValue, KeyEvent::fromScriptValue);
-    qScriptRegisterMetaType(engine, mouseEventToScriptValue, mouseEventFromScriptValue);
+    qScriptRegisterMetaType(engine, MouseEvent::toScriptValue, MouseEvent::fromScriptValue);
     qScriptRegisterMetaType(engine, touchEventToScriptValue, touchEventFromScriptValue);
     qScriptRegisterMetaType(engine, wheelEventToScriptValue, wheelEventFromScriptValue);
     qScriptRegisterMetaType(engine, spatialEventToScriptValue, spatialEventFromScriptValue);
-}
-
-
-
-MouseEvent::MouseEvent() : 
-    x(0.0f), 
-    y(0.0f),
-    isLeftButton(false), 
-    isRightButton(false), 
-    isMiddleButton(false),
-    isShifted(false),
-    isControl(false),
-    isMeta(false),
-    isAlt(false)
-{ 
-}; 
-
-
-MouseEvent::MouseEvent(const QMouseEvent& event, const unsigned int deviceID) :
-    x(event.x()), 
-    y(event.y()),
-    deviceID(deviceID),
-    isLeftButton(event.buttons().testFlag(Qt::LeftButton)), 
-    isRightButton(event.buttons().testFlag(Qt::RightButton)), 
-    isMiddleButton(event.buttons().testFlag(Qt::MiddleButton)),
-    isShifted(event.modifiers().testFlag(Qt::ShiftModifier)),
-    isControl(event.modifiers().testFlag(Qt::ControlModifier)),
-    isMeta(event.modifiers().testFlag(Qt::MetaModifier)),
-    isAlt(event.modifiers().testFlag(Qt::AltModifier))
-{
-    // single button that caused the event
-    switch (event.button()) {
-        case Qt::LeftButton:
-            button = "LEFT";
-            isLeftButton = true;
-            break;
-        case Qt::RightButton:
-            button = "RIGHT";
-            isRightButton = true;
-            break;
-        case Qt::MiddleButton:
-            button = "MIDDLE";
-            isMiddleButton = true;
-            break;
-        default:
-            button = "NONE";
-            break;
-    }
-}
-
-QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("x", event.x);
-    obj.setProperty("y", event.y);
-    obj.setProperty("button", event.button);
-    obj.setProperty("deviceID", event.deviceID);
-    obj.setProperty("isLeftButton", event.isLeftButton);
-    obj.setProperty("isRightButton", event.isRightButton);
-    obj.setProperty("isMiddleButton", event.isMiddleButton);
-    obj.setProperty("isShifted", event.isShifted);
-    obj.setProperty("isMeta", event.isMeta);
-    obj.setProperty("isControl", event.isControl);
-    obj.setProperty("isAlt", event.isAlt);
-
-    return obj;
-}
-
-void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event) {
-    // nothing for now...
 }
 
 TouchEvent::TouchEvent() : 
