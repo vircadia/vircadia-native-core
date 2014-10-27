@@ -52,6 +52,7 @@ MetavoxelSystem::~MetavoxelSystem() {
     // kill the updater before we delete our network simulation objects
     _updater->thread()->quit();
     _updater->thread()->wait();
+    _updater = NULL;
 }
 
 void MetavoxelSystem::init() {
