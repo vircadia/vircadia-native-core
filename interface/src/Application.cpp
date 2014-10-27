@@ -179,8 +179,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
+        _renderTargetFramerate(0),
+        _isVSyncOn(true),
         _renderResolutionScale(1.0f)
 {
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -520,8 +523,20 @@ void Application::initializeGL() {
       qDebug("Error: %s\n", glewGetErrorString(err));
     }
     qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    }
     #endif
 
+#if defined(Q_OS_LINUX)
+    // TODO: Write the correct  code for Linux...
+    /* if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    }*/
+#endif
 
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
@@ -1393,9 +1408,14 @@ void Application::idle() {
     PerformanceWarning warn(showWarnings, "idle()");
 
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
-
+    double targetFramePeriod = 0.0;
+    if (_renderTargetFramerate > 0) {
+        targetFramePeriod = 1000.0 / _renderTargetFramerate;
+    } else if (_renderTargetFramerate < 0) {
+        targetFramePeriod = IDLE_SIMULATE_MSECS;
+    }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
-    if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
+    if (timeSinceLastUpdate > targetFramePeriod) {
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -3085,7 +3105,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
-        ratio = size.height() / (float)_glWidget->getDeviceHeight();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
@@ -4141,6 +4160,53 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
+}
+
+void Application::setRenderTargetFramerate(unsigned int framerate, bool vsyncOn) {
+    if (vsyncOn != _isVSyncOn) {
+#if defined(Q_OS_WIN)
+        if (wglewGetExtension("WGL_EXT_swap_control")) {
+            wglSwapIntervalEXT(vsyncOn);
+            int swapInterval = wglGetSwapIntervalEXT();
+            _isVSyncOn = swapInterval;
+            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        } else {
+            qDebug("V-Sync is FORCED ON on this system\n");
+        }
+#elif defined(Q_OS_LINUX)
+        // TODO: write the poper code for linux
+        /*
+        if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+            glxSwapIntervalEXT(vsyncOn);
+            int swapInterval = xglGetSwapIntervalEXT();
+            _isVSyncOn = swapInterval;
+            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        } else {
+        qDebug("V-Sync is FORCED ON on this system\n");
+        }
+        */
+#else
+        qDebug("V-Sync is FORCED ON on this system\n");
+#endif
+    }
+    _renderTargetFramerate = framerate;
+}
+
+bool Application::isVSyncEditable() {
+#if defined(Q_OS_WIN)
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        return true;
+    }
+#elif defined(Q_OS_LINUX)
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        return true;
+    }
+    */
+#else
+#endif
+    return false;
 }
 
 void Application::setRenderResolutionScale(float scale) {

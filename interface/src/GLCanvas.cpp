@@ -20,7 +20,7 @@
 
 const int MSECS_PER_FRAME_WHEN_THROTTLED = 66;
 
-GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer)),
+GLCanvas::GLCanvas() : QGLWidget(QGL::NoDepthBuffer | QGL::NoStencilBuffer),
     _throttleRendering(false),
     _idleRenderInterval(MSECS_PER_FRAME_WHEN_THROTTLED)
 {
