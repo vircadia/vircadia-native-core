@@ -405,7 +405,6 @@ void GeometryCache::renderGrid(int xDivisions, int yDivisions) {
 }
 
 QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url, const QUrl& fallback, bool delayLoad) {
-    qDebug() << "Getting a resource at" << url;
     return getResource(url, fallback, delayLoad).staticCast<NetworkGeometry>();
 }
 
