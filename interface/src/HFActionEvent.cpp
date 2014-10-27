@@ -11,17 +11,20 @@
 
 #include "HFActionEvent.h"
 
-HFActionEvent::HFActionEvent(const QPointF& localPosition) :
-	QEvent(HFActionEvent::type()),
+HFActionEvent::HFActionEvent(QEvent::Type type, const QPointF& localPosition) :
+	QEvent(type),
     _localPosition(localPosition)
 {
     
 }
 
-QEvent::Type HFActionEvent::type() {
-    static QEvent::Type hfActionType = QEvent::None;
-    if (hfActionType == QEvent::None) {
-        hfActionType = static_cast<QEvent::Type>(QEvent::registerEventType());
-    }
-    return hfActionType;
+QEvent::Type HFActionEvent::startType() {
+    static QEvent::Type startType = static_cast<QEvent::Type>(QEvent::registerEventType());
+    return startType;
 }
+
+QEvent::Type HFActionEvent::endType() {
+    static QEvent::Type endType = static_cast<QEvent::Type>(QEvent::registerEventType());
+    return endType;
+}
+

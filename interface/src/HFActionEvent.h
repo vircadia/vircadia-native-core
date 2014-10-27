@@ -16,9 +16,10 @@
 
 class HFActionEvent : public QEvent {
 public:
-    HFActionEvent(const QPointF& localPosition);
+    HFActionEvent(QEvent::Type type, const QPointF& localPosition);
     
-    static QEvent::Type type();
+    static QEvent::Type startType();
+    static QEvent::Type endType();
 private:
     QPointF _localPosition;
 };
