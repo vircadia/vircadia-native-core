@@ -56,7 +56,7 @@
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
 #include <HFActionEvent.h>
-#include <HFCancelEvent.h>
+#include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <NetworkAccessManager.h>
@@ -1106,8 +1106,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 OculusManager::abandonCalibration();
                 
                 // this fires the HFCancelEvent
-                HFCancelEvent startCancelEvent(HFCancelEvent::startType());
-                sendEvent(this, &startCancelEvent);
+                HFBackEvent startBackEvent(HFBackEvent::startType());
+                sendEvent(this, &startBackEvent);
                 
                 break;
             }
@@ -1183,8 +1183,8 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             break;
         case Qt::Key_Escape: {
             // this ends the HFCancelEvent
-            HFCancelEvent endCancelEvent(HFCancelEvent::endType());
-            sendEvent(this, &endCancelEvent);
+            HFBackEvent endBackEvent(HFBackEvent::endType());
+            sendEvent(this, &endBackEvent);
             
             break;
         }

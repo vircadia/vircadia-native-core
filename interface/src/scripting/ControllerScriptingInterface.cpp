@@ -10,7 +10,7 @@
 //
 
 #include <HandData.h>
-#include <HFCancelEvent.h>
+#include <HFBackEvent.h>
 
 #include "Application.h"
 #include "devices/MotionTracker.h"
@@ -31,9 +31,9 @@ void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
         emit actionStartEvent(static_cast<HFActionEvent&>(*event));
     } else if (event->type() == HFActionEvent::endType()) {
         emit actionEndEvent(static_cast<HFActionEvent&>(*event));
-    } else if (event->type() == HFCancelEvent::startType()) {
+    } else if (event->type() == HFBackEvent::startType()) {
         emit cancelStartEvent();
-    } else if (event->type() == HFCancelEvent::endType()) {
+    } else if (event->type() == HFBackEvent::endType()) {
         emit cancelEndEvent();
     }
 }

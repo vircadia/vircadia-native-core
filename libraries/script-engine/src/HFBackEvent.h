@@ -1,5 +1,5 @@
 //
-//  HFCancelEvent.h
+//  HFBackEvent.h
 //  script-engine/src
 //
 //  Created by Stephen Birarda on 2014-10-27.
@@ -9,21 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_HFCancelEvent_h
-#define hifi_HFCancelEvent_h
+#ifndef hifi_HFBackEvent_h
+#define hifi_HFBackEvent_h
 
 #include <qevent.h>
 #include <qscriptengine.h>
 
 #include "HFMetaEvent.h"
 
-class HFCancelEvent : public HFMetaEvent {
+class HFBackEvent : public HFMetaEvent {
 public:
-    HFCancelEvent() {};
-    HFCancelEvent(QEvent::Type type);
+    HFBackEvent() {};
+    HFBackEvent(QEvent::Type type);
     
     static QEvent::Type startType();
     static QEvent::Type endType();
 };
 
-#endif // hifi_HFCancelEvent_h
+#endif // hifi_HFBackEvent_h
