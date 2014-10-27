@@ -140,8 +140,11 @@ private:
 class NetworkMeshPart {
 public: 
     
+    QString diffuseTextureName;
     QSharedPointer<NetworkTexture> diffuseTexture;
+    QString normalTextureName;
     QSharedPointer<NetworkTexture> normalTexture;
+    QString specularTextureName;
     QSharedPointer<NetworkTexture> specularTexture;
     
     bool isTranslucent() const;
