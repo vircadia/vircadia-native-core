@@ -226,11 +226,17 @@ else (APPLE)
   if (WIN32)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIRS})
-    
+
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
-    
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    find_package(NSIGHT)
+    if (NSIGHT_FOUND)
+      include_directories(${NSIGHT_INCLUDE_DIRS})
+      add_definitions(-DNSIGHT_FOUND)
+    endif ()
+
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib)
   endif()
 endif (APPLE)
 

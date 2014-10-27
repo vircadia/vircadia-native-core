@@ -16,6 +16,23 @@
 
 #include <vector>
 
+#if defined(NSIGHT_FOUND)
+    #include "nvToolsExt.h"
+    class ProfileRange {
+    public:
+        ProfileRange(const char *name) {
+            nvtxRangePush(name);
+        }
+        ~ProfileRange() {
+            nvtxRangePop();
+        }
+    };
+
+    #define PROFILE_SCOPE(name) ProfileRange profileRangeThis(name);
+#else
+    #define PROFILE_SCOPE(name)
+#endif
+
 namespace gpu {
 
 class Batch;
