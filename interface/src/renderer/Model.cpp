@@ -395,7 +395,7 @@ void Model::setJointStates(QVector<JointState> states) {
 }
 
 bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
-    PROFILE_SCOPE(__FUNCTION__);
+    PROFILE_RANGE(__FUNCTION__);
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha, mode);
@@ -562,7 +562,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
 
     // Render!
     {
-        PROFILE_SCOPE("render Batch");
+        PROFILE_RANGE("render Batch");
         ::gpu::backend::renderBatch(batch);
         batch.clear();
     }
@@ -1555,7 +1555,7 @@ void Model::segregateMeshGroups() {
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
                             bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
-    PROFILE_SCOPE(__FUNCTION__);
+    PROFILE_RANGE(__FUNCTION__);
     bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
     bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
     bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);

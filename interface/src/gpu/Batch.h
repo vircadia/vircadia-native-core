@@ -28,9 +28,9 @@
         }
     };
 
-    #define PROFILE_SCOPE(name) ProfileRange profileRangeThis(name);
+    #define PROFILE_RANGE(name) ProfileRange profileRangeThis(name);
 #else
-    #define PROFILE_SCOPE(name)
+#define PROFILE_RANGE(name)
 #endif
 
 namespace gpu {
