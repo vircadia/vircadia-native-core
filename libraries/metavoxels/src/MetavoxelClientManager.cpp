@@ -297,7 +297,10 @@ void MetavoxelClient::writeUpdateMessage(Bitstream& out) {
 void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
     int userType = message.userType(); 
     if (userType == MetavoxelDeltaMessage::Type) {
-        if (_reliableDeltaChannel) {    
+        if (_reliableDeltaChannel) {
+            qDebug() << "from" << _remoteDataLOD.position.x << _remoteDataLOD.position.y << _remoteDataLOD.position.z <<
+                "to" << _reliableDeltaLOD.position.x << _reliableDeltaLOD.position.y << _reliableDeltaLOD.position.z <<
+                _sequencer.getIncomingPacketNumber() << "reliable" << _reliableDeltaID; 
             MetavoxelData reference = _remoteData;
             MetavoxelLOD referenceLOD = _remoteDataLOD;
             _remoteData.readDelta(reference, referenceLOD, in, _remoteDataLOD = _reliableDeltaLOD);
@@ -307,6 +310,9 @@ void MetavoxelClient::handleMessage(const QVariant& message, Bitstream& in) {
         
         } else {
             PacketRecord* receiveRecord = getLastAcknowledgedReceiveRecord();
+            qDebug() << "from" << receiveRecord->getLOD().position.x << receiveRecord->getLOD().position.y << receiveRecord->getLOD().position.z <<
+                "to" << getLastAcknowledgedSendRecord()->getLOD().position.x << getLastAcknowledgedSendRecord()->getLOD().position.y << getLastAcknowledgedSendRecord()->getLOD().position.z <<
+                _sequencer.getIncomingPacketNumber() << "unreliable"; 
             _remoteData.readDelta(receiveRecord->getData(), receiveRecord->getLOD(), in,
                 _remoteDataLOD = getLastAcknowledgedSendRecord()->getLOD());
             in.reset();

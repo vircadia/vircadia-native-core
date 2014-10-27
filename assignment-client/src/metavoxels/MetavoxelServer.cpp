@@ -223,7 +223,11 @@ void MetavoxelSession::update() {
     _sender->getData().writeDelta(sendRecord->getData(), sendRecord->getLOD(), out, _lod);
     out.flush();
     int end = _sequencer.getOutputStream().getUnderlying().device()->pos();
+    QDebug debug = qDebug() << "from" << sendRecord->getLOD().position.x << sendRecord->getLOD().position.y << sendRecord->getLOD().position.z << "to" <<
+         _lod.position.x << _lod.position.y << _lod.position.z << _lodPacketNumber << (_sequencer.getOutgoingPacketNumber() + 1); 
     if (end > _sequencer.getMaxPacketSize()) {
+        debug << "reliable" << (_reliableDeltaID + 1); 
+        
         // we need to send the delta on the reliable channel
         _reliableDeltaChannel = _sequencer.getReliableOutputChannel(RELIABLE_DELTA_CHANNEL_INDEX);
         _reliableDeltaChannel->startMessage();
@@ -242,6 +246,7 @@ void MetavoxelSession::update() {
         _sequencer.endPacket();
         
     } else {
+        debug << "unreliable";
         _sequencer.endPacket();
     }
     
