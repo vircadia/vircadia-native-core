@@ -133,7 +133,7 @@ EntityPropertyDialogBox = (function () {
         array.push({ label: "Visible:", value: properties.visible });
         index++;
     
-        if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "Light") {
+        if (properties.type == "Box" || properties.type == "Sphere") {
             array.push({ label: "Color:", type: "header" });
             index++;
             array.push({ label: "Red:", value: properties.color.red });
@@ -145,7 +145,27 @@ EntityPropertyDialogBox = (function () {
         }
 
         if (properties.type == "Light") {
-            array.push({ label: "Spot Light:", value: properties.isSpotlight });
+            array.push({ label: "Light Properties:", type: "header" });
+            index++;
+            array.push({ label: "Is Spot Light:", value: properties.isSpotlight });
+            index++;
+            array.push({ label: "Diffuse Red:", value: properties.diffuseColor.red });
+            index++;
+            array.push({ label: "Diffuse Green:", value: properties.diffuseColor.green });
+            index++;
+            array.push({ label: "Diffuse Blue:", value: properties.diffuseColor.blue });
+            index++;
+            array.push({ label: "Ambient Red:", value: properties.ambientColor.red });
+            index++;
+            array.push({ label: "Ambient Green:", value: properties.ambientColor.green });
+            index++;
+            array.push({ label: "Ambient Blue:", value: properties.ambientColor.blue });
+            index++;
+            array.push({ label: "Specular Red:", value: properties.specularColor.red });
+            index++;
+            array.push({ label: "Specular Green:", value: properties.specularColor.green });
+            index++;
+            array.push({ label: "Specular Blue:", value: properties.specularColor.blue });
             index++;
         }
         array.push({ button: "Cancel" });
@@ -242,14 +262,24 @@ EntityPropertyDialogBox = (function () {
             properties.lifetime = array[index++].value;
             properties.visible = array[index++].value;
 
-            if (properties.type == "Box" || properties.type == "Sphere" || properties.type == "Light") {
+            if (properties.type == "Box" || properties.type == "Sphere") {
                 index++; // skip header
                 properties.color.red = array[index++].value;
                 properties.color.green = array[index++].value;
                 properties.color.blue = array[index++].value;
             }
             if (properties.type == "Light") {
+                index++; // skip header
                 properties.isSpotlight = array[index++].value;
+                properties.diffuseColor.red = array[index++].value;
+                properties.diffuseColor.green = array[index++].value;
+                properties.diffuseColor.blue = array[index++].value;
+                properties.ambientColor.red = array[index++].value;
+                properties.ambientColor.green = array[index++].value;
+                properties.ambientColor.blue = array[index++].value;
+                properties.specularColor.red = array[index++].value;
+                properties.specularColor.green = array[index++].value;
+                properties.specularColor.blue = array[index++].value;
             }
 
             Entities.editEntity(editModelID, properties);

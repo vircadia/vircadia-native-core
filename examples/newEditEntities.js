@@ -159,7 +159,7 @@ var toolBar = (function () {
         });
 
         newLightButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-sphere.svg",
+            imageURL: toolIconUrl + "add-fire.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
