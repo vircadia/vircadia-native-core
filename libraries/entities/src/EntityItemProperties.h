@@ -248,9 +248,36 @@ public:
     void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
 
     // total hack for now
-    void setDiffuseColor(const xColor& value) { setColor(value); }
-    void setAmbientColor(const xColor& value) { setColor(value); }
-    void setSpecularColor(const xColor& value) { setColor(value); }
+    //void setDiffuseColor(const xColor& value) { setColor(value); }
+    //void setAmbientColor(const xColor& value) { setColor(value); }
+    //void setSpecularColor(const xColor& value) { setColor(value); }
+
+    xColor getDiffuseColor() const { return _color; } // diffuseColor is an alias for color
+    xColor getAmbientColor() const { return _ambientColor; }
+    xColor getSpecularColor() const { return _specularColor; }
+
+    void setDiffuseColor(const xColor& value) { _color = value; _colorChanged = true; }
+    void setAmbientColor(const xColor& value) { _ambientColor = value; _ambientColorChanged = true; }
+    void setSpecularColor(const xColor& value) { _specularColor = value; _specularColorChanged = true; }
+
+    bool diffuseColorChanged() const { return _colorChanged; }
+    bool ambientColorChanged() const { return _ambientColorChanged; }
+    bool specularColorChanged() const { return _specularColorChanged; }
+
+    bool getConstantAttenuation() const { return _constantAttenuation; }
+    void setConstantAttenuation(float value) { _constantAttenuation = value; _constantAttenuationChanged = true; }
+
+    bool getLinearAttenuation() const { return _linearAttenuation; }
+    void setLinearAttenuation(float value) { _linearAttenuation = value; _linearAttenuationChanged = true; }
+
+    bool getQuadraticAttenuation() const { return _quadraticAttenuation; }
+    void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; _quadraticAttenuationChanged = true; }
+
+    bool getExponent() const { return _exponent; }
+    void setExponent(bool value) { _exponent = value; _exponentChanged = true; }
+
+    bool getCutoff() const { return _cutoff; }
+    void setCutoff(bool value) { _cutoff = value; _cutoffChanged = true; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -308,9 +335,11 @@ private:
     float _glowLevel;
     float _localRenderAlpha;
     bool _isSpotlight;
+
+    // TODO: for some reason if you add anything before _sittingPoints in this class, you'll get crashes
+    // it's not clear to me why this is, but we should research it and fix whatever the underlying problem is    
     QVector<SittingPoint> _sittingPoints;
     glm::vec3 _naturalDimensions;
-    
 
     bool _colorChanged;
     bool _modelURLChanged;
@@ -321,8 +350,22 @@ private:
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _isSpotlightChanged;
+
+    xColor _ambientColor;
+    xColor _specularColor;
+    float _constantAttenuation;
+    float _linearAttenuation; 
+    float _quadraticAttenuation;
+    float _exponent;
+    float _cutoff;
+
     bool _ambientColorChanged;
     bool _specularColorChanged;
+    bool _constantAttenuationChanged;
+    bool _linearAttenuationChanged; 
+    bool _quadraticAttenuationChanged;
+    bool _exponentChanged;
+    bool _cutoffChanged;
 
     bool _defaultSettings;
 };
