@@ -12,31 +12,8 @@
 #ifndef hifi_EventTypes_h
 #define hifi_EventTypes_h
 
-#include <glm/gtc/quaternion.hpp>
-
-#include <QtScript/QScriptEngine>
-
-#include <QWheelEvent>
-
-class SpatialEvent {
-public:
-    SpatialEvent();
-    SpatialEvent(const SpatialEvent& other);
-
-    glm::vec3 locTranslation;
-    glm::quat locRotation;
-    glm::vec3 absTranslation;
-    glm::quat absRotation;
-
-private:
-};
-
-Q_DECLARE_METATYPE(SpatialEvent)
+#include <qscriptengine.h>
 
 void registerEventTypes(QScriptEngine* engine);
-
-
-QScriptValue spatialEventToScriptValue(QScriptEngine* engine, const SpatialEvent& event);
-void spatialEventFromScriptValue(const QScriptValue& object, SpatialEvent& event);
 
 #endif // hifi_EventTypes_h

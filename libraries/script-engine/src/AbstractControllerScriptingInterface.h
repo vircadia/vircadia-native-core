@@ -20,6 +20,7 @@
 #include "EventTypes.h"
 #include "KeyEvent.h"
 #include "MouseEvent.h"
+#include "SpatialEvent.h"
 #include "TouchEvent.h"
 #include "WheelEvent.h"
 
