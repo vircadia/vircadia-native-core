@@ -12,49 +12,11 @@
 #ifndef hifi_EventTypes_h
 #define hifi_EventTypes_h
 
-#include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtScript/QScriptEngine>
 
-#include <QMouseEvent>
-#include <QTouchEvent>
 #include <QWheelEvent>
-
-
-class TouchEvent {
-public:
-    TouchEvent();
-    TouchEvent(const QTouchEvent& event);
-    TouchEvent(const QTouchEvent& event, const TouchEvent& other);
-
-    float x;
-    float y;
-    bool isPressed;
-    bool isMoved;
-    bool isStationary;
-    bool isReleased; 
-    bool isShifted;
-    bool isControl;
-    bool isMeta;
-    bool isAlt;
-    int touchPoints;
-    QVector<glm::vec2> points;
-    float radius;
-    bool isPinching;
-    bool isPinchOpening;
-
-    // angles are in degrees
-    QVector<float> angles; // angle from center to each point
-    float angle; // the average of the angles
-    float deltaAngle; // the change in average angle from last event
-    bool isRotating;
-    QString rotating;
-
-private:
-    void initWithQTouchEvent(const QTouchEvent& event);
-    void calculateMetaAttributes(const TouchEvent& other);
-};
 
 class WheelEvent {
 public:
@@ -86,15 +48,11 @@ public:
 private:
 };
 
-Q_DECLARE_METATYPE(TouchEvent)
 Q_DECLARE_METATYPE(WheelEvent)
 Q_DECLARE_METATYPE(SpatialEvent)
 
 void registerEventTypes(QScriptEngine* engine);
 
-
-QScriptValue touchEventToScriptValue(QScriptEngine* engine, const TouchEvent& event);
-void touchEventFromScriptValue(const QScriptValue& object, TouchEvent& event);
 
 QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event);
 void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event);
