@@ -97,8 +97,8 @@ signals:
     void actionStartEvent(const HFActionEvent& event);
     void actionEndEvent(const HFActionEvent& event);
     
-    void cancelStartEvent();
-    void cancelEndEvent();
+    void backStartEvent();
+    void backEndEvent();
 
     void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);

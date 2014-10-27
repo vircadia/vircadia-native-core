@@ -32,9 +32,9 @@ void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
     } else if (event->type() == HFActionEvent::endType()) {
         emit actionEndEvent(static_cast<HFActionEvent&>(*event));
     } else if (event->type() == HFBackEvent::startType()) {
-        emit cancelStartEvent();
+        emit backStartEvent();
     } else if (event->type() == HFBackEvent::endType()) {
-        emit cancelEndEvent();
+        emit backEndEvent();
     }
 }
 
