@@ -76,12 +76,10 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         if (SUCCEEDED(hr)) {
             hr = _speechRecognizer.CoCreateInstance(CLSID_SpInprocRecognizer);
         }
-        if (SUCCEEDED(hr))
-        {
+        if (SUCCEEDED(hr)) {
             CComPtr<ISpObjectToken> cpAudioToken;
             hr = SpGetDefaultTokenFromCategoryId(SPCAT_AUDIOIN, &cpAudioToken);
-            if (SUCCEEDED(hr))
-            {
+            if (SUCCEEDED(hr)) {
                 hr = _speechRecognizer->SetInput(cpAudioToken, TRUE);
             }
         }
