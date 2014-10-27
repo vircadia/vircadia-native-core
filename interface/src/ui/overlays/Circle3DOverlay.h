@@ -26,17 +26,40 @@ public:
     float getEndAt() const { return _endAt; }
     float getOuterRadius() const { return _outerRadius; }
     float getInnerRadius() const { return _innerRadius; }
+    bool getHasTickMarks() const { return _hasTickMarks; }
+    float getMajorTickMarksAngle() const { return _majorTickMarksAngle; }
+    float getMinorTickMarksAngle() const { return _minorTickMarksAngle; }
+    float getMajorTickMarksLength() const { return _majorTickMarksLength; }
+    float getMinorTickMarksLength() const { return _minorTickMarksLength; }
+    xColor getMajorTickMarksColor() const { return _majorTickMarksColor; }
+    xColor getMinorTickMarksColor() const { return _minorTickMarksColor; }
     
     void setStartAt(float value) { _startAt = value; }
     void setEndAt(float value) { _endAt = value; }
     void setOuterRadius(float value) { _outerRadius = value; }
     void setInnerRadius(float value) { _innerRadius = value; }
+    void setHasTickMarks(bool value) { _hasTickMarks = value; }
+    void setMajorTickMarksAngle(float value) { _majorTickMarksAngle = value; }
+    void setMinorTickMarksAngle(float value) { _minorTickMarksAngle = value; }
+    void setMajorTickMarksLength(float value) { _majorTickMarksLength = value; }
+    void setMinorTickMarksLength(float value) { _minorTickMarksLength = value; }
+    void setMajorTickMarksColor(const xColor& value) { _majorTickMarksColor = value; }
+    void setMinorTickMarksColor(const xColor& value) { _minorTickMarksColor = value; }
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
     
 protected:
     float _startAt;
     float _endAt;
     float _outerRadius;
     float _innerRadius;
+    bool _hasTickMarks;
+    float _majorTickMarksAngle;
+    float _minorTickMarksAngle;
+    float _majorTickMarksLength;
+    float _minorTickMarksLength;
+    xColor _majorTickMarksColor;
+    xColor _minorTickMarksColor;
 };
 
  

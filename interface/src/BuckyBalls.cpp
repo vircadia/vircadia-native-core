@@ -11,6 +11,7 @@
 
 #include "BuckyBalls.h"
 
+#include "Application.h"
 #include "Util.h"
 #include "world.h"
 #include "devices/SixenseManager.h"
@@ -34,7 +35,6 @@ BuckyBalls::BuckyBalls() {
     colors[1] = glm::vec3(0.64f, 0.16f, 0.16f);
     colors[2] = glm::vec3(0.31f, 0.58f, 0.80f);
 
-    qDebug("Creating buckyballs...");
     for (int i = 0; i < NUM_BBALLS; i++) {
         _bballPosition[i] = CORNER_BBALLS + randVector() * RANGE_BBALLS;
         int element = (rand() % NUM_ELEMENTS);
@@ -171,7 +171,7 @@ void BuckyBalls::render() {
         }
         glPushMatrix();
         glTranslatef(_bballPosition[i].x, _bballPosition[i].y, _bballPosition[i].z);
-        glutSolidSphere(_bballRadius[i], 15, 15);
+        Application::getInstance()->getGeometryCache()->renderSphere(_bballRadius[i], 15, 15); 
         glPopMatrix();
     }
 }

@@ -12,6 +12,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
@@ -110,9 +112,9 @@ if (botNumber <= 20) {
 
 // set the face model fst using the bot number
 // there is no need to change the body model - we're using the default
-Avatar.faceModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newFaceFilePrefix + ".fst";
-Avatar.skeletonModelURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/" + newBodyFilePrefix + ".fst";
-Avatar.billboardURL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/billboards/bot" + botNumber + ".png";
+Avatar.faceModelURL = HIFI_PUBLIC_BUCKET + "meshes/" + newFaceFilePrefix + ".fst";
+Avatar.skeletonModelURL = HIFI_PUBLIC_BUCKET + "meshes/" + newBodyFilePrefix + ".fst";
+Avatar.billboardURL = HIFI_PUBLIC_BUCKET + "meshes/billboards/bot" + botNumber + ".png";
 
 Agent.isAvatar = true;
 Agent.isListeningToAudioStream = true;
@@ -223,7 +225,7 @@ function loadSounds() {
     "Walken1.raw", "Walken2.raw", "Z1.raw", "Z2.raw"
   ];
   
-  var SOUND_BASE_URL = "https://s3-us-west-1.amazonaws.com/highfidelity-public/sounds/Cocktail+Party+Snippets/Raws/";
+  var SOUND_BASE_URL = HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Raws/";
   
   for (var i = 0; i < sound_filenames.length; i++) {
       sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));

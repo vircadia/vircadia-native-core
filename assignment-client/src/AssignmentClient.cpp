@@ -59,6 +59,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     const QString ASSIGNMENT_POOL_OPTION = "pool";
     const QString ASSIGNMENT_WALLET_DESTINATION_ID_OPTION = "wallet";
     const QString CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION = "a";
+    const QString CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION = "p";
 
     Assignment::Type requestAssignmentType = Assignment::AllTypes;
 
@@ -87,17 +88,29 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
 
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NodeType::Unassigned);
+    
+    unsigned short assignmentServerPort = DEFAULT_DOMAIN_SERVER_PORT;
+    
+    // check for an overriden assignment server port
+    if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION)) {
+        assignmentServerPort =
+            argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
+    }
+    
+    HifiSockAddr assignmentServerSocket(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, assignmentServerPort);
 
     // check for an overriden assignment server hostname
     if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION)) {
         _assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
 
-        // set the custom assignment socket on our NodeList
-        HifiSockAddr customAssignmentSocket = HifiSockAddr(_assignmentServerHostname, DEFAULT_DOMAIN_SERVER_PORT);
-
-        nodeList->setAssignmentServerSocket(customAssignmentSocket);
+        // change the hostname for our assignment server
+        assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerSocket.getPort());
     }
+    
+    nodeList->setAssignmentServerSocket(assignmentServerSocket);
 
+    qDebug() << "Assignment server socket is" << assignmentServerSocket;
+    
     // call a timer function every ASSIGNMENT_REQUEST_INTERVAL_MSECS to ask for assignment, if required
     qDebug() << "Waiting for assignment -" << _requestAssignment;
 

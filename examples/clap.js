@@ -12,7 +12,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var clapAnimation = "https://s3-us-west-1.amazonaws.com/highfidelity-public/animations/ClapAnimations/ClapHands_Standing.fbx";
+Script.include("libraries/globals.js");
+
+var clapAnimation = HIFI_PUBLIC_BUCKET + "animations/ClapAnimations/ClapHands_Standing.fbx";
 var ANIMATION_FRAMES_PER_CLAP = 10.0;
 var startEndFrames = [];
 startEndFrames.push({ start: 0, end: 10});
@@ -26,16 +28,16 @@ var lastClapFrame = 0;
 var lastAnimFrame = 0;
 
 var claps = [];
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap1Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap2Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap3Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap4Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap5Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap6Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap7Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap8Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap9Rvb.wav"));
-claps.push(new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/claps/BClap10Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap1Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap2Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap3Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap4Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap5Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap6Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap7Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap8Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap9Rvb.wav"));
+claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap10Rvb.wav"));
 var numberOfSounds = claps.length;
 
 var clappingNow = false;

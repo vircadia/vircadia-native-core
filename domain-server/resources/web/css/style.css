@@ -53,7 +53,12 @@ span.port {
 }
 
 .locked {
-  color: blue;
+  color: #428bca;
+}
+
+.locked-table {
+  cursor: not-allowed;
+  background-color: #eee;
 }
 
 .advanced-setting {
@@ -73,4 +78,26 @@ span.port {
 #small-save-button {
   width: 100%;
   margin-bottom: 15px;
+}
+
+td.buttons {
+  width: 14px;
+}
+
+td .glyphicon {
+  text-align: center;
+  font-size: 12px;
+}
+
+td.add-del-buttons .glyphicon {
+  display: block;
+}
+
+td.reorder-buttons .glyphicon {
+  display: inherit;
+}
+
+tr.new-row {
+  color: #3c763d;
+  background-color: #dff0d8;
 }

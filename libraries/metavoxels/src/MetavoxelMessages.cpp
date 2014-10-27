@@ -18,6 +18,10 @@ void MetavoxelEditMessage::apply(MetavoxelData& data, const WeakSharedObjectHash
 MetavoxelEdit::~MetavoxelEdit() {
 }
 
+void MetavoxelEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // nothing by default
+}
+
 BoxSetEdit::BoxSetEdit(const Box& region, float granularity, const OwnedAttributeValue& value) :
     region(region), granularity(granularity), value(value) {
 }
@@ -408,6 +412,11 @@ void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObje
     data.guide(visitor);
 }
 
+MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& averageColor) :
+    material(material),
+    averageColor(averageColor) {
+}
+
 class PaintHeightfieldMaterialEditVisitor : public MetavoxelVisitor {
 public:
     
@@ -595,10 +604,9 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
 
 PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& averageColor) :
+    MaterialEdit(material, averageColor),
     position(position),
-    radius(radius),
-    material(material),
-    averageColor(averageColor) {
+    radius(radius) {
 }
 
 void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -613,9 +621,8 @@ const int VOXEL_BLOCK_VOLUME = VOXEL_BLOCK_AREA * VOXEL_BLOCK_SAMPLES;
 
 VoxelMaterialSpannerEdit::VoxelMaterialSpannerEdit(const SharedObjectPointer& spanner,
         const SharedObjectPointer& material, const QColor& averageColor) :
-    spanner(spanner),
-    material(material),
-    averageColor(averageColor) {
+    MaterialEdit(material, averageColor),
+    spanner(spanner) {
 }
 
 class VoxelMaterialSpannerEditVisitor : public MetavoxelVisitor {
@@ -655,13 +662,36 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     if (info.size > _blockSize) {
         return DEFAULT_ORDER;
     }
+    QVector<QRgb> oldColorContents;
     VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
-    QVector<QRgb> oldColorContents = (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
-        colorPointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    if (colorPointer && colorPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        oldColorContents = colorPointer->getContents();
+    } else {
+        oldColorContents = QVector<QRgb>(VOXEL_BLOCK_VOLUME);
+    }
+    
+    QVector<QRgb> hermiteContents;
+    VoxelHermiteDataPointer hermitePointer = info.inputValues.at(1).getInlineValue<VoxelHermiteDataPointer>();
+    if (hermitePointer && hermitePointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        hermiteContents = hermitePointer->getContents();
+    } else {
+        hermiteContents = QVector<QRgb>(VOXEL_BLOCK_VOLUME * VoxelHermiteData::EDGE_COUNT);
+    }
+    
+    QByteArray materialContents;
+    QVector<SharedObjectPointer> materials;
+    VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
+    if (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
+        materialContents = materialPointer->getContents();
+        materials = materialPointer->getMaterials();        
+    } else {
+        materialContents = QByteArray(VOXEL_BLOCK_VOLUME, 0);
+    }
+    
+    float scale = VOXEL_BLOCK_SIZE / info.size;
     QVector<QRgb> colorContents = oldColorContents;
     
     Box overlap = info.getBounds().getIntersection(_spanner->getBounds());
-    float scale = VOXEL_BLOCK_SIZE / info.size;
     overlap.minimum = (overlap.minimum - info.minimum) * scale;
     overlap.maximum = (overlap.maximum - info.minimum) * scale;
     int minX = glm::ceil(overlap.minimum.x);
@@ -671,34 +701,62 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     int sizeY = (int)overlap.maximum.y - minY + 1;
     int sizeZ = (int)overlap.maximum.z - minZ + 1;
     
-    QRgb rgb = _color.rgba();
-    bool flipped = (qAlpha(rgb) == 0);
+    bool flipped = false;
     float step = 1.0f / scale;
     glm::vec3 position(0.0f, 0.0f, info.minimum.z + minZ * step);
-    for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
-            *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
-        position.y = info.minimum.y + minY * step;
-        for (QRgb* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
-                destY += VOXEL_BLOCK_SAMPLES, position.y += step) {
-            position.x = info.minimum.x + minX * step;
-            for (QRgb* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
-                if (_spanner->contains(position)) {
-                    *destX = rgb;
+    if (_spanner->hasOwnColors()) {
+        for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+                *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
+            position.y = info.minimum.y + minY * step;
+            for (QRgb* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
+                    destY += VOXEL_BLOCK_SAMPLES, position.y += step) {
+                position.x = info.minimum.x + minX * step;
+                for (QRgb* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
+                    if (_spanner->contains(position)) {
+                        *destX = _spanner->getColorAt(position);
+                    }
                 }
             }
         }
+    } else {
+        QRgb rgb = _color.rgba();
+        flipped = (qAlpha(rgb) == 0);
+        for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+                *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
+            position.y = info.minimum.y + minY * step;
+            for (QRgb* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
+                    destY += VOXEL_BLOCK_SAMPLES, position.y += step) {
+                position.x = info.minimum.x + minX * step;
+                for (QRgb* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
+                    if (_spanner->contains(position)) {
+                        *destX = rgb;
+                    }
+                }
+            }
+        }
+    }
+    
+    // if there are no visible colors, we can clear everything
+    bool foundOpaque = false;
+    for (const QRgb* src = colorContents.constData(), *end = src + colorContents.size(); src != end; src++) {
+        if (qAlpha(*src) != 0) {
+            foundOpaque = true;
+            break;
+        }
+    }
+    if (!foundOpaque) {
+        info.outputValues[0] = AttributeValue(_outputs.at(0));
+        info.outputValues[1] = AttributeValue(_outputs.at(1));
+        info.outputValues[2] = AttributeValue(_outputs.at(2));
+        return STOP_RECURSION;
     }
     
     VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
         encodeInline<VoxelColorDataPointer>(newColorPointer));
     
-    VoxelHermiteDataPointer hermitePointer = info.inputValues.at(1).getInlineValue<VoxelHermiteDataPointer>();
-    QVector<QRgb> hermiteContents = (hermitePointer && hermitePointer->getSize() == VOXEL_BLOCK_SAMPLES) ?
-        hermitePointer->getContents() : QVector<QRgb>(VOXEL_BLOCK_VOLUME * VoxelHermiteData::EDGE_COUNT);
     int hermiteArea = VOXEL_BLOCK_AREA * VoxelHermiteData::EDGE_COUNT;
     int hermiteSamples = VOXEL_BLOCK_SAMPLES * VoxelHermiteData::EDGE_COUNT;
-    
     int hermiteMinX = minX, hermiteMinY = minY, hermiteMinZ = minZ;
     int hermiteSizeX = sizeX, hermiteSizeY = sizeY, hermiteSizeZ = sizeZ;
     if (minX > 0) {
@@ -799,42 +857,312 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
                 }
             }
         }
-    } 
-    
+    }
     VoxelHermiteDataPointer newHermitePointer(new VoxelHermiteData(hermiteContents, VOXEL_BLOCK_SAMPLES));
     info.outputValues[1] = AttributeValue(info.inputValues.at(1).getAttribute(),
         encodeInline<VoxelHermiteDataPointer>(newHermitePointer));
     
-    VoxelMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<VoxelMaterialDataPointer>();
-    QByteArray materialContents;
-    QVector<SharedObjectPointer> materials;
-    if (materialPointer && materialPointer->getSize() == VOXEL_BLOCK_SAMPLES) {
-        materialContents = materialPointer->getContents();
-        materials = materialPointer->getMaterials();
-        
+    if (_spanner->hasOwnMaterials()) {
+        QHash<int, int> materialMap;
+        position.z = info.minimum.z + minZ * step;
+        for (uchar* destZ = (uchar*)materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+                *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
+            position.y = info.minimum.y + minY * step;
+            for (uchar* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
+                    destY += VOXEL_BLOCK_SAMPLES, position.y += step) {
+                position.x = info.minimum.x + minX * step;
+                for (uchar* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
+                    if (_spanner->contains(position)) { 
+                        int material = _spanner->getMaterialAt(position);
+                        if (material != 0) {
+                            int& mapping = materialMap[material];
+                            if (mapping == 0) {
+                                mapping = getMaterialIndex(_spanner->getMaterials().at(material - 1), materials,
+                                    materialContents);
+                            }
+                            material = mapping;
+                        }
+                        *destX = material;
+                    }   
+                }
+            }
+        }
     } else {
-        materialContents = QByteArray(VOXEL_BLOCK_VOLUME, 0);
-    }
-    
-    uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
-    position.z = info.minimum.z + minZ * step;
-    for (uchar* destZ = (uchar*)materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
-            *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
-        position.y = info.minimum.y + minY * step;
-        for (uchar* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
-                destY += VOXEL_BLOCK_SAMPLES, position.y += step) {
-            position.x = info.minimum.x + minX * step;
-            for (uchar* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
-                if (_spanner->contains(position)) { 
-                    *destX = materialIndex;
-                }   
+        uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
+        position.z = info.minimum.z + minZ * step;
+        for (uchar* destZ = (uchar*)materialContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
+                *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
+            position.y = info.minimum.y + minY * step;
+            for (uchar* destY = destZ, *endY = destY + sizeY * VOXEL_BLOCK_SAMPLES; destY != endY;
+                    destY += VOXEL_BLOCK_SAMPLES, position.y += step) {
+                position.x = info.minimum.x + minX * step;
+                for (uchar* destX = destY, *endX = destX + sizeX; destX != endX; destX++, position.x += step) {
+                    if (_spanner->contains(position)) { 
+                        *destX = materialIndex;
+                    }   
+                }
             }
         }
     }
-    
     clearUnusedMaterials(materials, materialContents);
     VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, VOXEL_BLOCK_SAMPLES, materials));
     info.outputValues[2] = AttributeValue(_inputs.at(2), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
+    
+    return STOP_RECURSION;
+}
+
+class HeightfieldClearFetchVisitor : public MetavoxelVisitor {
+public:
+    
+    HeightfieldClearFetchVisitor(const Box& bounds, float granularity);
+
+    const SharedObjectPointer& getSpanner() const { return _spanner; }
+
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    Box _bounds;
+    Box _expandedBounds;
+    SharedObjectPointer _spanner;
+    Box _spannerBounds;
+    int _heightfieldWidth;
+    int _heightfieldHeight;
+};
+
+HeightfieldClearFetchVisitor::HeightfieldClearFetchVisitor(const Box& bounds, float granularity) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
+        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), QVector<AttributePointer>() <<
+            AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
+            AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
+            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute()) {
+     
+    // find the bounds of all voxel nodes intersected
+    float nodeSize = VOXEL_BLOCK_SIZE * glm::pow(2.0f, glm::floor(glm::log(granularity) / glm::log(2.0f)));
+    _bounds.minimum = glm::floor(bounds.minimum / nodeSize) * nodeSize;
+    _bounds.maximum = glm::ceil(bounds.maximum / nodeSize) * nodeSize;
+    
+    // expand to include edges
+    _expandedBounds = _bounds;
+    float increment = nodeSize / VOXEL_BLOCK_SIZE;
+    _expandedBounds.maximum.x += increment;
+    _expandedBounds.maximum.z += increment;
+}
+
+int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
+    Box bounds = info.getBounds();
+    if (!bounds.intersects(_expandedBounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    HeightfieldHeightDataPointer heightPointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
+    if (!heightPointer) {
+        return STOP_RECURSION;
+    }
+    QByteArray contents(heightPointer->getContents());
+    int size = glm::sqrt((float)contents.size());
+    float heightScale = size / info.size;
+    
+    Box overlap = bounds.getIntersection(_expandedBounds);
+    int srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
+    int srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
+    int srcWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) * heightScale);
+    int srcHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) * heightScale);
+    char* src = contents.data() + srcY * size + srcX;
+    
+    // check for non-zero values
+    bool foundNonZero = false;
+    for (int y = 0; y < srcHeight; y++, src += (size - srcWidth)) {
+        for (char* end = src + srcWidth; src != end; src++) {
+            if (*src != 0) {
+                foundNonZero = true;
+                goto outerBreak;
+            }
+        }
+    }
+    outerBreak:
+    
+    // if everything is zero, we're done
+    if (!foundNonZero) {
+        return STOP_RECURSION;
+    }
+    
+    // create spanner if necessary
+    Heightfield* spanner = static_cast<Heightfield*>(_spanner.data());
+    float increment = 1.0f / heightScale;
+    if (!spanner) {    
+        _spannerBounds.minimum = glm::floor(_bounds.minimum / increment) * increment;
+        _spannerBounds.maximum = (glm::ceil(_bounds.maximum / increment) + glm::vec3(1.0f, 0.0f, 1.0f)) * increment;
+        _spannerBounds.minimum.y = bounds.minimum.y;
+        _spannerBounds.maximum.y = bounds.maximum.y;
+        _heightfieldWidth = (int)glm::round((_spannerBounds.maximum.x - _spannerBounds.minimum.x) / increment);
+        _heightfieldHeight = (int)glm::round((_spannerBounds.maximum.z - _spannerBounds.minimum.z) / increment);
+        int heightfieldArea = _heightfieldWidth * _heightfieldHeight;
+        Box innerBounds = _spannerBounds;
+        innerBounds.maximum.x -= increment;
+        innerBounds.maximum.z -= increment;
+        _spanner = spanner = new Heightfield(innerBounds, increment, QByteArray(heightfieldArea, 0),
+            QByteArray(heightfieldArea * DataBlock::COLOR_BYTES, 0), QByteArray(heightfieldArea, 0),
+            QVector<SharedObjectPointer>());
+    }
+    
+    // copy the inner area
+    overlap = bounds.getIntersection(_spannerBounds);
+    int destX = (overlap.minimum.x - _spannerBounds.minimum.x) * heightScale;
+    int destY = (overlap.minimum.z - _spannerBounds.minimum.z) * heightScale;
+    int destWidth = (int)glm::round((overlap.maximum.x - overlap.minimum.x) * heightScale);
+    int destHeight = (int)glm::round((overlap.maximum.z - overlap.minimum.z) * heightScale);
+    char* dest = spanner->getHeight().data() + destY * _heightfieldWidth + destX;
+    srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
+    srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
+    src = contents.data() + srcY * size + srcX;
+    
+    for (int y = 0; y < destHeight; y++, dest += _heightfieldWidth, src += size) {
+        memcpy(dest, src, destWidth);
+    }
+    
+    // clear the inner area
+    Box innerBounds = _spannerBounds;
+    innerBounds.minimum.x += increment;
+    innerBounds.minimum.z += increment;
+    innerBounds.maximum.x -= increment;
+    innerBounds.maximum.z -= increment;
+    Box innerOverlap = bounds.getIntersection(innerBounds);
+    destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+    destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+    destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+    destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+    dest = contents.data() + destY * size + destX;
+    
+    for (int y = 0; y < destHeight; y++, dest += size) {
+        memset(dest, 0, destWidth);
+    }
+    
+    // see if there are any non-zero values left
+    foundNonZero = false;
+    dest = contents.data();
+    for (char* end = dest + contents.size(); dest != end; dest++) {
+        if (*dest != 0) {
+            foundNonZero = true;
+            break;
+        }
+    }
+    
+    // if all is gone, clear the node
+    if (foundNonZero) {
+        HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
+        
+    } else {
+        info.outputValues[0] = AttributeValue(_outputs.at(0));
+    }
+    
+    // allow a border for what we clear in terms of color/material
+    innerBounds.minimum.x += increment;
+    innerBounds.minimum.z += increment;
+    innerBounds.maximum.x -= increment;
+    innerBounds.maximum.z -= increment;
+    innerOverlap = bounds.getIntersection(innerBounds);
+    
+    HeightfieldColorDataPointer colorPointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
+    if (colorPointer) {
+        contents = colorPointer->getContents();
+        size = glm::sqrt((float)contents.size() / DataBlock::COLOR_BYTES);
+        heightScale = size / info.size;
+        
+        // copy the inner area
+        destX = (overlap.minimum.x - _spannerBounds.minimum.x) * heightScale;
+        destY = (overlap.minimum.z - _spannerBounds.minimum.z) * heightScale;
+        destWidth = (int)glm::round((overlap.maximum.x - overlap.minimum.x) * heightScale);
+        destHeight = (int)glm::round((overlap.maximum.z - overlap.minimum.z) * heightScale);
+        dest = spanner->getColor().data() + (destY * _heightfieldWidth + destX) * DataBlock::COLOR_BYTES;
+        srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
+        srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
+        src = contents.data() + (srcY * size + srcX) * DataBlock::COLOR_BYTES;
+        
+        for (int y = 0; y < destHeight; y++, dest += _heightfieldWidth * DataBlock::COLOR_BYTES,
+                src += size * DataBlock::COLOR_BYTES) {
+            memcpy(dest, src, destWidth * DataBlock::COLOR_BYTES);
+        }
+        
+        if (foundNonZero) {
+            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+            if (destWidth > 0 && destHeight > 0) {
+                dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
+                
+                for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
+                    memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+                }
+                
+                HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
+                info.outputValues[1] = AttributeValue(_outputs.at(1),
+                    encodeInline<HeightfieldColorDataPointer>(newColorPointer));
+            }
+        } else {
+            info.outputValues[1] = AttributeValue(_outputs.at(1));
+        }
+    }
+    
+    HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
+    if (materialPointer) {
+        contents = materialPointer->getContents();
+        QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
+        size = glm::sqrt((float)contents.size());
+        heightScale = size / info.size;
+        
+        // copy the inner area
+        destX = (overlap.minimum.x - _spannerBounds.minimum.x) * heightScale;
+        destY = (overlap.minimum.z - _spannerBounds.minimum.z) * heightScale;
+        destWidth = (int)glm::round((overlap.maximum.x - overlap.minimum.x) * heightScale);
+        destHeight = (int)glm::round((overlap.maximum.z - overlap.minimum.z) * heightScale);
+        uchar* dest = (uchar*)spanner->getMaterial().data() + destY * _heightfieldWidth + destX;
+        srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
+        srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
+        uchar* src = (uchar*)contents.data() + srcY * size + srcX;
+        QHash<int, int> materialMap;
+        
+        for (int y = 0; y < destHeight; y++, dest += _heightfieldWidth, src += size) {
+            for (uchar* lineSrc = src, *lineDest = dest, *end = src + destWidth; lineSrc != end; lineSrc++, lineDest++) {
+                int material = *lineSrc;
+                if (material != 0) {
+                    int& mapping = materialMap[material];
+                    if (mapping == 0) {
+                        mapping = getMaterialIndex(materials.at(material - 1), spanner->getMaterials(),
+                            spanner->getMaterial());
+                    }
+                    material = mapping;
+                }
+                *lineDest = material;
+            }
+        }
+        
+        if (foundNonZero) {
+            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+            if (destWidth > 0 && destHeight > 0) {
+                dest = (uchar*)contents.data() + destY * size + destX;
+                
+                for (int y = 0; y < destHeight; y++, dest += size) {
+                    memset(dest, 0, destWidth);
+                }
+                
+                clearUnusedMaterials(materials, contents);
+                HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
+                info.outputValues[2] = AttributeValue(_outputs.at(2),
+                    encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
+            }
+        } else {
+            info.outputValues[2] = AttributeValue(_outputs.at(2));
+        }
+    }
     
     return STOP_RECURSION;
 }
@@ -845,6 +1173,128 @@ void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObject
     while (!data.getBounds().contains(spanner->getBounds())) {
         data.expand();
     }
-    VoxelMaterialSpannerEditVisitor visitor(spanner, material, averageColor);
+    // make sure it's either 100% transparent or 100% opaque
+    QColor color = averageColor;
+    color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
+    
+    // clear/fetch any heightfield data
+    HeightfieldClearFetchVisitor heightfieldVisitor(spanner->getBounds(), spanner->getVoxelizationGranularity());
+    data.guide(heightfieldVisitor);
+    
+    // voxelize the fetched heightfield, if any
+    if (heightfieldVisitor.getSpanner()) {
+        VoxelMaterialSpannerEditVisitor visitor(static_cast<Spanner*>(heightfieldVisitor.getSpanner().data()),
+            material, color);
+        data.guide(visitor);
+    }
+    
+    VoxelMaterialSpannerEditVisitor visitor(spanner, material, color);
+    data.guide(visitor);
+}
+
+PaintVoxelMaterialEdit::PaintVoxelMaterialEdit(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& averageColor) :
+    MaterialEdit(material, averageColor),
+    position(position),
+    radius(radius) {
+}
+
+class PaintVoxelMaterialEditVisitor : public MetavoxelVisitor {
+public:
+    
+    PaintVoxelMaterialEditVisitor(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& color);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    glm::vec3 _position;
+    float _radius;
+    SharedObjectPointer _material;
+    QColor _color;
+    Box _bounds;
+};
+
+PaintVoxelMaterialEditVisitor::PaintVoxelMaterialEditVisitor(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& color) :
+    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+        AttributeRegistry::getInstance()->getVoxelMaterialAttribute(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getVoxelColorAttribute() <<
+            AttributeRegistry::getInstance()->getVoxelMaterialAttribute()),
+    _position(position),
+    _radius(radius),
+    _material(material),
+    _color(color) {
+    
+    glm::vec3 extents(_radius, _radius, _radius);
+    _bounds = Box(_position - extents, _position + extents);
+}
+
+int PaintVoxelMaterialEditVisitor::visit(MetavoxelInfo& info) {
+    if (!info.getBounds().intersects(_bounds)) {
+        return STOP_RECURSION;
+    }
+    if (!info.isLeaf) {
+        return DEFAULT_ORDER;
+    }
+    VoxelColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<VoxelColorDataPointer>();
+    VoxelMaterialDataPointer materialPointer = info.inputValues.at(1).getInlineValue<VoxelMaterialDataPointer>();
+    if (!(colorPointer && materialPointer && colorPointer->getSize() == materialPointer->getSize())) {
+        return STOP_RECURSION;
+    }
+    QVector<QRgb> colorContents = colorPointer->getContents();
+    QByteArray materialContents = materialPointer->getContents();
+    QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
+    
+    Box overlap = info.getBounds().getIntersection(_bounds);
+    int size = colorPointer->getSize();
+    int area = size * size;
+    float scale = (size - 1.0f) / info.size;
+    overlap.minimum = (overlap.minimum - info.minimum) * scale;
+    overlap.maximum = (overlap.maximum - info.minimum) * scale;
+    int minX = glm::ceil(overlap.minimum.x);
+    int minY = glm::ceil(overlap.minimum.y);
+    int minZ = glm::ceil(overlap.minimum.z);
+    int sizeX = (int)overlap.maximum.x - minX + 1;
+    int sizeY = (int)overlap.maximum.y - minY + 1;
+    int sizeZ = (int)overlap.maximum.z - minZ + 1;
+    
+    QRgb rgb = _color.rgba();
+    float step = 1.0f / scale;
+    glm::vec3 position(0.0f, 0.0f, info.minimum.z + minZ * step);
+    uchar materialIndex = getMaterialIndex(_material, materials, materialContents);
+    QRgb* colorData = colorContents.data();
+    uchar* materialData = (uchar*)materialContents.data();
+    for (int destZ = minZ * area + minY * size + minX, endZ = destZ + sizeZ * area; destZ != endZ;
+            destZ += area, position.z += step) {
+        position.y = info.minimum.y + minY * step;
+        for (int destY = destZ, endY = destY + sizeY * size; destY != endY; destY += size, position.y += step) {
+            position.x = info.minimum.x + minX * step;
+            for (int destX = destY, endX = destX + sizeX; destX != endX; destX++, position.x += step) {
+                QRgb& color = colorData[destX];
+                if (qAlpha(color) != 0 && glm::distance(position, _position) <= _radius) {
+                    color = rgb;
+                    materialData[destX] = materialIndex;    
+                }
+            }
+        }
+    }
+    VoxelColorDataPointer newColorPointer(new VoxelColorData(colorContents, size));
+    info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
+        encodeInline<VoxelColorDataPointer>(newColorPointer));
+    
+    clearUnusedMaterials(materials, materialContents);
+    VoxelMaterialDataPointer newMaterialPointer(new VoxelMaterialData(materialContents, size, materials));
+    info.outputValues[1] = AttributeValue(_inputs.at(1), encodeInline<VoxelMaterialDataPointer>(newMaterialPointer));
+    
+    return STOP_RECURSION;
+}
+
+void PaintVoxelMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
+    // make sure it's 100% opaque
+    QColor color = averageColor;
+    color.setAlphaF(1.0f);
+    PaintVoxelMaterialEditVisitor visitor(position, radius, material, color);
     data.guide(visitor);
 }

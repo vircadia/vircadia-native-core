@@ -31,11 +31,26 @@ class MetavoxelSystem : public MetavoxelClientManager {
 
 public:
 
+    class NetworkSimulation {
+    public:
+        float dropRate;
+        float repeatRate;
+        int minimumDelay;
+        int maximumDelay;
+        int bandwidthLimit;
+        
+        NetworkSimulation(float dropRate = 0.0f, float repeatRate = 0.0f, int minimumDelay = 0,
+            int maximumDelay = 0, int bandwidthLimit = 0);
+    };
+
     virtual void init();
 
     virtual MetavoxelLOD getLOD();
 
     const Frustum& getFrustum() const { return _frustum; }
+    
+    void setNetworkSimulation(const NetworkSimulation& simulation);
+    NetworkSimulation getNetworkSimulation();
     
     const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
@@ -46,17 +61,39 @@ public:
 
     void renderHeightfieldCursor(const glm::vec3& position, float radius);
 
+    void renderVoxelCursor(const glm::vec3& position, float radius);
+
     bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
+
+    bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
     Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
+    Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);
+
+    Q_INVOKABLE void paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
+        
+    Q_INVOKABLE void paintVoxelColor(const glm::vec3& position, float radius, const QColor& color);
+    
+    Q_INVOKABLE void paintVoxelMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);
+        
+    Q_INVOKABLE void setVoxelColor(const SharedObjectPointer& spanner, const QColor& color);
+        
+    Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
+        
     Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
 
 signals:
 
     void rendering();
 
+public slots:
+
+    void refreshVoxelData();
+
 protected:
+
+    Q_INVOKABLE void applyMaterialEdit(const MetavoxelEditMessage& message, bool reliable = false);
 
     virtual MetavoxelClient* createClient(const SharedNodePointer& node);
 
@@ -71,6 +108,18 @@ private:
     MetavoxelLOD _lod;
     QReadWriteLock _lodLock;
     Frustum _frustum;
+    
+    NetworkSimulation _networkSimulation;
+    QReadWriteLock _networkSimulationLock;
+};
+
+/// Generic abstract base class for objects that handle a signal.
+class SignalHandler : public QObject {
+    Q_OBJECT
+    
+public slots:
+    
+    virtual void handle() = 0;
 };
 
 /// Describes contents of a point in a point buffer.
@@ -84,6 +133,28 @@ public:
 typedef QVector<BufferPoint> BufferPointVector;
 
 Q_DECLARE_METATYPE(BufferPointVector)
+
+/// Simple throttle for limiting bandwidth on a per-second basis.
+class Throttle {
+public:
+    
+    Throttle();
+    
+    /// Sets the per-second limit.
+    void setLimit(int limit) { _limit = limit; }
+    
+    /// Determines whether the message with the given size should be throttled (discarded).  If not, registers the message
+    /// as having been processed (i.e., contributing to later throttling).
+    bool shouldThrottle(int bytes);
+
+private:
+    
+    int _limit;
+    int _total;
+    
+    typedef QPair<qint64, int> Bucket;
+    QList<Bucket> _buckets;
+};
 
 /// A client session associated with a single server.
 class MetavoxelSystemClient : public MetavoxelClient {
@@ -99,9 +170,11 @@ public:
     MetavoxelData getAugmentedData();
     
     void setRenderedAugmentedData(const MetavoxelData& data) { _renderedAugmentedData = data; }
-    
+
     virtual int parseData(const QByteArray& packet);
 
+    Q_INVOKABLE void refreshVoxelData();
+    
 protected:
     
     virtual void dataChanged(const MetavoxelData& oldData);
@@ -112,6 +185,9 @@ private:
     MetavoxelData _augmentedData;
     MetavoxelData _renderedAugmentedData;
     QReadWriteLock _augmentedDataLock;
+    
+    Throttle _sendThrottle;
+    Throttle _receiveThrottle;
 };
 
 /// Base class for cached static buffers.
@@ -234,8 +310,14 @@ public:
 class VoxelBuffer : public BufferData {
 public:
     
-    VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices,
-        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
+    VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
+        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
+            QVector<SharedObjectPointer>());
+
+    /// Finds the first intersection between the described ray and the voxel data.
+    /// \param entry the entry point of the ray in relative coordinates, from (0, 0, 0) to (1, 1, 1)
+    bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) const;
         
     virtual void render(bool cursor = false);
 
@@ -243,10 +325,15 @@ private:
     
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
+    QVector<glm::vec3> _hermite;
+    QMultiHash<QRgb, int> _quadIndices;
+    int _size;
     int _vertexCount;
     int _indexCount;
+    int _hermiteCount;
     QOpenGLBuffer _vertexBuffer;
     QOpenGLBuffer _indexBuffer;
+    QOpenGLBuffer _hermiteBuffer;
     QVector<SharedObjectPointer> _materials;
     QVector<NetworkTexturePointer> _networkTextures;
 };
@@ -272,6 +359,9 @@ public:
     
     static void init();
 
+    static ProgramObject& getPointProgram() { return _pointProgram; }
+    static int getPointScaleLocation() { return _pointScaleLocation; }
+    
     static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
     static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
     static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
@@ -298,6 +388,8 @@ public:
     
     static ProgramObject& getSplatVoxelProgram() { return _splatVoxelProgram; }
     static const SplatLocations& getSplatVoxelLocations() { return _splatVoxelLocations; }
+    
+    static ProgramObject& getVoxelCursorProgram() { return _voxelCursorProgram; }
     
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
@@ -332,6 +424,8 @@ private:
     static ProgramObject _baseVoxelProgram;
     static ProgramObject _splatVoxelProgram;
     static SplatLocations _splatVoxelLocations;
+    
+    static ProgramObject _voxelCursorProgram;
 };
 
 /// Base class for spanner renderers; provides clipping.

@@ -114,6 +114,7 @@ public:
     
     static void sendKillAvatar();
     
+    Q_INVOKABLE glm::vec3 getTrackedHeadPosition() const { return _trackedHeadPosition; }
     Q_INVOKABLE glm::vec3 getHeadPosition() const { return getHead()->getPosition(); }
     Q_INVOKABLE float getHeadFinalYaw() const { return getHead()->getFinalYaw(); }
     Q_INVOKABLE float getHeadFinalRoll() const { return getHead()->getFinalRoll(); }
@@ -239,6 +240,8 @@ private:
     bool _isLookingAtLeftEye;
 
     RecorderPointer _recorder;
+    
+    glm::vec3 _trackedHeadPosition;
     
 	// private methods
     void updateOrientation(float deltaTime);

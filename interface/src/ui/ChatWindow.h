@@ -61,9 +61,9 @@ private:
     bool isNearBottom();
     void scrollToBottom();
 
-    Ui::ChatWindow* ui;
-    int numMessagesAfterLastTimeStamp;
-    QDateTime lastMessageStamp;
+    Ui::ChatWindow* _ui;
+    int _numMessagesAfterLastTimeStamp;
+    QDateTime _lastMessageStamp;
     bool _mousePressed;
     QPoint _mouseStartPosition;
     QSystemTrayIcon _trayIcon;

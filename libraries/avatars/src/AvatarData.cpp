@@ -1048,7 +1048,7 @@ void AvatarData::setBillboardFromURL(const QString &billboardURL) {
     QNetworkRequest billboardRequest;
     billboardRequest.setUrl(QUrl(billboardURL));
     
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply* networkReply = networkAccessManager.get(billboardRequest);
     connect(networkReply, SIGNAL(finished()), this, SLOT(setBillboardFromNetworkReply()));
 }
@@ -1113,7 +1113,7 @@ void AvatarData::updateJointMappings() {
     _jointNames.clear();
     
     if (_skeletonModelURL.fileName().toLower().endsWith(".fst")) {
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* networkReply = networkAccessManager.get(QNetworkRequest(_skeletonModelURL));
         connect(networkReply, SIGNAL(finished()), this, SLOT(setJointMappingsFromNetworkReply()));
     }

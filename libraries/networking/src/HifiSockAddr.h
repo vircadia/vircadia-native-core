@@ -58,7 +58,7 @@ private:
 
 uint qHash(const HifiSockAddr& key, uint seed);
 
-quint32 getHostOrderLocalAddress();
+QHostAddress getLocalAddress();
 
 Q_DECLARE_METATYPE(HifiSockAddr)
 

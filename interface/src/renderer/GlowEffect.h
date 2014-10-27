@@ -51,17 +51,10 @@ public:
     /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
     QOpenGLFramebufferObject* render(bool toTexture = false);
 
-public slots:
-    
-    void cycleRenderMode();
-    
 private:
-    
-    enum RenderMode { ADD_MODE, BLUR_ADD_MODE, BLUR_PERSIST_ADD_MODE, DIFFUSE_ADD_MODE, RENDER_MODE_COUNT };
-    
+
     bool _initialized;
 
-    RenderMode _renderMode;
     ProgramObject* _addProgram;
     ProgramObject* _horizontalBlurProgram;
     ProgramObject* _verticalBlurAddProgram;

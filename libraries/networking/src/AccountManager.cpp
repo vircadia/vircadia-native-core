@@ -19,9 +19,11 @@
 #include <QtCore/QUrlQuery>
 #include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkRequest>
+#include <qthread.h>
 
 #include "NodeList.h"
 #include "PacketHeaders.h"
+#include "RSAKeypairGenerator.h"
 
 #include "AccountManager.h"
 
@@ -187,7 +189,7 @@ void AccountManager::invokedRequest(const QString& path,
                                     const JSONCallbackParameters& callbackParams,
                                     const QByteArray& dataByteArray, QHttpMultiPart* dataMultiPart) {
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest networkRequest;
     
@@ -280,14 +282,12 @@ void AccountManager::processReply() {
 }
 
 void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(requestReply->readAll());
-
     JSONCallbackParameters callbackParams = _pendingCallbackMap.value(requestReply);
 
     if (callbackParams.jsonCallbackReceiver) {
         // invoke the right method on the callback receiver
         QMetaObject::invokeMethod(callbackParams.jsonCallbackReceiver, qPrintable(callbackParams.jsonCallbackMethod),
-                                  Q_ARG(const QJsonObject&, jsonResponse.object()));
+                                  Q_ARG(QNetworkReply&, *requestReply));
 
         // remove the related reply-callback group from the map
         _pendingCallbackMap.remove(requestReply);
@@ -295,7 +295,7 @@ void AccountManager::passSuccessToCallback(QNetworkReply* requestReply) {
     } else {
         if (VERBOSE_HTTP_REQUEST_DEBUGGING) {
             qDebug() << "Received JSON response from data-server that has no matching callback.";
-            qDebug() << jsonResponse;
+            qDebug() << QJsonDocument::fromJson(requestReply->readAll());
         }
     }
 }
@@ -316,6 +316,16 @@ void AccountManager::passErrorToCallback(QNetworkReply* requestReply) {
             qDebug() << "Error" << requestReply->error() << "-" << requestReply->errorString();
             qDebug() << requestReply->readAll();
         }
+    }
+}
+
+void AccountManager::persistAccountToSettings() {
+    if (_shouldPersistToSettingsFile) {
+        // store this access token into the local settings
+        QSettings localSettings;
+        localSettings.beginGroup(ACCOUNTS_GROUP);
+        localSettings.setValue(_authURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
+                               QVariant::fromValue(_accountInfo));
     }
 }
 
@@ -359,7 +369,7 @@ void AccountManager::setAccessTokenForCurrentAuthURL(const QString& accessToken)
 
 void AccountManager::requestAccessToken(const QString& login, const QString& password) {
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QNetworkRequest request;
 
@@ -408,13 +418,7 @@ void AccountManager::requestAccessTokenFinished() {
 
             emit loginComplete(rootURL);
             
-            if (_shouldPersistToSettingsFile) {
-                // store this access token into the local settings
-                QSettings localSettings;
-                localSettings.beginGroup(ACCOUNTS_GROUP);
-                localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                                       QVariant::fromValue(_accountInfo));
-            }
+            persistAccountToSettings();
 
             requestProfile();
         }
@@ -431,10 +435,10 @@ void AccountManager::requestAccessTokenError(QNetworkReply::NetworkError error) 
 }
 
 void AccountManager::requestProfile() {
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
     QUrl profileURL = _authURL;
-    profileURL.setPath("/api/v1/users/profile");
+    profileURL.setPath("/api/v1/user/profile");
     
     QNetworkRequest profileRequest(profileURL);
     profileRequest.setRawHeader(ACCESS_TOKEN_AUTHORIZATION_HEADER, _accountInfo.getAccessToken().authorizationHeaderValue());
@@ -458,15 +462,8 @@ void AccountManager::requestProfileFinished() {
         // the username has changed to whatever came back
         emit usernameChanged(_accountInfo.getUsername());
 
-        if (_shouldPersistToSettingsFile) {
-            // store the whole profile into the local settings
-            QUrl rootURL = profileReply->url();
-            rootURL.setPath("");
-            QSettings localSettings;
-            localSettings.beginGroup(ACCOUNTS_GROUP);
-            localSettings.setValue(rootURL.toString().replace("//", DOUBLE_SLASH_SUBSTITUTE),
-                                   QVariant::fromValue(_accountInfo));
-        }
+        // store the whole profile into the local settings
+        persistAccountToSettings();
         
     } else {
         // TODO: error handling
@@ -477,4 +474,58 @@ void AccountManager::requestProfileFinished() {
 void AccountManager::requestProfileError(QNetworkReply::NetworkError error) {
     // TODO: error handling
     qDebug() << "AccountManager requestProfileError - " << error;
+}
+
+void AccountManager::generateNewKeypair() {
+    // setup a new QThread to generate the keypair on, in case it takes a while
+    QThread* generateThread = new QThread(this);
+    
+    // setup a keypair generator
+    RSAKeypairGenerator* keypairGenerator = new RSAKeypairGenerator();
+    
+    connect(generateThread, &QThread::started, keypairGenerator, &RSAKeypairGenerator::generateKeypair);
+    connect(keypairGenerator, &RSAKeypairGenerator::generatedKeypair, this, &AccountManager::processGeneratedKeypair);
+    connect(keypairGenerator, &RSAKeypairGenerator::errorGeneratingKeypair,
+            this, &AccountManager::handleKeypairGenerationError);
+    connect(keypairGenerator, &QObject::destroyed, generateThread, &QThread::quit);
+    connect(generateThread, &QThread::finished, generateThread, &QThread::deleteLater);
+    
+    keypairGenerator->moveToThread(generateThread);
+    
+    qDebug() << "Starting worker thread to generate 2048-bit RSA key-pair.";
+    generateThread->start();
+}
+
+void AccountManager::processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey) {
+    
+    qDebug() << "Generated 2048-bit RSA key-pair. Storing private key and uploading public key.";
+    
+    // set the private key on our data-server account info
+    _accountInfo.setPrivateKey(privateKey);
+    persistAccountToSettings();
+    
+    // upload the public key so data-web has an up-to-date key
+    const QString PUBLIC_KEY_UPDATE_PATH = "api/v1/user/public_key";
+    
+    // setup a multipart upload to send up the public key
+    QHttpMultiPart* requestMultiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+    
+    QHttpPart keyPart;
+    keyPart.setHeader(QNetworkRequest::ContentTypeHeader, QVariant("application/octet-stream"));
+    keyPart.setHeader(QNetworkRequest::ContentDispositionHeader,
+                      QVariant("form-data; name=\"public_key\"; filename=\"public_key\""));
+    keyPart.setBody(publicKey);
+    
+    requestMultiPart->append(keyPart);
+    
+    authenticatedRequest(PUBLIC_KEY_UPDATE_PATH, QNetworkAccessManager::PutOperation,
+                         JSONCallbackParameters(), QByteArray(), requestMultiPart);
+    
+    // get rid of the keypair generator now that we don't need it anymore
+    sender()->deleteLater();
+}
+
+void AccountManager::handleKeypairGenerationError() {
+    // for now there isn't anything we do with this except get the worker thread to clean up
+    sender()->deleteLater();
 }

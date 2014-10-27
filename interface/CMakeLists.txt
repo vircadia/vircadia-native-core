@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceplus" "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -13,6 +13,10 @@ endforeach()
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
+
+
+# As Gverb is currently the only reverb library, it's required.
+find_package(Gverb REQUIRED)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -29,7 +33,7 @@ elseif (WIN32)
     add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
     add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
-    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
+    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>\n#include <GL/wglew.h>")
 endif ()
 
 # set up the external glm library
@@ -41,7 +45,7 @@ configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVe
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles entities)
+foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles entities gpu)
   file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
 endforeach(SUBDIR)
@@ -101,11 +105,10 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels fbx metavoxels networking particles entities avatars audio animation script-engine)
+link_hifi_libraries(shared octree voxels fbx metavoxels networking entities avatars audio animation script-engine)
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)
-find_package(OpenSSL REQUIRED)
 
 # perform standard include and linking for found externals
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
@@ -167,12 +170,18 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
   add_definitions(-DQXMPP_STATIC) 
 endif ()
 
+if (GVERB_FOUND)
+  file(GLOB GVERB_SRCS ${GVERB_SRC_DIRS}/*.c)
+  include_directories(${GVERB_INCLUDE_DIRS})
+  add_library(gverb STATIC ${GVERB_SRCS})
+  target_link_libraries(${TARGET_NAME} gverb)
+endif (GVERB_FOUND)
+
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
-include_directories("${OPENSSL_INCLUDE_DIR}")
 
 target_link_libraries(
-  ${TARGET_NAME} ${ZLIB_LIBRARIES} ${OPENSSL_LIBRARIES}
+  ${TARGET_NAME} ${ZLIB_LIBRARIES}
   Qt5::Gui Qt5::Network Qt5::Multimedia Qt5::OpenGL Qt5::Script Qt5::Svg Qt5::WebKitWidgets
 )
 

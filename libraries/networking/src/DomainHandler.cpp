@@ -47,9 +47,7 @@ void DomainHandler::clearConnectionInfo() {
         _sockAddr.setAddress(QHostAddress::Null);
     }
     
-    _isConnected = false;
-    
-    emit disconnectedFromDomain();
+    setIsConnected(false);
     
     if (_handshakeTimer) {
         _handshakeTimer->stop();
@@ -64,12 +62,15 @@ void DomainHandler::clearSettings() {
 }
 
 void DomainHandler::softReset() {
+    qDebug() << "Resetting current domain connection information.";
     clearConnectionInfo();
     clearSettings();
 }
 
 void DomainHandler::hardReset() {
     softReset();
+    
+    qDebug() << "Hard reset in NodeList DomainHandler.";
     _iceDomainID = QUuid();
     _hostname = QString();
     _sockAddr.setAddress(QHostAddress::Null);
@@ -90,7 +91,7 @@ void DomainHandler::setSockAddr(const HifiSockAddr& sockAddr, const QString& hos
 void DomainHandler::setUUID(const QUuid& uuid) {
     if (uuid != _uuid) {
         _uuid = uuid;
-        qDebug() << "Domain uuid changed to" << uuidStringWithoutCurlyBraces(_uuid);
+        qDebug() << "Domain ID changed to" << uuidStringWithoutCurlyBraces(_uuid);
     }
 }
 

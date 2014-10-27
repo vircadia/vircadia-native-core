@@ -70,7 +70,7 @@ public:
     void requestAccessToken(const QString& login, const QString& password);
     void requestProfile();
 
-    const DataServerAccountInfo& getAccountInfo() const { return _accountInfo; }
+    DataServerAccountInfo& getAccountInfo() { return _accountInfo; }
 
 public slots:
     void requestAccessTokenFinished();
@@ -80,6 +80,7 @@ public slots:
     void logout();
     void updateBalance();
     void accountInfoBalanceChanged(qint64 newBalance);
+    void generateNewKeypair();
 signals:
     void authRequired();
     void authEndpointChanged();
@@ -91,10 +92,14 @@ signals:
     void balanceChanged(qint64 newBalance);
 private slots:
     void processReply();
+    void handleKeypairGenerationError();
+    void processGeneratedKeypair(const QByteArray& publicKey, const QByteArray& privateKey);
 private:
     AccountManager();
     AccountManager(AccountManager const& other); // not implemented
     void operator=(AccountManager const& other); // not implemented
+    
+    void persistAccountToSettings();
 
     void passSuccessToCallback(QNetworkReply* reply);
     void passErrorToCallback(QNetworkReply* reply);

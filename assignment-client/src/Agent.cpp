@@ -26,7 +26,6 @@
 #include <UUID.h>
 #include <VoxelConstants.h>
 
-#include <ParticlesScriptingInterface.h> // TODO: consider moving to scriptengine.h
 #include <EntityScriptingInterface.h> // TODO: consider moving to scriptengine.h
 
 #include "avatars/ScriptableAvatar.h"
@@ -38,7 +37,6 @@ static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 Agent::Agent(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _voxelEditSender(),
-    _particleEditSender(),
     _entityEditSender(),
     _receivedAudioStream(NETWORK_BUFFER_LENGTH_SAMPLES_STEREO, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES,
         InboundAudioStream::Settings(0, false, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, false,
@@ -50,7 +48,6 @@ Agent::Agent(const QByteArray& packet) :
     _scriptEngine.setParent(this);
     
     _scriptEngine.getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
-    _scriptEngine.getParticlesScriptingInterface()->setPacketSender(&_particleEditSender);
     _scriptEngine.getEntityScriptingInterface()->setPacketSender(&_entityEditSender);
 }
 
@@ -75,9 +72,6 @@ void Agent::readPendingDatagrams() {
                             _scriptEngine.getVoxelsScriptingInterface()->getJurisdictionListener()->
                                                                 queueReceivedPacket(matchedNode,receivedPacket);
                             break;
-                        case NodeType::ParticleServer:
-                            _scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener()->
-                                                                queueReceivedPacket(matchedNode, receivedPacket);
                             break;
                         case NodeType::EntityServer:
                             _scriptEngine.getEntityScriptingInterface()->getJurisdictionListener()->
@@ -86,31 +80,18 @@ void Agent::readPendingDatagrams() {
                     }
                 }
                 
-            } else if (datagramPacketType == PacketTypeParticleAddResponse) {
-                // this will keep creatorTokenIDs to IDs mapped correctly
-                Particle::handleAddParticleResponse(receivedPacket);
-                
-                // also give our local particle tree a chance to remap any internal locally created particles
-                _particleViewer.getTree()->handleAddParticleResponse(receivedPacket);
-
-                // Make sure our Node and NodeList knows we've heard from this node.
-                SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
-                sourceNode->setLastHeardMicrostamp(usecTimestampNow());
-
             } else if (datagramPacketType == PacketTypeEntityAddResponse) {
                 // this will keep creatorTokenIDs to IDs mapped correctly
                 EntityItemID::handleAddEntityResponse(receivedPacket);
                 
-                // also give our local particle tree a chance to remap any internal locally created particles
+                // also give our local entity tree a chance to remap any internal locally created entities
                 _entityViewer.getTree()->handleAddEntityResponse(receivedPacket);
 
                 // Make sure our Node and NodeList knows we've heard from this node.
                 SharedNodePointer sourceNode = nodeList->sendingNodeForPacket(receivedPacket);
                 sourceNode->setLastHeardMicrostamp(usecTimestampNow());
 
-            } else if (datagramPacketType == PacketTypeParticleData
-                        || datagramPacketType == PacketTypeParticleErase
-                        || datagramPacketType == PacketTypeOctreeStats
+            } else if (datagramPacketType == PacketTypeOctreeStats
                         || datagramPacketType == PacketTypeVoxelData
                         || datagramPacketType == PacketTypeEntityData
                         || datagramPacketType == PacketTypeEntityErase
@@ -140,10 +121,6 @@ void Agent::readPendingDatagrams() {
 
                     datagramPacketType = packetTypeForPacket(mutablePacket);
                 } // fall through to piggyback message
-
-                if (datagramPacketType == PacketTypeParticleData || datagramPacketType == PacketTypeParticleErase) {
-                    _particleViewer.processDatagram(mutablePacket, sourceNode);
-                }
 
                 if (datagramPacketType == PacketTypeEntityData || datagramPacketType == PacketTypeEntityErase) {
                     _entityViewer.processDatagram(mutablePacket, sourceNode);
@@ -191,7 +168,6 @@ void Agent::run() {
                                                  << NodeType::AudioMixer
                                                  << NodeType::AvatarMixer
                                                  << NodeType::VoxelServer
-                                                 << NodeType::ParticleServer
                                                  << NodeType::EntityServer
                                                 );
     
@@ -206,7 +182,7 @@ void Agent::run() {
         scriptURL = QUrl(_payload);
     }
    
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply *reply = networkAccessManager.get(QNetworkRequest(scriptURL));
     
     QNetworkDiskCache* cache = new QNetworkDiskCache();
@@ -248,11 +224,6 @@ void Agent::run() {
     _voxelViewer.init();
     _scriptEngine.getVoxelsScriptingInterface()->setVoxelTree(_voxelViewer.getTree());
     
-    _scriptEngine.registerGlobalObject("ParticleViewer", &_particleViewer);
-    _particleViewer.setJurisdictionListener(_scriptEngine.getParticlesScriptingInterface()->getJurisdictionListener());
-    _particleViewer.init();
-    _scriptEngine.getParticlesScriptingInterface()->setParticleTree(_particleViewer.getTree());
-
     _scriptEngine.registerGlobalObject("EntityViewer", &_entityViewer);
     _entityViewer.setJurisdictionListener(_scriptEngine.getEntityScriptingInterface()->getJurisdictionListener());
     _entityViewer.init();

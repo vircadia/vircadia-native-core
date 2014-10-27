@@ -22,9 +22,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
 Script.include("libraries/toolBars.js");
+
 var windowDimensions = Controller.getViewportDimensions();
-var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
 
@@ -45,14 +47,14 @@ var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
 var modelURLs = [
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx"
+        HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+        HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/pug.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
+        HIFI_PUBLIC_BUCKET + "meshes/minotaur/mino_full.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/Combat_tank_V01.FBX",
+        HIFI_PUBLIC_BUCKET + "meshes/orc.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/slimer.fbx"
     ];
 
 var jointList = MyAvatar.getJointNames();
@@ -1213,19 +1215,44 @@ var toolBar = (function () {
         Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
 
+    var RESIZE_INTERVAL = 50;
+    var RESIZE_TIMEOUT = 20000;
+    var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
         var position;
 
         position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Entities.addEntity({
+            var entityId = Entities.addEntity({
                 type: "Model",
                 position: position,
                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
                 modelURL: url
             });
             print("Model added: " + url);
+
+            var checkCount = 0;
+            function resize() {
+                var entityProperties = Entities.getEntityProperties(entityId);
+                var naturalDimensions = entityProperties.naturalDimensions;
+
+                checkCount++;
+
+                if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                    if (checkCount < RESIZE_MAX_CHECKS) {
+                        Script.setTimeout(resize, RESIZE_INTERVAL);
+                    } else {
+                        print("Resize failed: timed out waiting for model (" + url + ") to load");
+                    }
+                } else {
+                    entityProperties.dimensions = naturalDimensions;
+                    Entities.editEntity(entityId, entityProperties);
+                }
+            }
+
+            Script.setTimeout(resize, RESIZE_INTERVAL);
+
         } else {
             print("Can't add model: Model would be out of bounds.");
         }
@@ -1285,7 +1312,6 @@ var toolBar = (function () {
         if (clickedOverlay === loadFileMenuItem) {
             toggleNewModelButton(false);
 
-            // TODO BUG: this is bug, if the user has never uploaded a model, this will throw an JS exception
             file = Window.browse("Select your model file ...",
                 Settings.getValue("LastModelUploadLocation").path(), 
                 "Model files (*.fst *.fbx)");
@@ -1766,7 +1792,7 @@ var modelImporter = new ModelImporter();
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" &&
-        properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+        properties.modelURL == HIFI_PUBLIC_BUCKET + "ozan/Terrain_Reduce_forAlpha.fbx") {
         return true;
     }
     return false;

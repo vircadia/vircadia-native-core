@@ -21,7 +21,7 @@
 
 #include "ScriptsModel.h"
 
-static const QString S3_URL = "http://highfidelity-public.s3-us-west-1.amazonaws.com";
+static const QString S3_URL = "http://s3.amazonaws.com/hifi-public";
 static const QString PUBLIC_URL = "http://public.highfidelity.io";
 static const QString MODELS_LOCATION = "scripts/";
 
@@ -117,7 +117,7 @@ void ScriptsModel::requestRemoteFiles(QString marker) {
     }
     url.setQuery(query);
 
-    NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkRequest request(url);
     QNetworkReply* reply = networkAccessManager.get(request);
     connect(reply, SIGNAL(finished()), SLOT(downloadFinished()));

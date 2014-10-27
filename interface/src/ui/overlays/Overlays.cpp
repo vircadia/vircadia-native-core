@@ -23,6 +23,7 @@
 #include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
 #include "TextOverlay.h"
+#include "Text3DOverlay.h"
 
 Overlays::Overlays() : _nextOverlayID(1) {
 }
@@ -124,88 +125,58 @@ void Overlays::render3D() {
 
 unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& properties) {
     unsigned int thisID = 0;
-    bool created = false;
-    bool is3D = false;
     Overlay* thisOverlay = NULL;
     
+    bool created = true;
     if (type == "image") {
         thisOverlay = new ImageOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
     } else if (type == "text") {
         thisOverlay = new TextOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
+    } else if (type == "text3d") {
+        thisOverlay = new Text3DOverlay();
     } else if (type == "cube") {
         thisOverlay = new Cube3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "sphere") {
         thisOverlay = new Sphere3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "circle3d") {
         thisOverlay = new Circle3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "rectangle3d") {
         thisOverlay = new Rectangle3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "line3d") {
         thisOverlay = new Line3DOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "localvoxels") {
         thisOverlay = new LocalVoxelsOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "localmodels") {
         thisOverlay = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "model") {
         thisOverlay = new ModelOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
     } else if (type == "billboard") {
         thisOverlay = new BillboardOverlay();
-        thisOverlay->init(_parent);
-        thisOverlay->setProperties(properties);
-        created = true;
-        is3D = true;
+    } else {
+        created = false;
     }
 
     if (created) {
-        QWriteLocker lock(&_lock);
-        thisID = _nextOverlayID;
-        _nextOverlayID++;
-        if (is3D) {
-            _overlays3D[thisID] = thisOverlay;
-        } else {
-            _overlays2D[thisID] = thisOverlay;
-        }
+        thisOverlay->setProperties(properties);
+        thisID = addOverlay(thisOverlay);
     }
 
     return thisID; 
+}
+
+unsigned int Overlays::addOverlay(Overlay* overlay) {
+    overlay->init(_parent);
+
+    QWriteLocker lock(&_lock);
+    unsigned int thisID = _nextOverlayID;
+    _nextOverlayID++;
+    if (overlay->is3D()) {
+        _overlays3D[thisID] = overlay;
+    } else {
+        _overlays2D[thisID] = overlay;
+    }
+    
+    return thisID;
 }
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {

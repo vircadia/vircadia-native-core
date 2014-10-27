@@ -39,6 +39,8 @@ public slots:
 
     float getInputVolume();
     void setInputVolume(float volume);
+    void setReverb(bool reverb);
+    void setReverbOptions(const AudioEffectOptions* options);
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

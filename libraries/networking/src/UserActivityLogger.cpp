@@ -69,7 +69,7 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
                                         multipart);
 }
 
-void UserActivityLogger::requestFinished(const QJsonObject& object) {
+void UserActivityLogger::requestFinished(QNetworkReply& requestReply) {
     // qDebug() << object;
 }
 

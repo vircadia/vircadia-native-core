@@ -78,6 +78,7 @@ class AttachmentsDialog;
 class BandwidthDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
+class MetavoxelNetworkSimulator;
 class ChatWindow;
 class OctreeStatsDialog;
 class MenuItemProperties;
@@ -142,6 +143,8 @@ public:
     float getAvatarLODDistanceMultiplier() const { return _avatarLODDistanceMultiplier; }
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
+
+    bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
 #ifdef Q_OS_MAC
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
@@ -216,6 +219,7 @@ private slots:
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
+    void showMetavoxelNetworkSimulator();
     void showScriptEditor();
     void showChat();
     void toggleConsole();
@@ -225,6 +229,9 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
+    void changeRenderTargetFramerate(QAction* action);
+    void changeVSync();
+    void changeRenderResolution(QAction* action);
 
 private:
     static Menu* _instance;
@@ -271,6 +278,7 @@ private:
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QPointer<MetavoxelEditor> _MetavoxelEditor;
+    QPointer<MetavoxelNetworkSimulator> _metavoxelNetworkSimulator;
     QPointer<ScriptEditorWindow> _ScriptEditor;
     QPointer<ChatWindow> _chatWindow;
     QDialog* _jsConsole;
@@ -309,6 +317,9 @@ private:
     QString _snapshotsLocation;
     QString _scriptsLocation;
     QByteArray _walletPrivateKey;
+    
+    bool _shouldRenderTableNeedsRebuilding;
+    QMap<float, float> _shouldRenderTable;
 
 };
 
@@ -361,11 +372,13 @@ namespace MenuOption {
     const QString CollideAsRagdoll = "Collide With Self (Ragdoll)";
     const QString CollideWithAvatars = "Collide With Other Avatars";
     const QString CollideWithEnvironment = "Collide With World Boundaries";
-    const QString CollideWithParticles = "Collide With Particles";
     const QString CollideWithVoxels = "Collide With Voxels";
     const QString Collisions = "Collisions";
     const QString Console = "Console...";
     const QString ControlWithSpeech = "Control With Speech";
+    const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
+    const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
+    const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -374,6 +387,7 @@ namespace MenuOption {
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Show Hand Info";
     const QString DisplayHandTargets = "Show Hand Targets";
+    const QString DisplayHermiteData = "Display Hermite Data";
     const QString DisplayModelBounds = "Display Model Bounds";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
@@ -389,7 +403,6 @@ namespace MenuOption {
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
     const QString ExpandPaintGLTiming = "Expand /paintGL";
     const QString ExpandUpdateTiming = "Expand /update";
-    const QString Faceplus = "Faceplus";
     const QString Faceshift = "Faceshift";
     const QString FilterSixense = "Smooth Sixense Movement";
     const QString FirstPerson = "First Person";
@@ -397,7 +410,6 @@ namespace MenuOption {
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString FullscreenMirror = "Fullscreen Mirror";
-    const QString GlowMode = "Cycle Glow Mode";
     const QString GlowWhenSpeaking = "Glow When Speaking";
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
@@ -423,24 +435,41 @@ namespace MenuOption {
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";
     const QString NameLocation = "Name this location";
+    const QString NetworkSimulator = "Network Simulator...";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString ObeyEnvironmentalGravity = "Obey Environmental Gravity";
-    const QString OctreeStats = "Voxel and Particle Statistics";
+    const QString OctreeStats = "Voxel and Entity Statistics";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString Pair = "Pair";
-    const QString Particles = "Particles";
     const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
+    const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderTargetFramerate = "Framerate";
+    const QString RenderTargetFramerateUnlimited = "Unlimited";
+    const QString RenderTargetFramerate60 = "60";
+    const QString RenderTargetFramerate50 = "50";
+    const QString RenderTargetFramerate40 = "40";
+    const QString RenderTargetFramerate30 = "30";
+    const QString RenderTargetFramerateVSyncOn = "V-Sync On";
+
+    const QString RenderResolution = "Scale Resolution";
+    const QString RenderResolutionOne = "1";
+    const QString RenderResolutionTwoThird = "2/3";
+    const QString RenderResolutionHalf = "1/2";
+    const QString RenderResolutionThird = "1/3";
+    const QString RenderResolutionQuarter = "1/4";
     const QString ResetAvatarSize = "Reset Avatar Size";
+    const QString ResetSensors = "Reset Sensors";
     const QString RunningScripts = "Running Scripts";
     const QString RunTimingTests = "Run Timing Tests";
     const QString ScriptEditor = "Script Editor...";
@@ -448,7 +477,6 @@ namespace MenuOption {
     const QString SettingsExport = "Export Settings";
     const QString SettingsImport = "Import Settings";
     const QString ShowBordersEntityNodes = "Show Entity Nodes";
-    const QString ShowBordersParticleNodes = "Show Particle Nodes";
     const QString ShowBordersVoxelNodes = "Show Voxel Nodes";
     const QString ShowIKConstraints = "Show IK Constraints";
     const QString SimpleShadows = "Simple";

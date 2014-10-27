@@ -62,7 +62,7 @@ NodeList::NodeList(char newOwnerType, unsigned short socketListenPort, unsigned 
     _stunRequestsSinceSuccess(0)
 {
     // clear our NodeList when the domain changes
-    connect(&_domainHandler, &DomainHandler::hostnameChanged, this, &NodeList::reset);
+    connect(&_domainHandler, &DomainHandler::disconnectedFromDomain, this, &NodeList::reset);
     
     // handle ICE signal from DS so connection is attempted immediately
     connect(&_domainHandler, &DomainHandler::requestICEConnectionAttempt, this, &NodeList::handleICEConnectionToDomainServer);
@@ -205,8 +205,10 @@ void NodeList::reset() {
     // refresh the owner UUID to the NULL UUID
     setSessionUUID(QUuid());
     
-    // clear the domain connection information
-    _domainHandler.softReset();
+    if (sender() != &_domainHandler) {
+        // clear the domain connection information, unless they're the ones that asked us to reset
+        _domainHandler.softReset();
+    }
     
     // if we setup the DTLS socket, also disconnect from the DTLS socket readyRead() so it can handle handshaking
     if (_dtlsSocket) {
@@ -302,13 +304,20 @@ void NodeList::sendDomainServerCheckIn() {
         QDataStream packetStream(&domainServerPacket, QIODevice::Append);
         
         // pack our data to send to the domain-server
-        packetStream << _ownerType << _publicSockAddr
-        << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort())
-        << (quint8) _nodeTypesOfInterest.size();
+        packetStream << _ownerType << _publicSockAddr << _localSockAddr << _nodeTypesOfInterest.toList();
         
-        // copy over the bytes for node types of interest, if required
-        foreach (NodeType_t nodeTypeOfInterest, _nodeTypesOfInterest) {
-            packetStream << nodeTypeOfInterest;
+        
+        // if this is a connect request, and we can present a username signature, send it along
+        if (!_domainHandler.isConnected()) {
+            DataServerAccountInfo& accountInfo = AccountManager::getInstance().getAccountInfo();
+            packetStream << accountInfo.getUsername();
+            
+            const QByteArray& usernameSignature = AccountManager::getInstance().getAccountInfo().getUsernameSignature();
+            
+            if (!usernameSignature.isEmpty()) {
+                qDebug() << "Including username signature in domain connect request.";
+                packetStream << usernameSignature;
+            }
         }
         
         if (!isUsingDTLS) {
@@ -325,7 +334,7 @@ void NodeList::sendDomainServerCheckIn() {
         
         if (_numNoReplyDomainCheckIns >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             // we haven't heard back from DS in MAX_SILENT_DOMAIN_SERVER_CHECK_INS
-            // so emit our signal that indicates that
+            // so emit our signal that says that
             emit limitOfSilentDomainCheckInsReached();
         }
         
@@ -420,13 +429,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
     
     packetStream << assignment;
 
-    static HifiSockAddr DEFAULT_ASSIGNMENT_SOCKET(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, DEFAULT_DOMAIN_SERVER_PORT);
-
-    const HifiSockAddr* assignmentServerSocket = _assignmentServerSocket.isNull()
-        ? &DEFAULT_ASSIGNMENT_SOCKET
-        : &_assignmentServerSocket;
-
-    _nodeSocket.writeDatagram(packet, assignmentServerSocket->getAddress(), assignmentServerSocket->getPort());
+    _nodeSocket.writeDatagram(packet, _assignmentServerSocket.getAddress(), _assignmentServerSocket.getPort());
 }
 
 void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {

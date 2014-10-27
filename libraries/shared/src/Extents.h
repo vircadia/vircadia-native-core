@@ -15,6 +15,9 @@
 
 #include <glm/glm.hpp>
 
+#include <QDebug>
+#include "StreamUtils.h"
+
 class Extents {
 public:
     /// set minimum and maximum to FLT_MAX and -FLT_MAX respectively
@@ -53,5 +56,16 @@ public:
     glm::vec3 minimum;
     glm::vec3 maximum;
 };
+
+inline QDebug operator<<(QDebug debug, const Extents& extents) {
+    debug << "Extents[ (" 
+            << extents.minimum << " ) to ("
+            << extents.maximum << ") size: ("
+            << (extents.maximum - extents.minimum) << ")"
+            << " ]";
+
+    return debug;
+}
+
 
 #endif // hifi_Extents_h

@@ -14,6 +14,8 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+
+Script.include("libraries/globals.js");
 Script.include("libraries/toolBars.js");
 
 const LEFT_PALM = 0;
@@ -127,7 +129,7 @@ function Hand(name, palm, tip, forwardButton, button3, trigger) {
     this.button3 = button3;
     this.trigger = trigger;
     this.holdingFrisbee = false;
-    this.particle = false;
+    this.entity = false;
     this.palmPosition = function() { return Controller.getSpatialControlPosition(this.palm); }
     this.grabButtonPressed = function() { 
                                     return (
@@ -160,7 +162,7 @@ var currentMouseControl = false;
 
 var newSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
 var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var throwSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
+var throwSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
 
 var simulatedFrisbees = [];
 
@@ -183,28 +185,29 @@ function playSound(sound, position) {
 
 function cleanupFrisbees() {
     simulatedFrisbees = [];
-    var particles = Particles.findParticles(MyAvatar.position, 1000);
-    for (particle in particles) {
-        Particles.deleteParticle(particles[particle]);
+    var entities = Entities.findEntities(MyAvatar.position, 1000);
+    for (entity in entities) {
+        Entities.deleteEntity(entities[entity]);
     }
 }
 
 function checkControllerSide(hand) {
     // If I don't currently have a frisbee in my hand, then try to catch closest one
     if (!hand.holdingFrisbee && hand.grabButtonPressed()) {
-        var closestParticle = Particles.findClosestParticle(hand.palmPosition(), CATCH_RADIUS);
-        var modelUrl = Particles.getParticleProperties(closestParticle).modelURL;
-        if (closestParticle.isKnownID && validFrisbeeURL(Particles.getParticleProperties(closestParticle).modelURL)) {
-            Particles.editParticle(closestParticle, {modelScale: 1, inHand: true, position: hand.holdPosition(), shouldDie: true});
-            Particles.deleteParticle(closestParticle);
+        var closestEntity = Entities.findClosestEntity(hand.palmPosition(), CATCH_RADIUS);
+        var modelUrl = Entities.getEntityProperties(closestEntity).modelURL;
+        if (closestEntity.isKnownID && validFrisbeeURL(Entities.getEntityProperties(closestEntity).modelURL)) {
+            Entities.editEntity(closestEntity, {modelScale: 1, inHand: true, position: hand.holdPosition(), shouldDie: true});
+            Entities.deleteEntity(closestEntity);
             debugPrint(hand.message + " HAND- CAUGHT SOMETHING!!");
             
             var properties = {
+                type: "Model",
                 position: hand.holdPosition(), 
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
-                radius: FRISBEE_RADIUS,
+                dimensions: { x: FRISBEE_RADIUS, y: FRISBEE_RADIUS / 5, z: FRISBEE_RADIUS },
                 damping: 0.999,
                 modelURL: modelUrl,
                 modelScale: FRISBEE_MODEL_SCALE,
@@ -212,10 +215,10 @@ function checkControllerSide(hand) {
                 lifetime: FRISBEE_LIFETIME
             };
 
-            newParticle = Particles.addParticle(properties);
+            newEntity = Entities.addEntity(properties);
             
             hand.holdingFrisbee = true;
-            hand.particle = newParticle;
+            hand.entity = newEntity;
 
             playSound(catchSound, hand.holdPosition());
             
@@ -226,11 +229,12 @@ function checkControllerSide(hand) {
     //  If '3' is pressed, and not holding a frisbee, make a new one
     if (hand.grabButtonPressed() && !hand.holdingFrisbee && newfrisbeeEnabled) {
         var properties = {
+                type: "Model",
                 position: hand.holdPosition(), 
                 velocity: { x: 0, y: 0, z: 0}, 
                 gravity: { x: 0, y: 0, z: 0}, 
                 inHand: true,
-                radius: FRISBEE_RADIUS,
+                dimensions: { x: FRISBEE_RADIUS, y: FRISBEE_RADIUS / 5, z: FRISBEE_RADIUS },
                 damping: 0.999,
                 modelURL: frisbeeURL(),
                 modelScale: FRISBEE_MODEL_SCALE,
@@ -238,9 +242,9 @@ function checkControllerSide(hand) {
                 lifetime: FRISBEE_LIFETIME
             };
 
-        newParticle = Particles.addParticle(properties);
+        newEntity = Entities.addEntity(properties);
         hand.holdingFrisbee = true;
-        hand.particle = newParticle;
+        hand.entity = newEntity;
 
         // Play a new frisbee sound
         playSound(newSound, hand.holdPosition());
@@ -256,7 +260,7 @@ function checkControllerSide(hand) {
                     position: hand.holdPosition(),
                     modelRotation: hand.holdRotation()
                 };
-            Particles.editParticle(hand.particle, properties);
+            Entities.editEntity(hand.entity, properties);
         } else {
             debugPrint(">>>>> " + hand.name + "-FRISBEE IN HAND, not grabbing, THROW!!!");
             //  If frisbee just released, add velocity to it!
@@ -269,12 +273,12 @@ function checkControllerSide(hand) {
                     modelRotation: hand.holdRotation()
                 };
 
-            Particles.editParticle(hand.particle, properties);
+            Entities.editEntity(hand.entity, properties);
 
-            simulatedFrisbees.push(hand.particle);
+            simulatedFrisbees.push(hand.entity);
 
             hand.holdingFrisbee = false;
-            hand.particle = false;
+            hand.entity = false;
             
             playSound(throwSound, hand.holdPosition());
         }
@@ -321,7 +325,7 @@ function checkController(deltaTime) {
 function controlFrisbees(deltaTime) {
     var killSimulations = [];
     for (frisbee in simulatedFrisbees) {
-        var properties = Particles.getParticleProperties(simulatedFrisbees[frisbee]);
+        var properties = Entities.getEntityProperties(simulatedFrisbees[frisbee]);
         //get the horizon length from the velocity origin in order to get speed
         var speed = Vec3.length({x:properties.velocity.x, y:0, z:properties.velocity.z});
         if (speed < MIN_SIMULATION_SPEED) {
@@ -329,7 +333,7 @@ function controlFrisbees(deltaTime) {
             killSimulations.push(frisbee);
             continue;
         }
-        Particles.editParticle(simulatedFrisbees[frisbee], {modelRotation: Quat.multiply(properties.modelRotation, Quat.fromPitchYawRollDegrees(0, speed * deltaTime * SPIN_MULTIPLIER, 0))});
+        Entities.editEntity(simulatedFrisbees[frisbee], {modelRotation: Quat.multiply(properties.modelRotation, Quat.fromPitchYawRollDegrees(0, speed * deltaTime * SPIN_MULTIPLIER, 0))});
         
     }
     for (var i = killSimulations.length - 1; i >= 0; i--) {

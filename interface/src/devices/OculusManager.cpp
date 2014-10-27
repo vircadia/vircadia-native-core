@@ -55,6 +55,18 @@ bool OculusManager::_programInitialized = false;
 Camera* OculusManager::_camera = NULL;
 int OculusManager::_activeEyeIndex = -1;
 
+float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
+float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.f * RADIANS_PER_DEGREE;
+float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
+float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 2.0f * RADIANS_PER_DEGREE;
+quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
+float OculusManager::CALIBRATION_MESSAGE_DISTANCE = 2.5f;
+OculusManager::CalibrationState OculusManager::_calibrationState;
+glm::vec3 OculusManager::_calibrationPosition;
+glm::quat OculusManager::_calibrationOrientation;
+quint64 OculusManager::_calibrationStartTime;
+int OculusManager::_calibrationMessage = NULL;
+
 #endif
 
 glm::vec3 OculusManager::_leftEyePosition = glm::vec3();
@@ -62,6 +74,10 @@ glm::vec3 OculusManager::_rightEyePosition = glm::vec3();
 
 void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
+    _calibrationState = UNCALIBRATED;
+
+    qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
+
     ovr_Initialize();
 
     _ovrHmd = ovrHmd_Create(0);
@@ -168,6 +184,129 @@ void OculusManager::disconnect() {
                 _indices[i] = 0;
             }
         }
+    }
+#endif
+}
+
+#ifdef HAVE_LIBOVR
+void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
+    glm::quat headOrientation = Application::getInstance()->getAvatar()->getHeadOrientation();
+    headOrientation.x = 0;
+    headOrientation.z = 0;
+    glm::normalize(headOrientation);
+    billboard->setPosition(Application::getInstance()->getAvatar()->getHeadPosition()
+        + headOrientation * glm::vec3(0.f, 0.f, -CALIBRATION_MESSAGE_DISTANCE));
+    billboard->setRotation(headOrientation);
+}
+#endif
+
+#ifdef HAVE_LIBOVR
+void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
+    static QString instructionMessage = "Hold still to calibrate";
+    static QString progressMessage;
+    static Text3DOverlay* billboard;
+
+    switch (_calibrationState) {
+
+        case UNCALIBRATED:
+            if (position != glm::vec3() && orientation != glm::quat()) {  // Handle zero values at start-up.
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+                _calibrationState = WAITING_FOR_DELTA;
+            }
+            break;
+
+        case WAITING_FOR_DELTA:
+            if (glm::length(position - _calibrationPosition) > CALIBRATION_DELTA_MINIMUM_LENGTH
+                || glm::angle(orientation * glm::inverse(_calibrationOrientation)) > CALIBRATION_DELTA_MINIMUM_ANGLE) {
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+                _calibrationState = WAITING_FOR_ZERO;
+            }
+            break;
+
+        case WAITING_FOR_ZERO:
+            if (glm::length(position - _calibrationPosition) < CALIBRATION_ZERO_MAXIMUM_LENGTH
+                && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
+                _calibrationStartTime = usecTimestampNow();
+                _calibrationState = WAITING_FOR_ZERO_HELD;
+
+                if (!_calibrationMessage) {
+                    qDebug() << "Hold still to calibrate HMD";
+
+                    billboard = new Text3DOverlay();
+                    billboard->setDimensions(glm::vec2(2.0f, 1.25f));
+                    billboard->setTopMargin(0.35f);
+                    billboard->setLeftMargin(0.28f);
+                    billboard->setText(instructionMessage);
+                    billboard->setAlpha(0.5f);
+                    billboard->setLineHeight(0.1f);
+                    billboard->setIsFacingAvatar(false);
+                    positionCalibrationBillboard(billboard);
+
+                    _calibrationMessage = Application::getInstance()->getOverlays().addOverlay(billboard);
+                }
+
+                progressMessage = "";
+            } else {
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+            }
+            break;
+
+        case WAITING_FOR_ZERO_HELD:
+            if (glm::length(position - _calibrationPosition) < CALIBRATION_ZERO_MAXIMUM_LENGTH
+                && glm::angle(orientation * glm::inverse(_calibrationOrientation)) < CALIBRATION_ZERO_MAXIMUM_ANGLE) {
+                if ((usecTimestampNow() - _calibrationStartTime) > CALIBRATION_ZERO_HOLD_TIME) {
+                    _calibrationState = CALIBRATED;
+                    qDebug() << "HMD calibrated";
+                    Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
+                    _calibrationMessage = NULL;
+                    Application::getInstance()->resetSensors();
+                } else {
+                    quint64 quarterSeconds = (usecTimestampNow() - _calibrationStartTime) / 250000;
+                    if (quarterSeconds + 1 > progressMessage.length()) {
+                        // 3...2...1...
+                        if (quarterSeconds == 4 * (quarterSeconds / 4)) {
+                            quint64 wholeSeconds = CALIBRATION_ZERO_HOLD_TIME / 1000000 - quarterSeconds / 4;
+
+                            if (wholeSeconds == 3) {
+                                positionCalibrationBillboard(billboard);
+                            }
+
+                            progressMessage += QString::number(wholeSeconds);
+                        } else {
+                            progressMessage += ".";
+                        }
+                        billboard->setText(instructionMessage + "\n\n" + progressMessage);
+                    }
+                }
+            } else {
+                _calibrationPosition = position;
+                _calibrationOrientation = orientation;
+                _calibrationState = WAITING_FOR_ZERO;
+            }
+            break;
+        default:
+            break;
+            
+    }
+}
+#endif
+
+void OculusManager::recalibrate() {
+#ifdef HAVE_LIBOVR
+    _calibrationState = UNCALIBRATED;
+#endif
+}
+
+void OculusManager::abandonCalibration() {
+#ifdef HAVE_LIBOVR
+    _calibrationState = CALIBRATED;
+    if (_calibrationMessage) {
+        qDebug() << "Abandoned HMD calibration";
+        Application::getInstance()->getOverlays().deleteOverlay(_calibrationMessage);
+        _calibrationMessage = NULL;
     }
 #endif
 }
@@ -311,10 +450,6 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
     ovrPosef eyeRenderPose[ovrEye_Count];
 
-    _camera->setTightness(0.0f);  //  In first person, camera follows (untweaked) head exactly without delay
-    _camera->setDistance(0.0f);
-    _camera->setUpShift(0.0f);
-
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
 
@@ -329,6 +464,13 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     ovrVector3f ovrHeadPosition = ts.HeadPose.ThePose.Position;
     
     trackerPosition = glm::vec3(ovrHeadPosition.x, ovrHeadPosition.y, ovrHeadPosition.z);
+
+    if (_calibrationState != CALIBRATED) {
+        ovrQuatf ovrHeadOrientation = ts.HeadPose.ThePose.Orientation;
+        orientation = glm::quat(ovrHeadOrientation.w, ovrHeadOrientation.x, ovrHeadOrientation.y, ovrHeadOrientation.z);
+        calibrate(trackerPosition, orientation);
+    }
+
     trackerPosition = bodyOrientation * trackerPosition;
 #endif
     
@@ -341,15 +483,20 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 #else
         ovrEyeType eye = _ovrHmdDesc.EyeRenderOrder[eyeIndex];
 #endif
-        //Set the camera rotation for this eye
+        // Set the camera rotation for this eye
         eyeRenderPose[eye] = ovrHmd_GetEyePose(_ovrHmd, eye);
         orientation.x = eyeRenderPose[eye].Orientation.x;
         orientation.y = eyeRenderPose[eye].Orientation.y;
         orientation.z = eyeRenderPose[eye].Orientation.z;
         orientation.w = eyeRenderPose[eye].Orientation.w;
         
-        _camera->setTargetRotation(bodyOrientation * orientation);
-        _camera->setTargetPosition(position + trackerPosition);
+        // Update the application camera with the latest HMD position
+        whichCamera.setHmdPosition(trackerPosition);
+        whichCamera.setHmdRotation(orientation);
+        
+        // Update our camera to what the application camera is doing
+        _camera->setRotation(whichCamera.getRotation());
+        _camera->setPosition(whichCamera.getPosition());
         
         //  Store the latest left and right eye render locations for things that need to know
         glm::vec3 thisEyePosition = position + trackerPosition +
@@ -411,10 +558,7 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
     renderDistortionMesh(eyeRenderPose);
     
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    // Update camera for use by rest of Interface.
-    whichCamera.setTargetPosition((_leftEyePosition + _rightEyePosition) / 2.f);
-    whichCamera.setTargetRotation(_camera->getTargetRotation());
+
 
 #endif
 }

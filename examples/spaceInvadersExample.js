@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var iteration = 0;
 
 var gameOver = false;
@@ -82,68 +84,67 @@ var missileFired = false;
 var myMissile;
 
 // sounds
-var hitSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/hit.raw");
-var shootSound = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/shoot.raw");
+var hitSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
+var shootSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 var moveSounds = new Array();
-moveSounds[0] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo1.raw");
-moveSounds[1] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo2.raw");
-moveSounds[2] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo3.raw");
-moveSounds[3] = new Sound("http://highfidelity-public.s3-us-west-1.amazonaws.com/sounds/Space%20Invaders/Lo4.raw");
+moveSounds[0] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo1.raw");
+moveSounds[1] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo2.raw");
+moveSounds[2] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo3.raw");
+moveSounds[3] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo4.raw");
 var currentMoveSound = 0;
 var numberOfSounds = 4;
 var stepsPerSound = invaderStepsPerCycle / numberOfSounds;
 
-// if you set this to false, sounds will come from the location of particles instead of the player's head
+// if you set this to false, sounds will come from the location of entities instead of the player's head
 var soundInMyHead = true; 
 
 // models...
 var invaderModels = new Array();
 invaderModels[0] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-large-purple.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[1] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-large-cyan.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-cyan.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[2] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-medium-cyan.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-medium-cyan.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[3] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-medium-green.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-medium-green.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
 invaderModels[4] = {
-        modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/newInvader16x16-small-green.svo",
+        modelURL: HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-small-green.svo",
         modelScale: 450,
         modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
     };
     
     
 
-//modelURL: "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-//modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/invader.svo",
-// "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/spaceInvader3.fbx"
+//modelURL: HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+//modelURL: HIFI_PUBLIC_BUCKET + "meshes/invader.svo",
+// HIFI_PUBLIC_BUCKET + "meshes/spaceInvader3.fbx"
 
 function initializeMyShip() {
     myShipProperties = {
+            type: "Model",
             position: { x: middleX , y: gameAt.y, z: gameAt.z },
             velocity: { x: 0, y: 0, z: 0 },
             gravity: { x: 0, y: 0, z: 0 },
             damping: 0,
-            radius: shipSize,
+            dimensions: { x: shipSize * 2, y: shipSize * 2, z: shipSize * 2 },
             color: { red: 0, green: 255, blue: 0 },
-            modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/meshes/myCannon16x16.svo",
-            modelScale: 450,
-            modelTranslation: { x: -1.3, y: -1.3, z: -1.3 },
+            modelURL: HIFI_PUBLIC_BUCKET + "meshes/myCannon16x16.svo",
             lifetime: itemLifetimes
         };
-    myShip = Particles.addParticle(myShipProperties);
+    myShip = Entities.addEntity(myShipProperties);
 }
 
 // calculate the correct invaderPosition for an column row
@@ -171,16 +172,15 @@ function initializeInvaders() {
         invaders[row] = new Array();
         for (var column = 0; column < invadersPerRow; column++) {
             invaderPosition = getInvaderPosition(row, column);
-            invaders[row][column] = Particles.addParticle({
+            invaders[row][column] = Entities.addEntity({
+                        type: "Model",
                         position: invaderPosition,
                         velocity: { x: 0, y: 0, z: 0 },
                         gravity: { x: 0, y: 0, z: 0 },
                         damping: 0,
-                        radius: invaderSize,
+                        dimensions: { x: invaderSize * 2, y: invaderSize * 2, z: invaderSize * 2 },
                         color: { red: 255, green: 0, blue: 0 },
                         modelURL: invaderModels[row].modelURL,
-                        modelScale: invaderModels[row].modelScale,
-                        modelTranslation: invaderModels[row].modelTranslation,
                         lifetime: itemLifetimes
                     });
                 
@@ -192,10 +192,10 @@ function initializeInvaders() {
 function moveInvaders() {
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
-            props = Particles.getParticleProperties(invaders[row][column]);
+            props = Entities.getEntityProperties(invaders[row][column]);
             if (props.isKnownID) {
                 invaderPosition = getInvaderPosition(row, column);
-                Particles.editParticle(invaders[row][column], 
+                Entities.editEntity(invaders[row][column], 
                         { 
                             position: invaderPosition,
                             velocity: { x: 0, y: 0, z: 0 } // always reset this, incase they got collided with
@@ -264,19 +264,19 @@ Script.update.connect(update);
 
 function cleanupGame() {
     print("cleaning up game...");
-    Particles.deleteParticle(myShip);
-    print("cleanupGame() ... Particles.deleteParticle(myShip)... myShip.id="+myShip.id);
+    Entities.deleteEntity(myShip);
+    print("cleanupGame() ... Entities.deleteEntity(myShip)... myShip.id="+myShip.id);
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
-            Particles.deleteParticle(invaders[row][column]);
-            print("cleanupGame() ... Particles.deleteParticle(invaders[row][column])... invaders[row][column].id="
+            Entities.deleteEntity(invaders[row][column]);
+            print("cleanupGame() ... Entities.deleteEntity(invaders[row][column])... invaders[row][column].id="
                     +invaders[row][column].id);
         }
     }
     
     // clean up our missile
     if (missileFired) {
-        Particles.deleteParticle(myMissile);
+        Entities.deleteEntity(myMissile);
     }
     
     Controller.releaseKeyEvents({text: " "});
@@ -291,8 +291,8 @@ function endGame() {
 }
 
 function moveShipTo(position) {
-    myShip = Particles.identifyParticle(myShip);
-    Particles.editParticle(myShip, { position: position });
+    myShip = Entities.identifyEntity(myShip);
+    Entities.editEntity(myShip, { position: position });
 }
 
 function fireMissile() {
@@ -301,7 +301,7 @@ function fireMissile() {
 
     // If we've fired a missile, then check to see if it's still alive
     if (missileFired) {
-        var missileProperties = Particles.getParticleProperties(myMissile);
+        var missileProperties = Entities.getEntityProperties(myMissile);
         print("missileProperties.isKnownID=" + missileProperties.isKnownID);
     
         if (!missileProperties.isKnownID) {
@@ -318,13 +318,14 @@ function fireMissile() {
                                 y: myShipProperties.position.y + (2* shipSize), 
                                 z: myShipProperties.position.z };
                             
-        myMissile = Particles.addParticle(
+        myMissile = Entities.addEntity(
                         { 
+                            type: "Sphere",
                             position: missilePosition,
                             velocity: { x: 0, y: 5, z: 0},
                             gravity: { x: 0, y: 0, z: 0 },
                             damping: 0,
-                            radius: missileSize,
+                            dimensions: { x: missileSize * 2, y: missileSize * 2, z: missileSize * 2 },
                             color: { red: 0, green: 0, blue: 255 },
                             lifetime: 5
                         });
@@ -369,14 +370,14 @@ function keyPressEvent(key) {
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.captureKeyEvents({text: " "});
 
-function deleteIfInvader(possibleInvaderParticle) {
+function deleteIfInvader(possibleInvaderEntity) {
     for (var row = 0; row < numberOfRows; row++) {
         for (var column = 0; column < invadersPerRow; column++) {
-            invaders[row][column] = Particles.identifyParticle(invaders[row][column]);
+            invaders[row][column] = Entities.identifyEntity(invaders[row][column]);
             if (invaders[row][column].isKnownID) {
-                if (invaders[row][column].id == possibleInvaderParticle.id) {
-                    Particles.deleteParticle(possibleInvaderParticle);
-                    Particles.deleteParticle(myMissile);
+                if (invaders[row][column].id == possibleInvaderEntity.id) {
+                    Entities.deleteEntity(possibleInvaderEntity);
+                    Entities.deleteEntity(myMissile);
 
                     // play the hit sound
                     var options = new AudioInjectionOptions();
@@ -395,20 +396,20 @@ function deleteIfInvader(possibleInvaderParticle) {
     }
 }
 
-function particleCollisionWithParticle(particleA, particleB, collision) {
-    print("particleCollisionWithParticle() a.id="+particleA.id + " b.id=" + particleB.id);
-    Vec3.print('particleCollisionWithParticle() penetration=', collision.penetration);
-    Vec3.print('particleCollisionWithParticle() contactPoint=', collision.contactPoint);
+function entityCollisionWithEntity(entityA, entityB, collision) {
+    print("entityCollisionWithEntity() a.id="+entityA.id + " b.id=" + entityB.id);
+    Vec3.print('entityCollisionWithEntity() penetration=', collision.penetration);
+    Vec3.print('entityCollisionWithEntity() contactPoint=', collision.contactPoint);
     if (missileFired) {
-        myMissile = Particles.identifyParticle(myMissile);
-        if (myMissile.id == particleA.id) {
-            deleteIfInvader(particleB);
-        } else if (myMissile.id == particleB.id) {
-            deleteIfInvader(particleA);
+        myMissile = Entities.identifyEntity(myMissile);
+        if (myMissile.id == entityA.id) {
+            deleteIfInvader(entityB);
+        } else if (myMissile.id == entityB.id) {
+            deleteIfInvader(entityA);
         }
     }
 }
-Particles.particleCollisionWithParticle.connect(particleCollisionWithParticle);
+Entities.entityCollisionWithEntity.connect(entityCollisionWithEntity);
 
 
 // initialize the game...

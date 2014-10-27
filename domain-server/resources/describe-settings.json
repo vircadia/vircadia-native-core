@@ -6,7 +6,7 @@
       {
         "name": "access_token",
         "label": "Access Token",
-        "help": "This is an access token generated on the <a href='https://data.highfidelity.io/tokens' target='_blank'>My Tokens</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
+        "help": "This is an access token generated on the <a href='https://data.highfidelity.io/user/security' target='_blank'>My Security</a> page of your High Fidelity account.<br/>Generate a token with the 'domains' scope and paste it here.<br/>This is required to associate this domain-server with a domain in your account."
       },
       {
         "name": "id",
@@ -33,6 +33,14 @@
             "label": "None: use the network information I have entered for this domain at data.highfidelity.io"
           }
         ]
+      },
+      {
+        "name": "local_port",
+        "label": "Local UDP Port",
+        "help": "This is the local port your domain-server binds to for UDP connections.<br/>Depending on your router, this may need to be changed to run multiple full automatic networking domain-servers in the same network.",
+        "default": "40102",
+        "type": "int",
+        "advanced": true
       }
     ]
   },
@@ -51,35 +59,136 @@
         "type": "password",
         "help": "Password used for basic HTTP authentication. Leave this blank if you do not want to change it.",
         "value-hidden": true
+      },
+      {
+        "name": "allowed_users",
+        "type": "table",
+        "label": "Allowed Users",
+        "help": "List the High Fidelity names for people you want to be able to connect to this domain.<br/>An empty list means everyone.<br/>You can always connect from the domain-server machine.",
+        "numbered": false,
+        "columns": [
+          {
+            "name": "username",
+            "label": "Username",
+            "can_set": true
+          }
+        ]
       }
     ]
   },
   {
-    "name": "audio",
-    "label": "Audio",
+    "name": "audio_env",
+    "label": "Audio Environment",
     "assignment-types": [0],
     "settings": [
       {
-        "name": "enable_filter",
-        "type": "checkbox",
-        "label": "Enable Positional Filter",
-        "help": "positional audio stream uses lowpass filter",
-        "default": true
-      },
-      {
-        "name": "unattenuated_zone",
-        "label": "Unattenuated Zone",
-        "help": "Boxes for source and listener (corner x, corner y, corner z, size x, size y, size z, corner x, corner y, corner z, size x, size y, size z)",
-        "placeholder": "no zone"
-      },
-      {
         "name": "attenuation_per_doubling_in_distance",
-        "label": "Attenuation per doubling in distance",
-        "help": "Factor between 0.0 and 1.0 (0.0: No attenuation, 1.0: extreme attenuation)",
+        "label": "Default Domain Attenuation",
+        "help": "Factor between 0 and 1.0 (0: No attenuation, 1.0: extreme attenuation)",
         "placeholder": "0.18",
         "default": "0.18",
         "advanced": false
       },
+      {
+        "name": "enable_filter",
+        "type": "checkbox",
+        "help": "positional audio stream uses lowpass filter",
+        "default": true
+      },
+      {
+        "name": "zones",
+        "type": "table",
+        "label": "Zones",
+        "help": "In this table you can define a set of zones in which you can specify various audio properties.",
+        "numbered": false,
+        "key": {
+          "name": "name",
+          "label": "Name",
+          "placeholder": "Zone_Name"
+        },
+        "columns": [
+          {
+            "name": "x_range",
+            "label": "X range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "y_range",
+            "label": "Y range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          },
+          {
+            "name": "z_range",
+            "label": "Z range",
+            "can_set": true,
+            "placeholder": "0-16384"
+          }
+        ]
+      },
+      {
+        "name": "attenuation_coefficients",
+        "type": "table",
+        "label": "Attenuation Coefficients",
+        "help": "In this table you can set custom attenuation coefficients between audio zones",
+        "numbered": true,
+        "can_order": true,
+        "columns": [
+          {
+            "name": "source",
+            "label": "Source",
+            "can_set": true,
+            "placeholder": "Zone_A"
+          },
+          {
+            "name": "listener",
+            "label": "Listener",
+            "can_set": true,
+            "placeholder": "Zone_B"
+          },
+          {
+            "name": "coefficient",
+            "label": "Attenuation coefficient",
+            "can_set": true,
+            "placeholder": "0.18"
+          }
+        ]
+      },
+      {
+        "name": "reverb",
+        "type": "table",
+        "label": "Reverb Settings",
+        "help": "In this table you can set custom reverb values for each audio zones",
+        "numbered": true,
+        "columns": [
+          {
+            "name": "zone",
+            "label": "Zone",
+            "can_set": true,
+            "placeholder": "Audio_Zone"
+          },
+          {
+            "name": "reverb_time",
+            "label": "Reverb Decay Time",
+            "can_set": true,
+            "placeholder": "(in sec)"
+          },
+          {
+            "name": "wet_level",
+            "label": "Wet Level",
+            "can_set": true,
+            "placeholder": "(in db)"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "name": "audio_buffer",
+    "label": "Audio Buffers",
+    "assignment-types": [0],
+    "settings": [
       {
         "name": "dynamic_jitter_buffer",
         "type": "checkbox",

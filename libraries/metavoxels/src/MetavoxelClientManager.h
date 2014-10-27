@@ -41,6 +41,8 @@ public:
 
     Q_INVOKABLE void setSpanner(const SharedObjectPointer& object, bool reliable = false);
         
+    Q_INVOKABLE void paintHeightfieldHeight(const glm::vec3& position, float radius, float height);
+
     Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
 
     /// Returns the current LOD.  This must be thread-safe, as it will be called from the updater thread.
@@ -114,8 +116,16 @@ public:
 
 protected:
 
+    PacketRecord* getAcknowledgedSendRecord(int packetNumber) const;
+    PacketRecord* getAcknowledgedReceiveRecord(int packetNumber) const;
+
     virtual void dataChanged(const MetavoxelData& oldData);
 
+    virtual void recordReceive();
+    
+    virtual void clearSendRecordsBefore(int index);
+    virtual void clearReceiveRecordsBefore(int index);
+    
     virtual void writeUpdateMessage(Bitstream& out);
     virtual void handleMessage(const QVariant& message, Bitstream& in);
 
@@ -130,9 +140,18 @@ protected:
     ReliableChannel* _reliableDeltaChannel;
     MetavoxelLOD _reliableDeltaLOD;
     int _reliableDeltaID;
+    QVariant _reliableDeltaMessage;
     
     MetavoxelData _dataCopy;
     QReadWriteLock _dataCopyLock;
+    
+    QDataStream _dummyDataStream;
+    Bitstream _dummyInputStream;
+    int _dummyPacketNumber;
+    QList<PacketRecord*> _clearedSendRecords;
+    
+    typedef QPair<PacketRecord*, Bitstream::ReadMappings> ClearedReceiveRecord;
+    QList<ClearedReceiveRecord> _clearedReceiveRecords;
 };
 
 #endif // hifi_MetavoxelClientManager_h

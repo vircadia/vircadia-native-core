@@ -44,7 +44,8 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _framesAvailableStat(),
     _currentJitterBufferFrames(0),
     _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
-    _repetitionWithFade(settings._repetitionWithFade)
+    _repetitionWithFade(settings._repetitionWithFade),
+    _hasReverb(false)
 {
 }
 
@@ -162,9 +163,22 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
+    int read = 0;
+    if (type == PacketTypeMixedAudio) {
+        memcpy(&_hasReverb, packetAfterSeqNum.data() + read, sizeof(bool));
+        read += sizeof(bool);
+        
+        if (_hasReverb) {
+            memcpy(&_reverbTime, packetAfterSeqNum.data() + read, sizeof(float));
+            read += sizeof(float);
+            memcpy(&_wetLevel, packetAfterSeqNum.data() + read, sizeof(float));
+            read += sizeof(float);
+        }
+    }
+    
     // mixed audio packets do not have any info between the seq num and the audio data.
-    numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
-    return 0;
+    numAudioSamples = (packetAfterSeqNum.size() - read) / sizeof(int16_t);
+    return read;
 }
 
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {

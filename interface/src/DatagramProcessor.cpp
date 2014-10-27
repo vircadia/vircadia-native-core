@@ -11,11 +11,11 @@
 
 #include <QtCore/QWeakPointer>
 
+#include <AccountManager.h>
 #include <PerfStat.h>
 
 #include "Application.h"
 #include "Menu.h"
-#include "ui/OAuthWebViewHandler.h"
 
 #include "DatagramProcessor.h"
 
@@ -70,18 +70,11 @@ void DatagramProcessor::processDatagrams() {
                     
                     break;
                 }
-                case PacketTypeParticleAddResponse:
-                    // this will keep creatorTokenIDs to IDs mapped correctly
-                    Particle::handleAddParticleResponse(incomingPacket);
-                    application->getParticles()->getTree()->handleAddParticleResponse(incomingPacket);
-                    break;
                 case PacketTypeEntityAddResponse:
                     // this will keep creatorTokenIDs to IDs mapped correctly
                     EntityItemID::handleAddEntityResponse(incomingPacket);
                     application->getEntities()->getTree()->handleAddEntityResponse(incomingPacket);
                     break;
-                case PacketTypeParticleData:
-                case PacketTypeParticleErase:
                 case PacketTypeEntityData:
                 case PacketTypeEntityErase:
                 case PacketTypeVoxelData:
@@ -136,16 +129,12 @@ void DatagramProcessor::processDatagrams() {
                     application->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(incomingPacket.size());
                     break;
                 }
-                case PacketTypeDomainOAuthRequest: {
-                    QDataStream readStream(incomingPacket);
-                    readStream.skipRawData(numBytesForPacketHeader(incomingPacket));
-                    
-                    QUrl authorizationURL;
-                    readStream >> authorizationURL;
-                    
-                    QMetaObject::invokeMethod(&OAuthWebViewHandler::getInstance(), "displayWebviewForAuthorizationURL",
-                                              Q_ARG(const QUrl&, authorizationURL));
-                    
+                case PacketTypeDomainConnectionDenied: {
+                    // output to the log so the user knows they got a denied connection request
+                    // and check and signal for an access token so that we can make sure they are logged in
+                    qDebug() << "The domain-server denied a connection request.";
+                    qDebug() << "You may need to re-log to generate a keypair so you can provide a username signature.";
+                    AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
                 }
                 case PacketTypeMuteEnvironment: {
@@ -165,11 +154,6 @@ void DatagramProcessor::processDatagrams() {
                 case PacketTypeVoxelEditNack:
                     if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
                         application->_voxelEditSender.processNackPacket(incomingPacket);
-                    }
-                    break;
-                case PacketTypeParticleEditNack:
-                    if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableNackPackets)) {
-                        application->_particleEditSender.processNackPacket(incomingPacket);
                     }
                     break;
                 case PacketTypeEntityEditNack:

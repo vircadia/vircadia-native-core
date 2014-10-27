@@ -35,8 +35,6 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <ParticleCollisionSystem.h>
-#include <ParticleEditPacketSender.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
 #include <ViewFrustum.h>
@@ -58,15 +56,12 @@
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
 #include "avatar/MyAvatar.h"
-#include "devices/Faceplus.h"
 #include "devices/Faceshift.h"
 #include "devices/PrioVR.h"
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
-#include "devices/CaraFaceTracker.h"
 #include "devices/DdeFaceTracker.h"
 #include "entities/EntityTreeRenderer.h"
-#include "particles/ParticleTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
@@ -94,6 +89,9 @@
 #include "voxels/VoxelImporter.h"
 #include "voxels/OctreePacketProcessor.h"
 #include "voxels/VoxelSystem.h"
+
+
+#include "UndoStackScriptingInterface.h"
 
 
 class QAction;
@@ -199,7 +197,6 @@ public:
     VoxelSystem* getVoxels() { return &_voxels; }
     VoxelTree* getVoxelTree() { return _voxels.getTree(); }
     const OctreePacketProcessor& getOctreePacketProcessor() const { return _octreeProcessor; }
-    ParticleTreeRenderer* getParticles() { return &_particles; }
     MetavoxelSystem* getMetavoxels() { return &_metavoxels; }
     EntityTreeRenderer* getEntities() { return &_entities; }
     bool getImportSucceded() { return _importSucceded; }
@@ -215,11 +212,9 @@ public:
     int getMouseX() const { return _mouseX; }
     int getMouseY() const { return _mouseY; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
-    Faceplus* getFaceplus() { return &_faceplus; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
     DdeFaceTracker* getDDE() { return &_dde; }
-    CaraFaceTracker* getCara() { return &_cara; }
     FaceTracker* getActiveFaceTracker();
     PrioVR* getPrioVR() { return &_prioVR; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
@@ -290,7 +285,6 @@ public:
 
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
-    NodeToJurisdictionMap& getParticleServerJurisdictions() { return _particleServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
     void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
@@ -302,6 +296,8 @@ public:
     void setCursorVisible(bool visible);
     
     bool isLookingAtMyAvatar(Avatar* avatar);
+
+    float getRenderResolutionScale() const { return _renderResolutionScale; }
 
 signals:
 
@@ -365,6 +361,15 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
+    void setRenderTargetFramerate(unsigned int framerate, bool vsyncOn = true);
+    bool isVSyncOn() { return _isVSyncOn; }
+    bool isVSyncEditable();
+    unsigned int  getRenderTargetFramerate() const { return _renderTargetFramerate; }
+
+    void setRenderResolutionScale(float scale);
+
+    void resetSensors();
+
 private slots:
     void timer();
     void idle();
@@ -381,7 +386,6 @@ private slots:
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
-    void resetSensors();
 
     void parseVersionXml();
 
@@ -403,11 +407,9 @@ private:
     // Various helper functions called during update()
     void updateLOD();
     void updateMouseRay();
-    void updateFaceplus();
     void updateFaceshift();
     void updateVisage();
     void updateDDE();
-    void updateCara();
     void updateMyAvatarLookAtPosition();
     void updateThreads(float deltaTime);
     void updateMetavoxels(float deltaTime);
@@ -456,6 +458,7 @@ private:
     int _numChangedSettings;
 
     QUndoStack _undoStack;
+    UndoStackScriptingInterface _undoStackScriptingInterface;
 
     glm::vec3 _gravity;
 
@@ -479,9 +482,6 @@ private:
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
-    ParticleTreeRenderer _particles;
-    ParticleCollisionSystem _particleCollisionSystem;
-
     EntityTreeRenderer _entities;
     EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
@@ -493,7 +493,7 @@ private:
     MetavoxelSystem _metavoxels;
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
-    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels, particles)
+    ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
     ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
@@ -505,10 +505,8 @@ private:
     AvatarManager _avatarManager;
     MyAvatar* _myAvatar;            // TODO: move this and relevant code to AvatarManager (or MyAvatar as the case may be)
 
-    Faceplus _faceplus;
     Faceshift _faceshift;
     Visage _visage;
-    CaraFaceTracker _cara;
     DdeFaceTracker _dde;
 
     PrioVR _prioVR;
@@ -519,7 +517,6 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
-    float _cameraPushback;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
@@ -573,7 +570,6 @@ private:
     OctreePacketProcessor _octreeProcessor;
     VoxelHideShowThread _voxelHideShowThread;
     VoxelEditPacketSender _voxelEditSender;
-    ParticleEditPacketSender _particleEditSender;
     EntityEditPacketSender _entityEditSender;
 
     int _packetsPerSecond;
@@ -586,7 +582,6 @@ private:
     void trackIncomingVoxelPacket(const QByteArray& packet, const SharedNodePointer& sendingNode, bool wasStatsPacket);
 
     NodeToJurisdictionMap _voxelServerJurisdictions;
-    NodeToJurisdictionMap _particleServerJurisdictions;
     NodeToJurisdictionMap _entityServerJurisdictions;
     NodeToOctreeSceneStats _octreeServerSceneStats;
     QReadWriteLock _octreeSceneStatsLock;
@@ -622,6 +617,10 @@ private:
 
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
+
+    int _renderTargetFramerate;
+    bool _isVSyncOn;
+    float _renderResolutionScale;
 };
 
 #endif // hifi_Application_h

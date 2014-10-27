@@ -11,6 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
 Script.include("libraries/stringHelpers.js");
 Script.include("libraries/dataviewHelpers.js");
 Script.include("libraries/httpMultiPart.js");
@@ -20,6 +21,7 @@ Script.include("libraries/progressDialog.js");
 
 Script.include("libraries/entitySelectionTool.js");
 var selectionDisplay = SelectionDisplay;
+var selectionManager = SelectionManager;
 
 Script.include("libraries/ModelImporter.js");
 var modelImporter = new ModelImporter();
@@ -30,8 +32,13 @@ Script.include("libraries/ToolTip.js");
 Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
+Script.include("libraries/entityCameraTool.js");
+var entityCameraTool = new EntityCameraTool();
+
+selectionManager.setEventListener(selectionDisplay.updateHandles);
+
 var windowDimensions = Controller.getViewportDimensions();
-var toolIconUrl = "http://highfidelity-public.s3-us-west-1.amazonaws.com/images/tools/";
+var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
 var toolHeight = 50;
 var toolWidth = 50;
 
@@ -45,14 +52,14 @@ var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
 var modelURLs = [
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Feisar_Ship.FBX",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/birarda/birarda_head.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/pug.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/newInvader16x16-large-purple.svo",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/minotaur/mino_full.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/Combat_tank_V01.FBX",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/orc.fbx",
-        "http://highfidelity-public.s3-us-west-1.amazonaws.com/meshes/slimer.fbx"
+        HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
+        HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/pug.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
+        HIFI_PUBLIC_BUCKET + "meshes/minotaur/mino_full.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/Combat_tank_V01.FBX",
+        HIFI_PUBLIC_BUCKET + "meshes/orc.fbx",
+        HIFI_PUBLIC_BUCKET + "meshes/slimer.fbx"
     ];
 
 var mode = 0;
@@ -162,6 +169,9 @@ var toolBar = (function () {
         Overlays.editOverlay(loadFileMenuItem, { visible: active });
     }
 
+    var RESIZE_INTERVAL = 50;
+    var RESIZE_TIMEOUT = 20000;
+    var RESIZE_MAX_CHECKS = RESIZE_TIMEOUT / RESIZE_INTERVAL;
     function addModel(url) {
         var position;
 
@@ -175,6 +185,27 @@ var toolBar = (function () {
                 modelURL: url
             });
             print("Model added: " + url);
+
+            var checkCount = 0;
+            function resize() {
+                var entityProperties = Entities.getEntityProperties(entityId);
+                var naturalDimensions = entityProperties.naturalDimensions;
+
+                checkCount++;
+
+                if (naturalDimensions.x == 0 && naturalDimensions.y == 0 && naturalDimensions.z == 0) {
+                    if (checkCount < RESIZE_MAX_CHECKS) {
+                        Script.setTimeout(resize, RESIZE_INTERVAL);
+                    } else {
+                        print("Resize failed: timed out waiting for model (" + url + ") to load");
+                    }
+                } else {
+                    entityProperties.dimensions = naturalDimensions;
+                    Entities.editEntity(entityId, entityProperties);
+                }
+            }
+
+            Script.setTimeout(resize, RESIZE_INTERVAL);
         } else {
             print("Can't add model: Model would be out of bounds.");
         }
@@ -216,6 +247,9 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 selectionDisplay.unselectAll();
+                entityCameraTool.disable();
+            } else {
+                entityCameraTool.enable();
             }
             return true;
         }
@@ -237,7 +271,6 @@ var toolBar = (function () {
         if (clickedOverlay === loadFileMenuItem) {
             toggleNewModelButton(false);
 
-            // TODO BUG: this is bug, if the user has never uploaded a model, this will throw an JS exception
             file = Window.browse("Select your model file ...",
                 Settings.getValue("LastModelUploadLocation").path(), 
                 "Model files (*.fst *.fbx)");
@@ -292,6 +325,7 @@ var toolBar = (function () {
         }
 
 
+
         return false;
     };
 
@@ -310,7 +344,7 @@ var exportMenu = null;
 function isLocked(properties) {
     // special case to lock the ground plane model in hq.
     if (location.hostname == "hq.highfidelity.io" &&
-        properties.modelURL == "https://s3-us-west-1.amazonaws.com/highfidelity-public/ozan/Terrain_Reduce_forAlpha.fbx") {
+        properties.modelURL == HIFI_PUBLIC_BUCKET + "ozan/Terrain_Reduce_forAlpha.fbx") {
         return true;
     }
     return false;
@@ -337,13 +371,16 @@ function rayPlaneIntersection(pickRay, point, normal) {
 
 function mousePressEvent(event) {
     mouseLastPosition = { x: event.x, y: event.y };
-    entitySelected = false;
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)
+        || entityCameraTool.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
+        entitySelected = false;
+        selectionDisplay.unselectAll();
+
         // If we aren't active and didn't click on an overlay: quit
         if (!isActive) {
             return;
@@ -406,6 +443,11 @@ function mousePressEvent(event) {
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
+                if (!event.isShifted) {
+                    selectionManager.clearSelections();
+                }
+                selectionManager.addEntity(foundEntity);
+
                 print("Model selected selectedEntityID:" + selectedEntityID.id);
 
             }
@@ -439,34 +481,36 @@ function mouseMoveEvent(event) {
     if (!isActive) {
         return;
     }
+    
+    // allow the selectionDisplay and entityCameraTool to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event) || entityCameraTool.mouseMoveEvent(event)) {
+        return;
+    }
 
     var pickRay = Camera.computePickRay(event.x, event.y);
-    if (!entitySelected) {
-        var entityIntersection = Entities.findRayIntersection(pickRay);
-        if (entityIntersection.accurate) {
-            if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
-                selectionDisplay.unhighlightSelectable(highlightedEntityID);
-                highlightedEntityID = { id: -1, isKnownID: false };
-            }
-
-            var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-            
-            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
-                                            entityIntersection.properties.position)) * 180 / 3.14;
-
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
-                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-            if (entityIntersection.entityID.isKnownID && sizeOK) {
-                if (wantEntityGlow) {
-                    Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
-                }
-                highlightedEntityID = entityIntersection.entityID;
-                selectionDisplay.highlightSelectable(entityIntersection.entityID);
-            }
-            
+    var entityIntersection = Entities.findRayIntersection(pickRay);
+    if (entityIntersection.accurate) {
+        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+            selectionDisplay.unhighlightSelectable(highlightedEntityID);
+            highlightedEntityID = { id: -1, isKnownID: false };
         }
-        return;
+
+        var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
+        
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
+                                        entityIntersection.properties.position)) * 180 / 3.14;
+
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+        if (entityIntersection.entityID.isKnownID && sizeOK) {
+            if (wantEntityGlow) {
+                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+            }
+            highlightedEntityID = entityIntersection.entityID;
+            selectionDisplay.highlightSelectable(entityIntersection.entityID);
+        }
+        
     }
 }
 
@@ -478,6 +522,7 @@ function mouseReleaseEvent(event) {
     if (entitySelected) {
         tooltip.show(false);
     }
+    entityCameraTool.mouseReleaseEvent(event);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -513,6 +558,7 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
+    Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -532,6 +578,7 @@ function cleanupModelMenus() {
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
+    Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 }
 
 Script.scriptEnding.connect(function() {
@@ -561,14 +608,30 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Delete") {
         if (entitySelected) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
-            Entities.deleteEntity(selectedEntityID);
+            for (var i = 0; i < selectionManager.selections.length; i++) {
+                Entities.deleteEntity(selectionManager.selections[i]);
+            }
             selectionDisplay.unselect(selectedEntityID);
             entitySelected = false;
+            selectionManager.clearSelections();
         } else {
             print("  Delete Entity.... not holding...");
         }
     } else if (menuItem == "Edit Properties...") {
         // good place to put the properties dialog
+
+        editModelID = -1;
+        if (selectionManager.selections.length == 1) {
+            print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
+            editModelID = selectedEntityID;
+        } else {
+            print("  Edit Properties.... not holding...");
+        }
+        if (editModelID != -1) {
+            print("  Edit Properties.... about to edit properties...");
+            entityPropertyDialogBox.openDialog(editModelID);
+        }
+        
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
@@ -589,11 +652,22 @@ Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
+    print(event.text);
     if (event.text == "`") {
         handeMenuEvent("Edit Properties...");
     }
-    if (event.text == "BACKSPACE") {
+    if (event.text == "BACKSPACE" || event.text == "DELETE") {
         handeMenuEvent("Delete");
+    } else if (event.text == "TAB") {
+        selectionDisplay.toggleSpaceMode();
+    } else if (event.text == "ESC") {
+        selectionDisplay.cancelTool();
+    } else if (event.text == "f") {
+        if (entitySelected) {
+            // Get latest properties
+            var properties = Entities.getEntityProperties(selectedEntityID);
+            entityCameraTool.focus(properties);
+        }
     }
 });
 

@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <glm/gtx/vector_angle.hpp>
+
 #include <QDebug>
 
 #include "Vec3.h"
@@ -37,7 +39,7 @@ glm::vec3 Vec3::sum(const glm::vec3& v1, const glm::vec3& v2) {
     return v1 + v2;
 }
 glm::vec3 Vec3::subtract(const glm::vec3& v1, const glm::vec3& v2) {
-        return v1 - v2;
+    return v1 - v2;
 }
 
 float Vec3::length(const glm::vec3& v) {
@@ -48,8 +50,16 @@ float Vec3::distance(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::distance(v1, v2);
 }
 
+float Vec3::orientedAngle(const glm::vec3& v1, const glm::vec3& v2, const glm::vec3& v3) {
+    return glm::degrees(glm::orientedAngle(glm::normalize(v1), glm::normalize(v2), glm::normalize(v3)));
+}
+
 glm::vec3 Vec3::normalize(const glm::vec3& v) {
     return glm::normalize(v);
+}
+
+glm::vec3 Vec3::mix(const glm::vec3& v1, const glm::vec3& v2, float m) {
+    return glm::mix(v1, v2, m);
 }
 
 void Vec3::print(const QString& lable, const glm::vec3& v) {

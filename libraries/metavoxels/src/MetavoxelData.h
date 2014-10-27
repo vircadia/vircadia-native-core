@@ -112,6 +112,9 @@ public:
     /// Clears all data in the specified attribute layer.
     void clear(const AttributePointer& attribute);
 
+    /// "Touches" all data in the specified attribute layer, making it look as if it has changed.
+    void touch(const AttributePointer& attribute);
+
     /// Convenience function that finds the first spanner intersecting the provided ray.    
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance, const MetavoxelLOD& lod = MetavoxelLOD());
@@ -253,6 +256,8 @@ public:
     
     void countNodes(const AttributePointer& attribute, const glm::vec3& minimum,
         float size, const MetavoxelLOD& lod, int& internalNodes, int& leaves) const;
+    
+    MetavoxelNode* touch(const AttributePointer& attribute) const;
     
 private:
     Q_DISABLE_COPY(MetavoxelNode)
@@ -639,8 +644,23 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const glm::vec3& clipMinimum, float clipSize, float& distance) const;
 
+    /// Checks whether this spanner has its own colors.
+    virtual bool hasOwnColors() const;
+
+    /// Checks whether this spanner has its own materials.
+    virtual bool hasOwnMaterials() const;
+
     /// Checks whether the spanner contains the specified point.
     virtual bool contains(const glm::vec3& point);
+
+    /// Retrieves the color at the specified point.
+    virtual QRgb getColorAt(const glm::vec3& point);
+    
+    /// Retrieves the material at the specified point.
+    virtual int getMaterialAt(const glm::vec3& point);
+
+    /// Retrieves a reference to the list of materials.
+    virtual QVector<SharedObjectPointer>& getMaterials();
 
     /// Finds the intersection, if any, between the specified line segment and the spanner.
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
@@ -841,6 +861,39 @@ protected:
 private:
     
     QUrl _url;
+};
+
+/// A heightfield represented as a spanner.
+class Heightfield : public Transformable {
+    Q_OBJECT
+
+public:
+    
+    Heightfield(const Box& bounds, float increment, const QByteArray& height, const QByteArray& color,
+        const QByteArray& material, const QVector<SharedObjectPointer>& materials);
+    
+    QByteArray& getHeight() { return _height; }
+    QByteArray& getColor() { return _color; }
+    QByteArray& getMaterial() { return _material; }
+    
+    virtual bool hasOwnColors() const;
+    virtual bool hasOwnMaterials() const;
+    virtual QRgb getColorAt(const glm::vec3& point);
+    virtual int getMaterialAt(const glm::vec3& point);
+    virtual QVector<SharedObjectPointer>& getMaterials();
+    
+    virtual bool contains(const glm::vec3& point);
+    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
+
+private:
+    
+    float _increment;
+    int _width;
+    float _heightScale;
+    QByteArray _height;
+    QByteArray _color;
+    QByteArray _material;
+    QVector<SharedObjectPointer> _materials;
 };
 
 #endif // hifi_MetavoxelData_h

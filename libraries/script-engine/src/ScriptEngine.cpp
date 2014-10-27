@@ -17,6 +17,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QScriptEngine>
 
+#include <AudioEffectOptions.h>
 #include <AudioInjector.h>
 #include <AudioRingBuffer.h>
 #include <AvatarData.h>
@@ -26,7 +27,6 @@
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <ParticlesScriptingInterface.h>
 #include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
@@ -43,7 +43,6 @@
 #include "XMLHttpRequestClass.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
-ParticlesScriptingInterface ScriptEngine::_particlesScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
 static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
@@ -65,7 +64,15 @@ static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     return QScriptValue();
 }
 
-QScriptValue injectorToScriptValue(QScriptEngine *engine, AudioInjector* const &in) {
+QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &in) {
+    return engine->newQObject(in);
+}
+
+void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
+    out = qobject_cast<AvatarData*>(object.toQObject());
+}
+
+QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
     return engine->newQObject(in);
 }
 
@@ -157,7 +164,7 @@ ScriptEngine::ScriptEngine(const QUrl& scriptURL,
                 emit errorMessage("ERROR Loading file:" + fileName);
             }
         } else {
-            NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
             qDebug() << "Downloading script at" << url;
             QEventLoop loop;
@@ -236,7 +243,6 @@ void ScriptEngine::init() {
     _isInitialized = true;
 
     _voxelsScriptingInterface.init();
-    _particlesScriptingInterface.init();
 
     // register various meta-types
     registerMetaTypes(this);
@@ -247,10 +253,6 @@ void ScriptEngine::init() {
     registerAnimationTypes(this);
     registerAvatarTypes(this);
     Bitstream::registerTypes(this);
-
-    qScriptRegisterMetaType(this, ParticlePropertiesToScriptValue, ParticlePropertiesFromScriptValue);
-    qScriptRegisterMetaType(this, ParticleIDtoScriptValue, ParticleIDfromScriptValue);
-    qScriptRegisterSequenceMetaType<QVector<ParticleID> >(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
     qScriptRegisterMetaType(this, EntityItemIDtoScriptValue, EntityItemIDfromScriptValue);
@@ -276,17 +278,19 @@ void ScriptEngine::init() {
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
+
+    QScriptValue audioEffectOptionsConstructorValue = newFunction(AudioEffectOptions::constructor);
+    globalObject().setProperty("AudioEffectOptions", audioEffectOptionsConstructorValue);
     
     qScriptRegisterMetaType(this, injectorToScriptValue, injectorFromScriptValue);
     qScriptRegisterMetaType(this, inputControllerToScriptValue, inputControllerFromScriptValue);
-
+    qScriptRegisterMetaType(this, avatarDataToScriptValue, avatarDataFromScriptValue);
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 
     registerGlobalObject("Script", this);
     registerGlobalObject("Audio", &_audioScriptingInterface);
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Entities", &_entityScriptingInterface);
-    registerGlobalObject("Particles", &_particlesScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
@@ -299,14 +303,12 @@ void ScriptEngine::init() {
     globalObject().setProperty("COLLISION_GROUP_ENVIRONMENT", newVariant(QVariant(COLLISION_GROUP_ENVIRONMENT)));
     globalObject().setProperty("COLLISION_GROUP_AVATARS", newVariant(QVariant(COLLISION_GROUP_AVATARS)));
     globalObject().setProperty("COLLISION_GROUP_VOXELS", newVariant(QVariant(COLLISION_GROUP_VOXELS)));
-    globalObject().setProperty("COLLISION_GROUP_PARTICLES", newVariant(QVariant(COLLISION_GROUP_PARTICLES)));
 
     globalObject().setProperty("AVATAR_MOTION_OBEY_LOCAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_LOCAL_GRAVITY)));
     globalObject().setProperty("AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY", newVariant(QVariant(AVATAR_MOTION_OBEY_ENVIRONMENTAL_GRAVITY)));
 
     // let the VoxelPacketSender know how frequently we plan to call it
     _voxelsScriptingInterface.getVoxelPacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
-    _particlesScriptingInterface.getParticlePacketSender()->setProcessCallIntervalHint(SCRIPT_DATA_CALLBACK_USECS);
 }
 
 QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* object) {
@@ -418,16 +420,6 @@ void ScriptEngine::run() {
             // since we're in non-threaded mode, call process so that the packets are sent
             if (!_voxelsScriptingInterface.getVoxelPacketSender()->isThreaded()) {
                 _voxelsScriptingInterface.getVoxelPacketSender()->process();
-            }
-        }
-
-        if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-            // release the queue of edit voxel messages.
-            _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
-
-            // since we're in non-threaded mode, call process so that the packets are sent
-            if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
-                _particlesScriptingInterface.getParticlePacketSender()->process();
             }
         }
 
@@ -568,16 +560,6 @@ void ScriptEngine::run() {
         }
     }
 
-    if (_particlesScriptingInterface.getParticlePacketSender()->serversExist()) {
-        // release the queue of edit voxel messages.
-        _particlesScriptingInterface.getParticlePacketSender()->releaseQueuedMessages();
-
-        // since we're in non-threaded mode, call process so that the packets are sent
-        if (!_particlesScriptingInterface.getParticlePacketSender()->isThreaded()) {
-            _particlesScriptingInterface.getParticlePacketSender()->process();
-        }
-    }
-
     if (_entityScriptingInterface.getEntityPacketSender()->serversExist()) {
         // release the queue of edit entity messages.
         _entityScriptingInterface.getEntityPacketSender()->releaseQueuedMessages();
@@ -681,8 +663,8 @@ void ScriptEngine::include(const QString& includeFile) {
     QUrl url = resolveInclude(includeFile);
     QString includeContents;
 
-    if (url.scheme() == "http" || url.scheme() == "ftp") {
-        NetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+    if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
         QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
         qDebug() << "Downloading included script at" << includeFile;
         QEventLoop loop;

@@ -22,6 +22,9 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting) {
     QSettings* settings = Application::getInstance()->lockSettings();
     QVariant value = settings->value(setting);
     Application::getInstance()->unlockSettings();
+    if (!value.isValid()) {
+        value = "";
+    }
     return value;
 }
 
@@ -29,6 +32,9 @@ QVariant SettingsScriptingInterface::getValue(const QString& setting, const QVar
     QSettings* settings = Application::getInstance()->lockSettings();
     QVariant value = settings->value(setting, defaultValue);
     Application::getInstance()->unlockSettings();
+    if (!value.isValid()) {
+        value = "";
+    }
     return value;
 }
 

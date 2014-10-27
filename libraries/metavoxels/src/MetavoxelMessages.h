@@ -68,6 +68,8 @@ class MetavoxelDeltaPendingMessage {
 public:
     
     STREAM int id;
+    STREAM int sentPacketNumber;
+    STREAM int receivedPacketNumber;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelDeltaPendingMessage)
@@ -91,7 +93,7 @@ public:
 
     virtual ~MetavoxelEdit();
     
-    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const = 0;
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
 };
 
 /// An edit that sets the region within a box to a value.
@@ -224,16 +226,28 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(PaintHeightfieldHeightEdit)
 
+/// Base class for edits that have materials.
+class MaterialEdit : public MetavoxelEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM SharedObjectPointer material;
+    STREAM QColor averageColor;
+    
+    MaterialEdit(const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
+};
+
+DECLARE_STREAMABLE_METATYPE(MaterialEdit)
+
 /// An edit that sets a region of a heightfield material.
-class PaintHeightfieldMaterialEdit : public MetavoxelEdit {
+class PaintHeightfieldMaterialEdit : STREAM public MaterialEdit {
     STREAMABLE
 
 public:
     
     STREAM glm::vec3 position;
     STREAM float radius;
-    STREAM SharedObjectPointer material;
-    STREAM QColor averageColor;
     
     PaintHeightfieldMaterialEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
         const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
@@ -244,14 +258,12 @@ public:
 DECLARE_STREAMABLE_METATYPE(PaintHeightfieldMaterialEdit)
 
 /// An edit that sets the materials of voxels within a spanner to a value.
-class VoxelMaterialSpannerEdit : public MetavoxelEdit {
+class VoxelMaterialSpannerEdit : STREAM public MaterialEdit {
     STREAMABLE
 
 public:
 
     STREAM SharedObjectPointer spanner;
-    STREAM SharedObjectPointer material;
-    STREAM QColor averageColor;
     
     VoxelMaterialSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer(),
         const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
@@ -260,5 +272,22 @@ public:
 };
 
 DECLARE_STREAMABLE_METATYPE(VoxelMaterialSpannerEdit)
+
+/// An edit that sets a region of a voxel material.
+class PaintVoxelMaterialEdit : STREAM public MaterialEdit {
+    STREAMABLE
+
+public:
+    
+    STREAM glm::vec3 position;
+    STREAM float radius;
+    
+    PaintVoxelMaterialEdit(const glm::vec3& position = glm::vec3(), float radius = 0.0f,
+        const SharedObjectPointer& material = SharedObjectPointer(), const QColor& averageColor = QColor());
+    
+    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
+};
+
+DECLARE_STREAMABLE_METATYPE(PaintVoxelMaterialEdit)
 
 #endif // hifi_MetavoxelMessages_h

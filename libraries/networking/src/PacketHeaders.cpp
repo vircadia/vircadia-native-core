@@ -53,7 +53,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeSilentAudioFrame:
             return 4;
         case PacketTypeMixedAudio:
-            return 1;
+            return 2;
         case PacketTypeAvatarData:
             return 3;
         case PacketTypeAvatarIdentity:
@@ -71,10 +71,6 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeOctreeStats:
             return 1;
-        case PacketTypeParticleData:
-            return 1;
-        case PacketTypeParticleErase:
-            return 1;
 
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
@@ -85,7 +81,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
-            return 4;
+            return 8;
         case PacketTypeVoxelData:
             return VERSION_VOXELS_HAS_FILE_BREAKS;
         default:
@@ -114,7 +110,7 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainListRequest);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeRequestAssignment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeCreateAssignment);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainOAuthRequest);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeDomainConnectionDenied);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeMuteEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioStreamStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeDataServerConfirm);
@@ -126,11 +122,6 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeStats);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdiction);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeJurisdictionRequest);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleQuery);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleData);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleAddOrEdit);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleErase);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeMetavoxelData);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarIdentity);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeAvatarBillboard);
@@ -144,7 +135,6 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelEditNack);
-        PACKET_TYPE_NAME_LOOKUP(PacketTypeParticleEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);
         default:

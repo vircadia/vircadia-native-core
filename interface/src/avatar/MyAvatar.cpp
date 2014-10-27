@@ -49,8 +49,8 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float MIN_KEYBOARD_CONTROL_SPEED = 1.5f;
-const float MAX_WALKING_SPEED = 3.0f * MIN_KEYBOARD_CONTROL_SPEED;
+const float MIN_KEYBOARD_CONTROL_SPEED = 0.50f;
+const float MAX_WALKING_SPEED = 4.5f;
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
 // to properly follow avatar size.
@@ -231,7 +231,7 @@ void MyAvatar::simulate(float deltaTime) {
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
+            _hair.setLoudness((float)getHeadData()->getAudioLoudness());
             _hair.simulate(deltaTime);
         }
     }
@@ -309,6 +309,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     } else if (OculusManager::isConnected()) {
         estimatedPosition = OculusManager::getRelativePosition();
         estimatedPosition.x *= -1.0f;
+        _trackedHeadPosition = estimatedPosition;
         
         const float OCULUS_LEAN_SCALE = 0.05f;
         estimatedPosition /= OCULUS_LEAN_SCALE;
@@ -316,6 +317,7 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         FaceTracker* tracker = Application::getInstance()->getActiveFaceTracker();
         if (tracker) {
             estimatedPosition = tracker->getHeadTranslation();
+            _trackedHeadPosition = estimatedPosition;
             estimatedRotation = glm::degrees(safeEulerAngles(tracker->getHeadRotation()));
         }
     }
@@ -413,7 +415,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    glutSolidSphere(0.2, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.2, 10, 10);
     glPopMatrix();
 
     //  Head Sphere
@@ -421,7 +423,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    glutSolidSphere(0.15, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.15, 10, 10);
     glPopMatrix();
 }
 
@@ -1148,7 +1150,7 @@ void MyAvatar::renderBody(RenderMode renderMode, bool postLighting, float glowLe
     
     //  Render head so long as the camera isn't inside it
     const Camera *camera = Application::getInstance()->getCamera();
-    const glm::vec3 cameraPos = camera->getPosition() + (camera->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) * camera->getDistance();
+    const glm::vec3 cameraPos = camera->getPosition();
     if (shouldRenderHead(cameraPos, renderMode)) {
         getHead()->render(1.0f, modelRenderMode, postLighting);
         
@@ -1173,7 +1175,7 @@ const float RENDER_HEAD_CUTOFF_DISTANCE = 0.50f;
 
 bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode renderMode) const {
     const Head* head = getHead();
-    return (renderMode != NORMAL_RENDER_MODE) || 
+    return (renderMode != NORMAL_RENDER_MODE) || (Application::getInstance()->getCamera()->getMode() != CAMERA_MODE_FIRST_PERSON) || 
         (glm::length(cameraPosition - head->getEyePosition()) > RENDER_HEAD_CUTOFF_DISTANCE * _scale);
 }
 
@@ -1284,21 +1286,19 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
 
             // Compute the target keyboard velocity (which ramps up slowly, and damps very quickly)
             // the max magnitude of which depends on what we're doing:
-            float finalMaxMotorSpeed = hasFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
             float motorLength = glm::length(_keyboardMotorVelocity);
+            float finalMaxMotorSpeed = hasFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
+            float speedGrowthTimescale  = 2.0f;
+            float speedIncreaseFactor = 1.8f;
+            motorLength *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
             if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
                 // an active keyboard motor should never be slower than this
-                _keyboardMotorVelocity = _scale * MIN_KEYBOARD_CONTROL_SPEED * direction;
+                motorLength = _scale * MIN_KEYBOARD_CONTROL_SPEED;
                 motorEfficiency = 1.0f;
-            } else {
-                float KEYBOARD_MOTOR_LENGTH_TIMESCALE = 2.0f;
-                float INCREASE_FACTOR = 1.8f;
-                motorLength *= 1.0f + glm::clamp(deltaTime / KEYBOARD_MOTOR_LENGTH_TIMESCALE, 0.0f, 1.0f) * INCREASE_FACTOR;
-                if (motorLength > finalMaxMotorSpeed) {
-                    motorLength = finalMaxMotorSpeed;
-                }
-                _keyboardMotorVelocity = motorLength * direction;
+            } else if (motorLength > finalMaxMotorSpeed) {
+                motorLength = finalMaxMotorSpeed;
             }
+            _keyboardMotorVelocity = motorLength * direction;
             _isPushing = true;
         } 
     } else {
@@ -1994,7 +1994,6 @@ void MyAvatar::setCollisionGroups(quint32 collisionGroups) {
     menu->setIsOptionChecked(MenuOption::CollideWithEnvironment, (bool)(_collisionGroups & COLLISION_GROUP_ENVIRONMENT));
     menu->setIsOptionChecked(MenuOption::CollideWithAvatars, (bool)(_collisionGroups & COLLISION_GROUP_AVATARS));
     menu->setIsOptionChecked(MenuOption::CollideWithVoxels, (bool)(_collisionGroups & COLLISION_GROUP_VOXELS));
-    menu->setIsOptionChecked(MenuOption::CollideWithParticles, (bool)(_collisionGroups & COLLISION_GROUP_PARTICLES));
     if (! (_collisionGroups & COLLISION_GROUP_VOXELS)) {
         // no collision with voxels --> disable standing on floors
         _motionBehaviors &= ~AVATAR_MOTION_STAND_ON_NEARBY_FLOORS;

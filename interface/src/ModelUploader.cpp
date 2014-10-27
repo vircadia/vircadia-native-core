@@ -157,17 +157,19 @@ bool ModelUploader::zip() {
     
     // mixamo/autodesk defaults
     if (!mapping.contains(SCALE_FIELD)) {
-        mapping.insert(SCALE_FIELD, geometry.author == "www.makehuman.org" ? 150.0 : 15.0);
+        mapping.insert(SCALE_FIELD, 15.0);
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
-        joints.insert("jointEyeLeft", geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye");
+        joints.insert("jointEyeLeft", geometry.jointIndices.contains("jointEyeLeft") ? "jointEyeLeft" :
+            (geometry.jointIndices.contains("EyeLeft") ? "EyeLeft" : "LeftEye"));
     }
     if (!joints.contains("jointEyeRight")) {
-        joints.insert("jointEyeRight", geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
+        joints.insert("jointEyeRight", geometry.jointIndices.contains("jointEyeRight") ? "jointEyeRight" :
+            geometry.jointIndices.contains("EyeRight") ? "EyeRight" : "RightEye");
     }
     if (!joints.contains("jointNeck")) {
-        joints.insert("jointNeck", "Neck");
+        joints.insert("jointNeck", geometry.jointIndices.contains("jointNeck") ? "jointNeck" : "Neck");
     }
     if (!joints.contains("jointRoot")) {
         joints.insert("jointRoot", "Hips");
@@ -364,7 +366,9 @@ void ModelUploader::send() {
     _progressBar = NULL;
 }
 
-void ModelUploader::checkJSON(const QJsonObject& jsonResponse) {
+void ModelUploader::checkJSON(QNetworkReply& requestReply) {
+    QJsonObject jsonResponse = QJsonDocument::fromJson(requestReply.readAll()).object();
+    
     if (jsonResponse.contains("status") && jsonResponse.value("status").toString() == "success") {
         qDebug() << "status : success";
         JSONCallbackParameters callbackParams;
@@ -426,7 +430,7 @@ void ModelUploader::uploadUpdate(qint64 bytesSent, qint64 bytesTotal) {
     }
 }
 
-void ModelUploader::uploadSuccess(const QJsonObject& jsonResponse) {
+void ModelUploader::uploadSuccess(QNetworkReply& requestReply) {
     if (_progressDialog) {
         _progressDialog->accept();
     }
@@ -783,7 +787,9 @@ QComboBox* ModelPropertiesDialog::createJointBox(bool withNone) const {
         box->addItem("(none)");
     }
     foreach (const FBXJoint& joint, _geometry.joints) {
-        box->addItem(joint.name);
+        if (joint.isSkeletonJoint || !_geometry.hasSkeletonJoints) {
+            box->addItem(joint.name);
+        }
     }
     return box;
 }

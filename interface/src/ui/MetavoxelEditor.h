@@ -380,6 +380,32 @@ private:
     QDoubleSpinBox* _height;
 };
 
+/// Contains widgets for editing materials.
+class MaterialControl : public QObject {
+    Q_OBJECT
+
+public:
+
+    MaterialControl(QWidget* widget, QFormLayout* form, bool clearable = false);
+    
+    SharedObjectPointer getMaterial();
+    
+    const QColor& getColor() const { return _color->getColor(); }
+    
+private slots:
+    
+    void clearColor();
+    void clearTexture();
+    void updateTexture();
+    void textureLoaded();
+    
+private:
+    
+    QColorEditor* _color;
+    SharedObjectEditor* _materialEditor;
+    QSharedPointer<NetworkTexture> _texture;
+};
+
 /// Allows texturing parts of the heightfield.
 class HeightfieldMaterialBrushTool : public HeightfieldBrushTool {
     Q_OBJECT
@@ -391,18 +417,10 @@ public:
 protected:
     
     virtual QVariant createEdit(bool alternate);
-
-private slots:
-    
-    void clearTexture();
-    void updateTexture();
-    void textureLoaded();
     
 private:
     
-    QColorEditor* _color;
-    SharedObjectEditor* _materialEditor;
-    QSharedPointer<NetworkTexture> _texture;
+    MaterialControl* _materialControl;
 };
 
 /// Allows setting voxel materials by dragging out a box.
@@ -423,19 +441,10 @@ protected:
     
     virtual void applyValue(const glm::vec3& minimum, const glm::vec3& maximum);
 
-private slots:
-    
-    void clearColor();
-    void clearTexture();
-    void updateTexture();
-    void textureLoaded();
-    
 private:
     
     QCheckBox* _snapToGrid;
-    QColorEditor* _color;
-    SharedObjectEditor* _materialEditor;
-    QSharedPointer<NetworkTexture> _texture;
+    MaterialControl* _materialControl;
 };
 
 /// Allows setting voxel materials by placing a spanner.
@@ -454,19 +463,68 @@ protected:
     virtual QColor getColor();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
     
-private slots:
-    
-    void clearColor();
-    void clearTexture();
-    void updateTexture();
-    void textureLoaded();
-    
 private:
     
     SharedObjectEditor* _spannerEditor;
-    QColorEditor* _color;
-    SharedObjectEditor* _materialEditor;
-    QSharedPointer<NetworkTexture> _texture;
+    MaterialControl* _materialControl;
+};
+
+/// Base class for voxel brush tools.
+class VoxelBrushTool : public MetavoxelTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelBrushTool(MetavoxelEditor* editor, const QString& name);
+    
+    virtual bool appliesTo(const AttributePointer& attribute) const;
+     
+    virtual void render();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate) = 0;
+    
+    QFormLayout* _form;
+    QDoubleSpinBox* _radius;
+    
+    glm::vec3 _position;
+};
+
+/// Allows texturing parts of the voxel field.
+class VoxelMaterialBrushTool : public VoxelBrushTool {
+    Q_OBJECT
+    
+public:
+    
+    VoxelMaterialBrushTool(MetavoxelEditor* editor);
+
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private:
+    
+    MaterialControl* _materialControl;
+};
+
+/// Allows sculpting parts of the voxel field.
+class VoxelSculptBrushTool : public VoxelBrushTool {
+    Q_OBJECT
+
+public:
+    
+    VoxelSculptBrushTool(MetavoxelEditor* editor);
+    
+protected:
+    
+    virtual QVariant createEdit(bool alternate);
+
+private:
+    
+    MaterialControl* _materialControl;
 };
 
 #endif // hifi_MetavoxelEditor_h

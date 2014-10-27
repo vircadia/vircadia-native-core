@@ -41,6 +41,9 @@ if (typeof String.prototype.trimEndsWith != 'function') {
     };
 }
 
+const INPUT_DEVICE_SETTING = "audio_input_device";
+const OUTPUT_DEVICE_SETTING = "audio_output_device";
+
 var selectedInputMenu = "";
 var selectedOutputMenu = "";
 
@@ -48,9 +51,14 @@ function setupAudioMenus() {
     Menu.addMenu("Tools > Audio");
     Menu.addSeparator("Tools > Audio","Output Audio Device");
 
+    var outputDeviceSetting = Settings.getValue(OUTPUT_DEVICE_SETTING);
     var outputDevices = AudioDevice.getOutputDevices();
     var selectedOutputDevice = AudioDevice.getOutputDevice();
-
+    if (outputDevices.indexOf(outputDeviceSetting) != -1 && selectedOutputDevice != outputDeviceSetting) {
+        if (AudioDevice.setOutputDevice(outputDeviceSetting)) {
+            selectedOutputDevice = outputDeviceSetting;
+        }
+    }
     for(var i = 0; i < outputDevices.length; i++) {
         var thisDeviceSelected = (outputDevices[i] == selectedOutputDevice);
         var menuItem = "Use " + outputDevices[i] + " for Output";
@@ -67,9 +75,14 @@ function setupAudioMenus() {
 
     Menu.addSeparator("Tools > Audio","Input Audio Device");
 
+    var inputDeviceSetting = Settings.getValue(INPUT_DEVICE_SETTING);
     var inputDevices = AudioDevice.getInputDevices();
     var selectedInputDevice = AudioDevice.getInputDevice();
-
+    if (inputDevices.indexOf(inputDeviceSetting) != -1 && selectedInputDevice != inputDeviceSetting) {
+        if (AudioDevice.setInputDevice(inputDeviceSetting)) {
+            selectedInputDevice = inputDeviceSetting;
+        }
+    }
     for(var i = 0; i < inputDevices.length; i++) {
         var thisDeviceSelected = (inputDevices[i] == selectedInputDevice);
         var menuItem = "Use " + inputDevices[i] + " for Input";
@@ -85,7 +98,8 @@ function setupAudioMenus() {
     }
 }
 
-setupAudioMenus();
+// Have a small delay before the menu's get setup and the audio devices can switch to the last selected ones
+Script.setTimeout(function() { setupAudioMenus(); }, 5000);
 
 function scriptEnding() {
     Menu.removeMenu("Tools > Audio");
@@ -101,15 +115,18 @@ function menuItemEvent(menuItem) {
             Menu.setIsOptionChecked(selectedOutputMenu, false);
             selectedOutputMenu = menuItem;
             Menu.setIsOptionChecked(selectedOutputMenu, true);
-            AudioDevice.setOutputDevice(selectedDevice);
-            
+            if (AudioDevice.setOutputDevice(selectedDevice)) {
+                Settings.setValue(OUTPUT_DEVICE_SETTING, selectedDevice);
+            }
         } else if (menuItem.endsWith(" for Input")) {
             var selectedDevice = menuItem.trimStartsWith("Use ").trimEndsWith(" for Input");
             print("input audio selection..." + selectedDevice);
             Menu.setIsOptionChecked(selectedInputMenu, false);
             selectedInputMenu = menuItem;
             Menu.setIsOptionChecked(selectedInputMenu, true);
-            AudioDevice.setInputDevice(selectedDevice);
+            if (AudioDevice.setInputDevice(selectedDevice)) {
+                Settings.setValue(INPUT_DEVICE_SETTING, selectedDevice);
+            }
         }
     }
 }

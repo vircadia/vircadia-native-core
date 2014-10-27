@@ -39,6 +39,7 @@ public:
     virtual ~GeometryCache();
     
     void renderHemisphere(int slices, int stacks);
+    void renderSphere(float radius, int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
     void renderGrid(int xDivisions, int yDivisions);
@@ -67,6 +68,7 @@ private:
     typedef QPair<GLuint, GLuint> VerticesIndices;
     
     QHash<IntPair, VerticesIndices> _hemisphereVBOs;
+    QHash<IntPair, VerticesIndices> _sphereVBOs;
     QHash<IntPair, VerticesIndices> _squareVBOs;
     QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;

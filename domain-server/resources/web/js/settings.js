@@ -1,12 +1,30 @@
 var Settings = {
-  showAdvanced: false
+  showAdvanced: false,
+  ADVANCED_CLASS: 'advanced-setting',
+  TRIGGER_CHANGE_CLASS: 'trigger-change',
+  DATA_ROW_CLASS: 'value-row',
+  DATA_COL_CLASS: 'value-col',
+  ADD_ROW_BUTTON_CLASS: 'add-row',
+  ADD_ROW_SPAN_CLASSES: 'glyphicon glyphicon-plus add-row',
+  DEL_ROW_BUTTON_CLASS: 'del-row',
+  DEL_ROW_SPAN_CLASSES: 'glyphicon glyphicon-remove del-row',
+  MOVE_UP_BUTTON_CLASS: 'move-up',
+  MOVE_UP_SPAN_CLASSES: 'glyphicon glyphicon-chevron-up move-up',
+  MOVE_DOWN_BUTTON_CLASS: 'move-down',
+  MOVE_DOWN_SPAN_CLASSES: 'glyphicon glyphicon-chevron-down move-down',
+  TABLE_BUTTONS_CLASS: 'buttons',
+  ADD_DEL_BUTTONS_CLASS: 'add-del-buttons',
+  ADD_DEL_BUTTONS_CLASSES: 'buttons add-del-buttons',
+  REORDER_BUTTONS_CLASS: 'reorder-buttons',
+  REORDER_BUTTONS_CLASSES: 'buttons reorder-buttons',
+  NEW_ROW_CLASS: 'new-row'
 };
 
 var viewHelpers = {
   getFormGroup: function(groupName, setting, values, isAdvanced, isLocked) {
     setting_name = groupName + "." + setting.name
     
-    form_group = "<div class='form-group" + (isAdvanced ? " advanced-setting" : "") + "'>"
+    form_group = "<div class='form-group " + (isAdvanced ? Settings.ADVANCED_CLASS : "") + "'>"
     
     if (_.has(values, groupName) && _.has(values[groupName], setting.name)) {
       setting_value = values[groupName][setting.name] 
@@ -21,37 +39,53 @@ var viewHelpers = {
       label_class += ' locked'
     }
     
+    common_attrs = " class='" + (setting.type !== 'checkbox' ? 'form-control' : '')
+      + " " + Settings.TRIGGER_CHANGE_CLASS + "' data-short-name='" + setting.name + "' name='" + setting_name + "' "
+      + "id='" + setting_name + "'"
+    
     if (setting.type === 'checkbox') {
-      form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
+      if (setting.label) {
+        form_group += "<label class='" + label_class + "'>" + setting.label + "</label>"
+      }
       form_group += "<div class='checkbox" + (isLocked ? " disabled" : "") + "'>"
       form_group += "<label for='" + setting_name + "'>"
-      form_group += "<input type='checkbox' name='" + setting_name + "' " + 
-        (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
+      form_group += "<input type='checkbox'" + common_attrs + (setting_value ? "checked" : "") + (isLocked ? " disabled" : "") + "/>"
       form_group += " " + setting.help + "</label>";
       form_group += "</div>"
     } else {
       input_type = _.has(setting, 'type') ? setting.type : "text"
-      
-      form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
-      
-      if (setting.type === 'select') {
-        form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
-        
-        _.each(setting.options, function(option) {
-          form_group += "<option value='" + option.value + "'" + 
-            (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
-        })
-        
-        form_group += "</select>"
-        
-        form_group += "<input type='hidden' name='" + setting_name + "' value='" + setting_value + "'>"
-      } else {
-        form_group += "<input type='" + input_type + "' class='form-control' name='" + setting_name + 
-          "' placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
-          "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+
+      if (setting.label) {
+        form_group += "<label for='" + setting_name + "' class='" + label_class + "'>" + setting.label + "</label>";
       }
       
-      form_group += "<span class='help-block'>" + setting.help + "</span>" 
+      if (input_type === 'table') {
+        form_group += makeTable(setting, setting_name, setting_value, isLocked)
+      } else {
+        if (input_type === 'select') {
+          form_group += "<select class='form-control' data-hidden-input='" + setting_name + "'>'"
+        
+          _.each(setting.options, function(option) {
+            form_group += "<option value='" + option.value + "'" + 
+            (option.value == setting_value ? 'selected' : '') + ">" + option.label + "</option>"
+          })
+        
+          form_group += "</select>"
+        
+          form_group += "<input type='hidden'" + common_attrs + "value='" + setting_value + "'>"
+        } else {
+        
+          if (input_type == 'integer') {
+            input_type = "text"
+          }
+        
+          form_group += "<input type='" + input_type + "'" +  common_attrs +
+            "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") + 
+            "' value='" + setting_value + "'" + (isLocked ? " disabled" : "") + "/>"
+        }
+      
+        form_group += "<span class='help-block'>" + setting.help + "</span>"
+      } 
     }
     
     form_group += "</div>"
@@ -69,18 +103,52 @@ $(document).ready(function(){
   */
   
   $('[data-clampedwidth]').each(function () {
-      var elem = $(this);
-      var parentPanel = elem.data('clampedwidth');
-      var resizeFn = function () {
-          var sideBarNavWidth = $(parentPanel).width() - parseInt(elem.css('paddingLeft')) - parseInt(elem.css('paddingRight')) - parseInt(elem.css('marginLeft')) - parseInt(elem.css('marginRight')) - parseInt(elem.css('borderLeftWidth')) - parseInt(elem.css('borderRightWidth'));
-          elem.css('width', sideBarNavWidth);
-      };
+    var elem = $(this);
+    var parentPanel = elem.data('clampedwidth');
+    var resizeFn = function () {
+      var sideBarNavWidth = $(parentPanel).width() - parseInt(elem.css('paddingLeft')) - parseInt(elem.css('paddingRight')) - parseInt(elem.css('marginLeft')) - parseInt(elem.css('marginRight')) - parseInt(elem.css('borderLeftWidth')) - parseInt(elem.css('borderRightWidth'));
+      elem.css('width', sideBarNavWidth);
+    };
 
-      resizeFn();
-      $(window).resize(resizeFn);
+    resizeFn();
+    $(window).resize(resizeFn);
+  })
+                  
+  $('#settings-form').on('click', '.' + Settings.ADD_ROW_BUTTON_CLASS, function(){
+    addTableRow(this);
+  })
+    
+  $('#settings-form').on('click', '.' + Settings.DEL_ROW_BUTTON_CLASS, function(){
+    deleteTableRow(this);
+  })
+    
+  $('#settings-form').on('click', '.' + Settings.MOVE_UP_BUTTON_CLASS, function(){
+    moveTableRow(this, true);
+  })
+    
+  $('#settings-form').on('click', '.' + Settings.MOVE_DOWN_BUTTON_CLASS, function(){
+    moveTableRow(this, false);
   })
   
-  $('#settings-form').on('change', 'input', function(){
+  $('#settings-form').on('keypress', 'table input', function(e){
+    if (e.keyCode == 13) {
+      // capture enter in table input
+      // if we have a sibling next to us that has an input, jump to it, otherwise check if we have a glyphicon for add to click
+      sibling = $(this).parent('td').next();
+      
+      if (sibling.hasClass(Settings.DATA_COL_CLASS)) {
+        // set focus to next input
+        sibling.find('input').focus()
+      } else if (sibling.hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
+        sibling.find('.' + Settings.ADD_ROW_BUTTON_CLASS).click()
+        
+        // set focus to the first input in the new row
+        $(this).closest('table').find('tr.inputs input:first').focus()
+      }      
+    }
+  });
+    
+  $('#settings-form').on('change', '.' + Settings.TRIGGER_CHANGE_CLASS , function(){
     // this input was changed, add the changed data attribute to it
     $(this).attr('data-changed', true)
     
@@ -89,7 +157,7 @@ $(document).ready(function(){
   
   $('#advanced-toggle-button').click(function(){
     Settings.showAdvanced = !Settings.showAdvanced
-    var advancedSelector = $('.advanced-setting') 
+    var advancedSelector = $('.' + Settings.ADVANCED_CLASS)
     
     if (Settings.showAdvanced) {
       advancedSelector.show()
@@ -107,7 +175,6 @@ $(document).ready(function(){
   })
   
   $('#settings-form').on('change', 'select', function(){
-    console.log("Changed" + $(this))
     $("input[name='" +  $(this).attr('data-hidden-input') + "']").val($(this).val()).change()
   })
 
@@ -137,7 +204,10 @@ function reloadSettings() {
       title: 'This setting is in the master config file and cannot be changed'
     })
     
-    appendDomainSelectionModal()
+    if (!_.has(data["locked"], "metaverse") && !_.has(data["locked"]["metaverse"], "id")) {
+      // append the domain selection modal, as long as it's not locked
+      appendDomainSelectionModal()
+    }   
   });
 }
 
@@ -177,29 +247,150 @@ $('body').on('click', '.save-button', function(e){
     if (data.status == "success") {
       showRestartModal();
     } else {
-      showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
+      showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
       reloadSettings();
     }
   }).fail(function(){
-    showAlertMessage(SETTINGS_ERROR_MESSAGE, false);
+    showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
     reloadSettings();
   });
   
   return false;
 });
 
-function badgeSidebarForDifferences(changedInput) {
+function makeTable(setting, setting_name, setting_value, isLocked) {
+  var isArray = !_.has(setting, 'key')
+  
+  if (!isArray && setting.can_order) {
+    setting.can_order = false;
+  }
+  
+  var html = "<span class='help-block'>" + setting.help + "</span>"
+  html += "<table class='table table-bordered " + (isLocked ? "locked-table" : "") + "' data-short-name='" + setting.name + "' name='" + setting_name 
+    + "' data-setting-type='" + (isArray ? 'array' : 'hash') + "'>"
+    
+  // Column names
+  html += "<tr class='headers'>"
+  
+  if (setting.numbered === true) {
+    html += "<td class='number'><strong>#</strong></td>" // Row number
+  }
+  
+  if (setting.key) {
+    html += "<td class='key'><strong>" + setting.key.label + "</strong></td>" // Key
+  }
+  
+  _.each(setting.columns, function(col) {
+    html += "<td class='data'><strong>" + col.label + "</strong></td>" // Data
+  })
+  
+  if (!isLocked) {
+    if (setting.can_order) {
+      html += "<td class=" + Settings.REORDER_BUTTONS_CLASSES +
+              "><span class='glyphicon glyphicon-sort'></span></td>";
+    }
+    html += "<td class=" + Settings.ADD_DEL_BUTTONS_CLASSES + "></td></tr>"
+  }
+    
+  // populate rows in the table from existing values
+  var row_num = 1
+  
+  _.each(setting_value, function(row, indexOrName) {
+    html += "<tr class='" + Settings.DATA_ROW_CLASS + "'" + (isArray ? "" : "name='" + setting_name + "." + indexOrName + "'") + ">"
+    
+    if (setting.numbered === true) {
+      html += "<td class='numbered'>" + row_num + "</td>"
+    }
+    
+    if (setting.key) {
+        html += "<td class='key'>" + indexOrName + "</td>"
+    }
+    
+    _.each(setting.columns, function(col) {
+      html += "<td class='" + Settings.DATA_COL_CLASS + "'>"
+      
+      if (isArray) {
+        rowIsObject = setting.columns.length > 1
+        colValue = rowIsObject ? row[col.name] : row
+        html += colValue
+        
+        // for arrays we add a hidden input to this td so that values can be posted appropriately
+        html += "<input type='hidden' name='" + setting_name + "[" + indexOrName + "]" 
+          + (rowIsObject ? "." + col.name : "") + "' value='" + colValue + "'/>"
+      } else if (row.hasOwnProperty(col.name)) {
+        html += row[col.name] 
+      }
+      
+      html += "</td>"
+    })
+    
+    if (!isLocked) {
+      if (setting.can_order) {
+        html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES+
+                "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES + "'></span><span class='" +
+                Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>"
+      }
+      html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+              "'><span class='" + Settings.DEL_ROW_SPAN_CLASSES + "'></span></td>"
+    }
+    
+    html += "</tr>"
+    
+    row_num++
+  })
+    
+  // populate inputs in the table for new values
+  if (!isLocked) {
+     html += makeTableInputs(setting)
+  }
+  html += "</table>"
+    
+  return html;
+}
+
+function makeTableInputs(setting) {
+  var html = "<tr class='inputs'>"
+  
+  if (setting.numbered === true) {
+    html += "<td class='numbered'></td>"
+  }
+  
+  if (setting.key) {
+    html += "<td class='key' name='" + setting.key.name + "'>\
+             <input type='text' class='form-control' placeholder='" + (_.has(setting.key, 'placeholder') ? setting.key.placeholder : "") + "' value=''>\
+             </td>"
+  }
+  
+  _.each(setting.columns, function(col) {
+    html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>\
+             <input type='text' class='form-control' placeholder='" + (col.placeholder ? col.placeholder : "") + "' value=''>\
+             </td>"
+  })
+    
+  if (setting.can_order) {
+    html += "<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'></td>"
+  }
+    html += "<td class='" + Settings.ADD_DEL_BUTTONS_CLASSES +
+            "'><span class='glyphicon glyphicon-plus " + Settings.ADD_ROW_BUTTON_CLASS + "'></span></td>"
+  html += "</tr>"
+    
+  return html
+}
+
+function badgeSidebarForDifferences(changedElement) {
   // figure out which group this input is in
-  var panelParentID = changedInput.closest('.panel').attr('id')
+  var panelParentID = changedElement.closest('.panel').attr('id')
   
   // get a JSON representation of that section
-  var rootJSON = form2js(panelParentID, ".", false, cleanupFormValues, true);
-  var panelJSON = rootJSON[panelParentID]
+  var panelJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID]
+  var initialPanelJSON = Settings.initialValues[panelParentID]
   
   var badgeValue = 0
   
+  // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
-    if (panelJSON[setting] != Settings.initialValues[panelParentID][setting]) {
+    if (!_.isEqual(panelJSON[setting], initialPanelJSON[setting]) 
+        && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting))) {
       badgeValue += 1
     }
   }
@@ -210,6 +401,208 @@ function badgeSidebarForDifferences(changedInput) {
   }
   
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
+}
+
+function addTableRow(add_glyphicon) {
+  var row = $(add_glyphicon).closest('tr')
+  
+  var table = row.parents('table')
+  var isArray = table.data('setting-type') === 'array'
+  
+  var columns = row.parent().children('.' + Settings.DATA_ROW_CLASS)
+  
+  if (!isArray) {
+    // Check key spaces
+    var key = row.children(".key").children("input").val()
+    if (key.indexOf(' ') !== -1) {
+      showErrorMessage("Error", "Key contains spaces")
+      return
+    }
+    // Check keys with the same name
+    var equals = false;
+    _.each(columns.children(".key"), function(element) {
+      if ($(element).text() === key) {
+        equals = true
+        return
+      }
+    })
+    if (equals) {
+      showErrorMessage("Error", "Two keys cannot be identical")
+      return
+    }
+  }
+      
+  // Check empty fields
+  var empty = false;
+  _.each(row.children('.' + Settings.DATA_COL_CLASS + ' input'), function(element) {
+    if ($(element).val().length === 0) {
+      empty = true
+      return
+    }
+  })
+  
+  if (empty) {
+    showErrorMessage("Error", "Empty field(s)")
+    return
+  }
+  
+  var input_clone = row.clone()
+  
+  // Change input row to data row
+  var table = row.parents("table")
+  var setting_name = table.attr("name") 
+  var full_name = setting_name + "." + key
+  row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS)
+  row.removeClass("inputs")
+      
+  _.each(row.children(), function(element) {
+    if ($(element).hasClass("numbered")) { 
+      // Index row
+      var numbers = columns.children(".numbered")
+      if (numbers.length > 0) {
+        $(element).html(parseInt(numbers.last().text()) + 1)
+      } else {
+        $(element).html(1)
+      }
+  } else if ($(element).hasClass(Settings.REORDER_BUTTONS_CLASS)) {
+    $(element).html("<td class='" + Settings.REORDER_BUTTONS_CLASSES + "'><span class='" + Settings.MOVE_UP_SPAN_CLASSES +
+                    "'></span><span class='" + Settings.MOVE_DOWN_SPAN_CLASSES + "'></span></td>")
+  } else if ($(element).hasClass(Settings.ADD_DEL_BUTTONS_CLASS)) {
+      // Change buttons
+      var span = $(element).children("span")
+      span.removeClass(Settings.ADD_ROW_SPAN_CLASSES)
+      span.addClass(Settings.DEL_ROW_SPAN_CLASSES)
+    } else if ($(element).hasClass("key")) {
+      var input = $(element).children("input")
+      $(element).html(input.val())
+      input.remove()
+    } else if ($(element).hasClass(Settings.DATA_COL_CLASS)) { 
+      // Hide inputs
+      var input = $(element).children("input")
+      input.attr("type", "hidden")
+      
+      if (isArray) {
+        var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
+        var key = $(element).attr('name')
+        
+        // are there multiple columns or just one?
+        // with multiple we have an array of Objects, with one we have an array of whatever the value type is
+        var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
+        input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))        
+      } else {
+        input.attr("name", full_name + "." + $(element).attr("name"))
+      }
+      
+      input.attr("data-changed", "true")
+             
+      $(element).append(input.val())
+    } else {
+      console.log("Unknown table element")
+    }
+  })
+  
+  input_clone.find('input').each(function(){
+    $(this).val('')
+  });
+  
+  if (isArray) {
+    updateDataChangedForSiblingRows(row, true)
+    
+    // the addition of any table row should remove the empty-array-row
+    row.siblings('.empty-array-row').remove()
+  }
+  
+  badgeSidebarForDifferences($(table))
+  
+  row.parent().append(input_clone)
+}
+
+function deleteTableRow(delete_glyphicon) {
+  var row = $(delete_glyphicon).closest('tr')
+  
+  var table = $(row).closest('table')
+  var isArray = table.data('setting-type') === 'array'
+  
+  if (!isArray) {
+    // this is a hash row, so we empty it but leave the hidden input blank so it is cleared when we save
+    row.empty()
+    row.html("<input type='hidden' class='form-control' name='" 
+      + row.attr('name') + "' data-changed='true' value=''>");
+  } else {
+    if (table.find('.' + Settings.DATA_ROW_CLASS).length > 1) {
+      updateDataChangedForSiblingRows(row)
+    
+      // this isn't the last row - we can just remove it
+      row.remove()
+    } else {
+      // this is the last row, we can't remove it completely since we need to post an empty array
+      row.empty()
+    
+      row.removeClass(Settings.DATA_ROW_CLASS).removeClass(Settings.NEW_ROW_CLASS)
+      row.addClass('empty-array-row')
+      
+      row.html("<input type='hidden' class='form-control' name='" + table.attr("name").replace('[]', '') 
+        + "' data-changed='true' value=''>");
+    }
+  }
+  
+  // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
+  badgeSidebarForDifferences($(table))
+}
+
+function moveTableRow(move_glyphicon, move_up) {
+  var row = $(move_glyphicon).closest('tr')
+  
+  var table = $(row).closest('table')
+  var isArray = table.data('setting-type') === 'array'
+  if (!isArray) {
+    return;
+  }
+  
+  if (move_up) {
+    var prev_row = row.prev()
+    if (prev_row.hasClass(Settings.DATA_ROW_CLASS)) {
+      prev_row.before(row)
+    }
+  } else {
+    var next_row = row.next()
+    if (next_row.hasClass(Settings.DATA_ROW_CLASS)) {
+      next_row.after(row)
+    }
+  }
+    
+  // we need to fire a change event on one of the remaining inputs so that the sidebar badge is updated
+  badgeSidebarForDifferences($(table))
+}
+
+function updateDataChangedForSiblingRows(row, forceTrue) {
+  // anytime a new row is added to an array we need to set data-changed for all sibling row inputs to true
+  // unless it matches the inital set of values
+  
+  if (!forceTrue) {
+    // figure out which group this row is in
+    var panelParentID = row.closest('.panel').attr('id')
+    // get the short name for the setting from the table
+    var tableShortName = row.closest('table').data('short-name')
+  
+    // get a JSON representation of that section
+    var panelSettingJSON = form2js(panelParentID, ".", false, cleanupFormValues, true)[panelParentID][tableShortName]
+    var initialPanelSettingJSON = Settings.initialValues[panelParentID][tableShortName]
+    
+    // if they are equal, we don't need data-changed
+    isTrue = _.isEqual(panelSettingJSON, initialPanelSettingJSON)
+  } else {
+    isTrue = true
+  }
+  
+  row.siblings('.' + Settings.DATA_ROW_CLASS).each(function(){
+    var hiddenInput = $(this).find('td.' + Settings.DATA_COL_CLASS + ' input')
+    if (isTrue) {
+      hiddenInput.attr('data-changed', isTrue)
+    } else {
+      hiddenInput.removeAttr('data-changed')
+    }
+  })
 }
 
 function showRestartModal() {
@@ -237,7 +630,7 @@ function showRestartModal() {
   }, 1000);
 }
 
-function cleanupFormValues(node) {  
+function cleanupFormValues(node) {
   if (node.type && node.type === 'checkbox') {
     return { name: node.name, value: node.checked ? true : false };
   } else {
@@ -245,12 +638,8 @@ function cleanupFormValues(node) {
   }
 }
 
-function showAlertMessage(message, isSuccess) {
-  var alertBox = $('.alert');
-  alertBox.attr('class', 'alert');
-  alertBox.addClass(isSuccess ? 'alert-success' : 'alert-danger');
-  alertBox.html(message);
-  alertBox.fadeIn();
+function showErrorMessage(title, message) {
+  swal(title, message)
 }
 
 function chooseFromHighFidelityDomains(clickedButton) {
@@ -292,7 +681,7 @@ function chooseFromHighFidelityDomains(clickedButton) {
         modal_buttons["success"] = {
           label: 'Create new domain',
           callback: function() {
-            window.open("https://data.highfidelity.io/domains", '_blank');
+            window.open("https://data.highfidelity.io/user/domains", '_blank');
           }
         }
         modal_body = "<p>You do not have any domains in your High Fidelity account." + 

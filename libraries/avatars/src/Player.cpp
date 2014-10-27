@@ -212,7 +212,7 @@ void Player::loadRecording(RecordingPointer recording) {
 
 void Player::play() {
     computeCurrentFrame();
-    if (_currentFrame < 0 || (_currentFrame >= _recording->getFrameNumber() - 1)) {
+    if (_currentFrame < 0 || (_currentFrame >= _recording->getFrameNumber() - 2)) { // -2 because of interpolation
         if (_loop) {
             loopRecording();
         } else {

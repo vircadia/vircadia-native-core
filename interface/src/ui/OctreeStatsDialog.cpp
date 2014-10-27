@@ -229,9 +229,6 @@ void OctreeStatsDialog::showAllOctreeServers() {
 
     showOctreeServersOfType(serverCount, NodeType::VoxelServer, "Voxel",
             Application::getInstance()->getVoxelServerJurisdictions());
-    showOctreeServersOfType(serverCount, NodeType::ParticleServer, "Particle",
-            Application::getInstance()->getParticleServerJurisdictions());
-
     showOctreeServersOfType(serverCount, NodeType::EntityServer, "Entity",
             Application::getInstance()->getEntityServerJurisdictions());
 

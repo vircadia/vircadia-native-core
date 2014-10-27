@@ -66,7 +66,7 @@ void EntityCollisionSystem::checkEntity(EntityItem* entity) {
 void EntityCollisionSystem::emitGlobalEntityCollisionWithVoxel(EntityItem* entity, 
                                             VoxelDetail* voxelDetails, const CollisionInfo& collision) {
     EntityItemID entityItemID = entity->getEntityItemID();
-    emit EntityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
+    emit entityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* entityA, 
@@ -74,7 +74,7 @@ void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* enti
                                             
     EntityItemID idA = entityA->getEntityItemID();
     EntityItemID idB = entityB->getEntityItemID();
-    emit EntityCollisionWithEntity(idA, idB, collision);
+    emit entityCollisionWithEntity(idA, idB, collision);
 }
 
 void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
@@ -115,6 +115,11 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
         return; // bail early if this entity is to be ignored...
     }
 
+    // don't collide entities with unknown IDs,
+    if (!entityA->isKnownID()) {
+        return;
+    }
+
     glm::vec3 penetration;
     EntityItem* entityB = NULL;
     
@@ -132,6 +137,11 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
             CollisionInfo* collision = collisions[i];
             penetration = collision->_penetration;
             entityB = static_cast<EntityItem*>(collision->_extraData);
+            
+            // don't collide entities with unknown IDs,
+            if (!entityB->isKnownID()) {
+                continue; // skip this loop pass if the entity has an unknown ID
+            }
             
             // NOTE: 'penetration' is the depth that 'entityA' overlaps 'entityB'.  It points from A into B.
             glm::vec3 penetrationInTreeUnits = penetration / (float)(TREE_SCALE);
@@ -267,6 +277,12 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
 }
 
 void EntityCollisionSystem::applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo) {
+
+    // don't collide entities with unknown IDs,
+    if (!entity->isKnownID()) {
+        return;
+    }
+
     // HALTING_* params are determined using expected acceleration of gravity over some timescale.  
     // This is a HACK for entities that bounce in a 1.0 gravitational field and should eventually be made more universal.
     const float HALTING_ENTITY_PERIOD = 0.0167f;  // ~1/60th of a second

@@ -70,6 +70,7 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _nodeHashMutex(QMutex::Recursive),
     _nodeSocket(this),
     _dtlsSocket(NULL),
+    _localSockAddr(),
     _publicSockAddr(),
     _numCollectedPackets(0),
     _numCollectedBytes(0),
@@ -88,6 +89,15 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     
     const int LARGER_BUFFER_SIZE = 1048576;
     changeSocketBufferSizes(LARGER_BUFFER_SIZE);
+    
+    // check for local socket updates every so often
+    const int LOCAL_SOCKET_UPDATE_INTERVAL_MSECS = 5 * 1000;
+    QTimer* localSocketUpdate = new QTimer(this);
+    connect(localSocketUpdate, &QTimer::timeout, this, &LimitedNodeList::updateLocalSockAddr);
+    localSocketUpdate->start(LOCAL_SOCKET_UPDATE_INTERVAL_MSECS);
+    
+    // check the local socket right now
+    updateLocalSockAddr();
     
     _packetStatTimer.start();
 }
@@ -570,10 +580,17 @@ void LimitedNodeList::sendSTUNRequest() {
     memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
     
     // lookup the IP for the STUN server
-    static HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+    HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
     
     _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
                               stunSockAddr.getAddress(), stunSockAddr.getPort());
+}
+
+void LimitedNodeList::rebindNodeSocket() {
+    quint16 oldPort = _nodeSocket.localPort();
+    
+    _nodeSocket.close();
+    _nodeSocket.bind(QHostAddress::AnyIPv4, oldPort);
 }
 
 bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
@@ -652,6 +669,22 @@ bool LimitedNodeList::processSTUNResponse(const QByteArray& packet) {
     return false;
 }
 
+void LimitedNodeList::updateLocalSockAddr() {
+    HifiSockAddr newSockAddr(getLocalAddress(), _nodeSocket.localPort());
+    if (newSockAddr != _localSockAddr) {
+        
+        if (_localSockAddr.isNull()) {
+            qDebug() << "Local socket is" << newSockAddr;
+        } else {
+            qDebug() << "Local socket has changed from" << _localSockAddr << "to" << newSockAddr;
+        }
+        
+        _localSockAddr = newSockAddr;
+        
+        emit localSockAddrChanged(_localSockAddr);
+    }
+}
+
 void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
                                                QUuid headerID, const QUuid& connectionRequestID) {
     
@@ -662,7 +695,7 @@ void LimitedNodeList::sendHeartbeatToIceServer(const HifiSockAddr& iceServerSock
     QByteArray iceRequestByteArray = byteArrayWithPopulatedHeader(PacketTypeIceServerHeartbeat, headerID);
     QDataStream iceDataStream(&iceRequestByteArray, QIODevice::Append);
     
-    iceDataStream << _publicSockAddr << HifiSockAddr(QHostAddress(getHostOrderLocalAddress()), _nodeSocket.localPort());
+    iceDataStream << _publicSockAddr << _localSockAddr;
     
     if (!connectionRequestID.isNull()) {
         iceDataStream << connectionRequestID;
