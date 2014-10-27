@@ -10,10 +10,13 @@
 //
 
 #include <HandData.h>
+#include <HFCancelEvent.h>
+
 #include "Application.h"
+#include "devices/MotionTracker.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
-#include "devices/MotionTracker.h"
+
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
@@ -25,9 +28,13 @@ ControllerScriptingInterface::ControllerScriptingInterface() :
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
     if (event->type() == HFActionEvent::startType()) {
-        emitActionStartEvent(static_cast<HFActionEvent*>(event));
+        emit actionStartEvent(static_cast<HFActionEvent&>(*event));
     } else if (event->type() == HFActionEvent::endType()) {
-        emitActionEndEvent(static_cast<HFActionEvent*>(event));
+        emit actionEndEvent(static_cast<HFActionEvent&>(*event));
+    } else if (event->type() == HFCancelEvent::startType()) {
+        emit cancelStartEvent();
+    } else if (event->type() == HFCancelEvent::endType()) {
+        emit cancelEndEvent();
     }
 }
 
