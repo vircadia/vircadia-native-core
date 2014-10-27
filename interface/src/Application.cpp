@@ -67,14 +67,17 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "ui/DataWebDialog.h"
+#include "HFActionEvent.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+
+#include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+
 #include "renderer/ProgramObject.h"
 
 #include "scripting/AccountScriptingInterface.h"
@@ -87,12 +90,12 @@
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 
+#include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
 
-#include "devices/Leapmotion.h"
 
 using namespace std;
 
@@ -1239,6 +1242,10 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                 // stop propagation
                 return;
             }
+            
+            // nobody handled this - make it an action event on the _window object
+            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            sendEvent(_window, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
@@ -1259,12 +1266,17 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             _mouseX = event->x();
             _mouseY = event->y();
             _mousePressed = false;
+            
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
                 // let's set horizontal offset to give stats some margin to mirror
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
+            
+            // fire an action end event
+            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            sendEvent(_window, &actionEvent);
         }
     }
 }
