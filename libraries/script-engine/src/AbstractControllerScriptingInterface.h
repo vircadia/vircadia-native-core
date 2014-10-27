@@ -21,6 +21,7 @@
 #include "KeyEvent.h"
 #include "MouseEvent.h"
 #include "TouchEvent.h"
+#include "WheelEvent.h"
 
 class AbstractInputController : public QObject {
     Q_OBJECT

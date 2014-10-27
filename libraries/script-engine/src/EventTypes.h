@@ -18,23 +18,6 @@
 
 #include <QWheelEvent>
 
-class WheelEvent {
-public:
-    WheelEvent();
-    WheelEvent(const QWheelEvent& event);
-    int x;
-    int y;
-    int delta;
-    QString orientation;
-    bool isLeftButton;
-    bool isRightButton;
-    bool isMiddleButton;
-    bool isShifted;
-    bool isControl;
-    bool isMeta;
-    bool isAlt;
-};
-
 class SpatialEvent {
 public:
     SpatialEvent();
@@ -48,14 +31,10 @@ public:
 private:
 };
 
-Q_DECLARE_METATYPE(WheelEvent)
 Q_DECLARE_METATYPE(SpatialEvent)
 
 void registerEventTypes(QScriptEngine* engine);
 
-
-QScriptValue wheelEventToScriptValue(QScriptEngine* engine, const WheelEvent& event);
-void wheelEventFromScriptValue(const QScriptValue& object, WheelEvent& event);
 
 QScriptValue spatialEventToScriptValue(QScriptEngine* engine, const SpatialEvent& event);
 void spatialEventFromScriptValue(const QScriptValue& object, SpatialEvent& event);
