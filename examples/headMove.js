@@ -17,6 +17,8 @@ var willMove = false;
 var warpActive = false;
 var warpPosition = { x: 0, y: 0, z: 0 };
 
+var hipsToEyes;
+
 //  Overlays to show target location 
 
 var WARP_SPHERE_SIZE = 0.15;
@@ -47,6 +49,7 @@ var timeSinceLastUp = 0.0;
 var watchAvatar = false; 
 var oldMode; 
 var lastYawTurned = 0.0;
+var startPullbackPosition;
 
 function saveCameraState() {
     oldMode = Camera.getMode();
@@ -67,6 +70,7 @@ function activateWarp() {
 var TRIGGER_PULLBACK_DISTANCE = 0.04;
 var WATCH_AVATAR_DISTANCE = 1.5;
 var MAX_PULLBACK_YAW = 5.0;
+var MAX_PULLBACK_PITCH = 5.0;
 
 var sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
 function playSound() {
@@ -76,35 +80,44 @@ function playSound() {
     options.volume = 1.0;
     Audio.playSound(sound, options);
 }
-
 var WARP_SMOOTHING = 0.90;
 var WARP_START_TIME = 0.50;
-var WARP_START_DISTANCE = 1.0;
+var WARP_START_DISTANCE = 1.5;
 var WARP_SENSITIVITY = 0.15;
+
+var fixedHeight = true;
 
 function updateWarp() {
     if (!warpActive) return;
 
-    var look = Quat.getFront(Camera.getOrientation());
+    var viewEulers = Quat.safeEulerAngles(Camera.getOrientation());
     var deltaPosition = Vec3.subtract(MyAvatar.getTrackedHeadPosition(), headStartPosition);
     var deltaPitch = MyAvatar.getHeadFinalPitch() - headStartFinalPitch;
     deltaYaw = MyAvatar.getHeadFinalYaw() - headStartYaw;
+    viewEulers.x -= deltaPitch;
+    var look = Quat.getFront(Quat.fromVec3Degrees(viewEulers));
 
-    willMove = (!watchAvatar && (keyDownTime > WARP_START_TIME));
+    willMove = (keyDownTime > WARP_START_TIME);
 
     if (willMove) {
-        //var distance = Math.pow((deltaPitch - WARP_PITCH_DEAD_ZONE) * WARP_SENSITIVITY, 2.0);
         var distance = Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE;
-        var warpDirection = Vec3.normalize({ x: look.x, y: 0, z: look.z });
-        warpPosition = Vec3.mix(Vec3.sum(MyAvatar.position, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
+        var warpDirection = Vec3.normalize({ x: look.x, y: (fixedHeight ? 0 : look.y), z: look.z });
+        var startPosition = (watchAvatar ? Camera.getPosition(): MyAvatar.getEyePosition());
+        warpPosition = Vec3.mix(Vec3.sum(startPosition, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
     }
 
     var height = MyAvatar.getEyePosition().y - MyAvatar.position.y;
+    var cameraPosition;
 
-    if (!watchAvatar && (Math.abs(deltaYaw) < MAX_PULLBACK_YAW) && (deltaPosition.z > TRIGGER_PULLBACK_DISTANCE)) {
+    if (!watchAvatar && 
+        (Math.abs(deltaYaw) < MAX_PULLBACK_YAW) && 
+        (Math.abs(deltaPitch) < MAX_PULLBACK_PITCH) && 
+        (Vec3.length(deltaPosition) > TRIGGER_PULLBACK_DISTANCE)) {
         saveCameraState();
-        var cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -height, z: -height * WATCH_AVATAR_DISTANCE }));
+        cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -height, z: -height * WATCH_AVATAR_DISTANCE }));
         Camera.setPosition(cameraPosition);
+        cameraPosition = Camera.getPosition();
+        startPullbackPosition = cameraPosition;
         watchAvatar = true;
     }
 
@@ -130,6 +143,7 @@ function finishWarp() {
         visible: false,
     });
     if (willMove) {
+        warpPosition.y -= hipsToEyes;
         MyAvatar.position = warpPosition;
         playSound();
     } 
@@ -147,6 +161,7 @@ Controller.keyPressEvent.connect(function(event) {
     if (event.text == "SPACE" && !event.isAutoRepeat && !movingWithHead) {
         keyDownTime = 0.0;
         movingWithHead = true;
+        hipsToEyes = MyAvatar.getEyePosition().y - MyAvatar.position.y;
         headStartPosition = MyAvatar.getTrackedHeadPosition();
         headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
         headStartFinalPitch = MyAvatar.getHeadFinalPitch();
@@ -154,6 +169,7 @@ Controller.keyPressEvent.connect(function(event) {
         headStartYaw = MyAvatar.getHeadFinalYaw();
         deltaYaw = 0.0;
         warpPosition = MyAvatar.position;
+        warpPosition.y += hipsToEyes; 
         activateWarp();
     }
 });
