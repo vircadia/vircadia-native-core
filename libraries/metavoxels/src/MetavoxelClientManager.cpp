@@ -27,8 +27,10 @@ MetavoxelClientManager::MetavoxelClientManager() :
 }
 
 MetavoxelClientManager::~MetavoxelClientManager() {
-    _updater->thread()->quit();
-    _updater->thread()->wait();
+    if (_updater) {
+        _updater->thread()->quit();
+        _updater->thread()->wait();
+    }
 }
 
 void MetavoxelClientManager::init() {
