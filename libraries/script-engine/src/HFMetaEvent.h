@@ -1,6 +1,6 @@
 //
 //  HFMetaEvent.h
-//  interface/src/events
+//  script-engine/src
 //
 //  Created by Stephen Birarda on 2014-10-27.
 //  Copyright 2014 High Fidelity, Inc.
