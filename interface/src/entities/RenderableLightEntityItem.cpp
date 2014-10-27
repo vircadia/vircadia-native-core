@@ -39,52 +39,44 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float largestDiameter = glm::max(dimensions.x, dimensions.y, dimensions.z);
 
     const float MAX_COLOR = 255.0f;
-    float red = getColor()[RED_INDEX] / MAX_COLOR;
-    float green = getColor()[GREEN_INDEX] / MAX_COLOR;
-    float blue = getColor()[BLUE_INDEX] / MAX_COLOR;
-    float alpha = getLocalRenderAlpha();
-    
-    /*
-    /// Adds a point light to render for the current frame.
-    void addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
-        const glm::vec3& diffuse = glm::vec3(1.0f, 1.0f, 1.0f), const glm::vec3& specular = glm::vec3(1.0f, 1.0f, 1.0f),
-        float constantAttenuation = 1.0f, float linearAttenuation = 0.0f, float quadraticAttenuation = 0.0f);
-        
-    /// Adds a spot light to render for the current frame.
-    void addSpotLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
-        const glm::vec3& diffuse = glm::vec3(1.0f, 1.0f, 1.0f), const glm::vec3& specular = glm::vec3(1.0f, 1.0f, 1.0f),
-        float constantAttenuation = 1.0f, float linearAttenuation = 0.0f, float quadraticAttenuation = 0.0f,
-        const glm::vec3& direction = glm::vec3(0.0f, 0.0f, -1.0f), float exponent = 0.0f, float cutoff = PI);
-    */
-    
-    glm::vec3 ambient = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 diffuse = glm::vec3(red, green, blue);
-    glm::vec3 specular = glm::vec3(red, green, blue);
+    float diffuseR = getDiffuseColor()[RED_INDEX] / MAX_COLOR;
+    float diffuseG = getDiffuseColor()[GREEN_INDEX] / MAX_COLOR;
+    float diffuseB = getDiffuseColor()[BLUE_INDEX] / MAX_COLOR;
+
+    float ambientR = getAmbientColor()[RED_INDEX] / MAX_COLOR;
+    float ambientG = getAmbientColor()[GREEN_INDEX] / MAX_COLOR;
+    float ambientB = getAmbientColor()[BLUE_INDEX] / MAX_COLOR;
+
+    float specularR = getSpecularColor()[RED_INDEX] / MAX_COLOR;
+    float specularG = getSpecularColor()[GREEN_INDEX] / MAX_COLOR;
+    float specularB = getSpecularColor()[BLUE_INDEX] / MAX_COLOR;
+
+    glm::vec3 ambient = glm::vec3(ambientR, ambientG, ambientB);
+    glm::vec3 diffuse = glm::vec3(diffuseR, diffuseG, diffuseB);
+    glm::vec3 specular = glm::vec3(specularR, specularG, specularB);
     glm::vec3 direction = IDENTITY_FRONT * rotation;
-    float constantAttenuation = 1.0f;
-    float linearAttenuation = 0.0f; 
-    float quadraticAttenuation = 0.0f;
+    float constantAttenuation = getConstantAttenuation();
+    float linearAttenuation = getLinearAttenuation();
+    float quadraticAttenuation = getQuadraticAttenuation();
+    float exponent = getExponent();
+    float cutoff = glm::radians(getCutoff());
 
     if (_isSpotlight) {
         Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position, largestDiameter / 2.0f, 
             ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
-            direction);
+            direction, exponent, cutoff);
     } else {
         Application::getInstance()->getDeferredLightingEffect()->addPointLight(position, largestDiameter / 2.0f, 
             ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
     }
 
-
     bool wantDebug = false;
     if (wantDebug) {
-        glColor4f(red, green, blue, alpha);
-                    
+        glColor4f(diffuseR, diffuseG, diffuseB, 1.0f);
         glPushMatrix();
             glTranslatef(position.x, position.y, position.z);
             glm::vec3 axis = glm::axis(rotation);
             glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-        
-        
             glPushMatrix();
                 glm::vec3 positionToCenter = center - position;
                 glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
@@ -94,5 +86,4 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
             glPopMatrix();
         glPopMatrix();
     }
-        
 };

@@ -41,26 +41,77 @@ public:
                                                 ReadBitstreamToTreeParams& args,
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
-    const rgbColor& getColor() const { return _color; }
-    xColor getXColor() const { xColor color = { _color[RED_INDEX], _color[GREEN_INDEX], _color[BLUE_INDEX] }; return color; }
+    const rgbColor& getAmbientColor() const { return _ambientColor; }
+    xColor getAmbientXColor() const { 
+        xColor color = { _ambientColor[RED_INDEX], _ambientColor[GREEN_INDEX], _ambientColor[BLUE_INDEX] }; return color; 
+    }
 
-    void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
-    void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
+    void setAmbientColor(const rgbColor& value) { memcpy(_ambientColor, value, sizeof(_ambientColor)); }
+    void setAmbientColor(const xColor& value) {
+            _ambientColor[RED_INDEX] = value.red;
+            _ambientColor[GREEN_INDEX] = value.green;
+            _ambientColor[BLUE_INDEX] = value.blue;
+    }
+
+    const rgbColor& getDiffuseColor() const { return _diffuseColor; }
+    xColor getDiffuseXColor() const { 
+        xColor color = { _diffuseColor[RED_INDEX], _diffuseColor[GREEN_INDEX], _diffuseColor[BLUE_INDEX] }; return color; 
+    }
+
+    void setDiffuseColor(const rgbColor& value) { memcpy(_diffuseColor, value, sizeof(_diffuseColor)); }
+    void setDiffuseColor(const xColor& value) {
+            _diffuseColor[RED_INDEX] = value.red;
+            _diffuseColor[GREEN_INDEX] = value.green;
+            _diffuseColor[BLUE_INDEX] = value.blue;
+    }
+
+    const rgbColor& getSpecularColor() const { return _specularColor; }
+    xColor getSpecularXColor() const { 
+        xColor color = { _specularColor[RED_INDEX], _specularColor[GREEN_INDEX], _specularColor[BLUE_INDEX] }; return color; 
+    }
+
+    void setSpecularColor(const rgbColor& value) { memcpy(_specularColor, value, sizeof(_specularColor)); }
+    void setSpecularColor(const xColor& value) {
+            _specularColor[RED_INDEX] = value.red;
+            _specularColor[GREEN_INDEX] = value.green;
+            _specularColor[BLUE_INDEX] = value.blue;
     }
 
     bool getIsSpotlight() const { return _isSpotlight; }
     void setIsSpotlight(bool value) { _isSpotlight = value; }
 
+    bool getConstantAttenuation() const { return _constantAttenuation; }
+    void setConstantAttenuation(float value) { _constantAttenuation = value; }
+
+    bool getLinearAttenuation() const { return _linearAttenuation; }
+    void setLinearAttenuation(float value) { _linearAttenuation = value; }
+
+    bool getQuadraticAttenuation() const { return _quadraticAttenuation; }
+    void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; }
+
+    bool getExponent() const { return _exponent; }
+    void setExponent(bool value) { _exponent = value; }
+
+    bool getCutoff() const { return _cutoff; }
+    void setCutoff(bool value) { _cutoff = value; }
+    
     virtual const Shape& getCollisionShapeInMeters() const { return _emptyShape; }
     
 protected:
     virtual void recalculateCollisionShape() { /* nothing to do */ }
 
-    rgbColor _color;
+    // properties of a light
+    rgbColor _ambientColor;
+    rgbColor _diffuseColor;
+    rgbColor _specularColor;
     bool _isSpotlight;
+    float _constantAttenuation;
+    float _linearAttenuation; 
+    float _quadraticAttenuation;
+    float _exponent;
+    float _cutoff;
+
+    // used for collision detection
     SphereShape _emptyShape;
 };
 
