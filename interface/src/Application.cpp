@@ -1102,15 +1102,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
+            case Qt::Key_Space: {
+                // this starts an HFActionEvent
+                HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                sendEvent(this, &startActionEvent);
+                
+                break;
+            }
             case Qt::Key_Escape: {
                 OculusManager::abandonCalibration();
                 
-                // this fires the HFCancelEvent
+                // this starts the HFCancelEvent
                 HFBackEvent startBackEvent(HFBackEvent::startType());
                 sendEvent(this, &startBackEvent);
                 
                 break;
             }
+            
             default:
                 event->ignore();
                 break;
@@ -1181,6 +1189,13 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Alt:
             _myAvatar->clearDriveKeys();
             break;
+        case Qt::Key_Space: {
+            // this ends the HFActionEvent
+            HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+            sendEvent(this, &endActionEvent);
+            
+            break;
+        }
         case Qt::Key_Escape: {
             // this ends the HFCancelEvent
             HFBackEvent endBackEvent(HFBackEvent::endType());
