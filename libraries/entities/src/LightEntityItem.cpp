@@ -53,7 +53,6 @@ EntityItemProperties LightEntityItem::getProperties() const {
     properties.setDiffuseColor(getDiffuseXColor());
     properties.setAmbientColor(getAmbientXColor());
     properties.setSpecularColor(getSpecularXColor());
-    properties.setGlowLevel(getGlowLevel());
     properties.setIsSpotlight(getIsSpotlight());
 
     return properties;

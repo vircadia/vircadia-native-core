@@ -247,11 +247,11 @@ public:
     bool getIsSpotlight() const { return _isSpotlight; }
     void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
 
-    void setDiffuseColor(const xColor& value) { }
-    void setAmbientColor(const xColor& value) { }
-    void setSpecularColor(const xColor& value) { }
+    // total hack for now
+    void setDiffuseColor(const xColor& value) { setColor(value); }
+    void setAmbientColor(const xColor& value) { setColor(value); }
+    void setSpecularColor(const xColor& value) { setColor(value); }
     
-
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
 private:
