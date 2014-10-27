@@ -18,6 +18,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include "EventTypes.h"
+#include "KeyEvent.h"
 
 class AbstractInputController : public QObject {
     Q_OBJECT

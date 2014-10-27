@@ -17,29 +17,9 @@
 
 #include <QtScript/QScriptEngine>
 
-#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTouchEvent>
 #include <QWheelEvent>
-
-
-class KeyEvent {
-public:
-    KeyEvent();
-    KeyEvent(const QKeyEvent& event);
-    bool operator==(const KeyEvent& other) const;
-    operator QKeySequence() const;
-
-    int key;
-    QString text;
-    bool isShifted;
-    bool isControl;
-    bool isMeta;
-    bool isAlt;
-    bool isKeypad;
-    bool isValid;
-    bool isAutoRepeat;
-};
 
 
 class MouseEvent {
@@ -123,8 +103,6 @@ public:
 private:
 };
 
-
-Q_DECLARE_METATYPE(KeyEvent)
 Q_DECLARE_METATYPE(MouseEvent)
 Q_DECLARE_METATYPE(TouchEvent)
 Q_DECLARE_METATYPE(WheelEvent)
@@ -132,8 +110,6 @@ Q_DECLARE_METATYPE(SpatialEvent)
 
 void registerEventTypes(QScriptEngine* engine);
 
-QScriptValue keyEventToScriptValue(QScriptEngine* engine, const KeyEvent& event);
-void keyEventFromScriptValue(const QScriptValue& object, KeyEvent& event);
 
 QScriptValue mouseEventToScriptValue(QScriptEngine* engine, const MouseEvent& event);
 void mouseEventFromScriptValue(const QScriptValue& object, MouseEvent& event);
