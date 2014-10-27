@@ -56,6 +56,7 @@
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
 #include <HFActionEvent.h>
+#include <HFCancelEvent.h>
 #include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <NetworkAccessManager.h>
@@ -1101,9 +1102,15 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
-            case Qt::Key_Escape:
+            case Qt::Key_Escape: {
                 OculusManager::abandonCalibration();
+                
+                // this fires the HFCancelEvent
+                HFCancelEvent startCancelEvent(HFCancelEvent::startType());
+                sendEvent(this, &startCancelEvent);
+                
                 break;
+            }
             default:
                 event->ignore();
                 break;
@@ -1174,6 +1181,13 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Alt:
             _myAvatar->clearDriveKeys();
             break;
+        case Qt::Key_Escape: {
+            // this ends the HFCancelEvent
+            HFCancelEvent endCancelEvent(HFCancelEvent::endType());
+            sendEvent(this, &endCancelEvent);
+            
+            break;
+        }
         default:
             event->ignore();
             break;
