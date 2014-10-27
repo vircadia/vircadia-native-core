@@ -67,7 +67,6 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "HFActionEvent.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
@@ -77,6 +76,8 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+
+#include "events/HFActionEvent.h"
 
 #include "renderer/ProgramObject.h"
 
@@ -139,6 +140,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _glWidget(new GLCanvas()),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
+        _undoStack(),
+        _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
@@ -175,8 +178,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
-        _undoStack(),
-        _undoStackScriptingInterface(&_undoStack),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -835,7 +836,7 @@ bool Application::event(QEvent* event) {
         
         return false;
     }
-    
+     
     return QApplication::event(event);
 }
 
@@ -1245,7 +1246,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
-            sendEvent(_window, &actionEvent);
+            sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
@@ -1276,7 +1277,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
-            sendEvent(_window, &actionEvent);
+            sendEvent(this, &actionEvent);
         }
     }
 }

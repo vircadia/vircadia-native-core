@@ -1,6 +1,6 @@
 //
 //  HFActionEvent.cpp
-//  interface/src
+//  interface/src/events
 //
 //  Created by Stephen Birarda on 2014-10-27.
 //  Copyright 2014 High Fidelity, Inc.
@@ -12,19 +12,19 @@
 #include "HFActionEvent.h"
 
 HFActionEvent::HFActionEvent(QEvent::Type type, const QPointF& localPosition) :
-	QEvent(type),
+	HFMetaEvent(type),
     _localPosition(localPosition)
 {
     
 }
 
 QEvent::Type HFActionEvent::startType() {
-    static QEvent::Type startType = static_cast<QEvent::Type>(QEvent::registerEventType());
+    static QEvent::Type startType = HFMetaEvent::newEventType();
     return startType;
 }
 
 QEvent::Type HFActionEvent::endType() {
-    static QEvent::Type endType = static_cast<QEvent::Type>(QEvent::registerEventType());
+    static QEvent::Type endType = HFMetaEvent::newEventType();
     return endType;
 }
 

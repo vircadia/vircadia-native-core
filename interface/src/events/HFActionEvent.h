@@ -1,6 +1,6 @@
 //
 //  HFActionEvent.h
-//  interface/src
+//  interface/src/events
 //
 //  Created by Stephen Birarda on 2014-10-27.
 //  Copyright 2014 High Fidelity, Inc.
@@ -12,9 +12,9 @@
 #ifndef hifi_HFActionEvent_h
 #define hifi_HFActionEvent_h
 
-#include <qevent.h>
+#include "HFMetaEvent.h"
 
-class HFActionEvent : public QEvent {
+class HFActionEvent : public HFMetaEvent {
 public:
     HFActionEvent(QEvent::Type type, const QPointF& localPosition);
     
