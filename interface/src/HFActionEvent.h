@@ -16,9 +16,11 @@
 
 class HFActionEvent : public QEvent {
 public:
-    HFActionEvent();
+    HFActionEvent(const QPointF& localPosition);
     
     static QEvent::Type type();
+private:
+    QPointF _localPosition;
 };
 
 #endif // hifi_HFActionEvent_h

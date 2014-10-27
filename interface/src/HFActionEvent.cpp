@@ -11,8 +11,9 @@
 
 #include "HFActionEvent.h"
 
-HFActionEvent::HFActionEvent() :
-	QEvent(HFActionEvent::type())
+HFActionEvent::HFActionEvent(const QPointF& localPosition) :
+	QEvent(HFActionEvent::type()),
+    _localPosition(localPosition)
 {
     
 }
