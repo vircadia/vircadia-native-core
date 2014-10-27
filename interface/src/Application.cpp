@@ -55,6 +55,7 @@
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
+#include <HFActionEvent.h>
 #include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <NetworkAccessManager.h>
@@ -76,8 +77,6 @@
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
-
-#include "events/HFActionEvent.h"
 
 #include "renderer/ProgramObject.h"
 

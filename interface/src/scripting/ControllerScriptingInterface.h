@@ -46,7 +46,7 @@ private:
 
 signals:
 };
-
+ 
 
 /// handles scripting of input controller commands from JS
 class ControllerScriptingInterface : public AbstractControllerScriptingInterface {

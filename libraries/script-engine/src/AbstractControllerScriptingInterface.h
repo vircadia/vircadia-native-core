@@ -88,6 +88,9 @@ public slots:
 signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);
+//    
+//    void actionStartEvent(const HFActionEvent& event);
+//    void actionEndEvent(const HFActionEvent& event);
 
     void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);
