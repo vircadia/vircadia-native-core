@@ -14,14 +14,22 @@
 
 #include "HFMetaEvent.h"
 
+#include <qscriptengine.h>
+
 class HFActionEvent : public HFMetaEvent {
 public:
+    HFActionEvent() {};
     HFActionEvent(QEvent::Type type, const QPointF& localPosition);
     
     static QEvent::Type startType();
     static QEvent::Type endType();
-private:
-    QPointF _localPosition;
+    
+    static QScriptValue toScriptValue(QScriptEngine* engine, const HFActionEvent& event);
+    static void fromScriptValue(const QScriptValue& object, HFActionEvent& event);
+    
+    QPointF localPosition;
 };
+
+Q_DECLARE_METATYPE(HFActionEvent)
 
 #endif // hifi_HFActionEvent_h

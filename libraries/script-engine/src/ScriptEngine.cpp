@@ -35,6 +35,7 @@
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"
 #include "DataViewClass.h"
+#include "EventTypes.h"
 #include "MenuItemProperties.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"

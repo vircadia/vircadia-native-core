@@ -16,6 +16,7 @@
 
 class HFMetaEvent : public QEvent {
 public:
+    HFMetaEvent() : QEvent(HFMetaEvent::newEventType()) {};
     HFMetaEvent(QEvent::Type type) : QEvent(type) {};
     static const QSet<QEvent::Type>& types() { return HFMetaEvent::_types; }
 protected:

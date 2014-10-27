@@ -13,7 +13,7 @@
 
 HFActionEvent::HFActionEvent(QEvent::Type type, const QPointF& localPosition) :
 	HFMetaEvent(type),
-    _localPosition(localPosition)
+    localPosition(localPosition)
 {
     
 }
@@ -26,5 +26,16 @@ QEvent::Type HFActionEvent::startType() {
 QEvent::Type HFActionEvent::endType() {
     static QEvent::Type endType = HFMetaEvent::newEventType();
     return endType;
+}
+
+QScriptValue HFActionEvent::toScriptValue(QScriptEngine* engine, const HFActionEvent& event) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", event.localPosition.x());
+    obj.setProperty("y", event.localPosition.y());
+    return obj;
+}
+
+void HFActionEvent::fromScriptValue(const QScriptValue& object, HFActionEvent& event) {
+    // not yet implemented
 }
 

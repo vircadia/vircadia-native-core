@@ -20,8 +20,16 @@ ControllerScriptingInterface::ControllerScriptingInterface() :
     _touchCaptured(false),
     _wheelCaptured(false)
 {
+
 }
 
+void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
+    if (event->type() == HFActionEvent::startType()) {
+        emitActionStartEvent(static_cast<HFActionEvent*>(event));
+    } else if (event->type() == HFActionEvent::endType()) {
+        emitActionEndEvent(static_cast<HFActionEvent*>(event));
+    }
+}
 
 const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;

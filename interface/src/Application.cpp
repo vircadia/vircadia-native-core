@@ -835,6 +835,10 @@ bool Application::event(QEvent* event) {
         
         return false;
     }
+    
+    if (HFActionEvent::types().contains(event->type())) {
+        _controllerScriptingInterface.handleMetaEvent(static_cast<HFMetaEvent*>(event));
+    }
      
     return QApplication::event(event);
 }
