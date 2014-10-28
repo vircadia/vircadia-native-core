@@ -51,7 +51,7 @@ EntityItemProperties LightEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
-    properties.setDiffuseColor(getDiffuseXColor()); // special case
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(diffuseColor, getDiffuseXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientColor, getAmbientXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(specularColor, getSpecularXColor);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(constantAttenuation, getConstantAttenuation);
