@@ -1143,7 +1143,9 @@ void ImportHeightfieldTool::updatePreview() {
         float z = 0.0f;
         int blockSize = pow(2.0, _blockSize->value());
         int heightSize = blockSize + HeightfieldBuffer::HEIGHT_EXTENSION;
-        int colorSize = blockSize + HeightfieldBuffer::SHARED_EDGE;
+        int colorScale = glm::round(glm::log(_colorImage.height() / _heightImage.height()) / glm::log(2.0f));
+        int colorBlockSize = blockSize * pow(2.0, colorScale);
+        int colorSize = colorBlockSize + HeightfieldBuffer::SHARED_EDGE;
         for (int i = 0; i < _heightImage.height(); i += blockSize, z++) {
             float x = 0.0f;
             for (int j = 0; j < _heightImage.width(); j += blockSize, x++) {
@@ -1164,12 +1166,14 @@ void ImportHeightfieldTool::updatePreview() {
                 }
                 QByteArray color;
                 if (!_colorImage.isNull()) {
+                    int colorI = (i / blockSize) * colorBlockSize;
+                    int colorJ = (j / blockSize) * colorBlockSize;
                     color = QByteArray(colorSize * colorSize * DataBlock::COLOR_BYTES, 0);
-                    rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
-                    columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
+                    rows = qMax(0, qMin(colorSize, _colorImage.height() - colorI));
+                    columns = qMax(0, qMin(colorSize, _colorImage.width() - colorJ));
                     for (int y = 0; y < rows; y++) {
                         memcpy(color.data() + y * colorSize * DataBlock::COLOR_BYTES,
-                            _colorImage.scanLine(i + y) + j * DataBlock::COLOR_BYTES,
+                            _colorImage.scanLine(colorI + y) + colorJ * DataBlock::COLOR_BYTES,
                             columns * DataBlock::COLOR_BYTES);
                     }
                 }
