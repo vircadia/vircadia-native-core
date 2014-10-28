@@ -108,6 +108,20 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.clear();
 }
 
+QByteArray MyAvatar::toByteArray() {
+    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
+        // fake the avatar position that is sent up to the AvatarMixer
+        glm::vec3 oldPosition = _position;
+        _position += _skeletonOffset;
+        QByteArray array = AvatarData::toByteArray();
+        // copy the correct position back
+        _position = oldPosition;
+        return array;
+    }
+    return AvatarData::toByteArray();
+}
+
 void MyAvatar::reset() {
     _skeletonModel.reset();
     getHead()->reset();
@@ -217,7 +231,6 @@ void MyAvatar::simulate(float deltaTime) {
             _hair.setAcceleration(getAcceleration() * getHead()->getFinalOrientationInWorldFrame());
             _hair.setAngularVelocity((getAngularVelocity() + getHead()->getAngularVelocity()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.setAngularAcceleration(getAngularAcceleration() * getHead()->getFinalOrientationInWorldFrame());
-            _hair.setGravity(Application::getInstance()->getEnvironment()->getGravity(getPosition()) * getHead()->getFinalOrientationInWorldFrame());
             _hair.setLoudness((float)getHeadData()->getAudioLoudness());
             _hair.simulate(deltaTime);
         }
@@ -1053,6 +1066,14 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
         return;
     }
     _billboardValid = false;
+}
+
+glm::vec3 MyAvatar::getSkeletonPosition() const {
+    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
+        return Avatar::getSkeletonPosition();
+    }
+    return Avatar::getPosition();
 }
 
 QString MyAvatar::getScriptedMotorFrame() const {

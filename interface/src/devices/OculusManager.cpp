@@ -66,8 +66,6 @@ glm::vec3 OculusManager::_calibrationPosition;
 glm::quat OculusManager::_calibrationOrientation;
 quint64 OculusManager::_calibrationStartTime;
 int OculusManager::_calibrationMessage = NULL;
-QString OculusManager::CALIBRATION_BILLBOARD_URL = "http://hifi-public.s3.amazonaws.com/images/hold-to-calibrate.svg";
-float OculusManager::CALIBRATION_BILLBOARD_SCALE = 2.f;
 
 #endif
 
@@ -191,7 +189,7 @@ void OculusManager::disconnect() {
 }
 
 #ifdef HAVE_LIBOVR
-void OculusManager::positionCalibrationBillboard(BillboardOverlay* billboard) {
+void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
     glm::quat headOrientation = Application::getInstance()->getAvatar()->getHeadOrientation();
     headOrientation.x = 0;
     headOrientation.z = 0;
@@ -204,8 +202,9 @@ void OculusManager::positionCalibrationBillboard(BillboardOverlay* billboard) {
 
 #ifdef HAVE_LIBOVR
 void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
+    static QString instructionMessage = "Hold still to calibrate";
     static QString progressMessage;
-    static BillboardOverlay* billboard;
+    static Text3DOverlay* billboard;
 
     switch (_calibrationState) {
 
@@ -235,9 +234,13 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                 if (!_calibrationMessage) {
                     qDebug() << "Hold still to calibrate HMD";
 
-                    billboard = new BillboardOverlay();
-                    billboard->setURL(CALIBRATION_BILLBOARD_URL);
-                    billboard->setScale(CALIBRATION_BILLBOARD_SCALE);
+                    billboard = new Text3DOverlay();
+                    billboard->setDimensions(glm::vec2(2.0f, 1.25f));
+                    billboard->setTopMargin(0.35f);
+                    billboard->setLeftMargin(0.28f);
+                    billboard->setText(instructionMessage);
+                    billboard->setAlpha(0.5f);
+                    billboard->setLineHeight(0.1f);
                     billboard->setIsFacingAvatar(false);
                     positionCalibrationBillboard(billboard);
 
@@ -275,7 +278,7 @@ void OculusManager::calibrate(glm::vec3 position, glm::quat orientation) {
                         } else {
                             progressMessage += ".";
                         }
-                        //qDebug() << progressMessage;  // Progress message ready for 3D text overlays.
+                        billboard->setText(instructionMessage + "\n\n" + progressMessage);
                     }
                 }
             } else {

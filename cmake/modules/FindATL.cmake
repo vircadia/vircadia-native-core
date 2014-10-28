@@ -16,8 +16,11 @@
 # 
 
 if (WIN32)
-	find_library(ATL_LIBRARY_RELEASE atls PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS "C:\\WinDDK")
-  find_library(ATL_LIBRARY_DEBUG atlsd PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS "C:\\WinDDK")
+  set(ATL_SEARCH_DIRS "C:\\WinDDK")
+  find_path(ATL_INCLUDE_DIRS atlbase.h PATH_SUFFIXES "7600.16385.1/inc/atl71" HINTS ${ATL_SEARCH_DIRS})
+  
+  find_library(ATL_LIBRARY_RELEASE atls PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS ${ATL_SEARCH_DIRS})
+  find_library(ATL_LIBRARY_DEBUG atlsd PATH_SUFFIXES "7600.16385.1/lib/ATL/i386" HINTS ${ATL_SEARCH_DIRS})
   
   include(SelectLibraryConfigurations)
   select_library_configurations(ATL)
@@ -26,4 +29,4 @@ endif ()
 set(ATL_LIBRARIES "${ATL_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(ATL DEFAULT_MSG ATL_LIBRARIES)
+find_package_handle_standard_args(ATL DEFAULT_MSG ATL_INCLUDE_DIRS ATL_LIBRARIES)

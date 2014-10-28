@@ -701,8 +701,7 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     int sizeY = (int)overlap.maximum.y - minY + 1;
     int sizeZ = (int)overlap.maximum.z - minZ + 1;
     
-    QRgb rgb = _color.rgba();
-    bool flipped = (qAlpha(rgb) == 0);
+    bool flipped = false;
     float step = 1.0f / scale;
     glm::vec3 position(0.0f, 0.0f, info.minimum.z + minZ * step);
     if (_spanner->hasOwnColors()) {
@@ -720,6 +719,8 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
             }
         }
     } else {
+        QRgb rgb = _color.rgba();
+        flipped = (qAlpha(rgb) == 0);
         for (QRgb* destZ = colorContents.data() + minZ * VOXEL_BLOCK_AREA + minY * VOXEL_BLOCK_SAMPLES + minX,
                 *endZ = destZ + sizeZ * VOXEL_BLOCK_AREA; destZ != endZ; destZ += VOXEL_BLOCK_AREA, position.z += step) {
             position.y = info.minimum.y + minY * step;
@@ -997,10 +998,13 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
         _spannerBounds.maximum = (glm::ceil(_bounds.maximum / increment) + glm::vec3(1.0f, 0.0f, 1.0f)) * increment;
         _spannerBounds.minimum.y = bounds.minimum.y;
         _spannerBounds.maximum.y = bounds.maximum.y;
-        _heightfieldWidth = (int)glm::round((_spannerBounds.maximum.x - _spannerBounds.minimum.x) / increment) + 1;
-        _heightfieldHeight = (int)glm::round((_spannerBounds.maximum.z - _spannerBounds.minimum.z) / increment) + 1;
+        _heightfieldWidth = (int)glm::round((_spannerBounds.maximum.x - _spannerBounds.minimum.x) / increment);
+        _heightfieldHeight = (int)glm::round((_spannerBounds.maximum.z - _spannerBounds.minimum.z) / increment);
         int heightfieldArea = _heightfieldWidth * _heightfieldHeight;
-        _spanner = spanner = new Heightfield(_spannerBounds, increment, QByteArray(heightfieldArea, 0),
+        Box innerBounds = _spannerBounds;
+        innerBounds.maximum.x -= increment;
+        innerBounds.maximum.z -= increment;
+        _spanner = spanner = new Heightfield(innerBounds, increment, QByteArray(heightfieldArea, 0),
             QByteArray(heightfieldArea * DataBlock::COLOR_BYTES, 0), QByteArray(heightfieldArea, 0),
             QVector<SharedObjectPointer>());
     }
@@ -1048,18 +1052,20 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
     }
     
     // if all is gone, clear the node
-    if (!foundNonZero) {
-        info.outputValues[0] = AttributeValue(_outputs.at(0), 
-            encodeInline<HeightfieldHeightDataPointer>(HeightfieldHeightDataPointer()));
-        info.outputValues[1] = AttributeValue(_outputs.at(1),
-            encodeInline<HeightfieldColorDataPointer>(HeightfieldColorDataPointer()));
-        info.outputValues[2] = AttributeValue(_outputs.at(2),
-            encodeInline<HeightfieldMaterialDataPointer>(HeightfieldMaterialDataPointer()));
-        return STOP_RECURSION;
+    if (foundNonZero) {
+        HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
+        
+    } else {
+        info.outputValues[0] = AttributeValue(_outputs.at(0));
     }
     
-    HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
+    // allow a border for what we clear in terms of color/material
+    innerBounds.minimum.x += increment;
+    innerBounds.minimum.z += increment;
+    innerBounds.maximum.x -= increment;
+    innerBounds.maximum.z -= increment;
+    innerOverlap = bounds.getIntersection(innerBounds);
     
     HeightfieldColorDataPointer colorPointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
     if (colorPointer) {
@@ -1082,18 +1088,25 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
             memcpy(dest, src, destWidth * DataBlock::COLOR_BYTES);
         }
         
-        destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-        destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-        destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-        destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-        dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
-        
-        for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
-            memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+        if (foundNonZero) {
+            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+            if (destWidth > 0 && destHeight > 0) {
+                dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
+                
+                for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
+                    memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
+                }
+                
+                HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
+                info.outputValues[1] = AttributeValue(_outputs.at(1),
+                    encodeInline<HeightfieldColorDataPointer>(newColorPointer));
+            }
+        } else {
+            info.outputValues[1] = AttributeValue(_outputs.at(1));
         }
-        
-        HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
-        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldColorDataPointer>(newColorPointer));
     }
     
     HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
@@ -1129,20 +1142,26 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
             }
         }
         
-        destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-        destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-        destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-        destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-        dest = (uchar*)contents.data() + destY * size + destX;
-        
-        for (int y = 0; y < destHeight; y++, dest += size) {
-            memset(dest, 0, destWidth);
+        if (foundNonZero) {
+            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
+            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
+            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
+            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
+            if (destWidth > 0 && destHeight > 0) {
+                dest = (uchar*)contents.data() + destY * size + destX;
+                
+                for (int y = 0; y < destHeight; y++, dest += size) {
+                    memset(dest, 0, destWidth);
+                }
+                
+                clearUnusedMaterials(materials, contents);
+                HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
+                info.outputValues[2] = AttributeValue(_outputs.at(2),
+                    encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
+            }
+        } else {
+            info.outputValues[2] = AttributeValue(_outputs.at(2));
         }
-        
-        clearUnusedMaterials(materials, contents);
-        HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
-        info.outputValues[2] = AttributeValue(_outputs.at(2),
-            encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
     }
     
     return STOP_RECURSION;

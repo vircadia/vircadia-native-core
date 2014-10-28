@@ -145,8 +145,13 @@ protected:
     MetavoxelData _dataCopy;
     QReadWriteLock _dataCopyLock;
     
+    QDataStream _dummyDataStream;
+    Bitstream _dummyInputStream;
+    int _dummyPacketNumber;
     QList<PacketRecord*> _clearedSendRecords;
-    QList<PacketRecord*> _clearedReceiveRecords;
+    
+    typedef QPair<PacketRecord*, Bitstream::ReadMappings> ClearedReceiveRecord;
+    QList<ClearedReceiveRecord> _clearedReceiveRecords;
 };
 
 #endif // hifi_MetavoxelClientManager_h

@@ -18,9 +18,10 @@
 #endif
 
 #include "renderer/ProgramObject.h"
-#include "ui/overlays/BillboardOverlay.h"
+#include "ui/overlays/Text3DOverlay.h"
 
 const float DEFAULT_OCULUS_UI_ANGULAR_SIZE = 72.0f;
+const int DEFAULT_OCULUS_UI_MAX_FPS = 75;
 
 class Camera;
 class PalmData;
@@ -111,7 +112,7 @@ private:
         WAITING_FOR_ZERO_HELD,
         CALIBRATED
     };
-    static void positionCalibrationBillboard(BillboardOverlay* billboard);
+    static void positionCalibrationBillboard(Text3DOverlay* message);
     static float CALIBRATION_DELTA_MINIMUM_LENGTH;
     static float CALIBRATION_DELTA_MINIMUM_ANGLE;
     static float CALIBRATION_ZERO_MAXIMUM_LENGTH;
@@ -123,8 +124,6 @@ private:
     static glm::quat _calibrationOrientation;
     static quint64 _calibrationStartTime;
     static int _calibrationMessage;
-    static QString CALIBRATION_BILLBOARD_URL;
-    static float CALIBRATION_BILLBOARD_SCALE;
 
 #endif
     

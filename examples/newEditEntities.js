@@ -33,9 +33,9 @@ Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 Script.include("libraries/entityCameraTool.js");
-var entityCameraTool = new EntityCameraTool();
+var cameraManager = new CameraManager();
 
-selectionManager.setEventListener(selectionDisplay.updateHandles());
+selectionManager.setEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -188,7 +188,7 @@ var toolBar = (function () {
         position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Entities.addEntity({
+            var entityId = Entities.addEntity({
                 type: "Model",
                 position: position,
                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -257,9 +257,9 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 selectionDisplay.unselectAll();
-                entityCameraTool.disable();
+                cameraManager.disable();
             } else {
-                entityCameraTool.enable();
+                cameraManager.enable();
             }
             return true;
         }
@@ -400,7 +400,7 @@ function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
     if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)
-        || entityCameraTool.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
+        || cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
@@ -508,8 +508,8 @@ function mouseMoveEvent(event) {
         return;
     }
     
-    // allow the selectionDisplay and entityCameraTool to handle the event first, if it doesn't handle it, then do our own thing
-    if (selectionDisplay.mouseMoveEvent(event) || entityCameraTool.mouseMoveEvent(event)) {
+    // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
         return;
     }
 
@@ -548,7 +548,7 @@ function mouseReleaseEvent(event) {
     if (entitySelected) {
         tooltip.show(false);
     }
-    entityCameraTool.mouseReleaseEvent(event);
+    cameraManager.mouseReleaseEvent(event);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -634,9 +634,12 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Delete") {
         if (entitySelected) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
-            Entities.deleteEntity(selectedEntityID);
+            for (var i = 0; i < selectionManager.selections.length; i++) {
+                Entities.deleteEntity(selectionManager.selections[i]);
+            }
             selectionDisplay.unselect(selectedEntityID);
             entitySelected = false;
+            selectionManager.clearSelections();
         } else {
             print("  Delete Entity.... not holding...");
         }
@@ -644,7 +647,7 @@ function handeMenuEvent(menuItem) {
         // good place to put the properties dialog
 
         editModelID = -1;
-        if (entitySelected) {
+        if (selectionManager.selections.length == 1) {
             print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
             editModelID = selectedEntityID;
         } else {
@@ -675,11 +678,10 @@ Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    print(event.text);
     if (event.text == "`") {
         handeMenuEvent("Edit Properties...");
     }
-    if (event.text == "BACKSPACE") {
+    if (event.text == "BACKSPACE" || event.text == "DELETE") {
         handeMenuEvent("Delete");
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
@@ -689,7 +691,11 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (entitySelected) {
             // Get latest properties
             var properties = Entities.getEntityProperties(selectedEntityID);
-            entityCameraTool.focus(properties);
+            cameraManager.focus(properties);
+        }
+    } else if (event.text == '[') {
+        if (isActive) {
+            cameraManager.enable();
         }
     }
 });

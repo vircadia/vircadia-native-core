@@ -2,7 +2,7 @@ set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
 # set a default root dir for each of our optional externals if it was not passed
-set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2")
+set(OPTIONAL_EXTERNALS "Faceshift" "LibOVR" "PrioVR" "Sixense" "Visage" "LeapMotion" "RtMidi" "Qxmpp" "SDL2" "Gverb")
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -13,6 +13,10 @@ endforeach()
 
 find_package(Qt5LinguistTools REQUIRED)
 find_package(Qt5LinguistToolsMacros)
+
+
+# As Gverb is currently the only reverb library, it's required.
+find_package(Gverb REQUIRED)
 
 if (DEFINED ENV{JOB_ID})
   set(BUILD_SEQ $ENV{JOB_ID})
@@ -29,7 +33,7 @@ elseif (WIN32)
     add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
     add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
-    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>")
+    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>\n#include <GL/wglew.h>")
 endif ()
 
 # set up the external glm library
@@ -40,11 +44,7 @@ configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceCon
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
 # grab the implementation and header files from src dirs
-file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles entities gpu)
-  file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
-endforeach(SUBDIR)
+file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 
 # Add SpeechRecognizer if on OS X, otherwise remove
 if (APPLE)
@@ -166,6 +166,13 @@ if (QXMPP_FOUND AND NOT DISABLE_QXMPP AND WIN32)
   add_definitions(-DQXMPP_STATIC) 
 endif ()
 
+if (GVERB_FOUND)
+  file(GLOB GVERB_SRCS ${GVERB_SRC_DIRS}/*.c)
+  include_directories(${GVERB_INCLUDE_DIRS})
+  add_library(gverb STATIC ${GVERB_SRCS})
+  target_link_libraries(${TARGET_NAME} gverb)
+endif (GVERB_FOUND)
+
 # include headers for interface and InterfaceConfig.
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_BINARY_DIR}/includes")
 
@@ -215,11 +222,20 @@ else (APPLE)
   if (WIN32)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIRS})
-    
+
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
-    
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    # try to find the Nsight package and add it to the build if we find it
+    find_package(NSIGHT)
+    if (NSIGHT_FOUND)
+      include_directories(${NSIGHT_INCLUDE_DIRS})
+      add_definitions(-DNSIGHT_FOUND)
+      target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
+    endif ()
+
   endif()
 endif (APPLE)
 

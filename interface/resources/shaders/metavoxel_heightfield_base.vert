@@ -26,11 +26,14 @@ varying vec4 normal;
 void main(void) {
     // transform and store the normal for interpolation
     vec2 heightCoord = gl_MultiTexCoord0.st;
-    float deltaX = texture2D(heightMap, heightCoord - vec2(heightScale, 0.0)).r -
-        texture2D(heightMap, heightCoord + vec2(heightScale, 0.0)).r;
-    float deltaZ = texture2D(heightMap, heightCoord - vec2(0.0, heightScale)).r -
-        texture2D(heightMap, heightCoord + vec2(0.0, heightScale)).r;
-    normal = normalize(gl_ModelViewMatrix * vec4(deltaX, heightScale, deltaZ, 0.0));
+    vec4 neighborHeights = vec4(texture2D(heightMap, heightCoord - vec2(heightScale, 0.0)).r,
+        texture2D(heightMap, heightCoord + vec2(heightScale, 0.0)).r,
+        texture2D(heightMap, heightCoord - vec2(0.0, heightScale)).r,
+        texture2D(heightMap, heightCoord + vec2(0.0, heightScale)).r);
+    vec4 neighborsZero = step(1.0 / 255.0, neighborHeights);
+    normal = normalize(gl_ModelViewMatrix * vec4(
+        (neighborHeights.x - neighborHeights.y) * neighborsZero.x * neighborsZero.y, heightScale,
+        (neighborHeights.z - neighborHeights.w) * neighborsZero.z * neighborsZero.w, 0.0));
     
     // add the height to the position
     float height = texture2D(heightMap, heightCoord).r;

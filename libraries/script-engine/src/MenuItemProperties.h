@@ -14,7 +14,7 @@
 
 #include <QtScript/QScriptEngine>
 
-#include "EventTypes.h"
+#include "KeyEvent.h"
 
 const int UNSPECIFIED_POSITION = -1;
 

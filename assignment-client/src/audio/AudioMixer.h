@@ -82,7 +82,13 @@ private:
         float coefficient;
     };
     QVector<ZonesSettings> _zonesSettings;
-
+    struct ReverbSettings {
+        QString zone;
+        float reverbTime;
+        float wetLevel;
+    };
+    QVector<ReverbSettings> _zoneReverbSettings;
+    
     static InboundAudioStream::Settings _streamSettings;
 
     static bool _printStreamStats;

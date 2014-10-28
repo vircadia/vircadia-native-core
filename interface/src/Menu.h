@@ -100,6 +100,8 @@ public:
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
     float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
     void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
+    int getOculusUIMaxFPS() const { return _oculusUIMaxFPS; }
+    void setOculusUIMaxFPS(int oculusUIMaxFPS) { _oculusUIMaxFPS = oculusUIMaxFPS; bumpSettings(); }
     float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
     void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
@@ -229,6 +231,8 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
+    void changeRenderTargetFramerate(QAction* action);
+    void changeVSync();
     void changeRenderResolution(QAction* action);
 
 private:
@@ -290,6 +294,7 @@ private:
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
+    int _oculusUIMaxFPS;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
     bool _automaticAvatarLOD;
@@ -446,10 +451,20 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
+    const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
+    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderTargetFramerate = "Framerate";
+    const QString RenderTargetFramerateUnlimited = "Unlimited";
+    const QString RenderTargetFramerate60 = "60";
+    const QString RenderTargetFramerate50 = "50";
+    const QString RenderTargetFramerate40 = "40";
+    const QString RenderTargetFramerate30 = "30";
+    const QString RenderTargetFramerateVSyncOn = "V-Sync On";
+
     const QString RenderResolution = "Scale Resolution";
     const QString RenderResolutionOne = "1";
     const QString RenderResolutionTwoThird = "2/3";
