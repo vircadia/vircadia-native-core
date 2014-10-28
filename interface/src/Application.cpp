@@ -116,12 +116,10 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (message.size() > 0) {
-        QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
-        QString formattedMessage = QString("[%1] %2\n").arg(dateString).arg(message);
-
-        fprintf(stdout, "%s", qPrintable(formattedMessage));
-        Application::getInstance()->getLogger()->addMessage(qPrintable(formattedMessage));
+    QString logMessage = LogHandler::getInstance().printMessage(type, context, message);
+    
+    if (!logMessage.isEmpty()) {
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
     }
 }
 

@@ -31,19 +31,25 @@ public:
     /// \param targetName the desired target name to output in logs
     void setTargetName(const QString& targetName) { _targetName = targetName; }
     
+    void setShouldOutputPID(bool shouldOutputPID) { _shouldOutputPID = shouldOutputPID; }
+    
+    QString printMessage(QtMsgType type, const QMessageLogContext& context, const QString &message);
+    
     /// a qtMessageHandler that can be hooked up to a target that links to Qt
     /// prints various process, message type, and time information
     static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
     
-    void addRepeatedMessageRegex(const QRegExp& regex) { _repeatedMessageRegexes.append(regex); }
+    const QString& addRepeatedMessageRegex(const QString& regexString) { return *_repeatedMessageRegexes.insert(regexString); }
 private:
     LogHandler();
     
     void flushRepeatedMessages();
     
     QString _targetName;
-    QList<QRegExp> _repeatedMessageRegexes;
+    bool _shouldOutputPID;
+    QSet<QString> _repeatedMessageRegexes;
     QHash<QString, int> _repeatMessageCountHash;
+    QHash<QString, QString> _lastRepeatedMessage;
 };
 
 #endif // hifi_LogHandler_h

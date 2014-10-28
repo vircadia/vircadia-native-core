@@ -212,6 +212,9 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     << uuidFromPacketHeader(packet);
             }
         } else {
+            static QString repeatedMessage
+                = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
+            
             qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
                 << uuidStringWithoutCurlyBraces(uuidFromPacketHeader(packet));
         }

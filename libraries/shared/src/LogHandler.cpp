@@ -17,6 +17,7 @@
 #define pid_t int // hack to build
 #endif
 
+#include <qdebug.h>
 #include <qtimer.h>
 
 #include "LogHandler.h"
@@ -26,7 +27,9 @@ LogHandler& LogHandler::getInstance() {
     return staticInstance;
 }
 
-LogHandler::LogHandler() {
+LogHandler::LogHandler() :
+    _shouldOutputPID(false)
+{
     // setup our timer to flush the verbose logs every 5 seconds
     QTimer* logFlushTimer = new QTimer(this);
     connect(logFlushTimer, &QTimer::timeout, this, &LogHandler::flushRepeatedMessages);
@@ -51,9 +54,33 @@ const char* stringForLogType(QtMsgType msgType) {
 // the following will produce 2000-10-02 13:55:36 -0700
 const char DATE_STRING_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
 
-void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+void LogHandler::flushRepeatedMessages() {
+    QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
+    while (message != _repeatMessageCountHash.end()) {
+        message = _repeatMessageCountHash.erase(message);
+    }
+}
+
+QString LogHandler::printMessage(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    
     if (message.isEmpty()) {
-        return;
+        return QString();
+    }
+    
+    if (type == QtDebugMsg) {
+        // for debug messages, check if this matches any of our regexes for repeated log messages
+        foreach(const QString& regexString, getInstance()._repeatedMessageRegexes) {
+            QRegExp repeatRegex(regexString);
+            if (repeatRegex.indexIn(message) != -1) {
+                
+                // we have a match - add 1 to the count of repeats for this message and set this as the last repeated message
+                _repeatMessageCountHash[regexString] += 1;
+                _lastRepeatedMessage[regexString] = message;
+                
+                // return out, we're not printing this one
+                return QString();
+            }
+        }
     }
     
     // log prefix is in the following format
@@ -70,27 +97,26 @@ void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext&
     
     prefixString.append(QString(" [%1]").arg(dateString));
     
-    prefixString.append(QString(" [%1").arg(getpid()));
-    
-    pid_t parentProcessID = getppid();
-    if (parentProcessID != 0) {
-        prefixString.append(QString(":%1]").arg(parentProcessID));
-    } else {
-        prefixString.append("]");
+    if (_shouldOutputPID) {
+        prefixString.append(QString(" [%1").arg(getpid()));
+        
+        pid_t parentProcessID = getppid();
+        if (parentProcessID != 0) {
+            prefixString.append(QString(":%1]").arg(parentProcessID));
+        } else {
+            prefixString.append("]");
+        }
     }
     
-    if (!getInstance()._targetName.isEmpty()) {
-        prefixString.append(QString(" [%1]").arg(getInstance()._targetName));
+    if (!_targetName.isEmpty()) {
+        prefixString.append(QString(" [%1]").arg(_targetName));
     }
     
-    fprintf(stdout, "%s %s\n", prefixString.toLocal8Bit().constData(), message.toLocal8Bit().constData());
+    QString logMessage = QString("%1 %2").arg(prefixString, message);
+    fprintf(stdout, "%s\n", qPrintable(logMessage));
+    return logMessage;
 }
 
-void LogHandler::flushRepeatedMessages() {
-    QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
-    while (message != _repeatMessageCountHash.end()) {
-        message = _repeatMessageCountHash.erase(message);
-    }
+void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+    getInstance().printMessage(type, context, message);
 }
-
-
