@@ -33,7 +33,7 @@ Script.include("libraries/entityPropertyDialogBox.js");
 var entityPropertyDialogBox = EntityPropertyDialogBox;
 
 Script.include("libraries/entityCameraTool.js");
-var entityCameraTool = new EntityCameraTool();
+var cameraManager = new CameraManager();
 
 selectionManager.setEventListener(selectionDisplay.updateHandles);
 
@@ -178,7 +178,7 @@ var toolBar = (function () {
         position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
         if (position.x > 0 && position.y > 0 && position.z > 0) {
-            Entities.addEntity({
+            var entityId = Entities.addEntity({
                 type: "Model",
                 position: position,
                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -247,9 +247,9 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 selectionDisplay.unselectAll();
-                entityCameraTool.disable();
+                cameraManager.disable();
             } else {
-                entityCameraTool.enable();
+                cameraManager.enable();
             }
             return true;
         }
@@ -374,7 +374,7 @@ function mousePressEvent(event) {
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
     if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)
-        || entityCameraTool.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
+        || cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
@@ -482,8 +482,8 @@ function mouseMoveEvent(event) {
         return;
     }
     
-    // allow the selectionDisplay and entityCameraTool to handle the event first, if it doesn't handle it, then do our own thing
-    if (selectionDisplay.mouseMoveEvent(event) || entityCameraTool.mouseMoveEvent(event)) {
+    // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
+    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
         return;
     }
 
@@ -522,7 +522,7 @@ function mouseReleaseEvent(event) {
     if (entitySelected) {
         tooltip.show(false);
     }
-    entityCameraTool.mouseReleaseEvent(event);
+    cameraManager.mouseReleaseEvent(event);
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -652,7 +652,6 @@ Menu.menuItemEvent.connect(handeMenuEvent);
 
 Controller.keyReleaseEvent.connect(function (event) {
     // since sometimes our menu shortcut keys don't work, trap our menu items here also and fire the appropriate menu items
-    print(event.text);
     if (event.text == "`") {
         handeMenuEvent("Edit Properties...");
     }
@@ -666,7 +665,11 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (entitySelected) {
             // Get latest properties
             var properties = Entities.getEntityProperties(selectedEntityID);
-            entityCameraTool.focus(properties);
+            cameraManager.focus(properties);
+        }
+    } else if (event.text == '[') {
+        if (isActive) {
+            cameraManager.enable();
         }
     }
 });
