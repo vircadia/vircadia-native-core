@@ -50,10 +50,15 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
 EntityItemProperties LightEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 
-    properties.setDiffuseColor(getDiffuseXColor());
-    properties.setAmbientColor(getAmbientXColor());
-    properties.setSpecularColor(getSpecularXColor());
-    properties.setIsSpotlight(getIsSpotlight());
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(isSpotlight, getIsSpotlight);
+    properties.setDiffuseColor(getDiffuseXColor()); // special case
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(ambientColor, getAmbientXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(specularColor, getSpecularXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(constantAttenuation, getConstantAttenuation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(linearAttenuation, getLinearAttenuation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(quadraticAttenuation, getQuadraticAttenuation);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(exponent, getExponent);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(cutoff, getCutoff);
 
     return properties;
 }
@@ -61,11 +66,18 @@ EntityItemProperties LightEntityItem::getProperties() const {
 bool LightEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
 
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setDiffuseColor);
     //SET_ENTITY_PROPERTY_FROM_PROPERTIES(diffuseColor, setDiffuseColor);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientColor, setAmbientColor);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(specularColor, setSpecularColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientColor, setAmbientColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(specularColor, setSpecularColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(constantAttenuation, setConstantAttenuation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(linearAttenuation, setLinearAttenuation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(quadraticAttenuation, setQuadraticAttenuation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(exponent, setExponent);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(cutoff, setCutoff);
+
 
     if (somethingChanged) {
         bool wantDebug = false;

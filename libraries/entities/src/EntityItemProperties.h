@@ -220,8 +220,7 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
-    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
-    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
+    void setSittingPoints(const QVector<SittingPoint>& sittingPoints);
     
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
@@ -336,11 +335,6 @@ private:
     float _localRenderAlpha;
     bool _isSpotlight;
 
-    // TODO: for some reason if you add anything before _sittingPoints in this class, you'll get crashes
-    // it's not clear to me why this is, but we should research it and fix whatever the underlying problem is    
-    QVector<SittingPoint> _sittingPoints;
-    glm::vec3 _naturalDimensions;
-
     bool _colorChanged;
     bool _modelURLChanged;
     bool _animationURLChanged;
@@ -368,6 +362,11 @@ private:
     bool _cutoffChanged;
 
     bool _defaultSettings;
+
+    // NOTE: The following are pseudo client only properties. They are only used in clients which can access
+    // properties of model geometry. But these properties are not serialized like other properties.
+    QVector<SittingPoint>* _sittingPoints;
+    glm::vec3 _naturalDimensions;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
