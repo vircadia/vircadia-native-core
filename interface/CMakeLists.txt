@@ -52,18 +52,7 @@ endforeach(SUBDIR)
 
 # Add SpeechRecognizer if on Windows or OS X, otherwise remove
 if (WIN32)
-  # ATL cannot be used with Visual Studio Express.
-  find_package(ATL)
-  if (ATL_FOUND)
-    # Use .cpp and .h files as is.
-    add_definitions(-DHAVE_ATL)
-    include_directories(SYSTEM ${ATL_INCLUDE_DIRS})
-  else ()
-    get_filename_component(SPEECHRECOGNIZER_H "src/SpeechRecognizer.h" ABSOLUTE)
-    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
-    get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
-    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
-  endif ()
+  # Use .cpp and .h files as is.
 elseif (APPLE)
   file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})

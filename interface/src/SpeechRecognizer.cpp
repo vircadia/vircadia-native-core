@@ -16,7 +16,7 @@
 
 #include "SpeechRecognizer.h"
 
-#if defined(Q_OS_WIN) && defined(HAVE_ATL)
+#if defined(Q_OS_WIN)
 
 #include <sapi.h>
 
@@ -219,4 +219,4 @@ void SpeechRecognizer::notifyCommandRecognized(void* handle) {
     }
 }
 
-#endif // defined(Q_OS_WIN) && defined(HAVE_ATL)
+#endif // defined(Q_OS_WIN)
