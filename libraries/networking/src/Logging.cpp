@@ -9,12 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <cstring>
-#include <cstdio>
-#include <iostream>
-#include <ctime>
-//#include <netdb.h> // not available on windows, apparently not needed on mac
-
 #ifdef _WIN32
 #include <process.h>
 #define getpid _getpid
@@ -22,55 +16,22 @@
 #define pid_t int // hack to build
 #endif
 
-#include <QtNetwork/QHostInfo>
-
-#include "HifiSockAddr.h"
-#include "SharedUtil.h"
-#include "NodeList.h"
+#include <qtimer.h>
 
 #include "Logging.h"
 
-HifiSockAddr Logging::_logstashSocket = HifiSockAddr();
 QString Logging::_targetName = QString();
 
-const HifiSockAddr& Logging::socket() {
-
-    if (_logstashSocket.getAddress().isNull()) {
-        // we need to construct the socket object
-        // use the constant port
-        _logstashSocket.setPort(htons(LOGSTASH_UDP_PORT));
-
-        // lookup the IP address for the constant hostname
-        QHostInfo hostInfo = QHostInfo::fromName(LOGSTASH_HOSTNAME);
-        if (!hostInfo.addresses().isEmpty()) {
-            // use the first IP address
-            _logstashSocket.setAddress(hostInfo.addresses().first());
-        } else {
-            qDebug("Failed to lookup logstash IP - will try again on next log attempt.");
-        }
-    }
-
-    return _logstashSocket;
+Logging& Logging::getInstance() {
+    static Logging staticInstance;
+    return staticInstance;
 }
 
-bool Logging::shouldSendStats() {
-    static bool shouldSendStats = isInEnvironment("production");
-    return shouldSendStats;
-}
-
-void Logging::stashValue(char statType, const char* key, float value) {
-    static char logstashPacket[MAX_PACKET_SIZE];
-
-    // load up the logstash packet with the key and the passed float value
-    // send it to 4 decimal places
-    int numPacketBytes = sprintf(logstashPacket, "%c %s %.4f", statType, key, value);
-
-    NodeList *nodeList = NodeList::getInstance();
-
-    if (nodeList) {
-        nodeList->getNodeSocket().writeDatagram(logstashPacket, numPacketBytes,
-                                                _logstashSocket.getAddress(), _logstashSocket.getPort());
-    }
+Logging::Logging() {
+    // setup our timer to flush the verbose logs every 5 seconds
+    QTimer* logFlushTimer = new QTimer(this);
+    connect(logFlushTimer, &QTimer::timeout, this, &Logging::flushRepeatedMessages);
+    logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
 }
 
 const char* stringForLogType(QtMsgType msgType) {
@@ -95,6 +56,7 @@ void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& co
     if (message.isEmpty()) {
         return;
     }
+    
     // log prefix is in the following format
     // [DEBUG] [TIMESTAMP] [PID:PARENT_PID] [TARGET] logged string
 
@@ -118,9 +80,16 @@ void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& co
         prefixString.append("]");
     }
 
-    if (!_targetName.isEmpty()) {
-        prefixString.append(QString(" [%1]").arg(_targetName));
+    if (!getInstance()._targetName.isEmpty()) {
+        prefixString.append(QString(" [%1]").arg(getInstance()._targetName));
     }
     
     fprintf(stdout, "%s %s\n", prefixString.toLocal8Bit().constData(), message.toLocal8Bit().constData());
+}
+
+void Logging::flushRepeatedMessages() {
+    QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
+    while (message != _repeatMessageCountHash.end()) {
+        message = _repeatMessageCountHash.erase(message);
+    }
 }

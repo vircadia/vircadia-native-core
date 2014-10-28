@@ -581,10 +581,6 @@ void Application::initializeGL() {
         float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0;
         _justStarted = false;
         qDebug("Startup time: %4.2f seconds.", startupTime);
-        const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
-
-        // ask the Logstash class to record the startup time
-        Logging::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
 
     // update before the first render
