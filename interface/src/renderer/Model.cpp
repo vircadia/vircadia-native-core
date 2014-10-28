@@ -27,6 +27,7 @@
 #include "Model.h"
 
 #include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
 #define GLBATCH( call ) batch._##call
 //#define GLBATCH( call ) call
 
@@ -563,7 +564,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // Render!
     {
         PROFILE_RANGE("render Batch");
-        ::gpu::backend::renderBatch(batch);
+        ::gpu::GLBackend::renderBatch(batch);
         batch.clear();
     }
 

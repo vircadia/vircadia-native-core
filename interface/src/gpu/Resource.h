@@ -14,30 +14,12 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include "gpu/Context.h"
+
 namespace gpu {
 
 class Buffer;
 typedef int  Stamp;
-
-// TODO: move the backend namespace into dedicated files, for now we keep it close to the gpu objects definition for convenience
-namespace backend {
-
-    class BufferObject {
-    public:
-        Stamp  _stamp;
-        GLuint _buffer;
-        GLuint _size;
-
-        BufferObject() :
-            _stamp(0),
-            _buffer(0),
-            _size(0)
-        {}
-
-        ~BufferObject();
-    };
-    void syncGPUObject(const Buffer& buffer);
-};
 
 class Resource {
 public:
@@ -141,26 +123,26 @@ public:
     // \return the number of bytes copied
     Size append(Size size, const Byte* data);
 
-    // this is a temporary hack so the current rendering code can access the underneath gl Buffer Object
-    // TODO: remove asap, when the backend is doing more of the gl features
-    inline GLuint getGLBufferObject() const { backend::syncGPUObject(*this); return getGPUObject()->_buffer; }
+    // Access the sysmem object.
+     const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
+
 
 protected:
 
     Sysmem* _sysmem;
 
-    typedef backend::BufferObject GPUObject;
-    mutable backend::BufferObject* _gpuObject;
+    mutable Backend::GPUObject* _gpuObject;
 
-    inline const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
-    inline Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
+    Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
 
-    inline GPUObject* getGPUObject() const { return _gpuObject; }
-    inline void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
+    // This shouldn't be used by anything else than the Backend class with the proper casting.
+    void setGPUObject(Backend::GPUObject* gpuObject) const { _gpuObject = gpuObject; }
+    Backend::GPUObject* getGPUObject() const { return _gpuObject; }
 
-    friend void backend::syncGPUObject(const Buffer& buffer);
+    friend class Backend;
 };
 
 };
+
 
 #endif
