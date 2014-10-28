@@ -27,8 +27,11 @@ enum CameraMode
     NUM_CAMERA_MODES
 };
 
-class Camera {
+Q_DECLARE_METATYPE(CameraMode);
+static int cameraModeId = qRegisterMetaType<CameraMode>();
 
+class Camera : public QObject {
+    Q_OBJECT
 public:
     Camera();
 
@@ -63,6 +66,9 @@ public:
     const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
     float getScale() const { return _scale; }
+
+signals:
+    void modeUpdated(CameraMode newMode);
     
 private:
 
@@ -99,6 +105,12 @@ public slots:
     glm::quat getOrientation() const { return _camera->getRotation(); }
 
     PickRay computePickRay(float x, float y);
+
+signals:
+    void modeUpdated(const QString& newMode);
+
+private slots:
+    void onModeUpdated(CameraMode m);
 
 private:
     Camera* _camera;

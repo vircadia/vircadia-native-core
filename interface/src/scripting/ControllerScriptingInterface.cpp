@@ -213,10 +213,7 @@ bool ControllerScriptingInterface::isKeyCaptured(QKeyEvent* event) const {
 
 bool ControllerScriptingInterface::isKeyCaptured(const KeyEvent& event) const {
     // if we've captured some combination of this key it will be in the map
-    if (_capturedKeys.contains(event.key, event)) {
-        return true;
-    }
-    return false;
+    return _capturedKeys.contains(event.key, event);
 }
 
 void ControllerScriptingInterface::captureKeyEvents(const KeyEvent& event) {

@@ -21,6 +21,32 @@
 #include "devices/OculusManager.h"
 
 
+CameraMode stringToMode(const QString& mode) {
+    if (mode == "third person") {
+        return CAMERA_MODE_THIRD_PERSON;
+    } else if (mode == "first person") {
+        return CAMERA_MODE_FIRST_PERSON;
+    } else if (mode == "mirror") {
+        return CAMERA_MODE_MIRROR;
+    } else if (mode == "independent") {
+        return CAMERA_MODE_INDEPENDENT;
+    }
+    return CAMERA_MODE_NULL;
+}
+
+QString modeToString(CameraMode mode) {
+    if (mode == CAMERA_MODE_THIRD_PERSON) {
+        return "third person";
+    } else if (mode == CAMERA_MODE_FIRST_PERSON) {
+        return "first person";
+    } else if (mode == CAMERA_MODE_MIRROR) {
+        return "mirror";
+    } else if (mode == CAMERA_MODE_INDEPENDENT) {
+        return "independent";
+    }
+    return "unknown";
+}
+
 Camera::Camera() : 
     _mode(CAMERA_MODE_THIRD_PERSON),
     _position(0.0f, 0.0f, 0.0f),
@@ -48,6 +74,7 @@ float Camera::getFarClip() const {
 
 void Camera::setMode(CameraMode m) {
     _mode = m;
+    emit modeUpdated(m);
 }
 
 
@@ -70,6 +97,7 @@ void Camera::setFarClip(float f) {
 CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :
     _camera(camera), _viewFrustum(viewFrustum) 
 {
+    connect(_camera, &Camera::modeUpdated, this, &CameraScriptableObject::onModeUpdated);
 }
 
 PickRay CameraScriptableObject::computePickRay(float x, float y) {
@@ -86,24 +114,7 @@ PickRay CameraScriptableObject::computePickRay(float x, float y) {
 }
 
 QString CameraScriptableObject::getMode() const {
-    QString mode("unknown");
-    switch(_camera->getMode()) {
-        case CAMERA_MODE_THIRD_PERSON:
-            mode = "third person";
-            break;
-        case CAMERA_MODE_FIRST_PERSON:
-            mode = "first person";
-            break;
-        case CAMERA_MODE_MIRROR:
-            mode = "mirror";
-            break;
-        case CAMERA_MODE_INDEPENDENT:
-            mode = "independent";
-            break;
-        default:
-            break;
-    }
-    return mode;
+    return modeToString(_camera->getMode());
 }
 
 void CameraScriptableObject::setMode(const QString& mode) {
@@ -129,6 +140,10 @@ void CameraScriptableObject::setMode(const QString& mode) {
     if (currentMode != targetMode) {
         _camera->setMode(targetMode);
     }
+}
+
+void CameraScriptableObject::onModeUpdated(CameraMode m) {
+    emit modeUpdated(modeToString(m));
 }
 
 

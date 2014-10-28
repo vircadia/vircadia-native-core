@@ -69,6 +69,7 @@ class Texture;
 class Avatar : public AvatarData {
     Q_OBJECT
     Q_PROPERTY(quint32 collisionGroups READ getCollisionGroups WRITE setCollisionGroups)
+    Q_PROPERTY(glm::vec3 skeletonOffset READ getSkeletonOffset WRITE setSkeletonOffset)
 
 public:
     Avatar();
@@ -146,6 +147,10 @@ public:
 
     quint32 getCollisionGroups() const { return _collisionGroups; }
     virtual void setCollisionGroups(quint32 collisionGroups) { _collisionGroups = (collisionGroups & VALID_COLLISION_GROUPS); }
+
+    Q_INVOKABLE void setSkeletonOffset(const glm::vec3& offset);
+    Q_INVOKABLE glm::vec3 getSkeletonOffset() { return _skeletonOffset; }
+    virtual glm::vec3 getSkeletonPosition() const;
     
     Q_INVOKABLE glm::vec3 getJointPosition(int index) const;
     Q_INVOKABLE glm::vec3 getJointPosition(const QString& name) const;
@@ -184,6 +189,7 @@ signals:
 protected:
     Hair _hair;
     SkeletonModel _skeletonModel;
+    glm::vec3 _skeletonOffset;
     QVector<Model*> _attachmentModels;
     float _bodyYawDelta;
 

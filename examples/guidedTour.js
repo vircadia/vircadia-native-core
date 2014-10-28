@@ -17,9 +17,9 @@ function update(deltaTime) {
   if (Math.random() < deltaTime) {
     guide = AvatarList.avatarWithDisplayName(leaderName);
     if (guide && !isGuide) {
-      print("found a guide!");
+      print("Found a tour guide!");
       isGuide = true;
-    } else if (!isGuide) {
+    } else if (!guide && isGuide) {
       print("Lost My Guide");
       isguide = false;
     }
