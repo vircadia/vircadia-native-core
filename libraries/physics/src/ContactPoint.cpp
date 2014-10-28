@@ -9,9 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <SharedUtil.h>
+
 #include "ContactPoint.h"
 #include "Shape.h"
-#include "SharedUtil.h"
 
 // This parameter helps keep the actual point of contact slightly inside each shape 
 // which allows the collisions to happen almost every frame for more frequent updates.
