@@ -12,7 +12,7 @@
 
 #include <QDebug>
 
-#include "gpu/Resource.h"
+#include "gpu/Batch.h"
 
 using namespace gpu;
 

@@ -14,20 +14,20 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
-
+#include "gpu/Resource.h"
 
 namespace gpu {
 
+class GPUObject {
+public:
+    GPUObject() {}
+    ~GPUObject() {}
+};
+
 class Batch;
-class Buffer;
 
 class Backend {
 public:
-    class GPUObject {
-    public:
-        GPUObject() {}
-        ~GPUObject() {}
-    };
 
     template< typename T >
     static void setGPUObject(const Buffer& buffer, T* bo) {

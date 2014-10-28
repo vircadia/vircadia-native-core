@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include "gpu/Context.h"
 #include "gpu/Batch.h"
 
 namespace gpu {
@@ -34,7 +35,7 @@ public:
 };
 void syncGPUObject(const Buffer& buffer);
 
-class GLBackend {
+class GLBackend : public Backend {
 public:
 
     GLBackend();

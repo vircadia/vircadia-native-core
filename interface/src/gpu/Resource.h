@@ -14,11 +14,11 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
-#include "gpu/Context.h"
 
 namespace gpu {
 
-class Buffer;
+class GPUObject;
+
 typedef int  Stamp;
 
 class Resource {
@@ -131,13 +131,13 @@ protected:
 
     Sysmem* _sysmem;
 
-    mutable Backend::GPUObject* _gpuObject;
+    mutable GPUObject* _gpuObject;
 
     Sysmem& editSysmem() { assert(_sysmem); return (*_sysmem); }
 
     // This shouldn't be used by anything else than the Backend class with the proper casting.
-    void setGPUObject(Backend::GPUObject* gpuObject) const { _gpuObject = gpuObject; }
-    Backend::GPUObject* getGPUObject() const { return _gpuObject; }
+    void setGPUObject(GPUObject* gpuObject) const { _gpuObject = gpuObject; }
+    GPUObject* getGPUObject() const { return _gpuObject; }
 
     friend class Backend;
 };
