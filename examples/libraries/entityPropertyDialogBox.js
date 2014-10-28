@@ -167,6 +167,16 @@ EntityPropertyDialogBox = (function () {
             index++;
             array.push({ label: "Specular Blue:", value: properties.specularColor.blue });
             index++;
+            array.push({ label: "Constant Attenuation:", value: properties.constantAttenuation });
+            index++;
+            array.push({ label: "Linear Attenuation:", value: properties.linearAttenuation });
+            index++;
+            array.push({ label: "Quadratic Attenuation:", value: properties.quadraticAttenuation });
+            index++;
+            array.push({ label: "Exponent:", value: properties.exponent });
+            index++;
+            array.push({ label: "Cutoff (in degrees):", value: properties.cutoff });
+            index++;
         }
         array.push({ button: "Cancel" });
         index++;
@@ -280,6 +290,11 @@ EntityPropertyDialogBox = (function () {
                 properties.specularColor.red = array[index++].value;
                 properties.specularColor.green = array[index++].value;
                 properties.specularColor.blue = array[index++].value;
+                properties.constantAttenuation = array[index++].value;
+                properties.linearAttenuation = array[index++].value;
+                properties.quadraticAttenuation = array[index++].value;
+                properties.exponent = array[index++].value;
+                properties.cutoff = array[index++].value;
             }
 
             Entities.editEntity(editModelID, properties);
