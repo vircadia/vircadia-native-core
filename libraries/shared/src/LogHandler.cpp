@@ -36,7 +36,7 @@ LogHandler::LogHandler() :
     logFlushTimer->start(VERBOSE_LOG_INTERVAL_SECONDS * 1000);
 }
 
-const char* stringForLogType(QtMsgType msgType) {
+const char* stringForLogType(LogMsgType msgType) {
     switch (msgType) {
         case QtDebugMsg:
             return "DEBUG";
@@ -46,6 +46,8 @@ const char* stringForLogType(QtMsgType msgType) {
             return "FATAL";
         case QtWarningMsg:
             return "WARNING";
+        case LogSuppressed:
+            return "SUPPRESS";
         default:
             return "UNKNOWN";
     }
@@ -57,17 +59,24 @@ const char DATE_STRING_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
 void LogHandler::flushRepeatedMessages() {
     QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
     while (message != _repeatMessageCountHash.end()) {
+        QString repeatMessage = QString("%1 repeated log entries matching \"%2\" - Last entry: \"%3\"")
+            .arg(message.value()).arg(message.key()).arg(_lastRepeatedMessage.value(message.key()));
+        
+        QMessageLogContext emptyContext;
+        printMessage(LogSuppressed, emptyContext, repeatMessage);
+        
+        _lastRepeatedMessage.remove(message.key());
         message = _repeatMessageCountHash.erase(message);
     }
 }
 
-QString LogHandler::printMessage(QtMsgType type, const QMessageLogContext& context, const QString& message) {
+QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& context, const QString& message) {
     
     if (message.isEmpty()) {
         return QString();
     }
     
-    if (type == QtDebugMsg) {
+    if (type == LogDebug) {
         // for debug messages, check if this matches any of our regexes for repeated log messages
         foreach(const QString& regexString, getInstance()._repeatedMessageRegexes) {
             QRegExp repeatRegex(regexString);
@@ -118,5 +127,5 @@ QString LogHandler::printMessage(QtMsgType type, const QMessageLogContext& conte
 }
 
 void LogHandler::verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    getInstance().printMessage(type, context, message);
+    getInstance().printMessage((LogMsgType) type, context, message);
 }

@@ -21,6 +21,14 @@
 
 const int VERBOSE_LOG_INTERVAL_SECONDS = 5;
 
+enum LogMsgType {
+    LogDebug,
+    LogWarning,
+    LogCritical,
+    LogFatal,
+    LogSuppressed
+};
+
 /// Handles custom message handling and sending of stats/logs to Logstash instance
 class LogHandler : public QObject {
     Q_OBJECT
@@ -33,7 +41,7 @@ public:
     
     void setShouldOutputPID(bool shouldOutputPID) { _shouldOutputPID = shouldOutputPID; }
     
-    QString printMessage(QtMsgType type, const QMessageLogContext& context, const QString &message);
+    QString printMessage(LogMsgType type, const QMessageLogContext& context, const QString &message);
     
     /// a qtMessageHandler that can be hooked up to a target that links to Qt
     /// prints various process, message type, and time information

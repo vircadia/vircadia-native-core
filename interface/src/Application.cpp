@@ -116,7 +116,7 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    QString logMessage = LogHandler::getInstance().printMessage(type, context, message);
+    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
     if (!logMessage.isEmpty()) {
         Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
