@@ -342,7 +342,16 @@ var toolBar = (function () {
                                 type: "Light",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
-                                color: { red: 255, green: 0, blue: 0 }
+                                isSpotlight: false,
+                                diffuseColor: { red: 255, green: 255, blue: 255 },
+                                ambientColor: { red: 255, green: 255, blue: 255 },
+                                specularColor: { red: 0, green: 0, blue: 0 },
+
+                                constantAttenuation: 1,
+                                linearAttenuation: 0,
+                                quadraticAttenuation: 0,
+                                exponent: 0,
+                                cutoff: 180, // in degrees
                                 });
             } else {
                 print("Can't create Light: Light would be out of bounds.");
