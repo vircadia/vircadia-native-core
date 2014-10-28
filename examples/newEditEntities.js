@@ -73,6 +73,7 @@ var toolBar = (function () {
         newModelButton,
         newCubeButton,
         newSphereButton,
+        newLightButton,
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
@@ -150,6 +151,15 @@ var toolBar = (function () {
 
         newSphereButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-sphere.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true
+        });
+
+        newLightButton = toolBar.addTool({
+            imageURL: toolIconUrl + "light.svg",
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -319,7 +329,32 @@ var toolBar = (function () {
                                 color: { red: 255, green: 0, blue: 0 }
                                 });
             } else {
-                print("Can't create box: Box would be out of bounds.");
+                print("Can't create sphere: Sphere would be out of bounds.");
+            }
+            return true;
+        }
+
+        if (newLightButton === toolBar.clicked(clickedOverlay)) {
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                Entities.addEntity({ 
+                                type: "Light",
+                                position: position,
+                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                isSpotlight: false,
+                                diffuseColor: { red: 255, green: 255, blue: 255 },
+                                ambientColor: { red: 255, green: 255, blue: 255 },
+                                specularColor: { red: 0, green: 0, blue: 0 },
+
+                                constantAttenuation: 1,
+                                linearAttenuation: 0,
+                                quadraticAttenuation: 0,
+                                exponent: 0,
+                                cutoff: 180, // in degrees
+                                });
+            } else {
+                print("Can't create Light: Light would be out of bounds.");
             }
             return true;
         }
