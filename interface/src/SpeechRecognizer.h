@@ -18,9 +18,6 @@
 
 #if defined(Q_OS_WIN)
 #include <QWinEventNotifier>
-
-//#include <atlbase.h>
-//#include <sapi.h>
 #endif
 
 class SpeechRecognizer : public QObject {

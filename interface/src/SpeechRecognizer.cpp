@@ -12,8 +12,6 @@
 #include <QtGlobal>
 #include <QDebug>
 
-#include <sphelper.h>
-
 #include "SpeechRecognizer.h"
 
 #if defined(Q_OS_WIN)
@@ -79,11 +77,28 @@ void SpeechRecognizer::setEnabled(bool enabled) {
             hr = CoCreateInstance(CLSID_SpInprocRecognizer, NULL, CLSCTX_ALL, IID_ISpRecognizer, (void**)&_speechRecognizer);
         }
         if (SUCCEEDED(hr)) {
-            CComPtr<ISpObjectToken> cpAudioToken;
-            hr = SpGetDefaultTokenFromCategoryId(SPCAT_AUDIOIN, &cpAudioToken);
+            ISpObjectToken* audioToken;
+            ISpObjectTokenCategory* audioTokenCategory;
+            hr = CoCreateInstance(CLSID_SpObjectTokenCategory, NULL, CLSCTX_ALL, IID_ISpObjectTokenCategory, 
+                (void**)&audioTokenCategory);
             if (SUCCEEDED(hr)) {
-                hr = static_cast<ISpRecognizer*>(_speechRecognizer)->SetInput(cpAudioToken, TRUE);
+                hr = audioTokenCategory->SetId(SPCAT_AUDIOIN, TRUE);
             }
+            if (SUCCEEDED(hr)) {
+                WCHAR * tokenID;
+                hr = audioTokenCategory->GetDefaultTokenId(&tokenID);
+                if (SUCCEEDED(hr)) {
+                    hr = CoCreateInstance(CLSID_SpObjectToken, NULL, CLSCTX_ALL, IID_ISpObjectToken, (void**)&audioToken);
+                    if (SUCCEEDED(hr)) {
+                        hr = audioToken->SetId(NULL, tokenID, FALSE);
+                    }
+                    ::CoTaskMemFree(tokenID);
+                }
+            }
+            if (SUCCEEDED(hr)) {
+                hr = static_cast<ISpRecognizer*>(_speechRecognizer)->SetInput(audioToken, TRUE);
+            }
+
         }
         if (SUCCEEDED(hr)) {
             hr = static_cast<ISpRecognizer*>(_speechRecognizer)
