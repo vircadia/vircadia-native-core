@@ -96,7 +96,7 @@ class EntityItemProperties {
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
-    virtual ~EntityItemProperties() { };
+    virtual ~EntityItemProperties();
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     virtual void copyFromScriptValue(const QScriptValue& object);
