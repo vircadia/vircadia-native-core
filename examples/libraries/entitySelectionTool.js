@@ -600,7 +600,7 @@ SelectionDisplay = (function () {
         currentSelection = entityID;
         entitySelected = true;
         
-        lastCameraPosition = Camera.getPosition();
+        // lastCameraPosition = Camera.getPosition();
         lastCameraOrientation = Camera.getOrientation();
 
         if (event !== false) {
@@ -623,6 +623,11 @@ SelectionDisplay = (function () {
             
         }
 
+        Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
+        Overlays.editOverlay(highlightBox, { visible: false });
+
+        that.updateHandles();
+    }
 
     that.updateRotationHandles = function() {
         var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
@@ -1137,21 +1142,10 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(zRailOverlay, { visible: false });
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "TRANSLATE_XZ") {
-                return; // not allowed
-            }
-
             pickRay = Camera.computePickRay(event.x, event.y);
 
-            // translate mode left/right based on view toward entity
-            var newIntersection = rayPlaneIntersection(pickRay,
-                                                       selectedEntityPropertiesOriginalPosition,
-                                                       Quat.getFront(lastCameraOrientation));
-
-            var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
             var pick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, { x: 0, y: 1, z: 0 });
             var vector = Vec3.subtract(pick, initialXZPick);
-            // initialXZPick = pick;
 
             // If shifted, constrain to one axis
             if (event.isShifted) {
@@ -1188,7 +1182,6 @@ SelectionDisplay = (function () {
                 if (wantDebug) {
                     print("translateXZ... ");
                     Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                    Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
                     Vec3.print("            newPosition:", properties.position);
                     Vec3.print("            newPosition:", newPosition);
@@ -1218,9 +1211,6 @@ SelectionDisplay = (function () {
             }
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "TRANSLATE_UP_DOWN") {
-                return; // not allowed
-            }
             pickRay = Camera.computePickRay(event.x, event.y);
 
             // translate mode left/right based on view toward entity
@@ -1381,9 +1371,6 @@ SelectionDisplay = (function () {
         };
 
         var onMove = function(event) {
-            if (!entitySelected || mode !== stretchMode) {
-                return; // not allowed
-            }
             var proportional = spaceMode == SPACE_WORLD || event.isShifted;
 
             var position, dimensions, rotation;
@@ -1580,10 +1567,6 @@ SelectionDisplay = (function () {
             }
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "ROTATE_YAW") {
-                return; // not allowed
-            }
-            
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
 
             if (debug) {
@@ -1724,9 +1707,6 @@ SelectionDisplay = (function () {
             }
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "ROTATE_PITCH") {
-                return; // not allowed
-            }
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
 
             if (debug) {
@@ -1865,9 +1845,6 @@ SelectionDisplay = (function () {
             }
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "ROTATE_ROLL") {
-                return; // not allowed
-            }
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
 
             if (debug) {
