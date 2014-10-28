@@ -10,6 +10,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <time.h>
+
 #ifdef _WIN32
 #include <process.h>
 #define getpid _getpid
