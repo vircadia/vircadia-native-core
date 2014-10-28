@@ -41,10 +41,9 @@ public:
     
 public slots:
     void handleLookupString(const QString& lookupString);
-    
-    void handleAPIResponse(QNetworkReply& requestReply);
-    void handleAPIError(QNetworkReply& errorReply);
     void goToUser(const QString& username);
+    void goToAddress(const QVariantMap& addressMap);
+    
 signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
@@ -54,8 +53,13 @@ signals:
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
+private slots:
+    void handleAPIResponse(QNetworkReply& requestReply);
+    void handleAPIError(QNetworkReply& errorReply);
 private:
     AddressManager();
+    
+    void setDomainHostnameAndName(const QString& hostname, const QString& domainName = QString());
     
     const JSONCallbackParameters& apiCallbackParameters();
     
