@@ -59,11 +59,14 @@ const char DATE_STRING_FORMAT[] = "%Y-%m-%d %H:%M:%S %z";
 void LogHandler::flushRepeatedMessages() {
     QHash<QString, int>::iterator message = _repeatMessageCountHash.begin();
     while (message != _repeatMessageCountHash.end()) {
-        QString repeatMessage = QString("%1 repeated log entries matching \"%2\" - Last entry: \"%3\"")
-            .arg(message.value()).arg(message.key()).arg(_lastRepeatedMessage.value(message.key()));
         
-        QMessageLogContext emptyContext;
-        printMessage(LogSuppressed, emptyContext, repeatMessage);
+        if (message.value() > 0) {
+            QString repeatMessage = QString("%1 repeated log entries matching \"%2\" - Last entry: \"%3\"")
+            .arg(message.value()).arg(message.key()).arg(_lastRepeatedMessage.value(message.key()));
+            
+            QMessageLogContext emptyContext;
+            printMessage(LogSuppressed, emptyContext, repeatMessage);
+        }
         
         _lastRepeatedMessage.remove(message.key());
         message = _repeatMessageCountHash.erase(message);
@@ -82,12 +85,20 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
             QRegExp repeatRegex(regexString);
             if (repeatRegex.indexIn(message) != -1) {
                 
-                // we have a match - add 1 to the count of repeats for this message and set this as the last repeated message
-                _repeatMessageCountHash[regexString] += 1;
-                _lastRepeatedMessage[regexString] = message;
-                
-                // return out, we're not printing this one
-                return QString();
+                if (!_repeatMessageCountHash.contains(regexString)) {
+                    // we have a match but didn't have this yet - output the first one
+                    _repeatMessageCountHash[regexString] = 0;
+                    
+                    // break the foreach so we output the first match
+                    break;
+                } else {
+                    // we have a match - add 1 to the count of repeats for this message and set this as the last repeated message
+                    _repeatMessageCountHash[regexString] += 1;
+                    _lastRepeatedMessage[regexString] = message;
+                    
+                    // return out, we're not printing this one
+                    return QString();
+                }
             }
         }
     }
