@@ -42,8 +42,12 @@ void ScriptUndoCommand::undo() {
 }
 
 void ScriptUndoCommand::redo() {
+    // QUndoStack will call `redo()` when adding a command to the stack.  This
+    // makes it difficult to work with commands that span a period of time - for instance,
+    // the entity duplicate + move command that duplicates an entity and then moves it.
+    // A better implementation might be to properly implement `mergeWith()` and `id()`
+    // so that the two actions in the example would be merged.
     if (_hasRedone) {
-        qDebug() << "Doing redo!";
         QMetaObject::invokeMethod(this, "doRedo");
     }
     _hasRedone = true;
