@@ -55,6 +55,8 @@
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
+#include <HFActionEvent.h>
+#include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
 #include <Logging.h>
 #include <NetworkAccessManager.h>
@@ -67,14 +69,16 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "ui/DataWebDialog.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+
+#include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+
 #include "renderer/ProgramObject.h"
 
 #include "scripting/AccountScriptingInterface.h"
@@ -87,12 +91,12 @@
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 
+#include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
 
-#include "devices/Leapmotion.h"
 
 using namespace std;
 
@@ -136,6 +140,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _glWidget(new GLCanvas()),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
+        _undoStack(),
+        _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
@@ -172,15 +178,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
-        _undoStack(),
-        _undoStackScriptingInterface(&_undoStack),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
+        _renderTargetFramerate(0),
+        _isVSyncOn(true),
         _renderResolutionScale(1.0f)
 {
+
     // read the ApplicationInfo.ini file for Name/Version/Domain information
     QSettings applicationInfo(Application::resourcesPath() + "info/ApplicationInfo.ini", QSettings::IniFormat);
 
@@ -411,6 +418,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
+
+    this->installEventFilter(this);
 }
 
 Application::~Application() {
@@ -520,8 +529,20 @@ void Application::initializeGL() {
       qDebug("Error: %s\n", glewGetErrorString(err));
     }
     qDebug("Status: Using GLEW %s\n", glewGetString(GLEW_VERSION));
+
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    }
     #endif
 
+#if defined(Q_OS_LINUX)
+    // TODO: Write the correct  code for Linux...
+    /* if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    }*/
+#endif
 
     // Before we render anything, let's set up our viewFrustumOffsetCamera with a sufficiently large
     // field of view and near and far clip to make it interesting.
@@ -818,7 +839,24 @@ bool Application::event(QEvent* event) {
         return false;
     }
     
+    if (HFActionEvent::types().contains(event->type())) {
+        _controllerScriptingInterface.handleMetaEvent(static_cast<HFMetaEvent*>(event));
+    }
+     
     return QApplication::event(event);
+}
+
+bool Application::eventFilter(QObject* object, QEvent* event) {
+
+    if (event->type() == QEvent::ShortcutOverride) {
+        // Filter out captured keys before they're used for shortcut actions.
+        if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
+            event->accept();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -1079,9 +1117,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
-            case Qt::Key_Escape:
-                OculusManager::abandonCalibration();
+            case Qt::Key_Space: {
+                // this starts an HFActionEvent
+                HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                sendEvent(this, &startActionEvent);
+                
                 break;
+            }
+            case Qt::Key_Escape: {
+                OculusManager::abandonCalibration();
+                
+                // this starts the HFCancelEvent
+                HFBackEvent startBackEvent(HFBackEvent::startType());
+                sendEvent(this, &startBackEvent);
+                
+                break;
+            }
+            
             default:
                 event->ignore();
                 break;
@@ -1152,6 +1204,20 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Alt:
             _myAvatar->clearDriveKeys();
             break;
+        case Qt::Key_Space: {
+            // this ends the HFActionEvent
+            HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+            sendEvent(this, &endActionEvent);
+            
+            break;
+        }
+        case Qt::Key_Escape: {
+            // this ends the HFCancelEvent
+            HFBackEvent endBackEvent(HFBackEvent::endType());
+            sendEvent(this, &endBackEvent);
+            
+            break;
+        }
         default:
             event->ignore();
             break;
@@ -1224,6 +1290,10 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                 // stop propagation
                 return;
             }
+            
+            // nobody handled this - make it an action event on the _window object
+            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
@@ -1244,12 +1314,17 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             _mouseX = event->x();
             _mouseY = event->y();
             _mousePressed = false;
+            
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
                 // let's set horizontal offset to give stats some margin to mirror
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
+            
+            // fire an action end event
+            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            sendEvent(this, &actionEvent);
         }
     }
 }
@@ -1393,9 +1468,14 @@ void Application::idle() {
     PerformanceWarning warn(showWarnings, "idle()");
 
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
-
+    double targetFramePeriod = 0.0;
+    if (_renderTargetFramerate > 0) {
+        targetFramePeriod = 1000.0 / _renderTargetFramerate;
+    } else if (_renderTargetFramerate < 0) {
+        targetFramePeriod = IDLE_SIMULATE_MSECS;
+    }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
-    if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
+    if (timeSinceLastUpdate > targetFramePeriod) {
         _lastTimeUpdated.start();
         {
             PerformanceTimer perfTimer("update");
@@ -1474,9 +1554,12 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::disconnect();
             OculusManager::connect();
         }
+        int oculusMaxFPS = Menu::getInstance()->getOculusUIMaxFPS();
+        setRenderTargetFramerate(oculusMaxFPS);
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        setRenderTargetFramerate(0);
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
@@ -3085,7 +3168,6 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
         float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
-        ratio = size.height() / (float)_glWidget->getDeviceHeight();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
@@ -4141,6 +4223,53 @@ void Application::takeSnapshot() {
         _snapshotShareDialog = new SnapshotShareDialog(fileName, _glWidget);
     }
     _snapshotShareDialog->show();
+}
+
+void Application::setRenderTargetFramerate(unsigned int framerate, bool vsyncOn) {
+    if (vsyncOn != _isVSyncOn) {
+#if defined(Q_OS_WIN)
+        if (wglewGetExtension("WGL_EXT_swap_control")) {
+            wglSwapIntervalEXT(vsyncOn);
+            int swapInterval = wglGetSwapIntervalEXT();
+            _isVSyncOn = swapInterval;
+            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        } else {
+            qDebug("V-Sync is FORCED ON on this system\n");
+        }
+#elif defined(Q_OS_LINUX)
+        // TODO: write the poper code for linux
+        /*
+        if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+            glxSwapIntervalEXT(vsyncOn);
+            int swapInterval = xglGetSwapIntervalEXT();
+            _isVSyncOn = swapInterval;
+            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+        } else {
+        qDebug("V-Sync is FORCED ON on this system\n");
+        }
+        */
+#else
+        qDebug("V-Sync is FORCED ON on this system\n");
+#endif
+    }
+    _renderTargetFramerate = framerate;
+}
+
+bool Application::isVSyncEditable() {
+#if defined(Q_OS_WIN)
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        return true;
+    }
+#elif defined(Q_OS_LINUX)
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        return true;
+    }
+    */
+#else
+#endif
+    return false;
 }
 
 void Application::setRenderResolutionScale(float scale) {

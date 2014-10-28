@@ -1040,6 +1040,9 @@ MetavoxelNode* MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
 }
 
 void MetavoxelNode::writeSubdivision(MetavoxelStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        return;
+    }
     bool leaf = isLeaf();
     if (!state.shouldSubdivideReference()) {
         state.base.stream << leaf;
@@ -2486,8 +2489,39 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
     if (!getBounds().findRayIntersection(start, direction, rayDistance) || rayDistance > 1.0f) {
         return false;
     }
-    glm::vec3 entry = (start + direction * rayDistance - getBounds().minimum) / _increment;
-    direction /= _increment;
+    glm::vec3 entry = start + direction * rayDistance;
+    const float DISTANCE_THRESHOLD = 0.001f;
+    if (glm::abs(entry.x - getBounds().minimum.x) < DISTANCE_THRESHOLD) {
+        normal = glm::vec3(-1.0f, 0.0f, 0.0f);
+        distance = rayDistance;
+        return true;
+        
+    } else if (glm::abs(entry.x - getBounds().maximum.x) < DISTANCE_THRESHOLD) {
+        normal = glm::vec3(1.0f, 0.0f, 0.0f);
+        distance = rayDistance;
+        return true;
+        
+    } else if (glm::abs(entry.y - getBounds().minimum.y) < DISTANCE_THRESHOLD) {
+        normal = glm::vec3(0.0f, -1.0f, 0.0f);
+        distance = rayDistance;
+        return true;
+        
+    } else if (glm::abs(entry.y - getBounds().maximum.y) < DISTANCE_THRESHOLD) {
+        normal = glm::vec3(0.0f, 1.0f, 0.0f);
+        distance = rayDistance;
+        return true;
+        
+    } else if (glm::abs(entry.z - getBounds().minimum.z) < DISTANCE_THRESHOLD) {
+        normal = glm::vec3(0.0f, 0.0f, -1.0f);
+        distance = rayDistance;
+        return true;
+        
+    } else if (glm::abs(entry.z - getBounds().maximum.z) < DISTANCE_THRESHOLD) {
+        normal = glm::vec3(0.0f, 0.0f, 1.0f);
+        distance = rayDistance;
+        return true;
+    }
+    entry = (entry - getBounds().minimum) / _increment;
     glm::vec3 floors = glm::floor(entry);
     glm::vec3 ceils = glm::ceil(entry);
     if (floors.x == ceils.x) {

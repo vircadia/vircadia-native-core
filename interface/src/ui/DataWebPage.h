@@ -19,6 +19,7 @@ public:
     DataWebPage(QObject* parent = 0);
 protected:
     void javaScriptConsoleMessage(const QString & message, int lineNumber, const QString & sourceID);
+    bool acceptNavigationRequest(QWebFrame* frame, const QNetworkRequest& request, QWebPage::NavigationType type);
 };
 
 #endif // hifi_DataWebPage_h

@@ -43,6 +43,8 @@ public:
             int maximumDelay = 0, int bandwidthLimit = 0);
     };
 
+    virtual ~MetavoxelSystem();
+
     virtual void init();
 
     virtual MetavoxelLOD getLOD();

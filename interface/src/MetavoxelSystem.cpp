@@ -48,6 +48,13 @@ MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repe
     bandwidthLimit(bandwidthLimit) {
 }    
 
+MetavoxelSystem::~MetavoxelSystem() {
+    // kill the updater before we delete our network simulation objects
+    _updater->thread()->quit();
+    _updater->thread()->wait();
+    _updater = NULL;
+}
+
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     DefaultMetavoxelRendererImplementation::init();
@@ -110,11 +117,9 @@ int SimulateVisitor::visit(MetavoxelInfo& info) {
 void MetavoxelSystem::simulate(float deltaTime) {
     // update the lod
     {
-        // the LOD threshold is temporarily tied to the avatar LOD parameter
         QWriteLocker locker(&_lodLock);
-        const float BASE_LOD_THRESHOLD = 0.01f;
-        _lod = MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(),
-            BASE_LOD_THRESHOLD * Menu::getInstance()->getAvatarLODDistanceMultiplier());
+        const float DEFAULT_LOD_THRESHOLD = 0.01f;
+        _lod = MetavoxelLOD(Application::getInstance()->getCamera()->getPosition(), DEFAULT_LOD_THRESHOLD);
     }
 
     SimulateVisitor simulateVisitor(deltaTime, getLOD());
@@ -2772,40 +2777,39 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
-    _baseHeightfieldProgram.bind();
-    
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    
-    BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute());
-    data.guide(heightfieldRenderVisitor);
-    
-    _baseHeightfieldProgram.release();
-    
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glActiveTexture(GL_TEXTURE0);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderHeightfields)) {
+        _baseHeightfieldProgram.bind();
         
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        
+        BufferRenderVisitor heightfieldRenderVisitor(Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute());
+        data.guide(heightfieldRenderVisitor);
+        
+        glDisableClientState(GL_TEXTURE_COORD_ARRAY);    
+        
+        _baseHeightfieldProgram.release();
+    }
     
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    
-    _baseVoxelProgram.bind();
-    
-    BufferRenderVisitor voxelRenderVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute());
-    data.guide(voxelRenderVisitor);
-    
-    _baseVoxelProgram.release();
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderDualContourSurfaces)) {
+        glEnableClientState(GL_COLOR_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        
+        _baseVoxelProgram.bind();
+        
+        BufferRenderVisitor voxelRenderVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute());
+        data.guide(voxelRenderVisitor);
+        
+        _baseVoxelProgram.release();
+        
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+    }
     
     glDisable(GL_ALPHA_TEST);
     glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
-    
+        
     glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }

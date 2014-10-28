@@ -12,7 +12,7 @@ macro(SETUP_HIFI_LIBRARY)
   project(${TARGET_NAME})
 
   # grab the implemenation and header files
-  file(GLOB LIB_SRCS src/*.h src/*.cpp)
+  file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp")
   set(LIB_SRCS ${LIB_SRCS})
 
   # create a library and set the property so it can be referenced later

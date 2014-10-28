@@ -172,6 +172,7 @@ public:
     void dropEvent(QDropEvent *event);
 
     bool event(QEvent* event);
+    bool eventFilter(QObject* object, QEvent* event);
 
     void makeVoxel(glm::vec3 position,
                    float scale,
@@ -283,6 +284,8 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
+    QPointF getViewportCenter() const
+        { return QPointF(_glWidget->getDeviceWidth() / 2.0f, _glWidget->getDeviceHeight() / 2.0f); }
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
@@ -360,6 +363,11 @@ public slots:
     void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
+
+    void setRenderTargetFramerate(unsigned int framerate, bool vsyncOn = true);
+    bool isVSyncOn() { return _isVSyncOn; }
+    bool isVSyncEditable();
+    unsigned int  getRenderTargetFramerate() const { return _renderTargetFramerate; }
 
     void setRenderResolutionScale(float scale);
 
@@ -613,6 +621,8 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
+    int _renderTargetFramerate;
+    bool _isVSyncOn;
     float _renderResolutionScale;
 };
 

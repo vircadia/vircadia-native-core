@@ -107,6 +107,8 @@ public:
     virtual void setLoadPriorities(const QHash<QPointer<QObject>, float>& priorities);
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
+    void setTextureWithNameToURL(const QString& name, const QUrl& url);
+    
 protected:
 
     virtual void init();
@@ -136,10 +138,13 @@ private:
 
 /// The state associated with a single mesh part.
 class NetworkMeshPart {
-public:
+public: 
     
+    QString diffuseTextureName;
     QSharedPointer<NetworkTexture> diffuseTexture;
+    QString normalTextureName;
     QSharedPointer<NetworkTexture> normalTexture;
+    QString specularTextureName;
     QSharedPointer<NetworkTexture> specularTexture;
     
     bool isTranslucent() const;
