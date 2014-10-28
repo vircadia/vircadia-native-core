@@ -19,10 +19,15 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
+    var PENDING_SELECTION_CHECK_INTERVAL = 50;
+
     that.savedProperties = {};
 
     that.eventListener = null;
     that.selections = [];
+    // These are selections that don't have a known ID yet
+    that.pendingSelections = [];
+    var pendingSelectionTimer = null;
 
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.localPosition = { x: 0, y: 0, z: 0 };
@@ -52,16 +57,57 @@ SelectionManager = (function() {
     that.setSelections = function(entityIDs) {
         that.selections = [];
         for (var i = 0; i < entityIDs.length; i++) {
-            that.selections.push(entityIDs[i]);
+            var entityID = entityIDs[i];
+            if (entityID.isKnownID) {
+                print('known!');
+                that.selections.push(entityID);
+            } else {
+                print('not known!');
+                that.pendingSelections.push(entityID);
+                if (pendingSelectionTimer == null) {
+                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
+                }
+            }
         }
 
         that._update();
     };
 
+    that._checkPendingSelections = function() {
+        print("CHECKING PENDING SELCTIONS");
+        for (var i = 0; i < that.pendingSelections.length; i++) {
+            var entityID = that.pendingSelections[i];
+            var newEntityID = Entities.identifyEntity(entityID);
+            if (newEntityID.isKnownID) {
+                print("is known!");
+                that.pendingSelections.splice(i, 1);
+                that.addEntity(newEntityID);
+                i--;
+            }
+        }
+
+        if (that.pendingSelections.length == 0) {
+            Script.clearInterval(pendingSelectionTimer);
+            pendingSelectionTimer = null;
+        }
+    }
+
     that.addEntity = function(entityID) {
-        var idx = that.selections.indexOf(entityID);
-        if (idx == -1) {
-            that.selections.push(entityID);
+        if (entityID.isKnownID) {
+            print('known: ' + entityID.id);
+            var idx = that.selections.indexOf(entityID);
+            if (idx == -1) {
+                that.selections.push(entityID);
+            }
+        } else {
+            print('not known!');
+            var idx = that.pendingSelections.indexOf(entityID);
+            if (idx == -1) {
+                that.pendingSelections.push(entityID);
+                if (pendingSelectionTimer == null) {
+                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
+                }
+            }
         }
 
         that._update();
@@ -73,11 +119,22 @@ SelectionManager = (function() {
             that.selections.splice(idx, 1);
         }
 
+        var idx = that.pendingSelections.indexOf(entityID);
+        if (idx >= 0) {
+            that.pendingSelections.splice(idx, 1);
+        }
+
         that._update();
     };
 
     that.clearSelections = function() {
         that.selections = [];
+        that.pendingSelections = [];
+
+        if (pendingSelectionTimer !== null) {
+            Script.clearInterval(pendingSelectionTimer);
+            pendingSelectionTimer = null;
+        }
 
         that._update();
     };
