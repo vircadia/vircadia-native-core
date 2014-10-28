@@ -1118,18 +1118,22 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _myAvatar->resetSize();
                 break;
             case Qt::Key_Space: {
-                // this starts an HFActionEvent
-                HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
-                sendEvent(this, &startActionEvent);
+                if (!event->isAutoRepeat()) {
+                    // this starts an HFActionEvent
+                    HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                    sendEvent(this, &startActionEvent);
+                }
                 
                 break;
             }
             case Qt::Key_Escape: {
                 OculusManager::abandonCalibration();
                 
-                // this starts the HFCancelEvent
-                HFBackEvent startBackEvent(HFBackEvent::startType());
-                sendEvent(this, &startBackEvent);
+                if (!event->isAutoRepeat()) {
+                    // this starts the HFCancelEvent
+                    HFBackEvent startBackEvent(HFBackEvent::startType());
+                    sendEvent(this, &startBackEvent);
+                }
                 
                 break;
             }
@@ -1205,16 +1209,20 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
             _myAvatar->clearDriveKeys();
             break;
         case Qt::Key_Space: {
-            // this ends the HFActionEvent
-            HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
-            sendEvent(this, &endActionEvent);
+            if (!event->isAutoRepeat()) {
+                // this ends the HFActionEvent
+                HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+                sendEvent(this, &endActionEvent);
+            }
             
             break;
         }
         case Qt::Key_Escape: {
-            // this ends the HFCancelEvent
-            HFBackEvent endBackEvent(HFBackEvent::endType());
-            sendEvent(this, &endBackEvent);
+            if (!event->isAutoRepeat()) {
+                // this ends the HFCancelEvent
+                HFBackEvent endBackEvent(HFBackEvent::endType());
+                sendEvent(this, &endBackEvent);
+            }
             
             break;
         }
