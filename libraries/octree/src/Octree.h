@@ -31,8 +31,6 @@ class Shape;
 #include "OctreePacketData.h"
 #include "OctreeSceneStats.h"
 
-#include <CollisionInfo.h>
-
 #include <QHash>
 #include <QObject>
 #include <QReadWriteLock>

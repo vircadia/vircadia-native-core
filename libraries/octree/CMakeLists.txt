@@ -5,7 +5,7 @@ setup_hifi_library()
 
 include_glm()
 
-link_hifi_libraries(shared networking)
+link_hifi_libraries(shared networking physics)
 
 # find ZLIB
 find_package(ZLIB REQUIRED)

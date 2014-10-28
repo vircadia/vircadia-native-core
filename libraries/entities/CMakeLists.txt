@@ -5,7 +5,7 @@ setup_hifi_library(Network Script)
 
 include_glm()
 
-link_hifi_libraries(shared octree fbx networking animation)
+link_hifi_libraries(shared octree fbx networking animation physics)
 
 # call macro to link our dependencies and bubble them up via a property on our target
 link_shared_dependencies()

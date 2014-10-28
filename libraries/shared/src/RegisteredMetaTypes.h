@@ -12,11 +12,11 @@
 #ifndef hifi_RegisteredMetaTypes_h
 #define hifi_RegisteredMetaTypes_h
 
-#include <glm/glm.hpp>
-
 #include <QtScript/QScriptEngine>
 
-#include "CollisionInfo.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include "SharedUtil.h"
 
 class QColor;
@@ -53,7 +53,7 @@ void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
 class PickRay {
 public:
-    PickRay() : origin(0), direction(0)  { }; 
+    PickRay() : origin(0.0f), direction(0.0f)  { } 
     glm::vec3 origin;
     glm::vec3 direction;
 };
@@ -61,9 +61,15 @@ Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
-Q_DECLARE_METATYPE(CollisionInfo)
-QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision);
-void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision);
+class Collision {
+public:
+    Collision() : contactPoint(0.0f), penetration(0.0f) { }
+    glm::vec3 contactPoint;
+    glm::vec3 penetration;
+};
+Q_DECLARE_METATYPE(Collision)
+QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision);
+void collisionFromScriptValue(const QScriptValue &object, Collision& collision);
 
 //Q_DECLARE_METATYPE(QUuid) // don't need to do this for QUuid since it's already a meta type
 QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid);
