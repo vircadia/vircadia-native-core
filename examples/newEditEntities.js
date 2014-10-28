@@ -1,4 +1,4 @@
-//
+
 //  newEditEntities.js
 //  examples
 //
@@ -282,7 +282,7 @@ var toolBar = (function () {
             toggleNewModelButton(false);
 
             file = Window.browse("Select your model file ...",
-                Settings.getValue("LastModelUploadLocation").path(), 
+                Settings.getValue("LastModelUploadLocation").path(),
                 "Model files (*.fst *.fbx)");
                 //"Model files (*.fst *.fbx *.svo)");
             if (file !== null) {
@@ -305,7 +305,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Box",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -322,7 +322,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Sphere",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -468,7 +468,7 @@ function mousePressEvent(event) {
 
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
 
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                             && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
             if (0 < x && sizeOK) {
@@ -502,7 +502,7 @@ function mousePressEvent(event) {
             w: selectedEntityProperties.rotation.w,
         };
         selectedEntityProperties.glowLevel = 0.0;
-        
+
         print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
         tooltip.updateText(selectedEntityProperties);
         tooltip.show(true);
@@ -516,7 +516,7 @@ function mouseMoveEvent(event) {
     if (!isActive) {
         return;
     }
-    
+
     // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
     if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
         return;
@@ -531,11 +531,11 @@ function mouseMoveEvent(event) {
         }
 
         var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-        
-        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
+
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
                                         entityIntersection.properties.position)) * 180 / 3.14;
 
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                         && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
         if (entityIntersection.entityID.isKnownID && sizeOK) {
@@ -545,7 +545,7 @@ function mouseMoveEvent(event) {
             highlightedEntityID = entityIntersection.entityID;
             selectionDisplay.highlightSelectable(entityIntersection.entityID);
         }
-        
+
     }
 }
 
@@ -585,9 +585,9 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
                         afterItem: "Paste Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S",
                         afterItem: "Allow Select Large Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
@@ -641,14 +641,24 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Allow Select Large Models") {
         allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
     } else if (menuItem == "Delete") {
-        if (entitySelected) {
+        if (SelectionManager.hasSelection()) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
+            SelectionManager.saveProperties();
+            var savedProperties = [];
             for (var i = 0; i < selectionManager.selections.length; i++) {
-                Entities.deleteEntity(selectionManager.selections[i]);
+                var entityID = SelectionManager.selections[i];
+                var initialProperties = SelectionManager.savedProperties[entityID.id];
+                SelectionManager.savedProperties[entityID.id];
+                savedProperties.push({
+                    entityID: entityID,
+                    properties: initialProperties
+                });
+                Entities.deleteEntity(entityID);
             }
+            SelectionManager.clearSelections();
+            pushCommandForSelections([], savedProperties);
             selectionDisplay.unselect(selectedEntityID);
             entitySelected = false;
-            selectionManager.clearSelections();
         } else {
             print("  Delete Entity.... not holding...");
         }
@@ -658,15 +668,16 @@ function handeMenuEvent(menuItem) {
         editModelID = -1;
         if (selectionManager.selections.length == 1) {
             print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
-            editModelID = selectedEntityID;
+            editModelID = selectionManager.selections[0];
         } else {
             print("  Edit Properties.... not holding...");
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
             entityPropertyDialogBox.openDialog(editModelID);
+            selectionManager._update();
         }
-        
+
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
@@ -694,8 +705,6 @@ Controller.keyReleaseEvent.connect(function (event) {
         handeMenuEvent("Delete");
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
-    } else if (event.text == "ESC") {
-        selectionDisplay.cancelTool();
     } else if (event.text == "f") {
         if (entitySelected) {
             // Get latest properties
@@ -706,8 +715,130 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
+    } else {
+        var delta = null;
+
+        if (event.text == 'UP') {
+            if (event.isControl || event.isAlt) {
+                delta = { x: 0, y: 1, z: 0 };
+            } else {
+                delta = { x: 0, y: 0, z: -1 };
+            }
+        } else if (event.text == 'DOWN') {
+            if (event.isControl || event.isAlt) {
+                delta = { x: 0, y: -1, z: 0 };
+            } else {
+                delta = { x: 0, y: 0, z: 1 };
+            }
+        } else if (event.text == 'LEFT') {
+            delta = { x: -1, y: 0, z: 0 };
+        } else if (event.text == 'RIGHT') {
+            delta = { x: 1, y: 0, z: 0 };
+        }
+
+        if (delta != null) {
+            // Adjust delta so that movements are relative to the current camera orientation
+            var lookDirection = Quat.getFront(Camera.getOrientation());
+            lookDirection.z *= -1;
+
+            var angle = Math.atan2(lookDirection.z, lookDirection.x);
+            angle -= (Math.PI / 4);
+
+            var rotation = Math.floor(angle / (Math.PI / 2)) * (Math.PI / 2);
+            var rotator = Quat.fromPitchYawRollRadians(0, rotation, 0);
+
+            delta = Vec3.multiplyQbyV(rotator, delta);
+
+            SelectionManager.saveProperties();
+
+            for (var i = 0; i < selectionManager.selections.length; i++) {
+                var entityID = selectionManager.selections[i];
+                var properties = Entities.getEntityProperties(entityID);
+                Entities.editEntity(entityID, {
+                    position: Vec3.sum(properties.position, delta)
+                });
+            }
+
+            pushCommandForSelections();
+
+            selectionManager._update();
+        }
     }
 });
 
+// When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
+// possible to create an entity with a specific id, earlier undo commands to the deleted entity
+// will fail if there isn't a way to find the new entity id.
+DELETED_ENTITY_MAP = {
+}
 
+function applyEntityProperties(data) {
+    var properties = data.setProperties;
+    var selectedEntityIDs = [];
+    for (var i = 0; i < properties.length; i++) {
+        var entityID = properties[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID.id];
+        }
+        Entities.editEntity(entityID, properties[i].properties);
+        selectedEntityIDs.push(entityID);
+    }
+    for (var i = 0; i < data.createEntities.length; i++) {
+        var entityID = data.createEntities[i].entityID;
+        var properties = data.createEntities[i].properties;
+        var newEntityID = Entities.addEntity(properties);
+        DELETED_ENTITY_MAP[entityID.id] = newEntityID;
+        print(newEntityID.isKnownID);
+        if (data.selectCreated) {
+            selectedEntityIDs.push(newEntityID);
+        }
+    }
+    for (var i = 0; i < data.deleteEntities.length; i++) {
+        var entityID = data.deleteEntities[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID.id];
+        }
+        Entities.deleteEntity(entityID);
+    }
 
+    selectionManager.setSelections(selectedEntityIDs);
+};
+
+// For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
+// redo command, and the saved properties for the undo command.  Also, include create and delete entity data.
+function pushCommandForSelections(createdEntityData, deletedEntityData) {
+    var undoData = {
+        setProperties: [],
+        createEntities: deletedEntityData || [],
+        deleteEntities: createdEntityData || [],
+        selectCreated: true,
+    };
+    var redoData = {
+        setProperties: [],
+        createEntities: createdEntityData || [],
+        deleteEntities: deletedEntityData || [],
+        selectCreated: false,
+    };
+    for (var i = 0; i < SelectionManager.selections.length; i++) {
+        var entityID = SelectionManager.selections[i];
+        var initialProperties = SelectionManager.savedProperties[entityID.id];
+        var currentProperties = Entities.getEntityProperties(entityID);
+        undoData.setProperties.push({
+            entityID: entityID,
+            properties: {
+                position: initialProperties.position,
+                rotation: initialProperties.rotation,
+                dimensions: initialProperties.dimensions,
+            },
+        });
+        redoData.setProperties.push({
+            entityID: entityID,
+            properties: {
+                position: currentProperties.position,
+                rotation: currentProperties.rotation,
+                dimensions: currentProperties.dimensions,
+            },
+        });
+    }
+    UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
+}
