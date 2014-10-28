@@ -28,7 +28,8 @@ VerboseLoggingHelper::VerboseLoggingHelper() {
 void VerboseLoggingHelper::flushMessages() {
     QHash<QString, int>::iterator message = _messageCountHash.begin();
     while (message != _messageCountHash.end()) {
-        qDebug() << message.key().arg(message.value());
+        qDebug() << qPrintable(message.key().arg(message.value()))
+            << "in last" << VERBOSE_LOG_INTERVAL_SECONDS << "seconds.";
         message = _messageCountHash.erase(message);
     }
 }

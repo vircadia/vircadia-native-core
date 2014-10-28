@@ -19,6 +19,8 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <VerboseLoggingHelper.h>
+
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
@@ -211,8 +213,10 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     << uuidFromPacketHeader(packet);
             }
         } else {
-            qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
-                << uuidFromPacketHeader(packet);
+            QString unknownPacketString = "%1 packets of type " + QString::number(checkType)
+                + " received from unknown node with UUID "
+                + uuidStringWithoutCurlyBraces(uuidFromPacketHeader(packet));
+            VerboseLoggingHelper::getInstance().addMessage(unknownPacketString);
         }
     } else {
         return true;
