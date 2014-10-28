@@ -9,9 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <glm/glm.hpp>
-
-#include "NodeList.h"
+#include <AddressManager.h>
 
 #include "LocationScriptingInterface.h"
 
@@ -20,36 +18,23 @@ LocationScriptingInterface* LocationScriptingInterface::getInstance() {
     return &sharedInstance;
 }
 
-bool LocationScriptingInterface::isConnected() {
-    return NodeList::getInstance()->getDomainHandler().isConnected();
-}
-
-QString LocationScriptingInterface::getHref() {
-    return getProtocol() + "//" + getHostname() + getPathname();
-}
-
-QString LocationScriptingInterface::getPathname() {
-    return AddressManager::getInstance().currentPath();
-}
-
-QString LocationScriptingInterface::getHostname() {
-    return NodeList::getInstance()->getDomainHandler().getHostname();
-}
-
-QString LocationScriptingInterface::getDomainID() const {
-    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
-    return domainID.isNull() ? "" : uuidStringWithoutCurlyBraces(domainID);
-}
-
-void LocationScriptingInterface::assign(const QString& url) {
-    QMetaObject::invokeMethod(&AddressManager::getInstance(), "handleLookupString", Q_ARG(const QString&, url));
-}
-
 QScriptValue LocationScriptingInterface::locationGetter(QScriptContext* context, QScriptEngine* engine) {
-    return engine->newQObject(getInstance());
+    return engine->newQObject(&AddressManager::getInstance());
 }
 
 QScriptValue LocationScriptingInterface::locationSetter(QScriptContext* context, QScriptEngine* engine) {
-    LocationScriptingInterface::getInstance()->assign(context->argument(0).toString());
+    const QVariant& argumentVariant = context->argument(0).toVariant();
+    
+    
+    if (argumentVariant.canConvert(QMetaType::QVariantMap)) {
+        // this argument is a variant map, so we'll assume it's an address map
+        QMetaObject::invokeMethod(&AddressManager::getInstance(), "goToAddressFromObject",
+                                  Q_ARG(const QVariantMap&, argumentVariant.toMap()));
+    } else {
+        // just try and convert the argument to a string, should be a hifi:// address
+        QMetaObject::invokeMethod(&AddressManager::getInstance(), "handleLookupString",
+                                  Q_ARG(const QString&, argumentVariant.toString()));
+    }
+    
     return QScriptValue::UndefinedValue;
 }

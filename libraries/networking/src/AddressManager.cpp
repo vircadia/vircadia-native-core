@@ -16,6 +16,8 @@
 
 #include <GLMHelpers.h>
 
+#include "NodeList.h"
+
 #include "AddressManager.h"
 
 AddressManager& AddressManager::getInstance() {
@@ -31,7 +33,11 @@ AddressManager::AddressManager() :
     
 }
 
-const QUrl AddressManager::currentAddress() {
+bool AddressManager::isConnected() {
+    return NodeList::getInstance()->getDomainHandler().isConnected();
+}
+
+const QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
     
     hifiURL.setScheme(HIFI_URL_SCHEME);
@@ -139,12 +145,12 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
     
-    goToAddress(dataObject.toVariantMap());
+    goToAddressFromObject(dataObject.toVariantMap());
     
     emit lookupResultsFinished();
 }
 
-void AddressManager::goToAddress(const QVariantMap& addressMap) {
+void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
     const QString ADDRESS_API_DOMAIN_KEY = "domain";
     const QString ADDRESS_API_ONLINE_KEY = "online";
     
@@ -185,6 +191,8 @@ void AddressManager::goToAddress(const QVariantMap& addressMap) {
                 returnedPath = domainObject[LOCATION_PATH_KEY].toString();
             } else if (domainObject.contains(LOCATION_KEY)) {
                 returnedPath = domainObject[LOCATION_KEY].toMap()[LOCATION_PATH_KEY].toString();
+            } else if (addressMap.contains(LOCATION_PATH_KEY)) {
+                returnedPath = addressMap[LOCATION_PATH_KEY].toString();
             }
             
             bool shouldFaceViewpoint = addressMap.contains(ADDRESS_API_ONLINE_KEY);
