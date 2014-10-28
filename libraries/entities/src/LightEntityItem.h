@@ -80,20 +80,20 @@ public:
     bool getIsSpotlight() const { return _isSpotlight; }
     void setIsSpotlight(bool value) { _isSpotlight = value; }
 
-    bool getConstantAttenuation() const { return _constantAttenuation; }
+    float getConstantAttenuation() const { return _constantAttenuation; }
     void setConstantAttenuation(float value) { _constantAttenuation = value; }
 
-    bool getLinearAttenuation() const { return _linearAttenuation; }
+    float getLinearAttenuation() const { return _linearAttenuation; }
     void setLinearAttenuation(float value) { _linearAttenuation = value; }
 
-    bool getQuadraticAttenuation() const { return _quadraticAttenuation; }
+    float getQuadraticAttenuation() const { return _quadraticAttenuation; }
     void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; }
 
-    bool getExponent() const { return _exponent; }
-    void setExponent(bool value) { _exponent = value; }
+    float getExponent() const { return _exponent; }
+    void setExponent(float value) { _exponent = value; }
 
-    bool getCutoff() const { return _cutoff; }
-    void setCutoff(bool value) { _cutoff = value; }
+    float getCutoff() const { return _cutoff; }
+    void setCutoff(float value) { _cutoff = value; }
     
     virtual const Shape& getCollisionShapeInMeters() const { return _emptyShape; }
     
