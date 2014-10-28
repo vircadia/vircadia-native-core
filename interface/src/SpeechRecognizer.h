@@ -19,8 +19,8 @@
 #if defined(Q_OS_WIN) && defined(HAVE_ATL)
 #include <QWinEventNotifier>
 
-#include <atlbase.h>
-#include <sapi.h>
+//#include <atlbase.h>
+//#include <sapi.h>
 #endif
 
 class SpeechRecognizer : public QObject {
@@ -52,16 +52,17 @@ private:
     void* _speechRecognizer;
 #elif defined(Q_OS_WIN) && defined(HAVE_ATL)
     bool _comInitialized;
-    CComPtr<ISpRecognizer> _speechRecognizer;
-    CComPtr<ISpRecoContext> _speechRecognizerContext;
-    CComPtr<ISpRecoGrammar> _speechRecognizerGrammar;
-    HANDLE _commandRecognizedEvent;
+    // Use void* instead of ATL CComPtr<> for speech recognizer in order to avoid linker errors with Visual Studio Express.
+    void* _speechRecognizer;
+    void* _speechRecognizerContext;
+    void* _speechRecognizerGrammar;
+    void* _commandRecognizedEvent;
     QWinEventNotifier* _commandRecognizedNotifier;
 #endif
 
 #if defined(Q_OS_WIN) && defined(HAVE_ATL)
 private slots:
-    void notifyCommandRecognized(HANDLE handle);
+    void notifyCommandRecognized(void* handle);
 #endif
 };
 

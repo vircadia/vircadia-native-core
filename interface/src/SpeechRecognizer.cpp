@@ -18,6 +18,8 @@
 
 #if defined(Q_OS_WIN) && defined(HAVE_ATL)
 
+#include <sapi.h>
+
 SpeechRecognizer::SpeechRecognizer() :
     QObject(),
     _enabled(false),
@@ -36,17 +38,17 @@ SpeechRecognizer::SpeechRecognizer() :
     }
 
     _commandRecognizedNotifier = new QWinEventNotifier();
-    connect(_commandRecognizedNotifier, SIGNAL(activated(HANDLE)), SLOT(notifyCommandRecognized(HANDLE)));
+    connect(_commandRecognizedNotifier, &QWinEventNotifier::activated, this, &SpeechRecognizer::notifyCommandRecognized);
 }
 
 SpeechRecognizer::~SpeechRecognizer() {
     if (_speechRecognizerGrammar) {
-        _speechRecognizerGrammar.Release();
+        static_cast<ISpRecoGrammar*>(_speechRecognizerGrammar)->Release();
     }
 
     if (_enabled) {
-        _speechRecognizerContext.Release();
-        _speechRecognizer.Release();
+        static_cast<ISpRecoContext*>(_speechRecognizerContext)->Release();
+        static_cast<ISpRecognizer*>(_speechRecognizer)->Release();
     }
 
     if (_comInitialized) {
@@ -74,28 +76,29 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         // - Unless do SetGrammarState(SPGS_EXCLUSIVE) on shared recognizer but then non-Interface commands don't work at all.
         // - With dedicated recognizer, user can choose whether to have Windows recognizer running in addition to Interface's.
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizer.CoCreateInstance(CLSID_SpInprocRecognizer);
+            hr = CoCreateInstance(CLSID_SpInprocRecognizer, NULL, CLSCTX_ALL, IID_ISpRecognizer, (void**)&_speechRecognizer);
         }
         if (SUCCEEDED(hr)) {
             CComPtr<ISpObjectToken> cpAudioToken;
             hr = SpGetDefaultTokenFromCategoryId(SPCAT_AUDIOIN, &cpAudioToken);
             if (SUCCEEDED(hr)) {
-                hr = _speechRecognizer->SetInput(cpAudioToken, TRUE);
+                hr = static_cast<ISpRecognizer*>(_speechRecognizer)->SetInput(cpAudioToken, TRUE);
             }
         }
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizer->CreateRecoContext(&_speechRecognizerContext);
+            hr = static_cast<ISpRecognizer*>(_speechRecognizer)
+                ->CreateRecoContext(reinterpret_cast<ISpRecoContext**>(&_speechRecognizerContext));
             if (FAILED(hr)) {
-                _speechRecognizer.Release();
+                static_cast<ISpRecognizer*>(_speechRecognizer)->Release();
             }
         }
 
         // Set up event notification mechanism.
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizerContext->SetNotifyWin32Event();
+            hr = static_cast<ISpRecoContext*>(_speechRecognizerContext)->SetNotifyWin32Event();
         }
         if (SUCCEEDED(hr)) {
-            _commandRecognizedEvent = _speechRecognizerContext->GetNotifyEventHandle();
+            _commandRecognizedEvent = static_cast<ISpRecoContext*>(_speechRecognizerContext)->GetNotifyEventHandle();
             if (_commandRecognizedEvent) {
                 _commandRecognizedNotifier->setHandle(_commandRecognizedEvent);
                 _commandRecognizedNotifier->setEnabled(true);
@@ -106,12 +109,14 @@ void SpeechRecognizer::setEnabled(bool enabled) {
         
         // Set which events to be notified of.
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizerContext->SetInterest(SPFEI(SPEI_RECOGNITION), SPFEI(SPEI_RECOGNITION));
+            hr = static_cast<ISpRecoContext*>(_speechRecognizerContext)
+                ->SetInterest(SPFEI(SPEI_RECOGNITION), SPFEI(SPEI_RECOGNITION));
         }
 
         // Create grammar and load commands.
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizerContext->CreateGrammar(NULL, &_speechRecognizerGrammar);
+            hr = static_cast<ISpRecoContext*>(_speechRecognizerContext)
+                ->CreateGrammar(NULL, reinterpret_cast<ISpRecoGrammar**>(&_speechRecognizerGrammar));
         }
         if (SUCCEEDED(hr)) {
             reloadCommands();
@@ -123,8 +128,8 @@ void SpeechRecognizer::setEnabled(bool enabled) {
 
     } else {
         _commandRecognizedNotifier->setEnabled(false);
-        _speechRecognizerContext.Release();
-        _speechRecognizer.Release();
+        static_cast<ISpRecoContext*>(_speechRecognizerContext)->Release();
+        static_cast<ISpRecognizer*>(_speechRecognizer)->Release();
         qDebug() << "Speech recognition disabled";
     }
 
@@ -149,12 +154,12 @@ void SpeechRecognizer::reloadCommands() {
     HRESULT hr = S_OK;
 
     if (SUCCEEDED(hr)) {
-        hr = _speechRecognizerContext->Pause(NULL);
+        hr = static_cast<ISpRecoContext*>(_speechRecognizerContext)->Pause(NULL);
     }
 
     if (SUCCEEDED(hr)) {
         WORD langId = MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL);
-        hr = _speechRecognizerGrammar->ResetGrammar(langId);
+        hr = static_cast<ISpRecoGrammar*>(_speechRecognizerGrammar)->ResetGrammar(langId);
     }
 
     DWORD ruleID = 0;
@@ -163,27 +168,27 @@ void SpeechRecognizer::reloadCommands() {
         ruleID += 1;
 
         if (SUCCEEDED(hr)) {
-            hr = _speechRecognizerGrammar->
+            hr = static_cast<ISpRecoGrammar*>(_speechRecognizerGrammar)->
                 GetRule(NULL, ruleID, SPRAF_TopLevel | SPRAF_Active | SPRAF_Dynamic, TRUE, &initialState);
         }
 
         if (SUCCEEDED(hr)) {
             const std::wstring command = (*iter).toStdWString();
-            hr = _speechRecognizerGrammar->
+            hr = static_cast<ISpRecoGrammar*>(_speechRecognizerGrammar)->
                 AddWordTransition(initialState, NULL, command.c_str(), L" ", SPWT_LEXICAL, 1.0, NULL);
         }
     }
 
     if (SUCCEEDED(hr)) {
-        hr = _speechRecognizerGrammar->Commit(NULL);
+        hr = static_cast<ISpRecoGrammar*>(_speechRecognizerGrammar)->Commit(NULL);
     }
 
     if (SUCCEEDED(hr)) {
-        hr = _speechRecognizerContext->Resume(NULL);
+        hr = static_cast<ISpRecoContext*>(_speechRecognizerContext)->Resume(NULL);
     }
 
     if (SUCCEEDED(hr)) {
-        hr = _speechRecognizerGrammar->SetRuleState(NULL, NULL, SPRS_ACTIVE);
+        hr = static_cast<ISpRecoGrammar*>(_speechRecognizerGrammar)->SetRuleState(NULL, NULL, SPRS_ACTIVE);
     }
 
     if (FAILED(hr)) {
@@ -191,10 +196,10 @@ void SpeechRecognizer::reloadCommands() {
     }
 }
 
-void SpeechRecognizer::notifyCommandRecognized(HANDLE handle) {
+void SpeechRecognizer::notifyCommandRecognized(void* handle) {
     SPEVENT eventItem;
     memset(&eventItem, 0, sizeof(SPEVENT));
-    HRESULT hr = _speechRecognizerContext->GetEvents(1, &eventItem, NULL);
+    HRESULT hr = static_cast<ISpRecoContext*>(_speechRecognizerContext)->GetEvents(1, &eventItem, NULL);
 
     if (SUCCEEDED(hr)) {
         if (eventItem.eEventId == SPEI_RECOGNITION && eventItem.elParamType == SPET_LPARAM_IS_OBJECT) {
