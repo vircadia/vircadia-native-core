@@ -659,8 +659,6 @@ Controller.keyReleaseEvent.connect(function (event) {
         handeMenuEvent("Delete");
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
-    } else if (event.text == "ESC") {
-        selectionDisplay.cancelTool();
     } else if (event.text == "f") {
         if (entitySelected) {
             // Get latest properties

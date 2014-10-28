@@ -1091,15 +1091,8 @@ SelectionDisplay = (function () {
             isConstrained = false;
         },
         onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections(duplicatedEntityIDs);
+
             Overlays.editOverlay(xRailOverlay, { visible: false });
             Overlays.editOverlay(zRailOverlay, { visible: false });
         },
@@ -1162,15 +1155,7 @@ SelectionDisplay = (function () {
             SelectionManager.saveProperties();
         },
         onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections();
         },
         onMove: function(event) {
             pickRay = Camera.computePickRay(event.x, event.y);
@@ -1321,15 +1306,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(yRailOverlay, { visible: false });
             Overlays.editOverlay(zRailOverlay, { visible: false });
 
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections();
         };
 
         var onMove = function(event) {
@@ -1425,14 +1402,6 @@ SelectionDisplay = (function () {
         };
     };
 
-    that.cancelTool = function() {
-        if (activeTool) {
-            activeTool.onEnd(null, 'cancel');
-            activeTool = null;
-            SelectionManager._update();
-        }
-    };
-
     function addStretchTool(overlay, mode, pivot, direction) {
         if (!pivot) {
             pivot = Vec3.multiply(-1, direction);
@@ -1518,15 +1487,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
 
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections();
         },
         onMove: function(event) {
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
@@ -1658,15 +1619,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
 
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections();
         },
         onMove: function(event) {
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
@@ -1796,15 +1749,7 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
 
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections();
         },
         onMove: function(event) {
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
