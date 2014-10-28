@@ -1137,6 +1137,7 @@ SelectionDisplay = (function () {
     var initialXZPick = null;
     var isConstrained = false;
     var startPosition = null;
+    var duplicatedEntityIDs = null;
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
         onBegin: function(event) {
@@ -1151,10 +1152,17 @@ SelectionDisplay = (function () {
             // copy of the selected entities and move the _original_ entities, not
             // the new ones.
             if (event.isAlt) {
+                duplicatedEntityIDs = [];
                 for (var otherEntityID in SelectionManager.savedProperties) {
                     var properties = SelectionManager.savedProperties[otherEntityID];
                     var entityID = Entities.addEntity(properties);
+                    duplicatedEntityIDs.push({
+                        entityID: entityID,
+                        properties: properties,
+                    });
                 }
+            } else {
+                duplicatedEntityIDs = null;
             }
 
             isConstrained = false;
@@ -1222,9 +1230,26 @@ SelectionDisplay = (function () {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event) {
             SelectionManager.saveProperties();
+
+            // Duplicate entities if alt is pressed.  This will make a
+            // copy of the selected entities and move the _original_ entities, not
+            // the new ones.
+            if (event.isAlt) {
+                duplicatedEntityIDs = [];
+                for (var otherEntityID in SelectionManager.savedProperties) {
+                    var properties = SelectionManager.savedProperties[otherEntityID];
+                    var entityID = Entities.addEntity(properties);
+                    duplicatedEntityIDs.push({
+                        entityID: entityID,
+                        properties: properties,
+                    });
+                }
+            } else {
+                duplicatedEntityIDs = null;
+            }
         },
         onEnd: function(event, reason) {
-            pushCommandForSelections();
+            pushCommandForSelections(duplicatedEntityIDs);
         },
         onMove: function(event) {
             pickRay = Camera.computePickRay(event.x, event.y);

@@ -606,14 +606,24 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem == "Allow Select Large Models") {
         allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
     } else if (menuItem == "Delete") {
-        if (entitySelected) {
+        if (SelectionManager.hasSelection()) {
             print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
+            SelectionManager.saveProperties();
+            var savedProperties = [];
             for (var i = 0; i < selectionManager.selections.length; i++) {
-                Entities.deleteEntity(selectionManager.selections[i]);
+                var entityID = SelectionManager.selections[i];
+                var initialProperties = SelectionManager.savedProperties[entityID.id];
+                SelectionManager.savedProperties[entityID.id];
+                savedProperties.push({
+                    entityID: entityID,
+                    properties: initialProperties
+                });
+                Entities.deleteEntity(entityID);
             }
+            SelectionManager.clearSelections();
+            pushCommandForSelections([], savedProperties);
             selectionDisplay.unselect(selectedEntityID);
             entitySelected = false;
-            selectionManager.clearSelections();
         } else {
             print("  Delete Entity.... not holding...");
         }
@@ -623,15 +633,16 @@ function handeMenuEvent(menuItem) {
         editModelID = -1;
         if (selectionManager.selections.length == 1) {
             print("  Edit Properties.... selectedEntityID="+ selectedEntityID);
-            editModelID = selectedEntityID;
+            editModelID = selectionManager.selections[0];
         } else {
             print("  Edit Properties.... not holding...");
         }
         if (editModelID != -1) {
             print("  Edit Properties.... about to edit properties...");
             entityPropertyDialogBox.openDialog(editModelID);
+            selectionManager._update();
         }
-        
+
     } else if (menuItem == "Paste Models") {
         modelImporter.paste();
     } else if (menuItem == "Export Models") {
@@ -720,25 +731,64 @@ Controller.keyReleaseEvent.connect(function (event) {
     }
 });
 
+// When an entity has been deleted we need a way to "undo" this deletion.  Because it's not currently
+// possible to create an entity with a specific id, earlier undo commands to the deleted entity
+// will fail if there isn't a way to find the new entity id.
+DELETED_ENTITY_MAP = {
+}
+
 function applyEntityProperties(data) {
-    for (var i = 0; i < data.length; i++) {
-        var entityID = data[i].entityID;
-        var properties = data[i].properties;
-        Entities.editEntity(entityID, properties);
+    var properties = data.setProperties;
+    var selectedEntityIDs = [];
+    for (var i = 0; i < properties.length; i++) {
+        var entityID = properties[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID.id];
+        }
+        Entities.editEntity(entityID, properties[i].properties);
+        selectedEntityIDs.push(entityID);
     }
-    selectionManager._update();
+    for (var i = 0; i < data.createEntities.length; i++) {
+        var entityID = data.createEntities[i].entityID;
+        var properties = data.createEntities[i].properties;
+        var newEntityID = Entities.addEntity(properties);
+        DELETED_ENTITY_MAP[entityID.id] = newEntityID;
+        print(newEntityID.isKnownID);
+        if (data.selectCreated) {
+            selectedEntityIDs.push(newEntityID);
+        }
+    }
+    for (var i = 0; i < data.deleteEntities.length; i++) {
+        var entityID = data.deleteEntities[i].entityID;
+        if (DELETED_ENTITY_MAP[entityID.id] !== undefined) {
+            entityID = DELETED_ENTITY_MAP[entityID.id];
+        }
+        Entities.deleteEntity(entityID);
+    }
+
+    selectionManager.setSelections(selectedEntityIDs);
 };
 
 // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
-// redo command, and the saved properties for the undo command.
-function pushCommandForSelections() {
-    var undoData = [];
-    var redoData = [];
+// redo command, and the saved properties for the undo command.  Also, include create and delete entity data.
+function pushCommandForSelections(createdEntityData, deletedEntityData) {
+    var undoData = {
+        setProperties: [],
+        createEntities: deletedEntityData || [],
+        deleteEntities: createdEntityData || [],
+        selectCreated: true,
+    };
+    var redoData = {
+        setProperties: [],
+        createEntities: createdEntityData || [],
+        deleteEntities: deletedEntityData || [],
+        selectCreated: false,
+    };
     for (var i = 0; i < SelectionManager.selections.length; i++) {
         var entityID = SelectionManager.selections[i];
         var initialProperties = SelectionManager.savedProperties[entityID.id];
         var currentProperties = Entities.getEntityProperties(entityID);
-        undoData.push({
+        undoData.setProperties.push({
             entityID: entityID,
             properties: {
                 position: initialProperties.position,
@@ -746,7 +796,7 @@ function pushCommandForSelections() {
                 dimensions: initialProperties.dimensions,
             },
         });
-        redoData.push({
+        redoData.setProperties.push({
             entityID: entityID,
             properties: {
                 position: currentProperties.position,
