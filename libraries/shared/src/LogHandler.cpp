@@ -11,6 +11,7 @@
 //
 
 #include <time.h>
+#include <ctime>
 
 #ifdef _WIN32
 #include <process.h>
