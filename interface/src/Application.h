@@ -172,6 +172,7 @@ public:
     void dropEvent(QDropEvent *event);
 
     bool event(QEvent* event);
+    bool eventFilter(QObject* object, QEvent* event);
 
     void makeVoxel(glm::vec3 position,
                    float scale,
