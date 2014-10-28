@@ -80,6 +80,7 @@ EntityItemProperties::EntityItemProperties() :
     _localRenderAlphaChanged(false),
     _isSpotlightChanged(false),
 
+    _diffuseColor(),
     _ambientColor(),
     _specularColor(),
     _constantAttenuation(1.0f),
@@ -88,6 +89,7 @@ EntityItemProperties::EntityItemProperties() :
     _exponent(0.0f),
     _cutoff(PI),
 
+    _diffuseColorChanged(false),
     _ambientColorChanged(false),
     _specularColorChanged(false),
     _constantAttenuationChanged(false),
@@ -156,6 +158,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
     CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
     CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
+    CHECK_PROPERTY_CHANGE(PROP_DIFFUSE_COLOR, diffuseColor);
     CHECK_PROPERTY_CHANGE(PROP_AMBIENT_COLOR, ambientColor);
     CHECK_PROPERTY_CHANGE(PROP_SPECULAR_COLOR, specularColor);
     CHECK_PROPERTY_CHANGE(PROP_CONSTANT_ATTENUATION, constantAttenuation);
@@ -205,8 +208,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
     COPY_PROPERTY_TO_QSCRIPTVALUE(isSpotlight);
-
-    // NOTE: we do want this, so we will read both aliases diffuseColor and color
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(diffuseColor, getDiffuseColor()); 
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(ambientColor, getAmbientColor());
     COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(specularColor, getSpecularColor());
@@ -438,6 +439,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, properties.getIgnoreForCollisions());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
             APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
+            APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
             APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
             APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
             APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
@@ -644,6 +646,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
+    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
@@ -707,6 +710,7 @@ void EntityItemProperties::markAllChanged() {
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
 
+    _diffuseColorChanged = true;
     _ambientColorChanged = true;
     _specularColorChanged = true;
     _constantAttenuationChanged = true;

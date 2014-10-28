@@ -67,8 +67,7 @@ bool LightEntityItem::setProperties(const EntityItemProperties& properties, bool
     bool somethingChanged = EntityItem::setProperties(properties, forceCopy); // set the properties in our base class
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(color, setDiffuseColor);
-    //SET_ENTITY_PROPERTY_FROM_PROPERTIES(diffuseColor, setDiffuseColor);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(diffuseColor, setDiffuseColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ambientColor, setAmbientColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(specularColor, setSpecularColor);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(isSpotlight, setIsSpotlight);
@@ -103,6 +102,11 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY_COLOR(PROP_DIFFUSE_COLOR, _diffuseColor);
     READ_ENTITY_PROPERTY_COLOR(PROP_AMBIENT_COLOR, _ambientColor);
     READ_ENTITY_PROPERTY_COLOR(PROP_SPECULAR_COLOR, _specularColor);
+    READ_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, float, _constantAttenuation);
+    READ_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, float, _linearAttenuation);
+    READ_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, float, _quadraticAttenuation);
+    READ_ENTITY_PROPERTY(PROP_EXPONENT, float, _exponent);
+    READ_ENTITY_PROPERTY(PROP_CUTOFF, float, _cutoff);
 
     return bytesRead;
 }
@@ -111,8 +115,15 @@ int LightEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
 // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
 EntityPropertyFlags LightEntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
     EntityPropertyFlags requestedProperties = EntityItem::getEntityProperties(params);
-    requestedProperties += PROP_COLOR;
     requestedProperties += PROP_IS_SPOTLIGHT;
+    requestedProperties += PROP_DIFFUSE_COLOR;
+    requestedProperties += PROP_AMBIENT_COLOR;
+    requestedProperties += PROP_SPECULAR_COLOR;
+    requestedProperties += PROP_CONSTANT_ATTENUATION;
+    requestedProperties += PROP_LINEAR_ATTENUATION;
+    requestedProperties += PROP_QUADRATIC_ATTENUATION;
+    requestedProperties += PROP_EXPONENT;
+    requestedProperties += PROP_CUTOFF;
     return requestedProperties;
 }
 
@@ -129,4 +140,9 @@ void LightEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, getDiffuseColor());
     APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, getAmbientColor());
     APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, getSpecularColor());
+    APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, getConstantAttenuation());
+    APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, getLinearAttenuation());
+    APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, getQuadraticAttenuation());
+    APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, getExponent());
+    APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, getCutoff());
 }

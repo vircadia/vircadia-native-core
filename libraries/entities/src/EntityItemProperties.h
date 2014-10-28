@@ -51,7 +51,6 @@ enum EntityPropertyList {
 
     // these properties are supported by some derived classes
     PROP_COLOR,
-    PROP_DIFFUSE_COLOR = PROP_COLOR, // used by light class
     PROP_MODEL_URL,
     PROP_ANIMATION_URL,
     PROP_ANIMATION_FPS,
@@ -67,6 +66,7 @@ enum EntityPropertyList {
 
     // property used by Light entity
     PROP_IS_SPOTLIGHT,
+    PROP_DIFFUSE_COLOR,
     PROP_AMBIENT_COLOR,
     PROP_SPECULAR_COLOR,
     PROP_CONSTANT_ATTENUATION,
@@ -246,16 +246,11 @@ public:
     bool getIsSpotlight() const { return _isSpotlight; }
     void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
 
-    // total hack for now
-    //void setDiffuseColor(const xColor& value) { setColor(value); }
-    //void setAmbientColor(const xColor& value) { setColor(value); }
-    //void setSpecularColor(const xColor& value) { setColor(value); }
-
-    xColor getDiffuseColor() const { return _color; } // diffuseColor is an alias for color
+    xColor getDiffuseColor() const { return _diffuseColor; }
     xColor getAmbientColor() const { return _ambientColor; }
     xColor getSpecularColor() const { return _specularColor; }
 
-    void setDiffuseColor(const xColor& value) { _color = value; _colorChanged = true; }
+    void setDiffuseColor(const xColor& value) { _diffuseColor = value; _diffuseColorChanged = true; }
     void setAmbientColor(const xColor& value) { _ambientColor = value; _ambientColorChanged = true; }
     void setSpecularColor(const xColor& value) { _specularColor = value; _specularColorChanged = true; }
 
@@ -345,6 +340,7 @@ private:
     bool _localRenderAlphaChanged;
     bool _isSpotlightChanged;
 
+    xColor _diffuseColor;
     xColor _ambientColor;
     xColor _specularColor;
     float _constantAttenuation;
@@ -353,6 +349,7 @@ private:
     float _exponent;
     float _cutoff;
 
+    bool _diffuseColorChanged;
     bool _ambientColorChanged;
     bool _specularColorChanged;
     bool _constantAttenuationChanged;
