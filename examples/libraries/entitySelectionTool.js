@@ -894,16 +894,9 @@ SelectionDisplay = (function () {
             translateHandlesVisible = false;
         }
         
-        var dimensions, rotation, position;
-        if (spaceMode == SPACE_LOCAL) {
-            rotation = SelectionManager.localRotation;
-            dimensions = SelectionManager.localDimensions;
-            position = SelectionManager.localPosition;
-        } else {
-            rotation = SelectionManager.worldRotation;
-            dimensions = SelectionManager.worldDimensions;
-            position = SelectionManager.worldPosition;
-        }
+        var rotation = SelectionManager.worldRotation;
+        var dimensions = SelectionManager.worldDimensions;
+        var position = SelectionManager.worldPosition;
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, 
                             { 
