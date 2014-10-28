@@ -15,6 +15,7 @@
 #include <qstringlist.h>
 
 #include <GLMHelpers.h>
+#include <UUID.h>
 
 #include "NodeList.h"
 
@@ -72,7 +73,8 @@ const QString AddressManager::currentPath(bool withOrientation) const {
 }
 
 QString AddressManager::getDomainID() const {
-    return NodeList::getInstance()->getDomainHandler().getUUID().toString();
+    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    return domainID.isNull() ? "" : uuidStringWithoutCurlyBraces(domainID);
 }
 
 const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
