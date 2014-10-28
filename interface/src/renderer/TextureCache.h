@@ -156,7 +156,6 @@ protected:
     virtual void imageLoaded(const QImage& image);
 
 private:
-
     TextureType _type;
     bool _translucent;
     QColor _averageColor;
