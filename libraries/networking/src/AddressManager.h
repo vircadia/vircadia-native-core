@@ -26,10 +26,18 @@ typedef glm::quat (*OrientationGetter)();
 
 class AddressManager : public QObject {
     Q_OBJECT
+    Q_PROPERTY(bool isConnected READ isConnected)
+    Q_PROPERTY(QUrl href READ currentAddress)
+    Q_PROPERTY(QString protocol READ getProtocol)
+    Q_PROPERTY(QString hostname READ getCurrentDomain)
+    Q_PROPERTY(QString pathname READ currentPath)
 public:
     static AddressManager& getInstance();
     
-    const QUrl currentAddress();
+    bool isConnected();
+    const QString& getProtocol() { return HIFI_URL_SCHEME; };
+    
+    const QUrl currentAddress() const;
     const QString currentPath(bool withOrientation = true) const;
     
     const QString& getCurrentDomain() const { return _currentDomain; }
@@ -41,10 +49,9 @@ public:
     
 public slots:
     void handleLookupString(const QString& lookupString);
-    
-    void handleAPIResponse(QNetworkReply& requestReply);
-    void handleAPIError(QNetworkReply& errorReply);
     void goToUser(const QString& username);
+    void goToAddressFromObject(const QVariantMap& addressMap);
+    
 signals:
     void lookupResultsFinished();
     void lookupResultIsOffline();
@@ -54,8 +61,13 @@ signals:
     void locationChangeRequired(const glm::vec3& newPosition,
                                 bool hasOrientationChange, const glm::quat& newOrientation,
                                 bool shouldFaceLocation);
+private slots:
+    void handleAPIResponse(QNetworkReply& requestReply);
+    void handleAPIError(QNetworkReply& errorReply);
 private:
     AddressManager();
+    
+    void setDomainHostnameAndName(const QString& hostname, const QString& domainName = QString());
     
     const JSONCallbackParameters& apiCallbackParameters();
     
