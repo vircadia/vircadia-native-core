@@ -1266,7 +1266,6 @@ void Menu::changeVSync() {
 }
 void Menu::changeRenderTargetFramerate(QAction* action) {
     bool vsynOn = Application::getInstance()->isVSyncOn();
-    unsigned int framerate = Application::getInstance()->getRenderTargetFramerate();
 
     QString text = action->text();
     if (text == MenuOption::RenderTargetFramerateUnlimited) {
