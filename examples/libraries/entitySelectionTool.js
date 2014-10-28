@@ -59,10 +59,8 @@ SelectionManager = (function() {
         for (var i = 0; i < entityIDs.length; i++) {
             var entityID = entityIDs[i];
             if (entityID.isKnownID) {
-                print('known!');
                 that.selections.push(entityID);
             } else {
-                print('not known!');
                 that.pendingSelections.push(entityID);
                 if (pendingSelectionTimer == null) {
                     pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
@@ -74,12 +72,10 @@ SelectionManager = (function() {
     };
 
     that._checkPendingSelections = function() {
-        print("CHECKING PENDING SELCTIONS");
         for (var i = 0; i < that.pendingSelections.length; i++) {
             var entityID = that.pendingSelections[i];
             var newEntityID = Entities.identifyEntity(entityID);
             if (newEntityID.isKnownID) {
-                print("is known!");
                 that.pendingSelections.splice(i, 1);
                 that.addEntity(newEntityID);
                 i--;
@@ -94,13 +90,11 @@ SelectionManager = (function() {
 
     that.addEntity = function(entityID) {
         if (entityID.isKnownID) {
-            print('known: ' + entityID.id);
             var idx = that.selections.indexOf(entityID);
             if (idx == -1) {
                 that.selections.push(entityID);
             }
         } else {
-            print('not known!');
             var idx = that.pendingSelections.indexOf(entityID);
             if (idx == -1) {
                 that.pendingSelections.push(entityID);

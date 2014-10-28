@@ -1,4 +1,4 @@
-//
+
 //  newEditEntities.js
 //  examples
 //
@@ -272,7 +272,7 @@ var toolBar = (function () {
             toggleNewModelButton(false);
 
             file = Window.browse("Select your model file ...",
-                Settings.getValue("LastModelUploadLocation").path(), 
+                Settings.getValue("LastModelUploadLocation").path(),
                 "Model files (*.fst *.fbx)");
                 //"Model files (*.fst *.fbx *.svo)");
             if (file !== null) {
@@ -295,7 +295,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Box",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -312,7 +312,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Sphere",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -433,7 +433,7 @@ function mousePressEvent(event) {
 
             var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
 
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                             && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
             if (0 < x && sizeOK) {
@@ -467,7 +467,7 @@ function mousePressEvent(event) {
             w: selectedEntityProperties.rotation.w,
         };
         selectedEntityProperties.glowLevel = 0.0;
-        
+
         print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
         tooltip.updateText(selectedEntityProperties);
         tooltip.show(true);
@@ -481,7 +481,7 @@ function mouseMoveEvent(event) {
     if (!isActive) {
         return;
     }
-    
+
     // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
     if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
         return;
@@ -496,11 +496,11 @@ function mouseMoveEvent(event) {
         }
 
         var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-        
-        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), 
+
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
                                         entityIntersection.properties.position)) * 180 / 3.14;
 
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE) 
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
                         && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
         if (entityIntersection.entityID.isKnownID && sizeOK) {
@@ -510,7 +510,7 @@ function mouseMoveEvent(event) {
             highlightedEntityID = entityIntersection.entityID;
             selectionDisplay.highlightSelectable(entityIntersection.entityID);
         }
-        
+
     }
 }
 
@@ -550,9 +550,9 @@ function setupModelMenus() {
     }
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
                         afterItem: "Paste Models", isCheckable: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S",
                         afterItem: "Allow Select Large Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
