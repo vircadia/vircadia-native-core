@@ -102,6 +102,9 @@ EntityItemProperties::EntityItemProperties() :
     _sittingPoints(NULL),
     _naturalDimensions(1.0f, 1.0f, 1.0f)
 {
+}
+
+EntityItemProperties::~EntityItemProperties() { 
     if (_sittingPoints) {
         delete _sittingPoints;
         _sittingPoints = NULL;
