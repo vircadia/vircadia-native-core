@@ -71,6 +71,10 @@ const QString AddressManager::currentPath(bool withOrientation) const {
     }
 }
 
+QString AddressManager::getDomainID() const {
+    return NodeList::getInstance()->getDomainHandler().getUUID().toString();
+}
+
 const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
     static bool hasSetupParameters = false;
     static JSONCallbackParameters callbackParams;

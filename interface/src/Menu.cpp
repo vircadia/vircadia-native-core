@@ -1315,7 +1315,7 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
         _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
@@ -1359,7 +1359,7 @@ void Menu::nameLocation() {
     
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
         _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     
