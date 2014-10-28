@@ -45,8 +45,20 @@ SelectionManager = (function() {
         that.eventListener = func;
     };
 
+    that.hasSelection = function() {
+        return that.selections.length > 0;
+    };
+
+    that.setSelections = function(entityIDs) {
+        that.selections = [];
+        for (var i = 0; i < entityIDs.length; i++) {
+            that.selections.push(entityIDs[i]);
+        }
+
+        that._update();
+    };
+
     that.addEntity = function(entityID) {
-        print("Adding: " + entityID.id);
         var idx = that.selections.indexOf(entityID);
         if (idx == -1) {
             that.selections.push(entityID);
@@ -77,8 +89,6 @@ SelectionManager = (function() {
             that.worldDimensions = null;
             that.worldPosition = null;
         } else if (that.selections.length == 1) {
-            SelectionDisplay.setSpaceMode(SPACE_LOCAL);
-
             var properties = Entities.getEntityProperties(that.selections[0]);
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
@@ -86,10 +96,9 @@ SelectionManager = (function() {
 
             that.worldDimensions = properties.boundingBox.dimensions;
             that.worldPosition = properties.boundingBox.center;
-        } else {
-            // For 1+ selections we can only modify selections in world space
-            SelectionDisplay.setSpaceMode(SPACE_WORLD);
 
+            SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+        } else {
             that.localRotation = null;
             that.localDimensions = null;
             that.localPosition = null;
@@ -122,6 +131,9 @@ SelectionManager = (function() {
                 y: brn.y + (that.worldDimensions.y / 2),
                 z: brn.z + (that.worldDimensions.z / 2),
             };
+
+            // For 1+ selections we can only modify selections in world space
+            SelectionDisplay.setSpaceMode(SPACE_WORLD);
         }
 
         if (that.eventListener) {
