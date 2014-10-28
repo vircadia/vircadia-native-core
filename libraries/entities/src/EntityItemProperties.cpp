@@ -109,7 +109,7 @@ EntityItemProperties::~EntityItemProperties() {
         delete _sittingPoints;
         _sittingPoints = NULL;
     }
-};
+}
 
 void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {
     if (!_sittingPoints) {
