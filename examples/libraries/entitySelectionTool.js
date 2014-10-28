@@ -1065,44 +1065,6 @@ SelectionDisplay = (function () {
         entitySelected = false;
     };
 
-    function applyEntityProperties(data) {
-        for (var i = 0; i < data.length; i++) {
-            var entityID = data[i].entityID;
-            var properties = data[i].properties;
-            Entities.editEntity(entityID, properties);
-        }
-        selectionManager._update();
-    };
-
-    // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
-    // redo command, and the saved properties for the undo command.
-    function pushCommandForSelections() {
-        var undoData = [];
-        var redoData = [];
-        for (var i = 0; i < SelectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
-            var initialProperties = SelectionManager.savedProperties[entityID.id];
-            var currentProperties = Entities.getEntityProperties(entityID);
-            undoData.push({
-                entityID: entityID,
-                properties: {
-                    position: initialProperties.position,
-                    rotation: initialProperties.rotation,
-                    dimensions: initialProperties.dimensions,
-                },
-            });
-            redoData.push({
-                entityID: entityID,
-                properties: {
-                    position: currentProperties.position,
-                    rotation: currentProperties.rotation,
-                    dimensions: currentProperties.dimensions,
-                },
-            });
-        }
-        UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
-    }
-
     var initialXZPick = null;
     var isConstrained = false;
     var startPosition = null;

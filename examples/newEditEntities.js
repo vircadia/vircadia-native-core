@@ -671,8 +671,91 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
+    } else {
+        var delta = null;
+
+        if (event.text == 'UP') {
+            if (event.isControl || event.isAlt) {
+                delta = { x: 0, y: 1, z: 0 };
+            } else {
+                delta = { x: 0, y: 0, z: -1 };
+            }
+        } else if (event.text == 'DOWN') {
+            if (event.isControl || event.isAlt) {
+                delta = { x: 0, y: -1, z: 0 };
+            } else {
+                delta = { x: 0, y: 0, z: 1 };
+            }
+        } else if (event.text == 'LEFT') {
+            delta = { x: -1, y: 0, z: 0 };
+        } else if (event.text == 'RIGHT') {
+            delta = { x: 1, y: 0, z: 0 };
+        }
+
+        if (delta != null) {
+            // Adjust delta so that movements are relative to the current camera orientation
+            var lookDirection = Quat.getFront(Camera.getOrientation());
+            lookDirection.z *= -1;
+
+            var angle = Math.atan2(lookDirection.z, lookDirection.x);
+            angle -= (Math.PI / 4);
+
+            var rotation = Math.floor(angle / (Math.PI / 2)) * (Math.PI / 2);
+            var rotator = Quat.fromPitchYawRollRadians(0, rotation, 0);
+
+            delta = Vec3.multiplyQbyV(rotator, delta);
+
+            SelectionManager.saveProperties();
+
+            for (var i = 0; i < selectionManager.selections.length; i++) {
+                var entityID = selectionManager.selections[i];
+                var properties = Entities.getEntityProperties(entityID);
+                Entities.editEntity(entityID, {
+                    position: Vec3.sum(properties.position, delta)
+                });
+            }
+
+            pushCommandForSelections();
+
+            selectionManager._update();
+        }
     }
 });
 
+function applyEntityProperties(data) {
+    for (var i = 0; i < data.length; i++) {
+        var entityID = data[i].entityID;
+        var properties = data[i].properties;
+        Entities.editEntity(entityID, properties);
+    }
+    selectionManager._update();
+};
 
-
+// For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
+// redo command, and the saved properties for the undo command.
+function pushCommandForSelections() {
+    var undoData = [];
+    var redoData = [];
+    for (var i = 0; i < SelectionManager.selections.length; i++) {
+        var entityID = SelectionManager.selections[i];
+        var initialProperties = SelectionManager.savedProperties[entityID.id];
+        var currentProperties = Entities.getEntityProperties(entityID);
+        undoData.push({
+            entityID: entityID,
+            properties: {
+                position: initialProperties.position,
+                rotation: initialProperties.rotation,
+                dimensions: initialProperties.dimensions,
+            },
+        });
+        redoData.push({
+            entityID: entityID,
+            properties: {
+                position: currentProperties.position,
+                rotation: currentProperties.rotation,
+                dimensions: currentProperties.dimensions,
+            },
+        });
+    }
+    UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
+}
