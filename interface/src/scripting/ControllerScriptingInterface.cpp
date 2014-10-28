@@ -10,18 +10,33 @@
 //
 
 #include <HandData.h>
+#include <HFBackEvent.h>
+
 #include "Application.h"
+#include "devices/MotionTracker.h"
 #include "devices/SixenseManager.h"
 #include "ControllerScriptingInterface.h"
-#include "devices/MotionTracker.h"
+
 
 ControllerScriptingInterface::ControllerScriptingInterface() :
     _mouseCaptured(false),
     _touchCaptured(false),
     _wheelCaptured(false)
 {
+
 }
 
+void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
+    if (event->type() == HFActionEvent::startType()) {
+        emit actionStartEvent(static_cast<HFActionEvent&>(*event));
+    } else if (event->type() == HFActionEvent::endType()) {
+        emit actionEndEvent(static_cast<HFActionEvent&>(*event));
+    } else if (event->type() == HFBackEvent::startType()) {
+        emit backStartEvent();
+    } else if (event->type() == HFBackEvent::endType()) {
+        emit backEndEvent();
+    }
+}
 
 const PalmData* ControllerScriptingInterface::getPrimaryPalm() const {
     int leftPalmIndex, rightPalmIndex;
