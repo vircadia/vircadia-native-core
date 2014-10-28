@@ -95,7 +95,7 @@ public:
 /// A texture map in an FBX document.
 class FBXTexture {
 public:
-    
+    QString name;
     QByteArray filename;
     QByteArray content;
 };

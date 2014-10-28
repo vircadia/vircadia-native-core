@@ -12,41 +12,17 @@
 #ifndef hifi_LocationScriptingInterface_h
 #define hifi_LocationScriptingInterface_h
 
-#include <QObject>
-#include <QScriptContext>
-#include <QScriptEngine>
-#include <QScriptValue>
-#include <QString>
-
-#include <AddressManager.h>
-
-#include "Application.h"
+#include <qscriptengine.h>
 
 class LocationScriptingInterface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool isConnected READ isConnected)
-    Q_PROPERTY(QString href READ getHref)
-    Q_PROPERTY(QString protocol READ getProtocol)
-    Q_PROPERTY(QString hostname READ getHostname)
-    Q_PROPERTY(QString pathname READ getPathname)
-    Q_PROPERTY(QString domainID READ getDomainID)
-    LocationScriptingInterface() { };
 public:
     static LocationScriptingInterface* getInstance();
 
-    bool isConnected();
-    QString getHref();
-    QString getProtocol() { return HIFI_URL_SCHEME; };
-    QString getPathname();
-    QString getHostname();
-    QString getDomainID() const;
-
     static QScriptValue locationGetter(QScriptContext* context, QScriptEngine* engine);
     static QScriptValue locationSetter(QScriptContext* context, QScriptEngine* engine);
-
-public slots:
-    void assign(const QString& url);
-
+private:
+    LocationScriptingInterface() {};
 };
 
 #endif // hifi_LocationScriptingInterface_h

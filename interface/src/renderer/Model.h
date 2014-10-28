@@ -187,6 +187,9 @@ public:
  
     void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
     
+    Q_INVOKABLE void setTextureWithNameToURL(const QString& name, const QUrl& url)
+        { _geometry->setTextureWithNameToURL(name, url); }
+    
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
     

@@ -1040,6 +1040,9 @@ MetavoxelNode* MetavoxelNode::readSubdivision(MetavoxelStreamState& state) {
 }
 
 void MetavoxelNode::writeSubdivision(MetavoxelStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        return;
+    }
     bool leaf = isLeaf();
     if (!state.shouldSubdivideReference()) {
         state.base.stream << leaf;
