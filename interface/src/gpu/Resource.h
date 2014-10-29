@@ -103,8 +103,8 @@ public:
     ~Buffer();
 
     // The size in bytes of data stored in the buffer
-    inline Size getSize() const { return getSysmem().getSize(); }
-    inline const Byte* getData() const { return getSysmem().readData(); }
+    Size getSize() const { return getSysmem().getSize(); }
+    const Byte* getData() const { return getSysmem().readData(); }
 
     // Resize the buffer
     // Keep previous data [0 to min(pSize, mSize)]
@@ -124,7 +124,7 @@ public:
     Size append(Size size, const Byte* data);
 
     // Access the sysmem object.
-     const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
+    const Sysmem& getSysmem() const { assert(_sysmem); return (*_sysmem); }
 
 
 protected:
