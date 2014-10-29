@@ -18,10 +18,11 @@ var warpActive = false;
 var warpPosition = { x: 0, y: 0, z: 0 };
 
 var hipsToEyes;
+var restoreCountdownTimer;
 
 //  Overlays to show target location 
 
-var WARP_SPHERE_SIZE = 0.15;
+var WARP_SPHERE_SIZE = 0.085;
 var warpSphere = Overlays.addOverlay("sphere", {
     position: { x: 0, y: 0, z: 0 },
     size: WARP_SPHERE_SIZE,
@@ -67,10 +68,7 @@ function activateWarp() {
     updateWarp();
 }
 
-var TRIGGER_PULLBACK_DISTANCE = 0.04;
-var WATCH_AVATAR_DISTANCE = 1.5;
-var MAX_PULLBACK_YAW = 5.0;
-var MAX_PULLBACK_PITCH = 5.0;
+var WATCH_AVATAR_DISTANCE = 2.5;
 
 var sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
 function playSound() {
@@ -80,9 +78,20 @@ function playSound() {
     options.volume = 1.0;
     Audio.playSound(sound, options);
 }
+
+
+
+function pullBack() {
+    saveCameraState();
+    cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -hipsToEyes, z: -hipsToEyes * WATCH_AVATAR_DISTANCE }));
+    Camera.setPosition(cameraPosition);
+    cameraPosition = Camera.getPosition();
+    startPullbackPosition = cameraPosition;
+}
+
 var WARP_SMOOTHING = 0.90;
-var WARP_START_TIME = 0.50;
-var WARP_START_DISTANCE = 1.5;
+var WARP_START_TIME = 0.25;
+var WARP_START_DISTANCE = 2.5;
 var WARP_SENSITIVITY = 0.15;
 
 var fixedHeight = true;
@@ -106,18 +115,10 @@ function updateWarp() {
         warpPosition = Vec3.mix(Vec3.sum(startPosition, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
     }
 
-    var height = MyAvatar.getEyePosition().y - MyAvatar.position.y;
     var cameraPosition;
 
-    if (!watchAvatar && 
-        (Math.abs(deltaYaw) < MAX_PULLBACK_YAW) && 
-        (Math.abs(deltaPitch) < MAX_PULLBACK_PITCH) && 
-        (Vec3.length(deltaPosition) > TRIGGER_PULLBACK_DISTANCE)) {
-        saveCameraState();
-        cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -height, z: -height * WATCH_AVATAR_DISTANCE }));
-        Camera.setPosition(cameraPosition);
-        cameraPosition = Camera.getPosition();
-        startPullbackPosition = cameraPosition;
+    if (!watchAvatar && willMove) {
+        pullBack();
         watchAvatar = true;
     }
 
@@ -143,8 +144,15 @@ function finishWarp() {
         visible: false,
     });
     if (willMove) {
-        warpPosition.y -= hipsToEyes;
+        if (fixedHeight) {
+            warpPosition.y = MyAvatar.position.y;
+        } else {
+            warpPosition.y -= hipsToEyes;
+        }
+        
         MyAvatar.position = warpPosition;
+        cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -hipsToEyes, z: -hipsToEyes * WATCH_AVATAR_DISTANCE }));
+        Camera.setPosition(cameraPosition);
         playSound();
     } 
 }
@@ -154,6 +162,14 @@ function update(deltaTime) {
     if (movingWithHead) {
         keyDownTime += deltaTime;
         updateWarp();
+    }
+    if (restoreCountdownTimer > 0.0) {
+        restoreCountdownTimer -= deltaTime; 
+        if (restoreCountdownTimer <= 0.0) {
+            restoreCameraState();
+            watchAvatar = false; 
+            restoreCountDownTimer = 0.0;
+        }
     }
 }
 
@@ -173,10 +189,10 @@ Controller.keyPressEvent.connect(function(event) {
         activateWarp();
     }
 });
-
-var TIME_FOR_TURN = 0.25;
+                                 
 var DOUBLE_CLICK_TIME = 0.50;
 var TURN_AROUND = 180.0;
+var RESTORE_TIME = 0.50;
 
 Controller.keyReleaseEvent.connect(function(event) {
     if (event.text == "SPACE" && !event.isAutoRepeat) {
@@ -187,7 +203,7 @@ Controller.keyReleaseEvent.connect(function(event) {
             lastYawTurned = 0.0;
             MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, TURN_AROUND, 0), MyAvatar.orientation);
             playSound();
-        } else if (keyDownTime < TIME_FOR_TURN) {
+        } else if (keyDownTime < WARP_START_TIME) {
             var currentYaw = MyAvatar.getHeadFinalYaw();
             lastYawTurned = currentYaw;
             MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, currentYaw, 0), MyAvatar.orientation);
@@ -196,8 +212,7 @@ Controller.keyReleaseEvent.connect(function(event) {
         timeSinceLastUp = 0.0;
         finishWarp();
         if (watchAvatar) {
-            restoreCameraState();
-            watchAvatar = false; 
+            restoreCountdownTimer = RESTORE_TIME;
         }
     }
 });
