@@ -32,6 +32,8 @@ var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR)
 var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR)
 var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter)
 
+var ORB_SHIFT = { x: 0, y: -1.5, z: 0.5} 
+
 function drawLobby() {
   if (!panelWall) {
     print("Adding overlays for the lobby panel wall and orb shell.")
@@ -39,7 +41,7 @@ function drawLobby() {
     var cameraEuler = Quat.safeEulerAngles(Camera.getOrientation());
     var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0})
     
-    var orbPosition = Vec3.subtract(Camera.getPosition(), { x: 0, y: 2.0, z: 0}) 
+    var orbPosition = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(towardsMe, ORB_SHIFT)) 
     
     var panelWallProps = {
       url: "http://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
