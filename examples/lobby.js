@@ -9,37 +9,57 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var panelWall = false;
+var panelWall = false
+var orbShell = false
 
-var avatarStickPosition = {};
+var avatarStickPosition = {}
 
-var panelsNaturalExtentsMin = { x: -1181, y: -326, z: 56 };
-var panelsNaturalExtentsMax = { x: 1181, y: 576, z: 1183 };
+var orbNaturalExtentsMin = { x: -1230, y: -1223, z: -1210 }
+var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1223 }
+var panelsNaturalExtentsMin = { x: -1181, y: -326, z: 56 }
+var panelsNaturalExtentsMax = { x: 1181, y: 576, z: 1183 }
 
-var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
+var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin)
+var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin)
+
 var SCALING_FACTOR = 0.01;
-var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR);
+var orbDimensions = Vec3.multiply(orbNaturalDimensions, SCALING_FACTOR)
+var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR)
+
+var orbNaturalCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbNaturalDimensions, 0.5))
+var panelsNaturalCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsNaturalDimensions, 0.5))
+var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR)
+var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR)
+var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter)
 
 function drawLobby() {
   if (!panelWall) {
-    print("Adding an overlay for the lobby panel wall.")
-    
-    var front = Quat.getFront(Camera.getOrientation());
-    front.y = 0
-    front = Vec3.normalize(front)
+    print("Adding overlays for the lobby panel wall and orb shell.")
     
     var cameraEuler = Quat.safeEulerAngles(Camera.getOrientation());
-
+    var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0})
+    
+    var orbPosition = Vec3.subtract(Camera.getPosition(), { x: 0, y: 2.0, z: 0}) 
+    
     var panelWallProps = {
-      url: "https://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
-      position: Vec3.sum(Camera.getPosition(), Vec3.multiply(front, 0.5)),
-      rotation: Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0}),
+      url: "http://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
+      position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
+      rotation: towardsMe,
       dimensions: panelsDimensions
+    }
+    
+    var orbShellProps = {
+      url:  "https://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyConcepts/Lobby5_OrbShellOnly.fbx",
+      position: orbPosition,
+      rotation: towardsMe,
+      dimensions: orbDimensions,
+      ignoreRayIntersection: true
     }
     
     avatarStickPosition = MyAvatar.position
 
     panelWall = Overlays.addOverlay("model", panelWallProps)
+    orbShell = Overlays.addOverlay("model", orbShellProps)
   }
 }
 
@@ -67,6 +87,7 @@ function changeLobbyTextures() {
 
 function cleanupLobby() {
   Overlays.deleteOverlay(panelWall)
+  Overlays.deleteOverlay(orbShell)
   panelWall = false
   locations = {}
   toggleEnvironmentRendering(true)
@@ -119,7 +140,6 @@ function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Voxels", shouldRender)
   Menu.setIsOptionChecked("Models", shouldRender)
   Menu.setIsOptionChecked("Metavoxels", shouldRender)
-  Menu.setIsOptionChecked("Avatars", shouldRender)
 }
 
 Controller.actionStartEvent.connect(actionStartEvent)
