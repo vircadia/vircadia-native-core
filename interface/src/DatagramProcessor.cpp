@@ -49,14 +49,18 @@ void DatagramProcessor::processDatagrams() {
             PacketType incomingType = packetTypeForPacket(incomingPacket);
             // only process this packet if we have a match on the packet version
             switch (incomingType) {
+                case PacketTypeAudioEnvironment:
+                case PacketTypeAudioStreamStats:
                 case PacketTypeMixedAudio:
-                case PacketTypeSilentAudioFrame:
-                case PacketTypeAudioStreamStats: {
-                    if (incomingType != PacketTypeAudioStreamStats) {
-                        QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
+                case PacketTypeSilentAudioFrame: {
+                    if (incomingType == PacketTypeAudioStreamStats) {
+                        QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                                                  Q_ARG(QByteArray, incomingPacket));
+                    } else if (incomingType == PacketTypeAudioEnvironment) {
+                        QMetaObject::invokeMethod(&application->_audio, "parseAudioEnvironmentData", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     } else {
-                        QMetaObject::invokeMethod(&application->_audio, "parseAudioStreamStatsPacket", Qt::QueuedConnection,
+                        QMetaObject::invokeMethod(&application->_audio, "addReceivedAudioToStream", Qt::QueuedConnection,
                                                   Q_ARG(QByteArray, incomingPacket));
                     }
                     
