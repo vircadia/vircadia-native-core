@@ -9,8 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var panelWall = false
 var orbShell = false
+var reticle = false
 
 var avatarStickPosition = {}
 
@@ -44,14 +47,14 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(towardsMe, ORB_SHIFT)) 
     
     var panelWallProps = {
-      url: "http://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
       dimensions: panelsDimensions
     }
     
     var orbShellProps = {
-      url:  "https://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyConcepts/Lobby5_OrbShellOnly.fbx",
+      url:  HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyConcepts/Lobby5_OrbShellOnly.fbx",
       position: orbPosition,
       rotation: towardsMe,
       dimensions: orbDimensions,
@@ -62,6 +65,20 @@ function drawLobby() {
 
     panelWall = Overlays.addOverlay("model", panelWallProps)
     orbShell = Overlays.addOverlay("model", orbShellProps)
+    
+    //  Create a reticle image in center of screen 
+    var screenSize = Controller.getViewportDimensions();
+    var reticleProps = {
+      x: screenSize.x / 2 - 16,
+      y: screenSize.y / 2 - 16,
+      width: 32,
+      height: 32,
+      color: { red: 255, green: 255, blue: 255},
+      alpha: 1,
+      imageURL: HIFI_PUBLIC_BUCKET + "images/reticle.png",
+    } 
+    
+    reticle = Overlays.addOverlay("image", reticleProps);
   }
 }
 
@@ -90,6 +107,7 @@ function changeLobbyTextures() {
 function cleanupLobby() {
   Overlays.deleteOverlay(panelWall)
   Overlays.deleteOverlay(orbShell)
+  Overlays.deleteOverlay(reticle)
   panelWall = false
   locations = {}
   toggleEnvironmentRendering(true)
