@@ -18,7 +18,7 @@
 
 #include <AccountManager.h>
 #include <HTTPConnection.h>
-#include <Logging.h>
+#include <LogHandler.h>
 #include <UUID.h>
 
 #include "../AssignmentClient.h"
@@ -923,7 +923,7 @@ void OctreeServer::run() {
 
     beforeRun(); // after payload has been processed
 
-    qInstallMessageHandler(Logging::verboseMessageHandler);
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
 
     const char* STATUS_PORT = "--statusPort";
     const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);

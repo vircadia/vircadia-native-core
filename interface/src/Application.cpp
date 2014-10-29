@@ -58,7 +58,7 @@
 #include <HFActionEvent.h>
 #include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
-#include <Logging.h>
+#include <LogHandler.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -117,12 +117,10 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (message.size() > 0) {
-        QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
-        QString formattedMessage = QString("[%1] %2\n").arg(dateString).arg(message);
-
-        fprintf(stdout, "%s", qPrintable(formattedMessage));
-        Application::getInstance()->getLogger()->addMessage(qPrintable(formattedMessage));
+    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
+    
+    if (!logMessage.isEmpty()) {
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
     }
 }
 
@@ -582,10 +580,6 @@ void Application::initializeGL() {
         float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0;
         _justStarted = false;
         qDebug("Startup time: %4.2f seconds.", startupTime);
-        const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
-
-        // ask the Logstash class to record the startup time
-        Logging::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
 
     // update before the first render
@@ -3179,7 +3173,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
-        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * _renderResolutionScale;
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);

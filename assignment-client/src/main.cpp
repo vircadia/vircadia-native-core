@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <Logging.h>
+#include <LogHandler.h>
 #include <SharedUtil.h>
 
 #include "Assignment.h"
@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
 #endif
 
     // use the verbose message handler in Logging
-    qInstallMessageHandler(Logging::verboseMessageHandler);
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
     
     const char* numForksString = getCmdOption(argc, (const char**)argv, NUM_FORKS_PARAMETER);
     

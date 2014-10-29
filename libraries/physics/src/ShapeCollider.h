@@ -14,9 +14,10 @@
 
 #include <QVector>
 
+#include <SharedUtil.h> 
+
 #include "CollisionInfo.h"
 #include "RayIntersectionInfo.h"
-#include "SharedUtil.h" 
 
 class Shape;
 class SphereShape;

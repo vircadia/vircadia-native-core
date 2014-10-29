@@ -147,6 +147,10 @@
     QScriptValue P = xColorToScriptValue(engine, _##P); \
     properties.setProperty(#P, P);
 
+#define COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(P,G) \
+    QScriptValue P = xColorToScriptValue(engine, G); \
+    properties.setProperty(#P, P);
+
 #define COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(P, G) \
     properties.setProperty(#P, G);
 

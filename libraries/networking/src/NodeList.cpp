@@ -15,10 +15,11 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <LogHandler.h>
+
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
-#include "Logging.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"

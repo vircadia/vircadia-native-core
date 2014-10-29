@@ -143,6 +143,41 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Blue:", value: properties.color.blue });
             index++;
         }
+
+        if (properties.type == "Light") {
+            array.push({ label: "Light Properties:", type: "header" });
+            index++;
+            array.push({ label: "Is Spot Light:", value: properties.isSpotlight });
+            index++;
+            array.push({ label: "Diffuse Red:", value: properties.diffuseColor.red });
+            index++;
+            array.push({ label: "Diffuse Green:", value: properties.diffuseColor.green });
+            index++;
+            array.push({ label: "Diffuse Blue:", value: properties.diffuseColor.blue });
+            index++;
+            array.push({ label: "Ambient Red:", value: properties.ambientColor.red });
+            index++;
+            array.push({ label: "Ambient Green:", value: properties.ambientColor.green });
+            index++;
+            array.push({ label: "Ambient Blue:", value: properties.ambientColor.blue });
+            index++;
+            array.push({ label: "Specular Red:", value: properties.specularColor.red });
+            index++;
+            array.push({ label: "Specular Green:", value: properties.specularColor.green });
+            index++;
+            array.push({ label: "Specular Blue:", value: properties.specularColor.blue });
+            index++;
+            array.push({ label: "Constant Attenuation:", value: properties.constantAttenuation });
+            index++;
+            array.push({ label: "Linear Attenuation:", value: properties.linearAttenuation });
+            index++;
+            array.push({ label: "Quadratic Attenuation:", value: properties.quadraticAttenuation });
+            index++;
+            array.push({ label: "Exponent:", value: properties.exponent });
+            index++;
+            array.push({ label: "Cutoff (in degrees):", value: properties.cutoff });
+            index++;
+        }
         array.push({ button: "Cancel" });
         index++;
 
@@ -243,6 +278,25 @@ EntityPropertyDialogBox = (function () {
                 properties.color.green = array[index++].value;
                 properties.color.blue = array[index++].value;
             }
+            if (properties.type == "Light") {
+                index++; // skip header
+                properties.isSpotlight = array[index++].value;
+                properties.diffuseColor.red = array[index++].value;
+                properties.diffuseColor.green = array[index++].value;
+                properties.diffuseColor.blue = array[index++].value;
+                properties.ambientColor.red = array[index++].value;
+                properties.ambientColor.green = array[index++].value;
+                properties.ambientColor.blue = array[index++].value;
+                properties.specularColor.red = array[index++].value;
+                properties.specularColor.green = array[index++].value;
+                properties.specularColor.blue = array[index++].value;
+                properties.constantAttenuation = array[index++].value;
+                properties.linearAttenuation = array[index++].value;
+                properties.quadraticAttenuation = array[index++].value;
+                properties.exponent = array[index++].value;
+                properties.cutoff = array[index++].value;
+            }
+
             Entities.editEntity(editModelID, properties);
             selectionDisplay.select(editModelID, false);
         }

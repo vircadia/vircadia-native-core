@@ -14,10 +14,10 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include "VerletPoint.h"
 
 #include <QVector>
 
+#include "VerletPoint.h"
 //#include "PhysicsSimulation.h"
 
 class DistanceConstraint;

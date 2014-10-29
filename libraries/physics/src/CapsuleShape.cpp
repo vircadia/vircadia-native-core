@@ -12,10 +12,10 @@
 #include <iostream>
 #include <glm/gtx/vector_angle.hpp>
 
-#include "CapsuleShape.h"
+#include <GeometryUtil.h>
+#include <SharedUtil.h> 
 
-#include "GeometryUtil.h"
-#include "SharedUtil.h" 
+#include "CapsuleShape.h"
 
 
 CapsuleShape::CapsuleShape() : Shape(CAPSULE_SHAPE), _radius(0.0f), _halfHeight(0.0f) {}

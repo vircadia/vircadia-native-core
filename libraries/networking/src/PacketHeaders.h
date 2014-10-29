@@ -68,7 +68,7 @@ enum PacketType {
     PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
     PacketTypeVoxelEditNack,
-    UNUSED_6,
+    PacketTypeAudioEnvironment,
     PacketTypeEntityEditNack, // 48
     PacketTypeSignedTransactionPayment,
     PacketTypeIceServerHeartbeat,

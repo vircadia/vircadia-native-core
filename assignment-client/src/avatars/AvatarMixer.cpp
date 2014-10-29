@@ -15,7 +15,7 @@
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 
-#include <Logging.h>
+#include <LogHandler.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
