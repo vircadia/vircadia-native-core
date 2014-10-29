@@ -25,7 +25,6 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         
-        _model.setScaleToFit(true, _scale);
         _model.setSnapModelToCenter(true);
         _model.setRotation(_rotation);
         _model.setTranslation(_position);
@@ -70,6 +69,7 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
     QScriptValue scaleValue = properties.property("scale");
     if (scaleValue.isValid()) {
         _scale = scaleValue.toVariant().toFloat();
+        _model.setScaleToFit(true, _scale);
         _updateModel = true;
     }
     
