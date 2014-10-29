@@ -69,6 +69,7 @@ function cleanupLobby() {
   Overlays.deleteOverlay(panelWall)
   panelWall = false
   locations = {}
+  toggleEnvironmentRendering(true)
 }
 
 function actionStartEvent(event) {
@@ -86,7 +87,7 @@ function actionStartEvent(event) {
         if (panelIndex < locations.length) {
           var actionLocation = locations[panelIndex]
           
-          print("Jumping to " + actionLocation.name + " at " + actionLocation.path + " in " + actionLocation.domain.name)
+          print("Jumping to " + actionLocation.name + " at " + actionLocation.path + " in " + actionLocation.domain.name + " after click on panel " + panelIndex)
           
           Window.location = actionLocation
           maybeCleanupLobby()
@@ -96,8 +97,9 @@ function actionStartEvent(event) {
   }
 }
 
-function backStartEvent() {  
+function backStartEvent() {
   if (!panelWall) {
+    toggleEnvironmentRendering(false)
     drawLobby()
     changeLobbyTextures()
   } else {
@@ -108,9 +110,16 @@ function backStartEvent() {
 var CLEANUP_EPSILON_DISTANCE = 0.025
 
 function maybeCleanupLobby() {
-  if (Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {
+  if (panelWall && Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {
     cleanupLobby()
   }
+}
+
+function toggleEnvironmentRendering(shouldRender) {
+  Menu.setIsOptionChecked("Voxels", shouldRender)
+  Menu.setIsOptionChecked("Models", shouldRender)
+  Menu.setIsOptionChecked("Metavoxels", shouldRender)
+  Menu.setIsOptionChecked("Avatars", shouldRender)
 }
 
 Controller.actionStartEvent.connect(actionStartEvent)
