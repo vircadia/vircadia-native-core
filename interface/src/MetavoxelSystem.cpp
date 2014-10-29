@@ -961,6 +961,7 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _scale(scale),
     _heightBounds(translation, translation + glm::vec3(scale, scale, scale)),
     _colorBounds(_heightBounds),
+    _materialBounds(_heightBounds),
     _height(height),
     _color(color),
     _material(material),
@@ -968,10 +969,12 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _heightTextureID(0),
     _colorTextureID(0),
     _materialTextureID(0),
-    _heightSize(glm::sqrt(float(height.size()))),
+    _heightSize(glm::sqrt((float)height.size())),
     _heightIncrement(scale / (_heightSize - HEIGHT_EXTENSION)),
-    _colorSize(glm::sqrt(float(color.size() / DataBlock::COLOR_BYTES))),
-    _colorIncrement(scale / (_colorSize - SHARED_EDGE)) {
+    _colorSize(glm::sqrt((float)color.size() / DataBlock::COLOR_BYTES)),
+    _colorIncrement(scale / (_colorSize - SHARED_EDGE)),
+    _materialSize(glm::sqrt((float)material.size())),
+    _materialIncrement(scale / (_materialSize - SHARED_EDGE)) {
     
     _heightBounds.minimum.x -= _heightIncrement * HEIGHT_BORDER;
     _heightBounds.minimum.z -= _heightIncrement * HEIGHT_BORDER;
@@ -980,6 +983,9 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     
     _colorBounds.maximum.x += _colorIncrement * SHARED_EDGE;
     _colorBounds.maximum.z += _colorIncrement * SHARED_EDGE;
+    
+    _materialBounds.maximum.x += _colorIncrement * SHARED_EDGE;
+    _materialBounds.maximum.z += _colorIncrement * SHARED_EDGE;
 }
 
 HeightfieldBuffer::~HeightfieldBuffer() {
@@ -1742,24 +1748,37 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
 
 bool HeightfieldFetchVisitor::postVisit(MetavoxelInfo& info) {
     HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
-    if (height || _heightDepth != -1) {
-        if (_depth < _heightDepth) {
+    if (height) {
+        // to handle borders correctly, make sure we only sample nodes with resolution <= ours
+        int heightSize = glm::sqrt((float)height->getContents().size());
+        float heightIncrement = info.size / heightSize;
+        if (heightIncrement < _buffer->getHeightIncrement() || _depth < _heightDepth) {
             height.reset();
         }
+    }
+    if (height || _heightDepth != -1) {
         _heightDepth = _depth;
     }
     HeightfieldColorDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
-    if (color || _colorDepth != -1) {
-        if (_depth < _colorDepth) {
+    if (color) {
+        int colorSize = glm::sqrt((float)color->getContents().size() / DataBlock::COLOR_BYTES);
+        float colorIncrement = info.size / colorSize;
+        if (colorIncrement < _buffer->getColorIncrement() || _depth < _colorDepth) {
             color.reset();
         }
+    }
+    if (color || _colorDepth != -1) {
         _colorDepth = _depth;
     }
     HeightfieldMaterialDataPointer material = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
-    if (material || _materialDepth != -1) {
-        if (_depth < _materialDepth) {
+    if (material) {
+        int materialSize = glm::sqrt((float)material->getContents().size());
+        float materialIncrement = info.size / materialSize;
+        if (materialIncrement < _buffer->getMaterialIncrement() || _depth < _materialDepth) {
             material.reset();
         }
+    }
+    if (material || _materialDepth != -1) {
         _materialDepth = _depth;
     }
     if (!(height || color || material)) {
@@ -1861,6 +1880,66 @@ bool HeightfieldFetchVisitor::postVisit(MetavoxelInfo& info) {
             }
         }
         if (material) {
+            const Box& materialBounds = _buffer->getMaterialBounds();
+            overlap = materialBounds.getIntersection(overlap);
+            float materialIncrement = _buffer->getMaterialIncrement();
+            int destX = (overlap.minimum.x - materialBounds.minimum.x) / materialIncrement;
+            int destY = (overlap.minimum.z - materialBounds.minimum.z) / materialIncrement;
+            int destWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) / materialIncrement);
+            int destHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) / materialIncrement);
+            int materialSize = _buffer->getMaterialSize();
+            char* dest = _buffer->getMaterial().data() + destY * materialSize + destX;
+            
+            const QByteArray& srcMaterial = material->getContents();
+            const QVector<SharedObjectPointer> srcMaterials = material->getMaterials();
+            int srcSize = glm::sqrt((float)srcMaterial.size());
+            float srcIncrement = info.size / srcSize;
+            QHash<int, int> materialMappings;
+            
+            if (srcIncrement == materialIncrement) {
+                // easy case: same resolution
+                int srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
+                int srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
+                
+                const uchar* src = (const uchar*)srcMaterial.constData() + srcY * srcSize + srcX;
+                for (int y = 0; y < destHeight; y++, src += srcSize, dest += materialSize) {
+                    const uchar* lineSrc = src;
+                    for (char* lineDest = dest, *end = dest + destWidth; lineDest != end; lineDest++, lineSrc++) {
+                        int value = *lineSrc;
+                        if (value != 0) {
+                            int& mapping = materialMappings[value];
+                            if (mapping == 0) {
+                                mapping = getMaterialIndex(material->getMaterials().at(value - 1),
+                                    _buffer->getMaterials(), _buffer->getMaterial());
+                            }
+                            value = mapping;
+                        }
+                        *lineDest = value;
+                    }
+                }
+            } else {
+                // more difficult: different resolutions
+                float srcX = (overlap.minimum.x - info.minimum.x) / srcIncrement;
+                float srcY = (overlap.minimum.z - info.minimum.z) / srcIncrement;
+                float srcAdvance = materialIncrement / srcIncrement;
+                for (int y = 0; y < destHeight; y++, dest += materialSize, srcY += srcAdvance) {
+                    const uchar* src = (const uchar*)srcMaterial.constData() + (int)srcY * srcSize;
+                    float lineSrcX = srcX;
+                    for (char* lineDest = dest, *end = dest + destWidth; lineDest != end; lineDest++, lineSrcX += srcAdvance) {
+                        int value = src[(int)lineSrcX];
+                        if (value != 0) {
+                            int& mapping = materialMappings[value];
+                            if (mapping == 0) {
+                                mapping = getMaterialIndex(material->getMaterials().at(value - 1),
+                                    _buffer->getMaterials(), _buffer->getMaterial());
+                            }
+                            value = mapping;
+                        }
+                        *lineDest = value;
+                    }
+                }
+            }
+            clearUnusedMaterials(_buffer->getMaterials(), _buffer->getMaterial());
         }
     }
     return false;

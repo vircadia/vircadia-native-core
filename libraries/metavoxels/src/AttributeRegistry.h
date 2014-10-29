@@ -654,6 +654,13 @@ public:
     virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
+/// Utility method for editing: given a material pointer and a list of materials, returns the corresponding material index,
+/// creating a new entry in the list if necessary.
+uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents);
+
+/// Utility method for editing: removes any unused materials from the supplied list.
+void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, const QByteArray& contents);
+
 typedef QExplicitlySharedDataPointer<VoxelColorData> VoxelColorDataPointer;
 
 /// Contains a block of voxel color data.
