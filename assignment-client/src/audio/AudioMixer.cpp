@@ -41,7 +41,7 @@
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
 
-#include <Logging.h>
+#include <LogHandler.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <Node.h>
