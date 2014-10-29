@@ -24,7 +24,7 @@
 #include "OctreeProjectedPolygon.h"
 
 const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
-const float DEFAULT_FIELD_OF_VIEW_DEGREES = 90.0f;
+const float DEFAULT_FIELD_OF_VIEW_DEGREES = 45.0f;
 const float DEFAULT_REAL_WORLD_FIELD_OF_VIEW_DEGREES = 30.f;
 const float DEFAULT_ASPECT_RATIO = 16.f/9.f;
 const float DEFAULT_NEAR_CLIP = 0.08f;

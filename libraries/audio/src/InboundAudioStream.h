@@ -45,6 +45,9 @@ const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_CALC_ON_TOO_MANY_STARVES = 50;
 const int DEFAULT_WINDOW_SECONDS_FOR_DESIRED_REDUCTION = 10;
 const bool DEFAULT_REPETITION_WITH_FADE = true;
 
+// Audio Env bitset
+const int HAS_REVERB_BIT = 0; // 1st bit
+
 class InboundAudioStream : public NodeData {
     Q_OBJECT
 public:
@@ -158,6 +161,8 @@ public:
     bool hasReverb() const { return _hasReverb; }
     float getRevebTime() const { return _reverbTime; }
     float getWetLevel() const { return _wetLevel; }
+    void setReverb(float reverbTime, float wetLevel);
+    void clearReverb() { _hasReverb = false; }
 
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers

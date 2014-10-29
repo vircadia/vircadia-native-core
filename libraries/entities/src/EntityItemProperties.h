@@ -32,7 +32,6 @@
 #include "EntityItemPropertiesMacros.h"
 #include "EntityTypes.h"
 
-// PropertyFlags support
 enum EntityPropertyList {
     PROP_PAGED_PROPERTY,
     PROP_CUSTOM_PROPERTIES_INCLUDED,
@@ -65,7 +64,18 @@ enum EntityPropertyList {
     PROP_IGNORE_FOR_COLLISIONS,
     PROP_COLLISIONS_WILL_MOVE,
 
-    PROP_LAST_ITEM = PROP_COLLISIONS_WILL_MOVE
+    // property used by Light entity
+    PROP_IS_SPOTLIGHT,
+    PROP_DIFFUSE_COLOR,
+    PROP_AMBIENT_COLOR,
+    PROP_SPECULAR_COLOR,
+    PROP_CONSTANT_ATTENUATION,
+    PROP_LINEAR_ATTENUATION,
+    PROP_QUADRATIC_ATTENUATION,
+    PROP_EXPONENT,
+    PROP_CUTOFF,
+
+    PROP_LAST_ITEM = PROP_CUTOFF
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -83,9 +93,10 @@ class EntityItemProperties {
     friend class ModelEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class BoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
-    virtual ~EntityItemProperties() { };
+    virtual ~EntityItemProperties();
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     virtual void copyFromScriptValue(const QScriptValue& object);
@@ -209,8 +220,7 @@ public:
     void clearID() { _id = UNKNOWN_ENTITY_ID; _idSet = false; }
     void markAllChanged();
 
-    QVector<SittingPoint> getSittingPoints() const { return _sittingPoints; }
-    void setSittingPoints(QVector<SittingPoint> sittingPoints) { _sittingPoints = sittingPoints; }
+    void setSittingPoints(const QVector<SittingPoint>& sittingPoints);
     
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
@@ -233,6 +243,36 @@ public:
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; _collisionsWillMoveChanged = true; }
 
+    bool getIsSpotlight() const { return _isSpotlight; }
+    void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
+
+    xColor getDiffuseColor() const { return _diffuseColor; }
+    xColor getAmbientColor() const { return _ambientColor; }
+    xColor getSpecularColor() const { return _specularColor; }
+
+    void setDiffuseColor(const xColor& value) { _diffuseColor = value; _diffuseColorChanged = true; }
+    void setAmbientColor(const xColor& value) { _ambientColor = value; _ambientColorChanged = true; }
+    void setSpecularColor(const xColor& value) { _specularColor = value; _specularColorChanged = true; }
+
+    bool diffuseColorChanged() const { return _colorChanged; }
+    bool ambientColorChanged() const { return _ambientColorChanged; }
+    bool specularColorChanged() const { return _specularColorChanged; }
+
+    bool getConstantAttenuation() const { return _constantAttenuation; }
+    void setConstantAttenuation(float value) { _constantAttenuation = value; _constantAttenuationChanged = true; }
+
+    bool getLinearAttenuation() const { return _linearAttenuation; }
+    void setLinearAttenuation(float value) { _linearAttenuation = value; _linearAttenuationChanged = true; }
+
+    bool getQuadraticAttenuation() const { return _quadraticAttenuation; }
+    void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; _quadraticAttenuationChanged = true; }
+
+    bool getExponent() const { return _exponent; }
+    void setExponent(bool value) { _exponent = value; _exponentChanged = true; }
+
+    bool getCutoff() const { return _cutoff; }
+    void setCutoff(bool value) { _cutoff = value; _cutoffChanged = true; }
+    
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
 private:
@@ -288,8 +328,7 @@ private:
     float _animationFPS;
     float _glowLevel;
     float _localRenderAlpha;
-    QVector<SittingPoint> _sittingPoints;
-    glm::vec3 _naturalDimensions;
+    bool _isSpotlight;
 
     bool _colorChanged;
     bool _modelURLChanged;
@@ -299,8 +338,32 @@ private:
     bool _animationFPSChanged;
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
+    bool _isSpotlightChanged;
+
+    xColor _diffuseColor;
+    xColor _ambientColor;
+    xColor _specularColor;
+    float _constantAttenuation;
+    float _linearAttenuation; 
+    float _quadraticAttenuation;
+    float _exponent;
+    float _cutoff;
+
+    bool _diffuseColorChanged;
+    bool _ambientColorChanged;
+    bool _specularColorChanged;
+    bool _constantAttenuationChanged;
+    bool _linearAttenuationChanged; 
+    bool _quadraticAttenuationChanged;
+    bool _exponentChanged;
+    bool _cutoffChanged;
 
     bool _defaultSettings;
+
+    // NOTE: The following are pseudo client only properties. They are only used in clients which can access
+    // properties of model geometry. But these properties are not serialized like other properties.
+    QVector<SittingPoint> _sittingPoints;
+    glm::vec3 _naturalDimensions;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);

@@ -33,7 +33,8 @@ public:
         Model,
         Box,
         Sphere,
-        LAST = Sphere
+        Light,
+        LAST = Light
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);

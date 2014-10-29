@@ -25,7 +25,6 @@
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
 #include <OctalCode.h>
-#include <Shape.h>
 
 #include <VoxelTree.h>
 
@@ -1558,7 +1557,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
         joint.shapePosition = glm::vec3(0.f);
-        joint.shapeType = UNKNOWN_SHAPE;
+        joint.shapeType = SHAPE_TYPE_UNKNOWN;
         
         foreach (const QString& childID, childMap.values(modelID)) {
             QString type = typeFlags.value(childID);
@@ -1938,10 +1937,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (collideLikeCapsule) {
             joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
             joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
-            joint.shapeType = CAPSULE_SHAPE;
+            joint.shapeType = SHAPE_TYPE_CAPSULE;
         } else {
             // collide the joint like a sphere
-            joint.shapeType = SPHERE_SHAPE;
+            joint.shapeType = SHAPE_TYPE_SPHERE;
             if (jointShapeInfo.numVertices > 0) {
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
@@ -1961,8 +1960,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
                 // The shape is further from both joint endpoints than the endpoints are from each other
                 // which probably means the model has a bad transform somewhere.  We disable this shape
-                // by setting its type to UNKNOWN_SHAPE.
-                joint.shapeType = UNKNOWN_SHAPE;
+                // by setting its type to SHAPE_TYPE_UNKNOWN.
+                joint.shapeType = SHAPE_TYPE_UNKNOWN;
             }
         }
     }

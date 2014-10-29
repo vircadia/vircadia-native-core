@@ -25,6 +25,7 @@
 #include "EntityTreeRenderer.h"
 
 #include "RenderableBoxEntityItem.h"
+#include "RenderableLightEntityItem.h"
 #include "RenderableModelEntityItem.h"
 #include "RenderableSphereEntityItem.h"
 
@@ -40,6 +41,7 @@ EntityTreeRenderer::EntityTreeRenderer() :
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {

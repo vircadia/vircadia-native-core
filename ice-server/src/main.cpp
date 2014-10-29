@@ -11,7 +11,7 @@
 
 #include <QtCore/QCoreApplication>
 
-#include <Logging.h>
+#include <LogHandler.h>
 
 #include "IceServer.h"
 
@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
     
-    qInstallMessageHandler(Logging::verboseMessageHandler);    
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
     
     IceServer iceServer(argc, argv);
     return iceServer.exec();

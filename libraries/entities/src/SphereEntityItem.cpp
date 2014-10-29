@@ -33,10 +33,7 @@ SphereEntityItem::SphereEntityItem(const EntityItemID& entityItemID, const Entit
 
 EntityItemProperties SphereEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-
     properties.setColor(getXColor());
-    properties.setGlowLevel(getGlowLevel());
-
     return properties;
 }
 

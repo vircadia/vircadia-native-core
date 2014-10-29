@@ -122,6 +122,13 @@ void Model::setOffset(const glm::vec3& offset) {
 
 void Model::initProgram(ProgramObject& program, Model::Locations& locations, int specularTextureUnit) {
     program.bind();
+
+#ifdef Q_OS_MAC
+    // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+    glBindAttribLocation(program.programId(), 4, "tangent");
+    glLinkProgram(program.programId());
+#endif
+
     locations.tangent = program.attributeLocation("tangent");
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     program.setUniformValue("diffuseMap", 0);
@@ -132,9 +139,17 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations, int specularTextureUnit) {
     initProgram(program, locations, specularTextureUnit);
-    
+
+#ifdef Q_OS_MAC
+    // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+    glBindAttribLocation(program.programId(), 5, "clusterIndices");
+    glBindAttribLocation(program.programId(), 6, "clusterWeights");
+    glLinkProgram(program.programId());
+#endif
+
     program.bind();
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
+
     locations.clusterIndices = program.attributeLocation("clusterIndices");
     locations.clusterWeights = program.attributeLocation("clusterWeights");
     program.release();
@@ -1819,7 +1834,8 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 mesh.texCoords.size() * sizeof(glm::vec2) +
                 (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
             //skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0, (const void*) offset);
+            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0,
+                                           reinterpret_cast<const void*>(offset));
             //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
             //    offset + vertexCount * sizeof(glm::vec4), 4);
             GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
