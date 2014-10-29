@@ -1970,7 +1970,7 @@ bool HeightfieldRegionVisitor::postVisit(MetavoxelInfo& info) {
             signedLeftShift(_inheritedColorSize, _inheritedColorDepth - _depth) + HeightfieldBuffer::SHARED_EDGE,
             _containedColorDepth == -1 ? 0 :
                 signedLeftShift(_containedColorSize, _containedColorDepth - _depth) + HeightfieldBuffer::SHARED_EDGE);
-        int colorContentsSize = extendedColorSize * extendedColorSize;
+        int colorContentsSize = extendedColorSize * extendedColorSize * DataBlock::COLOR_BYTES;
         
         int extendedMaterialSize = qMax(_inheritedMaterialDepth == -1 ? 0 :
             signedLeftShift(_inheritedMaterialSize, _inheritedMaterialDepth - _depth) + HeightfieldBuffer::SHARED_EDGE,
