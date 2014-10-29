@@ -123,6 +123,13 @@ void Model::setOffset(const glm::vec3& offset) {
 
 void Model::initProgram(ProgramObject& program, Model::Locations& locations, int specularTextureUnit) {
     program.bind();
+
+#ifdef Q_OS_MAC
+    // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+    glBindAttribLocation(program.programId(), 4, "tangent");
+    glLinkProgram(program.programId());
+#endif
+
     locations.tangent = program.attributeLocation("tangent");
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
     program.setUniformValue("diffuseMap", 0);
@@ -133,9 +140,17 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations, int specularTextureUnit) {
     initProgram(program, locations, specularTextureUnit);
-    
+
+#ifdef Q_OS_MAC
+    // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+    glBindAttribLocation(program.programId(), 5, "clusterIndices");
+    glBindAttribLocation(program.programId(), 6, "clusterWeights");
+    glLinkProgram(program.programId());
+#endif
+
     program.bind();
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
+
     locations.clusterIndices = program.attributeLocation("clusterIndices");
     locations.clusterWeights = program.attributeLocation("clusterWeights");
     program.release();
