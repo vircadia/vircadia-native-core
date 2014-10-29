@@ -250,7 +250,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
         if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
-            if (thisOverlay->findRayIntersection(ray.origin, ray.direction, thisDistance, thisFace)) {
+            QString thisExtraInfo;
+            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, thisFace, thisExtraInfo)) {
                 if (thisDistance < bestDistance) {
                     bestDistance = thisDistance;
                     result.intersects = true;
@@ -258,6 +259,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
                     result.face = thisFace;
                     result.overlayID = thisID;
                     result.intersection = ray.origin + (ray.direction * thisDistance);
+                    result.extraInfo = thisExtraInfo;
                 }
             }
         }
@@ -270,7 +272,8 @@ RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
     overlayID(-1),
     distance(0),
     face(),
-    intersection()
+    intersection(),
+    extraInfo()
 { 
 }
 
@@ -309,6 +312,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("face", faceName);
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    obj.setProperty("extraInfo", value.extraInfo);
     return obj;
 }
 
@@ -337,6 +341,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
+    value.extraInfo = object.property("extraInfo").toVariant().toString();
 }
 
 bool Overlays::isLoaded(unsigned int id) {

@@ -395,26 +395,14 @@ void Model::setJointStates(QVector<JointState> states) {
 }
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face, QString& extraInfo) const {
 
-    //return false;
-    qDebug() << "Model::findRayIntersectionAgainstSubMeshes()...";
-                                                        
     bool intersectedSomething = false;
 
     // if we aren't active, we can't ray pick yet...
     if (!isActive()) {
-        qDebug() << "    line:" << __LINE__ << " returning intersectedSomething:" << intersectedSomething;
         return intersectedSomething;
     }
-
-    // if we don't have valid mesh boxes, calculate them now. We cache the results of these calculations 
-    // so long as the model hasn't been simulated and the mesh hasn't changed.
-    /*
-    if (!_calculatedMeshBoxesValid) {
-        recalcuateMeshBoxes();
-    }
-    */
 
     // extents is the entity relative, scaled, centered extents of the entity
     glm::vec3 position = _translation;
@@ -436,8 +424,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     // and testing intersection there.
     if (overlayFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
 
-        qDebug() << "    line:" << __LINE__ << " overlayFrameBox.findRayIntersection() TRUE consider sub meshes!";
-    
         float bestDistance = std::numeric_limits<float>::max();
         float distanceToSubMesh;
         BoxFace subMeshFace;
@@ -448,8 +434,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
             const FBXGeometry& geometry = _geometry->getFBXGeometry();
-            //qDebug() << "    consider sub mesh[" << subMeshIndex <<"] " 
-            //                << subMeshBox << "name:" << geometry.getModelNameOfMesh(subMeshIndex);
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
                 if (distanceToSubMesh < bestDistance) {
@@ -457,10 +441,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     bestDistance = distanceToSubMesh;
                     bestSubMeshFace = subMeshFace;
                     intersectedSomething = true;
-                    qDebug() << "    INTERSECTS sub mesh[" << subMeshIndex <<"] " 
-                                    << subMeshBox 
-                                    << "distance:" << distanceToSubMesh
-                                    << "name:" << geometry.getModelNameOfMesh(subMeshIndex);
+                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                 }
             }
             subMeshIndex++;
@@ -501,7 +482,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // where our caller has passed RenderArgs which will include a view frustum we can cull
     // against. We cache the results of these calculations so long as the model hasn't been
     // simulated and the mesh hasn't changed.
-    if (/*args &&*/ !_calculatedMeshBoxesValid) {
+    if (args && !_calculatedMeshBoxesValid) {
         recalcuateMeshBoxes();
     }
     
@@ -1013,7 +994,6 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     || (_snapModelToRegistrationPoint && !_snappedToRegistrationPoint);
                     
     if (isActive() && fullUpdate) {
-        //qDebug() << "simulated _calculatedMeshBoxesValid = false";
         _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
 
         // check for scale to fit

@@ -143,9 +143,6 @@ public:
     QVector<FBXBlendshape> blendshapes;
     
     bool hasSpecularTexture() const;
-
-    //QString name;
-    //int foo;
 };
 
 /// A single animation frame extracted from an FBX document.

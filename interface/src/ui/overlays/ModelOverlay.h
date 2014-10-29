@@ -25,6 +25,8 @@ public:
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction, 
+                                                    float& distance, BoxFace& face, QString& extraInfo) const;
 
 private:
     

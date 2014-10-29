@@ -11,6 +11,7 @@
 #ifndef hifi_Overlays_h
 #define hifi_Overlays_h
 
+#include <QString>
 #include <QScriptValue>
 
 #include "Overlay.h"
@@ -23,6 +24,7 @@ public:
     float distance;
     BoxFace face;
     glm::vec3 intersection;
+    QString extraInfo;
 };
 
 Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);

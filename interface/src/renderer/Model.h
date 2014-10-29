@@ -191,7 +191,7 @@ public:
         { _geometry->setTextureWithNameToURL(name, url); }
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, 
-                                                float& distance, BoxFace& face) const;
+                                                float& distance, BoxFace& face, QString& extraInfo) const;
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
