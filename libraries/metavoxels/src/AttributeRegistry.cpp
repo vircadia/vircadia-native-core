@@ -1198,6 +1198,10 @@ bool HeightfieldAttribute::merge(void*& parent, void* children[], bool postRead)
     return false;
 }
 
+AttributeValue HeightfieldAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
+}
+
 HeightfieldColorAttribute::HeightfieldColorAttribute(const QString& name) :
     InlineAttribute<HeightfieldColorDataPointer>(name) {
 }
@@ -1337,6 +1341,10 @@ bool HeightfieldColorAttribute::merge(void*& parent, void* children[], bool post
     return false;
 }
 
+AttributeValue HeightfieldColorAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
+}
+
 HeightfieldMaterialAttribute::HeightfieldMaterialAttribute(const QString& name) :
     InlineAttribute<HeightfieldMaterialDataPointer>(name) {
 }
@@ -1402,6 +1410,10 @@ bool HeightfieldMaterialAttribute::merge(void*& parent, void* children[], bool p
     }
     *(HeightfieldMaterialDataPointer*)&parent = HeightfieldMaterialDataPointer();
     return maxSize == 0;
+}
+
+AttributeValue HeightfieldMaterialAttribute::inherit(const AttributeValue& parentValue) const {
+    return AttributeValue(parentValue.getAttribute());
 }
 
 const int VOXEL_COLOR_HEADER_SIZE = sizeof(qint32) * 6;

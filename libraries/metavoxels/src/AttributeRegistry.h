@@ -536,6 +536,8 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
 
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldColorData> HeightfieldColorDataPointer;
@@ -580,6 +582,8 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldMaterialData> HeightfieldMaterialDataPointer;
@@ -646,6 +650,8 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 typedef QExplicitlySharedDataPointer<VoxelColorData> VoxelColorDataPointer;

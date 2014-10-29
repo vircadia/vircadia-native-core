@@ -249,7 +249,7 @@ public:
     const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
     
     QByteArray getUnextendedHeight() const;
-    QByteArray getUnextendedColor() const;
+    QByteArray getUnextendedColor(int x = 0, int y = 0) const;
     
     int getHeightSize() const { return _heightSize; }
     float getHeightIncrement() const { return _heightIncrement; }
