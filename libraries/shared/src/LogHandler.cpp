@@ -17,6 +17,8 @@
 #define getpid _getpid
 #define getppid _getpid // hack to build
 #define pid_t int // hack to build
+#else
+#include <unistd.h> // for getpid() on linux
 #endif
 
 #include <qdebug.h>
