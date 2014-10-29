@@ -10,6 +10,7 @@
 
 #include <limits>
 #include <Application.h>
+#include <Menu.h>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
@@ -78,8 +79,13 @@ void Overlays::update(float deltatime) {
 
 void Overlays::render2D() {
     QReadLocker lock(&_lock);
+
+    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
+        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
+        RenderArgs::DEFAULT_RENDER_MODE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
     foreach(Overlay* thisOverlay, _overlays2D) {
-        thisOverlay->render();
+        thisOverlay->render(&args);
     }
 }
 
@@ -95,6 +101,11 @@ void Overlays::render3D() {
     float angle = 0.0f;
     glm::vec3 axis(0.0f, 1.0f, 0.0f);
     float myAvatarScale = 1.0f;
+    
+    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
+                        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
+                        RenderArgs::DEFAULT_RENDER_MODE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    
 
     foreach(Overlay* thisOverlay, _overlays3D) {
         glPushMatrix();
@@ -118,7 +129,7 @@ void Overlays::render3D() {
             default:
                 break;
         }
-        thisOverlay->render();
+        thisOverlay->render(&args);
         glPopMatrix();
     }
 }

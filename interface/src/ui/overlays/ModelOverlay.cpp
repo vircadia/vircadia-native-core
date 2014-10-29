@@ -26,6 +26,8 @@ void ModelOverlay::update(float deltatime) {
         _updateModel = false;
         
         _model.setScaleToFit(true, _scale);
+qDebug() << "setScaleToFit() scale: " << _scale;
+
         _model.setSnapModelToCenter(true);
         _model.setRotation(_rotation);
         _model.setTranslation(_position);
@@ -37,7 +39,7 @@ void ModelOverlay::update(float deltatime) {
     _isLoaded = _model.isActive();
 }
 
-void ModelOverlay::render() {
+void ModelOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return;
     }
@@ -70,6 +72,7 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
     QScriptValue scaleValue = properties.property("scale");
     if (scaleValue.isValid()) {
         _scale = scaleValue.toVariant().toFloat();
+qDebug() << "scale: " << _scale;
         _updateModel = true;
     }
     
@@ -125,6 +128,10 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) const {
 
+    qDebug() << "ModelOverlay::findRayIntersection() calling _model.findRayIntersectionAgainstSubMeshes()...";
+    return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face);    
+    
+    /*
     // if our model isn't active, we can't ray pick yet...
     if (!_model.isActive()) {
         return false;
@@ -153,4 +160,5 @@ bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3&
     }
 
     return false;
+    */
 }

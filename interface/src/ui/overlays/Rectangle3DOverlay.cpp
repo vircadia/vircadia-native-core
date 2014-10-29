@@ -23,7 +23,7 @@ Rectangle3DOverlay::Rectangle3DOverlay() {
 Rectangle3DOverlay::~Rectangle3DOverlay() {
 }
 
-void Rectangle3DOverlay::render() {
+void Rectangle3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

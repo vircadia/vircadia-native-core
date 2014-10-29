@@ -19,7 +19,7 @@ class Line3DOverlay : public Base3DOverlay {
 public:
     Line3DOverlay();
     ~Line3DOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
 
     // getters
     const glm::vec3& getEnd() const { return _end; }

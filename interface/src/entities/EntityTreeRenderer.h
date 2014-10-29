@@ -20,6 +20,7 @@
 #include <OctreePacketData.h>
 #include <OctreeRenderer.h>
 #include <PacketHeaders.h>
+#include <RenderArgs.h>
 #include <SharedUtil.h>
 #include <ViewFrustum.h>
 
@@ -48,7 +49,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);

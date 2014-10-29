@@ -20,6 +20,7 @@
 #include <QString>
 
 #include <SharedUtil.h> // for xColor
+#include <RenderArgs.h>
 
 const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 const float DEFAULT_ALPHA = 0.7f;
@@ -37,7 +38,7 @@ public:
     ~Overlay();
     void init(QGLWidget* parent);
     virtual void update(float deltatime) {}
-    virtual void render() = 0;
+    virtual void render(RenderArgs* args) = 0;
 
     // getters
     virtual bool is3D() const = 0;
