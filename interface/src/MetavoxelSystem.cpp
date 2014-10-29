@@ -984,8 +984,8 @@ HeightfieldBuffer::HeightfieldBuffer(const glm::vec3& translation, float scale,
     _colorBounds.maximum.x += _colorIncrement * SHARED_EDGE;
     _colorBounds.maximum.z += _colorIncrement * SHARED_EDGE;
     
-    _materialBounds.maximum.x += _colorIncrement * SHARED_EDGE;
-    _materialBounds.maximum.z += _colorIncrement * SHARED_EDGE;
+    _materialBounds.maximum.x += _materialIncrement * SHARED_EDGE;
+    _materialBounds.maximum.z += _materialIncrement * SHARED_EDGE;
 }
 
 HeightfieldBuffer::~HeightfieldBuffer() {
@@ -1716,10 +1716,10 @@ private:
     const QVector<Box>& _intersections;
     HeightfieldBuffer* _buffer;
     
-    int _heightDepth;
-    int _colorDepth;
-    int _materialDepth;
+    QVector<int> _depthFlags;
 };
+
+enum DepthFlags { HEIGHT_FLAG = 0x01, COLOR_FLAG = 0x02, MATERIAL_FLAG = 0x04 };
 
 HeightfieldFetchVisitor::HeightfieldFetchVisitor(const MetavoxelLOD& lod, const QVector<Box>& intersections) :
     MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
@@ -1730,14 +1730,16 @@ HeightfieldFetchVisitor::HeightfieldFetchVisitor(const MetavoxelLOD& lod, const 
 
 void HeightfieldFetchVisitor::init(HeightfieldBuffer* buffer) {
     _buffer = buffer;
-    _heightDepth = -1;
-    _colorDepth = -1;
-    _materialDepth = -1;
 }
 
 int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
     if (!info.getBounds().intersects(_buffer->getHeightBounds())) {
         return STOP_RECURSION;
+    }
+    if (_depthFlags.size() > _depth) {
+        _depthFlags[_depth] = 0;
+    } else {
+        _depthFlags.append(0);
     }
     if (!info.isLeaf) {
         return DEFAULT_ORDER;
@@ -1748,38 +1750,39 @@ int HeightfieldFetchVisitor::visit(MetavoxelInfo& info) {
 
 bool HeightfieldFetchVisitor::postVisit(MetavoxelInfo& info) {
     HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
+    int flags = _depthFlags.at(_depth);
     if (height) {
         // to handle borders correctly, make sure we only sample nodes with resolution <= ours
         int heightSize = glm::sqrt((float)height->getContents().size());
         float heightIncrement = info.size / heightSize;
-        if (heightIncrement < _buffer->getHeightIncrement() || _depth < _heightDepth) {
+        if (heightIncrement < _buffer->getHeightIncrement() || (flags & HEIGHT_FLAG)) {
             height.reset();
+        } else {
+            flags |= HEIGHT_FLAG;
         }
-    }
-    if (height || _heightDepth != -1) {
-        _heightDepth = _depth;
     }
     HeightfieldColorDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
     if (color) {
         int colorSize = glm::sqrt((float)color->getContents().size() / DataBlock::COLOR_BYTES);
         float colorIncrement = info.size / colorSize;
-        if (colorIncrement < _buffer->getColorIncrement() || _depth < _colorDepth) {
+        if (colorIncrement < _buffer->getColorIncrement() || (flags & COLOR_FLAG)) {
             color.reset();
+        } else {
+            flags |= COLOR_FLAG;
         }
-    }
-    if (color || _colorDepth != -1) {
-        _colorDepth = _depth;
     }
     HeightfieldMaterialDataPointer material = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
     if (material) {
         int materialSize = glm::sqrt((float)material->getContents().size());
         float materialIncrement = info.size / materialSize;
-        if (materialIncrement < _buffer->getMaterialIncrement() || _depth < _materialDepth) {
+        if (materialIncrement < _buffer->getMaterialIncrement() || (flags & MATERIAL_FLAG)) {
             material.reset();
+        } else {
+            flags |= MATERIAL_FLAG;
         }
     }
-    if (material || _materialDepth != -1) {
-        _materialDepth = _depth;
+    if (_depth > 0) {
+        _depthFlags[_depth - 1] |= flags;
     }
     if (!(height || color || material)) {
         return false;
