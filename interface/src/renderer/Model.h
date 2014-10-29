@@ -199,7 +199,7 @@ protected:
     glm::vec3 _scale;
     glm::vec3 _offset;
 
-    const float FAKE_DIMENSION_PLACEHOLDER = -1.0f;
+    static float FAKE_DIMENSION_PLACEHOLDER;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
     glm::vec3 _scaleToFitDimensions; /// this is the dimensions that scale to fit will use

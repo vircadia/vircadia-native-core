@@ -35,6 +35,7 @@ using namespace std;
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 
 Model::Model(QObject* parent) :
     QObject(parent),
@@ -124,34 +125,63 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
     program.bind();
 
 #ifdef Q_OS_MAC
+
     // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+
     glBindAttribLocation(program.programId(), 4, "tangent");
+
     glLinkProgram(program.programId());
+
 #endif
+
+
 
     locations.tangent = program.attributeLocation("tangent");
+
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
+
     program.setUniformValue("diffuseMap", 0);
+
     program.setUniformValue("normalMap", 1);
+
     program.setUniformValue("specularMap", specularTextureUnit);
+
     program.release();
+
 }
 
+
+
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations, int specularTextureUnit) {
+
     initProgram(program, locations, specularTextureUnit);
 
+
+
 #ifdef Q_OS_MAC
+
     // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+
     glBindAttribLocation(program.programId(), 5, "clusterIndices");
+
     glBindAttribLocation(program.programId(), 6, "clusterWeights");
+
     glLinkProgram(program.programId());
+
 #endif
 
+
+
     program.bind();
+
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
 
+
+
     locations.clusterIndices = program.attributeLocation("clusterIndices");
+
     locations.clusterWeights = program.attributeLocation("clusterWeights");
+
     program.release();
 }
 
