@@ -19,22 +19,6 @@
 
 namespace gpu {
 
-class BufferObject {
-public:
-    Stamp  _stamp;
-    GLuint _buffer;
-    GLuint _size;
-
-    BufferObject() :
-        _stamp(0),
-        _buffer(0),
-        _size(0)
-    {}
-
-    ~BufferObject();
-};
-void syncGPUObject(const Buffer& buffer);
-
 class GLBackend : public Backend {
 public:
 
@@ -46,19 +30,14 @@ public:
     static void checkGLError();
 
 
-    class BufferObject {
+    class GLBuffer {
     public:
         Stamp  _stamp;
         GLuint _buffer;
         GLuint _size;
 
-        BufferObject() :
-            _stamp(0),
-            _buffer(0),
-            _size(0)
-        {}
-
-        ~BufferObject();
+        GLBuffer();
+        ~GLBuffer();
     };
     static void syncGPUObject(const Buffer& buffer);
 

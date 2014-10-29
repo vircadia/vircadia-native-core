@@ -696,15 +696,20 @@ void GLBackend::do_glMaterialfv(Batch& batch, uint32 paramOffset) {
     CHECK_GL_ERROR();
 }
 
+GLBackend::GLBuffer::GLBuffer() :
+    _stamp(0),
+    _buffer(0),
+    _size(0)
+{}
 
-GLBackend::BufferObject::~BufferObject() {
+GLBackend::GLBuffer::~GLBuffer() {
     if (_buffer != 0) {
         glDeleteBuffers(1, &_buffer);
     }
 }
 
 void GLBackend::syncGPUObject(const Buffer& buffer) {
-    BufferObject* object = Backend::getGPUObject<GLBackend::BufferObject>(buffer);
+    GLBuffer* object = Backend::getGPUObject<GLBackend::GLBuffer>(buffer);
 
     if (object && (object->_stamp == buffer.getSysmem().getStamp())) {
         return;
@@ -712,7 +717,7 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
 
     // need to have a gpu object?
     if (!object) {
-        object = new BufferObject();
+        object = new GLBuffer();
         glGenBuffers(1, &object->_buffer);
         Backend::setGPUObject(buffer, object);
     }
@@ -732,5 +737,5 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
 
 GLuint GLBackend::getBufferID(const Buffer& buffer) {
     GLBackend::syncGPUObject(buffer);
-    return Backend::getGPUObject<GLBackend::BufferObject>(buffer)->_buffer;
+    return Backend::getGPUObject<GLBackend::GLBuffer>(buffer)->_buffer;
 }
