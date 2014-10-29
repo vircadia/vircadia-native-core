@@ -1,6 +1,6 @@
 //
 //  PlaneShape.cpp
-//  libraries/shared/src
+//  libraries/physics/src
 //
 //  Created by Andrzej Kapolka on 4/10/2014.
 //  Copyright 2014 High Fidelity, Inc.

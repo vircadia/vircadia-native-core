@@ -1,6 +1,6 @@
 //
 //  PhysicsSimulation.h
-//  interface/src/avatar
+//  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.06.06
 //  Copyright 2014 High Fidelity, Inc.

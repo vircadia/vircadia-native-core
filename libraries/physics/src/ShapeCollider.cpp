@@ -1,6 +1,6 @@
 //
 //  ShapeCollider.cpp
-//  libraries/shared/src
+//  libraries/physics/src
 //
 //  Created by Andrew Meadows on 02/20/2014.
 //  Copyright 2014 High Fidelity, Inc.
