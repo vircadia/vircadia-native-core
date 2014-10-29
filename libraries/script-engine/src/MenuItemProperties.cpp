@@ -82,7 +82,7 @@ void menuItemPropertiesFromScriptValue(const QScriptValue& object, MenuItemPrope
     } else {
         QScriptValue shortcutKeyEventValue = object.property("shortcutKeyEvent");
         if (shortcutKeyEventValue.isValid()) {
-            keyEventFromScriptValue(shortcutKeyEventValue, properties.shortcutKeyEvent);
+            KeyEvent::fromScriptValue(shortcutKeyEventValue, properties.shortcutKeyEvent);
             properties.shortcutKeySequence = properties.shortcutKeyEvent;
         }
     }

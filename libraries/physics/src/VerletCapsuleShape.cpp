@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <SharedUtil.h>
+
 #include "VerletCapsuleShape.h"
 
-#include "Ragdoll.h"    // for VerletPoint
-#include "SharedUtil.h"
+#include "VerletPoint.h"
 
 VerletCapsuleShape::VerletCapsuleShape(VerletPoint* startPoint, VerletPoint* endPoint) : 
         CapsuleShape(), _startPoint(startPoint), _endPoint(endPoint), _startLagrangeCoef(0.5f), _endLagrangeCoef(0.5f) {

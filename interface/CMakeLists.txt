@@ -44,11 +44,7 @@ configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceCon
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
 # grab the implementation and header files from src dirs
-file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles entities gpu)
-  file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
-endforeach(SUBDIR)
+file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 
 # Add SpeechRecognizer if on OS X, otherwise remove
 if (APPLE)
@@ -105,7 +101,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels fbx metavoxels networking entities avatars audio animation script-engine)
+link_hifi_libraries(shared octree voxels fbx metavoxels networking entities avatars audio animation script-engine physics)
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)
@@ -226,11 +222,20 @@ else (APPLE)
   if (WIN32)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIRS})
-    
+
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
-    
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    # try to find the Nsight package and add it to the build if we find it
+    find_package(NSIGHT)
+    if (NSIGHT_FOUND)
+      include_directories(${NSIGHT_INCLUDE_DIRS})
+      add_definitions(-DNSIGHT_FOUND)
+      target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
+    endif ()
+
   endif()
 endif (APPLE)
 

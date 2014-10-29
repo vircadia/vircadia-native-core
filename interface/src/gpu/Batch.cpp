@@ -111,6 +111,8 @@ void Batch::runCommand(Command com, uint32 offset) {
         CASE_COMMAND(glColor4f);
         CASE_COMMAND(glMaterialf);
         CASE_COMMAND(glMaterialfv);
+        default:
+            break;
     }
 }
 

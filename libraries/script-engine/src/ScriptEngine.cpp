@@ -35,12 +35,14 @@
 #include "AnimationObject.h"
 #include "ArrayBufferViewClass.h"
 #include "DataViewClass.h"
+#include "EventTypes.h"
 #include "MenuItemProperties.h"
-#include "MIDIEvent.h"
 #include "LocalVoxels.h"
 #include "ScriptEngine.h"
 #include "TypedArrays.h"
 #include "XMLHttpRequestClass.h"
+
+#include "MIDIEvent.h"
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;

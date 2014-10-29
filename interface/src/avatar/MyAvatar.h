@@ -41,7 +41,8 @@ class MyAvatar : public Avatar {
 public:
 	MyAvatar();
     ~MyAvatar();
-    
+
+    QByteArray toByteArray();
     void reset();
     void update(float deltaTime);
     void simulate(float deltaTime);
@@ -134,6 +135,8 @@ public:
     virtual void setFaceModelURL(const QUrl& faceModelURL);
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData);
+
+    virtual glm::vec3 getSkeletonPosition() const;
     
     void clearJointAnimationPriorities();
 

@@ -11,13 +11,14 @@
 
 #include <glm/gtx/norm.hpp>
 
+#include <SharedUtil.h> // for EPSILON
+
 #include "Ragdoll.h"
 
 #include "Constraint.h"
 #include "DistanceConstraint.h"
 #include "FixedConstraint.h"
 #include "PhysicsSimulation.h"
-#include "SharedUtil.h" // for EPSILON
 
 Ragdoll::Ragdoll() : _massScale(1.0f), _translation(0.0f), _translationInSimulationFrame(0.0f), 
         _rootIndex(0), _accumulatedMovement(0.0f), _simulation(NULL) {

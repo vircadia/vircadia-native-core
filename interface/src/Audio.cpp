@@ -1036,6 +1036,27 @@ void Audio::parseAudioStreamStatsPacket(const QByteArray& packet) {
     }
 }
 
+void Audio::parseAudioEnvironmentData(const QByteArray &packet) {
+    int numBytesPacketHeader = numBytesForPacketHeader(packet);
+    const char* dataAt = packet.constData() + numBytesPacketHeader;
+    
+    char bitset;
+    memcpy(&bitset, dataAt, sizeof(char));
+    dataAt += sizeof(char);
+    
+    bool hasReverb = oneAtBit(bitset, HAS_REVERB_BIT);;
+    if (hasReverb) {
+        float reverbTime, wetLevel;
+        memcpy(&reverbTime, dataAt, sizeof(float));
+        dataAt += sizeof(float);
+        memcpy(&wetLevel, dataAt, sizeof(float));
+        dataAt += sizeof(float);
+        _receivedAudioStream.setReverb(reverbTime, wetLevel);
+    } else {
+        _receivedAudioStream.clearReverb();
+    }
+}
+
 void Audio::sendDownstreamAudioStatsPacket() {
 
     // since this function is called every second, we'll sample for some of our stats here

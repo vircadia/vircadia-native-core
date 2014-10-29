@@ -14,7 +14,8 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 
-#include "Logging.h"
+#include <LogHandler.h>
+
 #include "ThreadedAssignment.h"
 
 ThreadedAssignment::ThreadedAssignment(const QByteArray& packet) :
@@ -54,7 +55,7 @@ void ThreadedAssignment::setFinished(bool isFinished) {
 
 void ThreadedAssignment::commonInit(const QString& targetName, NodeType_t nodeType, bool shouldSendStats) {
     // change the logging target name while the assignment is running
-    Logging::setTargetName(targetName);
+    LogHandler::getInstance().setTargetName(targetName);
     
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(nodeType);

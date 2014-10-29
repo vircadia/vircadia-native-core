@@ -68,8 +68,8 @@ EntityItemProperties::EntityItemProperties() :
     _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
     _glowLevel(0.0f),
     _localRenderAlpha(1.0f),
+    _isSpotlight(false),
 
-    _naturalDimensions(1.0f, 1.0f, 1.0f),
     _colorChanged(false),
     _modelURLChanged(false),
     _animationURLChanged(false),
@@ -78,10 +78,50 @@ EntityItemProperties::EntityItemProperties() :
     _animationFPSChanged(false),
     _glowLevelChanged(false),
     _localRenderAlphaChanged(false),
+    _isSpotlightChanged(false),
 
-    _defaultSettings(true)
+    _diffuseColor(),
+    _ambientColor(),
+    _specularColor(),
+    _constantAttenuation(1.0f),
+    _linearAttenuation(0.0f), 
+    _quadraticAttenuation(0.0f),
+    _exponent(0.0f),
+    _cutoff(PI),
+
+    _diffuseColorChanged(false),
+    _ambientColorChanged(false),
+    _specularColorChanged(false),
+    _constantAttenuationChanged(false),
+    _linearAttenuationChanged(false),
+    _quadraticAttenuationChanged(false),
+    _exponentChanged(false),
+    _cutoffChanged(false),
+
+    _defaultSettings(true),
+    _sittingPoints(NULL),
+    _naturalDimensions(1.0f, 1.0f, 1.0f)
 {
 }
+
+EntityItemProperties::~EntityItemProperties() { 
+    if (_sittingPoints) {
+        delete _sittingPoints;
+        _sittingPoints = NULL;
+    }
+}
+
+void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {
+    if (!_sittingPoints) {
+        _sittingPoints = new QVector<SittingPoint>;
+    }
+    _sittingPoints->clear();
+
+    foreach (SittingPoint sitPoint, sittingPoints) {
+        _sittingPoints->append(sitPoint);
+    }
+}
+
 
 void EntityItemProperties::debugDump() const {
     qDebug() << "EntityItemProperties...";
@@ -120,6 +160,15 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_DAMPING, angularDamping);
     CHECK_PROPERTY_CHANGE(PROP_IGNORE_FOR_COLLISIONS, ignoreForCollisions);
     CHECK_PROPERTY_CHANGE(PROP_COLLISIONS_WILL_MOVE, collisionsWillMove);
+    CHECK_PROPERTY_CHANGE(PROP_IS_SPOTLIGHT, isSpotlight);
+    CHECK_PROPERTY_CHANGE(PROP_DIFFUSE_COLOR, diffuseColor);
+    CHECK_PROPERTY_CHANGE(PROP_AMBIENT_COLOR, ambientColor);
+    CHECK_PROPERTY_CHANGE(PROP_SPECULAR_COLOR, specularColor);
+    CHECK_PROPERTY_CHANGE(PROP_CONSTANT_ATTENUATION, constantAttenuation);
+    CHECK_PROPERTY_CHANGE(PROP_LINEAR_ATTENUATION, linearAttenuation);
+    CHECK_PROPERTY_CHANGE(PROP_QUADRATIC_ATTENUATION, quadraticAttenuation);
+    CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
+    CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
 
     return changedProperties;
 }
@@ -161,17 +210,30 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
     COPY_PROPERTY_TO_QSCRIPTVALUE(collisionsWillMove);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(isSpotlight);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(diffuseColor, getDiffuseColor()); 
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(ambientColor, getAmbientColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(specularColor, getSpecularColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE(constantAttenuation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(linearAttenuation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(quadraticAttenuation);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(exponent);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
-    for (int i = 0; i < _sittingPoints.size(); ++i) {
-        QScriptValue sittingPoint = engine->newObject();
-        sittingPoint.setProperty("name", _sittingPoints[i].name);
-        sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints[i].position));
-        sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints[i].rotation));
-        sittingPoints.setProperty(i, sittingPoint);
+    if (_sittingPoints) {
+        for (int i = 0; i < _sittingPoints->size(); ++i) {
+            QScriptValue sittingPoint = engine->newObject();
+            sittingPoint.setProperty("name", _sittingPoints->at(i).name);
+            sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints->at(i).position));
+            sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints->at(i).rotation));
+            sittingPoints.setProperty(i, sittingPoint);
+        }
+        sittingPoints.setProperty("length", _sittingPoints->size());
+    } else {
+        sittingPoints.setProperty("length", 0);
     }
-    sittingPoints.setProperty("length", _sittingPoints.size());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
     AABox aaBox = getAABoxInMeters();
@@ -220,6 +282,15 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localRenderAlpha, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(collisionsWillMove, setCollisionsWillMove);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(isSpotlight, setIsSpotlight);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(diffuseColor, setDiffuseColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(ambientColor, setAmbientColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(specularColor, setSpecularColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(constantAttenuation, setConstantAttenuation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(linearAttenuation, setLinearAttenuation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(quadraticAttenuation, setQuadraticAttenuation);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(exponent, setExponent);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(cutoff, setCutoff);
 
     _lastEdited = usecTimestampNow();
 }
@@ -370,6 +441,15 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, properties.getIgnoreForCollisions());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
+            APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
+            APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
+            APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
+            APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
+            APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
+            APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, properties.getLinearAttenuation());
+            APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
+            APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
+            APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -568,6 +648,15 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
+    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
+    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
+    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINEAR_ATTENUATION, float, setLinearAttenuation);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
 
     return valid;
 }
@@ -622,6 +711,16 @@ void EntityItemProperties::markAllChanged() {
     _animationFPSChanged = true;
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
+    _isSpotlightChanged = true;
+
+    _diffuseColorChanged = true;
+    _ambientColorChanged = true;
+    _specularColorChanged = true;
+    _constantAttenuationChanged = true;
+    _linearAttenuationChanged = true; 
+    _quadraticAttenuationChanged = true;
+    _exponentChanged = true;
+    _cutoffChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {

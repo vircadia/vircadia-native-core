@@ -17,7 +17,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "EventTypes.h"
+#include "HFActionEvent.h"
+#include "KeyEvent.h"
+#include "MouseEvent.h"
+#include "SpatialEvent.h"
+#include "TouchEvent.h"
+#include "WheelEvent.h"
 
 class AbstractInputController : public QObject {
     Q_OBJECT
@@ -88,6 +93,12 @@ public slots:
 signals:
     void keyPressEvent(const KeyEvent& event);
     void keyReleaseEvent(const KeyEvent& event);
+    
+    void actionStartEvent(const HFActionEvent& event);
+    void actionEndEvent(const HFActionEvent& event);
+    
+    void backStartEvent();
+    void backEndEvent();
 
     void mouseMoveEvent(const MouseEvent& event, unsigned int deviceID = 0);
     void mousePressEvent(const MouseEvent& event, unsigned int deviceID = 0);

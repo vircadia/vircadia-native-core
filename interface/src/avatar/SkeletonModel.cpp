@@ -77,7 +77,7 @@ const float PALM_PRIORITY = DEFAULT_PRIORITY;
 const float LEAN_PRIORITY = DEFAULT_PRIORITY;
 
 void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
-    setTranslation(_owningAvatar->getPosition());
+    setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
@@ -655,19 +655,19 @@ void SkeletonModel::buildShapes() {
         Shape::Type type = joint.shapeType;
         int parentIndex = joint.parentIndex;
         if (parentIndex == -1 || radius < EPSILON) {
-            type = UNKNOWN_SHAPE;
-        } else if (type == CAPSULE_SHAPE && halfHeight < EPSILON) {
+            type = SHAPE_TYPE_UNKNOWN;
+        } else if (type == SHAPE_TYPE_CAPSULE && halfHeight < EPSILON) {
             // this shape is forced to be a sphere
-            type = SPHERE_SHAPE;
+            type = SHAPE_TYPE_SPHERE;
         }
         Shape* shape = NULL;
-        if (type == SPHERE_SHAPE) {
+        if (type == SHAPE_TYPE_SPHERE) {
             shape = new VerletSphereShape(radius, &(points[i]));
             shape->setEntity(this);
             float mass = massScale * glm::max(MIN_JOINT_MASS, DENSITY_OF_WATER * shape->getVolume());
             points[i].setMass(mass);
             totalMass += mass;
-        } else if (type == CAPSULE_SHAPE) {
+        } else if (type == SHAPE_TYPE_CAPSULE) {
             assert(parentIndex != -1);
             shape = new VerletCapsuleShape(radius, &(points[parentIndex]), &(points[i]));
             shape->setEntity(this);

@@ -19,11 +19,15 @@ SPACE_WORLD = "world";
 SelectionManager = (function() {
     var that = {};
 
+    var PENDING_SELECTION_CHECK_INTERVAL = 50;
 
     that.savedProperties = {};
 
     that.eventListener = null;
     that.selections = [];
+    // These are selections that don't have a known ID yet
+    that.pendingSelections = [];
+    var pendingSelectionTimer = null;
 
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.localPosition = { x: 0, y: 0, z: 0 };
@@ -46,11 +50,58 @@ SelectionManager = (function() {
         that.eventListener = func;
     };
 
+    that.hasSelection = function() {
+        return that.selections.length > 0;
+    };
+
+    that.setSelections = function(entityIDs) {
+        that.selections = [];
+        for (var i = 0; i < entityIDs.length; i++) {
+            var entityID = entityIDs[i];
+            if (entityID.isKnownID) {
+                that.selections.push(entityID);
+            } else {
+                that.pendingSelections.push(entityID);
+                if (pendingSelectionTimer == null) {
+                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
+                }
+            }
+        }
+
+        that._update();
+    };
+
+    that._checkPendingSelections = function() {
+        for (var i = 0; i < that.pendingSelections.length; i++) {
+            var entityID = that.pendingSelections[i];
+            var newEntityID = Entities.identifyEntity(entityID);
+            if (newEntityID.isKnownID) {
+                that.pendingSelections.splice(i, 1);
+                that.addEntity(newEntityID);
+                i--;
+            }
+        }
+
+        if (that.pendingSelections.length == 0) {
+            Script.clearInterval(pendingSelectionTimer);
+            pendingSelectionTimer = null;
+        }
+    }
+
     that.addEntity = function(entityID) {
-        print("Adding: " + entityID.id);
-        var idx = that.selections.indexOf(entityID);
-        if (idx == -1) {
-            that.selections.push(entityID);
+        if (entityID.isKnownID) {
+            var idx = that.selections.indexOf(entityID);
+            if (idx == -1) {
+                that.selections.push(entityID);
+            }
+        } else {
+            var idx = that.pendingSelections.indexOf(entityID);
+            if (idx == -1) {
+                that.pendingSelections.push(entityID);
+                if (pendingSelectionTimer == null) {
+                    pendingSelectionTimer = Script.setInterval(that._checkPendingSelections, PENDING_SELECTION_CHECK_INTERVAL);
+                }
+            }
         }
 
         that._update();
@@ -62,11 +113,22 @@ SelectionManager = (function() {
             that.selections.splice(idx, 1);
         }
 
+        var idx = that.pendingSelections.indexOf(entityID);
+        if (idx >= 0) {
+            that.pendingSelections.splice(idx, 1);
+        }
+
         that._update();
     };
 
     that.clearSelections = function() {
         that.selections = [];
+        that.pendingSelections = [];
+
+        if (pendingSelectionTimer !== null) {
+            Script.clearInterval(pendingSelectionTimer);
+            pendingSelectionTimer = null;
+        }
 
         that._update();
     };
@@ -78,8 +140,6 @@ SelectionManager = (function() {
             that.worldDimensions = null;
             that.worldPosition = null;
         } else if (that.selections.length == 1) {
-            SelectionDisplay.setSpaceMode(SPACE_LOCAL);
-
             var properties = Entities.getEntityProperties(that.selections[0]);
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
@@ -87,10 +147,9 @@ SelectionManager = (function() {
 
             that.worldDimensions = properties.boundingBox.dimensions;
             that.worldPosition = properties.boundingBox.center;
-        } else {
-            // For 1+ selections we can only modify selections in world space
-            SelectionDisplay.setSpaceMode(SPACE_WORLD);
 
+            SelectionDisplay.setSpaceMode(SPACE_LOCAL);
+        } else {
             that.localRotation = null;
             that.localDimensions = null;
             that.localPosition = null;
@@ -123,6 +182,9 @@ SelectionManager = (function() {
                 y: brn.y + (that.worldDimensions.y / 2),
                 z: brn.z + (that.worldDimensions.z / 2),
             };
+
+            // For 1+ selections we can only modify selections in world space
+            SelectionDisplay.setSpaceMode(SPACE_WORLD);
         }
 
         if (that.eventListener) {
@@ -601,7 +663,7 @@ SelectionDisplay = (function () {
         currentSelection = entityID;
         entitySelected = true;
         
-        lastCameraPosition = Camera.getPosition();
+        // lastCameraPosition = Camera.getPosition();
         lastCameraOrientation = Camera.getOrientation();
 
         if (event !== false) {
@@ -624,10 +686,15 @@ SelectionDisplay = (function () {
             
         }
 
+        Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
+        Overlays.editOverlay(highlightBox, { visible: false });
+
+        that.updateHandles();
+    }
+
+    that.updateRotationHandles = function() {
         var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
         var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
-        innerRadius = diagonal;
-        outerRadius = diagonal * 1.15;
         var innerActive = false;
         var innerAlpha = 0.2;
         var outerAlpha = 0.2;
@@ -638,22 +705,18 @@ SelectionDisplay = (function () {
         }
 
         var rotateHandleOffset = 0.05;
-        var grabberMoveUpOffset = 0.1;
         
         var top, far, left, bottom, near, right, boundsCenter, objectCenter, BLN, BRN, BLF, TLN, TRN, TLF, TRF;
 
-        // objectCenter = { x: properties.position.x, y: properties.position.y, z: properties.position.z };
-
-        var dimensions;
+        var dimensions, rotation;
         if (spaceMode == SPACE_LOCAL) {
-            objectCenter = SelectionManager.localPosition;
-            dimensions = SelectionManager.localDimensions;
+            rotation = SelectionManager.localRotation;
         } else {
-            objectCenter = SelectionManager.worldPosition;
-            dimensions = SelectionManager.worldDimensions;
+            rotation = SelectionManager.worldRotation;
         }
         objectCenter = SelectionManager.worldPosition;
         dimensions = SelectionManager.worldDimensions;
+        var position = objectCenter;
 
         top = objectCenter.y + (dimensions.y / 2);
         far = objectCenter.z + (dimensions.z / 2);
@@ -663,7 +726,6 @@ SelectionDisplay = (function () {
         near = objectCenter.z - (dimensions.z / 2);
         right = objectCenter.x - (dimensions.x / 2);
 
-        // boundsCenter = { x: properties.boundingBox.center.x, y: properties.boundingBox.center.y, z: properties.boundingBox.center.z };
         boundsCenter = objectCenter;
 
         var yawCorner;
@@ -813,10 +875,12 @@ SelectionDisplay = (function () {
         }
         
         var rotateHandlesVisible = true;
+        var rotationOverlaysVisible = false;
         var translateHandlesVisible = true;
         var stretchHandlesVisible = true;
         var selectionBoxVisible = true;
         if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_X in case they Z") {
+            rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
             translateHandlesVisible = false;
             stretchHandlesVisible = false;
@@ -829,77 +893,33 @@ SelectionDisplay = (function () {
             rotateHandlesVisible = false;
             translateHandlesVisible = false;
         }
-
-        Overlays.editOverlay(highlightBox, { visible: false });
         
-        var dimensions, rotation, position;
-        if (spaceMode == SPACE_LOCAL) {
-            rotation = SelectionManager.localRotation;
-            dimensions = SelectionManager.localDimensions;
-            position = SelectionManager.localPosition;
-        } else {
-            rotation = SelectionManager.worldRotation;
-            dimensions = SelectionManager.worldDimensions;
-            position = SelectionManager.worldPosition;
-        }
-
-        Overlays.editOverlay(grabberMoveUp, { visible: translateHandlesVisible, position: { x: boundsCenter.x, y: top + grabberMoveUpOffset, z: boundsCenter.z } });
-
-        that.updateHandles();
-
+        var rotation = SelectionManager.worldRotation;
+        var dimensions = SelectionManager.worldDimensions;
+        var position = SelectionManager.worldPosition;
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, 
                             { 
                                 visible: true,
                                 solid:true,
                                 lineWidth: 2.0,
-                                position: { x: properties.position.x,
+                                position: { x: position.x,
                                             y: 0,
-                                            z: properties.position.z },
+                                            z: position.z },
 
-                                dimensions: { x: properties.dimensions.x, y: properties.dimensions.z },
-                                rotation: properties.rotation,
+                                dimensions: { x: dimensions.x, y: 0, z: dimensions.z },
+                                rotation: rotation,
                             });
 
                             
-        Overlays.editOverlay(rotateOverlayTarget, { visible: false });
-
-        Overlays.editOverlay(rotateOverlayInner, 
-                            { 
-                                visible: false,
-                                size: innerRadius,
-                                innerRadius: 0.9,
-                                alpha: innerAlpha
-                            });
-
-        Overlays.editOverlay(rotateOverlayOuter, 
-                            { 
-                                visible: false,
-                                size: outerRadius,
-                                innerRadius: 0.9,
-                                startAt: 0,
-                                endAt: 360,
-                                alpha: outerAlpha,
-                            });
-
-        Overlays.editOverlay(rotateOverlayCurrent, 
-                            { 
-                                visible: false,
-                                size: outerRadius,
-                                startAt: 0,
-                                endAt: 0,
-                                innerRadius: 0.9,
-                            });
-                            
-        Overlays.editOverlay(rotateZeroOverlay, { visible: false });
-        Overlays.editOverlay(rotateCurrentOverlay, { visible: false });
+        Overlays.editOverlay(rotateOverlayTarget, { visible: rotationOverlaysVisible });
+        Overlays.editOverlay(rotateZeroOverlay, { visible: rotationOverlaysVisible });
+        Overlays.editOverlay(rotateCurrentOverlay, { visible: rotationOverlaysVisible });
 
         // TODO: we have not implemented the rotating handle/controls yet... so for now, these handles are hidden
         Overlays.editOverlay(yawHandle, { visible: rotateHandlesVisible, position: yawCorner, rotation: yawHandleRotation});
         Overlays.editOverlay(pitchHandle, { visible: rotateHandlesVisible, position: pitchCorner, rotation: pitchHandleRotation});
         Overlays.editOverlay(rollHandle, { visible: rotateHandlesVisible, position: rollCorner, rotation: rollHandleRotation});
-
-        Entities.editEntity(entityID, { localRenderAlpha: 0.1 });
     };
 
     that.setSpaceMode = function(newSpaceMode) {
@@ -927,11 +947,12 @@ SelectionDisplay = (function () {
     };
 
     that.updateHandles = function() {
-        // print("Updating handles");
         if (SelectionManager.selections.length == 0) {
             that.setOverlaysVisible(false);
             return;
         }
+
+        that.updateRotationHandles();
 
         var rotation, dimensions, position;
 
@@ -947,12 +968,14 @@ SelectionDisplay = (function () {
 
         var halfDimensions = Vec3.multiply(0.5, dimensions);
 
-        left = -halfDimensions.x;
-        right = halfDimensions.x;
-        top = halfDimensions.y;
-        bottom = -halfDimensions.y;
+        var left = -halfDimensions.x;
+        var right = halfDimensions.x;
+        var top = halfDimensions.y;
+        var bottom = -halfDimensions.y;
         var front = far = halfDimensions.z;
-        near = -halfDimensions.z;
+        var near = -halfDimensions.z;
+
+        var worldTop = SelectionManager.worldDimensions.y / 2;
 
         var LBN = { x: left, y: bottom, z: near };
         var RBN = { x: right, y: bottom, z: near };
@@ -1062,7 +1085,7 @@ SelectionDisplay = (function () {
             position: position,
             dimensions: dimensions,
             rotation: rotation,
-            visible: true,
+            visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
         });
 
         Overlays.editOverlay(grabberEdgeTR, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeTR });
@@ -1078,6 +1101,8 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(grabberEdgeFR, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeFR });
         Overlays.editOverlay(grabberEdgeFL, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeFL });
 
+        var grabberMoveUpOffset = 0.1;
+        Overlays.editOverlay(grabberMoveUp, { visible: activeTool == null || mode == "TRANSLATE_UP_DOWN", position: { x: position.x, y: position.y + worldTop + grabberMoveUpOffset, z: position.z } });
     };
 
     that.setOverlaysVisible = function(isVisible) {
@@ -1096,100 +1121,87 @@ SelectionDisplay = (function () {
         entitySelected = false;
     };
 
-    function applyEntityProperties(data) {
-        for (var i = 0; i < data.length; i++) {
-            var entityID = data[i].entityID;
-            var properties = data[i].properties;
-            Entities.editEntity(entityID, properties);
-        }
-        selectionManager._update();
-    };
-
-    // For currently selected entities, push a command to the UndoStack that uses the current entity properties for the
-    // redo command, and the saved properties for the undo command.
-    function pushCommandForSelections() {
-        var undoData = [];
-        var redoData = [];
-        for (var i = 0; i < SelectionManager.selections.length; i++) {
-            var entityID = SelectionManager.selections[i];
-            var initialProperties = SelectionManager.savedProperties[entityID.id];
-            var currentProperties = Entities.getEntityProperties(entityID);
-            undoData.push({
-                entityID: entityID,
-                properties: {
-                    position: initialProperties.position,
-                    rotation: initialProperties.rotation,
-                    dimensions: initialProperties.dimensions,
-                },
-            });
-            redoData.push({
-                entityID: entityID,
-                properties: {
-                    position: currentProperties.position,
-                    rotation: currentProperties.rotation,
-                    dimensions: currentProperties.dimensions,
-                },
-            });
-        }
-        UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
-    }
-
-    var lastXZPick = null;
+    var initialXZPick = null;
+    var isConstrained = false;
+    var startPosition = null;
+    var duplicatedEntityIDs = null;
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
         onBegin: function(event) {
             SelectionManager.saveProperties();
-            var position = SelectionManager.worldPosition;
+            startPosition = SelectionManager.worldPosition;
             var dimensions = SelectionManager.worldDimensions;
-            var bottom = position.y - (dimensions.y / 2)
 
             var pickRay = Camera.computePickRay(event.x, event.y);
-            lastXZPick = rayPlaneIntersection(pickRay, position, { x: 0, y: 1, z: 0 });
-        },
-        onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
+            initialXZPick = rayPlaneIntersection(pickRay, startPosition, { x: 0, y: 1, z: 0 });
+
+            // Duplicate entities if alt is pressed.  This will make a
+            // copy of the selected entities and move the _original_ entities, not
+            // the new ones.
+            if (event.isAlt) {
+                duplicatedEntityIDs = [];
+                for (var otherEntityID in SelectionManager.savedProperties) {
+                    var properties = SelectionManager.savedProperties[otherEntityID];
+                    var entityID = Entities.addEntity(properties);
+                    duplicatedEntityIDs.push({
+                        entityID: entityID,
+                        properties: properties,
+                    });
                 }
             } else {
-                pushCommandForSelections();
+                duplicatedEntityIDs = null;
             }
+
+            isConstrained = false;
+        },
+        onEnd: function(event, reason) {
+            pushCommandForSelections(duplicatedEntityIDs);
+
+            Overlays.editOverlay(xRailOverlay, { visible: false });
+            Overlays.editOverlay(zRailOverlay, { visible: false });
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "TRANSLATE_XZ") {
-                return; // not allowed
-            }
-
             pickRay = Camera.computePickRay(event.x, event.y);
 
-            // translate mode left/right based on view toward entity
-            var newIntersection = rayPlaneIntersection(pickRay,
-                                                       selectedEntityPropertiesOriginalPosition,
-                                                       Quat.getFront(lastCameraOrientation));
-
-            var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
-
-            var pickRay = Camera.computePickRay(event.x, event.y);
             var pick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, { x: 0, y: 1, z: 0 });
-            vector = Vec3.subtract(pick, lastXZPick);
-            lastXZPick = pick;
+            var vector = Vec3.subtract(pick, initialXZPick);
+
+            // If shifted, constrain to one axis
+            if (event.isShifted) {
+                if (Math.abs(vector.x) > Math.abs(vector.z)) {
+                    vector.z = 0;
+                } else {
+                    vector.x = 0;
+                }
+                if (!isConstrained) {
+                    Overlays.editOverlay(xRailOverlay, { visible: true });
+                    var xStart = Vec3.sum(startPosition, { x: -10000, y: 0, z: 0 });
+                    var xEnd = Vec3.sum(startPosition, { x: 10000, y: 0, z: 0 });
+                    var zStart = Vec3.sum(startPosition, { x: 0, y: 0, z: -10000 });
+                    var zEnd = Vec3.sum(startPosition, { x: 0, y: 0, z: 10000 });
+                    Overlays.editOverlay(xRailOverlay, { start: xStart, end: xEnd, visible: true });
+                    Overlays.editOverlay(zRailOverlay, { start: zStart, end: zEnd, visible: true });
+                    isConstrained = true;
+                }
+            } else {
+                if (isConstrained) {
+                    Overlays.editOverlay(xRailOverlay, { visible: false });
+                    Overlays.editOverlay(zRailOverlay, { visible: false });
+                }
+            }
 
             var wantDebug = false;
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = Entities.getEntityProperties(SelectionManager.selections[i]);
-                var original = properties.position;
-                properties.position = Vec3.sum(properties.position, vector);
-                Entities.editEntity(SelectionManager.selections[i], properties);
+                var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                Entities.editEntity(SelectionManager.selections[i], {
+                    position: Vec3.sum(properties.position, vector),
+                });
 
                 if (wantDebug) {
                     print("translateXZ... ");
                     Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                    Vec3.print("        newIntersection:", newIntersection);
                     Vec3.print("                 vector:", vector);
-                    Vec3.print("       originalPosition:", original);
                     Vec3.print("            newPosition:", properties.position);
                     Vec3.print("            newPosition:", newPosition);
                 }
@@ -1205,22 +1217,28 @@ SelectionDisplay = (function () {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event) {
             SelectionManager.saveProperties();
-        },
-        onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
+
+            // Duplicate entities if alt is pressed.  This will make a
+            // copy of the selected entities and move the _original_ entities, not
+            // the new ones.
+            if (event.isAlt) {
+                duplicatedEntityIDs = [];
+                for (var otherEntityID in SelectionManager.savedProperties) {
+                    var properties = SelectionManager.savedProperties[otherEntityID];
+                    var entityID = Entities.addEntity(properties);
+                    duplicatedEntityIDs.push({
+                        entityID: entityID,
+                        properties: properties,
+                    });
                 }
             } else {
-                pushCommandForSelections();
+                duplicatedEntityIDs = null;
             }
         },
+        onEnd: function(event, reason) {
+            pushCommandForSelections(duplicatedEntityIDs);
+        },
         onMove: function(event) {
-            if (!entitySelected || mode !== "TRANSLATE_UP_DOWN") {
-                return; // not allowed
-            }
             pickRay = Camera.computePickRay(event.x, event.y);
 
             // translate mode left/right based on view toward entity
@@ -1288,7 +1306,6 @@ SelectionDisplay = (function () {
         var rotation = null;
 
         var onBegin = function(event) {
-            print("STARTING: " + stretchMode);
             var properties = Entities.getEntityProperties(currentSelection);
             initialProperties = properties;
             rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -1366,26 +1383,14 @@ SelectionDisplay = (function () {
         };
 
         var onEnd = function(event, reason) {
-            print("ENDING: " + stretchMode);
             Overlays.editOverlay(xRailOverlay, { visible: false });
             Overlays.editOverlay(yRailOverlay, { visible: false });
             Overlays.editOverlay(zRailOverlay, { visible: false });
 
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            pushCommandForSelections();
         };
 
         var onMove = function(event) {
-            if (!entitySelected || mode !== stretchMode) {
-                return; // not allowed
-            }
             var proportional = spaceMode == SPACE_WORLD || event.isShifted;
 
             var position, dimensions, rotation;
@@ -1415,7 +1420,6 @@ SelectionDisplay = (function () {
                 var absX = Math.abs(changeInDimensions.x);
                 var absY = Math.abs(changeInDimensions.y);
                 var absZ = Math.abs(changeInDimensions.z);
-                print('abs: ' + absX + ', ' + absY + ', ' + absZ);
                 var pctChange = 0;
                 if (absX > absY && absX > absZ) {
                     pctChange = changeInDimensions.x / initialProperties.dimensions.x;
@@ -1427,7 +1431,6 @@ SelectionDisplay = (function () {
                     pctChange = changeInDimensions.z / initialProperties.dimensions.z;
                     pctChange = changeInDimensions.z / initialDimensions.z;
                 }
-                print('change: ' + pctChange);
                 pctChange += 1.0;
                 newDimensions = Vec3.multiply(pctChange, initialDimensions);
             } else {
@@ -1480,14 +1483,6 @@ SelectionDisplay = (function () {
         };
     };
 
-    that.cancelTool = function() {
-        if (activeTool) {
-            activeTool.onEnd(null, 'cancel');
-            activeTool = null;
-            SelectionManager._update();
-        }
-    };
-
     function addStretchTool(overlay, mode, pivot, direction) {
         if (!pivot) {
             pivot = Vec3.multiply(-1, direction);
@@ -1533,23 +1528,49 @@ SelectionDisplay = (function () {
         onBegin: function(event) {
             SelectionManager.saveProperties();
             initialPosition = SelectionManager.worldPosition;
+
+            // Size the overlays to the current selection size
+            var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
+            var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
+            innerRadius = diagonal;
+            outerRadius = diagonal * 1.15;
+            var innerAlpha = 0.2;
+            var outerAlpha = 0.2;
+            Overlays.editOverlay(rotateOverlayInner, 
+                { 
+                    visible: true,
+                    size: innerRadius,
+                    innerRadius: 0.9,
+                    alpha: innerAlpha
+                });
+
+            Overlays.editOverlay(rotateOverlayOuter, 
+                { 
+                    visible: true,
+                    size: outerRadius,
+                    innerRadius: 0.9,
+                    startAt: 0,
+                    endAt: 360,
+                    alpha: outerAlpha,
+                });
+
+            Overlays.editOverlay(rotateOverlayCurrent, 
+                { 
+                    visible: true,
+                    size: outerRadius,
+                    startAt: 0,
+                    endAt: 0,
+                    innerRadius: 0.9,
+                });
         },
         onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            Overlays.editOverlay(rotateOverlayInner, { visible: false });
+            Overlays.editOverlay(rotateOverlayOuter, { visible: false });
+            Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+
+            pushCommandForSelections();
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "ROTATE_YAW") {
-                return; // not allowed
-            }
-            
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
 
             if (debug) {
@@ -1561,9 +1582,6 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
             Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
             Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
-            Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: true });
-            Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
-            Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
             
             var result = Overlays.findRayIntersection(pickRay);
 
@@ -1581,6 +1599,7 @@ SelectionDisplay = (function () {
                 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
                 var snapToInner = false;
+                // var innerRadius = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
                 if (distanceFromCenter < innerRadius) {
                     angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
                     snapToInner = true;
@@ -1641,22 +1660,49 @@ SelectionDisplay = (function () {
         onBegin: function(event) {
             SelectionManager.saveProperties();
             initialPosition = SelectionManager.worldPosition;
+
+            // Size the overlays to the current selection size
+            var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
+            var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
+            var innerRadius = diagonal;
+            var outerRadius = diagonal * 1.15;
+            var innerAlpha = 0.2;
+            var outerAlpha = 0.2;
+            Overlays.editOverlay(rotateOverlayInner, 
+                { 
+                    visible: true,
+                    size: innerRadius,
+                    innerRadius: 0.9,
+                    alpha: innerAlpha
+                });
+
+            Overlays.editOverlay(rotateOverlayOuter, 
+                { 
+                    visible: true,
+                    size: outerRadius,
+                    innerRadius: 0.9,
+                    startAt: 0,
+                    endAt: 360,
+                    alpha: outerAlpha,
+                });
+
+            Overlays.editOverlay(rotateOverlayCurrent, 
+                { 
+                    visible: true,
+                    size: outerRadius,
+                    startAt: 0,
+                    endAt: 0,
+                    innerRadius: 0.9,
+                });
         },
         onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            Overlays.editOverlay(rotateOverlayInner, { visible: false });
+            Overlays.editOverlay(rotateOverlayOuter, { visible: false });
+            Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+
+            pushCommandForSelections();
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "ROTATE_PITCH") {
-                return; // not allowed
-            }
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
 
             if (debug) {
@@ -1668,9 +1714,6 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
             Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
             Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
-            Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: true });
-            Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
-            Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
             var result = Overlays.findRayIntersection(pickRay);
 
             if (debug) {
@@ -1747,22 +1790,49 @@ SelectionDisplay = (function () {
         onBegin: function(event) {
             SelectionManager.saveProperties();
             initialPosition = SelectionManager.worldPosition;
+
+            // Size the overlays to the current selection size
+            var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
+            var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
+            var innerRadius = diagonal;
+            var outerRadius = diagonal * 1.15;
+            var innerAlpha = 0.2;
+            var outerAlpha = 0.2;
+            Overlays.editOverlay(rotateOverlayInner, 
+                { 
+                    visible: true,
+                    size: innerRadius,
+                    innerRadius: 0.9,
+                    alpha: innerAlpha
+                });
+
+            Overlays.editOverlay(rotateOverlayOuter, 
+                { 
+                    visible: true,
+                    size: outerRadius,
+                    innerRadius: 0.9,
+                    startAt: 0,
+                    endAt: 360,
+                    alpha: outerAlpha,
+                });
+
+            Overlays.editOverlay(rotateOverlayCurrent, 
+                { 
+                    visible: true,
+                    size: outerRadius,
+                    startAt: 0,
+                    endAt: 0,
+                    innerRadius: 0.9,
+                });
         },
         onEnd: function(event, reason) {
-            if (reason == 'cancel') {
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    Entities.editEntity(entityID, initialProperties);
-                }
-            } else {
-                pushCommandForSelections();
-            }
+            Overlays.editOverlay(rotateOverlayInner, { visible: false });
+            Overlays.editOverlay(rotateOverlayOuter, { visible: false });
+            Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+
+            pushCommandForSelections();
         },
         onMove: function(event) {
-            if (!entitySelected || mode !== "ROTATE_ROLL") {
-                return; // not allowed
-            }
             var debug = Menu.isOptionChecked("Debug Ryans Rotation Problems");
 
             if (debug) {
@@ -1774,9 +1844,6 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(selectionBox, { ignoreRayIntersection: true, visible: false});
             Overlays.editOverlay(baseOfEntityProjectionOverlay, { ignoreRayIntersection: true, visible: false });
             Overlays.editOverlay(rotateOverlayTarget, { ignoreRayIntersection: false });
-            Overlays.editOverlay(rotateOverlayInner, { ignoreRayIntersection: true });
-            Overlays.editOverlay(rotateOverlayOuter, { ignoreRayIntersection: true });
-            Overlays.editOverlay(rotateOverlayCurrent, { ignoreRayIntersection: true });
             var result = Overlays.findRayIntersection(pickRay);
 
             if (debug) {
@@ -1881,7 +1948,6 @@ SelectionDisplay = (function () {
 
             var tool = grabberTools[result.overlayID];
             if (tool) {
-                print("FOUND TOOL! " + tool.mode);
                 activeTool = tool;
                 mode = tool.mode;
                 somethingClicked = true;
@@ -1981,7 +2047,6 @@ SelectionDisplay = (function () {
             if (result.intersects) {
                 var tool = grabberTools[result.overlayID];
                 if (tool) {
-                    print("FOUND TOOL! " + tool.mode);
                     activeTool = tool;
                     mode = tool.mode;
                     somethingClicked = true;

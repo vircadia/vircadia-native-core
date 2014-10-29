@@ -105,6 +105,7 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
+    _oculusUIMaxFPS(DEFAULT_OCULUS_UI_MAX_FPS),
     _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
     _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
     _automaticAvatarLOD(true),
@@ -782,6 +783,8 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     _walletPrivateKey = settings->value("privateKey").toByteArray();
+    
+    _oculusUIMaxFPS = loadSetting(settings, "oculusUIMaxFPS", 0.0f);
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
@@ -843,6 +846,9 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetUp", _viewFrustumOffset.up);
     settings->endGroup();
     settings->setValue("privateKey", _walletPrivateKey);
+    
+    // Oculus Rift settings
+    settings->setValue("oculusUIMaxFPS", _oculusUIMaxFPS);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -1260,7 +1266,6 @@ void Menu::changeVSync() {
 }
 void Menu::changeRenderTargetFramerate(QAction* action) {
     bool vsynOn = Application::getInstance()->isVSyncOn();
-    unsigned int framerate = Application::getInstance()->getRenderTargetFramerate();
 
     QString text = action->text();
     if (text == MenuOption::RenderTargetFramerateUnlimited) {
@@ -1309,7 +1314,7 @@ void Menu::displayNameLocationResponse(const QString& errorString) {
 void Menu::toggleLocationList() {
     if (!_userLocationsDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
         _userLocationsDialog = DataWebDialog::dialogForPath("/user/locations", locationObjectMap);
     }
     
@@ -1353,7 +1358,7 @@ void Menu::nameLocation() {
     
     if (!_newLocationDialog) {
         JavascriptObjectMap locationObjectMap;
-        locationObjectMap.insert("InterfaceLocation", LocationScriptingInterface::getInstance());
+        locationObjectMap.insert("InterfaceLocation", &AddressManager::getInstance());
         _newLocationDialog = DataWebDialog::dialogForPath("/user/locations/new", locationObjectMap);
     }
     

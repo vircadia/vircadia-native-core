@@ -13,6 +13,8 @@
 #include <QUrl>
 #include <QUuid>
 
+#include <glm/gtc/quaternion.hpp>
+
 #include "RegisteredMetaTypes.h"
 
 static int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
@@ -21,7 +23,7 @@ static int vec2MetaTypeId = qRegisterMetaType<glm::vec2>();
 static int quatMetaTypeId = qRegisterMetaType<glm::quat>();
 static int xColorMetaTypeId = qRegisterMetaType<xColor>();
 static int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
-static int collisionMetaTypeId = qRegisterMetaType<CollisionInfo>();
+static int collisionMetaTypeId = qRegisterMetaType<Collision>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec4toScriptValue, vec4FromScriptValue);
@@ -163,14 +165,14 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
     }
 }
 
-QScriptValue collisionToScriptValue(QScriptEngine* engine, const CollisionInfo& collision) {
+QScriptValue collisionToScriptValue(QScriptEngine* engine, const Collision& collision) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("penetration", vec3toScriptValue(engine, collision._penetration));
-    obj.setProperty("contactPoint", vec3toScriptValue(engine, collision._contactPoint));
+    obj.setProperty("penetration", vec3toScriptValue(engine, collision.penetration));
+    obj.setProperty("contactPoint", vec3toScriptValue(engine, collision.contactPoint));
     return obj;
 }
 
-void collisionFromScriptValue(const QScriptValue &object, CollisionInfo& collision) {
+void collisionFromScriptValue(const QScriptValue &object, Collision& collision) {
     // TODO: implement this when we know what it means to accept collision events from JS
 }
 

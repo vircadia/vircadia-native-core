@@ -30,6 +30,7 @@ void UndoStackScriptingInterface::pushCommand(QScriptValue undoFunction, QScript
 
 ScriptUndoCommand::ScriptUndoCommand(QScriptValue undoFunction, QScriptValue undoData,
                                      QScriptValue redoFunction, QScriptValue redoData) :
+    _hasRedone(false),
     _undoFunction(undoFunction),
     _undoData(undoData),
     _redoFunction(redoFunction),
@@ -41,7 +42,15 @@ void ScriptUndoCommand::undo() {
 }
 
 void ScriptUndoCommand::redo() {
-    QMetaObject::invokeMethod(this, "doRedo");
+    // QUndoStack will call `redo()` when adding a command to the stack.  This
+    // makes it difficult to work with commands that span a period of time - for instance,
+    // the entity duplicate + move command that duplicates an entity and then moves it.
+    // A better implementation might be to properly implement `mergeWith()` and `id()`
+    // so that the two actions in the example would be merged.
+    if (_hasRedone) {
+        QMetaObject::invokeMethod(this, "doRedo");
+    }
+    _hasRedone = true;
 }
 
 void ScriptUndoCommand::doUndo() {
@@ -49,7 +58,6 @@ void ScriptUndoCommand::doUndo() {
     args << _undoData;
     _undoFunction.call(QScriptValue(), args);
 }
-
 
 void ScriptUndoCommand::doRedo() {
     QScriptValueList args;
