@@ -18,6 +18,7 @@
 #include <QObject>
 
 #include <PacketHeaders.h>
+#include <RenderArgs.h>
 #include <SharedUtil.h>
 
 #include "Octree.h"
@@ -25,7 +26,6 @@
 #include "ViewFrustum.h"
 
 class OctreeRenderer;
-class RenderArgs;
 
 
 // Generic client side Octree renderer class.
@@ -51,10 +51,8 @@ public:
     /// initialize and GPU/rendering related resources
     virtual void init();
 
-    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
-
     /// render the content of the octree
-    virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
 
     ViewFrustum* getViewFrustum() const { return _viewFrustum; }
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
@@ -103,32 +101,5 @@ protected:
     int _translucentMeshPartsRendered;
     int _opaqueMeshPartsRendered;
 };
-
-class RenderArgs {
-public:
-    OctreeRenderer* _renderer;
-    ViewFrustum* _viewFrustum;
-    float _sizeScale;
-    int _boundaryLevelAdjust;
-    OctreeRenderer::RenderMode _renderMode;
-
-    int _elementsTouched;
-    int _itemsRendered;
-    int _itemsOutOfView;
-    int _itemsTooSmall;
-
-    int _meshesConsidered;
-    int _meshesRendered;
-    int _meshesOutOfView;
-    int _meshesTooSmall;
-
-    int _materialSwitches;
-    int _trianglesRendered;
-    int _quadsRendered;
-
-    int _translucentMeshPartsRendered;
-    int _opaqueMeshPartsRendered;
-};
-
 
 #endif // hifi_OctreeRenderer_h

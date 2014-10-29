@@ -48,7 +48,7 @@ xColor TextOverlay::getBackgroundColor() {
 }
 
 
-void TextOverlay::render() {
+void TextOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

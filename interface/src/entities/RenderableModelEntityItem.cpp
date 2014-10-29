@@ -112,7 +112,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
 
                 // TODO: should we allow entityItems to have alpha on their models?
-                Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
+                Model::RenderMode modelRenderMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE
                                                         ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
         
                 if (_model->isActive()) {

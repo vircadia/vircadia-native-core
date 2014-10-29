@@ -36,6 +36,7 @@ using namespace std;
 static int modelPointerTypeId = qRegisterMetaType<QPointer<Model> >();
 static int weakNetworkGeometryPointerTypeId = qRegisterMetaType<QWeakPointer<NetworkGeometry> >();
 static int vec3VectorTypeId = qRegisterMetaType<QVector<glm::vec3> >();
+float Model::FAKE_DIMENSION_PLACEHOLDER = -1.0f;
 
 Model::Model(QObject* parent) :
     QObject(parent),
@@ -125,34 +126,63 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
     program.bind();
 
 #ifdef Q_OS_MAC
+
     // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+
     glBindAttribLocation(program.programId(), 4, "tangent");
+
     glLinkProgram(program.programId());
+
 #endif
+
+
 
     locations.tangent = program.attributeLocation("tangent");
+
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
+
     program.setUniformValue("diffuseMap", 0);
+
     program.setUniformValue("normalMap", 1);
+
     program.setUniformValue("specularMap", specularTextureUnit);
+
     program.release();
+
 }
 
+
+
 void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations, int specularTextureUnit) {
+
     initProgram(program, locations, specularTextureUnit);
 
+
+
 #ifdef Q_OS_MAC
+
     // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
+
     glBindAttribLocation(program.programId(), 5, "clusterIndices");
+
     glBindAttribLocation(program.programId(), 6, "clusterWeights");
+
     glLinkProgram(program.programId());
+
 #endif
 
+
+
     program.bind();
+
     locations.clusterMatrices = program.uniformLocation("clusterMatrices");
 
+
+
     locations.clusterIndices = program.attributeLocation("clusterIndices");
+
     locations.clusterWeights = program.attributeLocation("clusterWeights");
+
     program.release();
 }
 
@@ -410,6 +440,80 @@ void Model::setJointStates(QVector<JointState> states) {
     _boundingRadius = radius;
 }
 
+bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face, QString& extraInfo) const {
+
+    bool intersectedSomething = false;
+
+    // if we aren't active, we can't ray pick yet...
+    if (!isActive()) {
+        return intersectedSomething;
+    }
+
+    // extents is the entity relative, scaled, centered extents of the entity
+    glm::vec3 position = _translation;
+    glm::mat4 rotation = glm::mat4_cast(_rotation);
+    glm::mat4 translation = glm::translate(position);
+    glm::mat4 modelToWorldMatrix = translation * rotation;
+    glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
+
+    Extents modelExtents = getMeshExtents(); // NOTE: unrotated
+    
+    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
+    glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the model frame of reference
+    AABox overlayFrameBox(corner, dimensions);
+
+    glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
+    glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
+
+    // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
+    // and testing intersection there.
+    if (overlayFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+
+        float bestDistance = std::numeric_limits<float>::max();
+        float distanceToSubMesh;
+        BoxFace subMeshFace;
+        BoxFace bestSubMeshFace;
+        int subMeshIndex = 0;
+        int bestSubMeshIndex = -1;
+    
+        // If we hit the models box, then consider the submeshes...
+        foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
+            const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
+            if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
+                if (distanceToSubMesh < bestDistance) {
+                    bestSubMeshIndex = subMeshIndex;
+                    bestDistance = distanceToSubMesh;
+                    bestSubMeshFace = subMeshFace;
+                    intersectedSomething = true;
+                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                }
+            }
+            subMeshIndex++;
+        }
+        
+        return intersectedSomething;
+    }
+
+    return intersectedSomething;
+}
+
+void Model::recalcuateMeshBoxes() {
+    if (!_calculatedMeshBoxesValid) {
+        PerformanceTimer perfTimer("calculatedMeshBoxes");
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+        int numberOfMeshes = geometry.meshes.size();
+        _calculatedMeshBoxes.resize(numberOfMeshes);
+        for (int i = 0; i < numberOfMeshes; i++) {
+            const FBXMesh& mesh = geometry.meshes.at(i);
+            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
+            _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
+        }
+        _calculatedMeshBoxesValid = true;
+    }
+}
+
 bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
     // render the attachments
@@ -425,16 +529,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // against. We cache the results of these calculations so long as the model hasn't been
     // simulated and the mesh hasn't changed.
     if (args && !_calculatedMeshBoxesValid) {
-        PerformanceTimer perfTimer("calculatedMeshBoxes");
-        const FBXGeometry& geometry = _geometry->getFBXGeometry();
-        int numberOfMeshes = geometry.meshes.size();
-        _calculatedMeshBoxes.resize(numberOfMeshes);
-        for (int i = 0; i < numberOfMeshes; i++) {
-            const FBXMesh& mesh = geometry.meshes.at(i);
-            Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
-            _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
-        }
-        _calculatedMeshBoxesValid = true;
+        recalcuateMeshBoxes();
     }
     
     // set up dilated textures on first render after load/simulate
@@ -874,7 +969,15 @@ void Model::setScaleToFit(bool scaleToFit, const glm::vec3& dimensions) {
 }
 
 void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
+    // NOTE: if the model is not active, then it means we don't actually know the true/natural dimensions of the
+    // mesh, and so we can't do the needed calculations for scaling to fit to a single largest dimension. In this
+    // case we will record that we do want to do this, but we will stick our desired single dimension into the
+    // first element of the vec3 for the non-fixed aspect ration dimensions
     if (!isActive()) {
+        _scaleToFit = scaleToFit;
+        if (scaleToFit) {
+            _scaleToFitDimensions = glm::vec3(largestDimension, FAKE_DIMENSION_PLACEHOLDER, FAKE_DIMENSION_PLACEHOLDER);
+        }
         return;
     }
     
@@ -896,6 +999,15 @@ void Model::setScaleToFit(bool scaleToFit, float largestDimension) {
 }
 
 void Model::scaleToFit() {
+    // If our _scaleToFitDimensions.y/z are FAKE_DIMENSION_PLACEHOLDER then it means our
+    // user asked to scale us in a fixed aspect ratio to a single largest dimension, but
+    // we didn't yet have an active mesh. We can only enter this scaleToFit() in this state
+    // if we now do have an active mesh, so we take this opportunity to actually determine
+    // the correct scale.
+    if (_scaleToFit && _scaleToFitDimensions.y == FAKE_DIMENSION_PLACEHOLDER 
+            && _scaleToFitDimensions.z == FAKE_DIMENSION_PLACEHOLDER) {
+        setScaleToFit(_scaleToFit, _scaleToFitDimensions.x);
+    }
     Extents modelMeshExtents = getUnscaledMeshExtents();
 
     // size is our "target size in world space"

@@ -25,7 +25,7 @@ Cube3DOverlay::Cube3DOverlay() {
 Cube3DOverlay::~Cube3DOverlay() {
 }
 
-void Cube3DOverlay::render() {
+void Cube3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

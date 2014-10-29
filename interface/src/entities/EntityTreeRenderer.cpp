@@ -18,6 +18,7 @@
 #include <BoxEntityItem.h>
 #include <ModelEntityItem.h>
 #include <PerfStat.h>
+#include <RenderArgs.h>
 
 
 #include "Menu.h"
@@ -67,7 +68,7 @@ void EntityTreeRenderer::update() {
     }
 }
 
-void EntityTreeRenderer::render(RenderMode renderMode) {
+void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
@@ -165,7 +166,7 @@ void renderElementProxy(EntityTreeElement* entityTreeElement) {
 }
 
 void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* args) {
-    bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
+    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
     bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
     if (!isShadowMode && displayModelBounds) {
         PerformanceTimer perfTimer("renderProxies");
@@ -239,7 +240,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 
     uint16_t numberOfEntities = entityItems.size();
 
-    bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
+    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
     bool displayElementProxy = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementProxy);
 
 

@@ -23,7 +23,7 @@ public:
     ~LocalModelsOverlay();
     
     virtual void update(float deltatime);
-    virtual void render();
+    virtual void render(RenderArgs* args);
 
 private:
     EntityTreeRenderer* _entityTreeRenderer;

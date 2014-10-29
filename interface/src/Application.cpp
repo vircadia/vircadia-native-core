@@ -2787,7 +2787,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-            _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);

@@ -10,6 +10,7 @@
 
 #include <limits>
 #include <Application.h>
+#include <Menu.h>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
@@ -78,8 +79,13 @@ void Overlays::update(float deltatime) {
 
 void Overlays::render2D() {
     QReadLocker lock(&_lock);
+
+    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
+        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
+        RenderArgs::DEFAULT_RENDER_MODE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
     foreach(Overlay* thisOverlay, _overlays2D) {
-        thisOverlay->render();
+        thisOverlay->render(&args);
     }
 }
 
@@ -95,6 +101,11 @@ void Overlays::render3D() {
     float angle = 0.0f;
     glm::vec3 axis(0.0f, 1.0f, 0.0f);
     float myAvatarScale = 1.0f;
+    
+    RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
+                        Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
+                        RenderArgs::DEFAULT_RENDER_MODE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    
 
     foreach(Overlay* thisOverlay, _overlays3D) {
         glPushMatrix();
@@ -118,7 +129,7 @@ void Overlays::render3D() {
             default:
                 break;
         }
-        thisOverlay->render();
+        thisOverlay->render(&args);
         glPopMatrix();
     }
 }
@@ -239,7 +250,8 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
         if (thisOverlay->getVisible() && !thisOverlay->getIgnoreRayIntersection() && thisOverlay->isLoaded()) {
             float thisDistance;
             BoxFace thisFace;
-            if (thisOverlay->findRayIntersection(ray.origin, ray.direction, thisDistance, thisFace)) {
+            QString thisExtraInfo;
+            if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, thisFace, thisExtraInfo)) {
                 if (thisDistance < bestDistance) {
                     bestDistance = thisDistance;
                     result.intersects = true;
@@ -247,6 +259,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
                     result.face = thisFace;
                     result.overlayID = thisID;
                     result.intersection = ray.origin + (ray.direction * thisDistance);
+                    result.extraInfo = thisExtraInfo;
                 }
             }
         }
@@ -259,7 +272,8 @@ RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
     overlayID(-1),
     distance(0),
     face(),
-    intersection()
+    intersection(),
+    extraInfo()
 { 
 }
 
@@ -298,6 +312,7 @@ QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, 
     obj.setProperty("face", faceName);
     QScriptValue intersection = vec3toScriptValue(engine, value.intersection);
     obj.setProperty("intersection", intersection);
+    obj.setProperty("extraInfo", value.extraInfo);
     return obj;
 }
 
@@ -326,6 +341,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
     if (intersection.isValid()) {
         vec3FromScriptValue(intersection, value.intersection);
     }
+    value.extraInfo = object.property("extraInfo").toVariant().toString();
 }
 
 bool Overlays::isLoaded(unsigned int id) {
