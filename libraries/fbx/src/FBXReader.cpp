@@ -71,6 +71,14 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
     return scaledExtents;
 }
 
+QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
+    if (meshIndicesToModelNames.contains(meshIndex)) {
+        return meshIndicesToModelNames.value(meshIndex);
+    }
+    return QString();
+}
+
+
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
 static int fbxAnimationFrameMetaTypeId = qRegisterMetaType<FBXAnimationFrame>();
@@ -513,6 +521,17 @@ QString processID(const QString& id) {
     return id.mid(id.lastIndexOf(':') + 1);
 }
 
+QString getName(const QVariantList& properties) {
+    QString name;
+    if (properties.size() == 3) {
+        name = properties.at(1).toString();
+        name = processID(name.left(name.indexOf(QChar('\0'))));
+    } else {
+        name = processID(properties.at(0).toString());
+    }
+    return name;
+}
+
 QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
@@ -870,6 +889,10 @@ ExtractedMesh extractMesh(const FBXNode& object) {
             beginIndex = endIndex;
         }
     }
+    
+    //data.extracted.mesh.name = getID(object.properties); // remember the name
+    
+    //qDebug() << "extractMesh() extracted mesh of name:" << getID(object.properties);
 
     return data.extracted;
 }
@@ -1008,7 +1031,13 @@ bool checkMaterialsHaveTextures(const QHash<QString, Material>& materials,
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
+qDebug() << "extractFBXGeometry() --------------";
+
     QHash<QString, ExtractedMesh> meshes;
+    QHash<QString, QString> modelIDsToNames;
+    QHash<QString, int> meshIDsToMeshIndices;
+    QHash<QString, QString> ooChildToParent;
+
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<QString, QString> parentMap;
     QMultiHash<QString, QString> childMap;
@@ -1079,6 +1108,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     FBXGeometry geometry;
     float unitScaleFactor = 1.0f;
     foreach (const FBXNode& child, node.children) {
+    
         if (child.name == "FBXHeaderExtension") {
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "SceneInfo") {
@@ -1113,8 +1143,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         } else if (child.name == "Objects") {
             foreach (const FBXNode& object, child.children) {
+
+qDebug() << "object type:" << object.name 
+            << " name:" << getName(object.properties)
+            << " ID:" << getID(object.properties);
+
                 if (object.name == "Geometry") {
+
+    //qDebug() << "geometry of name:" << getID(object.properties);
+
                     if (object.properties.at(2) == "Mesh") {
+
+qDebug() << "EXTRACTING MESH!!!";
+
                         meshes.insert(getID(object.properties), extractMesh(object));
 
                     } else { // object.properties.at(2) == "Shape"
@@ -1122,14 +1163,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
-                    QString name;
-                    if (object.properties.size() == 3) {
-                        name = object.properties.at(1).toString();
-                        name = processID(name.left(name.indexOf(QChar('\0'))));
 
-                    } else {
-                        name = getID(object.properties);
-                    }
+    //qDebug() << "model of name:" << getID(object.properties);
+
+                    QString name = getName(object.properties);
+                    QString id = getID(object.properties);
+
+qDebug() << "model of name:" << name << "id:" << id;
+                    modelIDsToNames.insert(id, name);
+
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
                         jointEyeLeftID = getID(object.properties);
 
@@ -1393,6 +1435,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {
                 if (connection.name == "C" || connection.name == "Connect") {
+                    if (connection.properties.at(0) == "OO") {
+                        QString childID = getID(connection.properties, 1);
+                        QString parentID = getID(connection.properties, 2);
+
+qDebug() << "OO Connection child: " << childID << " - parentID: " << parentID;
+                                    
+                        ooChildToParent.insert(childID, parentID);
+                    } else {
+                        qDebug() << connection.properties.at(0) << " Connection 1: " << getID(connection.properties, 1)
+                                    << "  - 2: " << getID(connection.properties, 2);
+                    }
                     if (connection.properties.at(0) == "OP") {
                         QByteArray type = connection.properties.at(3).toByteArray().toLower();
                         if (type.contains("diffuse")) {
@@ -1883,6 +1936,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
         
         geometry.meshes.append(extracted.mesh);
+        int meshIndex = geometry.meshes.size() - 1;
+        qDebug() << "***********************  meshID: " << it.key() << "index:" << meshIndex;
+        meshIDsToMeshIndices.insert(it.key(), meshIndex);
+
     }
 
     // now that all joints have been scanned, compute a collision shape for each joint
@@ -1981,6 +2038,36 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         geometry.sittingPoints.append(sittingPoint);
     }
+    
+    //qDebug() << "parentMap:" << parentMap;
+    
+    // attempt to map any meshes to a named model
+    // geometry.meshIndicesToModelNames; // QHash<int, QString> 
+
+    qDebug() << "meshIDsToMeshIndices: " << meshIDsToMeshIndices;
+    qDebug() << "ooChildToParent: " << ooChildToParent;
+    qDebug() << "modelIDsToNames: " << modelIDsToNames;
+
+    for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin(); 
+                        m != meshIDsToMeshIndices.constEnd(); m++) {
+        const QString& meshID = m.key();
+        int meshIndex = m.value();
+        
+        if (ooChildToParent.contains(meshID)) {
+            const QString& modelID = ooChildToParent.value(meshID);
+            qDebug() << "modelID: " << modelID << "... from meshID:" << meshID;
+            const QString& modelName = modelIDsToNames.value(modelID);
+            qDebug() << "modelName: " << modelName << "... from modelID:" << modelID;
+            geometry.meshIndicesToModelNames.insert(meshIndex, modelName);
+        } else {
+            qDebug() << "ooChildToParent. DOES NOT CONTAIN meshID:" << meshID;
+        }
+    }
+    qDebug() << "meshIndicesToModelNames: " << geometry.meshIndicesToModelNames;
+    
+
+
+qDebug() << "------- DONE --------- extractFBXGeometry() --------------";
     
     return geometry;
 }
