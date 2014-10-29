@@ -182,39 +182,3 @@ Buffer::Size Buffer::append(Size size, const Byte* data) {
     return editSysmem().append( size, data);
 }
 
-namespace gpu {
-namespace backend {
-
-BufferObject::~BufferObject() {
-    if (_buffer!=0) {
-        glDeleteBuffers(1, &_buffer);
-    }
-}
-
-void syncGPUObject(const Buffer& buffer) {
-    BufferObject* object = buffer.getGPUObject();
-
-    if (object && (object->_stamp == buffer.getSysmem().getStamp())) {
-        return;
-    }
-
-    // need to have a gpu object?
-    if (!object) {
-        object = new BufferObject();
-        glGenBuffers(1, &object->_buffer);
-        buffer.setGPUObject(object);
-    }
-
-    // Now let's update the content of the bo with the sysmem version
-    // TODO: in the future, be smarter about when to actually upload the glBO version based on the data that did change
-    //if () {
-        glBindBuffer(GL_ARRAY_BUFFER, object->_buffer);
-        glBufferData(GL_ARRAY_BUFFER, buffer.getSysmem().getSize(), buffer.getSysmem().readData(), GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        object->_stamp = buffer.getSysmem().getStamp();
-        object->_size = buffer.getSysmem().getSize();
-    //}
-}
-
-};
-};
