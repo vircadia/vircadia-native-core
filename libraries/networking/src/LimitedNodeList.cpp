@@ -19,10 +19,11 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
+#include <LogHandler.h>
+
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
-#include "Logging.h"
 #include "LimitedNodeList.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
@@ -211,8 +212,11 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
                     << uuidFromPacketHeader(packet);
             }
         } else {
+            static QString repeatedMessage
+                = LogHandler::getInstance().addRepeatedMessageRegex("Packet of type \\d+ received from unknown node with UUID");
+            
             qDebug() << "Packet of type" << checkType << "received from unknown node with UUID"
-                << uuidFromPacketHeader(packet);
+                << qPrintable(uuidStringWithoutCurlyBraces(uuidFromPacketHeader(packet)));
         }
     } else {
         return true;

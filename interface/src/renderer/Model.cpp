@@ -1752,7 +1752,8 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 mesh.texCoords.size() * sizeof(glm::vec2) +
                 (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
             //skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0, (const void*) offset);
+            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0,
+                                           reinterpret_cast<const void*>(offset));
             //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
             //    offset + vertexCount * sizeof(glm::vec4), 4);
             GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
