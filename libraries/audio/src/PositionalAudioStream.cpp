@@ -30,7 +30,10 @@ PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, b
     _shouldLoopbackForNode(false),
     _isStereo(isStereo),
     _lastPopOutputTrailingLoudness(0.0f),
-    _lastPopOutputLoudness(0.0f)
+    _lastPopOutputLoudness(0.0f),
+    _quietestTrailingFrameLoudness(std::numeric_limits<float>::max()),
+    _loudestTrailingFrameLoudness(0.0f),
+    _frameCounter(0)
 {
 }
 
@@ -55,6 +58,17 @@ void PositionalAudioStream::updateLastPopOutputLoudnessAndTrailingLoudness() {
         if (_lastPopOutputTrailingLoudness < LOUDNESS_EPSILON) {
             _lastPopOutputTrailingLoudness = 0;
         }
+    }
+    if (_frameCounter++ == TRAILING_AVERAGE_FRAMES) {
+        _frameCounter = 0;
+        _quietestTrailingFrameLoudness = std::numeric_limits<float>::max();
+        _loudestTrailingFrameLoudness = 0.0f;
+    }
+    if (_lastPopOutputLoudness < _quietestTrailingFrameLoudness) {
+        _quietestTrailingFrameLoudness = _lastPopOutputLoudness;
+    }
+    if (_lastPopOutputLoudness > _loudestTrailingFrameLoudness) {
+        _loudestTrailingFrameLoudness = _lastPopOutputLoudness;
     }
 }
 

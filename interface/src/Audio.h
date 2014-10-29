@@ -212,6 +212,9 @@ private:
     QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
     float _lastInputLoudness;
+    int _inputFrameCounter;
+    float _quietestFrame;
+    float _loudestFrame;
     float _timeSinceLastClip;
     float _dcOffset;
     float _noiseGateMeasuredFloor;

@@ -36,12 +36,15 @@ public:
     void updateLastPopOutputLoudnessAndTrailingLoudness();
     float getLastPopOutputTrailingLoudness() const { return _lastPopOutputTrailingLoudness; }
     float getLastPopOutputLoudness() const { return _lastPopOutputLoudness; }
+    float getQuietestTrailingFrameLoudness() const { return _quietestTrailingFrameLoudness; }
+    float getLoudestTrailingFrameLoudness() const { return _loudestTrailingFrameLoudness; }
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
     PositionalAudioStream::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
+    
 
 protected:
     // disallow copying of PositionalAudioStream objects
@@ -60,6 +63,9 @@ protected:
 
     float _lastPopOutputTrailingLoudness;
     float _lastPopOutputLoudness;
+    float _quietestTrailingFrameLoudness;
+    float _loudestTrailingFrameLoudness;
+    int _frameCounter;
 };
 
 #endif // hifi_PositionalAudioStream_h

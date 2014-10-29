@@ -61,6 +61,7 @@
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
+const float DEFAULT_NOISE_MUTING_THRESHOLD = 100.0f;
 
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
@@ -78,12 +79,18 @@ bool AudioMixer::_printStreamStats = false;
 
 bool AudioMixer::_enableFilter = true;
 
+bool AudioMixer::shouldMute(float quietestFrame, float loudestFrame) {
+    return (quietestFrame > _noiseMutingThreshold);
+    qDebug() << "Muting, quiestest frame = " << quietestFrame;
+}
+
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
     _performanceThrottlingRatio(0.0f),
     _attenuationPerDoublingInDistance(DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE),
+    _noiseMutingThreshold(DEFAULT_NOISE_MUTING_THRESHOLD),
     _numStatFrames(0),
     _sumListeners(0),
     _sumMixes(0),
@@ -133,6 +140,11 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
     
     // if the frame we're about to mix is silent, bail
     if (streamToAdd->getLastPopOutputLoudness() == 0.0f) {
+        return 0;
+    }
+    
+    // if the stream should be muted, bail
+    if (shouldMute(streamToAdd->getQuietestTrailingFrameLoudness(), streamToAdd->getLoudestTrailingFrameLoudness())) {
         return 0;
     }
     
