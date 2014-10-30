@@ -387,6 +387,7 @@ namespace MenuOption {
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
+    const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Show Hand Info";
@@ -403,6 +404,7 @@ namespace MenuOption {
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
+    const QString Entities = "Entities";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -433,8 +435,6 @@ namespace MenuOption {
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
-    const QString ModelOptions = "Model Options";
-    const QString Models = "Models";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";

@@ -367,7 +367,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Entities, 0, true);
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
@@ -434,14 +434,16 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     
-    QMenu* modelDebugMenu = developerMenu->addMenu("Models");
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelBounds, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
-    QMenu* modelCullingMenu = modelDebugMenu->addMenu("Culling");
-    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
+    QMenu* entitiesDebugMenu = developerMenu->addMenu("Entities");
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelBounds, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
+
+    QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
+    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
