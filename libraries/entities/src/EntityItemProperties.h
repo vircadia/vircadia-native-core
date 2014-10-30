@@ -362,7 +362,7 @@ private:
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
-    QVector<SittingPoint>* _sittingPoints;
+    QVector<SittingPoint> _sittingPoints;
     glm::vec3 _naturalDimensions;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);

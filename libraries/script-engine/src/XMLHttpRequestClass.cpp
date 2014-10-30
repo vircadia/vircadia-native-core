@@ -14,6 +14,7 @@
 
 #include <QEventLoop>
 #include <QFile>
+#include <qurlquery.h>
 
 #include <NetworkAccessManager.h>
 
@@ -207,7 +208,14 @@ void XMLHttpRequestClass::open(const QString& method, const QString& url, bool a
             }
         } else {
             if (url.toLower().left(33) == "https://data.highfidelity.io/api/") {
-                _url.setQuery("access_token=" + AccountManager::getInstance().getAccountInfo().getAccessToken().token);
+                AccountManager& accountManager = AccountManager::getInstance();
+                
+                if (accountManager.hasValidAccessToken()) {
+                    QUrlQuery urlQuery(_url.query());
+                    urlQuery.addQueryItem("access_token", accountManager.getAccountInfo().getAccessToken().token);
+                    _url.setQuery(urlQuery);
+                }
+                
             }
             if (!username.isEmpty()) {
                 _url.setUserName(username);

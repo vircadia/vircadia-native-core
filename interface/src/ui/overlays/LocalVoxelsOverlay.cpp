@@ -51,7 +51,7 @@ void LocalVoxelsOverlay::update(float deltatime) {
     _tree->unlock();
 }
 
-void LocalVoxelsOverlay::render() {
+void LocalVoxelsOverlay::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions();
     float size = glm::length(dimensions);
     if (_visible && size > 0 && _voxelSystem && _voxelSystem->isInitialized()) {

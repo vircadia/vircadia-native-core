@@ -52,7 +52,7 @@ void ImageOverlay::replyFinished() {
     _isLoaded = true;
 }
 
-void ImageOverlay::render() {
+void ImageOverlay::render(RenderArgs* args) {
     if (!_visible || !_isLoaded) {
         return; // do nothing if we're not visible
     }

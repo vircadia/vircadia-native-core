@@ -24,7 +24,7 @@ Sphere3DOverlay::Sphere3DOverlay() {
 Sphere3DOverlay::~Sphere3DOverlay() {
 }
 
-void Sphere3DOverlay::render() {
+void Sphere3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

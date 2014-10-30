@@ -80,6 +80,7 @@
 #include "devices/TV3DManager.h"
 
 #include "renderer/ProgramObject.h"
+#include "gpu/Batch.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -588,6 +589,7 @@ void Application::initializeGL() {
 }
 
 void Application::paintGL() {
+    PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
@@ -2785,7 +2787,7 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-            _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -2841,6 +2843,7 @@ QImage Application::renderAvatarBillboard() {
 }
 
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
+    PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
@@ -3000,6 +3003,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     }
     
     {
+        PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         _deferredLightingEffect.render();
     }
@@ -3860,7 +3864,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
 #endif
 

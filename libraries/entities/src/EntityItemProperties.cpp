@@ -99,26 +99,17 @@ EntityItemProperties::EntityItemProperties() :
     _cutoffChanged(false),
 
     _defaultSettings(true),
-    _sittingPoints(NULL),
     _naturalDimensions(1.0f, 1.0f, 1.0f)
 {
 }
 
 EntityItemProperties::~EntityItemProperties() { 
-    if (_sittingPoints) {
-        delete _sittingPoints;
-        _sittingPoints = NULL;
-    }
 }
 
 void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sittingPoints) {
-    if (!_sittingPoints) {
-        _sittingPoints = new QVector<SittingPoint>;
-    }
-    _sittingPoints->clear();
-
+    _sittingPoints.clear();
     foreach (SittingPoint sitPoint, sittingPoints) {
-        _sittingPoints->append(sitPoint);
+        _sittingPoints.append(sitPoint);
     }
 }
 
@@ -222,18 +213,14 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
-    if (_sittingPoints) {
-        for (int i = 0; i < _sittingPoints->size(); ++i) {
-            QScriptValue sittingPoint = engine->newObject();
-            sittingPoint.setProperty("name", _sittingPoints->at(i).name);
-            sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints->at(i).position));
-            sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints->at(i).rotation));
-            sittingPoints.setProperty(i, sittingPoint);
-        }
-        sittingPoints.setProperty("length", _sittingPoints->size());
-    } else {
-        sittingPoints.setProperty("length", 0);
+    for (int i = 0; i < _sittingPoints.size(); ++i) {
+        QScriptValue sittingPoint = engine->newObject();
+        sittingPoint.setProperty("name", _sittingPoints.at(i).name);
+        sittingPoint.setProperty("position", vec3toScriptValue(engine, _sittingPoints.at(i).position));
+        sittingPoint.setProperty("rotation", quatToScriptValue(engine, _sittingPoints.at(i).rotation));
+        sittingPoints.setProperty(i, sittingPoint);
     }
+    sittingPoints.setProperty("length", _sittingPoints.size());
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(sittingPoints, sittingPoints); // gettable, but not settable
 
     AABox aaBox = getAABoxInMeters();

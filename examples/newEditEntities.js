@@ -715,7 +715,7 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
-    } else {
+    } else if (isActive) {
         var delta = null;
 
         if (event.text == 'UP') {
