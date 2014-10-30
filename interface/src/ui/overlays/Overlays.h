@@ -39,7 +39,7 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D();
+    void render3D(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
     void render2D();
 
 public slots:

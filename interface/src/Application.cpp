@@ -2790,6 +2790,12 @@ void Application::updateShadowMap() {
             _entities.render(RenderArgs::SHADOW_RENDER_MODE);
         }
 
+        // render JS/scriptable overlays
+        {
+            PerformanceTimer perfTimer("3dOverlays");
+            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
+        }
+
         glDisable(GL_POLYGON_OFFSET_FILL);
 
         glPopMatrix();
@@ -2986,6 +2992,12 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _entities.render();
         }
 
+        // render JS/scriptable overlays
+        {
+            PerformanceTimer perfTimer("3dOverlays");
+            _overlays.render3D();
+        }
+
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceTimer perfTimer("ambientOcclusion");
@@ -3058,12 +3070,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         {
             PerformanceTimer perfTimer("inWorldInterface");
             emit renderingInWorldInterface();
-        }
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
         }
     }
     
