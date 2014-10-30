@@ -86,7 +86,7 @@ CameraManager = function() {
 
         that.updateCamera();
 
-        cameraTool.setVisible(true);
+        cameraTool.setVisible(false);
     }
 
     that.disable = function(ignoreCamera) {
