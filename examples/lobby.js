@@ -35,7 +35,14 @@ var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR);
 var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR);
 var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
-var ORB_SHIFT = { x: 0, y: -1.5, z: 0.5};
+var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
+
+function reticlePosition() {
+  var screenSize = Controller.getViewportDimensions();
+  var reticleRay = Camera.computePickRay(screenSize.x / 2, screenSize.y / 2);
+  var RETICLE_DISTANCE = 1;
+  return Vec3.sum(reticleRay.origin, Vec3.multiply(reticleRay.direction, RETICLE_DISTANCE));
+}
 
 function drawLobby() {
   if (!panelWall) {
@@ -66,19 +73,16 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);
     orbShell = Overlays.addOverlay("model", orbShellProps);
     
-    //  Create a reticle image in center of screen 
-    var screenSize = Controller.getViewportDimensions();
-    var reticleProps = {
-      x: screenSize.x / 2 - 16,
-      y: screenSize.y / 2 - 16,
-      width: 32,
-      height: 32,
-      color: { red: 255, green: 255, blue: 255},
-      alpha: 1,
-      imageURL: HIFI_PUBLIC_BUCKET + "images/reticle.png",
-    }; 
+    // for HMD wearers, create a reticle in center of screen
+    var RETICLE_SPHERE_SIZE = 0.025;
     
-    reticle = Overlays.addOverlay("image", reticleProps);
+    reticle = Overlays.addOverlay("sphere", {
+      position: reticlePosition(),
+      size: RETICLE_SPHERE_SIZE,
+      color: { red: 0, green: 255, blue: 0 },
+      alpha: 1.0,
+      solid: true
+    });  
   }
 }
 
@@ -109,6 +113,8 @@ function cleanupLobby() {
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
   panelWall = false;
+  orbShell = false;
+  reticle = false;
   locations = {};
   toggleEnvironmentRendering(true);
 }
@@ -164,7 +170,16 @@ function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Avatars", shouldRender);
 }
 
+function update(deltaTime) {
+  maybeCleanupLobby();
+  if (reticle) {
+    Overlays.editOverlay(reticle, {
+      position: reticlePosition()
+    });
+  }
+}
+
 Controller.actionStartEvent.connect(actionStartEvent);
 Controller.backStartEvent.connect(backStartEvent);
-Script.update.connect(maybeCleanupLobby);
+Script.update.connect(update);
 Script.scriptEnding.connect(maybeCleanupLobby);
