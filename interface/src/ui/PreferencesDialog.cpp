@@ -147,8 +147,6 @@ void PreferencesDialog::loadPreferences() {
     ui.maxVoxelsPPSSpin->setValue(menuInstance->getMaxVoxelPacketsPerSecond());
 
     ui.oculusUIAngularSizeSpin->setValue(menuInstance->getOculusUIAngularSize());
-    
-    ui.oculusUIMaxFPSSpin->setValue(menuInstance->getOculusUIMaxFPS());
 
     ui.sixenseReticleMoveSpeedSpin->setValue(menuInstance->getSixenseReticleMoveSpeed());
 
@@ -231,8 +229,6 @@ void PreferencesDialog::savePreferences() {
     Menu::getInstance()->setMaxVoxelPacketsPerSecond(ui.maxVoxelsPPSSpin->value());
 
     Menu::getInstance()->setOculusUIAngularSize(ui.oculusUIAngularSizeSpin->value());
-    
-    Menu::getInstance()->setOculusUIMaxFPS(ui.oculusUIMaxFPSSpin->value());
 
     Menu::getInstance()->setSixenseReticleMoveSpeed(ui.sixenseReticleMoveSpeedSpin->value());
 

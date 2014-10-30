@@ -100,8 +100,6 @@ public:
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
     float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
     void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
-    int getOculusUIMaxFPS() const { return _oculusUIMaxFPS; }
-    void setOculusUIMaxFPS(int oculusUIMaxFPS) { _oculusUIMaxFPS = oculusUIMaxFPS; bumpSettings(); }
     float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
     void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
@@ -295,7 +293,6 @@ private:
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
-    int _oculusUIMaxFPS;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
     bool _automaticAvatarLOD;
