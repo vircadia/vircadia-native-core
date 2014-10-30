@@ -37,6 +37,13 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
+function reticlePosition() {
+  var screenSize = Controller.getViewportDimensions();
+  var reticleRay = Camera.computePickRay(screenSize.x / 2, screenSize.y / 2);
+  var RETICLE_DISTANCE = 1;
+  return Vec3.sum(reticleRay.origin, Vec3.multiply(reticleRay.direction, RETICLE_DISTANCE));
+}
+
 function drawLobby() {
   if (!panelWall) {
     print("Adding overlays for the lobby panel wall and orb shell.");
@@ -66,19 +73,16 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);
     orbShell = Overlays.addOverlay("model", orbShellProps);
     
-    if (Menu.isOptionChecked("EnableVRMode")) {
-      // for HMD wearers, create a reticle in center of screen
-      var RETICLE_SPHERE_SIZE = 0.05;
-      reticle = Overlays.addOverlay("sphere", {
-        position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())),
-        size: RETICLE_SPHERE_SIZE,
-        color: { red: 0, green: 255, blue: 0 },
-        alpha: 1.0,
-        solid: true
-      });
-    }
+    // for HMD wearers, create a reticle in center of screen
+    var RETICLE_SPHERE_SIZE = 0.025;
     
-       
+    reticle = Overlays.addOverlay("sphere", {
+      position: reticlePosition(),
+      size: RETICLE_SPHERE_SIZE,
+      color: { red: 0, green: 255, blue: 0 },
+      alpha: 1.0,
+      solid: true
+    });  
   }
 }
 
@@ -170,7 +174,7 @@ function update(deltaTime) {
   maybeCleanupLobby();
   if (reticle) {
     Overlays.editOverlay(reticle, {
-      position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation()))
+      position: reticlePosition()
     });
   }
 }
