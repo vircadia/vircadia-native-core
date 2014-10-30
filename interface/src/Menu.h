@@ -100,8 +100,6 @@ public:
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
     float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
     void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
-    int getOculusUIMaxFPS() const { return _oculusUIMaxFPS; }
-    void setOculusUIMaxFPS(int oculusUIMaxFPS) { _oculusUIMaxFPS = oculusUIMaxFPS; bumpSettings(); }
     float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
     void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
@@ -208,6 +206,7 @@ public slots:
 
 private slots:
     void aboutApp();
+    void showEditEntitiesHelp();
     void bumpSettings();
     void editPreferences();
     void editAttachments();
@@ -294,7 +293,6 @@ private:
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
-    int _oculusUIMaxFPS;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
     bool _automaticAvatarLOD;
@@ -398,6 +396,7 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";

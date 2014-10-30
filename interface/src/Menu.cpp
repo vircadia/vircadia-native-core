@@ -105,7 +105,6 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
-    _oculusUIMaxFPS(DEFAULT_OCULUS_UI_MAX_FPS),
     _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
     _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
     _automaticAvatarLOD(true),
@@ -359,6 +358,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, this, SLOT(showEditEntitiesHelp()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -783,8 +783,6 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     _walletPrivateKey = settings->value("privateKey").toByteArray();
-    
-    _oculusUIMaxFPS = loadSetting(settings, "oculusUIMaxFPS", 0.0f);
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
@@ -846,9 +844,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetUp", _viewFrustumOffset.up);
     settings->endGroup();
     settings->setValue("privateKey", _walletPrivateKey);
-    
-    // Oculus Rift settings
-    settings->setValue("oculusUIMaxFPS", _oculusUIMaxFPS);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -1117,7 +1112,11 @@ QAction* Menu::getActionForOption(const QString& menuOption) {
 }
 
 void Menu::aboutApp() {
-    InfoView::forcedShow();
+    InfoView::forcedShow(INFO_HELP_PATH);
+}
+
+void Menu::showEditEntitiesHelp() {
+    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Menu::bumpSettings() {
