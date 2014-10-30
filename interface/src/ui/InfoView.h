@@ -17,11 +17,11 @@
 class InfoView : public QWebView {
     Q_OBJECT
 public:
-    static void showFirstTime();
-    static void forcedShow();
+    static void showFirstTime(QString path);
+    static void forcedShow(QString path);
     
 private:
-    InfoView(bool forced);
+    InfoView(bool forced, QString path);
     bool _forced;
     bool shouldShow();
     

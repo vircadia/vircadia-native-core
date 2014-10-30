@@ -585,7 +585,7 @@ void Application::initializeGL() {
     // update before the first render
     update(1.f / _fps);
 
-    InfoView::showFirstTime();
+    InfoView::showFirstTime(INFO_HELP_PATH);
 }
 
 void Application::paintGL() {

@@ -20,24 +20,24 @@
 #define SETTINGS_VERSION_KEY "info-version"
 #define MAX_DIALOG_HEIGHT_RATIO 0.9
 
-InfoView::InfoView(bool forced) :
+InfoView::InfoView(bool forced, QString path) :
     _forced(forced)
 {
     setWindowFlags(Qt::WindowStaysOnTopHint | Qt::CustomizeWindowHint | Qt::WindowCloseButtonHint);
         
-    QString absPath = QFileInfo(Application::resourcesPath() + "html/interface-welcome-allsvg.html").absoluteFilePath();
+    QString absPath = QFileInfo(Application::resourcesPath() + path).absoluteFilePath();
     QUrl url = QUrl::fromLocalFile(absPath);
     
     load(url);
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
 }
 
-void InfoView::showFirstTime() {
-    new InfoView(false);
+void InfoView::showFirstTime(QString path) {
+    new InfoView(false, path);
 }
 
-void InfoView::forcedShow() {
-    new InfoView(true);
+void InfoView::forcedShow(QString path) {
+    new InfoView(true, path);
 }
 
 bool InfoView::shouldShow() {
