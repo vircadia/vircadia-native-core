@@ -288,6 +288,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(cutoff, setCutoff);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
+    
+qDebug() << "COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING.... textures: " << getTextures();
 
     _lastEdited = usecTimestampNow();
 }

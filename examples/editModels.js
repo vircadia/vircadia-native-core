@@ -2988,36 +2988,3 @@ Controller.keyReleaseEvent.connect(function (event) {
     }
 });
 
-Window.inlineButtonClicked.connect(function (name) {
-    if (name == "resetDimensions") {
-        var decimals = 3;
-        Window.reloadNonBlockingForm([
-            { value: propertiesForEditedEntity.naturalDimensions.x.toFixed(decimals), oldIndex: dimensionX },
-            { value: propertiesForEditedEntity.naturalDimensions.y.toFixed(decimals), oldIndex: dimensionY },
-            { value: propertiesForEditedEntity.naturalDimensions.z.toFixed(decimals), oldIndex: dimensionZ }
-        ]);
-    }
-
-    if (name == "rescaleDimensions") {
-        var decimals = 3;
-        var peekValues = editEntityFormArray;
-        Window.peekNonBlockingFormResult(peekValues);
-        var peekX = peekValues[dimensionX].value;
-        var peekY = peekValues[dimensionY].value;
-        var peekZ = peekValues[dimensionZ].value;
-        var peekRescale = peekValues[rescalePercentage].value;
-        var rescaledX = peekX * peekRescale / 100.0;
-        var rescaledY = peekY * peekRescale / 100.0;
-        var rescaledZ = peekZ * peekRescale / 100.0;
-        
-        Window.reloadNonBlockingForm([
-            { value: rescaledX.toFixed(decimals), oldIndex: dimensionX },
-            { value: rescaledY.toFixed(decimals), oldIndex: dimensionY },
-            { value: rescaledZ.toFixed(decimals), oldIndex: dimensionZ },
-            { value: 100, oldIndex: rescalePercentage }
-        ]);
-    }
-
-});
-
-
