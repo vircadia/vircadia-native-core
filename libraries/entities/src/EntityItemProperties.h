@@ -258,19 +258,19 @@ public:
     bool ambientColorChanged() const { return _ambientColorChanged; }
     bool specularColorChanged() const { return _specularColorChanged; }
 
-    bool getConstantAttenuation() const { return _constantAttenuation; }
+    float getConstantAttenuation() const { return _constantAttenuation; }
     void setConstantAttenuation(float value) { _constantAttenuation = value; _constantAttenuationChanged = true; }
 
-    bool getLinearAttenuation() const { return _linearAttenuation; }
+    float getLinearAttenuation() const { return _linearAttenuation; }
     void setLinearAttenuation(float value) { _linearAttenuation = value; _linearAttenuationChanged = true; }
 
-    bool getQuadraticAttenuation() const { return _quadraticAttenuation; }
+    float getQuadraticAttenuation() const { return _quadraticAttenuation; }
     void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; _quadraticAttenuationChanged = true; }
 
-    bool getExponent() const { return _exponent; }
+    float getExponent() const { return _exponent; }
     void setExponent(bool value) { _exponent = value; _exponentChanged = true; }
 
-    bool getCutoff() const { return _cutoff; }
+    float getCutoff() const { return _cutoff; }
     void setCutoff(bool value) { _cutoff = value; _cutoffChanged = true; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
