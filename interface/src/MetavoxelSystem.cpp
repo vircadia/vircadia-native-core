@@ -1963,20 +1963,15 @@ private:
     
     void addRegion(const Box& unextended, const Box& extended);
     
-    int _heightSize;
-    int _heightDepth;
+    class DepthInfo {
+    public:
+        float minimumColorIncrement;
+        float minimumMaterialIncrement;
+        
+        DepthInfo() : minimumColorIncrement(FLT_MAX), minimumMaterialIncrement(FLT_MAX) { }
+    };
     
-    int _inheritedColorSize;
-    int _inheritedColorDepth;
-    
-    int _containedColorSize;
-    int _containedColorDepth;
-    
-    int _inheritedMaterialSize;
-    int _inheritedMaterialDepth;
-    
-    int _containedMaterialSize;
-    int _containedMaterialDepth;
+    QVector<DepthInfo> _depthInfo;
     
     QVector<Box> _intersections;
     HeightfieldFetchVisitor _fetchVisitor;
@@ -1989,118 +1984,100 @@ HeightfieldRegionVisitor::HeightfieldRegionVisitor(const MetavoxelLOD& lod) :
         Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), QVector<AttributePointer>() <<
             Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute(), lod),
     regionBounds(glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX), glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX)),
-    _heightDepth(-1),
-    _inheritedColorDepth(-1),
-    _containedColorDepth(-1),
-    _inheritedMaterialDepth(-1),
-    _containedMaterialDepth(-1),
     _fetchVisitor(lod, _intersections) {
 }
 
-static int signedLeftShift(int value, int shift) {
-    return (shift > 0) ? value << shift : value >> (-shift);
-}
-
 int HeightfieldRegionVisitor::visit(MetavoxelInfo& info) {
-    HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
-    int order = DEFAULT_ORDER;
-    if (height) {
-        _heightSize = glm::sqrt((float)height->getContents().size());
-        _heightDepth = _depth;
-        order |= ALL_NODES_REST;
-    }
+    DepthInfo depthInfo;
     HeightfieldColorDataPointer color = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
     if (color) {
-        int colorSize = glm::sqrt((float)(color->getContents().size() / DataBlock::COLOR_BYTES));
-        if (_heightDepth == -1) {
-            _inheritedColorSize = colorSize;
-            _inheritedColorDepth = _depth;
-            
-        } else if (_containedColorDepth == -1 ||
-                colorSize > signedLeftShift(_containedColorSize, _containedColorDepth - _depth)) {
-            _containedColorSize = colorSize;
-            _containedColorDepth = _depth;
-        }
+        int colorSize = glm::sqrt((float)color->getContents().size() / DataBlock::COLOR_BYTES);
+        depthInfo.minimumColorIncrement = info.size / colorSize; 
     }
     HeightfieldMaterialDataPointer material = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
     if (material) {
-        int materialSize = glm::sqrt((float)material->getContents().size());       
-        if (_heightDepth == -1) {
-            _inheritedMaterialSize = materialSize;
-            _inheritedMaterialDepth = _depth;
-        
-        } else if (_containedMaterialDepth == -1 ||
-                materialSize > signedLeftShift(_containedMaterialSize, _containedMaterialDepth - _depth)) {
-            _containedMaterialSize = materialSize;
-            _containedMaterialDepth = _depth;
-        }
+        int materialSize = glm::sqrt((float)material->getContents().size());
+        depthInfo.minimumMaterialIncrement = info.size / materialSize;
+    }
+    if (_depth < _depthInfo.size()) {
+        _depthInfo[_depth] = depthInfo;
+    } else {
+        _depthInfo.append(depthInfo);
     }
     if (!info.isLeaf) {
-        return order;
+        return _visitations.at(_depth).isInputLeaf(0) ? (DEFAULT_ORDER | ALL_NODES_REST) : DEFAULT_ORDER;
     }
     postVisit(info);
     return STOP_RECURSION;
 }
 
 bool HeightfieldRegionVisitor::postVisit(MetavoxelInfo& info) {
-    HeightfieldBuffer* buffer = NULL;
-    if (_depth == _heightDepth) {
-        int extendedHeightSize = _heightSize + HeightfieldBuffer::HEIGHT_EXTENSION;
-        int heightContentsSize = extendedHeightSize * extendedHeightSize;
-        
-        int extendedColorSize = qMax(_inheritedColorDepth == -1 ? 0 :
-            signedLeftShift(_inheritedColorSize, _inheritedColorDepth - _depth) + HeightfieldBuffer::SHARED_EDGE,
-            _containedColorDepth == -1 ? 0 :
-                signedLeftShift(_containedColorSize, _containedColorDepth - _depth) + HeightfieldBuffer::SHARED_EDGE);
-        int colorContentsSize = extendedColorSize * extendedColorSize * DataBlock::COLOR_BYTES;
-        
-        int extendedMaterialSize = qMax(_inheritedMaterialDepth == -1 ? 0 :
-            signedLeftShift(_inheritedMaterialSize, _inheritedMaterialDepth - _depth) + HeightfieldBuffer::SHARED_EDGE,
-            _containedMaterialDepth == -1 ? 0 :
-                signedLeftShift(_containedMaterialSize, _containedMaterialDepth - _depth) + HeightfieldBuffer::SHARED_EDGE);
-        int materialContentsSize = extendedMaterialSize * extendedMaterialSize;
-        
-        const HeightfieldBuffer* existingBuffer = static_cast<const HeightfieldBuffer*>(
-            info.inputValues.at(3).getInlineValue<BufferDataPointer>().data());
-        Box bounds = info.getBounds();
-        if (existingBuffer && existingBuffer->getHeight().size() == heightContentsSize &&
-                existingBuffer->getColor().size() == colorContentsSize &&
-                existingBuffer->getMaterial().size() == materialContentsSize) {
-            // we already have a buffer of the correct resolution
-            addRegion(bounds, existingBuffer->getHeightBounds());
-            buffer = new HeightfieldBuffer(info.minimum, info.size, existingBuffer->getHeight(),
-                existingBuffer->getColor(), existingBuffer->getMaterial(), existingBuffer->getMaterials());
-        
-        } else {
-            // we must create a new buffer and update its borders
-            buffer = new HeightfieldBuffer(info.minimum, info.size, QByteArray(heightContentsSize, 0),
-                QByteArray(colorContentsSize, 0), QByteArray(materialContentsSize, 0));
-            const Box& heightBounds = buffer->getHeightBounds();
-            addRegion(bounds, heightBounds);
+    const DepthInfo& depthInfo = _depthInfo.at(_depth);
+    if (_depth > 0) {
+        DepthInfo& parentDepthInfo = _depthInfo[_depth - 1];
+        parentDepthInfo.minimumColorIncrement = qMin(parentDepthInfo.minimumColorIncrement, depthInfo.minimumColorIncrement);
+        parentDepthInfo.minimumMaterialIncrement = qMin(parentDepthInfo.minimumMaterialIncrement,
+            depthInfo.minimumMaterialIncrement);
+    }
+    if (_visitations.at(_depth).isInputLeaf(0)) {
+        HeightfieldBuffer* buffer = NULL;
+        HeightfieldHeightDataPointer height = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
+        if (height) {
+            int heightSize = glm::sqrt((float)height->getContents().size());
+            int extendedHeightSize = heightSize + HeightfieldBuffer::HEIGHT_EXTENSION;
+            int heightContentsSize = extendedHeightSize * extendedHeightSize;
+            float minimumColorIncrement = depthInfo.minimumColorIncrement;
+            float minimumMaterialIncrement = depthInfo.minimumMaterialIncrement;
+            for (int i = _depth - 1; i >= 0 && qMax(minimumColorIncrement, minimumMaterialIncrement) == FLT_MAX; i--) {
+                const DepthInfo& ancestorDepthInfo = _depthInfo.at(i);
+                minimumColorIncrement = qMin(minimumColorIncrement, ancestorDepthInfo.minimumColorIncrement);
+                minimumMaterialIncrement = qMin(minimumMaterialIncrement, ancestorDepthInfo.minimumMaterialIncrement);
+            }
+            int colorContentsSize = 0;
+            if (minimumColorIncrement != FLT_MAX) {
+                int colorSize = (int)glm::round(info.size / minimumColorIncrement) + HeightfieldBuffer::SHARED_EDGE;
+                colorContentsSize = colorSize * colorSize * DataBlock::COLOR_BYTES;
+            }
+            int materialContentsSize = 0;
+            if (minimumMaterialIncrement != FLT_MAX) {
+                int materialSize = (int)glm::round(info.size / minimumMaterialIncrement) + HeightfieldBuffer::SHARED_EDGE;
+                materialContentsSize = materialSize * materialSize;
+            }
+            const HeightfieldBuffer* existingBuffer = static_cast<const HeightfieldBuffer*>(
+                info.inputValues.at(3).getInlineValue<BufferDataPointer>().data());
+            Box bounds = info.getBounds();
+            if (existingBuffer && existingBuffer->getHeight().size() == heightContentsSize &&
+                    existingBuffer->getColor().size() == colorContentsSize &&
+                    existingBuffer->getMaterial().size() == materialContentsSize) {
+                // we already have a buffer of the correct resolution
+                addRegion(bounds, existingBuffer->getHeightBounds());
+                buffer = new HeightfieldBuffer(info.minimum, info.size, existingBuffer->getHeight(),
+                    existingBuffer->getColor(), existingBuffer->getMaterial(), existingBuffer->getMaterials());
             
-            _intersections.clear();
-            _intersections.append(Box(heightBounds.minimum,
-                glm::vec3(bounds.maximum.x, heightBounds.maximum.y, bounds.minimum.z)));
-            _intersections.append(Box(glm::vec3(bounds.maximum.x, heightBounds.minimum.y, heightBounds.minimum.z),
-                glm::vec3(heightBounds.maximum.x, heightBounds.maximum.y, bounds.maximum.z)));
-            _intersections.append(Box(glm::vec3(bounds.minimum.x, heightBounds.minimum.y, bounds.maximum.z),
-                heightBounds.maximum));
-            _intersections.append(Box(glm::vec3(heightBounds.minimum.x, heightBounds.minimum.y, bounds.minimum.z),
-                glm::vec3(bounds.minimum.x, heightBounds.maximum.y, heightBounds.maximum.z)));
-            
-            _fetchVisitor.init(buffer);
-            _data->guide(_fetchVisitor);
+            } else {
+                // we must create a new buffer and update its borders
+                buffer = new HeightfieldBuffer(info.minimum, info.size, QByteArray(heightContentsSize, 0),
+                    QByteArray(colorContentsSize, 0), QByteArray(materialContentsSize, 0));
+                const Box& heightBounds = buffer->getHeightBounds();
+                addRegion(bounds, heightBounds);
+                
+                _intersections.clear();
+                _intersections.append(Box(heightBounds.minimum,
+                    glm::vec3(bounds.maximum.x, heightBounds.maximum.y, bounds.minimum.z)));
+                _intersections.append(Box(glm::vec3(bounds.maximum.x, heightBounds.minimum.y, heightBounds.minimum.z),
+                    glm::vec3(heightBounds.maximum.x, heightBounds.maximum.y, bounds.maximum.z)));
+                _intersections.append(Box(glm::vec3(bounds.minimum.x, heightBounds.minimum.y, bounds.maximum.z),
+                    heightBounds.maximum));
+                _intersections.append(Box(glm::vec3(heightBounds.minimum.x, heightBounds.minimum.y, bounds.minimum.z),
+                    glm::vec3(bounds.minimum.x, heightBounds.maximum.y, heightBounds.maximum.z)));
+                
+                _fetchVisitor.init(buffer);
+                _data->guide(_fetchVisitor);
+            }    
         }
-        _heightDepth = _containedColorDepth = _containedMaterialDepth = -1;
+        BufferDataPointer pointer(buffer);
+        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     }
-    if (_depth == _inheritedColorDepth) {
-        _inheritedColorDepth = -1;
-    }
-    if (_depth == _inheritedMaterialDepth) {
-        _inheritedMaterialDepth = -1;
-    }
-    BufferDataPointer pointer(buffer);
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
     return true;
 }
 
