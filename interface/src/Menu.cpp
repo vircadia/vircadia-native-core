@@ -359,6 +359,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, this, SLOT(showEditEntitiesHelp()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -1117,7 +1118,11 @@ QAction* Menu::getActionForOption(const QString& menuOption) {
 }
 
 void Menu::aboutApp() {
-    InfoView::forcedShow();
+    InfoView::forcedShow(INFO_HELP_PATH);
+}
+
+void Menu::showEditEntitiesHelp() {
+    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Menu::bumpSettings() {
