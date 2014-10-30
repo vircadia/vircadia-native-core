@@ -268,10 +268,10 @@ public:
     void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; _quadraticAttenuationChanged = true; }
 
     float getExponent() const { return _exponent; }
-    void setExponent(bool value) { _exponent = value; _exponentChanged = true; }
+    void setExponent(float value) { _exponent = value; _exponentChanged = true; }
 
     float getCutoff() const { return _cutoff; }
-    void setCutoff(bool value) { _cutoff = value; _cutoffChanged = true; }
+    void setCutoff(float value) { _cutoff = value; _cutoffChanged = true; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
