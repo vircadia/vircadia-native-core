@@ -75,6 +75,12 @@ enum EntityPropertyList {
     PROP_EXPONENT,
     PROP_CUTOFF,
 
+    // available to all entities
+    PROP_LOCKED,
+    
+    // used by Model entities
+    PROP_TEXTURES,
+
     PROP_LAST_ITEM = PROP_CUTOFF
 };
 
@@ -272,6 +278,13 @@ public:
 
     float getCutoff() const { return _cutoff; }
     void setCutoff(float value) { _cutoff = value; _cutoffChanged = true; }
+
+    bool getLocked() const { return _locked; }
+    void setLocked(bool value) { _locked = value; _lockedChanged = true; }
+    bool lockedChanged() const { return _lockedChanged; }
+
+    const QString& getTextures() const { return _textures; }
+    void setTextures(const QString& value) { _textures = value; _texturesChanged = true; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -348,6 +361,8 @@ private:
     float _quadraticAttenuation;
     float _exponent;
     float _cutoff;
+    bool _locked;
+    QString _textures;
 
     bool _diffuseColorChanged;
     bool _ambientColorChanged;
@@ -357,6 +372,8 @@ private:
     bool _quadraticAttenuationChanged;
     bool _exponentChanged;
     bool _cutoffChanged;
+    bool _lockedChanged;
+    bool _texturesChanged;
 
     bool _defaultSettings;
 

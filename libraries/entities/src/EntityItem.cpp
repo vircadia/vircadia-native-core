@@ -45,6 +45,7 @@ const float EntityItem::DEFAULT_ANGULAR_DAMPING = 0.5f;
 const bool EntityItem::DEFAULT_VISIBLE = true;
 const bool EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool EntityItem::DEFAULT_COLLISIONS_WILL_MOVE = false;
+const bool EntityItem::DEFAULT_LOCKED = false;
 
 void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _id = entityItemID.id;
@@ -118,6 +119,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_VISIBLE;
     requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
+    requestedProperties += PROP_LOCKED;
     
     return requestedProperties;
 }
@@ -233,6 +235,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, getVisible());
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, getIgnoreForCollisions());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
+        APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -495,6 +498,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
         READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
         READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
+        READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
 
         if (wantDebug) {
             qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
@@ -750,6 +754,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(visible, getVisible);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
 
     properties._defaultSettings = false;
     
@@ -785,6 +790,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
