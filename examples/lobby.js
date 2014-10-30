@@ -66,15 +66,19 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);
     orbShell = Overlays.addOverlay("model", orbShellProps);
     
-    //  Create a reticle in center of screen
-    var RETICLE_SPHERE_SIZE = 0.05;
-    reticle = Overlays.addOverlay("sphere", {
-      position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())),
-      size: RETICLE_SPHERE_SIZE,
-      color: { red: 0, green: 255, blue: 0 },
-      alpha: 1.0,
-      solid: true
-    });
+    if (Menu.isOptionChecked("EnableVRMode")) {
+      // for HMD wearers, create a reticle in center of screen
+      var RETICLE_SPHERE_SIZE = 0.05;
+      reticle = Overlays.addOverlay("sphere", {
+        position: Vec3.sum(Camera.getPosition(), Quat.getFront(Camera.getOrientation())),
+        size: RETICLE_SPHERE_SIZE,
+        color: { red: 0, green: 255, blue: 0 },
+        alpha: 1.0,
+        solid: true
+      });
+    }
+    
+       
   }
 }
 
