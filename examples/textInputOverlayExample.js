@@ -174,19 +174,19 @@ function updateWriting(deltaTime){
 			cursor = "|";
 		}
 	}
-//	attempt at some overflow control of the text
-		if  ((writing.length % (width/11)) == 0) { 
-			writing = writing + "\n";
-		}
-		// add blinking cursor to window during typing
-		var	addCursor = writing + cursor;
+	//	attempt at some overflow control of the text
+	if  ((writing.length % 53) == 0) { 
+		writing = writing + "\n";
+	}
+	// add blinking cursor to window during typing
+	var	addCursor = writing + cursor;
 	if (clickedText == true){	
 		Overlays.editOverlay(inputWindow, { text: addCursor});
-		}else{
+	}else{
 		Overlays.editOverlay(inputWindow, { text: writing});
-		}
 	}
-//}
+}
+
 	
 	
 // test keystroke against keyString and capture permitted keys
