@@ -208,6 +208,7 @@ public slots:
 
 private slots:
     void aboutApp();
+    void showEditEntitiesHelp();
     void bumpSettings();
     void editPreferences();
     void editAttachments();
@@ -398,6 +399,7 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
