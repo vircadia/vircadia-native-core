@@ -88,6 +88,8 @@ EntityItemProperties::EntityItemProperties() :
     _quadraticAttenuation(0.0f),
     _exponent(0.0f),
     _cutoff(PI),
+    _locked(false),
+    _textures(""),
 
     _diffuseColorChanged(false),
     _ambientColorChanged(false),
@@ -97,6 +99,8 @@ EntityItemProperties::EntityItemProperties() :
     _quadraticAttenuationChanged(false),
     _exponentChanged(false),
     _cutoffChanged(false),
+    _lockedChanged(false),
+    _texturesChanged(false),
 
     _defaultSettings(true),
     _naturalDimensions(1.0f, 1.0f, 1.0f)
@@ -160,6 +164,8 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_QUADRATIC_ATTENUATION, quadraticAttenuation);
     CHECK_PROPERTY_CHANGE(PROP_EXPONENT, exponent);
     CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
+    CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
+    CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
 
     return changedProperties;
 }
@@ -210,6 +216,8 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(quadraticAttenuation);
     COPY_PROPERTY_TO_QSCRIPTVALUE(exponent);
     COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -278,6 +286,8 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(quadraticAttenuation, setQuadraticAttenuation);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(exponent, setExponent);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(cutoff, setCutoff);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
 
     _lastEdited = usecTimestampNow();
 }
@@ -437,6 +447,8 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
             APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
             APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
+            APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, properties.getLocked());
+            APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -644,6 +656,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
+    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXTURES, setTextures);
 
     return valid;
 }
@@ -708,6 +722,8 @@ void EntityItemProperties::markAllChanged() {
     _quadraticAttenuationChanged = true;
     _exponentChanged = true;
     _cutoffChanged = true;
+    _lockedChanged = true;
+    _texturesChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {

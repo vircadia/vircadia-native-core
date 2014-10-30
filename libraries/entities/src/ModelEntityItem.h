@@ -88,6 +88,10 @@ public:
     bool getAnimationIsPlaying() const { return _animationIsPlaying; }
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     float getAnimationFPS() const { return _animationFPS; }
+
+    static const QString DEFAULT_TEXTURES;
+    const QString& getTextures() const { return _textures; }
+    void setTextures(const QString& textures) { _textures = textures; }
     
     static void cleanupLoadedAnimations();
     
@@ -105,9 +109,12 @@ protected:
     float _animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
     bool _animationIsPlaying;
     float _animationFPS;
+    QString _textures;
+
+    // used on client side
     bool _jointMappingCompleted;
     QVector<int> _jointMapping;
-    
+
     static Animation* getAnimation(const QString& url);
     static QMap<QString, AnimationPointer> _loadedAnimations;
     static AnimationCache _animationCache;

@@ -38,9 +38,12 @@ RenderableModelEntityItem::~RenderableModelEntityItem() {
 
 bool RenderableModelEntityItem::setProperties(const EntityItemProperties& properties, bool forceCopy) {
     QString oldModelURL = getModelURL();
+    QString oldTextures = getTextures();
     bool somethingChanged = ModelEntityItem::setProperties(properties, forceCopy);
-    if (somethingChanged && oldModelURL != getModelURL()) {
-        _needsModelReload = true;
+    if (somethingChanged) {
+        if ((oldModelURL != getModelURL()) || (oldTextures != getTextures())) {
+            _needsModelReload = true;
+        }
     }
     return somethingChanged;
 }
@@ -177,6 +180,18 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
             _myRenderer->releaseModel(_model);
             result = _model = NULL;
             _needsInitialSimulation = true;
+        }
+    }
+    
+    // here's where we remap any textures if needed...
+    if (!_textures.isEmpty() && _model) {
+        QJsonDocument texturesAsJson = QJsonDocument::fromJson(_textures.toUtf8());
+        QJsonObject texturesAsJsonObject = texturesAsJson.object();
+        QVariantMap textureMap = texturesAsJsonObject.toVariantMap();
+        foreach(const QString& key, textureMap.keys()) {
+            QUrl newTextureURL = textureMap[key].toUrl();
+            qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
+            _model->setTextureWithNameToURL(key, newTextureURL);
         }
     }
     

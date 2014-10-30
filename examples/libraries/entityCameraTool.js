@@ -25,7 +25,7 @@ var ZOOM_SCALING = 0.02;
 var MIN_ZOOM_DISTANCE = 0.01;
 var MAX_ZOOM_DISTANCE = 200;
 
-var MODE_INACTIVE = null;
+var MODE_INACTIVE = 'inactive';
 var MODE_ORBIT = 'orbit';
 var MODE_PAN = 'pan';
 
@@ -158,9 +158,11 @@ CameraManager = function() {
 
     that.mouseMoveEvent = function(event) {
         if (that.enabled && that.mode != MODE_INACTIVE) {
+            var x = Window.getCursorPositionX();
+            var y = Window.getCursorPositionY();
             if (that.mode == MODE_ORBIT) {
-                var diffX = event.x - that.lastMousePosition.x;
-                var diffY = event.y - that.lastMousePosition.y;
+                var diffX = x - that.lastMousePosition.x;
+                var diffY = y - that.lastMousePosition.y;
                 that.targetYaw -= MOUSE_SENSITIVITY * (diffX / 5.0)
                 that.targetPitch += MOUSE_SENSITIVITY * (diffY / 10.0)
 
@@ -172,8 +174,8 @@ CameraManager = function() {
 
                 that.updateCamera();
             } else if (that.mode == MODE_PAN) {
-                var diffX = event.x - that.lastMousePosition.x;
-                var diffY = event.y - that.lastMousePosition.y;
+                var diffX = x - that.lastMousePosition.x;
+                var diffY = y - that.lastMousePosition.y;
 
                 var up = Quat.getUp(Camera.getOrientation());
                 var right = Quat.getRight(Camera.getOrientation());
@@ -185,8 +187,11 @@ CameraManager = function() {
 
                 that.moveFocalPoint(dPosition);
             }
-            that.lastMousePosition.x = event.x;
-            that.lastMousePosition.y = event.y;
+            var newX = Window.x + Window.innerWidth / 2;
+            var newY = Window.y + Window.innerHeight / 2;
+            Window.setCursorPosition(newX, newY);
+            that.lastMousePosition.x = newX;
+            that.lastMousePosition.y = newY;
 
             return true;
         }
@@ -198,13 +203,18 @@ CameraManager = function() {
 
         if (event.isRightButton || (event.isLeftButton && event.isControl && !event.isShifted)) {
             that.mode = MODE_ORBIT;
-            that.lastMousePosition.x = event.x;
-            that.lastMousePosition.y = event.y;
-            return true;
         } else if (event.isMiddleButton || (event.isLeftButton && event.isControl && event.isShifted)) {
             that.mode = MODE_PAN;
-            that.lastMousePosition.x = event.x;
-            that.lastMousePosition.y = event.y;
+        }
+
+        if (that.mode != MODE_INACTIVE) {
+            var newX = Window.x + Window.innerWidth / 2;
+            var newY = Window.y + Window.innerHeight / 2;
+            Window.setCursorPosition(newX, newY);
+            that.lastMousePosition.x = newX;
+            that.lastMousePosition.y = newY;
+            Window.setCursorVisible(false);
+
             return true;
         }
 
@@ -214,6 +224,7 @@ CameraManager = function() {
     that.mouseReleaseEvent = function(event) {
         if (!that.enabled) return;
 
+        Window.setCursorVisible(true);
         that.mode = MODE_INACTIVE;
     }
 
