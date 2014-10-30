@@ -99,7 +99,7 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     _speechRecognizer(),
 #endif
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
@@ -225,7 +225,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::MetavoxelEditor, 0, this, SLOT(showMetavoxelEditor()));
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::ScriptEditor,  Qt::ALT | Qt::Key_S, this, SLOT(showScriptEditor()));
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     QAction* speechRecognizerAction = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ControlWithSpeech,
             Qt::CTRL | Qt::SHIFT | Qt::Key_C, _speechRecognizer.getEnabled(), &_speechRecognizer, SLOT(setEnabled(bool)));
     connect(&_speechRecognizer, SIGNAL(enabledUpdated(bool)), speechRecognizerAction, SLOT(setChecked(bool)));
@@ -769,7 +769,7 @@ void Menu::loadSettings(QSettings* settings) {
                                          QStandardPaths::writableLocation(QStandardPaths::DesktopLocation)).toString();
     setScriptsLocation(settings->value("scriptsLocation", QString()).toString());
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     _speechRecognizer.setEnabled(settings->value("speechRecognitionEnabled", false).toBool());
 #endif
 
@@ -835,7 +835,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->setValue("snapshotsLocation", _snapshotsLocation);
     settings->setValue("scriptsLocation", _scriptsLocation);
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     settings->setValue("speechRecognitionEnabled", _speechRecognizer.getEnabled());
 #endif
     settings->beginGroup("View Frustum Offset Camera");
