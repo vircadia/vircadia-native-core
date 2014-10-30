@@ -15,6 +15,9 @@
 #include <qstringlist.h>
 
 #include <GLMHelpers.h>
+#include <UUID.h>
+
+#include "NodeList.h"
 
 #include "AddressManager.h"
 
@@ -31,7 +34,11 @@ AddressManager::AddressManager() :
     
 }
 
-const QUrl AddressManager::currentAddress() {
+bool AddressManager::isConnected() {
+    return NodeList::getInstance()->getDomainHandler().isConnected();
+}
+
+const QUrl AddressManager::currentAddress() const {
     QUrl hifiURL;
     
     hifiURL.setScheme(HIFI_URL_SCHEME);
@@ -63,6 +70,11 @@ const QString AddressManager::currentPath(bool withOrientation) const {
             << "Call AdressManager::setPositionGetter to pass a function that will return a const glm::vec3&";
         return QString();
     }
+}
+
+QString AddressManager::getDomainID() const {
+    const QUuid& domainID = NodeList::getInstance()->getDomainHandler().getUUID();
+    return domainID.isNull() ? "" : uuidStringWithoutCurlyBraces(domainID);
 }
 
 const JSONCallbackParameters& AddressManager::apiCallbackParameters() {
@@ -139,14 +151,20 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
     
+    goToAddressFromObject(dataObject.toVariantMap());
+    
+    emit lookupResultsFinished();
+}
+
+void AddressManager::goToAddressFromObject(const QVariantMap& addressMap) {
     const QString ADDRESS_API_DOMAIN_KEY = "domain";
     const QString ADDRESS_API_ONLINE_KEY = "online";
     
-    if (!dataObject.contains(ADDRESS_API_ONLINE_KEY)
-        || dataObject[ADDRESS_API_ONLINE_KEY].toBool()) {
+    if (!addressMap.contains(ADDRESS_API_ONLINE_KEY)
+        || addressMap[ADDRESS_API_ONLINE_KEY].toBool()) {
         
-        if (dataObject.contains(ADDRESS_API_DOMAIN_KEY)) {
-            QJsonObject domainObject = dataObject[ADDRESS_API_DOMAIN_KEY].toObject();
+        if (addressMap.contains(ADDRESS_API_DOMAIN_KEY)) {
+            QVariantMap domainObject = addressMap[ADDRESS_API_DOMAIN_KEY].toMap();
             
             const QString DOMAIN_NETWORK_ADDRESS_KEY = "network_address";
             const QString DOMAIN_ICE_SERVER_ADDRESS_KEY = "ice_server_address";
@@ -178,10 +196,12 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
             if (domainObject.contains(LOCATION_PATH_KEY)) {
                 returnedPath = domainObject[LOCATION_PATH_KEY].toString();
             } else if (domainObject.contains(LOCATION_KEY)) {
-                returnedPath = domainObject[LOCATION_KEY].toObject()[LOCATION_PATH_KEY].toString();
+                returnedPath = domainObject[LOCATION_KEY].toMap()[LOCATION_PATH_KEY].toString();
+            } else if (addressMap.contains(LOCATION_PATH_KEY)) {
+                returnedPath = addressMap[LOCATION_PATH_KEY].toString();
             }
-
-            bool shouldFaceViewpoint = dataObject.contains(ADDRESS_API_ONLINE_KEY);
+            
+            bool shouldFaceViewpoint = addressMap.contains(ADDRESS_API_ONLINE_KEY);
             
             if (!returnedPath.isEmpty()) {
                 // try to parse this returned path as a viewpoint, that's the only thing it could be for now
@@ -192,13 +212,12 @@ void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
             
         } else {
             qDebug() << "Received an address manager API response with no domain key. Cannot parse.";
-            qDebug() << responseObject;
+            qDebug() << addressMap;
         }
     } else {
         // we've been told that this result exists but is offline, emit our signal so the application can handle
         emit lookupResultIsOffline();
     }
-    emit lookupResultsFinished();
 }
 
 void AddressManager::handleAPIError(QNetworkReply& errorReply) {
@@ -232,10 +251,8 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     if (hostnameRegex.indexIn(lookupString) != -1) {
         QString domainHostname = hostnameRegex.cap(0);
         
-        emit possibleDomainChangeRequiredToHostname(domainHostname);
         emit lookupResultsFinished();
-        
-        _currentDomain = domainHostname;
+        setDomainHostnameAndName(domainHostname);
         
         return true;
     }
@@ -245,10 +262,9 @@ bool AddressManager::handleNetworkAddress(const QString& lookupString) {
     if (ipAddressRegex.indexIn(lookupString) != -1) {
         QString domainIPString = ipAddressRegex.cap(0);
         
-        emit possibleDomainChangeRequiredToHostname(domainIPString);
         emit lookupResultsFinished();
+        setDomainHostnameAndName(domainIPString);
         
-        _currentDomain = domainIPString;
         return true;
     }
     
@@ -320,6 +336,12 @@ bool AddressManager::handleUsername(const QString& lookupString) {
     }
     
     return false;
+}
+
+
+void AddressManager::setDomainHostnameAndName(const QString& hostname, const QString& domainName) {
+    _currentDomain = domainName.isEmpty() ? hostname : domainName;
+    emit possibleDomainChangeRequiredToHostname(hostname);
 }
 
 void AddressManager::goToUser(const QString& username) {

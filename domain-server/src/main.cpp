@@ -17,7 +17,7 @@
 
 #include <QtCore/QCoreApplication>
 
-#include <Logging.h>
+#include <LogHandler.h>
 #include <SharedUtil.h>
 
 #include "DomainServer.h"
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
 #endif
     
-    qInstallMessageHandler(Logging::verboseMessageHandler);
+    qInstallMessageHandler(LogHandler::verboseMessageHandler);
     
     int currentExitCode = 0;
     

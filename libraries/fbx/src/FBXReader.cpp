@@ -25,7 +25,6 @@
 #include <GeometryUtil.h>
 #include <GLMHelpers.h>
 #include <OctalCode.h>
-#include <Shape.h>
 
 #include <VoxelTree.h>
 
@@ -70,6 +69,14 @@ Extents FBXGeometry::getUnscaledMeshExtents() const {
         
     return scaledExtents;
 }
+
+QString FBXGeometry::getModelNameOfMesh(int meshIndex) const {
+    if (meshIndicesToModelNames.contains(meshIndex)) {
+        return meshIndicesToModelNames.value(meshIndex);
+    }
+    return QString();
+}
+
 
 
 static int fbxGeometryMetaTypeId = qRegisterMetaType<FBXGeometry>();
@@ -513,6 +520,17 @@ QString processID(const QString& id) {
     return id.mid(id.lastIndexOf(':') + 1);
 }
 
+QString getName(const QVariantList& properties) {
+    QString name;
+    if (properties.size() == 3) {
+        name = properties.at(1).toString();
+        name = processID(name.left(name.indexOf(QChar('\0'))));
+    } else {
+        name = processID(properties.at(0).toString());
+    }
+    return name;
+}
+
 QString getID(const QVariantList& properties, int index = 0) {
     return processID(properties.at(index).toString());
 }
@@ -870,7 +888,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
             beginIndex = endIndex;
         }
     }
-
+    
     return data.extracted;
 }
 
@@ -984,10 +1002,13 @@ public:
     QVector<float> values;
 };
 
-FBXTexture getTexture(const QString& textureID, const QHash<QString, QByteArray>& textureFilenames,
-        const QHash<QByteArray, QByteArray>& textureContent) {
+FBXTexture getTexture(const QString& textureID,
+                      const QHash<QString, QString>& textureNames,
+                      const QHash<QString, QByteArray>& textureFilenames,
+                      const QHash<QByteArray, QByteArray>& textureContent) {
     FBXTexture texture;
     texture.filename = textureFilenames.value(textureID);
+    texture.name = textureNames.value(textureID);
     texture.content = textureContent.value(texture.filename);
     return texture;
 }
@@ -1006,12 +1027,17 @@ bool checkMaterialsHaveTextures(const QHash<QString, Material>& materials,
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
+    QHash<QString, QString> modelIDsToNames;
+    QHash<QString, int> meshIDsToMeshIndices;
+    QHash<QString, QString> ooChildToParent;
+
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<QString, QString> parentMap;
     QMultiHash<QString, QString> childMap;
     QHash<QString, FBXModel> models;
     QHash<QString, Cluster> clusters;
     QHash<QString, AnimationCurve> animationCurves;
+    QHash<QString, QString> textureNames;
     QHash<QString, QByteArray> textureFilenames;
     QHash<QByteArray, QByteArray> textureContent;
     QHash<QString, Material> materials;
@@ -1075,6 +1101,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     FBXGeometry geometry;
     float unitScaleFactor = 1.0f;
     foreach (const FBXNode& child, node.children) {
+    
         if (child.name == "FBXHeaderExtension") {
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "SceneInfo") {
@@ -1112,20 +1139,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
                         meshes.insert(getID(object.properties), extractMesh(object));
-
                     } else { // object.properties.at(2) == "Shape"
                         ExtractedBlendshape extracted = { getID(object.properties), extractBlendshape(object) };
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
-                    QString name;
-                    if (object.properties.size() == 3) {
-                        name = object.properties.at(1).toString();
-                        name = processID(name.left(name.indexOf(QChar('\0'))));
+                    QString name = getName(object.properties);
+                    QString id = getID(object.properties);
+                    modelIDsToNames.insert(id, name);
 
-                    } else {
-                        name = getID(object.properties);
-                    }
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
                         jointEyeLeftID = getID(object.properties);
 
@@ -1278,6 +1300,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
                             textureFilenames.insert(getID(object.properties), filename);
+                        } else if (subobject.name == "TextureName") {
+                            // trim the name from the timestamp
+                            QString name = QString(subobject.properties.at(0).toByteArray());
+                            name = name.left(name.indexOf('['));
+                            textureNames.insert(getID(object.properties), name);
                         }
                     }
                 } else if (object.name == "Video") {
@@ -1384,6 +1411,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {
                 if (connection.name == "C" || connection.name == "Connect") {
+                    if (connection.properties.at(0) == "OO") {
+                        QString childID = getID(connection.properties, 1);
+                        QString parentID = getID(connection.properties, 2);
+                        ooChildToParent.insert(childID, parentID);
+                    }
                     if (connection.properties.at(0) == "OP") {
                         QByteArray type = connection.properties.at(3).toByteArray().toLower();
                         if (type.contains("diffuse")) {
@@ -1525,7 +1557,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
         joint.shapePosition = glm::vec3(0.f);
-        joint.shapeType = UNKNOWN_SHAPE;
+        joint.shapeType = SHAPE_TYPE_UNKNOWN;
         
         foreach (const QString& childID, childMap.values(modelID)) {
             QString type = typeFlags.value(childID);
@@ -1612,12 +1644,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 FBXTexture diffuseTexture;
                 QString diffuseTextureID = diffuseTextures.value(childID);
                 if (!diffuseTextureID.isNull()) {
-                    diffuseTexture = getTexture(diffuseTextureID, textureFilenames, textureContent);
+                    diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent);
                     
                     // FBX files generated by 3DSMax have an intermediate texture parent, apparently
                     foreach (const QString& childTextureID, childMap.values(diffuseTextureID)) {
                         if (textureFilenames.contains(childTextureID)) {
-                            diffuseTexture = getTexture(diffuseTextureID, textureFilenames, textureContent);
+                            diffuseTexture = getTexture(diffuseTextureID, textureNames, textureFilenames, textureContent);
                         }
                     }
                 }
@@ -1625,14 +1657,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 FBXTexture normalTexture;
                 QString bumpTextureID = bumpTextures.value(childID);
                 if (!bumpTextureID.isNull()) {
-                    normalTexture = getTexture(bumpTextureID, textureFilenames, textureContent);
+                    normalTexture = getTexture(bumpTextureID, textureNames, textureFilenames, textureContent);
                     generateTangents = true;
                 }
                 
                 FBXTexture specularTexture;
                 QString specularTextureID = specularTextures.value(childID);
                 if (!specularTextureID.isNull()) {
-                    specularTexture = getTexture(specularTextureID, textureFilenames, textureContent);
+                    specularTexture = getTexture(specularTextureID, textureNames, textureFilenames, textureContent);
                 }
                 
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
@@ -1658,7 +1690,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 materialIndex++;
                 
             } else if (textureFilenames.contains(childID)) {
-                FBXTexture texture = getTexture(childID, textureFilenames, textureContent);
+                FBXTexture texture = getTexture(childID, textureNames, textureFilenames, textureContent);
                 for (int j = 0; j < extracted.partMaterialTextures.size(); j++) {
                     int partTexture = extracted.partMaterialTextures.at(j).second;
                     if (partTexture == textureIndex && !(partTexture == 0 && materialsHaveTextures)) {
@@ -1874,6 +1906,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
         
         geometry.meshes.append(extracted.mesh);
+        int meshIndex = geometry.meshes.size() - 1;
+        meshIDsToMeshIndices.insert(it.key(), meshIndex);
+
     }
 
     // now that all joints have been scanned, compute a collision shape for each joint
@@ -1902,10 +1937,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (collideLikeCapsule) {
             joint.shapeRotation = rotationBetween(defaultCapsuleAxis, jointShapeInfo.boneBegin);
             joint.shapePosition = 0.5f * jointShapeInfo.boneBegin;
-            joint.shapeType = CAPSULE_SHAPE;
+            joint.shapeType = SHAPE_TYPE_CAPSULE;
         } else {
             // collide the joint like a sphere
-            joint.shapeType = SPHERE_SHAPE;
+            joint.shapeType = SHAPE_TYPE_SPHERE;
             if (jointShapeInfo.numVertices > 0) {
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
@@ -1925,8 +1960,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             if (distanceFromEnd > joint.distanceToParent && distanceFromBegin > joint.distanceToParent) {
                 // The shape is further from both joint endpoints than the endpoints are from each other
                 // which probably means the model has a bad transform somewhere.  We disable this shape
-                // by setting its type to UNKNOWN_SHAPE.
-                joint.shapeType = UNKNOWN_SHAPE;
+                // by setting its type to SHAPE_TYPE_UNKNOWN.
+                joint.shapeType = SHAPE_TYPE_UNKNOWN;
             }
         }
     }
@@ -1971,6 +2006,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         sittingPoint.rotation = glm::quat(glm::radians(parseVec3(properties.at(1).toString())));
         
         geometry.sittingPoints.append(sittingPoint);
+    }
+    
+    // attempt to map any meshes to a named model
+    for (QHash<QString, int>::const_iterator m = meshIDsToMeshIndices.constBegin(); 
+            m != meshIDsToMeshIndices.constEnd(); m++) {
+            
+        const QString& meshID = m.key();
+        int meshIndex = m.value();
+        
+        if (ooChildToParent.contains(meshID)) {
+            const QString& modelID = ooChildToParent.value(meshID);
+            if (modelIDsToNames.contains(modelID)) {
+                const QString& modelName = modelIDsToNames.value(modelID);
+                geometry.meshIndicesToModelNames.insert(meshIndex, modelName);
+            }
+        }
     }
     
     return geometry;

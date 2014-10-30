@@ -49,8 +49,9 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float MIN_KEYBOARD_CONTROL_SPEED = 0.50f;
 const float MAX_WALKING_SPEED = 4.5f;
+const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
+const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic 
 // to properly follow avatar size.
@@ -106,6 +107,20 @@ MyAvatar::MyAvatar() :
 MyAvatar::~MyAvatar() {
     _physicsSimulation.clear();
     _lookAtTargetAvatar.clear();
+}
+
+QByteArray MyAvatar::toByteArray() {
+    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
+        // fake the avatar position that is sent up to the AvatarMixer
+        glm::vec3 oldPosition = _position;
+        _position += _skeletonOffset;
+        QByteArray array = AvatarData::toByteArray();
+        // copy the correct position back
+        _position = oldPosition;
+        return array;
+    }
+    return AvatarData::toByteArray();
 }
 
 void MyAvatar::reset() {
@@ -1054,6 +1069,14 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
     _billboardValid = false;
 }
 
+glm::vec3 MyAvatar::getSkeletonPosition() const {
+    CameraMode mode = Application::getInstance()->getCamera()->getMode();
+    if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
+        return Avatar::getSkeletonPosition();
+    }
+    return Avatar::getPosition();
+}
+
 QString MyAvatar::getScriptedMotorFrame() const {
     QString frame = "avatar";
     if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
@@ -1264,19 +1287,21 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
 
             // Compute the target keyboard velocity (which ramps up slowly, and damps very quickly)
             // the max magnitude of which depends on what we're doing:
-            float motorLength = glm::length(_keyboardMotorVelocity);
+            float motorSpeed = glm::length(_keyboardMotorVelocity);
             float finalMaxMotorSpeed = hasFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
             float speedGrowthTimescale  = 2.0f;
             float speedIncreaseFactor = 1.8f;
-            motorLength *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-            if (motorLength < _scale * MIN_KEYBOARD_CONTROL_SPEED) {
+            motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
+            const float maxBoostSpeed = _scale * MAX_BOOST_SPEED;
+            if (motorSpeed < maxBoostSpeed) {
                 // an active keyboard motor should never be slower than this
-                motorLength = _scale * MIN_KEYBOARD_CONTROL_SPEED;
-                motorEfficiency = 1.0f;
-            } else if (motorLength > finalMaxMotorSpeed) {
-                motorLength = finalMaxMotorSpeed;
+                float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
+                motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
+                motorEfficiency += (1.0f - motorEfficiency) * boostCoefficient;
+            } else if (motorSpeed > finalMaxMotorSpeed) {
+                motorSpeed = finalMaxMotorSpeed;
             }
-            _keyboardMotorVelocity = motorLength * direction;
+            _keyboardMotorVelocity = motorSpeed * direction;
             _isPushing = true;
         } 
     } else {
@@ -1408,7 +1433,6 @@ void MyAvatar::updatePosition(float deltaTime) {
     }
 
     // update position
-    const float MIN_AVATAR_SPEED = 0.075f;
     if (speed > MIN_AVATAR_SPEED) {
         applyPositionDelta(deltaTime * velocity);
     }

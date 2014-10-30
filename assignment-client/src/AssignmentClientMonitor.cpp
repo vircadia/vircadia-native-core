@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <Logging.h>
+#include <LogHandler.h>
 
 #include "AssignmentClientMonitor.h"
 
@@ -21,7 +21,7 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int num
     QCoreApplication(argc, argv)
 {
     // start the Logging class with the parent's target name
-    Logging::setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
+    LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
     
     _childArguments = arguments();
     

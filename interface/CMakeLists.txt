@@ -30,10 +30,10 @@ elseif (UNIX)
   # include the right GL headers for UNIX
   set(GL_HEADERS "#include <GL/gl.h>\n#include <GL/glut.h>\n#include <GL/glext.h>")
 elseif (WIN32)
-    add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
-    add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
+  add_definitions(-D_USE_MATH_DEFINES) # apparently needed to get M_PI and other defines from cmath/math.h
+  add_definitions(-DWINDOWS_LEAN_AND_MEAN) # needed to make sure windows doesn't go to crazy with its defines
 
-    set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>\n#include <GL/wglew.h>")
+  set(GL_HEADERS "#include <windowshacks.h>\n#include <GL/glew.h>\n#include <GL/glut.h>\n#include <GL/wglew.h>")
 endif ()
 
 # set up the external glm library
@@ -44,19 +44,21 @@ configure_file(InterfaceConfig.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceCon
 configure_file(InterfaceVersion.h.in "${PROJECT_BINARY_DIR}/includes/InterfaceVersion.h")
 
 # grab the implementation and header files from src dirs
-file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui starfield location scripting voxels particles entities gpu)
-  file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
-  set(INTERFACE_SRCS ${INTERFACE_SRCS} "${SUBDIR_SRCS}")
-endforeach(SUBDIR)
+file(GLOB_RECURSE INTERFACE_SRCS "src/*.cpp" "src/*.h")
 
-# Add SpeechRecognizer if on OS X, otherwise remove
-if (APPLE)
-    file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
-    set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
+# Add SpeechRecognizer if on Windows or OS X, otherwise remove
+if (WIN32)
+  # Use .cpp and .h files as is.
+elseif (APPLE)
+  file(GLOB INTERFACE_OBJCPP_SRCS "src/SpeechRecognizer.mm")
+  set(INTERFACE_SRCS ${INTERFACE_SRCS} ${INTERFACE_OBJCPP_SRCS})
+  get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
+  list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 else ()
-    get_filename_component(SPEECHRECOGNIZER_H "src/SpeechRecognizer.h" ABSOLUTE)
-    list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
+  get_filename_component(SPEECHRECOGNIZER_H "src/SpeechRecognizer.h" ABSOLUTE)
+  list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_H})
+  get_filename_component(SPEECHRECOGNIZER_CPP "src/SpeechRecognizer.cpp" ABSOLUTE)
+  list(REMOVE_ITEM INTERFACE_SRCS ${SPEECHRECOGNIZER_CPP})
 endif ()
 
 find_package(Qt5 COMPONENTS Gui Multimedia Network OpenGL Script Svg WebKitWidgets)
@@ -105,7 +107,7 @@ endif()
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS} ${QM})
 
 # link required hifi libraries
-link_hifi_libraries(shared octree voxels fbx metavoxels networking entities avatars audio animation script-engine)
+link_hifi_libraries(shared octree voxels fbx metavoxels networking entities avatars audio animation script-engine physics)
 
 # find any optional and required libraries
 find_package(ZLIB REQUIRED)
@@ -189,20 +191,20 @@ target_link_libraries(
 add_definitions(-DQT_NO_BEARERMANAGEMENT)
 
 if (APPLE)
-    # link in required OS X frameworks and include the right GL headers
-    find_library(CoreAudio CoreAudio)
-    find_library(CoreFoundation CoreFoundation)
-    find_library(GLUT GLUT)
-    find_library(OpenGL OpenGL)
-    find_library(AppKit AppKit)
+  # link in required OS X frameworks and include the right GL headers
+  find_library(CoreAudio CoreAudio)
+  find_library(CoreFoundation CoreFoundation)
+  find_library(GLUT GLUT)
+  find_library(OpenGL OpenGL)
+  find_library(AppKit AppKit)
 
-    target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL} ${AppKit})
+  target_link_libraries(${TARGET_NAME} ${CoreAudio} ${CoreFoundation} ${GLUT} ${OpenGL} ${AppKit})
     
-    # install command for OS X bundle
-    INSTALL(TARGETS ${TARGET_NAME}
-        BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-        RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    )
+  # install command for OS X bundle
+  INSTALL(TARGETS ${TARGET_NAME}
+    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
+  )
 else (APPLE)
   # copy the resources files beside the executable
   add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
@@ -226,11 +228,20 @@ else (APPLE)
   if (WIN32)
     find_package(GLEW REQUIRED)
     include_directories(${GLEW_INCLUDE_DIRS})
-    
+
     # we're using static GLEW, so define GLEW_STATIC
     add_definitions(-DGLEW_STATIC)
-    
-    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    target_link_libraries(${TARGET_NAME} "${GLEW_LIBRARIES}" "${NSIGHT_LIBRARIES}" wsock32.lib opengl32.lib)
+
+    # try to find the Nsight package and add it to the build if we find it
+    find_package(NSIGHT)
+    if (NSIGHT_FOUND)
+      include_directories(${NSIGHT_INCLUDE_DIRS})
+      add_definitions(-DNSIGHT_FOUND)
+      target_link_libraries(${TARGET_NAME} "${NSIGHT_LIBRARIES}")
+    endif ()
+
   endif()
 endif (APPLE)
 

@@ -52,6 +52,7 @@ const float DISPLAYNAME_BACKGROUND_ALPHA = 0.4f;
 Avatar::Avatar() :
     AvatarData(),
     _skeletonModel(this),
+    _skeletonOffset(0.0f),
     _bodyYawDelta(0.0f),
     _velocity(0.0f),
     _positionDeltaAccumulator(0.0f),
@@ -763,6 +764,20 @@ bool Avatar::findCollisions(const QVector<const Shape*>& shapes, CollisionList& 
     return collided;
 }
 
+void Avatar::setSkeletonOffset(const glm::vec3& offset) {
+    const float MAX_OFFSET_LENGTH = _scale * 0.5f;
+    float offsetLength = glm::length(offset);
+    if (offsetLength > MAX_OFFSET_LENGTH) {
+        _skeletonOffset = (MAX_OFFSET_LENGTH / offsetLength) * offset;
+    } else {
+        _skeletonOffset = offset;
+    }
+}
+
+glm::vec3 Avatar::getSkeletonPosition() const { 
+    return _position + _skeletonOffset; 
+}
+
 QVector<glm::quat> Avatar::getJointRotations() const {
     if (QThread::currentThread() != thread()) {
         return AvatarData::getJointRotations();
@@ -856,7 +871,7 @@ const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
 void Avatar::setJointModelPositionAndOrientation(int index, glm::vec3 position, const glm::quat& rotation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "setJointModelPositionAndOrientation", 
-            Qt::BlockingQueuedConnection, Q_ARG(const int, index), Q_ARG(const glm::vec3, position),
+            Qt::AutoConnection, Q_ARG(const int, index), Q_ARG(const glm::vec3, position),
             Q_ARG(const glm::quat&, rotation));
     } else {
         _skeletonModel.inverseKinematics(index, position, rotation, SCRIPT_PRIORITY);
@@ -866,7 +881,7 @@ void Avatar::setJointModelPositionAndOrientation(int index, glm::vec3 position, 
 void Avatar::setJointModelPositionAndOrientation(const QString& name, glm::vec3 position, const glm::quat& rotation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "setJointModelPositionAndOrientation", 
-            Qt::BlockingQueuedConnection, Q_ARG(const QString&, name), Q_ARG(const glm::vec3, position),
+            Qt::AutoConnection, Q_ARG(const QString&, name), Q_ARG(const glm::vec3, position),
             Q_ARG(const glm::quat&, rotation));
     } else {
         _skeletonModel.inverseKinematics(getJointIndex(name), position, rotation, SCRIPT_PRIORITY);

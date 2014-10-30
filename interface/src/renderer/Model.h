@@ -187,11 +187,19 @@ public:
  
     void inverseKinematics(int jointIndex, glm::vec3 position, const glm::quat& rotation, float priority);
     
+    Q_INVOKABLE void setTextureWithNameToURL(const QString& name, const QUrl& url)
+        { _geometry->setTextureWithNameToURL(name, url); }
+
+    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, 
+                                                float& distance, BoxFace& face, QString& extraInfo) const;
+
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
     
     glm::vec3 _scale;
     glm::vec3 _offset;
+
+    static float FAKE_DIMENSION_PLACEHOLDER;
 
     bool _scaleToFit; /// If you set scaleToFit, we will calculate scale based on MeshExtents
     glm::vec3 _scaleToFitDimensions; /// this is the dimensions that scale to fit will use
@@ -337,6 +345,8 @@ private:
 
     QVector<AABox> _calculatedMeshBoxes;
     bool _calculatedMeshBoxesValid;
+
+    void recalcuateMeshBoxes();
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 

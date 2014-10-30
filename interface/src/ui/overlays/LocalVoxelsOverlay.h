@@ -35,7 +35,7 @@ public:
     ~LocalVoxelsOverlay();
     
     virtual void update(float deltatime);
-    virtual void render();
+    virtual void render(RenderArgs* args);
     
     virtual void setProperties(const QScriptValue& properties);
     

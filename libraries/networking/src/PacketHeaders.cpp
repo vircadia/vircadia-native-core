@@ -53,7 +53,7 @@ PacketVersion versionForPacketType(PacketType type) {
         case PacketTypeSilentAudioFrame:
             return 4;
         case PacketTypeMixedAudio:
-            return 2;
+            return 1;
         case PacketTypeAvatarData:
             return 3;
         case PacketTypeAvatarIdentity:
@@ -71,11 +71,9 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeOctreeStats:
             return 1;
-
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
             return VERSION_ENTITIES_SUPPORT_DIMENSIONS;
-
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
@@ -135,8 +133,13 @@ QString nameForPacketType(PacketType type) {
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityAddResponse);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeOctreeDataNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeVoxelEditNack);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeAudioEnvironment);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeEntityEditNack);
         PACKET_TYPE_NAME_LOOKUP(PacketTypeSignedTransactionPayment);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeat);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeIceServerHeartbeatResponse);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPing);
+        PACKET_TYPE_NAME_LOOKUP(PacketTypeUnverifiedPingReply);
         default:
             return QString("Type: ") + QString::number((int)type);
     }

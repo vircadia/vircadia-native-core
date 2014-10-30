@@ -55,8 +55,10 @@
 #include <AccountManager.h>
 #include <AudioInjector.h>
 #include <EntityScriptingInterface.h>
+#include <HFActionEvent.h>
+#include <HFBackEvent.h>
 #include <LocalVoxelsList.h>
-#include <Logging.h>
+#include <LogHandler.h>
 #include <NetworkAccessManager.h>
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
@@ -67,15 +69,18 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "ui/DataWebDialog.h"
 #include "InterfaceVersion.h"
 #include "Menu.h"
 #include "ModelUploader.h"
 #include "Util.h"
+
+#include "devices/Leapmotion.h"
 #include "devices/MIDIManager.h"
 #include "devices/OculusManager.h"
 #include "devices/TV3DManager.h"
+
 #include "renderer/ProgramObject.h"
+#include "gpu/Batch.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -87,12 +92,12 @@
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 
+#include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
 #include "ui/Snapshot.h"
 #include "ui/Stats.h"
 #include "ui/TextRenderer.h"
 
-#include "devices/Leapmotion.h"
 
 using namespace std;
 
@@ -112,12 +117,10 @@ const QString SKIP_FILENAME = QStandardPaths::writableLocation(QStandardPaths::D
 const QString DEFAULT_SCRIPTS_JS_URL = "http://public.highfidelity.io/scripts/defaultScripts.js";
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
-    if (message.size() > 0) {
-        QString dateString = QDateTime::currentDateTime().toTimeSpec(Qt::LocalTime).toString(Qt::ISODate);
-        QString formattedMessage = QString("[%1] %2\n").arg(dateString).arg(message);
-
-        fprintf(stdout, "%s", qPrintable(formattedMessage));
-        Application::getInstance()->getLogger()->addMessage(qPrintable(formattedMessage));
+    QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
+    
+    if (!logMessage.isEmpty()) {
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
     }
 }
 
@@ -136,6 +139,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _glWidget(new GLCanvas()),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
+        _undoStack(),
+        _undoStackScriptingInterface(&_undoStack),
         _frameCount(0),
         _fps(60.0f),
         _justStarted(true),
@@ -172,8 +177,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _nodeBoundsDisplay(this),
         _previousScriptLocation(),
         _applicationOverlay(),
-        _undoStack(),
-        _undoStackScriptingInterface(&_undoStack),
         _runningScriptsWidget(NULL),
         _runningScriptsWidgetWasVisible(false),
         _trayIcon(new QSystemTrayIcon(_window)),
@@ -414,6 +417,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
     midiManagerInstance.openDefaultPort();
 #endif
+
+    this->installEventFilter(this);
 }
 
 Application::~Application() {
@@ -575,10 +580,6 @@ void Application::initializeGL() {
         float startupTime = (float)_applicationStartupTime.elapsed() / 1000.0;
         _justStarted = false;
         qDebug("Startup time: %4.2f seconds.", startupTime);
-        const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
-
-        // ask the Logstash class to record the startup time
-        Logging::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
 
     // update before the first render
@@ -588,6 +589,7 @@ void Application::initializeGL() {
 }
 
 void Application::paintGL() {
+    PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("paintGL");
 
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
@@ -833,7 +835,24 @@ bool Application::event(QEvent* event) {
         return false;
     }
     
+    if (HFActionEvent::types().contains(event->type())) {
+        _controllerScriptingInterface.handleMetaEvent(static_cast<HFMetaEvent*>(event));
+    }
+     
     return QApplication::event(event);
+}
+
+bool Application::eventFilter(QObject* object, QEvent* event) {
+
+    if (event->type() == QEvent::ShortcutOverride) {
+        // Filter out captured keys before they're used for shortcut actions.
+        if (_controllerScriptingInterface.isKeyCaptured(static_cast<QKeyEvent*>(event))) {
+            event->accept();
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -1094,9 +1113,27 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Equal:
                 _myAvatar->resetSize();
                 break;
-            case Qt::Key_Escape:
-                OculusManager::abandonCalibration();
+            case Qt::Key_Space: {
+                if (!event->isAutoRepeat()) {
+                    // this starts an HFActionEvent
+                    HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                    sendEvent(this, &startActionEvent);
+                }
+                
                 break;
+            }
+            case Qt::Key_Escape: {
+                OculusManager::abandonCalibration();
+                
+                if (!event->isAutoRepeat()) {
+                    // this starts the HFCancelEvent
+                    HFBackEvent startBackEvent(HFBackEvent::startType());
+                    sendEvent(this, &startBackEvent);
+                }
+                
+                break;
+            }
+            
             default:
                 event->ignore();
                 break;
@@ -1167,6 +1204,24 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Alt:
             _myAvatar->clearDriveKeys();
             break;
+        case Qt::Key_Space: {
+            if (!event->isAutoRepeat()) {
+                // this ends the HFActionEvent
+                HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+                sendEvent(this, &endActionEvent);
+            }
+            
+            break;
+        }
+        case Qt::Key_Escape: {
+            if (!event->isAutoRepeat()) {
+                // this ends the HFCancelEvent
+                HFBackEvent endBackEvent(HFBackEvent::endType());
+                sendEvent(this, &endBackEvent);
+            }
+            
+            break;
+        }
         default:
             event->ignore();
             break;
@@ -1239,6 +1294,10 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
                 // stop propagation
                 return;
             }
+            
+            // nobody handled this - make it an action event on the _window object
+            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
             // right click items here
@@ -1259,12 +1318,17 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             _mouseX = event->x();
             _mouseY = event->y();
             _mousePressed = false;
+            
             checkBandwidthMeterClick();
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
                 // let's set horizontal offset to give stats some margin to mirror
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
                 Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
             }
+            
+            // fire an action end event
+            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            sendEvent(this, &actionEvent);
         }
     }
 }
@@ -1494,9 +1558,12 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::disconnect();
             OculusManager::connect();
         }
+        int oculusMaxFPS = Menu::getInstance()->getOculusUIMaxFPS();
+        setRenderTargetFramerate(oculusMaxFPS);
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        setRenderTargetFramerate(0);
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
@@ -2720,7 +2787,13 @@ void Application::updateShadowMap() {
 
         {
             PerformanceTimer perfTimer("entities");
-            _entities.render(OctreeRenderer::SHADOW_RENDER_MODE);
+            _entities.render(RenderArgs::SHADOW_RENDER_MODE);
+        }
+
+        // render JS/scriptable overlays
+        {
+            PerformanceTimer perfTimer("3dOverlays");
+            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -2776,6 +2849,7 @@ QImage Application::renderAvatarBillboard() {
 }
 
 void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
+    PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
@@ -2918,6 +2992,12 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _entities.render();
         }
 
+        // render JS/scriptable overlays
+        {
+            PerformanceTimer perfTimer("3dOverlays");
+            _overlays.render3D();
+        }
+
         // render the ambient occlusion effect if enabled
         if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
             PerformanceTimer perfTimer("ambientOcclusion");
@@ -2935,6 +3015,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     }
     
     {
+        PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
         _deferredLightingEffect.render();
     }
@@ -2989,12 +3070,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         {
             PerformanceTimer perfTimer("inWorldInterface");
             emit renderingInWorldInterface();
-        }
-
-        // render JS/scriptable overlays
-        {
-            PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
         }
     }
     
@@ -3104,7 +3179,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
-        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio();
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * _renderResolutionScale;
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
@@ -3795,7 +3870,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->registerGlobalObject("Camera", cameraScriptable);
     connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
 #endif
 

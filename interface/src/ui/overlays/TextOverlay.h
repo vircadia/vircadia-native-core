@@ -37,7 +37,7 @@ class TextOverlay : public Overlay2D {
 public:
     TextOverlay();
     ~TextOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
 
     // getters
     const QString& getText() const { return _text; }

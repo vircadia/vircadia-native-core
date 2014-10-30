@@ -52,7 +52,7 @@ xColor Text3DOverlay::getBackgroundColor() {
 }
 
 
-void Text3DOverlay::render() {
+void Text3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

@@ -8,6 +8,7 @@ include_glm()
 link_hifi_libraries( 
   audio avatars octree voxels fbx entities metavoxels 
   networking animation shared script-engine embedded-webserver
+  physics
 )
 
 if (UNIX)

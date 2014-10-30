@@ -36,6 +36,7 @@ ImageOverlay::~ImageOverlay() {
 
 // TODO: handle setting image multiple times, how do we manage releasing the bound texture?
 void ImageOverlay::setImageURL(const QUrl& url) {
+    _imageURL = url;
     _isLoaded = false;
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
@@ -52,7 +53,7 @@ void ImageOverlay::replyFinished() {
     _isLoaded = true;
 }
 
-void ImageOverlay::render() {
+void ImageOverlay::render(RenderArgs* args) {
     if (!_visible || !_isLoaded) {
         return; // do nothing if we're not visible
     }

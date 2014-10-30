@@ -23,7 +23,7 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
 
@@ -100,6 +100,8 @@ public:
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
     float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
     void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
+    int getOculusUIMaxFPS() const { return _oculusUIMaxFPS; }
+    void setOculusUIMaxFPS(int oculusUIMaxFPS) { _oculusUIMaxFPS = oculusUIMaxFPS; bumpSettings(); }
     float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
     void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
@@ -146,7 +148,7 @@ public:
 
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
 
@@ -286,12 +288,13 @@ private:
     LodToolsDialog* _lodToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
+    int _oculusUIMaxFPS;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
     bool _automaticAvatarLOD;

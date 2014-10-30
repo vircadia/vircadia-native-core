@@ -46,7 +46,7 @@ private:
 
 signals:
 };
-
+ 
 
 /// handles scripting of input controller commands from JS
 class ControllerScriptingInterface : public AbstractControllerScriptingInterface {
@@ -56,6 +56,8 @@ public:
     ControllerScriptingInterface();
     void emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
     void emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }
+    
+    void handleMetaEvent(HFMetaEvent* event);
 
     void emitMouseMoveEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mouseMoveEvent(MouseEvent(*event, deviceID)); }
     void emitMousePressEvent(QMouseEvent* event, unsigned int deviceID = 0) { emit mousePressEvent(MouseEvent(*event, deviceID)); }

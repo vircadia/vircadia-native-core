@@ -19,8 +19,6 @@
 #include <QVector>
 
 #include <Extents.h>
-#include <Shape.h>
-
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -55,6 +53,12 @@ public:
     QVector<glm::vec3> normals;
 };
 
+enum ShapeType {
+    SHAPE_TYPE_SPHERE = 0,
+    SHAPE_TYPE_CAPSULE = 1,
+    SHAPE_TYPE_UNKNOWN = 2
+};
+
 /// A single joint (transformation node) extracted from an FBX document.
 class FBXJoint {
 public:
@@ -79,7 +83,7 @@ public:
     QString name;
     glm::vec3 shapePosition;  // in joint frame
     glm::quat shapeRotation;  // in joint frame
-    Shape::Type shapeType;
+    ShapeType shapeType;
     bool isSkeletonJoint;
 };
 
@@ -95,7 +99,7 @@ public:
 /// A texture map in an FBX document.
 class FBXTexture {
 public:
-    
+    QString name;
     QByteArray filename;
     QByteArray content;
 };
@@ -220,6 +224,12 @@ public:
 
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
+
+
+    QHash<int, QString> meshIndicesToModelNames;
+    
+    /// given a meshIndex this will return the name of the model that mesh belongs to if known
+    QString getModelNameOfMesh(int meshIndex) const;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

@@ -24,7 +24,7 @@ BillboardOverlay::BillboardOverlay() :
       _isLoaded = false;
 }
 
-void BillboardOverlay::render() {
+void BillboardOverlay::render(RenderArgs* args) {
     if (!_visible || !_isLoaded) {
         return;
     }
