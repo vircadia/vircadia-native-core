@@ -18,9 +18,9 @@ var reticle = false;
 var avatarStickPosition = {};
 
 var orbNaturalExtentsMin = { x: -1230, y: -1223, z: -1210 };
-var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1223 };
-var panelsNaturalExtentsMin = { x: -1181, y: -326, z: 56 };
-var panelsNaturalExtentsMax = { x: 1181, y: 576, z: 1183 };
+var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1210 };
+var panelsNaturalExtentsMin = { x: -1223, y: -348, z: 45 };
+var panelsNaturalExtentsMax = { x: 1223, y: 604, z: 1223 };
 
 var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
 var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
@@ -47,14 +47,14 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
       dimensions: panelsDimensions
     };
     
     var orbShellProps = {
-      url:  HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyConcepts/Lobby5_OrbShellOnly.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_OrbNoFrames.fbx",
       position: orbPosition,
       rotation: towardsMe,
       dimensions: orbDimensions,
