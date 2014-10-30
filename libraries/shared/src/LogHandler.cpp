@@ -17,7 +17,7 @@
 #define getpid _getpid
 #define getppid _getpid // hack to build
 #define pid_t int // hack to build
-#elif Q_OS_LINUX
+#elif __linux__
 #include <unistd.h> // for getpid() on linux
 #endif
 
