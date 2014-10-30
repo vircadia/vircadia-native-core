@@ -9,48 +9,91 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 var panelWall = false;
+var orbShell = false;
+var reticle = false;
 
 var avatarStickPosition = {};
 
-var panelsNaturalExtentsMin = { x: -1181, y: -326, z: 56 };
-var panelsNaturalExtentsMax = { x: 1181, y: 576, z: 1183 };
+var orbNaturalExtentsMin = { x: -1230, y: -1223, z: -1210 };
+var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1210 };
+var panelsNaturalExtentsMin = { x: -1223, y: -348, z: 45 };
+var panelsNaturalExtentsMax = { x: 1223, y: 604, z: 1223 };
 
+var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
 var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
+
 var SCALING_FACTOR = 0.01;
+var orbDimensions = Vec3.multiply(orbNaturalDimensions, SCALING_FACTOR);
 var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR);
+
+var orbNaturalCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbNaturalDimensions, 0.5));
+var panelsNaturalCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsNaturalDimensions, 0.5));
+var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR);
+var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR);
+var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
+
+var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
+
+function reticlePosition() {
+  var screenSize = Controller.getViewportDimensions();
+  var reticleRay = Camera.computePickRay(screenSize.x / 2, screenSize.y / 2);
+  var RETICLE_DISTANCE = 1;
+  return Vec3.sum(reticleRay.origin, Vec3.multiply(reticleRay.direction, RETICLE_DISTANCE));
+}
 
 function drawLobby() {
   if (!panelWall) {
-    print("Adding an overlay for the lobby panel wall.")
-    
-    var front = Quat.getFront(Camera.getOrientation());
-    front.y = 0
-    front = Vec3.normalize(front)
+    print("Adding overlays for the lobby panel wall and orb shell.");
     
     var cameraEuler = Quat.safeEulerAngles(Camera.getOrientation());
-
-    var panelWallProps = {
-      url: "https://s3.amazonaws.com/hifi-public/models/sets/Lobby/LobbyPrototype/PanelWall3.fbx",
-      position: Vec3.sum(Camera.getPosition(), Vec3.multiply(front, 0.5)),
-      rotation: Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0}),
-      dimensions: panelsDimensions
-    }
+    var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0});
     
-    avatarStickPosition = MyAvatar.position
+    var orbPosition = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
+    
+    var panelWallProps = {
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
+      position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
+      rotation: towardsMe,
+      dimensions: panelsDimensions
+    };
+    
+    var orbShellProps = {
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_OrbNoFrames.fbx",
+      position: orbPosition,
+      rotation: towardsMe,
+      dimensions: orbDimensions,
+      ignoreRayIntersection: true
+    };
+    
+    avatarStickPosition = MyAvatar.position;
 
-    panelWall = Overlays.addOverlay("model", panelWallProps)
+    panelWall = Overlays.addOverlay("model", panelWallProps);
+    orbShell = Overlays.addOverlay("model", orbShellProps);
+    
+    // for HMD wearers, create a reticle in center of screen
+    var RETICLE_SPHERE_SIZE = 0.025;
+    
+    reticle = Overlays.addOverlay("sphere", {
+      position: reticlePosition(),
+      size: RETICLE_SPHERE_SIZE,
+      color: { red: 0, green: 255, blue: 0 },
+      alpha: 1.0,
+      solid: true
+    });  
   }
 }
 
-var locations = {}
+var locations = {};
 
 function changeLobbyTextures() {
   var req = new XMLHttpRequest();
   req.open("GET", "https://data.highfidelity.io/api/v1/locations?limit=21", false);
   req.send();
 
-  locations = JSON.parse(req.responseText).data.locations
+  locations = JSON.parse(req.responseText).data.locations;
   
   var NUM_PANELS = locations.length;
 
@@ -60,15 +103,20 @@ function changeLobbyTextures() {
   
   for (var j = 0; j < NUM_PANELS; j++) {
     textureProp["textures"]["file" + (j + 1)] = "http:" + locations[j].thumbnail_url
-  }
+  };
   
-  Overlays.editOverlay(panelWall, textureProp)
+  Overlays.editOverlay(panelWall, textureProp);
 }
 
 function cleanupLobby() {
-  Overlays.deleteOverlay(panelWall)
-  panelWall = false
-  locations = {}
+  Overlays.deleteOverlay(panelWall);
+  Overlays.deleteOverlay(orbShell);
+  Overlays.deleteOverlay(reticle);
+  panelWall = false;
+  orbShell = false;
+  reticle = false;
+  locations = {};
+  toggleEnvironmentRendering(true);
 }
 
 function actionStartEvent(event) {
@@ -79,41 +127,59 @@ function actionStartEvent(event) {
     var result = Overlays.findRayIntersection(pickRay);
 
     if (result.intersects && result.overlayID == panelWall) {
-      var panelName = result.extraInfo
-      var panelStringIndex = panelName.indexOf("Panel")
+      var panelName = result.extraInfo;
+      var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1
+        var panelIndex = parseInt(panelName.slice(5)) - 1;
         if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex]
+          var actionLocation = locations[panelIndex];
           
-          print("Jumping to " + actionLocation.name + " at " + actionLocation.path + " in " + actionLocation.domain.name)
+          print("Jumping to " + actionLocation.name + " at " + actionLocation.path 
+            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex);
           
-          Window.location = actionLocation
-          maybeCleanupLobby()
+          Window.location = actionLocation;
+          maybeCleanupLobby();
         }
       }
     }
   }
 }
 
-function backStartEvent() {  
+function backStartEvent() {
   if (!panelWall) {
-    drawLobby()
-    changeLobbyTextures()
+    toggleEnvironmentRendering(false);
+    drawLobby();
+    changeLobbyTextures();
   } else {
-    cleanupLobby()
+    cleanupLobby();
   }
 }
 
 var CLEANUP_EPSILON_DISTANCE = 0.025
 
 function maybeCleanupLobby() {
-  if (Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {
-    cleanupLobby()
+  if (panelWall && Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {
+    cleanupLobby();
   }
 }
 
-Controller.actionStartEvent.connect(actionStartEvent)
-Controller.backStartEvent.connect(backStartEvent)
-Script.update.connect(maybeCleanupLobby)
+function toggleEnvironmentRendering(shouldRender) {
+  Menu.setIsOptionChecked("Voxels", shouldRender);
+  Menu.setIsOptionChecked("Models", shouldRender);
+  Menu.setIsOptionChecked("Metavoxels", shouldRender);
+  Menu.setIsOptionChecked("Avatars", shouldRender);
+}
+
+function update(deltaTime) {
+  maybeCleanupLobby();
+  if (reticle) {
+    Overlays.editOverlay(reticle, {
+      position: reticlePosition()
+    });
+  }
+}
+
+Controller.actionStartEvent.connect(actionStartEvent);
+Controller.backStartEvent.connect(backStartEvent);
+Script.update.connect(update);
 Script.scriptEnding.connect(maybeCleanupLobby);
