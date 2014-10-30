@@ -161,7 +161,7 @@ function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Voxels", shouldRender);
   Menu.setIsOptionChecked("Models", shouldRender);
   Menu.setIsOptionChecked("Metavoxels", shouldRender);
-  Menu.setIsOptionChecked("Avatars", shouldRender)
+  Menu.setIsOptionChecked("Avatars", shouldRender);
 }
 
 Controller.actionStartEvent.connect(actionStartEvent);
