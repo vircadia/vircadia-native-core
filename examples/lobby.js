@@ -37,6 +37,8 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
+var HELMET_ATTACHMENT_URL = "https://hifi-public.s3.amazonaws.com/models/attachments/IronManMaskOnly.fbx"
+
 function reticlePosition() {
   var screenSize = Controller.getViewportDimensions();
   var reticleRay = Camera.computePickRay(screenSize.x / 2, screenSize.y / 2);
@@ -82,7 +84,10 @@ function drawLobby() {
       color: { red: 0, green: 255, blue: 0 },
       alpha: 1.0,
       solid: true
-    });  
+    });
+    
+    // add an attachment on this avatar so other people see them in the lobby
+    MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
   }
 }
 
@@ -112,11 +117,15 @@ function cleanupLobby() {
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
+  
   panelWall = false;
   orbShell = false;
   reticle = false;
+  
   locations = {};
   toggleEnvironmentRendering(true);
+  
+  MyAvatar.detachOne(HELMET_ATTACHMENT_URL);
 }
 
 function actionStartEvent(event) {
