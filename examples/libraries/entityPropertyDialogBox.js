@@ -35,6 +35,12 @@ EntityPropertyDialogBox = (function () {
 
         var array = new Array();
         var index = 0;
+
+        array.push({ label: "Entity Type:" + properties.type, type: "header" });
+        index++;
+        array.push({ label: "Locked:", value: properties.locked });
+        index++;
+        
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
             index++;
@@ -219,6 +225,8 @@ EntityPropertyDialogBox = (function () {
         if (Window.getNonBlockingFormResult(array)) {
             var properties = propertiesForEditedEntity;
             var index = 0;
+            index++; // skip type header
+            properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
                 properties.animationURL = array[index++].value;
@@ -298,7 +306,9 @@ EntityPropertyDialogBox = (function () {
             }
 
             Entities.editEntity(editModelID, properties);
-            selectionDisplay.select(editModelID, false);
+            if (typeof(selectionDisplay) != "undefined") {
+                selectionDisplay.select(editModelID, false);
+            }
         }
         modelSelected = false;
     });

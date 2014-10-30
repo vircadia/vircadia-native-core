@@ -108,16 +108,31 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         return false;
     }
     
-    // check to see if we need to simulate this entity...
-    EntityItem::SimulationState oldState = existingEntity->getSimulationState();
+    // enforce support for locked entities. If an entity is currently locked, then the only
+    // property we allow you to change is the locked property.
+    if (existingEntity->getLocked()) {
+        if (properties.lockedChanged()) {
+            bool wantsLocked = properties.getLocked();
+            if (!wantsLocked) {
+                EntityItemProperties tempProperties;
+                tempProperties.setLocked(wantsLocked);
+                UpdateEntityOperator theOperator(this, containingElement, existingEntity, tempProperties);
+                recurseTreeWithOperator(&theOperator);
+                _isDirty = true;
+            }
+        }
+    } else {
+        // check to see if we need to simulate this entity...
+        EntityItem::SimulationState oldState = existingEntity->getSimulationState();
     
-    UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
-    recurseTreeWithOperator(&theOperator);
-    _isDirty = true;
+        UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
+        recurseTreeWithOperator(&theOperator);
+        _isDirty = true;
 
-    EntityItem::SimulationState newState = existingEntity->getSimulationState();
-    changeEntityState(existingEntity, oldState, newState);
-
+        EntityItem::SimulationState newState = existingEntity->getSimulationState();
+        changeEntityState(existingEntity, oldState, newState);
+    }
+    
     containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" << entityID;

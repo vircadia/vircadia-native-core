@@ -243,6 +243,10 @@ public:
     static const bool DEFAULT_COLLISIONS_WILL_MOVE;
     bool getCollisionsWillMove() const { return _collisionsWillMove; }
     void setCollisionsWillMove(bool value) { _collisionsWillMove = value; }
+
+    static const bool DEFAULT_LOCKED;
+    bool getLocked() const { return _locked; }
+    void setLocked(bool value) { _locked = value; }
     
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
@@ -281,6 +285,7 @@ protected:
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
+    bool _locked;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
