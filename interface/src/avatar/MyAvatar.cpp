@@ -1004,10 +1004,6 @@ bool MyAvatar::isLookingAtLeftEye() {
     return _isLookingAtLeftEye;
 }
 
-glm::vec3 MyAvatar::getUprightHeadPosition() const {
-    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
-}
-
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
     return _position + getWorldAlignedOrientation() * _skeletonModel.getDefaultEyeModelPosition();
 }
