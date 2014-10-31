@@ -16,6 +16,8 @@
 
 #include "gpu/Context.h"
 #include "gpu/Batch.h"
+#include <bitset>
+
 
 namespace gpu {
 
@@ -43,7 +45,26 @@ public:
 
     static GLuint getBufferID(const Buffer& buffer);
 
+    static const int MAX_NUM_ATTRIBUTES = StreamFormat::NUM_SLOTS;
+
 protected:
+
+    bool _needInputFormatUpdate;
+    bool _needInputStreamUpdate;
+    const StreamFormat* _inputFormat;
+    const Stream* _inputStream;
+
+    typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
+    InputActivationCache _inputAttributeActivation;
+
+    void do_draw(Batch& batch, uint32 paramOffset);
+    void do_drawIndexed(Batch& batch, uint32 paramOffset);
+    void do_drawInstanced(Batch& batch, uint32 paramOffset);
+    void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
+
+    void updateInput();
+    void do_setInputStream(Batch& batch, uint32 paramOffset);
+    void do_setInputFormat(Batch& batch, uint32 paramOffset);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -101,6 +122,11 @@ protected:
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
+
+    static const GLenum _primitiveToGLmode[NUM_PRIMITIVES];
+
+    static const GLenum _elementTypeToGLtype[Element::NUM_TYPES];
+
 
 };
 

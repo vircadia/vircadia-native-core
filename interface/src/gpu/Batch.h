@@ -16,6 +16,9 @@
 
 #include <vector>
 
+#include "gpu/Format.h"
+#include "gpu/Stream.h"
+
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
     class ProfileRange {
@@ -37,9 +40,9 @@ namespace gpu {
 
 class Buffer;
 class Resource;
+
 typedef int  Stamp;
-typedef unsigned int uint32;
-typedef int int32;
+
 
 enum Primitive {
     PRIMITIVE_POINTS = 0,
@@ -48,6 +51,8 @@ enum Primitive {
     PRIMITIVE_TRIANGLES,
     PRIMITIVE_TRIANGLE_STRIP,
     PRIMITIVE_QUADS,
+
+    NUM_PRIMITIVES,
 };
 
 class Batch {
@@ -59,10 +64,14 @@ public:
 
     void clear();
 
-    void draw(Primitive primitiveType, int nbVertices, int startVertex = 0);
+    void draw(Primitive primitiveType, int numVertices, int startVertex = 0);
     void drawIndexed(Primitive primitiveType, int nbIndices, int startIndex = 0);
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex = 0, int startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex = 0, int startInstance = 0);
+
+    void setInputStream(const Stream* stream);
+    void setInputFormat(const StreamFormat* format);
+
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -127,13 +136,10 @@ public:
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
-        
-        COMMAND_SET_PIPE_STATE,
-        COMMAND_SET_VIEWPORT,
-        COMMAND_SET_FRAMEBUFFER,
-        COMMAND_SET_RESOURCE,
-        COMMAND_SET_VERTEX_STREAM,
-        COMMAND_SET_INDEX_STREAM,
+
+        COMMAND_setInputStream,
+        COMMAND_setInputFormat,
+
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 

@@ -1812,7 +1812,10 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         const FBXMesh& mesh = geometry.meshes.at(i);    
 
         //const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
-        GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId());
+ //       GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId());
+       // if (!mesh.blendshapes.isEmpty()) {
+            GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, gpu::GLBackend::getBufferID((*networkMesh._indexBuffer)));
+       // }
 
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
@@ -1848,8 +1851,10 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         }
         
         //const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
-        GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bufferId());
-
+       // GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bufferId());
+        if (!mesh.blendshapes.isEmpty()) {
+            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, gpu::GLBackend::getBufferID((*networkMesh._vertexBuffer)));
+        }
         GLBATCH(glPushMatrix)();
         //Application::getInstance()->loadTranslatedViewMatrix(_translation);
         GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
@@ -1869,17 +1874,20 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                                            reinterpret_cast<const void*>(offset));
             //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
             //    offset + vertexCount * sizeof(glm::vec4), 4);
-            GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
-            //skinProgram->enableAttributeArray(skinLocations->clusterIndices);
-            GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterIndices);
-            //skinProgram->enableAttributeArray(skinLocations->clusterWeights);
-            GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterWeights);
+
+            if (!mesh.blendshapes.isEmpty()) {
+                GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
+                //skinProgram->enableAttributeArray(skinLocations->clusterIndices);
+                GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterIndices);
+                //skinProgram->enableAttributeArray(skinLocations->clusterWeights);
+                GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterWeights);
+            }
         } else {
             GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
         }
         
         if (mesh.blendshapes.isEmpty()) {
-            if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
+          /*  if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
                 GLBATCH(glVertexAttribPointer)(activeLocations->tangent, 3, GL_FLOAT, GL_TRUE, 0, (const void*)(vertexCount * 2 * sizeof(glm::vec3)));
                 //activeProgram->enableAttributeArray(activeLocations->tangent);
@@ -1889,7 +1897,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 mesh.tangents.size() * sizeof(glm::vec3)));
             GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
-        
+        */
         } else {
             if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
@@ -1902,9 +1910,11 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
            // _blendedVertexBuffers[i].bind();
             GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, _blendedVertexBuffers[i].bufferId());
         }
+        if (!mesh.blendshapes.isEmpty()) {
+
         GLBATCH(glVertexPointer)(3, GL_FLOAT, 0, 0);
         GLBATCH(glNormalPointer)(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
-        
+
         if (!mesh.colors.isEmpty()) {
             GLBATCH(glEnableClientState)(GL_COLOR_ARRAY);
         } else {
@@ -1913,7 +1923,13 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         if (!mesh.texCoords.isEmpty()) {
             GLBATCH(glEnableClientState)(GL_TEXTURE_COORD_ARRAY);
         }
+        }
+        else{
+            batch.setInputFormat(&(networkMesh._vertexFormat));
+            batch.setInputStream(&(networkMesh._vertexStream));
+        }
         
+
         qint64 offset = 0;
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
@@ -1980,13 +1996,24 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             meshPartsRendered++;
             
             if (part.quadIndices.size() > 0) {
+                if (!mesh.blendshapes.isEmpty()) {
                 GLBATCH(glDrawRangeElements)(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
-                offset += part.quadIndices.size() * sizeof(int);
+                }
+                else {
+                    batch.drawIndexed(gpu::PRIMITIVE_QUADS, part.quadIndices.size(), offset);
+                }
+                 offset += part.quadIndices.size() * sizeof(int);
+
+
             }
             
             if (part.triangleIndices.size() > 0) {
-                GLBATCH(glDrawRangeElements)(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
+                if (!mesh.blendshapes.isEmpty()) {
+                    GLBATCH(glDrawRangeElements)(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
                     GL_UNSIGNED_INT, (void*)offset);
+                } else {
+                    batch.drawIndexed(gpu::PRIMITIVE_TRIANGLES, part.triangleIndices.size(), offset);
+                }
                 offset += part.triangleIndices.size() * sizeof(int);
             }
 

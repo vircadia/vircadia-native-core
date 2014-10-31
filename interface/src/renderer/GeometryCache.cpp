@@ -773,7 +773,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                         
             totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
         }
-        
+        /*
         networkMesh.indexBuffer.create();
         networkMesh.indexBuffer.bind();
         networkMesh.indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -788,8 +788,25 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
             offset += part.triangleIndices.size() * sizeof(int);
         }
         networkMesh.indexBuffer.release();
-        
-        networkMesh.vertexBuffer.create();
+        */
+        {
+            networkMesh._indexBuffer = gpu::BufferPtr(new gpu::Buffer());
+            //networkMesh._indexBuffer.bind();
+            //networkMesh._indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
+            networkMesh._indexBuffer->resize(totalIndices * sizeof(int));
+            int offset = 0;
+            foreach(const FBXMeshPart& part, mesh.parts) {
+                networkMesh._indexBuffer->setSubData(offset, part.quadIndices.size() * sizeof(int),
+                    (gpu::Resource::Byte*) part.quadIndices.constData());
+                offset += part.quadIndices.size() * sizeof(int);
+                networkMesh._indexBuffer->setSubData(offset, part.triangleIndices.size() * sizeof(int),
+                    (gpu::Resource::Byte*) part.triangleIndices.constData());
+                offset += part.triangleIndices.size() * sizeof(int);
+            }
+           // networkMesh.indexBuffer.release();
+        }
+
+       /* networkMesh.vertexBuffer.create();
         networkMesh.vertexBuffer.bind();
         networkMesh.vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
         
@@ -833,6 +850,82 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
         }
         
         networkMesh.vertexBuffer.release();
+*/
+        {
+            networkMesh._vertexBuffer = gpu::BufferPtr(new gpu::Buffer());
+            // if we don't need to do any blending, the positions/normals can be static
+            if (mesh.blendshapes.isEmpty()) {
+                int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
+                int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
+                int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
+                int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
+                int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+                int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
+
+                networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+                //networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+
+                networkMesh._vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
+                networkMesh._vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
+                networkMesh._vertexBuffer->setSubData(tangentsOffset,
+                    mesh.tangents.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.tangents.constData());
+                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.colors.constData());
+                networkMesh._vertexBuffer->setSubData(texCoordsOffset,
+                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords.constData());
+                networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
+                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterIndices.constData());
+                networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
+                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterWeights.constData());
+
+                // otherwise, at least the cluster indices/weights can be static
+                networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));
+                if (mesh.normals.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, normalsOffset, sizeof(glm::vec3));
+                if (mesh.tangents.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, tangentsOffset, sizeof(glm::vec3));
+                if (mesh.colors.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
+                if (mesh.texCoords.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+                if (mesh.clusterIndices.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+                if (mesh.clusterWeights.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+
+                int channelNum = 0;
+                networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_POSITION, channelNum++, gpu::Element(gpu::Element::DIM_VEC3, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.normals.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_NORMAL, channelNum++, gpu::Element(gpu::Element::DIM_VEC3, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.tangents.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_TANGENT, channelNum++, gpu::Element(gpu::Element::DIM_VEC3, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.colors.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_COLOR, channelNum++, gpu::Element(gpu::Element::DIM_VEC3, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.texCoords.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_TEXCOORD, channelNum++, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.clusterIndices.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.clusterWeights.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+            }
+            else {
+                int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
+                int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
+                int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+                int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
+
+                networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
+                networkMesh._vertexBuffer->setSubData(0, mesh.tangents.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.tangents.constData());
+                networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.colors.constData());
+                networkMesh._vertexBuffer->setSubData(texCoordsOffset,
+                    mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords.constData());
+                networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
+                    mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterIndices.constData());
+                networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
+                    mesh.clusterWeights.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterWeights.constData());
+
+                if (mesh.tangents.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, 0, sizeof(glm::vec3));
+                if (mesh.colors.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
+                if (mesh.texCoords.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+                if (mesh.clusterIndices.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
+                if (mesh.clusterWeights.size()) networkMesh._vertexStream.addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
+
+                int channelNum = 0;
+                if (mesh.tangents.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_TANGENT, channelNum++, gpu::Element(gpu::Element::DIM_VEC3, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.colors.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_COLOR, channelNum++, gpu::Element(gpu::Element::DIM_VEC3, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.texCoords.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_TEXCOORD, channelNum++, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.clusterIndices.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+                if (mesh.clusterWeights.size()) networkMesh._vertexFormat.setAttribute(gpu::StreamFormat::SLOT_SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+
+            }
+        }
         
         _meshes.append(networkMesh);
     }

@@ -12,10 +12,37 @@
 
 #include <QDebug>
 
-//#define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandCalls.push_back(&gpu::Batch::do_##call); _commandOffsets.push_back(_params.size());
 #define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
 using namespace gpu;
+
+const int Element::TYPE_SIZE[Element::NUM_TYPES] = {
+    4,
+    4,
+    4,
+    2,
+    2,
+    2,
+    1,
+    1,
+    4,
+    4,
+    4,
+    2,
+    2,
+    2,
+    1,
+    1
+}; 
+
+const int Element::DIMENSION_COUNT[Element::NUM_DIMENSIONS] = {
+    1,
+    2,
+    3,
+    4,
+    9,
+    16
+};
 
 Batch::Batch() :
     _commands(),
@@ -95,5 +122,14 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, in
     _params.push_back(nbInstances);
 }
 
+void Batch::setInputStream(const Stream* stream) {
+    ADD_COMMAND(setInputStream);
 
+    _params.push_back(cacheResource(stream));
+}
 
+void Batch::setInputFormat(const StreamFormat* format) {
+    ADD_COMMAND(setInputFormat);
+
+    _params.push_back(cacheResource(format));
+}

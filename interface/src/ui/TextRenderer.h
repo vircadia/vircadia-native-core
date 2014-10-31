@@ -20,6 +20,8 @@
 #include <QVector>
 
 #include "gpu/Resource.h"
+#include "gpu/Stream.h"
+
 
 #include "InterfaceConfig.h"
 
@@ -107,6 +109,8 @@ private:
     // Graphics Buffer containing the current accumulated glyphs to render
     gpu::Buffer _glyphsBuffer;
     gpu::Buffer _glyphsColorBuffer;
+    gpu::StreamFormat _glyphsStreamFormat;
+    gpu::Stream _glyphsStream;
     int _numGlyphsBatched;
 
     static QHash<Properties, TextRenderer*> _instances;

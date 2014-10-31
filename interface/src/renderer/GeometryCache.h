@@ -24,6 +24,8 @@
 
 #include <AnimationCache.h>
 
+#include "gpu/Stream.h"
+
 class Model;
 class NetworkGeometry;
 class NetworkMesh;
@@ -156,6 +158,11 @@ public:
     
     QOpenGLBuffer indexBuffer;
     QOpenGLBuffer vertexBuffer;
+    gpu::BufferPtr _indexBuffer;
+    gpu::BufferPtr _vertexBuffer;
+
+    gpu::Stream _vertexStream;
+    gpu::StreamFormat _vertexFormat;
     
     QVector<NetworkMeshPart> parts;
     

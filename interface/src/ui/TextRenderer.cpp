@@ -25,6 +25,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "gpu/GLBackend.h"
+#include "gpu/Stream.h"
 
 
 // the width/height of the cached glyph textures
@@ -181,6 +182,16 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _glyphsBuffer(),
     _numGlyphsBatched(0)
 {
+    _glyphsStreamFormat.setAttribute(gpu::StreamFormat::SLOT_POSITION, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+    const int NUM_POS_COORDS = 2;
+    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+    _glyphsStreamFormat.setAttribute(gpu::StreamFormat::SLOT_TEXCOORD, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_UV), VERTEX_TEXCOORD_OFFSET);
+
+    _glyphsStreamFormat.setAttribute(gpu::StreamFormat::SLOT_COLOR, 1, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_UINT8, gpu::Element::SEMANTIC_RGBA));
+
+    _glyphsStream.addBuffer(gpu::BufferPtr(&_glyphsBuffer), 0, _glyphsStreamFormat.getChannels().at(0)._stride);
+    _glyphsStream.addBuffer(gpu::BufferPtr(&_glyphsColorBuffer), 0, _glyphsStreamFormat.getChannels().at(1)._stride);
+
     _font.setKerning(false);
 }
 
@@ -295,13 +306,15 @@ void TextRenderer::drawBatch() {
     glLoadIdentity();
     */
 
+    gpu::Batch batch;
+
     glEnable(GL_TEXTURE_2D);
     // TODO: Apply the correct font atlas texture, for now only one texture per TextRenderer so it should be good
     glBindTexture(GL_TEXTURE_2D, _currentTextureID);
 
+/*
     GLuint vbo = gpu::GLBackend::getBufferID(_glyphsBuffer);
     GLuint colorvbo = gpu::GLBackend::getBufferID(_glyphsColorBuffer);
-
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
@@ -317,8 +330,13 @@ void TextRenderer::drawBatch() {
 
     glBindBuffer(GL_ARRAY_BUFFER, colorvbo);
     glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
+*/
+    batch.setInputFormat(&_glyphsStreamFormat);
+    batch.setInputStream(&_glyphsStream);
+    batch.draw(gpu::PRIMITIVE_QUADS, _numGlyphsBatched * 4, 0);
 
-    glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
+    gpu::GLBackend::renderBatch(batch);
+  //  glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
