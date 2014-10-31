@@ -31,7 +31,7 @@
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
 public:
-    EntityTreeRenderer();
+    EntityTreeRenderer(bool wantScripts);
     virtual ~EntityTreeRenderer();
 
     virtual Octree* createTree() { return new EntityTree(true); }
@@ -107,6 +107,14 @@ private:
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;
+    
+    bool _wantScripts;
+    ScriptEngine* _entitiesScriptEngine;
+
+    QScriptValue loadEntityScript(EntityItem* entity);
+    QScriptValue loadEntityScript(const EntityItemID& entityItemID);
+    
+    QHash<EntityItemID, QScriptValue> _entityScripts;
 };
 
 #endif // hifi_EntityTreeRenderer_h
