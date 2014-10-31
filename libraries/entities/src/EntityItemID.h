@@ -57,6 +57,8 @@ public:
     static uint32_t getNextCreatorTokenID();
     static void handleAddEntityResponse(const QByteArray& packet);
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead);
+
+    QScriptValue toScriptValue(QScriptEngine* engine) const;
     
 private:
     friend class EntityTree;
@@ -71,6 +73,12 @@ inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
 }
 
 inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
+    if (a.isInvalidID() && b.isInvalidID()) {
+        return true;
+    }
+    if (a.isInvalidID() != b.isInvalidID()) {
+        return false;
+    }
     if (a.id == UNKNOWN_ENTITY_ID || b.id == UNKNOWN_ENTITY_ID) {
         return a.creatorTokenID == b.creatorTokenID;
     }
@@ -100,6 +108,5 @@ Q_DECLARE_METATYPE(EntityItemID);
 Q_DECLARE_METATYPE(QVector<EntityItemID>);
 QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& properties);
 void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& properties);
-
 
 #endif // hifi_EntityItemID_h
