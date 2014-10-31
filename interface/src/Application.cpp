@@ -1558,12 +1558,9 @@ void Application::setEnableVRMode(bool enableVRMode) {
             OculusManager::disconnect();
             OculusManager::connect();
         }
-        int oculusMaxFPS = Menu::getInstance()->getOculusUIMaxFPS();
-        setRenderTargetFramerate(oculusMaxFPS);
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
-        setRenderTargetFramerate(0);
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
