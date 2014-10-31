@@ -416,7 +416,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.2, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.2f, 10.0f, 10.0f);
     glPopMatrix();
 
     //  Head Sphere
@@ -424,7 +424,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.15, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.15f, 10.0f, 10.0f);
     glPopMatrix();
 }
 
