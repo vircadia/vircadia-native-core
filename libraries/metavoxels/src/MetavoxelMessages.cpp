@@ -445,7 +445,8 @@ PaintHeightfieldMaterialEditVisitor::PaintHeightfieldMaterialEditVisitor(const g
     _material(material),
     _color(color) {
     
-    glm::vec3 extents(_radius, _radius, _radius);
+    const float LARGE_EXTENT = 100000.0f;
+    glm::vec3 extents(_radius, LARGE_EXTENT, _radius);
     _bounds = Box(_position - extents, _position + extents);
 }
 
@@ -520,7 +521,6 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
         uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
         float squaredRadius = scaledRadius * scaledRadius; 
         bool changed = false;
-        QHash<uchar, int> counts;
         for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
             uchar* dest = lineDest;
             for (float x = startX; x <= endX; x += 1.0f, dest++) {
