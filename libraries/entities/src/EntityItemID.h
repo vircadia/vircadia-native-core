@@ -49,7 +49,10 @@ public:
     EntityItemID convertToKnownIDVersion() const;
     EntityItemID convertToCreatorTokenVersion() const;
 
+    bool isInvalidID() const { return id == UNKNOWN_ENTITY_ID && creatorTokenID == UNKNOWN_ENTITY_TOKEN && isKnownID == false; }
+
     // these methods allow you to create models, and later edit them.
+    static EntityItemID createInvalidEntityID() { return EntityItemID(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false); }
     static EntityItemID getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddEntityResponse(const QByteArray& packet);
@@ -72,6 +75,10 @@ inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
         return a.creatorTokenID == b.creatorTokenID;
     }
     return a.id == b.id;
+}
+
+inline bool operator!=(const EntityItemID& a, const EntityItemID& b) {
+    return !(a == b);
 }
 
 inline uint qHash(const EntityItemID& a, uint seed) {

@@ -16,6 +16,7 @@
 #include <stdint.h>
 
 #include <EntityTree.h>
+#include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <Octree.h>
 #include <OctreePacketData.h>
 #include <OctreeRenderer.h>
@@ -75,9 +76,37 @@ public:
     void releaseModel(Model* model);
     
     void deleteReleasedModels();
+    
+    // event handles which may generate entity related events
+    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID);
+    void mousePressEvent(QMouseEvent* event, unsigned int deviceID);
+    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID);
+
+    /// connect our signals to anEntityScriptingInterface for firing of events related clicking,
+    /// hovering over, and entering entities
+    void connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface);
+
+signals:
+    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    
 private:
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
+    PickRay computePickRay(float x, float y);
+    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType);
+
+    EntityItemID _currentHoverOverEntityID;
+    EntityItemID _currentClickingOnEntityID;
 };
 
 #endif // hifi_EntityTreeRenderer_h

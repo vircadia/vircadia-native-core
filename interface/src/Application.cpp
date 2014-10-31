@@ -1248,6 +1248,8 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_lastMouseMoveWasSimulated) {
         showMouse = false;
     }
+    
+    _entities.mouseMoveEvent(event, deviceID);
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1269,6 +1271,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+
+    _entities.mousePressEvent(event, deviceID);
+
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1306,6 +1311,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+
+    _entities.mouseReleaseEvent(event, deviceID);
+
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1939,6 +1947,10 @@ void Application::init() {
 
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+
+    // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
+    // of events related clicking, hovering over, and entering entities
+    _entities.connectSignalsToSlots(ScriptEngine::getEntityScriptingInterface());
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
