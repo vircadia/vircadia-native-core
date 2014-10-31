@@ -495,15 +495,16 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
         //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
         emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
 
+        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mousePressOnEntity").isValid()) {
-            entityScript.property("mousePressOnEntity").call();
+            entityScript.property("mousePressOnEntity").call(entityScript, entityScriptArgs);
         }
         
         _currentClickingOnEntityID = rayPickResult.entityID;
         emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
         if (entityScript.property("clickDownOnEntity").isValid()) {
-            entityScript.property("clickDownOnEntity").call();
+            entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
     }
 }
@@ -516,9 +517,10 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
         //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
 
+        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
         QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
         if (entityScript.property("mouseReleaseOnEntity").isValid()) {
-            entityScript.property("mouseReleaseOnEntity").call();
+            entityScript.property("mouseReleaseOnEntity").call(entityScript, entityScriptArgs);
         }
     }
     
@@ -527,9 +529,10 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     if (!_currentClickingOnEntityID.isInvalidID()) {
         emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
 
+        QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
         QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
         if (currentClickingEntity.property("clickReleaseOnEntity").isValid()) {
-            currentClickingEntity.property("clickReleaseOnEntity").call();
+            currentClickingEntity.property("clickReleaseOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
         }
     }
     
