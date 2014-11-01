@@ -18,6 +18,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#ifdef USE_BULLET_PHYSICS
+#include "PhysicsWorld.h"
+#endif // USE_BULLET_PHYSICS
+
 #include "CollisionInfo.h"
 #include "RayIntersectionInfo.h"
 

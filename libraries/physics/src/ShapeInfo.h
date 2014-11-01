@@ -1,5 +1,5 @@
 //
-//  ShapeManager.h
+//  ShapeInfo.h
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.10.29
@@ -9,22 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ShapeManager_h
-#define hifi_ShapeManager_h
+#ifndef hifi_ShapeInfo_h
+#define hifi_ShapeInfo_h
 
 #ifdef USE_BULLET_PHYSICS
 
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
-#include "ShapeInfo.h"
+const float DEFAULT_MARGIN = 0.04f;
 
-/*
-struct ShapeInfo {
-    int _type;
-    btAlignedObjectArray<btVector3> _data;
-    //btVector3 _scale;
-
+class ShapeInfo {
+public:
     ShapeInfo() : _type(INVALID_SHAPE_PROXYTYPE) {}
 
     ShapeInfo(const btCollisionShape* shape) : _type(INVALID_SHAPE_PROXYTYPE) {
@@ -32,7 +28,8 @@ struct ShapeInfo {
     }
 
     // BOOKMARK -- move ShapeInfo to its own files
-    void getInfo(const btCollisionShape* shape) {
+    void getInfo(const btCollisionShape* shape);
+    /*{
         _data.clear();
         if (shape) {
             _type = (unsigned int)(shape->getShapeType());
@@ -69,35 +66,40 @@ struct ShapeInfo {
         } else {
             _type = INVALID_SHAPE_PROXYTYPE;
         }
-    }
+    }*/
 
-    void setBox(const btVector3& halfExtents) {
+    void setBox(const btVector3& halfExtents);
+    /*{
         _type = BOX_SHAPE_PROXYTYPE;
         _data.clear();
         _data.push_back(halfExtents);
-    }
+    }*/
 
-    void setSphere(float radius) {
+    void setSphere(float radius);
+    /* {
         _type = SPHERE_SHAPE_PROXYTYPE;
         _data.clear();
         _data.push_back(btVector3(0.0f, 0.0f, radius));
-    }
+    }*/
 
-    void setCylinder(float radius, float height) {
+    void setCylinder(float radius, float height);
+    /*{
         _type = CYLINDER_SHAPE_PROXYTYPE;
         _data.clear();
         // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
         // halfExtents = btVector3(radius, halfHeight, unused)
         _data.push_back(btVector3(radius, 0.5f * height, radius));
-    }
+    }*/
 
-    void setCapsule(float radius, float height) {
+    void setCapsule(float radius, float height);
+    /*{
         _type = CAPSULE_SHAPE_PROXYTYPE;
         _data.clear();
         _data.push_back(btVector3(radius, 0.5f * height, 0.0f));
-    }
+    }*/
 
-    virtual int computeHash() const {
+    int computeHash() const;
+    /*{
         // This hash algorithm works well for shapes that have dimensions less than about 256m.
         // At larger values the likelihood of hash collision goes up because of the most 
         // significant bits are pushed off the top and the result could be the same as for smaller
@@ -128,12 +130,13 @@ struct ShapeInfo {
         }
         // finally XOR with type
         return (int)(key ^ _type);
-    }
+    }*/
 
 private:
     friend class ShapeManager;
 
-    virtual btCollisionShape* createShape() const {
+    btCollisionShape* createShape() const;
+    /*{
         btCollisionShape* shape = NULL;
         int numData = _data.size();
         switch(_type) {
@@ -174,40 +177,11 @@ private:
             break;
         }
         return shape;
-    }
-};
-*/
+    }*/
 
-class ShapeManager {
-public:
-
-    ShapeManager();
-    ~ShapeManager();
-
-    /// \return pointer to shape
-    btCollisionShape* getShape(const ShapeInfo& info);
-
-    /// \return true if shape was found and released
-    bool releaseShape(const ShapeInfo& info);
-//    bool removeReference(const btCollisionShape*);
-
-    /// delete shapes that have zero references
-    void collectGarbage();
-
-    // validation methods
-    int getNumShapes() const { return _shapeMap.size(); }
-    int getNumReferences(const ShapeInfo& info) const;
-
-private:
-    struct ShapeReference {
-        int _refCount;
-        btCollisionShape* _shape;
-        ShapeReference() : _refCount(0), _shape(NULL) {}
-    };
-
-    btHashMap<btHashInt, ShapeReference> _shapeMap;
-    btAlignedObjectArray<int> _pendingGarbage;
+    int _type;
+    btAlignedObjectArray<btVector3> _data;
 };
 
 #endif // USE_BULLET_PHYSICS
-#endif // hifi_ShapeManager_h
+#endif // hifi_ShapeInfo_h

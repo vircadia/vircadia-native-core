@@ -25,7 +25,7 @@ ShapeManager::~ShapeManager() {
 
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
-    int key = info.getHash();
+    int key = info.computeHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->_refCount++;
@@ -43,7 +43,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    int key = info.getHash();
+    int key = info.computeHash();
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->_refCount > 0) {
@@ -67,6 +67,35 @@ bool ShapeManager::releaseShape(const ShapeInfo& info) {
     return false;
 }
 
+/*
+bool ShapeManager::releaseShape(const btCollisionShape* shape) {
+    // when the number of shapes is high it's probably cheaper to try to construct a ShapeInfo 
+    // and then compute the hash rather than walking the list in search of the pointer.
+    int key = info.computeHash();
+    ShapeReference* shapeRef = _shapeMap.find(key);
+    if (shapeRef) {
+        if (shapeRef->_refCount > 0) {
+            shapeRef->_refCount--;
+            if (shapeRef->_refCount == 0) {
+                _pendingGarbage.push_back(key);
+                const int MAX_GARBAGE_CAPACITY = 127;
+                if (_pendingGarbage.size() > MAX_GARBAGE_CAPACITY) {
+                    collectGarbage();
+                }
+            }
+            return true;
+        } else {
+            // attempt to remove shape that has no refs
+            assert(false);
+        }
+    } else {
+        // attempt to remove unmanaged shape
+        assert(false);
+    }
+    return false;
+}
+*/
+
 void ShapeManager::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
@@ -82,7 +111,7 @@ void ShapeManager::collectGarbage() {
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
-    int key = info.getHash();
+    int key = info.computeHash();
     const ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         return shapeRef->_refCount;
