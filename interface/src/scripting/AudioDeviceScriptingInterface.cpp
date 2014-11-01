@@ -78,3 +78,11 @@ void AudioDeviceScriptingInterface::setReverb(bool reverb) {
 void AudioDeviceScriptingInterface::setReverbOptions(const AudioEffectOptions* options) {
     Application::getInstance()->getAudio()->setReverbOptions(options);
 }
+
+void AudioDeviceScriptingInterface::toggleMute() {
+    Application::getInstance()->getAudio()->toggleMute();
+}
+
+bool AudioDeviceScriptingInterface::getMuted() {
+    return Application::getInstance()->getAudio()->getMuted();
+}
