@@ -119,6 +119,7 @@ private:
 
     QScriptValue loadEntityScript(EntityItem* entity);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
+    QString loadScriptContents(const QString& scriptMaybeURLorText);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;

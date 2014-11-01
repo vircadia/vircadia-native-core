@@ -25,6 +25,7 @@
 
 
 #include "Menu.h"
+#include "NetworkAccessManager.h"
 #include "EntityTreeRenderer.h"
 
 #include "devices/OculusManager.h"
@@ -79,6 +80,53 @@ QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItem
 }
 
 
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText) {
+    QUrl url(scriptMaybeURLorText);
+    
+    // If the url is not valid, this must be script text...
+    if (!url.isValid()) {
+        return scriptMaybeURLorText;
+    }
+
+    QString scriptContents; // assume empty
+    
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        url = QUrl::fromLocalFile(scriptMaybeURLorText);
+    }
+
+    // ok, let's see if it's valid... and if so, load it
+    if (url.isValid()) {
+        if (url.scheme() == "file") {
+            QString fileName = url.toLocalFile();
+            QFile scriptFile(fileName);
+            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+                qDebug() << "Loading file:" << fileName;
+                QTextStream in(&scriptFile);
+                scriptContents = in.readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << fileName;
+            }
+        } else {
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            qDebug() << "Downloading script at" << url;
+            QEventLoop loop;
+            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+            loop.exec();
+            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+                scriptContents = reply->readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << url.toString();
+            }
+        }
+    }
+    
+    return scriptContents;
+}
+
+
 QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (!entity) {
         return QScriptValue(); // no entity...
@@ -101,19 +149,21 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         return QScriptValue(); // no script
     }
     
-    if (QScriptEngine::checkSyntax(entity->getScript()).state() != QScriptSyntaxCheckResult::Valid) {
-        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entity->getEntityItemID();
+    QString scriptContents = loadScriptContents(entity->getScript());
+    
+    if (QScriptEngine::checkSyntax(scriptContents).state() != QScriptSyntaxCheckResult::Valid) {
+        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    INVALID SYNTAX";
-        qDebug() << "    SCRIPT:" << entity->getScript();
+        qDebug() << "    SCRIPT:" << scriptContents;
         return QScriptValue(); // invalid script
     }
     
-    QScriptValue entityScriptConstructor = _entitiesScriptEngine->evaluate(entity->getScript());
+    QScriptValue entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
     
     if (!entityScriptConstructor.isFunction()) {
-        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entity->getEntityItemID();
+        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
-        qDebug() << "    SCRIPT:" << entity->getScript();
+        qDebug() << "    SCRIPT:" << scriptContents;
         return QScriptValue(); // invalid script
     }
 
