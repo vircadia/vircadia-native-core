@@ -31,6 +31,7 @@ class AddressManager : public QObject {
     Q_PROPERTY(QString protocol READ getProtocol)
     Q_PROPERTY(QString hostname READ getCurrentDomain)
     Q_PROPERTY(QString pathname READ currentPath)
+    Q_PROPERTY(QString domainID READ getDomainID)
 public:
     static AddressManager& getInstance();
     
@@ -41,6 +42,7 @@ public:
     const QString currentPath(bool withOrientation = true) const;
     
     const QString& getCurrentDomain() const { return _currentDomain; }
+    QString getDomainID() const;
     
     void attemptPlaceNameLookup(const QString& lookupString);
     

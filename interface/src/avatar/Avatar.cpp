@@ -871,7 +871,7 @@ const float SCRIPT_PRIORITY = DEFAULT_PRIORITY + 1.0f;
 void Avatar::setJointModelPositionAndOrientation(int index, glm::vec3 position, const glm::quat& rotation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "setJointModelPositionAndOrientation", 
-            Qt::BlockingQueuedConnection, Q_ARG(const int, index), Q_ARG(const glm::vec3, position),
+            Qt::AutoConnection, Q_ARG(const int, index), Q_ARG(const glm::vec3, position),
             Q_ARG(const glm::quat&, rotation));
     } else {
         _skeletonModel.inverseKinematics(index, position, rotation, SCRIPT_PRIORITY);
@@ -881,7 +881,7 @@ void Avatar::setJointModelPositionAndOrientation(int index, glm::vec3 position, 
 void Avatar::setJointModelPositionAndOrientation(const QString& name, glm::vec3 position, const glm::quat& rotation) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "setJointModelPositionAndOrientation", 
-            Qt::BlockingQueuedConnection, Q_ARG(const QString&, name), Q_ARG(const glm::vec3, position),
+            Qt::AutoConnection, Q_ARG(const QString&, name), Q_ARG(const glm::vec3, position),
             Q_ARG(const glm::quat&, rotation));
     } else {
         _skeletonModel.inverseKinematics(getJointIndex(name), position, rotation, SCRIPT_PRIORITY);

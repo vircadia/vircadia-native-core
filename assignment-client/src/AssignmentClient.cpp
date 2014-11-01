@@ -16,7 +16,7 @@
 #include <AccountManager.h>
 #include <Assignment.h>
 #include <HifiConfigVariantMap.h>
-#include <Logging.h>
+#include <LogHandler.h>
 #include <LogUtils.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -51,7 +51,7 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     connect(&_shutdownEventListener, SIGNAL(receivedCloseEvent()), SLOT(quit()));
 
     // set the logging target to the the CHILD_TARGET_NAME
-    Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
+    LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
     const QVariantMap argumentVariantMap = HifiConfigVariantMap::mergeCLParametersWithJSONConfig(arguments());
 
@@ -218,7 +218,7 @@ void AssignmentClient::handleAuthenticationRequest() {
 
 void AssignmentClient::assignmentCompleted() {
     // reset the logging target to the the CHILD_TARGET_NAME
-    Logging::setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
+    LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_TARGET_NAME);
 
     qDebug("Assignment finished or never started - waiting for new assignment.");
 

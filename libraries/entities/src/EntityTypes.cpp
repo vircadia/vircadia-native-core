@@ -19,6 +19,7 @@
 #include "EntityTypes.h"
 
 #include "BoxEntityItem.h"
+#include "LightEntityItem.h"
 #include "ModelEntityItem.h"
 #include "SphereEntityItem.h"
 
@@ -33,6 +34,7 @@ const QString ENTITY_TYPE_NAME_UNKNOWN = "Unknown";
 REGISTER_ENTITY_TYPE(Model)
 REGISTER_ENTITY_TYPE(Box)
 REGISTER_ENTITY_TYPE(Sphere)
+REGISTER_ENTITY_TYPE(Light)
 
 
 const QString& EntityTypes::getEntityTypeName(EntityType entityType) {

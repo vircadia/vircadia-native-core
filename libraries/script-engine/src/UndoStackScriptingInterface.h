@@ -43,6 +43,7 @@ public slots:
     void doRedo();
 
 private:
+    bool _hasRedone;
     QScriptValue _undoFunction;
     QScriptValue _undoData;
     QScriptValue _redoFunction;
