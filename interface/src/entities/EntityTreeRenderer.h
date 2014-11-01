@@ -27,6 +27,12 @@
 
 #include "renderer/Model.h"
 
+class EntityScriptDetails {
+public:
+    QString scriptText;
+    QScriptValue scriptObject;
+};
+
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
@@ -115,7 +121,7 @@ private:
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     
-    QHash<EntityItemID, QScriptValue> _entityScripts;
+    QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 };
 
 #endif // hifi_EntityTreeRenderer_h

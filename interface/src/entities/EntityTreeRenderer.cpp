@@ -83,8 +83,19 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (!entity) {
         return QScriptValue(); // no entity...
     }
-    if (_entityScripts.contains(entity->getEntityItemID())) {
-        return _entityScripts[entity->getEntityItemID()]; // already loaded
+    
+    EntityItemID entityID = entity->getEntityItemID();
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        
+        // check to make sure our script text hasn't changed on us since we last loaded it
+        if (details.scriptText == entity->getScript()) {
+            return details.scriptObject; // previously loaded
+        }
+        
+        // if we got here, then we previously loaded a script, but the entity's script value
+        // has changed and so we need to reload it.
+        _entityScripts.remove(entityID);
     }
     if (entity->getScript().isEmpty()) {
         return QScriptValue(); // no script
@@ -107,7 +118,8 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     }
 
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
-    _entityScripts[entity->getEntityItemID()] = entityScriptObject;
+    EntityScriptDetails newDetails = { entity->getScript(), entityScriptObject };
+    _entityScripts[entityID] = newDetails;
 
     return entityScriptObject; // newly constructed
 }
@@ -487,6 +499,13 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
 }
 
+QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
+    QScriptValueList args;
+    args << entityID.toScriptValue(_entitiesScriptEngine);
+    args << MouseEvent(*event, deviceID).toScriptValue(_entitiesScriptEngine);
+    return args;
+}
+
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
     PickRay ray = computePickRay(event->x(), event->y());
@@ -538,13 +557,6 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     
     // makes it the unknown ID, we just released so we can't be clicking on anything
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
-}
-
-QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
-    QScriptValueList args;
-    args << entityID.toScriptValue(_entitiesScriptEngine);
-    args << MouseEvent(*event, deviceID).toScriptValue(_entitiesScriptEngine);
-    return args;
 }
 
 void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
