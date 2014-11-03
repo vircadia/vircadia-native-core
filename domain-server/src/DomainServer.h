@@ -66,7 +66,7 @@ private slots:
     void requestCurrentPublicSocketViaSTUN();
     void performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr);
     void performICEUpdates();
-    void sendHeartbeatToDataServer(const QString& newSetting, const QString& networkAddress = QString());
+    void sendHeartbeatToDataServer() { updateDomainInDataServer(); }
     void sendHeartbeatToIceServer();
     void sendICEPingPackets();
 private:
@@ -77,6 +77,7 @@ private:
     bool optionallySetupAssignmentPayment();
     
     void setupAutomaticNetworking();
+    void updateDomainInDataServer(const QString& networkAddress = QString());
     void processICEPingReply(const QByteArray& packet, const HifiSockAddr& senderSockAddr);
     void processICEHeartbeatResponse(const QByteArray& packet);
     
@@ -149,6 +150,8 @@ private:
     
     QHash<QUuid, NetworkPeer> _connectingICEPeers;
     QHash<QUuid, HifiSockAddr> _connectedICEPeers;
+    
+    QString _automaticNetworkingSetting;
     
     DomainServerSettingsManager _settingsManager;
 };
