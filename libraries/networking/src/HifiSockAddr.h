@@ -19,9 +19,10 @@
 #include <netinet/in.h>
 #endif
 
-#include <QtNetwork/QHostAddress>
+#include <QtNetwork/QHostInfo>
 
-class HifiSockAddr {
+class HifiSockAddr : public QObject {
+    Q_OBJECT
 public:
     HifiSockAddr();
     HifiSockAddr(const QHostAddress& address, quint16 port);
@@ -51,6 +52,8 @@ public:
     friend QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr);
     friend QDataStream& operator<<(QDataStream& dataStream, const HifiSockAddr& sockAddr);
     friend QDataStream& operator>>(QDataStream& dataStream, HifiSockAddr& sockAddr);
+private slots:
+    void handleLookupResult(const QHostInfo& hostInfo);
 private:
     QHostAddress _address;
     quint16 _port;

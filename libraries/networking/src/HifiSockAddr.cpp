@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QDataStream>
-#include <QtNetwork/QHostInfo>
-#include <QtNetwork/QNetworkInterface>
+#include <qdatastream.h>
+#include <qhostinfo.h>
+#include <qnetworkinterface.h>
 
 #include "HifiSockAddr.h"
 
@@ -36,14 +36,15 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) {
     _port = otherSockAddr._port;
 }
 
-HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort) {
-    // lookup the IP by the hostname
-    QHostInfo hostInfo = QHostInfo::fromName(hostname);
-    foreach(const QHostAddress& address, hostInfo.addresses()) {
-        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
-            _address = address;
-            _port = hostOrderPort;
-        }
+HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort) :
+    _address(hostname),
+    _port(hostOrderPort)
+{
+    // if we parsed an IPv4 address out of the hostname, don't look it up
+    if (_address.protocol() != QAbstractSocket::IPv4Protocol) {
+        // sync lookup the IP by the hostname
+        int lookupID = QHostInfo::lookupHost(hostname, this, SLOT(handleLookupResult(QHostInfo)));
+        qDebug() << "Looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
     }
 }
 
@@ -73,6 +74,22 @@ void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {
 
 bool HifiSockAddr::operator==(const HifiSockAddr& rhsSockAddr) const {
     return _address == rhsSockAddr._address && _port == rhsSockAddr._port;
+}
+
+void HifiSockAddr::handleLookupResult(const QHostInfo& hostInfo) {
+    if (hostInfo.error() != QHostInfo::NoError) {
+        qDebug() << "Lookup failed for" << hostInfo.lookupId() << ":" << hostInfo.errorString();
+    }
+    
+    foreach(const QHostAddress& address, hostInfo.addresses()) {
+        // just take the first IPv4 address
+        if (address.protocol() == QAbstractSocket::IPv4Protocol) {
+            _address = address;
+            qDebug() << "QHostInfo lookup result for"
+                << hostInfo.hostName() << "with lookup ID" << hostInfo.lookupId() << "is" << address.toString();
+            break;
+        }
+    }
 }
 
 QDebug operator<<(QDebug debug, const HifiSockAddr& sockAddr) {

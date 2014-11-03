@@ -163,6 +163,7 @@ protected:
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;
     HifiSockAddr _publicSockAddr;
+    HifiSockAddr _stunSockAddr;
     int _numCollectedPackets;
     int _numCollectedBytes;
     QElapsedTimer _packetStatTimer;
