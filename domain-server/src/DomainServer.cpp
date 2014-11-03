@@ -637,7 +637,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
     }
     
     if (allowedUsers.count() > 0) {
-        if (allowedUsers.contains(username)) {
+        if (allowedUsers.contains(username, Qt::CaseInsensitive)) {
             // it's possible this user can be allowed to connect, but we need to check their username signature
             
             QByteArray publicKeyArray = _userPublicKeys.value(username);
@@ -657,7 +657,7 @@ bool DomainServer::shouldAllowConnectionFromNode(const QString& username,
                                                            rsaPublicKey, RSA_PKCS1_PADDING);
                     
                     if (decryptResult != -1) {
-                        if (username == decryptedArray) {
+                        if (username.toLower() == decryptedArray) {
                             qDebug() << "Username signature matches for" << username << "- allowing connection.";
                             
                             // free up the public key before we return
@@ -1125,8 +1125,6 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
     
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
-    
-    qDebug() << domainUpdateJSON;
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,
