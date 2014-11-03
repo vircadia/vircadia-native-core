@@ -244,8 +244,8 @@ static const int NUM_CLASSIC_ATTRIBS = StreamFormat::SLOT_TANGENT;
 static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
     GL_VERTEX_ARRAY,
     GL_NORMAL_ARRAY,
-    GL_TEXTURE_COORD_ARRAY,
-    GL_COLOR_ARRAY
+    GL_COLOR_ARRAY,
+    GL_TEXTURE_COORD_ARRAY
 };
 #endif
 
@@ -316,13 +316,14 @@ void GLBackend::updateInput() {
 
                         for (int i = 0; i < channel._slots.size(); i++) {
                             const StreamFormat::Attribute& attrib = attributes.at(channel._slots[i]);
+                            GLuint slot = attrib._slot;
                             GLuint count = attrib._element.getDimensionCount();
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
                             GLuint stride = strides[bufferNum];
                             GLuint pointer = attrib._offset + offsets[bufferNum];
                             #if defined(SUPPORT_LEGACY_OPENGL)
-                            if (attrib._slot < NUM_CLASSIC_ATTRIBS) {
-                                switch (attrib._slot) {
+                            if (slot < NUM_CLASSIC_ATTRIBS) {
+                                switch (slot) {
                                 case StreamFormat::SLOT_POSITION:
                                     glVertexPointer(count, type, stride, (GLvoid*)pointer);
                                     break;
@@ -340,7 +341,8 @@ void GLBackend::updateInput() {
                             #else 
                             {
                             #endif
-                                glVertexAttribPointer(attrib._slot, count, type, attrib._element.isNormalized(), stride, (GLvoid*)pointer);
+                                GLboolean isNormalized = attrib._element.isNormalized();
+                                glVertexAttribPointer(slot, count, type, isNormalized, stride, (GLvoid*)pointer);
                             }
                             CHECK_GL_ERROR();
                         }
