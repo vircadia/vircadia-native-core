@@ -72,6 +72,11 @@ void EntityTreeRenderer::init() {
                                         Application::getInstance()->getControllerScriptingInterface());
         Application::getInstance()->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
     }
+
+    // make sure our "last avatar position" is something other than our current position, so that on our
+    // first chance, we'll check for enter/leave entity events.    
+    glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
+    _lastAvatarPosition = avatarPosition + glm::vec3(1.f,1.f,1.f);
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
@@ -183,6 +188,58 @@ void EntityTreeRenderer::update() {
     if (_tree) {
         EntityTree* tree = static_cast<EntityTree*>(_tree);
         tree->update();
+        
+        // check to see if the avatar has moved and if we need to handle enter/leave entity logic
+        checkEnterLeaveEntities();
+    }
+}
+
+void EntityTreeRenderer::checkEnterLeaveEntities() {
+    if (_tree) {
+        glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float)TREE_SCALE;
+        
+        if (avatarPosition != _lastAvatarPosition) {
+            float radius = 1.0f / (float)TREE_SCALE; // for now, assume 1 meter radius
+            QVector<const EntityItem*> foundEntities;
+            QVector<EntityItemID> entitiesContainingAvatar;
+            
+            // find the entities near us
+            static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+
+            // create a list of entities that actually contain the avatar's position
+            foreach(const EntityItem* entity, foundEntities) {
+                if (entity->contains(avatarPosition)) {
+                    entitiesContainingAvatar << entity->getEntityItemID();
+                }
+            }
+
+            // for all of our previous containing entities, if they are no longer containing then send them a leave event
+            foreach(const EntityItemID& entityID, _currentEntitiesInside) {
+                if (!entitiesContainingAvatar.contains(entityID)) {
+                    emit leaveEntity(entityID);
+                    QScriptValueList entityArgs = createEntityArgs(entityID);
+                    QScriptValue entityScript = loadEntityScript(entityID);
+                    if (entityScript.property("leaveEntity").isValid()) {
+                        entityScript.property("leaveEntity").call(entityScript, entityArgs);
+                    }
+
+                }
+            }
+
+            // for all of our new containing entities, if they weren't previously containing then send them an enter event
+            foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
+                if (!_currentEntitiesInside.contains(entityID)) {
+                    emit enterEntity(entityID);
+                    QScriptValueList entityArgs = createEntityArgs(entityID);
+                    QScriptValue entityScript = loadEntityScript(entityID);
+                    if (entityScript.property("enterEntity").isValid()) {
+                        entityScript.property("enterEntity").call(entityScript, entityArgs);
+                    }
+                }
+            }
+            _currentEntitiesInside = entitiesContainingAvatar;
+            _lastAvatarPosition = avatarPosition;
+        }
     }
 }
 
@@ -547,12 +604,21 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::hoverEnterEntity, entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity);
     connect(this, &EntityTreeRenderer::hoverOverEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
     connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+
+    connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
+    connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
 }
 
 QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
     QScriptValueList args;
     args << entityID.toScriptValue(_entitiesScriptEngine);
     args << MouseEvent(*event, deviceID).toScriptValue(_entitiesScriptEngine);
+    return args;
+}
+
+QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entityID) {
+    QScriptValueList args;
+    args << entityID.toScriptValue(_entitiesScriptEngine);
     return args;
 }
 
