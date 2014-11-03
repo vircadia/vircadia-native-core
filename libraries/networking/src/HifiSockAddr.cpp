@@ -36,15 +36,20 @@ HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) {
     _port = otherSockAddr._port;
 }
 
-HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort) :
+HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
     _address(hostname),
     _port(hostOrderPort)
 {
     // if we parsed an IPv4 address out of the hostname, don't look it up
     if (_address.protocol() != QAbstractSocket::IPv4Protocol) {
-        // sync lookup the IP by the hostname
-        int lookupID = QHostInfo::lookupHost(hostname, this, SLOT(handleLookupResult(QHostInfo)));
-        qDebug() << "Looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
+        // lookup the IP by the hostname
+        if (shouldBlockForLookup) {
+            QHostInfo result = QHostInfo::fromName(hostname);
+            handleLookupResult(result);
+        } else {
+            int lookupID = QHostInfo::lookupHost(hostname, this, SLOT(handleLookupResult(QHostInfo)));
+            qDebug() << "Looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
+        }
     }
 }
 
