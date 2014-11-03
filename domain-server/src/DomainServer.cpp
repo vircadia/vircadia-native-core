@@ -388,7 +388,7 @@ void DomainServer::setupAutomaticNetworking() {
     const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
     
     QTimer* dataHeartbeatTimer = new QTimer(this);
-    connect(dataHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToDataServer);
+    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
     dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
@@ -1091,10 +1091,10 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    updateDomainInDataServer(newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
 }
 
-void DomainServer::updateDomainInDataServer(const QString& networkAddress) {
+void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
