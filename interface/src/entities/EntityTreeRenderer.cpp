@@ -196,10 +196,10 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
-        glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float)TREE_SCALE;
+        glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
-            float radius = 1.0f / (float)TREE_SCALE; // for now, assume 1 meter radius
+            float radius = 1.0f / (float) TREE_SCALE; // for now, assume 1 meter radius
             QVector<const EntityItem*> foundEntities;
             QVector<EntityItemID> entitiesContainingAvatar;
             
@@ -276,8 +276,8 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
 }
 
 void renderElementProxy(EntityTreeElement* entityTreeElement) {
-    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
-    float elementSize = entityTreeElement->getScale() * (float)TREE_SCALE;
+    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float) TREE_SCALE;
+    float elementSize = entityTreeElement->getScale() * (float) TREE_SCALE;
     glColor3f(1.0f, 0.0f, 0.0f);
     glPushMatrix();
         glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
@@ -350,9 +350,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         AACube minCube = entity->getMinimumAACube();
         AABox entityBox = entity->getAABox();
 
-        maxCube.scale((float)TREE_SCALE);
-        minCube.scale((float)TREE_SCALE);
-        entityBox.scale((float)TREE_SCALE);
+        maxCube.scale((float) TREE_SCALE);
+        minCube.scale((float) TREE_SCALE);
+        entityBox.scale((float) TREE_SCALE);
 
         glm::vec3 maxCenter = maxCube.calcCenter();
         glm::vec3 minCenter = minCube.calcCenter();
@@ -382,9 +382,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glPopMatrix();
 
 
-        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
-        glm::vec3 center = entity->getCenter() * (float)TREE_SCALE;
-        glm::vec3 dimensions = entity->getDimensions() * (float)TREE_SCALE;
+        glm::vec3 position = entity->getPosition() * (float) TREE_SCALE;
+        glm::vec3 center = entity->getCenter() * (float) TREE_SCALE;
+        glm::vec3 dimensions = entity->getDimensions() * (float) TREE_SCALE;
         glm::quat rotation = entity->getRotation();
 
         glColor4f(1.0f, 0.0f, 1.0f, 1.0f);
