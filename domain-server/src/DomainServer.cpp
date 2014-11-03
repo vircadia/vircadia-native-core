@@ -361,11 +361,11 @@ void DomainServer::setupAutomaticNetworking() {
                 iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
                 
                 // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
-                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
+                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
                 
                 // tell the data server which type of automatic networking we are using
-                updateNetworkingInfoWithDataServer(automaticNetworkValue);
+                sendHeartbeatToDataServer(automaticNetworkValue);
             }
             
             // attempt to update our sockets now
@@ -378,7 +378,7 @@ void DomainServer::setupAutomaticNetworking() {
             return;
         }
     } else {
-        updateNetworkingInfoWithDataServer(automaticNetworkValue);
+        sendHeartbeatToDataServer(automaticNetworkValue);
     }
 }
 
@@ -1081,10 +1081,10 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    updateNetworkingInfoWithDataServer(IP_ONLY_AUTOMATIC_NETWORKING_VALUE, newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToDataServer(IP_ONLY_AUTOMATIC_NETWORKING_VALUE, newPublicSockAddr.getAddress().toString());
 }
 
-void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress) {
+void DomainServer::sendHeartbeatToDataServer(const QString& newSetting, const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
@@ -1112,11 +1112,11 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
 // todo: have data-web respond with ice-server hostname to use
 
 void DomainServer::performICEUpdates() {
-    sendHearbeatToIceServer();
+    sendHeartbeatToIceServer();
     sendICEPingPackets();
 }
 
-void DomainServer::sendHearbeatToIceServer() {
+void DomainServer::sendHeartbeatToIceServer() {
     const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
     LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
 }
