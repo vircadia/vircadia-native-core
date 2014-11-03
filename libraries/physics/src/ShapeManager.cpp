@@ -21,11 +21,12 @@ ShapeManager::~ShapeManager() {
         ShapeReference* shapeRef = _shapeMap.getAtIndex(i);
         delete shapeRef->_shape;
     }
+    _shapeMap.clear();
 }
 
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
-    int key = info.computeHash();
+    ShapeKey key(info);
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->_refCount++;
@@ -43,7 +44,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    int key = info.computeHash();
+    ShapeKey key(info);
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->_refCount > 0) {
@@ -71,7 +72,7 @@ bool ShapeManager::releaseShape(const ShapeInfo& info) {
 bool ShapeManager::releaseShape(const btCollisionShape* shape) {
     // when the number of shapes is high it's probably cheaper to try to construct a ShapeInfo 
     // and then compute the hash rather than walking the list in search of the pointer.
-    int key = info.computeHash();
+    ShapeKey key(info);
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->_refCount > 0) {
@@ -99,10 +100,9 @@ bool ShapeManager::releaseShape(const btCollisionShape* shape) {
 void ShapeManager::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
-        int key = _pendingGarbage[i];
+        ShapeKey& key = _pendingGarbage[i];
         ShapeReference* shapeRef = _shapeMap.find(key);
-        assert(shapeRef != NULL);
-        if (shapeRef->_refCount == 0) {
+        if (shapeRef && shapeRef->_refCount == 0) {
             delete shapeRef->_shape;
             _shapeMap.remove(key);
         }
@@ -111,7 +111,7 @@ void ShapeManager::collectGarbage() {
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
-    int key = info.computeHash();
+    ShapeKey key(info);
     const ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         return shapeRef->_refCount;

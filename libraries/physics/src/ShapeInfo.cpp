@@ -15,7 +15,20 @@
 
 #include "ShapeInfo.h"
 
-void ShapeInfo::getInfo(const btCollisionShape* shape) {
+// prime numbers larger than 1e6
+const int NUM_PRIMES = 64;
+const unsigned int PRIMES[] = { 
+    4194301U, 4194287U, 4194277U, 4194271U, 4194247U, 4194217U, 4194199U, 4194191U,
+    4194187U, 4194181U, 4194173U, 4194167U, 4194143U, 4194137U, 4194131U, 4194107U,
+    4194103U, 4194023U, 4194011U, 4194007U, 4193977U, 4193971U, 4193963U, 4193957U,
+    4193939U, 4193929U, 4193909U, 4193869U, 4193807U, 4193803U, 4193801U, 4193789U,
+    4193759U, 4193753U, 4193743U, 4193701U, 4193663U, 4193633U, 4193573U, 4193569U,
+    4193551U, 4193549U, 4193531U, 4193513U, 4193507U, 4193459U, 4193447U, 4193443U,
+    4193417U, 4193411U, 4193393U, 4193389U, 4193381U, 4193377U, 4193369U, 4193359U,
+    4193353U, 4193327U, 4193309U, 4193303U, 4193297U, 4193279U, 4193269U, 4193263U
+};
+
+void ShapeInfo::collectInfo(const btCollisionShape* shape) {
     _data.clear();
     if (shape) {
         _type = (unsigned int)(shape->getShapeType());
@@ -80,61 +93,87 @@ void ShapeInfo::setCapsule(float radius, float height) {
     _data.push_back(btVector3(radius, 0.5f * height, 0.0f));
 }
 
+unsigned int ShapeInfo::hashFunction(unsigned int value, int primeIndex) {
+    unsigned int hash = PRIMES[primeIndex % NUM_PRIMES] * (value + 1U);
+    hash += ~(hash << 15);
+    hash ^=  (hash >> 10);
+    hash +=  (hash << 3); 
+    hash ^=  (hash >> 6); 
+    hash += ~(hash << 11);
+    return hash ^ (hash >> 16);
+}
+
+unsigned int ShapeInfo::hashFunction2(unsigned int value) {
+    unsigned hash = 0x811c9dc5U;
+    for (int i = 0; i < 4; i++ ) {
+        unsigned int byte = (value << (i * 8)) >> (24 - i * 8);
+        hash = ( hash ^ byte ) * 0x01000193U;
+    }
+   return hash;
+}
+
+const float MILLIMETERS_PER_METER = 1000.0f;
+
 int ShapeInfo::computeHash() const {
-    // This hash algorithm works well for shapes that have dimensions less than about 256m.
-    // At larger values the likelihood of hash collision goes up because of the most 
-    // significant bits are pushed off the top and the result could be the same as for smaller
-    // dimensions (truncation).
-    //
-    // The algorithm may produce collisions for shapes whose dimensions differ by less than 
-    // ~1/256 m, however this is by design -- we don't expect collision differences smaller
-    // than 1 mm to be noticable.
-    unsigned int key = 0;
-    btVector3 tempData;
+    // scramble the bits of the type
+    // TODO?: provide lookup table for hash of _type?
+    int primeIndex = 0;
+    unsigned int hash = ShapeInfo::hashFunction((unsigned int)_type, primeIndex++);
+
+    btVector3 tmpData;
     int numData = _data.size();
     for (int i = 0; i < numData; ++i) {
-        // Successively multiply components of each vec3 by primes near 512 and convert to U32
-        // to spread the data across more bits.  Note that all dimensions are at half-value
-        // (half extents, radius, etc) which is why we multiply by primes near 512 rather
-        // than 256.
-        tempData = _data[i];
-        key += (unsigned int)(509.0f * (tempData.getZ() + 0.01f)) 
-            + 509 * (unsigned int)(521.0f * (tempData.getY() + 0.01f)) 
-            + (509 * 521) * (unsigned int)(523.0f * (tempData.getX() + 0.01f));
-        // avalanch the bits
-        key += ~(key << 15);
-        key ^=  (key >> 10);
-        key +=  (key << 3); 
-        key ^=  (key >> 6); 
-        key += ~(key << 11);
-        key ^=  (key >> 16);
+        tmpData = _data[i];
+        for (int j = 0; j < 3; ++j) {
+            // multiply these mm by a new prime
+            unsigned int floatHash = ShapeInfo::hashFunction((unsigned int)(tmpData[j] * MILLIMETERS_PER_METER + 0.49f), primeIndex++);
+            hash ^= floatHash;
+        }
     }
-    // finally XOR with type
-    return (int)(key ^ _type);
+    return hash;
+}
+
+int ShapeInfo::computeHash2() const {
+    // scramble the bits of the type
+    // TODO?: provide lookup table for hash of _type?
+    unsigned int hash = ShapeInfo::hashFunction2((unsigned int)_type);
+
+    btVector3 tmpData;
+    int numData = _data.size();
+    for (int i = 0; i < numData; ++i) {
+        tmpData = _data[i];
+        for (int j = 0; j < 3; ++j) {
+            unsigned int floatHash = ShapeInfo::hashFunction2((unsigned int)(tmpData[j] * MILLIMETERS_PER_METER + 0.49f));
+            hash += ~(floatHash << 17);
+            hash ^=  (floatHash >> 11);
+            hash +=  (floatHash << 4); 
+            hash ^=  (floatHash >> 7); 
+            hash += ~(floatHash << 10);
+            hash = (hash << 16) | (hash >> 16);
+        }
+    }
+    return hash;
 }
 
 btCollisionShape* ShapeInfo::createShape() const {
     btCollisionShape* shape = NULL;
     int numData = _data.size();
     switch(_type) {
-        case BOX_SHAPE_PROXYTYPE:
-        {
+        case BOX_SHAPE_PROXYTYPE: {
             if (numData > 0) {
                 btVector3 halfExtents = _data[0];
                 shape = new btBoxShape(halfExtents);
             }
         }
         break;
-        case SPHERE_SHAPE_PROXYTYPE:
-        {
+        case SPHERE_SHAPE_PROXYTYPE: {
             if (numData > 0) {
                 float radius = _data[0].getZ();
                 shape = new btSphereShape(radius);
             }
         }
         break;
-        case CYLINDER_SHAPE_PROXYTYPE:
-        {
+        case CYLINDER_SHAPE_PROXYTYPE: {
             if (numData > 0) {
                 btVector3 halfExtents = _data[0];
                 // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
@@ -143,8 +182,7 @@ btCollisionShape* ShapeInfo::createShape() const {
             }
         }
         break;
-        case CAPSULE_SHAPE_PROXYTYPE:
-        {
+        case CAPSULE_SHAPE_PROXYTYPE: {
             if (numData > 0) {
                 float radius = _data[0].getX();
                 float height = 2.0f * _data[0].getY();
