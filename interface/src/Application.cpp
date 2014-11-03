@@ -4233,27 +4233,27 @@ void Application::takeSnapshot() {
 
 void Application::setVSyncEnabled(bool vsyncOn) {
 #if defined(Q_OS_WIN)
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            wglSwapIntervalEXT(vsyncOn);
-            int swapInterval = wglGetSwapIntervalEXT();
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        } else {
-            qDebug("V-Sync is FORCED ON on this system\n");
-        }
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        wglSwapIntervalEXT(vsyncOn);
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    } else {
+        qDebug("V-Sync is FORCED ON on this system\n");
+    }
 #elif defined(Q_OS_LINUX)
-        // TODO: write the poper code for linux
-        /*
-        if (glQueryExtension.... ("GLX_EXT_swap_control")) {
-            glxSwapIntervalEXT(vsyncOn);
-            int swapInterval = xglGetSwapIntervalEXT();
-            _isVSyncOn = swapInterval;
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        } else {
-        qDebug("V-Sync is FORCED ON on this system\n");
-        }
-        */
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        glxSwapIntervalEXT(vsyncOn);
+        int swapInterval = xglGetSwapIntervalEXT();
+        _isVSyncOn = swapInterval;
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    } else {
+    qDebug("V-Sync is FORCED ON on this system\n");
+    }
+    */
 #else
-        qDebug("V-Sync is FORCED ON on this system\n");
+    qDebug("V-Sync is FORCED ON on this system\n");
 #endif
 }
 
@@ -4300,40 +4300,30 @@ bool Application::isVSyncEditable() const {
 unsigned int Application::getRenderTargetFramerate() const {
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateUnlimited)) {
         return 0;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate60)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate60)) {
         return 60;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate50)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate50)) {
         return 50;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate40)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate40)) {
         return 40;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate30)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate30)) {
         return 30;
     }
     return 0;
 }
 
 float Application::getRenderResolutionScale() const {
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
         return 1.f;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
         return 0.666f;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
         return 0.5f;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionThird)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionThird)) {
         return 0.333f;
-    }
-    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
         return 0.25f;
-    }
-    else {
+    } else {
         return 1.f;
     }
 }
