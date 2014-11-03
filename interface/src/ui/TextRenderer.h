@@ -107,10 +107,10 @@ private:
     QColor _color;
     
     // Graphics Buffer containing the current accumulated glyphs to render
-    gpu::Buffer _glyphsBuffer;
-    gpu::Buffer _glyphsColorBuffer;
-    gpu::StreamFormat _glyphsStreamFormat;
-    gpu::Stream _glyphsStream;
+    gpu::BufferPtr _glyphsBuffer;
+    gpu::BufferPtr _glyphsColorBuffer;
+    gpu::StreamFormatPtr _glyphsStreamFormat;
+    gpu::StreamPtr _glyphsStream;
     int _numGlyphsBatched;
 
     static QHash<Properties, TextRenderer*> _instances;

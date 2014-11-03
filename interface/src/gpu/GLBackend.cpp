@@ -23,8 +23,11 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawInstanced),
     (&::gpu::GLBackend::do_drawIndexedInstanced),
 
-    (&::gpu::GLBackend::do_setInputStream),
     (&::gpu::GLBackend::do_setInputFormat),
+
+    (&::gpu::GLBackend::do_setInputBuffer),
+
+    (&::gpu::GLBackend::do_setIndexBuffer),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -108,11 +111,18 @@ static const GLenum _elementTypeToGLType[Element::NUM_TYPES]= {
 
 
 GLBackend::GLBackend() :
+
     _inputFormat(0),
-    _inputStream(0),
+    _inputAttributeActivation(0),
     _needInputFormatUpdate(true),
-    _needInputStreamUpdate(true),
-    _inputAttributeActivation(0)
+
+    _vertexBuffersState(0),
+    _vertexBuffers(_vertexBuffersState.size(), BufferPtr(0)),
+    _vertexBufferOffsets(_vertexBuffersState.size(), 0),
+    _vertexBufferStrides(_vertexBuffersState.size(), 0),
+
+    _indexBuffer(0),
+    _indexBufferOffset(0)
 {
 
 }
@@ -191,7 +201,7 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
     uint32 startIndex = batch._params[paramOffset + 0]._uint;
 
-    glDrawElements(mode, numIndices, GL_UNSIGNED_INT, (GLvoid*) startIndex);
+    glDrawElements(mode, numIndices, GL_UNSIGNED_INT, (GLvoid*)(startIndex + _indexBufferOffset));
     CHECK_GL_ERROR();
 }
 
@@ -203,22 +213,26 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
     CHECK_GL_ERROR();
 }
 
-
-void GLBackend::do_setInputStream(Batch& batch, uint32 paramOffset) {
-    const Stream* stream = reinterpret_cast<const Stream*>(batch.editResource(batch._params[paramOffset]._uint)->_pointer);
-
-    if (stream != _inputStream) {
-        _inputStream = stream;
-        _needInputStreamUpdate = true;
-    }
-}
-
 void GLBackend::do_setInputFormat(Batch& batch, uint32 paramOffset) {
-    const StreamFormat* format = reinterpret_cast<const StreamFormat*>(batch.editResource(batch._params[paramOffset]._uint)->_pointer);
+    StreamFormatPtr format = batch._streamFormats.get(batch._params[paramOffset]._uint);
 
     if (format != _inputFormat) {
         _inputFormat = format;
         _needInputFormatUpdate = true;
+    }
+}
+
+void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
+    Offset stride = batch._params[paramOffset + 0]._uint;
+    Offset offset = batch._params[paramOffset + 1]._uint;
+    BufferPtr buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
+    uint32 channel = batch._params[paramOffset + 3]._uint;
+
+    if (channel < getNumInputBuffers()) {
+        _vertexBuffers[channel] = buffer;
+        _vertexBufferOffsets[channel] = offset;
+        _vertexBufferStrides[channel] = stride;
+        _vertexBuffersState.set(channel);
     }
 }
 
@@ -234,7 +248,7 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 #endif
 
 void GLBackend::updateInput() {
-    if (_needInputFormatUpdate || _needInputStreamUpdate) {
+    if (_needInputFormatUpdate || _vertexBuffersState.any()) {
 
         if (_needInputFormatUpdate) {
             InputActivationCache newActivation;
@@ -278,10 +292,10 @@ void GLBackend::updateInput() {
         }
 
         // now we need to bind the buffers and assign the attrib pointers
-        if (_inputStream && _inputFormat) {
-            const Stream::Buffers& buffers = _inputStream->getBuffers();
-            const Stream::Offsets& offsets = _inputStream->getOffsets();
-            const Stream::Strides& strides = _inputStream->getStrides();
+        if (_inputFormat) {
+            const Buffers& buffers = _vertexBuffers;
+            const Offsets& offsets = _vertexBufferOffsets;
+            const Offsets& strides = _vertexBufferStrides;
 
             const StreamFormat::AttributeMap& attributes = _inputFormat->getAttributes();
 
@@ -291,45 +305,48 @@ void GLBackend::updateInput() {
                 const StreamFormat::ChannelMap::value_type::second_type& channel = (*channelIt).second;
                 if ((*channelIt).first < buffers.size()) {
                     int bufferNum = (*channelIt).first;
-                    GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
-                    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-                    CHECK_GL_ERROR();
 
-                    for (int i = 0; i < channel._slots.size(); i++) {
-                        const StreamFormat::Attribute& attrib = attributes.at(channel._slots[i]);
-                        GLuint count = attrib._element.getDimensionCount();
-                        GLenum type = _elementTypeToGLType[attrib._element.getType()];
-                        GLuint stride = strides[bufferNum];
-                        GLuint pointer = attrib._offset + offsets[bufferNum];
-#if defined(SUPPORT_LEGACY_OPENGL)
-                        if (attrib._slot < NUM_CLASSIC_ATTRIBS) {
-                            switch (attrib._slot) {
-                            case StreamFormat::SLOT_POSITION:
-                                glVertexPointer(count, type, stride, (GLvoid*)pointer);
-                                break;
-                            case StreamFormat::SLOT_COLOR:
-                                glColorPointer(count, type, stride, (GLvoid*)pointer);
-                                break;
-                            case StreamFormat::SLOT_TEXCOORD:
-                                glTexCoordPointer(count, type, stride, (GLvoid*)pointer); 
-                                break;
-                            case StreamFormat::SLOT_NORMAL:
-                                glNormalPointer(type, stride, (GLvoid*)pointer);
-                                break;
-                            };
-                        } else {
-#else 
-                        {
-#endif
-                            glVertexAttribPointer(attrib._slot, count, type, attrib._element.isNormalized(), stride, (GLvoid*)pointer);
-                        }
+                    if (_vertexBuffersState.at(bufferNum) || _needInputFormatUpdate) {
+                        GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
+                        glBindBuffer(GL_ARRAY_BUFFER, vbo);
                         CHECK_GL_ERROR();
+                        _vertexBuffersState[bufferNum] = false;
+
+                        for (int i = 0; i < channel._slots.size(); i++) {
+                            const StreamFormat::Attribute& attrib = attributes.at(channel._slots[i]);
+                            GLuint count = attrib._element.getDimensionCount();
+                            GLenum type = _elementTypeToGLType[attrib._element.getType()];
+                            GLuint stride = strides[bufferNum];
+                            GLuint pointer = attrib._offset + offsets[bufferNum];
+                            #if defined(SUPPORT_LEGACY_OPENGL)
+                            if (attrib._slot < NUM_CLASSIC_ATTRIBS) {
+                                switch (attrib._slot) {
+                                case StreamFormat::SLOT_POSITION:
+                                    glVertexPointer(count, type, stride, (GLvoid*)pointer);
+                                    break;
+                                case StreamFormat::SLOT_COLOR:
+                                    glColorPointer(count, type, stride, (GLvoid*)pointer);
+                                    break;
+                                case StreamFormat::SLOT_TEXCOORD:
+                                    glTexCoordPointer(count, type, stride, (GLvoid*)pointer); 
+                                    break;
+                                case StreamFormat::SLOT_NORMAL:
+                                    glNormalPointer(type, stride, (GLvoid*)pointer);
+                                    break;
+                                };
+                            } else {
+                            #else 
+                            {
+                            #endif
+                                glVertexAttribPointer(attrib._slot, count, type, attrib._element.isNormalized(), stride, (GLvoid*)pointer);
+                            }
+                            CHECK_GL_ERROR();
+                        }
                     }
                 }
             }
         }
-
-        _needInputStreamUpdate = false;
+        // everything format related should be in sync now
         _needInputFormatUpdate = false;
     }
 
@@ -387,6 +404,19 @@ void GLBackend::updateInput() {
         _needInputStreamUpdate = false;
     }
 */
+}
+
+
+void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
+    GLenum type = _elementTypeToGLType[ batch._params[paramOffset + 2]._uint ];
+    BufferPtr indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    _indexBufferOffset = batch._params[paramOffset + 0]._uint;
+    _indexBuffer = indexBuffer;
+    if (indexBuffer) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
+    } else {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface

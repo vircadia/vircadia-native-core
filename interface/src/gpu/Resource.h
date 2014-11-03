@@ -14,6 +14,11 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include "gpu/Format.h"
+
+#include <vector>
+
+#include <QSharedPointer>
 
 namespace gpu {
 
@@ -142,6 +147,8 @@ protected:
     friend class Backend;
 };
 
+typedef QSharedPointer<Buffer> BufferPtr;
+typedef std::vector< BufferPtr > Buffers;
 };
 
 

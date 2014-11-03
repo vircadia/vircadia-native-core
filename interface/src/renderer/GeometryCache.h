@@ -161,8 +161,9 @@ public:
     gpu::BufferPtr _indexBuffer;
     gpu::BufferPtr _vertexBuffer;
 
-    gpu::Stream _vertexStream;
-    gpu::StreamFormat _vertexFormat;
+    gpu::StreamPtr _vertexStream;
+
+    gpu::StreamFormatPtr _vertexFormat;
     
     QVector<NetworkMeshPart> parts;
     

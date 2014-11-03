@@ -26,7 +26,7 @@ void StreamFormat::evaluateCache() {
     }
 }
 
-bool StreamFormat::setAttribute(Slot slot, uint8 channel, Element element, uint32 offset, Frequency frequency) {
+bool StreamFormat::setAttribute(Slot slot, uint8 channel, Element element, Offset offset, Frequency frequency) {
     _attributes[slot] = Attribute(slot, channel, element, offset, frequency);
     evaluateCache();
     return true;

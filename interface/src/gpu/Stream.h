@@ -19,11 +19,7 @@
 #include <vector>
 #include <map>
 
-#include <QSharedPointer>
-
 namespace gpu {
-
-typedef QSharedPointer<Buffer> BufferPtr;
 
 class StreamFormat {
 public:
@@ -49,7 +45,7 @@ public:
     public:
         typedef std::vector< Attribute > vector;
 
-        Attribute(Slot slot, uint8 channel, Element element, uint32 offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX) :
+        Attribute(Slot slot, uint8 channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX) :
             _slot(slot),
             _channel(channel),
             _element(element),
@@ -69,7 +65,7 @@ public:
         uint8 _channel; // index of the channel where to get the data from
         Element _element;
 
-        uint32 _offset;
+        Offset _offset;
         uint32 _frequency;
 
         uint32 getSize() const { return _element.getSize(); }
@@ -102,7 +98,7 @@ public:
 
     uint32 getElementTotalSize() const { return _elementTotalSize; }
 
-    bool setAttribute(Slot slot, uint8 channel, Element element, uint32 offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX);
+    bool setAttribute(Slot slot, uint8 channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX);
 
 protected:
     AttributeMap _attributes;

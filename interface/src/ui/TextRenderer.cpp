@@ -133,12 +133,12 @@ int TextRenderer::draw(int x, int y, const char* str) {
 
         gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
         gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
-        if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer.getSize()) {
-            _glyphsBuffer.append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-            _glyphsColorBuffer.append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
+        if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer->getSize()) {
+            _glyphsBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer->append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
         } else {
-            _glyphsBuffer.setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-            _glyphsColorBuffer.setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
+            _glyphsBuffer->setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer->setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
         }
         _numGlyphsBatched++;
 
@@ -179,18 +179,21 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _y(IMAGE_SIZE),
     _rowHeight(0),
     _color(properties.color),
-    _glyphsBuffer(),
-    _numGlyphsBatched(0)
+    _glyphsBuffer(new gpu::Buffer()),
+    _glyphsColorBuffer(new gpu::Buffer()),
+    _numGlyphsBatched(0),
+    _glyphsStreamFormat(new gpu::StreamFormat()),
+    _glyphsStream(new gpu::Stream())
 {
-    _glyphsStreamFormat.setAttribute(gpu::StreamFormat::SLOT_POSITION, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+    _glyphsStreamFormat->setAttribute(gpu::StreamFormat::SLOT_POSITION, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
     const int NUM_POS_COORDS = 2;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
-    _glyphsStreamFormat.setAttribute(gpu::StreamFormat::SLOT_TEXCOORD, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_UV), VERTEX_TEXCOORD_OFFSET);
+    _glyphsStreamFormat->setAttribute(gpu::StreamFormat::SLOT_TEXCOORD, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_UV), VERTEX_TEXCOORD_OFFSET);
 
-    _glyphsStreamFormat.setAttribute(gpu::StreamFormat::SLOT_COLOR, 1, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_UINT8, gpu::Element::SEMANTIC_RGBA));
+    _glyphsStreamFormat->setAttribute(gpu::StreamFormat::SLOT_COLOR, 1, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_UINT8, gpu::Element::SEMANTIC_RGBA));
 
-    _glyphsStream.addBuffer(gpu::BufferPtr(&_glyphsBuffer), 0, _glyphsStreamFormat.getChannels().at(0)._stride);
-    _glyphsStream.addBuffer(gpu::BufferPtr(&_glyphsColorBuffer), 0, _glyphsStreamFormat.getChannels().at(1)._stride);
+    _glyphsStream->addBuffer(_glyphsBuffer, 0, _glyphsStreamFormat->getChannels().at(0)._stride);
+    _glyphsStream->addBuffer(_glyphsColorBuffer, 0, _glyphsStreamFormat->getChannels().at(1)._stride);
 
     _font.setKerning(false);
 }
@@ -331,8 +334,8 @@ void TextRenderer::drawBatch() {
     glBindBuffer(GL_ARRAY_BUFFER, colorvbo);
     glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
 */
-    batch.setInputFormat(&_glyphsStreamFormat);
-    batch.setInputStream(&_glyphsStream);
+    batch.setInputFormat(_glyphsStreamFormat);
+    batch.setInputStream(0, _glyphsStream);
     batch.draw(gpu::PRIMITIVE_QUADS, _numGlyphsBatched * 4, 0);
 
     gpu::GLBackend::renderBatch(batch);

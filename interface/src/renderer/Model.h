@@ -40,6 +40,8 @@ namespace gpu {
     class Batch;
 }
 
+#include "gpu/Stream.h"
+
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
     Q_OBJECT
@@ -281,6 +283,8 @@ private:
     QUrl _url;
         
     QVector<QOpenGLBuffer> _blendedVertexBuffers;
+
+    gpu::Buffers _blendedVertexBuffers2;
     
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     

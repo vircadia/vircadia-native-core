@@ -46,13 +46,23 @@ public:
     static GLuint getBufferID(const Buffer& buffer);
 
     static const int MAX_NUM_ATTRIBUTES = StreamFormat::NUM_SLOTS;
+    static const int MAX_NUM_INPUT_BUFFERS = 16;
+
+    uint32 getNumInputBuffers() const { return _vertexBuffersState.size(); }
 
 protected:
 
     bool _needInputFormatUpdate;
-    bool _needInputStreamUpdate;
-    const StreamFormat* _inputFormat;
-    const Stream* _inputStream;
+    StreamFormatPtr _inputFormat;
+
+    typedef std::bitset<MAX_NUM_INPUT_BUFFERS> InputBuffersState;
+    InputBuffersState _vertexBuffersState;
+    Buffers _vertexBuffers;
+    Offsets _vertexBufferOffsets;
+    Offsets _vertexBufferStrides;
+
+    BufferPtr _indexBuffer;
+    Offset _indexBufferOffset;
 
     typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
     InputActivationCache _inputAttributeActivation;
@@ -63,8 +73,12 @@ protected:
     void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
 
     void updateInput();
-    void do_setInputStream(Batch& batch, uint32 paramOffset);
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
+
+    void do_setInputBuffer(Batch& batch, uint32 paramOffset);
+
+    void do_setVertexBuffer(Batch& batch, uint32 paramOffset);
+    void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

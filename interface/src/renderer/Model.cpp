@@ -137,6 +137,10 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
 
 
+    glBindAttribLocation(program.programId(), gpu::StreamFormat::SLOT_TANGENT, "tangent");
+
+    glLinkProgram(program.programId());
+
     locations.tangent = program.attributeLocation("tangent");
 
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
@@ -171,7 +175,13 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 
 #endif
 
+    // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
 
+    glBindAttribLocation(program.programId(), gpu::StreamFormat::SLOT_SKIN_CLUSTER_INDEX, "clusterIndices");
+
+    glBindAttribLocation(program.programId(), gpu::StreamFormat::SLOT_SKIN_CLUSTER_WEIGHT, "clusterWeights");
+
+    glLinkProgram(program.programId());
 
     program.bind();
 
@@ -408,6 +418,19 @@ bool Model::updateGeometry() {
                 buffer.release();
             }
             _blendedVertexBuffers.append(buffer);
+
+            gpu::BufferPtr buffer2(new gpu::Buffer());
+            if (!mesh.blendshapes.isEmpty()) {
+                //buffer.setUsagePattern(QOpenGLBuffer::DynamicDraw);
+                //buffer.create();
+                //buffer.bind();
+                buffer2->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
+                buffer2->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
+                buffer2->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
+                    mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
+            //    buffer.release();
+            }
+            _blendedVertexBuffers2.push_back(buffer2);
         }
         foreach (const FBXAttachment& attachment, fbxGeometry.attachments) {
             Model* model = new Model(this);
@@ -549,8 +572,8 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     gpu::Batch batch;
 
-    GLBATCH(glEnableClientState)(GL_VERTEX_ARRAY);
-    GLBATCH(glEnableClientState)(GL_NORMAL_ARRAY);
+ //   GLBATCH(glEnableClientState)(GL_VERTEX_ARRAY);
+ //   GLBATCH(glEnableClientState)(GL_NORMAL_ARRAY);
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
@@ -1408,6 +1431,13 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
         buffer.write(mesh.vertices.size() * sizeof(glm::vec3), normals.constData() + index,
             mesh.normals.size() * sizeof(glm::vec3));
         buffer.release();
+
+        gpu::BufferPtr& buffer2 = _blendedVertexBuffers2[i];
+        //buffer.bind();
+        buffer2->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) vertices.constData() + index);
+        buffer2->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
+            mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) normals.constData() + index);
+
         index += mesh.vertices.size();
     }
 }
@@ -1432,6 +1462,7 @@ void Model::deleteGeometry() {
     }
     _attachments.clear();
     _blendedVertexBuffers.clear();
+    _blendedVertexBuffers2.clear();
     _jointStates.clear();
     _meshStates.clear();
     clearShapes();
@@ -1813,10 +1844,8 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
         //const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bind();
  //       GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.indexBuffer).bufferId());
-       // if (!mesh.blendshapes.isEmpty()) {
-            GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, gpu::GLBackend::getBufferID((*networkMesh._indexBuffer)));
-       // }
-
+  //      GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, gpu::GLBackend::getBufferID((*networkMesh._indexBuffer)));
+        batch.setIndexBuffer(gpu::Element::TYPE_UINT32, (networkMesh._indexBuffer), 0);
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
             // sanity check
@@ -1852,9 +1881,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         
         //const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bind();
        // GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, const_cast<QOpenGLBuffer&>(networkMesh.vertexBuffer).bufferId());
-        if (!mesh.blendshapes.isEmpty()) {
-            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, gpu::GLBackend::getBufferID((*networkMesh._vertexBuffer)));
-        }
+       // if (!mesh.blendshapes.isEmpty()) {
+       //     GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, gpu::GLBackend::getBufferID((*networkMesh._vertexBuffer)));
+       // }
         GLBATCH(glPushMatrix)();
         //Application::getInstance()->loadTranslatedViewMatrix(_translation);
         GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
@@ -1870,18 +1899,18 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 mesh.texCoords.size() * sizeof(glm::vec2) +
                 (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
             //skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
-            GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0,
+         /*   GLBATCH(glVertexAttribPointer)(skinLocations->clusterIndices, 4, GL_FLOAT, GL_TRUE, 0,
                                            reinterpret_cast<const void*>(offset));
-            //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
+          */  //skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
             //    offset + vertexCount * sizeof(glm::vec4), 4);
 
-            if (!mesh.blendshapes.isEmpty()) {
+        /*    if (!mesh.blendshapes.isEmpty()) {
                 GLBATCH(glVertexAttribPointer)(skinLocations->clusterWeights, 4, GL_FLOAT, GL_TRUE, 0, (const void*) (offset + vertexCount * sizeof(glm::vec4)));
                 //skinProgram->enableAttributeArray(skinLocations->clusterIndices);
                 GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterIndices);
                 //skinProgram->enableAttributeArray(skinLocations->clusterWeights);
                 GLBATCH(glEnableVertexAttribArray)(skinLocations->clusterWeights);
-            }
+            }*/
         } else {
             GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
         }
@@ -1899,7 +1928,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         */
         } else {
-            if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
+          /*  if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
                 //activeProgram->setAttributeBuffer(activeLocations->tangent, GL_FLOAT, 0, 3);
                 GLBATCH(glVertexAttribPointer)(activeLocations->tangent, 3, GL_FLOAT, GL_TRUE, 0, 0);
                 //activeProgram->enableAttributeArray(activeLocations->tangent);
@@ -1907,14 +1936,19 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             }
             GLBATCH(glColorPointer)(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
             GLBATCH(glTexCoordPointer)(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
-           // _blendedVertexBuffers[i].bind();
-            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, _blendedVertexBuffers[i].bufferId());
+         */
+  // _blendedVertexBuffers[i].bind();
+          //  GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, _blendedVertexBuffers[i].bufferId());
+            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, gpu::GLBackend::getBufferID(*_blendedVertexBuffers2[i]));
+            batch.setInputBuffer(0, _blendedVertexBuffers2[i], 0, 0);
+            batch.setInputBuffer(1, _blendedVertexBuffers2[i], vertexCount * sizeof(glm::vec3), 0);
+
         }
         if (!mesh.blendshapes.isEmpty()) {
 
-        GLBATCH(glVertexPointer)(3, GL_FLOAT, 0, 0);
-        GLBATCH(glNormalPointer)(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
-
+   //     GLBATCH(glVertexPointer)(3, GL_FLOAT, 0, 0);
+     //   GLBATCH(glNormalPointer)(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        /*
         if (!mesh.colors.isEmpty()) {
             GLBATCH(glEnableClientState)(GL_COLOR_ARRAY);
         } else {
@@ -1922,11 +1956,13 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         }
         if (!mesh.texCoords.isEmpty()) {
             GLBATCH(glEnableClientState)(GL_TEXTURE_COORD_ARRAY);
-        }
+        }*/
+            batch.setInputFormat(networkMesh._vertexFormat);
+            batch.setInputStream(2, networkMesh._vertexStream);
         }
         else{
-            batch.setInputFormat(&(networkMesh._vertexFormat));
-            batch.setInputStream(&(networkMesh._vertexStream));
+            batch.setInputFormat(networkMesh._vertexFormat);
+            batch.setInputStream(0, networkMesh._vertexStream);
         }
         
 
@@ -1996,24 +2032,24 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             meshPartsRendered++;
             
             if (part.quadIndices.size() > 0) {
-                if (!mesh.blendshapes.isEmpty()) {
+              /*  if (!mesh.blendshapes.isEmpty()) {
                 GLBATCH(glDrawRangeElements)(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
                 }
-                else {
+                else {*/
                     batch.drawIndexed(gpu::PRIMITIVE_QUADS, part.quadIndices.size(), offset);
-                }
+               // }
                  offset += part.quadIndices.size() * sizeof(int);
 
 
             }
             
             if (part.triangleIndices.size() > 0) {
-                if (!mesh.blendshapes.isEmpty()) {
+             /*   if (!mesh.blendshapes.isEmpty()) {
                     GLBATCH(glDrawRangeElements)(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
                     GL_UNSIGNED_INT, (void*)offset);
-                } else {
+                } else {*/
                     batch.drawIndexed(gpu::PRIMITIVE_TRIANGLES, part.triangleIndices.size(), offset);
-                }
+               // }
                 offset += part.triangleIndices.size() * sizeof(int);
             }
 
@@ -2024,21 +2060,21 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 args->_quadsRendered += part.quadIndices.size() / INDICES_PER_QUAD;
             }
         }
-        
+        /**
         if (!mesh.colors.isEmpty()) {
             GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
         }
         if (!mesh.texCoords.isEmpty()) {
             GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
         }
-        
+        */
         if (!(mesh.tangents.isEmpty() || mode == SHADOW_RENDER_MODE)) {
             GLBATCH(glActiveTexture)(GL_TEXTURE1);
             GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
             
            // activeProgram->disableAttributeArray(activeLocations->tangent);
-            GLBATCH(glDisableVertexAttribArray)(activeLocations->tangent);
+        //    GLBATCH(glDisableVertexAttribArray)(activeLocations->tangent);
         }
         
         if (specularTextureUnit) {
@@ -2049,9 +2085,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         
         if (state.clusterMatrices.size() > 1) {
            // skinProgram->disableAttributeArray(skinLocations->clusterIndices);
-            GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterIndices);
+       //     GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterIndices);
           //  skinProgram->disableAttributeArray(skinLocations->clusterWeights);
-            GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterWeights);
+       //     GLBATCH(glDisableVertexAttribArray)(skinLocations->clusterWeights);
         } 
         GLBATCH(glPopMatrix)();
 
