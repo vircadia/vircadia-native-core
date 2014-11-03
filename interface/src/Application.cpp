@@ -2335,7 +2335,7 @@ void Application::update(float deltaTime) {
             if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
                 queryOctree(NodeType::VoxelServer, PacketTypeVoxelQuery, _voxelServerJurisdictions);
             }
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
                 queryOctree(NodeType::EntityServer, PacketTypeEntityQuery, _entityServerJurisdictions);
             }
             _lastQueriedViewFrustum = _viewFrustum;
@@ -2982,7 +2982,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
 
         // render models...
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
