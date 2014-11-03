@@ -1,5 +1,5 @@
 //
-//  crazylegsOnHover.js
+//  crazylegsOnClick.js
 //  examples/entityScripts
 //
 //  Created by Brad Hefta-Gaub on 11/3/14.
