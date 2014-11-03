@@ -51,12 +51,14 @@ public:
     virtual void render(RenderArgs* args);
     Model* getModel(EntityTreeRenderer* renderer);
 private:
+    void remapTextures();
     bool needsSimulation() const;
     
     Model* _model;
     bool _needsInitialSimulation;
     bool _needsModelReload;
     EntityTreeRenderer* _myRenderer;
+    QString _currentTextures;
 };
 
 #endif // hifi_RenderableModelEntityItem_h
