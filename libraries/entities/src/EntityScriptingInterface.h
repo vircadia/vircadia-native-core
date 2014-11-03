@@ -115,6 +115,9 @@ signals:
     void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
 
+    void enterEntity(const EntityItemID& entityItemID);
+    void leaveEntity(const EntityItemID& entityItemID);
+
 private:
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);
 

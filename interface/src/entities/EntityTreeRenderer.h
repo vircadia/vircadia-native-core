@@ -104,6 +104,9 @@ signals:
     void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
     void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void enterEntity(const EntityItemID& entityItemID);
+    void leaveEntity(const EntityItemID& entityItemID);
     
 private:
     QList<Model*> _releasedModels;
@@ -113,6 +116,11 @@ private:
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;
+
+    QScriptValueList createEntityArgs(const EntityItemID& entityID);
+    void checkEnterLeaveEntities();
+    glm::vec3 _lastAvatarPosition;
+    QVector<EntityItemID> _currentEntitiesInside;
     
     bool _wantScripts;
     ScriptEngine* _entitiesScriptEngine;
