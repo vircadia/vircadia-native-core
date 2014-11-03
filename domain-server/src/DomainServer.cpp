@@ -50,6 +50,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _hostname(),
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
+    _automaticNetworkingSetting(),
     _settingsManager()
 {
     LogUtils::init();
@@ -327,17 +328,17 @@ void DomainServer::setupAutomaticNetworking() {
         return;
     }
     
-    QString automaticNetworkValue =
+    _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
     
-    if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
-        automaticNetworkValue == FULL_AUTOMATIC_NETWORKING_VALUE) {
+    if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
+        _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
         
         LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
-            qDebug() << "domain-server" << automaticNetworkValue << "automatic networking enabled for ID"
+            qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
                 << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
             const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
@@ -347,7 +348,7 @@ void DomainServer::setupAutomaticNetworking() {
             QTimer* dynamicIPTimer = new QTimer(this);
             connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
             
-            if (automaticNetworkValue == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
+            if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
                 dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
                 
                 // send public socket changes to the data server so nodes can find us at our new IP
@@ -361,11 +362,11 @@ void DomainServer::setupAutomaticNetworking() {
                 iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
                 
                 // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
-                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHearbeatToIceServer);
+                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
                 
-                // tell the data server which type of automatic networking we are using
-                updateNetworkingInfoWithDataServer(automaticNetworkValue);
+                // send our heartbeat to data server so it knows what our network settings are
+                sendHeartbeatToDataServer();
             }
             
             // attempt to update our sockets now
@@ -378,8 +379,17 @@ void DomainServer::setupAutomaticNetworking() {
             return;
         }
     } else {
-        updateNetworkingInfoWithDataServer(automaticNetworkValue);
+        sendHeartbeatToDataServer();
     }
+    
+    qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
+    
+    // no matter the auto networking settings we should heartbeat to the data-server every 15s
+    const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
+    
+    QTimer* dataHeartbeatTimer = new QTimer(this);
+    connect(dataHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToDataServer);
+    dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
 void DomainServer::loginFailed() {
@@ -1081,10 +1091,10 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    updateNetworkingInfoWithDataServer(IP_ONLY_AUTOMATIC_NETWORKING_VALUE, newPublicSockAddr.getAddress().toString());
+    updateDomainInDataServer(newPublicSockAddr.getAddress().toString());
 }
 
-void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting, const QString& networkAddress) {
+void DomainServer::updateDomainInDataServer(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
@@ -1097,9 +1107,7 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
         domainObject[PUBLIC_NETWORK_ADDRESS_KEY] = networkAddress;
     }
     
-    qDebug() << "Updating automatic networking setting in domain-server to" << newSetting;
-    
-    domainObject[AUTOMATIC_NETWORKING_KEY] = newSetting;
+    domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
     
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
     
@@ -1112,11 +1120,11 @@ void DomainServer::updateNetworkingInfoWithDataServer(const QString& newSetting,
 // todo: have data-web respond with ice-server hostname to use
 
 void DomainServer::performICEUpdates() {
-    sendHearbeatToIceServer();
+    sendHeartbeatToIceServer();
     sendICEPingPackets();
 }
 
-void DomainServer::sendHearbeatToIceServer() {
+void DomainServer::sendHeartbeatToIceServer() {
     const HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
     LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
 }

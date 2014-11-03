@@ -107,6 +107,8 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
+const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+
 static QTimer* idleTimer = NULL;
 
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
@@ -343,9 +345,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkDiskCache* cache = new QNetworkDiskCache();
+    cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
 
