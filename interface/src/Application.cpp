@@ -107,8 +107,6 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
-                                                 //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
 
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
@@ -182,9 +180,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _renderTargetFramerate(0),
-        _isVSyncOn(true),
-        _renderResolutionScale(1.0f)
+        _isVSyncOn(true)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -601,7 +597,7 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        QSize fbSize = _glWidget->getDeviceSize() * _renderResolutionScale;
+        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
         _textureCache.setFrameBufferSize(fbSize);
     }
 
@@ -1471,12 +1467,11 @@ void Application::idle() {
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
 
-    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
+    //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
     double targetFramePeriod = 0.0;
-    if (_renderTargetFramerate > 0) {
-        targetFramePeriod = 1000.0 / _renderTargetFramerate;
-    } else if (_renderTargetFramerate < 0) {
-        targetFramePeriod = IDLE_SIMULATE_MSECS;
+    unsigned int targetFramerate = getRenderTargetFramerate();
+    if (targetFramerate > 0) {
+        targetFramePeriod = 1000.0 / targetFramerate;
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
@@ -3176,7 +3171,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
-        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * _renderResolutionScale;
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
@@ -4234,13 +4229,11 @@ void Application::takeSnapshot() {
     _snapshotShareDialog->show();
 }
 
-void Application::setRenderTargetFramerate(unsigned int framerate, bool vsyncOn) {
-    if (vsyncOn != _isVSyncOn) {
+void Application::setVSyncEnabled(bool vsyncOn) {
 #if defined(Q_OS_WIN)
         if (wglewGetExtension("WGL_EXT_swap_control")) {
             wglSwapIntervalEXT(vsyncOn);
             int swapInterval = wglGetSwapIntervalEXT();
-            _isVSyncOn = swapInterval;
             qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
         } else {
             qDebug("V-Sync is FORCED ON on this system\n");
@@ -4260,11 +4253,32 @@ void Application::setRenderTargetFramerate(unsigned int framerate, bool vsyncOn)
 #else
         qDebug("V-Sync is FORCED ON on this system\n");
 #endif
-    }
-    _renderTargetFramerate = framerate;
 }
 
-bool Application::isVSyncEditable() {
+bool Application::isVSyncOn() const {
+#if defined(Q_OS_WIN)
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        return (swapInterval > 0);
+    } else {
+        return true;
+    }
+#elif defined(Q_OS_LINUX)
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        int swapInterval = xglGetSwapIntervalEXT();
+        return (swapInterval > 0);
+    } else {
+        return true;
+    }
+    */
+#else
+    return true;
+#endif
+}
+
+bool Application::isVSyncEditable() const {
 #if defined(Q_OS_WIN)
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         return true;
@@ -4281,6 +4295,43 @@ bool Application::isVSyncEditable() {
     return false;
 }
 
-void Application::setRenderResolutionScale(float scale) {
-    _renderResolutionScale = scale;
+unsigned int Application::getRenderTargetFramerate() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateUnlimited)) {
+        return 0;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate60)) {
+        return 60;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate50)) {
+        return 50;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate40)) {
+        return 40;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate30)) {
+        return 30;
+    }
+    return 0;
+}
+
+float Application::getRenderResolutionScale() const {
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
+        return 1.f;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
+        return 0.666f;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
+        return 0.5f;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionThird)) {
+        return 0.333f;
+    }
+    else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
+        return 0.25f;
+    }
+    else {
+        return 1.f;
+    }
 }
