@@ -1509,7 +1509,7 @@ bool MetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
 DefaultMetavoxelGuide::DefaultMetavoxelGuide() {
 }
 
-static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, float lodBase, int encodedOrder) {
+static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, int encodedOrder) {
     MetavoxelVisitation& nextVisitation = visitation.visitor->acquireVisitation();
     nextVisitation.info.size = visitation.info.size * 0.5f;
     for (int i = 0; i < MetavoxelNode::CHILD_COUNT; i++) {
@@ -1519,14 +1519,14 @@ static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, float
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
             MetavoxelNode* node = visitation.inputNodes.at(j);
             const AttributeValue& parentValue = visitation.info.inputValues.at(j);
-            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+            MetavoxelNode* child = (node && (visitation.info.size >= visitation.info.lodBase *
                 parentValue.getAttribute()->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
                 child->getAttributeValue(parentValue.getAttribute()) : parentValue.getAttribute()->inherit(parentValue);
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
-            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+            MetavoxelNode* child = (node && (visitation.info.size >= visitation.info.lodBase *
                 visitation.visitor->getOutputs().at(j)->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.outputNodes[j] = child;
         }
@@ -1604,9 +1604,10 @@ static inline bool defaultGuideToChildren(MetavoxelVisitation& visitation, float
 
 bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    float lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
+    visitation.info.lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
         visitation.visitor->getLOD().threshold;
-    visitation.info.isLODLeaf = (visitation.info.size < lodBase * visitation.visitor->getMinimumLODThresholdMultiplier());
+    visitation.info.isLODLeaf = (visitation.info.size < visitation.info.lodBase *
+        visitation.visitor->getMinimumLODThresholdMultiplier());
     visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
     int encodedOrder = visitation.visitor->visit(visitation.info);
     if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
@@ -1628,14 +1629,15 @@ bool DefaultMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
     if (encodedOrder == MetavoxelVisitor::STOP_RECURSION) {
         return true;
     }
-    return (encodedOrder == MetavoxelVisitor::STOP_RECURSION || defaultGuideToChildren(visitation, lodBase, encodedOrder));
+    return (encodedOrder == MetavoxelVisitor::STOP_RECURSION || defaultGuideToChildren(visitation, encodedOrder));
 }
 
 bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
     // save the core of the LOD calculation; we'll reuse it to determine whether to subdivide each attribute
-    float lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
+    visitation.info.lodBase = glm::distance(visitation.visitor->getLOD().position, visitation.info.getCenter()) *
         visitation.visitor->getLOD().threshold;
-    visitation.info.isLODLeaf = (visitation.info.size < lodBase * visitation.visitor->getMinimumLODThresholdMultiplier());
+    visitation.info.isLODLeaf = (visitation.info.size < visitation.info.lodBase *
+        visitation.visitor->getMinimumLODThresholdMultiplier());
     visitation.info.isLeaf = visitation.info.isLODLeaf || visitation.allInputNodesLeaves();
     int encodedOrder = visitation.visitor->visit(visitation.info);
     if (encodedOrder == MetavoxelVisitor::SHORT_CIRCUIT) {
@@ -1658,7 +1660,7 @@ bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
         return true;
     }
     if (encodedOrder & MetavoxelVisitor::ALL_NODES_REST) {
-        return defaultGuideToChildren(visitation, lodBase, encodedOrder);
+        return defaultGuideToChildren(visitation, encodedOrder);
     }
     bool onlyVisitDifferent = !(encodedOrder & MetavoxelVisitor::ALL_NODES);
     MetavoxelVisitation& nextVisitation = visitation.visitor->acquireVisitation();
@@ -1672,7 +1674,8 @@ bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
         for (int j = 0; j < visitation.inputNodes.size(); j++) {
             MetavoxelNode* node = visitation.inputNodes.at(j);
             const AttributeValue& parentValue = visitation.info.inputValues.at(j);
-            bool expand = (visitation.info.size >= lodBase * parentValue.getAttribute()->getLODThresholdMultiplier());
+            bool expand = (visitation.info.size >= visitation.info.lodBase *
+                parentValue.getAttribute()->getLODThresholdMultiplier());
             MetavoxelNode* child = (node && expand) ? node->getChild(index) : NULL;
             nextVisitation.info.inputValues[j] = ((nextVisitation.inputNodes[j] = child)) ?
                 child->getAttributeValue(parentValue.getAttribute()) : parentValue.getAttribute()->inherit(parentValue);
@@ -1686,7 +1689,7 @@ bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
         }
         for (int j = 0; j < visitation.outputNodes.size(); j++) {
             MetavoxelNode* node = visitation.outputNodes.at(j);
-            MetavoxelNode* child = (node && (visitation.info.size >= lodBase *
+            MetavoxelNode* child = (node && (visitation.info.size >= visitation.info.lodBase *
                 visitation.visitor->getOutputs().at(j)->getLODThresholdMultiplier())) ? node->getChild(index) : NULL;
             nextVisitation.outputNodes[j] = child;
         }
@@ -1909,6 +1912,12 @@ MetavoxelVisitation::MetavoxelVisitation(MetavoxelVisitation* previous,
 }
 
 MetavoxelVisitation::MetavoxelVisitation() {
+}
+
+bool MetavoxelVisitation::isInputLeaf(int index) const {   
+    MetavoxelNode* node = inputNodes.at(index);  
+    return !node || node->isLeaf() || info.size < info.lodBase *
+        info.inputValues.at(index).getAttribute()->getLODThresholdMultiplier();
 }
 
 bool MetavoxelVisitation::allInputNodesLeaves() const {

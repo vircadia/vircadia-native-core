@@ -1038,26 +1038,42 @@ void ImportHeightfieldTool::apply() {
         data.setRoot(AttributeRegistry::getInstance()->getHeightfieldAttribute(), new MetavoxelNode(AttributeValue(
             AttributeRegistry::getInstance()->getHeightfieldAttribute(), encodeInline(heightPointer))));
         
-        QByteArray color;
-        if (buffer->getColor().isEmpty()) {
-            const unsigned char WHITE_VALUE = 0xFF;
-            color = QByteArray(height.size() * DataBlock::COLOR_BYTES, WHITE_VALUE);
-        } else {
-            color = buffer->getUnextendedColor();
-        }
-        HeightfieldColorDataPointer colorPointer(new HeightfieldColorData(color));
-        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(AttributeValue(
-            AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), encodeInline(colorPointer))));
-        
-        int size = glm::sqrt(float(height.size()));
-        QByteArray material(size * size, 0);
-        HeightfieldMaterialDataPointer materialPointer(new HeightfieldMaterialData(material));
-        data.setRoot(AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), new MetavoxelNode(AttributeValue(
-            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), encodeInline(materialPointer))));
-        
         MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
             _translation->getValue() + buffer->getTranslation() * scale, data)) };
         Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+        
+        int colorUnits = buffer->getColor().isEmpty() ? 1 : (buffer->getColorSize() - HeightfieldBuffer::SHARED_EDGE) /
+            (buffer->getHeightSize() - HeightfieldBuffer::HEIGHT_EXTENSION);
+        float colorScale = scale / colorUnits;
+        
+        for (int y = 0; y < colorUnits; y++) {
+            for (int x = 0; x < colorUnits; x++) {
+                MetavoxelData data;
+                data.setSize(colorScale);
+                
+                QByteArray color;
+                if (buffer->getColor().isEmpty()) {
+                    const unsigned char WHITE_VALUE = 0xFF;
+                    color = QByteArray(height.size() * DataBlock::COLOR_BYTES, WHITE_VALUE);
+                } else {
+                    color = buffer->getUnextendedColor(x, y);
+                }
+                HeightfieldColorDataPointer colorPointer(new HeightfieldColorData(color));
+                data.setRoot(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(), new MetavoxelNode(
+                    AttributeValue(AttributeRegistry::getInstance()->getHeightfieldColorAttribute(),
+                        encodeInline(colorPointer))));
+                
+                QByteArray material(height.size(), 0);
+                HeightfieldMaterialDataPointer materialPointer(new HeightfieldMaterialData(material));
+                data.setRoot(AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), new MetavoxelNode(
+                    AttributeValue(AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(),
+                        encodeInline(materialPointer))));
+                
+                MetavoxelEditMessage message = { QVariant::fromValue(SetDataEdit(
+                    _translation->getValue() + buffer->getTranslation() * scale + glm::vec3(x, 0.0f, y) * colorScale, data)) };
+                Application::getInstance()->getMetavoxels()->applyEdit(message, true);
+            }
+        }
     }
 }
 
@@ -1143,7 +1159,9 @@ void ImportHeightfieldTool::updatePreview() {
         float z = 0.0f;
         int blockSize = pow(2.0, _blockSize->value());
         int heightSize = blockSize + HeightfieldBuffer::HEIGHT_EXTENSION;
-        int colorSize = blockSize + HeightfieldBuffer::SHARED_EDGE;
+        int colorScale = glm::round(glm::log(_colorImage.height() / (float)_heightImage.height()) / glm::log(2.0f));
+        int colorBlockSize = blockSize * pow(2.0, qMax(colorScale, 0));
+        int colorSize = colorBlockSize + HeightfieldBuffer::SHARED_EDGE;
         for (int i = 0; i < _heightImage.height(); i += blockSize, z++) {
             float x = 0.0f;
             for (int j = 0; j < _heightImage.width(); j += blockSize, x++) {
@@ -1164,12 +1182,14 @@ void ImportHeightfieldTool::updatePreview() {
                 }
                 QByteArray color;
                 if (!_colorImage.isNull()) {
+                    int colorI = (i / blockSize) * colorBlockSize;
+                    int colorJ = (j / blockSize) * colorBlockSize;
                     color = QByteArray(colorSize * colorSize * DataBlock::COLOR_BYTES, 0);
-                    rows = qMax(0, qMin(colorSize, _colorImage.height() - i));
-                    columns = qMax(0, qMin(colorSize, _colorImage.width() - j));
+                    rows = qMax(0, qMin(colorSize, _colorImage.height() - colorI));
+                    columns = qMax(0, qMin(colorSize, _colorImage.width() - colorJ));
                     for (int y = 0; y < rows; y++) {
                         memcpy(color.data() + y * colorSize * DataBlock::COLOR_BYTES,
-                            _colorImage.scanLine(i + y) + j * DataBlock::COLOR_BYTES,
+                            _colorImage.scanLine(colorI + y) + colorJ * DataBlock::COLOR_BYTES,
                             columns * DataBlock::COLOR_BYTES);
                     }
                 }
