@@ -148,7 +148,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entityClipboardRenderer(),
+        _entities(true),
+        _entityCollisionSystem(),
+        _entityClipboardRenderer(false),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
@@ -1246,6 +1248,8 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_lastMouseMoveWasSimulated) {
         showMouse = false;
     }
+    
+    _entities.mouseMoveEvent(event, deviceID);
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1267,6 +1271,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+
+    _entities.mousePressEvent(event, deviceID);
+
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1304,6 +1311,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+
+    _entities.mouseReleaseEvent(event, deviceID);
+
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1936,6 +1946,10 @@ void Application::init() {
 
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+
+    // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
+    // of events related clicking, hovering over, and entering entities
+    _entities.connectSignalsToSlots(ScriptEngine::getEntityScriptingInterface());
 
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
@@ -3816,35 +3830,7 @@ void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
     out = qobject_cast<Joystick*>(object.toQObject());
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-    bool loadScriptFromEditor, bool activateMainWindow) {
-    QUrl scriptUrl(scriptFilename);
-    const QString& scriptURLString = scriptUrl.toString();
-    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
-        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
-
-        return _scriptEnginesHash[scriptURLString];
-    }
-
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
-    scriptEngine->setUserLoaded(isUserLoaded);
-
+void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
@@ -3926,6 +3912,38 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
+}
+
+ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
+    bool loadScriptFromEditor, bool activateMainWindow) {
+    QUrl scriptUrl(scriptFilename);
+    const QString& scriptURLString = scriptUrl.toString();
+    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+
+        return _scriptEnginesHash[scriptURLString];
+    }
+
+    ScriptEngine* scriptEngine;
+    if (scriptFilename.isNull()) {
+        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
+    } else {
+        // start the script on a new thread...
+        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
+
+        if (!scriptEngine->hasScript()) {
+            qDebug() << "Application::loadScript(), script failed to load...";
+            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
+            return NULL;
+        }
+
+        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        UserActivityLogger::getInstance().loadedScript(scriptURLString);
+    }
+    scriptEngine->setUserLoaded(isUserLoaded);
+    
+    registerScriptEngineWithApplicationServices(scriptEngine);
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {

@@ -25,6 +25,7 @@
 
 
 class EntityTree;
+class MouseEvent;
 
 
 class RayToEntityIntersectionResult {
@@ -37,6 +38,7 @@ public:
     float distance;
     BoxFace face;
     glm::vec3 intersection;
+    EntityItem* entity;
 };
 
 Q_DECLARE_METATYPE(RayToEntityIntersectionResult)
@@ -100,6 +102,18 @@ public slots:
 signals:
     void entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const CollisionInfo& collision);
     void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& collision);
+
+    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
 
 private:
     void queueEntityMessage(PacketType packetType, EntityItemID entityID, const EntityItemProperties& properties);

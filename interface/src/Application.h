@@ -310,6 +310,8 @@ public:
     bool isVSyncEditable() const;
 
 
+    void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.
