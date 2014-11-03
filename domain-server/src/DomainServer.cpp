@@ -388,7 +388,7 @@ void DomainServer::setupAutomaticNetworking() {
     const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
     
     QTimer* dataHeartbeatTimer = new QTimer(this);
-    connect(dataHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToDataServer);
+    connect(dataHeartbeatTimer, SIGNAL(timeout()), this, SLOT(sendHeartbeatToDataServer()));
     dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
@@ -1091,10 +1091,10 @@ QJsonObject jsonForDomainSocketUpdate(const HifiSockAddr& socket) {
 const QString DOMAIN_UPDATE_AUTOMATIC_NETWORKING_KEY = "automatic_networking";
 
 void DomainServer::performIPAddressUpdate(const HifiSockAddr& newPublicSockAddr) {
-    updateDomainInDataServer(newPublicSockAddr.getAddress().toString());
+    sendHeartbeatToDataServer(newPublicSockAddr.getAddress().toString());
 }
 
-void DomainServer::updateDomainInDataServer(const QString& networkAddress) {
+void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     const QString DOMAIN_UPDATE = "/api/v1/domains/%1";
     const QUuid& domainID = LimitedNodeList::getInstance()->getSessionUUID();
     
@@ -1109,7 +1109,24 @@ void DomainServer::updateDomainInDataServer(const QString& networkAddress) {
     
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
     
+    // add the number of currently connected agent users
+    int numConnectedAuthedUsers = 0;
+    foreach(const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+        if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
+            ++numConnectedAuthedUsers;
+        }
+    }
+    
+    const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+    const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
+    
+    QJsonObject heartbeatObject;
+    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedAuthedUsers;
+    domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
+    
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+    
+    qDebug() << domainUpdateJSON;
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,
