@@ -385,11 +385,11 @@ void DomainServer::setupAutomaticNetworking() {
     qDebug() << "Updating automatic networking setting in domain-server to" << _automaticNetworkingSetting;
     
     // no matter the auto networking settings we should heartbeat to the data-server every 15s
-    const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_SECONDS = 15;
+    const int DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS = 15 * 1000;
     
     QTimer* dataHeartbeatTimer = new QTimer(this);
     connect(dataHeartbeatTimer, &QTimer::timeout, this, &DomainServer::sendHeartbeatToDataServer);
-    dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_SECONDS);
+    dataHeartbeatTimer->start(DOMAIN_SERVER_DATA_WEB_HEARTBEAT_MSECS);
 }
 
 void DomainServer::loginFailed() {
