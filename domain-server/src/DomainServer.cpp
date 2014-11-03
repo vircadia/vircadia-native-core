@@ -1109,7 +1109,24 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
     
+    // add the number of currently connected agent users
+    int numConnectedAuthedUsers = 0;
+    foreach(const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+        if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
+            ++numConnectedAuthedUsers;
+        }
+    }
+    
+    const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
+    const QString HEARTBEAT_NUM_USERS_KEY = "num_users";
+    
+    QJsonObject heartbeatObject;
+    heartbeatObject[HEARTBEAT_NUM_USERS_KEY] = numConnectedAuthedUsers;
+    domainObject[DOMAIN_HEARTBEAT_KEY] = heartbeatObject;
+    
     QString domainUpdateJSON = QString("{\"domain\": %1 }").arg(QString(QJsonDocument(domainObject).toJson()));
+    
+    qDebug() << domainUpdateJSON;
     
     AccountManager::getInstance().authenticatedRequest(DOMAIN_UPDATE.arg(uuidStringWithoutCurlyBraces(domainID)),
                                                        QNetworkAccessManager::PutOperation,
