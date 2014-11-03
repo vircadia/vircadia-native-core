@@ -86,7 +86,7 @@ CameraManager = function() {
 
         that.updateCamera();
 
-        cameraTool.setVisible(true);
+        cameraTool.setVisible(false);
     }
 
     that.disable = function(ignoreCamera) {
@@ -100,7 +100,7 @@ CameraManager = function() {
         cameraTool.setVisible(false);
     }
 
-    that.focus = function(entityProperties) {
+    that.focus = function() {
         var dim = SelectionManager.worldDimensions;
         var size = Math.max(dim.x, Math.max(dim.y, dim.z));
 

@@ -256,7 +256,7 @@ var toolBar = (function () {
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
             if (!isActive) {
-                selectionDisplay.unselectAll();
+                selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
@@ -386,9 +386,7 @@ function isLocked(properties) {
 }
 
 
-var entitySelected = false;
 var selectedEntityID;
-var selectedEntityProperties;
 var mouseLastPosition;
 var orientation;
 var intersection;
@@ -408,13 +406,12 @@ function mousePressEvent(event) {
     mouseLastPosition = { x: event.x, y: event.y };
     var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
 
+    var entitySelected = false;
     if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)
         || cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
         // Event handled; do nothing.
         return;
     } else {
-        entitySelected = false;
-        selectionDisplay.unselectAll();
 
         // If we aren't active and didn't click on an overlay: quit
         if (!isActive) {
@@ -426,6 +423,7 @@ function mousePressEvent(event) {
         var foundIntersection = Entities.findRayIntersection(pickRay);
 
         if(!foundIntersection.accurate) {
+            selectionManager.clearSelections();
             return;
         }
         var foundEntity = foundIntersection.entityID;
@@ -434,6 +432,7 @@ function mousePressEvent(event) {
             var identify = Entities.identifyEntity(foundEntity);
             if (!identify.isKnownID) {
                 print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
+                selectionManager.clearSelections();
                 return;
             }
             foundEntity = identify;
@@ -474,7 +473,6 @@ function mousePressEvent(event) {
             if (0 < x && sizeOK) {
                 entitySelected = true;
                 selectedEntityID = foundEntity;
-                selectedEntityProperties = properties;
                 orientation = MyAvatar.orientation;
                 intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
@@ -483,29 +481,11 @@ function mousePressEvent(event) {
                 }
                 selectionManager.addEntity(foundEntity);
 
-                print("Model selected selectedEntityID:" + selectedEntityID.id);
-
+                print("Model selected: " + foundEntity.id);
             }
         }
     }
     if (entitySelected) {
-        selectedEntityProperties.oldDimensions = selectedEntityProperties.dimensions;
-        selectedEntityProperties.oldPosition = {
-            x: selectedEntityProperties.position.x,
-            y: selectedEntityProperties.position.y,
-            z: selectedEntityProperties.position.z,
-        };
-        selectedEntityProperties.oldRotation = {
-            x: selectedEntityProperties.rotation.x,
-            y: selectedEntityProperties.rotation.y,
-            z: selectedEntityProperties.rotation.z,
-            w: selectedEntityProperties.rotation.w,
-        };
-        selectedEntityProperties.glowLevel = 0.0;
-
-        print("Clicked on " + selectedEntityID.id + " " +  entitySelected);
-        tooltip.updateText(selectedEntityProperties);
-        tooltip.show(true);
         selectionDisplay.select(selectedEntityID, event);
     }
 }
@@ -554,7 +534,7 @@ function mouseReleaseEvent(event) {
     if (!isActive) {
         return;
     }
-    if (entitySelected) {
+    if (selectionManager.hasSelection()) {
         tooltip.show(false);
     }
     cameraManager.mouseReleaseEvent(event);
@@ -584,6 +564,7 @@ function setupModelMenus() {
         print("delete exists... don't add ours");
     }
 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
                         afterItem: "Paste Models", isCheckable: true });
@@ -606,6 +587,7 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
+    Menu.removeMenuItem("Edit", "Model List...");
     Menu.removeMenuItem("Edit", "Paste Models");
     Menu.removeMenuItem("Edit", "Allow Select Large Models");
     Menu.removeMenuItem("Edit", "Allow Select Small Models");
@@ -642,7 +624,7 @@ function handeMenuEvent(menuItem) {
         allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
     } else if (menuItem == "Delete") {
         if (SelectionManager.hasSelection()) {
-            print("  Delete Entity.... selectedEntityID="+ selectedEntityID);
+            print("  Delete Entities");
             SelectionManager.saveProperties();
             var savedProperties = [];
             for (var i = 0; i < selectionManager.selections.length; i++) {
@@ -657,10 +639,40 @@ function handeMenuEvent(menuItem) {
             }
             SelectionManager.clearSelections();
             pushCommandForSelections([], savedProperties);
-            selectionDisplay.unselect(selectedEntityID);
-            entitySelected = false;
         } else {
             print("  Delete Entity.... not holding...");
+        }
+    } else if (menuItem == "Model List...") {
+        var models = new Array();
+        models = Entities.findEntities(MyAvatar.position, Number.MAX_VALUE);
+        for (var i = 0; i < models.length; i++) {
+            models[i].properties = Entities.getEntityProperties(models[i]);
+            models[i].toString = function() {
+                var modelname;
+                if (this.properties.type == "Model") {
+                    modelname = decodeURIComponent(
+                                    this.properties.modelURL.indexOf("/") != -1 ?
+                                    this.properties.modelURL.substring(this.properties.modelURL.lastIndexOf("/") + 1) :
+                                    this.properties.modelURL);
+                } else {
+                    modelname = this.properties.id;
+                }
+                return "[" + this.properties.type + "] " + modelname;
+            };
+        }
+        var form = [{label: "Model: ", options: models}];
+        form.push({label: "Action: ", options: ["Properties", "Delete", "Teleport"]});
+        form.push({ button: "Cancel" });
+        if (Window.form("Model List", form)) {
+            var selectedModel = form[0].value;
+            if (form[1].value == "Properties") {
+                editModelID = selectedModel;
+                showPropertiesForm(editModelID);
+            } else if (form[1].value == "Delete") {
+                Entities.deleteEntity(selectedModel);
+            } else if (form[1].value == "Teleport") {
+                MyAvatar.position = selectedModel.properties.position;
+            }
         }
     } else if (menuItem == "Edit Properties...") {
         // good place to put the properties dialog
@@ -706,11 +718,7 @@ Controller.keyReleaseEvent.connect(function (event) {
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
-        if (entitySelected) {
-            // Get latest properties
-            var properties = Entities.getEntityProperties(selectedEntityID);
-            cameraManager.focus(properties);
-        }
+        cameraManager.focus();
     } else if (event.text == '[') {
         if (isActive) {
             cameraManager.enable();

@@ -61,15 +61,18 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
     float exponent = getExponent();
     float cutoff = glm::radians(getCutoff());
 
-    if (_isSpotlight) {
-        Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position, largestDiameter / 2.0f, 
-            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
-            direction, exponent, cutoff);
-    } else {
-        Application::getInstance()->getDeferredLightingEffect()->addPointLight(position, largestDiameter / 2.0f, 
-            ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
-    }
+    bool disableLights = Menu::getInstance()->isOptionChecked(MenuOption::DisableLightEntities);
 
+    if (!disableLights) {
+        if (_isSpotlight) {
+            Application::getInstance()->getDeferredLightingEffect()->addSpotLight(position, largestDiameter / 2.0f, 
+                ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation,
+                direction, exponent, cutoff);
+        } else {
+            Application::getInstance()->getDeferredLightingEffect()->addPointLight(position, largestDiameter / 2.0f, 
+                ambient, diffuse, specular, constantAttenuation, linearAttenuation, quadraticAttenuation);
+        }
+    }
     bool wantDebug = false;
     if (wantDebug) {
         glColor4f(diffuseR, diffuseG, diffuseB, 1.0f);

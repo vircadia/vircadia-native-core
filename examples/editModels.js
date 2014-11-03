@@ -2787,13 +2787,13 @@ function setupModelMenus() {
         print("delete exists... don't add ours");
     }
 
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L", 
                         afterItem: "Paste Models", isCheckable: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S", 
                         afterItem: "Allow Select Large Models", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
@@ -2809,6 +2809,7 @@ function cleanupModelMenus() {
         Menu.removeMenuItem("Edit", "Delete");
     }
 
+    Menu.removeMenuItem("Edit", "Model List...");
     Menu.removeMenuItem("Edit", "Paste Models");
     Menu.removeMenuItem("Edit", "Allow Select Large Models");
     Menu.removeMenuItem("Edit", "Allow Select Small Models");
@@ -2883,16 +2884,21 @@ function handeMenuEvent(menuItem) {
         } else {
             print("  Delete Entity.... not holding...");
         }
-    } else if (menuItem == "Model List") {
+    } else if (menuItem == "Model List...") {
         var models = new Array();
         models = Entities.findEntities(MyAvatar.position, Number.MAX_VALUE);
         for (var i = 0; i < models.length; i++) {
             models[i].properties = Entities.getEntityProperties(models[i]);
             models[i].toString = function() {
-                var modelname = decodeURIComponent(
-                                this.properties.modelURL.indexOf("/") != -1 ?
-                                this.properties.modelURL.substring(this.properties.modelURL.lastIndexOf("/") + 1) :
-                                this.properties.modelURL);
+                var modelname;
+                if (this.properties.type == "Model") {
+                    modelname = decodeURIComponent(
+                                    this.properties.modelURL.indexOf("/") != -1 ?
+                                    this.properties.modelURL.substring(this.properties.modelURL.lastIndexOf("/") + 1) :
+                                    this.properties.modelURL);
+                } else {
+                    modelname = this.properties.id;
+                }
                 return "[" + this.properties.type + "] " + modelname;
             };
         }
