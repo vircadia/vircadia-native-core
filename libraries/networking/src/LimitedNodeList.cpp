@@ -73,7 +73,6 @@ LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short
     _dtlsSocket(NULL),
     _localSockAddr(),
     _publicSockAddr(),
-    _stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT),
     _numCollectedPackets(0),
     _numCollectedBytes(0),
     _packetStatTimer()
@@ -584,8 +583,11 @@ void LimitedNodeList::sendSTUNRequest() {
     QUuid randomUUID = QUuid::createUuid();
     memcpy(stunRequestPacket + packetIndex, randomUUID.toRfc4122().data(), NUM_TRANSACTION_ID_BYTES);
     
+    // lookup the IP for the STUN server
+    HifiSockAddr stunSockAddr(STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+    
     _nodeSocket.writeDatagram((char*) stunRequestPacket, sizeof(stunRequestPacket),
-                              _stunSockAddr.getAddress(), _stunSockAddr.getPort());
+                              stunSockAddr.getAddress(), stunSockAddr.getPort());
 }
 
 void LimitedNodeList::rebindNodeSocket() {
