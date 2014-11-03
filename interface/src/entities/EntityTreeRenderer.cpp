@@ -76,7 +76,7 @@ void EntityTreeRenderer::init() {
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
     glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
-    _lastAvatarPosition = avatarPosition + glm::vec3(1.f,1.f,1.f);
+    _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
