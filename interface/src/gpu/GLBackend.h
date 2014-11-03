@@ -63,6 +63,7 @@ protected:
 
     BufferPtr _indexBuffer;
     Offset _indexBufferOffset;
+    Element::Type _indexBufferType;
 
     typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
     InputActivationCache _inputAttributeActivation;

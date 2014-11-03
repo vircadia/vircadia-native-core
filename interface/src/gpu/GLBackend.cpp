@@ -201,7 +201,9 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
     uint32 startIndex = batch._params[paramOffset + 0]._uint;
 
-    glDrawElements(mode, numIndices, GL_UNSIGNED_INT, (GLvoid*)(startIndex + _indexBufferOffset));
+    GLenum glType = _elementTypeToGLType[_indexBufferType];
+
+    glDrawElements(mode, numIndices, glType, (GLvoid*)(startIndex + _indexBufferOffset));
     CHECK_GL_ERROR();
 }
 
@@ -408,7 +410,7 @@ void GLBackend::updateInput() {
 
 
 void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
-    GLenum type = _elementTypeToGLType[ batch._params[paramOffset + 2]._uint ];
+    _indexBufferType = (Element::Type) batch._params[paramOffset + 2]._uint;
     BufferPtr indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
     _indexBufferOffset = batch._params[paramOffset + 0]._uint;
     _indexBuffer = indexBuffer;

@@ -27,11 +27,11 @@ public:
     enum Slot {
         SLOT_POSITION = 0,
         SLOT_NORMAL,
-        SLOT_TEXCOORD,
         SLOT_COLOR,
+        SLOT_TEXCOORD,
         SLOT_TANGENT,
-        SLOT_SKIN_CLUSTER_WEIGHT,
         SLOT_SKIN_CLUSTER_INDEX,
+        SLOT_SKIN_CLUSTER_WEIGHT,
 
         NUM_SLOTS,
     };

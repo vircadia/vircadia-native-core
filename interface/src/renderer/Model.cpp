@@ -1939,7 +1939,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
          */
   // _blendedVertexBuffers[i].bind();
           //  GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, _blendedVertexBuffers[i].bufferId());
-            GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, gpu::GLBackend::getBufferID(*_blendedVertexBuffers2[i]));
+         //   GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, gpu::GLBackend::getBufferID(*_blendedVertexBuffers2[i]));
             batch.setInputBuffer(0, _blendedVertexBuffers2[i], 0, 0);
             batch.setInputBuffer(1, _blendedVertexBuffers2[i], vertexCount * sizeof(glm::vec3), 0);
 
