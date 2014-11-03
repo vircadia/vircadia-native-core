@@ -38,11 +38,9 @@ public:
     static unsigned int hashFunction(unsigned int value, int primeIndex);
     static unsigned int hashFunction2(unsigned int value);
 
-private:
-    friend class ShapeManager;
-
     btCollisionShape* createShape() const;
 
+private:
     int _type;
     btAlignedObjectArray<btVector3> _data;
 };

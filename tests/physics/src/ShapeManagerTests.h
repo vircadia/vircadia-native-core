@@ -13,14 +13,13 @@
 #define hifi_ShapeManagerTests_h
 
 namespace ShapeManagerTests {
-    void testHashFunctions();
     void testShapeAccounting();
     void addManyShapes();
-    void testBoxShape();
-    void testSphereShape();
-    void testCylinderShape();
-    void testCapsuleShape();
+    void addBoxShape();
+    void addSphereShape();
+    void addCylinderShape();
+    void addCapsuleShape();
     void runAllTests(); 
 }
 
-#endif // hifi_VerletShapeTests_h
+#endif // hifi_ShapeManagerTests_h
