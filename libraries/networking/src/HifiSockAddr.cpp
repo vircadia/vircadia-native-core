@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtCore/QDataStream>
-#include <QtNetwork/QHostInfo>
-#include <QtNetwork/QNetworkInterface>
+#include <qdatastream.h>
+#include <qhostinfo.h>
+#include <qnetworkinterface.h>
 
 #include "HifiSockAddr.h"
 

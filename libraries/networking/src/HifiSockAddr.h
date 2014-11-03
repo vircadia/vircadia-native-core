@@ -19,7 +19,6 @@
 #include <netinet/in.h>
 #endif
 
-#include <qhostaddress.h>
 #include <qhostinfo.h>
 
 class HifiSockAddr : public QObject {
