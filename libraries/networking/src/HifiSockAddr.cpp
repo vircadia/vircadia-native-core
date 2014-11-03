@@ -44,11 +44,12 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
     if (_address.protocol() != QAbstractSocket::IPv4Protocol) {
         // lookup the IP by the hostname
         if (shouldBlockForLookup) {
+            qDebug() << "Asynchronously looking up IP address for hostname" << hostname;
             QHostInfo result = QHostInfo::fromName(hostname);
             handleLookupResult(result);
         } else {
             int lookupID = QHostInfo::lookupHost(hostname, this, SLOT(handleLookupResult(QHostInfo)));
-            qDebug() << "Looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
+            qDebug() << "Synchronously looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
         }
     }
 }
