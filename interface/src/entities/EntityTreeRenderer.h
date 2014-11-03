@@ -117,7 +117,6 @@ private:
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;
 
-
     QScriptValueList createEntityArgs(const EntityItemID& entityID);
     void checkEnterLeaveEntities();
     glm::vec3 _lastAvatarPosition;
