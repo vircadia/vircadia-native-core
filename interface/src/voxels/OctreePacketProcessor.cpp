@@ -86,13 +86,13 @@ void OctreePacketProcessor::processPacket(const SharedNodePointer& sendingNode, 
 
         switch(voxelPacketType) {
             case PacketTypeEntityErase: {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
                     app->_entities.processEraseMessage(mutablePacket, sendingNode);
                 }
             } break;
 
             case PacketTypeEntityData: {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::Models)) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::Entities)) {
                     app->_entities.processDatagram(mutablePacket, sendingNode);
                 }
             } break;
