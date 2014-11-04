@@ -155,9 +155,6 @@ public:
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
-    
-    QOpenGLBuffer indexBuffer;
-    QOpenGLBuffer vertexBuffer;
     gpu::BufferPtr _indexBuffer;
     gpu::BufferPtr _vertexBuffer;
 

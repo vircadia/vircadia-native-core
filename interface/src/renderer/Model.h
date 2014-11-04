@@ -281,10 +281,8 @@ private:
     QVector<float> _blendshapeCoefficients;
     
     QUrl _url;
-        
-    QVector<QOpenGLBuffer> _blendedVertexBuffers;
 
-    gpu::Buffers _blendedVertexBuffers2;
+    gpu::Buffers _blendedVertexBuffers;
     
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     

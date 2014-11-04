@@ -743,7 +743,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
     
     foreach (const FBXMesh& mesh, _geometry.meshes) {
-        NetworkMesh networkMesh = { QOpenGLBuffer(QOpenGLBuffer::IndexBuffer), QOpenGLBuffer(QOpenGLBuffer::VertexBuffer) };
+        NetworkMesh networkMesh;
         
         int totalIndices = 0;
         foreach (const FBXMeshPart& part, mesh.parts) {
@@ -773,26 +773,9 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                         
             totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
         }
-        /*
-        networkMesh.indexBuffer.create();
-        networkMesh.indexBuffer.bind();
-        networkMesh.indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        networkMesh.indexBuffer.allocate(totalIndices * sizeof(int));
-        int offset = 0;
-        foreach (const FBXMeshPart& part, mesh.parts) {
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, part.quadIndices.size() * sizeof(int),
-                part.quadIndices.constData());
-            offset += part.quadIndices.size() * sizeof(int);
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, part.triangleIndices.size() * sizeof(int),
-                part.triangleIndices.constData());
-            offset += part.triangleIndices.size() * sizeof(int);
-        }
-        networkMesh.indexBuffer.release();
-        */
+
         {
             networkMesh._indexBuffer = gpu::BufferPtr(new gpu::Buffer());
-            //networkMesh._indexBuffer.bind();
-            //networkMesh._indexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
             networkMesh._indexBuffer->resize(totalIndices * sizeof(int));
             int offset = 0;
             foreach(const FBXMeshPart& part, mesh.parts) {
@@ -803,54 +786,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                     (gpu::Resource::Byte*) part.triangleIndices.constData());
                 offset += part.triangleIndices.size() * sizeof(int);
             }
-           // networkMesh.indexBuffer.release();
         }
 
-       /* networkMesh.vertexBuffer.create();
-        networkMesh.vertexBuffer.bind();
-        networkMesh.vertexBuffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        
-        // if we don't need to do any blending, the positions/normals can be static
-        if (mesh.blendshapes.isEmpty()) {
-            int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
-            int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
-            int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
-            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-            int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
-            int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
-            
-            networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-            networkMesh.vertexBuffer.write(0, mesh.vertices.constData(), mesh.vertices.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(normalsOffset, mesh.normals.constData(), mesh.normals.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(tangentsOffset, mesh.tangents.constData(),
-                mesh.tangents.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(colorsOffset, mesh.colors.constData(), mesh.colors.size() * sizeof(glm::vec3));
-            networkMesh.vertexBuffer.write(texCoordsOffset, mesh.texCoords.constData(),
-                mesh.texCoords.size() * sizeof(glm::vec2));
-            networkMesh.vertexBuffer.write(clusterIndicesOffset, mesh.clusterIndices.constData(),
-                mesh.clusterIndices.size() * sizeof(glm::vec4));
-            networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
-                mesh.clusterWeights.size() * sizeof(glm::vec4));
-        
-        // otherwise, at least the cluster indices/weights can be static
-        } else {
-            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
-            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-            int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
-            int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
-            networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-            networkMesh.vertexBuffer.write(0, mesh.tangents.constData(), mesh.tangents.size() * sizeof(glm::vec3));        
-            networkMesh.vertexBuffer.write(colorsOffset, mesh.colors.constData(), mesh.colors.size() * sizeof(glm::vec3));    
-            networkMesh.vertexBuffer.write(texCoordsOffset, mesh.texCoords.constData(),
-                mesh.texCoords.size() * sizeof(glm::vec2));
-            networkMesh.vertexBuffer.write(clusterIndicesOffset, mesh.clusterIndices.constData(),
-                mesh.clusterIndices.size() * sizeof(glm::vec4));
-            networkMesh.vertexBuffer.write(clusterWeightsOffset, mesh.clusterWeights.constData(),
-                mesh.clusterWeights.size() * sizeof(glm::vec4));   
-        }
-        
-        networkMesh.vertexBuffer.release();
-*/
         {
             networkMesh._vertexBuffer = gpu::BufferPtr(new gpu::Buffer());
             // if we don't need to do any blending, the positions/normals can be static
@@ -932,7 +869,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
 
             }
         }
-        
+
         _meshes.append(networkMesh);
     }
     
