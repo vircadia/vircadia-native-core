@@ -536,6 +536,8 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
 
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldColorData> HeightfieldColorDataPointer;
@@ -580,6 +582,8 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
 
 typedef QExplicitlySharedDataPointer<HeightfieldMaterialData> HeightfieldMaterialDataPointer;
@@ -646,7 +650,16 @@ public:
     virtual void writeDelta(Bitstream& out, void* value, void* reference, bool isLeaf) const;
     
     virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
+    
+    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
 };
+
+/// Utility method for editing: given a material pointer and a list of materials, returns the corresponding material index,
+/// creating a new entry in the list if necessary.
+uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents);
+
+/// Utility method for editing: removes any unused materials from the supplied list.
+void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, const QByteArray& contents);
 
 typedef QExplicitlySharedDataPointer<VoxelColorData> VoxelColorDataPointer;
 

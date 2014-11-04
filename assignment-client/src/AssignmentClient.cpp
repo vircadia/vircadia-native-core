@@ -96,17 +96,14 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
         assignmentServerPort =
             argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION).toString().toUInt();
     }
-    
-    HifiSockAddr assignmentServerSocket(DEFAULT_ASSIGNMENT_SERVER_HOSTNAME, assignmentServerPort);
 
     // check for an overriden assignment server hostname
     if (argumentVariantMap.contains(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION)) {
-        _assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
-
         // change the hostname for our assignment server
-        assignmentServerSocket = HifiSockAddr(_assignmentServerHostname, assignmentServerSocket.getPort());
+        _assignmentServerHostname = argumentVariantMap.value(CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION).toString();
     }
     
+    HifiSockAddr assignmentServerSocket(_assignmentServerHostname, assignmentServerPort, true);
     nodeList->setAssignmentServerSocket(assignmentServerSocket);
 
     qDebug() << "Assignment server socket is" << assignmentServerSocket;

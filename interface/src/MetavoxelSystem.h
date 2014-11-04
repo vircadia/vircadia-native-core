@@ -236,6 +236,7 @@ public:
     
     const Box& getHeightBounds() const { return _heightBounds; }
     const Box& getColorBounds() const { return _colorBounds; }
+    const Box& getMaterialBounds() const { return _materialBounds; }
     
     QByteArray& getHeight() { return _height; }
     const QByteArray& getHeight() const { return _height; }
@@ -246,16 +247,20 @@ public:
     QByteArray& getMaterial() { return _material; }
     const QByteArray& getMaterial() const { return _material; }
     
+    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
     const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
     
     QByteArray getUnextendedHeight() const;
-    QByteArray getUnextendedColor() const;
+    QByteArray getUnextendedColor(int x = 0, int y = 0) const;
     
     int getHeightSize() const { return _heightSize; }
     float getHeightIncrement() const { return _heightIncrement; }
     
     int getColorSize() const { return _colorSize; }
     float getColorIncrement() const { return _colorIncrement; }
+    
+    int getMaterialSize() const { return _materialSize; }
+    float getMaterialIncrement() const { return _materialIncrement; }
     
     virtual void render(bool cursor = false);
 
@@ -265,6 +270,7 @@ private:
     float _scale;
     Box _heightBounds;
     Box _colorBounds;
+    Box _materialBounds;
     QByteArray _height;
     QByteArray _color;
     QByteArray _material;
@@ -277,6 +283,8 @@ private:
     float _heightIncrement;
     int _colorSize;
     float _colorIncrement;
+    int _materialSize;
+    float _materialIncrement;
     
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
     static QHash<int, BufferPair> _bufferPairs;
