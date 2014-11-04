@@ -40,10 +40,8 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 var HELMET_ATTACHMENT_URL = "https://hifi-public.s3.amazonaws.com/models/attachments/IronManMaskOnly.fbx"
 
 function reticlePosition() {
-  var screenSize = Controller.getViewportDimensions();
-  var reticleRay = Camera.computePickRay(screenSize.x / 2, screenSize.y / 2);
   var RETICLE_DISTANCE = 1;
-  return Vec3.sum(reticleRay.origin, Vec3.multiply(reticleRay.direction, RETICLE_DISTANCE));
+  return Vec3.sum(Camera.getPosition(), Vec3.multiply(Quat.getFront(Camera.getOrientation()), RETICLE_DISTANCE));
 }
 
 function drawLobby() {
@@ -132,10 +130,10 @@ function actionStartEvent(event) {
   if (panelWall) {
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var result = Overlays.findRayIntersection(pickRay);
+    var result = Overlays.findRayIntersection(event.actionRay);
 
     if (result.intersects && result.overlayID == panelWall) {
+      
       var panelName = result.extraInfo;
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
