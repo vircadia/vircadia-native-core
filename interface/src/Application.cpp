@@ -1980,6 +1980,9 @@ void Application::init() {
     connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
+    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
+        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
+
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 }
