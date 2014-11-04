@@ -53,12 +53,12 @@ var lastYawTurned = 0.0;
 var startPullbackPosition;
 
 function saveCameraState() {
-    oldMode = Camera.getMode();
-    Camera.setMode("independent");
+    oldMode = Camera.mode;
+    Camera.mode = "independent";
 }
 
 function restoreCameraState() {
-    Camera.setMode(oldMode);
+    Camera.mode = oldMode;
 }
 
 function activateWarp() {

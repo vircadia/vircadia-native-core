@@ -209,12 +209,6 @@ SelectionDisplay = (function () {
     var lastCameraOrientation = Camera.getOrientation();
     var lastPlaneIntersection;
 
-    var currentSelection = { id: -1, isKnownID: false };
-    var entitySelected = false;
-    var selectedEntityProperties;
-    var selectedEntityPropertiesOriginalPosition;
-    var selectedEntityPropertiesOriginalDimensions;
-
     var handleHoverColor = { red: 224, green: 67, blue: 36 };
     var handleHoverAlpha = 1.0;
 
@@ -656,20 +650,12 @@ SelectionDisplay = (function () {
     };
 
     that.select = function(entityID, event) {
-        var properties = Entities.getEntityProperties(entityID);
-        // if (currentSelection.isKnownID == true) {
-        //     that.unselect(currentSelection);
-        // }
-        currentSelection = entityID;
-        entitySelected = true;
+        var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
         
-        // lastCameraPosition = Camera.getPosition();
+        lastCameraPosition = Camera.getPosition();
         lastCameraOrientation = Camera.getOrientation();
 
         if (event !== false) {
-            selectedEntityProperties = properties;
-            selectedEntityPropertiesOriginalPosition = properties.position;
-            selectedEntityPropertiesOriginalDimensions = properties.dimensions;
             pickRay = Camera.computePickRay(event.x, event.y);
             lastPlaneIntersection = rayPlaneIntersection(pickRay, properties.position, Quat.getFront(lastCameraOrientation));
 
@@ -678,8 +664,6 @@ SelectionDisplay = (function () {
                 print("select() with EVENT...... ");
                 print("                event.y:" + event.y);
                 Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
-                Vec3.print("       originalDimensions:", selectedEntityPropertiesOriginalDimensions);
                 Vec3.print("       current position:", properties.position);
             }
             
@@ -939,11 +923,6 @@ SelectionDisplay = (function () {
     };
 
     that.unselectAll = function () {
-        if (currentSelection.isKnownID == true) {
-            that.unselect(currentSelection);
-        }
-        currentSelection = { id: -1, isKnownID: false };
-        entitySelected = false;
     };
 
     that.updateHandles = function() {
@@ -952,7 +931,9 @@ SelectionDisplay = (function () {
             return;
         }
 
+
         that.updateRotationHandles();
+        that.highlightSelectable();
 
         var rotation, dimensions, position;
 
@@ -1113,12 +1094,6 @@ SelectionDisplay = (function () {
     };
 
     that.unselect = function (entityID) {
-        that.setOverlaysVisible(false);
-
-        Entities.editEntity(entityID, { localRenderAlpha: 1.0 });
-
-        currentSelection = { id: -1, isKnownID: false };
-        entitySelected = false;
     };
 
     var initialXZPick = null;
@@ -1207,15 +1182,16 @@ SelectionDisplay = (function () {
                 }
             }
 
-            tooltip.updateText(selectedEntityProperties);
-            that.select(currentSelection, false); // TODO: this should be more than highlighted
             SelectionManager._update();
         }
     };
     
+    var lastXYPick = null
     addGrabberTool(grabberMoveUp, {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event) {
+            lastXYPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, Quat.getFront(lastCameraOrientation));
+
             SelectionManager.saveProperties();
 
             // Duplicate entities if alt is pressed.  This will make a
@@ -1243,7 +1219,7 @@ SelectionDisplay = (function () {
 
             // translate mode left/right based on view toward entity
             var newIntersection = rayPlaneIntersection(pickRay,
-                                                       selectedEntityPropertiesOriginalPosition,
+                                                       SelectionManager.worldPosition,
                                                        Quat.getFront(lastCameraOrientation));
 
             var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
@@ -1253,8 +1229,6 @@ SelectionDisplay = (function () {
             vector.x = 0;
             vector.z = 0;
             
-            // newPosition = Vec3.sum(selectedEntityPropertiesOriginalPosition, vector);
-
             var wantDebug = false;
             if (wantDebug) {
                 print("translateUpDown... ");
@@ -1262,8 +1236,6 @@ SelectionDisplay = (function () {
                 Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                 Vec3.print("        newIntersection:", newIntersection);
                 Vec3.print("                 vector:", vector);
-                Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
-                Vec3.print("         recentPosition:", selectedEntityProperties.position);
                 Vec3.print("            newPosition:", newPosition);
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
@@ -1273,8 +1245,6 @@ SelectionDisplay = (function () {
                 Entities.editEntity(SelectionManager.selections[i], properties);
             }
 
-            tooltip.updateText(selectedEntityProperties);
-            that.select(currentSelection, false); // TODO: this should be more than highlighted
             SelectionManager._update();
         },
     });
@@ -1306,7 +1276,7 @@ SelectionDisplay = (function () {
         var rotation = null;
 
         var onBegin = function(event) {
-            var properties = Entities.getEntityProperties(currentSelection);
+            var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
             rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
 
@@ -1445,11 +1415,11 @@ SelectionDisplay = (function () {
             var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(p, changeInDimensions));
             var newPosition = Vec3.sum(initialPosition, changeInPosition);
             
-            
-            selectedEntityProperties.position = newPosition;
-            selectedEntityProperties.dimensions = newDimensions;
             for (var i = 0; i < SelectionManager.selections.length; i++) {
-                Entities.editEntity(SelectionManager.selections[i], selectedEntityProperties);
+                Entities.editEntity(SelectionManager.selections[i], {
+                    position: newPosition,
+                    dimensions: newDimensions,
+                });
             }
 
             var wantDebug = false;
@@ -1460,18 +1430,14 @@ SelectionDisplay = (function () {
                 Vec3.print("                 vector:", vector);
                 Vec3.print("           oldPOS:", oldPOS);
                 Vec3.print("                newPOS:", newPOS);
-                Vec3.print("            oldDimensions:", selectedEntityPropertiesOriginalDimensions);
                 Vec3.print("            changeInDimensions:", changeInDimensions);
                 Vec3.print("                 newDimensions:", newDimensions);
 
-                Vec3.print("              oldPosition:", selectedEntityPropertiesOriginalPosition);
                 Vec3.print("              changeInPosition:", changeInPosition);
                 Vec3.print("                   newPosition:", newPosition);
             }
 
-            tooltip.updateText(selectedEntityProperties);
             SelectionManager._update();
-            that.select(currentSelection, false); // TODO: this should be more than highlighted
 
         };
 
@@ -1590,7 +1556,6 @@ SelectionDisplay = (function () {
             }
 
             if (result.intersects) {
-                var properties = Entities.getEntityProperties(currentSelection);
                 var center = yawCenter;
                 var zero = yawZero;
                 var centerToZero = Vec3.subtract(center, zero);
@@ -1664,8 +1629,8 @@ SelectionDisplay = (function () {
             // Size the overlays to the current selection size
             var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
             var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
-            var innerRadius = diagonal;
-            var outerRadius = diagonal * 1.15;
+            innerRadius = diagonal;
+            outerRadius = diagonal * 1.15;
             var innerAlpha = 0.2;
             var outerAlpha = 0.2;
             Overlays.editOverlay(rotateOverlayInner, 
@@ -1721,7 +1686,7 @@ SelectionDisplay = (function () {
             }
 
             if (result.intersects) {
-                var properties = Entities.getEntityProperties(currentSelection);
+                var properties = Entities.getEntityProperties(selectionManager.selections[0]);
                 var center = pitchCenter;
                 var zero = pitchZero;
                 var centerToZero = Vec3.subtract(center, zero);
@@ -1794,8 +1759,8 @@ SelectionDisplay = (function () {
             // Size the overlays to the current selection size
             var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
             var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
-            var innerRadius = diagonal;
-            var outerRadius = diagonal * 1.15;
+            innerRadius = diagonal;
+            outerRadius = diagonal * 1.15;
             var innerAlpha = 0.2;
             var outerAlpha = 0.2;
             Overlays.editOverlay(rotateOverlayInner, 
@@ -1851,7 +1816,7 @@ SelectionDisplay = (function () {
             }
 
             if (result.intersects) {
-                var properties = Entities.getEntityProperties(currentSelection);
+                var properties = Entities.getEntityProperties(selectionManager.selections[0]);
                 var center = rollCenter;
                 var zero = rollZero;
                 var centerToZero = Vec3.subtract(center, zero);
@@ -1915,9 +1880,9 @@ SelectionDisplay = (function () {
     });
 
     that.checkMove = function() {
-        if (currentSelection.isKnownID && 
+        if (SelectionManager.hasSelection() &&
             (!Vec3.equal(Camera.getPosition(), lastCameraPosition) || !Quat.equal(Camera.getOrientation(), lastCameraOrientation))){
-            that.select(currentSelection, false, false);
+            that.select(selectionManager.selections[0], false, false);
         }
     };
 
@@ -2033,7 +1998,7 @@ SelectionDisplay = (function () {
             var overlayOrientation;
             var overlayCenter;
 
-            var properties = Entities.getEntityProperties(currentSelection);            
+            var properties = Entities.getEntityProperties(selectionManager.selections[0]);
             var angles = Quat.safeEulerAngles(properties.rotation);
             var pitch = angles.x;
             var yaw = angles.y;
@@ -2169,12 +2134,11 @@ SelectionDisplay = (function () {
 
         if (somethingClicked) {
             pickRay = Camera.computePickRay(event.x, event.y);
-            lastPlaneIntersection = rayPlaneIntersection(pickRay, selectedEntityPropertiesOriginalPosition, 
+            lastPlaneIntersection = rayPlaneIntersection(pickRay, selectionManager.worldPosition, 
                                                             Quat.getFront(lastCameraOrientation));
             if (wantDebug) {
                      print("mousePressEvent()...... " + overlayNames[result.overlayID]);
                 Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
-                Vec3.print("       originalPosition:", selectedEntityPropertiesOriginalPosition);
             }
         }
 
@@ -2289,8 +2253,8 @@ SelectionDisplay = (function () {
     };
 
     that.updateHandleSizes = function() {
-        if (selectedEntityProperties) {
-            var diff = Vec3.subtract(selectedEntityProperties.position, Camera.getPosition());
+        if (selectionManager.hasSelection()) {
+            var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
             var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO;
             for (var i = 0; i < stretchHandles.length; i++) {
                 Overlays.editOverlay(stretchHandles[i], {
@@ -2336,15 +2300,10 @@ SelectionDisplay = (function () {
         mode = "UNKNOWN";
         
         // if something is selected, then reset the "original" properties for any potential next click+move operation
-        if (entitySelected) {
-
+        if (SelectionManager.hasSelection()) {
             if (showHandles) {
-                that.select(currentSelection, event);
+                that.select(SelectionManager.selections[0], event);
             }
-
-            selectedEntityProperties = Entities.getEntityProperties(currentSelection);
-            selectedEntityPropertiesOriginalPosition = properties.position;
-            selectedEntityPropertiesOriginalDimensions = properties.dimensions;
         }
         
     };

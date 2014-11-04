@@ -1269,6 +1269,7 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
     _isPushing = false;
     float motorEfficiency = glm::clamp(deltaTime / timescale, 0.0f, 1.0f);
 
+    glm::vec3 newLocalVelocity = localVelocity;
     float keyboardInput = fabsf(_driveKeys[FWD] - _driveKeys[BACK]) + 
         (fabsf(_driveKeys[RIGHT] - _driveKeys[LEFT])) + 
         fabsf(_driveKeys[UP] - _driveKeys[DOWN]);
@@ -1285,31 +1286,47 @@ glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVe
         if (directionLength > EPSILON) {
             direction /= directionLength;
 
-            // Compute the target keyboard velocity (which ramps up slowly, and damps very quickly)
-            // the max magnitude of which depends on what we're doing:
-            float motorSpeed = glm::length(_keyboardMotorVelocity);
-            float finalMaxMotorSpeed = hasFloor ? _scale * MAX_WALKING_SPEED : _scale * MAX_KEYBOARD_MOTOR_SPEED;
-            float speedGrowthTimescale  = 2.0f;
-            float speedIncreaseFactor = 1.8f;
-            motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
-            const float maxBoostSpeed = _scale * MAX_BOOST_SPEED;
-            if (motorSpeed < maxBoostSpeed) {
-                // an active keyboard motor should never be slower than this
-                float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
-                motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
-                motorEfficiency += (1.0f - motorEfficiency) * boostCoefficient;
-            } else if (motorSpeed > finalMaxMotorSpeed) {
-                motorSpeed = finalMaxMotorSpeed;
+            if (hasFloor) {
+                // we're walking --> simple exponential decay toward target walk speed
+                const float WALK_ACCELERATION_TIMESCALE = 0.7f;  // seconds to decrease delta to 1/e
+                _keyboardMotorVelocity = MAX_WALKING_SPEED * direction;
+                motorEfficiency = glm::clamp(deltaTime / WALK_ACCELERATION_TIMESCALE, 0.0f, 1.0f);
+
+            } else {
+                // we're flying --> more complex curve
+                float motorSpeed = glm::length(_keyboardMotorVelocity);
+                float finalMaxMotorSpeed = _scale * MAX_KEYBOARD_MOTOR_SPEED;
+                float speedGrowthTimescale  = 2.0f;
+                float speedIncreaseFactor = 1.8f;
+                motorSpeed *= 1.0f + glm::clamp(deltaTime / speedGrowthTimescale , 0.0f, 1.0f) * speedIncreaseFactor;
+                const float maxBoostSpeed = _scale * MAX_BOOST_SPEED;
+                if (motorSpeed < maxBoostSpeed) {
+                    // an active keyboard motor should never be slower than this
+                    float boostCoefficient = (maxBoostSpeed - motorSpeed) / maxBoostSpeed;
+                    motorSpeed += MIN_AVATAR_SPEED * boostCoefficient;
+                    motorEfficiency += (1.0f - motorEfficiency) * boostCoefficient;
+                } else if (motorSpeed > finalMaxMotorSpeed) {
+                    motorSpeed = finalMaxMotorSpeed;
+                }
+                _keyboardMotorVelocity = motorSpeed * direction;
             }
-            _keyboardMotorVelocity = motorSpeed * direction;
             _isPushing = true;
         } 
+        newLocalVelocity = localVelocity + motorEfficiency * (_keyboardMotorVelocity - localVelocity);
     } else {
         _keyboardMotorVelocity = glm::vec3(0.0f);
+        newLocalVelocity = (1.0f - motorEfficiency) * localVelocity;
+        if (hasFloor && !_wasPushing) {
+            float speed = glm::length(newLocalVelocity);
+            if (speed > MIN_AVATAR_SPEED) {
+                // add small constant friction to help avatar drift to a stop sooner at low speeds
+                const float CONSTANT_FRICTION_DECELERATION = MIN_AVATAR_SPEED / 0.20f;
+                newLocalVelocity *= (speed - timescale * CONSTANT_FRICTION_DECELERATION) / speed;
+            }
+        }
     }
 
-    // apply keyboard motor
-    return localVelocity + motorEfficiency * (_keyboardMotorVelocity - localVelocity);
+    return newLocalVelocity;
 }
 
 glm::vec3 MyAvatar::applyScriptedMotor(float deltaTime, const glm::vec3& localVelocity) {

@@ -40,20 +40,18 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 var HELMET_ATTACHMENT_URL = "https://hifi-public.s3.amazonaws.com/models/attachments/IronManMaskOnly.fbx"
 
 function reticlePosition() {
-  var screenSize = Controller.getViewportDimensions();
-  var reticleRay = Camera.computePickRay(screenSize.x / 2, screenSize.y / 2);
   var RETICLE_DISTANCE = 1;
-  return Vec3.sum(reticleRay.origin, Vec3.multiply(reticleRay.direction, RETICLE_DISTANCE));
+  return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
 }
 
 function drawLobby() {
   if (!panelWall) {
     print("Adding overlays for the lobby panel wall and orb shell.");
     
-    var cameraEuler = Quat.safeEulerAngles(Camera.getOrientation());
+    var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
     var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0});
     
-    var orbPosition = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
+    var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
       url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
@@ -76,14 +74,15 @@ function drawLobby() {
     orbShell = Overlays.addOverlay("model", orbShellProps);
     
     // for HMD wearers, create a reticle in center of screen
-    var RETICLE_SPHERE_SIZE = 0.025;
+    var CURSOR_SCALE = 0.025;
     
-    reticle = Overlays.addOverlay("sphere", {
+    reticle = Overlays.addOverlay("billboard", {
+      url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
       position: reticlePosition(),
-      size: RETICLE_SPHERE_SIZE,
-      color: { red: 0, green: 255, blue: 0 },
+      ignoreRayIntersection: true,
+      isFacingAvatar: true,
       alpha: 1.0,
-      solid: true
+      scale: CURSOR_SCALE
     });
     
     // add an attachment on this avatar so other people see them in the lobby
@@ -130,12 +129,13 @@ function cleanupLobby() {
 
 function actionStartEvent(event) {
   if (panelWall) {
+        
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var result = Overlays.findRayIntersection(pickRay);
+    var result = Overlays.findRayIntersection(event.actionRay);
 
     if (result.intersects && result.overlayID == panelWall) {
+      
       var panelName = result.extraInfo;
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
@@ -174,7 +174,7 @@ function maybeCleanupLobby() {
 
 function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Voxels", shouldRender);
-  Menu.setIsOptionChecked("Models", shouldRender);
+  Menu.setIsOptionChecked("Entities", shouldRender);
   Menu.setIsOptionChecked("Metavoxels", shouldRender);
   Menu.setIsOptionChecked("Avatars", shouldRender);
 }

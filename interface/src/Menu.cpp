@@ -105,7 +105,6 @@ Menu::Menu() :
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_OCTREE_SIZE_SCALE),
     _oculusUIAngularSize(DEFAULT_OCULUS_UI_ANGULAR_SIZE),
-    _oculusUIMaxFPS(DEFAULT_OCULUS_UI_MAX_FPS),
     _sixenseReticleMoveSpeed(DEFAULT_SIXENSE_RETICLE_MOVE_SPEED),
     _invertSixenseButtons(DEFAULT_INVERT_SIXENSE_MOUSE_BUTTONS),
     _automaticAvatarLOD(true),
@@ -359,6 +358,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(viewMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     addActionToQMenuAndActionHash(viewMenu, MenuOption::OctreeStats, 0, this, SLOT(octreeStatsDetails()));
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::EditEntitiesHelp, 0, this, SLOT(showEditEntitiesHelp()));
 
     QMenu* developerMenu = addMenu("Developer");
 
@@ -366,7 +366,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Metavoxels, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Models, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Entities, 0, true);
     
     QMenu* shadowMenu = renderOptionsMenu->addMenu("Shadows");
     QActionGroup* shadowGroup = new QActionGroup(shadowMenu);
@@ -377,13 +377,12 @@ Menu::Menu() :
     {
         QMenu* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
         QActionGroup* framerateGroup = new QActionGroup(framerateMenu);
-
+        framerateGroup->setExclusive(true);
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerateUnlimited, 0, true));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate60, 0, false));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate50, 0, false));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate40, 0, false));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate30, 0, false));
-        connect(framerateMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderTargetFramerate(QAction*)));
 
 #if defined(Q_OS_MAC)
 #else
@@ -394,12 +393,12 @@ Menu::Menu() :
 
     QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, false));
+    resolutionGroup->setExclusive(true);
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, true));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionTwoThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionHalf, 0, false));
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, true));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
-    connect(resolutionMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderResolution(QAction*)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
@@ -433,14 +432,16 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
     
-    QMenu* modelDebugMenu = developerMenu->addMenu("Models");
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelBounds, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
-    QMenu* modelCullingMenu = modelDebugMenu->addMenu("Culling");
-    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(modelCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
+    QMenu* entitiesDebugMenu = developerMenu->addMenu("Entities");
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelBounds, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
+
+    QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
+    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
+    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
@@ -783,8 +784,6 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     _walletPrivateKey = settings->value("privateKey").toByteArray();
-    
-    _oculusUIMaxFPS = loadSetting(settings, "oculusUIMaxFPS", 0.0f);
 
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
@@ -846,9 +845,6 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetUp", _viewFrustumOffset.up);
     settings->endGroup();
     settings->setValue("privateKey", _walletPrivateKey);
-    
-    // Oculus Rift settings
-    settings->setValue("oculusUIMaxFPS", _oculusUIMaxFPS);
 
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
@@ -1117,7 +1113,11 @@ QAction* Menu::getActionForOption(const QString& menuOption) {
 }
 
 void Menu::aboutApp() {
-    InfoView::forcedShow();
+    InfoView::forcedShow(INFO_HELP_PATH);
+}
+
+void Menu::showEditEntitiesHelp() {
+    InfoView::forcedShow(INFO_EDIT_ENTITIES_PATH);
 }
 
 void Menu::bumpSettings() {
@@ -1260,46 +1260,7 @@ void Menu::muteEnvironment() {
 }
 
 void Menu::changeVSync() {
-    Application::getInstance()->setRenderTargetFramerate(
-        Application::getInstance()->getRenderTargetFramerate(),
-        isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
-}
-void Menu::changeRenderTargetFramerate(QAction* action) {
-    bool vsynOn = Application::getInstance()->isVSyncOn();
-
-    QString text = action->text();
-    if (text == MenuOption::RenderTargetFramerateUnlimited) {
-        Application::getInstance()->setRenderTargetFramerate(0, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate60) {
-        Application::getInstance()->setRenderTargetFramerate(60, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate50) {
-        Application::getInstance()->setRenderTargetFramerate(50, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate40) {
-        Application::getInstance()->setRenderTargetFramerate(40, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate30) {
-        Application::getInstance()->setRenderTargetFramerate(30, vsynOn);
-    }
-}
-
-void Menu::changeRenderResolution(QAction* action) {
-    QString text = action->text();
-    if (text == MenuOption::RenderResolutionOne) {
-        Application::getInstance()->setRenderResolutionScale(1.f);
-    } else if (text == MenuOption::RenderResolutionTwoThird) {
-        Application::getInstance()->setRenderResolutionScale(0.666f);
-    } else if (text == MenuOption::RenderResolutionHalf) {
-        Application::getInstance()->setRenderResolutionScale(0.5f);
-    } else if (text == MenuOption::RenderResolutionThird) {
-        Application::getInstance()->setRenderResolutionScale(0.333f);
-    } else if (text == MenuOption::RenderResolutionQuarter) {
-        Application::getInstance()->setRenderResolutionScale(0.25f);
-    } else {
-        Application::getInstance()->setRenderResolutionScale(1.f);
-    }
+    Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {

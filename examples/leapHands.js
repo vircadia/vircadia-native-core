@@ -16,7 +16,7 @@ var leapHands = (function () {
     var isOnHMD,
         LEAP_ON_HMD_MENU_ITEM = "Leap Motion on HMD",
         LEAP_OFFSET = 0.019,  // Thickness of Leap Motion plus HMD clip
-        HMD_OFFSET = 0.100,  // Eyeballs to front surface of Oculus DK2  TODO: Confirm and make depend on device and eye relief
+        HMD_OFFSET = 0.070,  // Eyeballs to front surface of Oculus DK2  TODO: Confirm and make depend on device and eye relief
         hands,
         wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right

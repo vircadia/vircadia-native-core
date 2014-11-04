@@ -17,12 +17,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var PI = 3.14 // No need for something more precise
+var PI = Math.PI;
+var RAD_TO_DEG = 180.0 / PI;
 
 var AZIMUTH_RATE = 90.0;
 var ALTITUDE_RATE = 200.0;
 var RADIUS_RATE = 1.0 / 100.0;
 var PAN_RATE = 50.0;
+
+var Y_AXIS = { x: 0, y: 1, z: 0 };
+var X_AXIS = { x: 1, y: 0, z: 0 };
 
 var alt = false;
 var shift = false;
@@ -53,6 +57,18 @@ var avatarPosition;
 var avatarOrientation;
 
 
+function orientationOf(vector) {
+    var direction,
+        yaw,
+        pitch;
+
+    direction = Vec3.normalize(vector);
+    yaw = Quat.angleAxis(Math.atan2(direction.x, direction.z) * RAD_TO_DEG, Y_AXIS);
+    pitch = Quat.angleAxis(Math.asin(-direction.y) * RAD_TO_DEG, X_AXIS);
+    return Quat.multiply(yaw, pitch);
+}
+
+
 function handleRadialMode(dx, dy) {
     azimuth += dx / AZIMUTH_RATE;
     radius += radius * dy * RADIUS_RATE;
@@ -65,6 +81,7 @@ function handleRadialMode(dx, dy) {
                z: (Math.cos(altitude) * Math.sin(azimuth)) * radius };
     position = Vec3.sum(center, vector);
     Camera.setPosition(position);
+    Camera.setOrientation(orientationOf(vector));
 }
 
 function handleOrbitMode(dx, dy) {
@@ -82,6 +99,7 @@ function handleOrbitMode(dx, dy) {
                z:(Math.cos(altitude) * Math.sin(azimuth)) * radius };
     position = Vec3.sum(center, vector);
     Camera.setPosition(position);
+    Camera.setOrientation(orientationOf(vector));
 }
 
 
@@ -96,19 +114,18 @@ function handlePanMode(dx, dy) {
     position = Vec3.sum(position, dv);
     
     Camera.setPosition(position);
-    Camera.keepLookingAt(center);
+    Camera.setOrientation(orientationOf(vector));
 }
 
 function saveCameraState() {
-    oldMode = Camera.getMode();
+    oldMode = Camera.mode;
     var oldPosition = Camera.getPosition();
-    Camera.setMode("independent");
+    Camera.mode = "independent";
     Camera.setPosition(oldPosition);
 }
 
 function restoreCameraState() {
-    Camera.stopLooking();
-    Camera.setMode(oldMode);
+    Camera.mode = oldMode;
 }
 
 function handleModes() {
@@ -245,7 +262,6 @@ function mousePressEvent(event) {
         azimuth = Math.atan2(vector.z, vector.x);
         altitude = Math.asin(vector.y / Vec3.length(vector));
         
-        Camera.keepLookingAt(center);
         print(string);
         isActive = true;
     }

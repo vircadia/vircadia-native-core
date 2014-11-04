@@ -34,6 +34,13 @@ var EASING_MULTIPLIER = 8;
 var INITIAL_ZOOM_DISTANCE = 2;
 var INITIAL_ZOOM_DISTANCE_FIRST_PERSON = 3;
 
+var easeOutCubic = function(t) {
+    t--;
+    return t * t * t + 1;
+};
+
+EASE_TIME = 0.5;
+
 CameraManager = function() {
     var that = {};
 
@@ -51,6 +58,10 @@ CameraManager = function() {
     that.focalPoint = { x: 0, y: 0, z: 0 };
     that.targetFocalPoint = { x: 0, y: 0, z: 0 };
 
+    easing = false;
+    easingTime = 0;
+    startOrientation = Quat.fromPitchYawRollDegrees(0, 0, 0);
+
     that.previousCameraMode = null;
 
     that.lastMousePosition = { x: 0, y: 0 };
@@ -66,10 +77,6 @@ CameraManager = function() {
         var focalPoint = Vec3.sum(Camera.getPosition(),
                         Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
 
-        if (Camera.getMode() == 'first person') {
-            that.targetZoomDistance = INITIAL_ZOOM_DISTANCE_FIRST_PERSON;
-        }
-
         // Determine the correct yaw and pitch to keep the camera in the same location
         var dPos = Vec3.subtract(focalPoint, Camera.getPosition());
         var xzDist = Math.sqrt(dPos.x * dPos.x + dPos.z * dPos.z);
@@ -81,12 +88,12 @@ CameraManager = function() {
 
         that.focalPoint = focalPoint;
         that.setFocalPoint(focalPoint);
-        that.previousCameraMode = Camera.getMode();
-        Camera.setMode("independent");
+        that.previousCameraMode = Camera.mode;
+        Camera.mode = "independent";
 
         that.updateCamera();
 
-        cameraTool.setVisible(true);
+        cameraTool.setVisible(false);
     }
 
     that.disable = function(ignoreCamera) {
@@ -95,18 +102,40 @@ CameraManager = function() {
         that.mode = MODE_INACTIVE;
 
         if (!ignoreCamera) {
-            Camera.setMode(that.previousCameraMode);
+            Camera.mode = that.previousCameraMode;
         }
         cameraTool.setVisible(false);
     }
 
-    that.focus = function(entityProperties) {
-        var dim = SelectionManager.worldDimensions;
-        var size = Math.max(dim.x, Math.max(dim.y, dim.z));
+    that.focus = function(position, dimensions, easeOrientation) {
+        if (dimensions) {
+            var size = Math.max(dimensions.x, Math.max(dimensions.y, dimensions.z));
+            that.targetZoomDistance = Math.max(size * FOCUS_ZOOM_SCALE, FOCUS_MIN_ZOOM);
+        } else {
+            that.targetZoomDistance = Vec3.length(Vec3.subtract(Camera.getPosition(), position));
+        }
 
-        that.targetZoomDistance = Math.max(size * FOCUS_ZOOM_SCALE, FOCUS_MIN_ZOOM);
+        if (easeOrientation) {
+            // Do eased turning towards target
+            that.focalPoint = that.targetFocalPoint = position;
 
-        that.setFocalPoint(SelectionManager.worldPosition);
+            that.zoomDistance = that.targetZoomDistance = Vec3.length(Vec3.subtract(Camera.getPosition(), position));
+
+            var dPos = Vec3.subtract(that.focalPoint, Camera.getPosition());
+            var xzDist = Math.sqrt(dPos.x * dPos.x + dPos.z * dPos.z);
+
+            that.targetPitch = -Math.atan2(dPos.y, xzDist) * 180 / Math.PI;
+            that.targetYaw = Math.atan2(dPos.x, dPos.z) * 180 / Math.PI;
+            that.pitch = that.targetPitch;
+            that.yaw = that.targetYaw;
+
+            startOrientation = Camera.getOrientation();
+
+            easing = true;
+            easingTime = 0;
+        } else {
+            that.setFocalPoint(position);
+        }
 
         that.updateCamera();
     }
@@ -242,7 +271,7 @@ CameraManager = function() {
     }
 
     that.updateCamera = function() {
-        if (!that.enabled || Camera.getMode() != "independent") return;
+        if (!that.enabled || Camera.mode != "independent") return;
 
         var yRot = Quat.angleAxis(that.yaw, { x: 0, y: 1, z: 0 });
         var xRot = Quat.angleAxis(that.pitch, { x: 1, y: 0, z: 0 });
@@ -255,6 +284,11 @@ CameraManager = function() {
         xRot = Quat.angleAxis(-that.pitch, { x: 1, y: 0, z: 0 });
         q = Quat.multiply(yRot, xRot);
 
+        if (easing) {
+            var t = easeOutCubic(easingTime / EASE_TIME);
+            q = Quat.slerp(startOrientation, q, t);
+        }
+
         Camera.setOrientation(q);
     }
 
@@ -266,8 +300,12 @@ CameraManager = function() {
 
     // Ease the position and orbit of the camera
     that.update = function(dt) {
-        if (Camera.getMode() != "independent") {
+        if (Camera.mode != "independent") {
             return;
+        }
+
+        if (easing) {
+            easingTime = Math.min(EASE_TIME, easingTime + dt);
         }
 
         var scale = Math.min(dt * EASING_MULTIPLIER, 1.0);
@@ -292,12 +330,15 @@ CameraManager = function() {
         that.zoomDistance += scale * dZoom;
 
         that.updateCamera();
+
+        if (easingTime >= 1) {
+            easing = false;
+        }
     }
 
     // Last mode that was first or third person
     var lastAvatarCameraMode = "first person";
     Camera.modeUpdated.connect(function(newMode) {
-        print("Camera mode has been updated: " + newMode);
         if (newMode == "first person" || newMode == "third person") {
             lastAvatarCameraMode = newMode;
             that.disable(true);
@@ -308,7 +349,7 @@ CameraManager = function() {
 
     Controller.keyReleaseEvent.connect(function (event) {
         if (event.text == "ESC" && that.enabled) {
-            Camera.setMode(lastAvatarCameraMode);
+            Camera.mode = lastAvatarCameraMode;
             cameraManager.disable(true);
         }
     });
