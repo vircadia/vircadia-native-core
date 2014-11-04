@@ -17,13 +17,13 @@
 //
 
 var lookingAtSomething = false;
-var oldMode = Camera.getMode();
+var oldMode = Camera.getModeString();
 
 function cancelLookAt() {
     if (lookingAtSomething) {
         lookingAtSomething = false;
         Camera.stopLooking();
-        Camera.setMode(oldMode);
+        Camera.setModeString(oldMode);
         releaseMovementKeys();
     }
 }
@@ -65,13 +65,13 @@ function mousePressEvent(event) {
         if (intersection.intersects) {
         
             // remember the old mode we were in
-            oldMode = Camera.getMode();
+            oldMode = Camera.getModeString();
 
             print("looking at intersection point: " + intersection.intersection.x + ", " 
                         + intersection.intersection.y + ", " + intersection.intersection.z);
 
             // switch to independent mode
-            Camera.setMode("independent");
+            Camera.setModeString("independent");
 
             // tell the camera to fix it's look at on the point we clicked
             Camera.keepLookingAt(intersection.intersection);

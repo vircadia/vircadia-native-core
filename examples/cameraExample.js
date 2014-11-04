@@ -23,7 +23,7 @@ var THRUST_CONTROLLER = 0;
 var VIEW_CONTROLLER = 1;
 
 function checkCamera(deltaTime) {
-    if (Camera.getMode() == "independent") {
+    if (Camera.getModeString() == "independent") {
         var THRUST_MAG_UP = 800.0;
         var THRUST_MAG_DOWN = 300.0;
         var THRUST_MAG_FWD = 500.0;

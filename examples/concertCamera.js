@@ -20,7 +20,7 @@ var cameraLocations = [ {x: 7971.9, y: 241.3, z: 7304.1}, {x: 7973.0, y: 241.3, 
 var cameraLookAts = [ {x: 7971.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7971.3, y: 241.3, z: 7304.2} ];
 
 function saveCameraState() {
-    oldMode = Camera.getMode();
+    oldMode = Camera.getModeString();
     avatarPosition = MyAvatar.position;
     Camera.setModeShiftPeriod(0.0);
     Camera.setMode("independent");
