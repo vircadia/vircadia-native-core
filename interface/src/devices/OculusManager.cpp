@@ -514,8 +514,9 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
         const ovrFovPort& port = _eyeFov[_activeEyeIndex];
-        float near = whichCamera.getNearClip(), far = whichCamera.getFarClip();
-        glFrustum(-near * port.LeftTan, near * port.RightTan, -near * port.DownTan, near * port.UpTan, near, far);
+        float nearClip = whichCamera.getNearClip(), farClip = whichCamera.getFarClip();
+        glFrustum(-nearClip * port.LeftTan, nearClip * port.RightTan, -nearClip * port.DownTan,
+            nearClip * port.UpTan, nearClip, farClip);
         
         glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
                    _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
