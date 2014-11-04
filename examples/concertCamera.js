@@ -20,15 +20,15 @@ var cameraLocations = [ {x: 7971.9, y: 241.3, z: 7304.1}, {x: 7973.0, y: 241.3, 
 var cameraLookAts = [ {x: 7971.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7972.1, y: 241.3, z: 7304.1}, {x: 7971.3, y: 241.3, z: 7304.2} ];
 
 function saveCameraState() {
-    oldMode = Camera.getModeString();
+    oldMode = Camera.mode;
     avatarPosition = MyAvatar.position;
     Camera.setModeShiftPeriod(0.0);
-    Camera.setMode("independent");
+    Camera.mode = "independent";
 }
 
 function restoreCameraState() {
     Camera.stopLooking();
-    Camera.setMode(oldMode);
+    Camera.mode = oldMode;
 }
 
 function update(deltaTime) {
@@ -52,7 +52,7 @@ function keyPressEvent(event) {
             saveCameraState();
             freeCamera = true;
         }
-        Camera.setMode("independent");
+        Camera.mode = "independent";
         Camera.setPosition(cameraLocations[choice - 1]);
         Camera.keepLookingAt(cameraLookAts[choice - 1]);
     }
