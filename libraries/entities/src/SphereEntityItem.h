@@ -53,6 +53,9 @@ public:
 
     virtual const Shape& getCollisionShapeInMeters() const { return _sphereShape; }
     
+    // TODO: implement proper contains for 3D ellipsoid
+    //virtual bool contains(const glm::vec3& point) const;
+    
 protected:
     virtual void recalculateCollisionShape();
 

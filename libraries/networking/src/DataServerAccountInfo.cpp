@@ -130,11 +130,11 @@ const QByteArray& DataServerAccountInfo::getUsernameSignature() {
                                                    reinterpret_cast<const unsigned char**>(&privateKeyData),
                                                    _privateKey.size());
             if (rsaPrivateKey) {
-                QByteArray usernameByteArray = _username.toUtf8();
+                QByteArray lowercaseUsername = _username.toLower().toUtf8();
                 _usernameSignature.resize(RSA_size(rsaPrivateKey));
                 
-                int encryptReturn = RSA_private_encrypt(usernameByteArray.size(),
-                                                        reinterpret_cast<const unsigned char*>(usernameByteArray.constData()),
+                int encryptReturn = RSA_private_encrypt(lowercaseUsername.size(),
+                                                        reinterpret_cast<const unsigned char*>(lowercaseUsername.constData()),
                                                         reinterpret_cast<unsigned char*>(_usernameSignature.data()),
                                                         rsaPrivateKey, RSA_PKCS1_PADDING);
                 
