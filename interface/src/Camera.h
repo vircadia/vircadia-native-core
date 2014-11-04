@@ -32,6 +32,10 @@ static int cameraModeId = qRegisterMetaType<CameraMode>();
 
 class Camera : public QObject {
     Q_OBJECT
+    
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(QString mode READ getModeString WRITE setModeString)
 public:
     Camera();
 
@@ -39,7 +43,6 @@ public:
 
     void update( float deltaTime );
 
-    void setPosition(const glm::vec3& p) { _position = p; }
     void setRotation(const glm::quat& rotation) { _rotation = rotation; };
     void setHmdPosition(const glm::vec3& hmdPosition) { _hmdPosition = hmdPosition; }
     void setHmdRotation(const glm::quat& hmdRotation) { _hmdRotation = hmdRotation; };
@@ -66,12 +69,20 @@ public:
     const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
     float getScale() const { return _scale; }
+public slots:
+    QString getModeString() const;
+    void setModeString(const QString& mode);
 
-signals:
-    void modeUpdated(CameraMode newMode);
+    void setPosition(const glm::vec3& position) { _position = position; }
     
-private:
+    void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
+    glm::quat getOrientation() const { return getRotation(); }
+    
+    PickRay computePickRay(float x, float y);
+signals:
+    void modeUpdated(const QString& newMode);
 
+private:
     CameraMode _mode;
     glm::vec3 _position;
     float _fieldOfView; // degrees
@@ -88,32 +99,4 @@ private:
     float _scale;
 };
 
-
-class CameraScriptableObject  : public QObject {
-    Q_OBJECT
-public:
-    CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum);
-
-public slots:
-    QString getMode() const;
-    void setMode(const QString& mode);
-    void setPosition(const glm::vec3& value) { _camera->setPosition(value);}
-
-    glm::vec3 getPosition() const { return _camera->getPosition(); }
-
-    void setOrientation(const glm::quat& value) { _camera->setRotation(value); }
-    glm::quat getOrientation() const { return _camera->getRotation(); }
-
-    PickRay computePickRay(float x, float y);
-
-signals:
-    void modeUpdated(const QString& newMode);
-
-private slots:
-    void onModeUpdated(CameraMode m);
-
-private:
-    Camera* _camera;
-    ViewFrustum* _viewFrustum;
-};
 #endif // hifi_Camera_h
