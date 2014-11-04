@@ -51,8 +51,11 @@ var wantEntityGlow = false;
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
-var MENU_INSPECT_TOOL_ENABLED = 'Inspect Tool';
-var MENU_EASE_ON_FOCUS = 'Ease Orientation on Focus';
+var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
+var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
+
+var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
+var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
@@ -590,8 +593,10 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: "Edit Entities Help...", isCheckable: true });
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED, isCheckable: true });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: "Edit Entities Help...",
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -619,6 +624,9 @@ function cleanupModelMenus() {
 }
 
 Script.scriptEnding.connect(function() {
+    Settings.setValue(SETTING_INSPECT_TOOL_ENABLED, Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED));
+    Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+
     progressDialog.cleanup();
     toolBar.cleanup();
     cleanupModelMenus();
