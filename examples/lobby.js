@@ -74,15 +74,15 @@ function drawLobby() {
     orbShell = Overlays.addOverlay("model", orbShellProps);
     
     // for HMD wearers, create a reticle in center of screen
-    var RETICLE_SPHERE_SIZE = 0.025;
+    var CURSOR_SCALE = 0.025;
     
-    reticle = Overlays.addOverlay("sphere", {
+    reticle = Overlays.addOverlay("billboard", {
+      url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
       position: reticlePosition(),
-      size: RETICLE_SPHERE_SIZE,
-      color: { red: 0, green: 255, blue: 0 },
+      ignoreRayIntersection: true,
+      isFacingAvatar: true,
       alpha: 1.0,
-      solid: true,
-      ignoreRayIntersection: true
+      scale: CURSOR_SCALE
     });
     
     // add an attachment on this avatar so other people see them in the lobby
