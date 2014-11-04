@@ -177,7 +177,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
-        _cameraScriptableObject(&_myCamera, &_viewFrustum),
         _previousScriptLocation(),
         _applicationOverlay(),
         _runningScriptsWidget(NULL),
@@ -1304,7 +1303,7 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // nobody handled this - make it an action event on the _window object
             HFActionEvent actionEvent(HFActionEvent::startType(),
-                                      _cameraScriptableObject.computePickRay(event->x(), event->y()));
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1339,7 +1338,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             
             // fire an action end event
             HFActionEvent actionEvent(HFActionEvent::endType(),
-                                      _cameraScriptableObject.computePickRay(event->x(), event->y()));
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -3850,7 +3849,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
     scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
 
-    scriptEngine->registerGlobalObject("Camera", &_cameraScriptableObject);
+    scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
