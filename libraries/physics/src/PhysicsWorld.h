@@ -16,6 +16,8 @@
 
 #include <btBulletDynamicsCommon.h>
 
+#include "ShapeManager.h"
+
 class PhysicsWorld {
 public:
 
@@ -32,6 +34,8 @@ protected:
     btBroadphaseInterface* _broadphaseFilter;
     btSequentialImpulseConstraintSolver* _constraintSolver;
     btDiscreteDynamicsWorld* _dynamicsWorld;
+    
+    ShapeManager _shapeManager;
 
 private:
 };
