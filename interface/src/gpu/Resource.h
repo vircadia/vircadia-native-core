@@ -147,8 +147,8 @@ protected:
     friend class Backend;
 };
 
-typedef QSharedPointer<Buffer> BufferPtr;
-typedef std::vector< BufferPtr > Buffers;
+typedef QSharedPointer<Buffer> BufferPointer;
+typedef std::vector< BufferPointer > Buffers;
 };
 
 

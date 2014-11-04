@@ -21,31 +21,36 @@
 
 namespace gpu {
 
-class StreamFormat {
+// Stream namespace class
+class Stream {
 public:
 
-    enum Slot {
-        SLOT_POSITION = 0,
-        SLOT_NORMAL,
-        SLOT_COLOR,
-        SLOT_TEXCOORD,
-        SLOT_TANGENT,
-        SLOT_SKIN_CLUSTER_INDEX,
-        SLOT_SKIN_CLUSTER_WEIGHT,
+    // Possible input slots identifiers
+    enum InputSlot {
+        INPUT_SLOT_POSITION = 0,
+        INPUT_SLOT_NORMAL,
+        INPUT_SLOT_COLOR,
+        INPUT_SLOT_TEXCOORD,
+        INPUT_SLOT_TANGENT,
+        INPUT_SLOT_SKIN_CLUSTER_INDEX,
+        INPUT_SLOT_SKIN_CLUSTER_WEIGHT,
 
-        NUM_SLOTS,
+        NUM_INPUT_SLOTS,
     };
 
+    typedef uint8 Slot;
+
+    // Frequency describer
     enum Frequency {
         FREQUENCY_PER_VERTEX = 0,
         FREQUENCY_PER_INSTANCE,
     };
 
+    // The attribute description
+    // Every thing that is needed to detail a stream attribute and how to interpret it
     class Attribute {
     public:
-        typedef std::vector< Attribute > vector;
-
-        Attribute(Slot slot, uint8 channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX) :
+        Attribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX) :
             _slot(slot),
             _channel(channel),
             _element(element),
@@ -53,7 +58,7 @@ public:
             _frequency(frequency)
         {}
         Attribute() :
-            _slot(SLOT_POSITION),
+            _slot(INPUT_SLOT_POSITION),
             _channel(0),
             _element(),
             _offset(0),
@@ -61,63 +66,71 @@ public:
         {}
 
 
-        uint8 _slot; // Logical slot assigned to the attribute
-        uint8 _channel; // index of the channel where to get the data from
+        Slot _slot; // Logical slot assigned to the attribute
+        Slot _channel; // index of the channel where to get the data from
         Element _element;
 
         Offset _offset;
         uint32 _frequency;
 
+        // Size of the 
         uint32 getSize() const { return _element.getSize(); }
-
     };
 
-    typedef std::map< uint8, Attribute > AttributeMap;
-
-    class Channel {
+    // Stream Format is describing how to feed a list of attributes from a bunch of stream buffer channels
+    class Format {
     public:
-        std::vector< uint8 > _slots;
-        std::vector< uint32 > _offsets;
-        uint32 _stride;
-        uint32 _netSize;
+        typedef std::map< Slot, Attribute > AttributeMap;
 
-        Channel() : _stride(0), _netSize(0) {}
+        class Channel {
+        public:
+            std::vector< Slot > _slots;
+            std::vector< Offset > _offsets;
+            Offset _stride;
+            uint32 _netSize;
+
+            Channel() : _stride(0), _netSize(0) {}
+        };
+        typedef std::map< Slot, Channel > ChannelMap;
+
+        Format() :
+            _attributes(),
+            _elementTotalSize(0) {}
+        ~Format() {}
+
+        uint32 getNumAttributes() const { return _attributes.size(); }
+        const AttributeMap& getAttributes() const { return _attributes; }
+
+        uint8  getNumChannels() const { return _channels.size(); }
+        const ChannelMap& getChannels() const { return _channels; }
+
+        uint32 getElementTotalSize() const { return _elementTotalSize; }
+
+        bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX);
+
+    protected:
+        AttributeMap _attributes;
+        ChannelMap _channels;
+        uint32 _elementTotalSize;
+
+        void evaluateCache();
     };
-    typedef std::map< uint8, Channel > ChannelMap;
 
-    StreamFormat() :
-        _attributes(),
-        _elementTotalSize(0) {}
-    ~StreamFormat() {}
-
-    uint32 getNumAttributes() const { return _attributes.size(); }
-    const AttributeMap& getAttributes() const { return _attributes; }
-
-    uint8  getNumChannels() const { return _channels.size(); }
-    const ChannelMap& getChannels() const { return _channels; }
-
-    uint32 getElementTotalSize() const { return _elementTotalSize; }
-
-    bool setAttribute(Slot slot, uint8 channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX);
-
-protected:
-    AttributeMap _attributes;
-    ChannelMap _channels;
-    uint32 _elementTotalSize;
-
-    void evaluateCache();
+    typedef QSharedPointer<Format> FormatPointer;
 };
 
-class Stream {
+typedef std::vector< Offset > Offsets;
+
+// Buffer Stream is a container of N Buffers and their respective Offsets and Srides representing N consecutive channels.
+// A Buffer Stream can be assigned to the Batch to set several stream channels in one call
+class BufferStream {
 public:
-    typedef std::vector< BufferPtr > Buffers;
-    typedef std::vector< uint32 > Offsets;
-    typedef std::vector< uint32 > Strides;
+    typedef Offsets Strides;
 
-    Stream();
-    ~Stream();
+    BufferStream();
+    ~BufferStream();
 
-    void addBuffer(BufferPtr& buffer, uint32 offset, uint32 stride);
+    void addBuffer(BufferPointer& buffer, Offset offset, Offset stride);
 
     const Buffers& getBuffers() const { return _buffers; }
     const Offsets& getOffsets() const { return _offsets; }
@@ -129,8 +142,7 @@ protected:
     Offsets _offsets;
     Strides _strides;
 };
-typedef QSharedPointer<StreamFormat> StreamFormatPtr;
-typedef QSharedPointer<Stream> StreamPtr;
+typedef QSharedPointer<BufferStream> BufferStreamPointer;
 
 };
 

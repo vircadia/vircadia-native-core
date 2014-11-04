@@ -13,7 +13,7 @@
 
 using namespace gpu;
 
-void StreamFormat::evaluateCache() {
+void Stream::Format::evaluateCache() {
     _channels.clear();
     _elementTotalSize = 0;
     for(AttributeMap::iterator it = _attributes.begin(); it != _attributes.end(); it++) {
@@ -26,24 +26,24 @@ void StreamFormat::evaluateCache() {
     }
 }
 
-bool StreamFormat::setAttribute(Slot slot, uint8 channel, Element element, Offset offset, Frequency frequency) {
-    _attributes[slot] = Attribute(slot, channel, element, offset, frequency);
+bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offset offset, Frequency frequency) {
+    _attributes[slot] = Attribute((InputSlot) slot, channel, element, offset, frequency);
     evaluateCache();
     return true;
 }
 
-Stream::Stream() :
+BufferStream::BufferStream() :
     _buffers(),
     _offsets()
 {}
 
-Stream::~Stream()
+BufferStream::~BufferStream()
 {
     _buffers.clear();
     _offsets.clear();
 }
 
-void Stream::addBuffer(BufferPtr& buffer, uint32 offset, uint32 stride) {
+void BufferStream::addBuffer(BufferPointer& buffer, Offset offset, Offset stride) {
     _buffers.push_back(buffer);
     _offsets.push_back(offset);
     _strides.push_back(stride);

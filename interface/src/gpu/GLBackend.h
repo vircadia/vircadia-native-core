@@ -45,25 +45,25 @@ public:
 
     static GLuint getBufferID(const Buffer& buffer);
 
-    static const int MAX_NUM_ATTRIBUTES = StreamFormat::NUM_SLOTS;
+    static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
-    uint32 getNumInputBuffers() const { return _vertexBuffersState.size(); }
+    uint32 getNumInputBuffers() const { return _inputBuffersState.size(); }
 
 protected:
 
     bool _needInputFormatUpdate;
-    StreamFormatPtr _inputFormat;
+    Stream::FormatPointer _inputFormat;
 
     typedef std::bitset<MAX_NUM_INPUT_BUFFERS> InputBuffersState;
-    InputBuffersState _vertexBuffersState;
-    Buffers _vertexBuffers;
-    Offsets _vertexBufferOffsets;
-    Offsets _vertexBufferStrides;
+    InputBuffersState _inputBuffersState;
+    Buffers _inputBuffers;
+    Offsets _inputBufferOffsets;
+    Offsets _inputBufferStrides;
 
-    BufferPtr _indexBuffer;
+    BufferPointer _indexBuffer;
     Offset _indexBufferOffset;
-    Element::Type _indexBufferType;
+    Type _indexBufferType;
 
     typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
     InputActivationCache _inputAttributeActivation;
@@ -137,11 +137,6 @@ protected:
 
     typedef void (GLBackend::*CommandCall)(Batch&, uint32);
     static CommandCall _commandCalls[Batch::NUM_COMMANDS];
-
-    static const GLenum _primitiveToGLmode[NUM_PRIMITIVES];
-
-    static const GLenum _elementTypeToGLtype[Element::NUM_TYPES];
-
 
 };
 

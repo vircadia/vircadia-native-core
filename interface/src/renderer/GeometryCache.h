@@ -155,12 +155,12 @@ public:
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
-    gpu::BufferPtr _indexBuffer;
-    gpu::BufferPtr _vertexBuffer;
+    gpu::BufferPointer _indexBuffer;
+    gpu::BufferPointer _vertexBuffer;
 
-    gpu::StreamPtr _vertexStream;
+    gpu::BufferStreamPointer _vertexStream;
 
-    gpu::StreamFormatPtr _vertexFormat;
+    gpu::Stream::FormatPointer _vertexFormat;
     
     QVector<NetworkMeshPart> parts;
     

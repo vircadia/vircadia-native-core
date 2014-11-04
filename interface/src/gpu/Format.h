@@ -17,72 +17,102 @@
 
 namespace gpu {
 
-    typedef unsigned int uint32;
-    typedef int int32;
-    typedef unsigned short uint16;
-    typedef short int16;
-    typedef unsigned char uint8;
-    typedef char int8;
+typedef unsigned int uint32;
+typedef int int32;
+typedef unsigned short uint16;
+typedef short int16;
+typedef unsigned char uint8;
+typedef char int8;
 
-    typedef uint32 Offset;
+typedef uint32 Offset;
 
-// Format is a simple 32bit value that contains everything we need to know about an element
+// Description of a scalar type
+enum Type {
+
+    TYPE_FLOAT = 0,
+    TYPE_INT32,
+    TYPE_UINT32,
+    TYPE_HALF,
+    TYPE_INT16,
+    TYPE_UINT16,
+    TYPE_INT8,
+    TYPE_UINT8,
+
+    TYPE_NFLOAT,
+    TYPE_NINT32,
+    TYPE_NUINT32,
+    TYPE_NHALF,
+    TYPE_NINT16,
+    TYPE_NUINT16,
+    TYPE_NINT8,
+    TYPE_NUINT8,
+
+    NUM_TYPES,
+};
+// Array providing the size in bytes for a given scalar type
+static const int TYPE_SIZE[NUM_TYPES] = {
+    4,
+    4,
+    4,
+    2,
+    2,
+    2,
+    1,
+    1,
+    4,
+    4,
+    4,
+    2,
+    2,
+    2,
+    1,
+    1
+};
+
+
+// Dimension of an Element
+enum Dimension {
+    DIM_SCALAR = 0,
+    DIM_VEC2,
+    DIM_VEC3,
+    DIM_VEC4,
+    DIM_MAT3,
+    DIM_MAT4,
+
+    NUM_DIMENSIONS,
+};
+// Count (of scalars) in an Element for a given Dimension
+static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
+    1,
+    2,
+    3,
+    4,
+    9,
+    16
+};
+
+// Semantic of an Element
+// Provide information on how to use the element
+enum Semantic {
+    SEMANTIC_RGB = 0,
+    SEMANTIC_RGBA,
+    SEMANTIC_XYZ,
+    SEMANTIC_XYZW,
+    SEMANTIC_POS_XYZ,
+    SEMANTIC_POS_XYZW,
+    SEMANTIC_QUAT,
+    SEMANTIC_DIR_XYZ,
+    SEMANTIC_UV,
+    SEMANTIC_R8,
+
+    NUM_SEMANTICS,
+};
+
+// Element is a simple 16bit value that contains everything we need to know about an element
 // of a buffer, a pixel of a texture, a varying input/output or uniform from a shader pipeline.
 // Type and dimension of the element, and semantic
 class Element {
 public:
-
-    enum Type {
-
-        TYPE_FLOAT = 0,
-        TYPE_INT32,
-        TYPE_UINT32,
-        TYPE_HALF,
-        TYPE_INT16,
-        TYPE_UINT16,
-        TYPE_INT8,
-        TYPE_UINT8,
-
-        TYPE_NFLOAT,
-        TYPE_NINT32,
-        TYPE_NUINT32,
-        TYPE_NHALF,
-        TYPE_NINT16,
-        TYPE_NUINT16,
-        TYPE_NINT8,
-        TYPE_NUINT8,
-
-        NUM_TYPES,
-    };
-    static const int TYPE_SIZE[NUM_TYPES];
-
-    enum Dimension {
-        DIM_SCALAR = 0,
-        DIM_VEC2,
-        DIM_VEC3,
-        DIM_VEC4,
-        DIM_MAT3,
-        DIM_MAT4,
-
-        NUM_DIMENSIONS,
-    };
-    static const int DIMENSION_COUNT[NUM_DIMENSIONS];
-
-    enum Semantic {
-        SEMANTIC_RGB = 0,
-        SEMANTIC_RGBA,
-        SEMANTIC_XYZ,
-        SEMANTIC_XYZW,
-        SEMANTIC_POS_XYZ,
-        SEMANTIC_POS_XYZW,
-        SEMANTIC_QUAT,
-        SEMANTIC_DIR_XYZ,
-        SEMANTIC_UV,
-        SEMANTIC_R8,
-
-        NUM_SEMANTICS,
-    };
-
     Element(Dimension dim, Type type, Semantic sem) :
         _semantic(sem),
         _dimension(dim),

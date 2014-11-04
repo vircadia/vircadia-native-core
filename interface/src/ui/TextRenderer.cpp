@@ -182,15 +182,15 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _glyphsBuffer(new gpu::Buffer()),
     _glyphsColorBuffer(new gpu::Buffer()),
     _numGlyphsBatched(0),
-    _glyphsStreamFormat(new gpu::StreamFormat()),
-    _glyphsStream(new gpu::Stream())
+    _glyphsStreamFormat(new gpu::Stream::Format()),
+    _glyphsStream(new gpu::BufferStream())
 {
-    _glyphsStreamFormat->setAttribute(gpu::StreamFormat::SLOT_POSITION, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_POS_XYZ), 0);
+    _glyphsStreamFormat->setAttribute(gpu::Stream::INPUT_SLOT_POSITION, 0, gpu::Element(gpu::DIM_VEC2, gpu::TYPE_FLOAT, gpu::SEMANTIC_POS_XYZ), 0);
     const int NUM_POS_COORDS = 2;
     const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
-    _glyphsStreamFormat->setAttribute(gpu::StreamFormat::SLOT_TEXCOORD, 0, gpu::Element(gpu::Element::DIM_VEC2, gpu::Element::TYPE_FLOAT, gpu::Element::SEMANTIC_UV), VERTEX_TEXCOORD_OFFSET);
+    _glyphsStreamFormat->setAttribute(gpu::Stream::INPUT_SLOT_TEXCOORD, 0, gpu::Element(gpu::DIM_VEC2, gpu::TYPE_FLOAT, gpu::SEMANTIC_UV), VERTEX_TEXCOORD_OFFSET);
 
-    _glyphsStreamFormat->setAttribute(gpu::StreamFormat::SLOT_COLOR, 1, gpu::Element(gpu::Element::DIM_VEC4, gpu::Element::TYPE_UINT8, gpu::Element::SEMANTIC_RGBA));
+    _glyphsStreamFormat->setAttribute(gpu::Stream::INPUT_SLOT_COLOR, 1, gpu::Element(gpu::DIM_VEC4, gpu::TYPE_UINT8, gpu::SEMANTIC_RGBA));
 
     _glyphsStream->addBuffer(_glyphsBuffer, 0, _glyphsStreamFormat->getChannels().at(0)._stride);
     _glyphsStream->addBuffer(_glyphsColorBuffer, 0, _glyphsStreamFormat->getChannels().at(1)._stride);
@@ -335,7 +335,7 @@ void TextRenderer::drawBatch() {
     glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
 */
     batch.setInputFormat(_glyphsStreamFormat);
-    batch.setInputStream(0, _glyphsStream);
+    batch.setInputStream(0, *_glyphsStream);
     batch.draw(gpu::PRIMITIVE_QUADS, _numGlyphsBatched * 4, 0);
 
     gpu::GLBackend::renderBatch(batch);

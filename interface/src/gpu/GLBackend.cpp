@@ -81,7 +81,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glMaterialfv),
 };
 
-const GLenum GLBackend::_primitiveToGLmode[NUM_PRIMITIVES] = {
+static const GLenum _primitiveToGLmode[NUM_PRIMITIVES] = {
     GL_POINTS,
     GL_LINES,
     GL_LINE_STRIP,
@@ -90,7 +90,7 @@ const GLenum GLBackend::_primitiveToGLmode[NUM_PRIMITIVES] = {
     GL_QUADS,
 };
 
-static const GLenum _elementTypeToGLType[Element::NUM_TYPES]= {
+static const GLenum _elementTypeToGLType[NUM_TYPES]= {
     GL_FLOAT,
     GL_INT,
     GL_UNSIGNED_INT,
@@ -116,10 +116,10 @@ GLBackend::GLBackend() :
     _inputAttributeActivation(0),
     _needInputFormatUpdate(true),
 
-    _vertexBuffersState(0),
-    _vertexBuffers(_vertexBuffersState.size(), BufferPtr(0)),
-    _vertexBufferOffsets(_vertexBuffersState.size(), 0),
-    _vertexBufferStrides(_vertexBuffersState.size(), 0),
+    _inputBuffersState(0),
+    _inputBuffers(_inputBuffersState.size(), BufferPointer(0)),
+    _inputBufferOffsets(_inputBuffersState.size(), 0),
+    _inputBufferStrides(_inputBuffersState.size(), 0),
 
     _indexBuffer(0),
     _indexBufferOffset(0)
@@ -216,7 +216,7 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
 }
 
 void GLBackend::do_setInputFormat(Batch& batch, uint32 paramOffset) {
-    StreamFormatPtr format = batch._streamFormats.get(batch._params[paramOffset]._uint);
+    Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
 
     if (format != _inputFormat) {
         _inputFormat = format;
@@ -227,20 +227,20 @@ void GLBackend::do_setInputFormat(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
     Offset stride = batch._params[paramOffset + 0]._uint;
     Offset offset = batch._params[paramOffset + 1]._uint;
-    BufferPtr buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
+    BufferPointer buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
     uint32 channel = batch._params[paramOffset + 3]._uint;
 
     if (channel < getNumInputBuffers()) {
-        _vertexBuffers[channel] = buffer;
-        _vertexBufferOffsets[channel] = offset;
-        _vertexBufferStrides[channel] = stride;
-        _vertexBuffersState.set(channel);
+        _inputBuffers[channel] = buffer;
+        _inputBufferOffsets[channel] = offset;
+        _inputBufferStrides[channel] = stride;
+        _inputBuffersState.set(channel);
     }
 }
 
 #define SUPPORT_LEGACY_OPENGL
 #if defined(SUPPORT_LEGACY_OPENGL)
-static const int NUM_CLASSIC_ATTRIBS = StreamFormat::SLOT_TANGENT;
+static const int NUM_CLASSIC_ATTRIBS = Stream::INPUT_SLOT_TANGENT;
 static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
     GL_VERTEX_ARRAY,
     GL_NORMAL_ARRAY,
@@ -250,16 +250,16 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 #endif
 
 void GLBackend::updateInput() {
-    if (_needInputFormatUpdate || _vertexBuffersState.any()) {
+    if (_needInputFormatUpdate || _inputBuffersState.any()) {
 
         if (_needInputFormatUpdate) {
             InputActivationCache newActivation;
 
             // Check expected activation
             if (_inputFormat) {
-                const StreamFormat::AttributeMap& attributes = _inputFormat->getAttributes();
-                for (StreamFormat::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
-                    const StreamFormat::Attribute& attrib = (*it).second;
+                const Stream::Format::AttributeMap& attributes = _inputFormat->getAttributes();
+                for (Stream::Format::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
+                    const Stream::Attribute& attrib = (*it).second;
                     newActivation.set(attrib._slot);
                 }
             }
@@ -295,27 +295,27 @@ void GLBackend::updateInput() {
 
         // now we need to bind the buffers and assign the attrib pointers
         if (_inputFormat) {
-            const Buffers& buffers = _vertexBuffers;
-            const Offsets& offsets = _vertexBufferOffsets;
-            const Offsets& strides = _vertexBufferStrides;
+            const Buffers& buffers = _inputBuffers;
+            const Offsets& offsets = _inputBufferOffsets;
+            const Offsets& strides = _inputBufferStrides;
 
-            const StreamFormat::AttributeMap& attributes = _inputFormat->getAttributes();
+            const Stream::Format::AttributeMap& attributes = _inputFormat->getAttributes();
 
-            for (StreamFormat::ChannelMap::const_iterator channelIt = _inputFormat->getChannels().begin();
+            for (Stream::Format::ChannelMap::const_iterator channelIt = _inputFormat->getChannels().begin();
                     channelIt != _inputFormat->getChannels().end();
                     channelIt++) {
-                const StreamFormat::ChannelMap::value_type::second_type& channel = (*channelIt).second;
+                const Stream::Format::ChannelMap::value_type::second_type& channel = (*channelIt).second;
                 if ((*channelIt).first < buffers.size()) {
                     int bufferNum = (*channelIt).first;
 
-                    if (_vertexBuffersState.at(bufferNum) || _needInputFormatUpdate) {
+                    if (_inputBuffersState.at(bufferNum) || _needInputFormatUpdate) {
                         GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
                         glBindBuffer(GL_ARRAY_BUFFER, vbo);
                         CHECK_GL_ERROR();
-                        _vertexBuffersState[bufferNum] = false;
+                        _inputBuffersState[bufferNum] = false;
 
                         for (int i = 0; i < channel._slots.size(); i++) {
-                            const StreamFormat::Attribute& attrib = attributes.at(channel._slots[i]);
+                            const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
                             GLuint slot = attrib._slot;
                             GLuint count = attrib._element.getDimensionCount();
                             GLenum type = _elementTypeToGLType[attrib._element.getType()];
@@ -324,17 +324,17 @@ void GLBackend::updateInput() {
                             #if defined(SUPPORT_LEGACY_OPENGL)
                             if (slot < NUM_CLASSIC_ATTRIBS) {
                                 switch (slot) {
-                                case StreamFormat::SLOT_POSITION:
+                                case Stream::INPUT_SLOT_POSITION:
                                     glVertexPointer(count, type, stride, (GLvoid*)pointer);
                                     break;
-                                case StreamFormat::SLOT_COLOR:
+                                case Stream::INPUT_SLOT_NORMAL:
+                                    glNormalPointer(type, stride, (GLvoid*)pointer);
+                                    break;
+                                case Stream::INPUT_SLOT_COLOR:
                                     glColorPointer(count, type, stride, (GLvoid*)pointer);
                                     break;
-                                case StreamFormat::SLOT_TEXCOORD:
+                                case Stream::INPUT_SLOT_TEXCOORD:
                                     glTexCoordPointer(count, type, stride, (GLvoid*)pointer); 
-                                    break;
-                                case StreamFormat::SLOT_NORMAL:
-                                    glNormalPointer(type, stride, (GLvoid*)pointer);
                                     break;
                                 };
                             } else {
@@ -354,7 +354,7 @@ void GLBackend::updateInput() {
         _needInputFormatUpdate = false;
     }
 
-/* Fancy version GL4.4
+/* TODO: Fancy version GL4.4
     if (_needInputFormatUpdate) {
 
         InputActivationCache newActivation;
@@ -412,8 +412,8 @@ void GLBackend::updateInput() {
 
 
 void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
-    _indexBufferType = (Element::Type) batch._params[paramOffset + 2]._uint;
-    BufferPtr indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    _indexBufferType = (Type) batch._params[paramOffset + 2]._uint;
+    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
     _indexBufferOffset = batch._params[paramOffset + 0]._uint;
     _indexBuffer = indexBuffer;
     if (indexBuffer) {

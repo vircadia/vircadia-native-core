@@ -39,12 +39,6 @@
 
 namespace gpu {
 
-class Buffer;
-class Resource;
-
-typedef int  Stamp;
-
-
 enum Primitive {
     PRIMITIVE_POINTS = 0,
     PRIMITIVE_LINES,
@@ -56,11 +50,9 @@ enum Primitive {
     NUM_PRIMITIVES,
 };
 
-typedef std::vector< BufferPtr > Buffers;
-typedef std::vector< Offset > Offsets;
-
 class Batch {
 public:
+    typedef Stream::Slot Slot;
 
     Batch();
     Batch(const Batch& batch);
@@ -73,12 +65,12 @@ public:
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
-    void setInputFormat(const StreamFormatPtr format);
+    void setInputFormat(const Stream::FormatPointer& format);
 
-    void setInputStream(uint8 startChannel, const StreamPtr& stream); // not a command, just multiples
-    void setInputBuffer(uint8 channel, const BufferPtr& buffer, Offset offset, Offset stride);
+    void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
+    void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
 
-    void setIndexBuffer(Element::Type type, const BufferPtr& buffer, Offset offset);
+    void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
 
 
     // TODO: As long as we have gl calls explicitely issued from interface
@@ -272,8 +264,7 @@ public:
     };
     
     typedef Cache<Buffer>::Vector BufferCaches;
-    typedef Cache<Stream>::Vector StreamCaches;
-    typedef Cache<StreamFormat>::Vector StreamFormatCaches;
+    typedef Cache<Stream::Format>::Vector StreamFormatCaches;
 
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
@@ -306,7 +297,6 @@ public:
     Resources _resources;
 
     BufferCaches _buffers;
-    StreamCaches _streams;
     StreamFormatCaches _streamFormats;
 
     Bytes _data;

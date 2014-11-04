@@ -16,7 +16,7 @@
 
 using namespace gpu;
 
-const int Element::TYPE_SIZE[Element::NUM_TYPES] = {
+const int TYPE_SIZE[NUM_TYPES] = {
     4,
     4,
     4,
@@ -35,7 +35,7 @@ const int Element::TYPE_SIZE[Element::NUM_TYPES] = {
     1
 }; 
 
-const int Element::DIMENSION_COUNT[Element::NUM_DIMENSIONS] = {
+const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
     1,
     2,
     3,
@@ -123,26 +123,24 @@ void Batch::drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, ui
     _params.push_back(nbInstances);
 }
 
-void Batch::setInputFormat(const StreamFormatPtr format) {
+void Batch::setInputFormat(const Stream::FormatPointer& format) {
     ADD_COMMAND(setInputFormat);
 
     _params.push_back(_streamFormats.cache(format));
 }
 
-void Batch::setInputStream(uint8 startChannel, const StreamPtr& stream) {
-    if (!stream.isNull()) {
-        if (stream->getNumBuffers()) {
-            const Buffers& buffers = stream->getBuffers();
-            const Offsets& offsets = stream->getOffsets();
-            const Offsets& strides = stream->getStrides();
-            for (int i = 0; i < buffers.size(); i++) {
-                setInputBuffer(startChannel + i, buffers[i], offsets[i], strides[i]);
-            }
+void Batch::setInputStream(Slot startChannel, const BufferStream& stream) {
+    if (stream.getNumBuffers()) {
+        const Buffers& buffers = stream.getBuffers();
+        const Offsets& offsets = stream.getOffsets();
+        const Offsets& strides = stream.getStrides();
+        for (int i = 0; i < buffers.size(); i++) {
+            setInputBuffer(startChannel + i, buffers[i], offsets[i], strides[i]);
         }
     }
 }
 
-void Batch::setInputBuffer(uint8 channel, const BufferPtr& buffer, Offset offset, Offset stride) {
+void Batch::setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride) {
     ADD_COMMAND(setInputBuffer);
 
     _params.push_back(stride);
@@ -151,7 +149,7 @@ void Batch::setInputBuffer(uint8 channel, const BufferPtr& buffer, Offset offset
     _params.push_back(channel);
 }
 
-void Batch::setIndexBuffer(Element::Type type, const BufferPtr& buffer, Offset offset) {
+void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset) {
     ADD_COMMAND(setIndexBuffer);
 
     _params.push_back(offset);

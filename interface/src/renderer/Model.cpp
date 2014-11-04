@@ -137,7 +137,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
 
 
-    glBindAttribLocation(program.programId(), gpu::StreamFormat::SLOT_TANGENT, "tangent");
+    glBindAttribLocation(program.programId(), gpu::Stream::INPUT_SLOT_TANGENT, "tangent");
 
     glLinkProgram(program.programId());
 
@@ -177,9 +177,9 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 
     // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
 
-    glBindAttribLocation(program.programId(), gpu::StreamFormat::SLOT_SKIN_CLUSTER_INDEX, "clusterIndices");
+    glBindAttribLocation(program.programId(), gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_INDEX, "clusterIndices");
 
-    glBindAttribLocation(program.programId(), gpu::StreamFormat::SLOT_SKIN_CLUSTER_WEIGHT, "clusterWeights");
+    glBindAttribLocation(program.programId(), gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_WEIGHT, "clusterWeights");
 
     glLinkProgram(program.programId());
 
@@ -406,7 +406,7 @@ bool Model::updateGeometry() {
             state.clusterMatrices.resize(mesh.clusters.size());
             _meshStates.append(state);    
 
-            gpu::BufferPtr buffer(new gpu::Buffer());
+            gpu::BufferPointer buffer(new gpu::Buffer());
             if (!mesh.blendshapes.isEmpty()) {
                 buffer->resize((mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3));
                 buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
@@ -670,9 +670,9 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
     GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
     GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
-    GLBATCH(glDisableVertexAttribArray)(gpu::StreamFormat::SLOT_TANGENT);
-    GLBATCH(glDisableVertexAttribArray)(gpu::StreamFormat::SLOT_SKIN_CLUSTER_INDEX);
-    GLBATCH(glDisableVertexAttribArray)(gpu::StreamFormat::SLOT_SKIN_CLUSTER_WEIGHT);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::INPUT_SLOT_TANGENT);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_INDEX);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_WEIGHT);
     
     // bind with 0 to switch back to normal operation
     GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
@@ -1411,7 +1411,7 @@ void Model::setBlendedVertices(int blendNumber, const QWeakPointer<NetworkGeomet
             continue;
         }
 
-        gpu::BufferPtr& buffer = _blendedVertexBuffers[i];
+        gpu::BufferPointer& buffer = _blendedVertexBuffers[i];
         buffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) vertices.constData() + index*sizeof(glm::vec3));
         buffer->setSubData(mesh.vertices.size() * sizeof(glm::vec3),
             mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) normals.constData() + index*sizeof(glm::vec3));
@@ -1816,7 +1816,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);    
 
-        batch.setIndexBuffer(gpu::Element::TYPE_UINT32, (networkMesh._indexBuffer), 0);
+        batch.setIndexBuffer(gpu::TYPE_UINT32, (networkMesh._indexBuffer), 0);
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
             // sanity check
@@ -1867,12 +1867,12 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         
         if (mesh.blendshapes.isEmpty()) {
             batch.setInputFormat(networkMesh._vertexFormat);
-            batch.setInputStream(0, networkMesh._vertexStream);
+            batch.setInputStream(0, *networkMesh._vertexStream);
         } else {
             batch.setInputFormat(networkMesh._vertexFormat);
             batch.setInputBuffer(0, _blendedVertexBuffers[i], 0, sizeof(glm::vec3));
             batch.setInputBuffer(1, _blendedVertexBuffers[i], vertexCount * sizeof(glm::vec3), sizeof(glm::vec3));
-            batch.setInputStream(2, networkMesh._vertexStream);
+            batch.setInputStream(2, *networkMesh._vertexStream);
         }
 
         if (mesh.colors.isEmpty()) {
