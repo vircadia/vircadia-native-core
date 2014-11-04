@@ -47,6 +47,7 @@ const bool DEFAULT_REPETITION_WITH_FADE = true;
 
 // Audio Env bitset
 const int HAS_REVERB_BIT = 0; // 1st bit
+const int IGNORE_PENUMBRA = 1; // 2nd bit
 
 class InboundAudioStream : public NodeData {
     Q_OBJECT
@@ -113,9 +114,7 @@ public:
     bool lastPopSucceeded() const { return _lastPopSucceeded; };
     const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
 
-
     void setToStarved();
-
 
     void setSettings(const Settings& settings);
 
@@ -164,6 +163,8 @@ public:
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
 
+    bool ignorePenumbraFilter() { return _ignorePenumbra; }
+    
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
     /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.
@@ -257,6 +258,9 @@ protected:
     bool _hasReverb;
     float _reverbTime;
     float _wetLevel;
+    
+    // Ignore penumbra filter
+    bool _ignorePenumbra;
 };
 
 float calculateRepeatedFrameFadeFactor(int indexOfRepeat);

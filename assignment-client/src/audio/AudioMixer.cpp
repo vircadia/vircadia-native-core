@@ -353,7 +353,7 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         }
     }
 
-    if (!sourceIsSelf && _enableFilter) {
+    if (!sourceIsSelf && _enableFilter && !streamToAdd->ignorePenumbraFilter()) {
 
         const float TWO_OVER_PI = 2.0f / PI;
         
