@@ -500,10 +500,14 @@ function mousePressEvent(event) {
         }
     } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
         var result = findClickedEntity(event);
-        if (result !== null && event.isRightButton) {
-            var currentProperties = Entities.getEntityProperties(result.entityID);
-            cameraManager.enable();
-            cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+        if (event.isRightButton) {
+            if (result !== null) {
+                var currentProperties = Entities.getEntityProperties(result.entityID);
+                cameraManager.enable();
+                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                cameraManager.mousePressEvent(event);
+            }
+        } else {
             cameraManager.mousePressEvent(event);
         }
     }
