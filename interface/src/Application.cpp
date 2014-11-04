@@ -1117,7 +1117,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   Application::getInstance()->getCamera()->getPickRay());
+                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1208,7 +1208,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), Application::getInstance()->getCamera()->getPickRay());
+                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
                 sendEvent(this, &endActionEvent);
             }
             

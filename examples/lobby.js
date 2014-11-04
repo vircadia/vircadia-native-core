@@ -81,7 +81,8 @@ function drawLobby() {
       size: RETICLE_SPHERE_SIZE,
       color: { red: 0, green: 255, blue: 0 },
       alpha: 1.0,
-      solid: true
+      solid: true,
+      ignoreRayIntersection: true
     });
     
     // add an attachment on this avatar so other people see them in the lobby
@@ -128,6 +129,7 @@ function cleanupLobby() {
 
 function actionStartEvent(event) {
   if (panelWall) {
+        
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
