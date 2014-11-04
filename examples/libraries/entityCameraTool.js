@@ -339,7 +339,6 @@ CameraManager = function() {
     // Last mode that was first or third person
     var lastAvatarCameraMode = "first person";
     Camera.modeUpdated.connect(function(newMode) {
-        print("Camera mode has been updated: " + newMode);
         if (newMode == "first person" || newMode == "third person") {
             lastAvatarCameraMode = newMode;
             that.disable(true);

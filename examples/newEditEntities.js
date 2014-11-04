@@ -820,7 +820,6 @@ function applyEntityProperties(data) {
         var properties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(properties);
         DELETED_ENTITY_MAP[entityID.id] = newEntityID;
-        print(newEntityID.isKnownID);
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
         }
