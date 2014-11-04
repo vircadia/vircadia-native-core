@@ -68,34 +68,10 @@ bool ShapeManager::releaseShape(const ShapeInfo& info) {
     return false;
 }
 
-/*
 bool ShapeManager::releaseShape(const btCollisionShape* shape) {
-    // when the number of shapes is high it's probably cheaper to try to construct a ShapeInfo 
-    // and then compute the hash rather than walking the list in search of the pointer.
-    ShapeKey key(info);
-    ShapeReference* shapeRef = _shapeMap.find(key);
-    if (shapeRef) {
-        if (shapeRef->_refCount > 0) {
-            shapeRef->_refCount--;
-            if (shapeRef->_refCount == 0) {
-                _pendingGarbage.push_back(key);
-                const int MAX_GARBAGE_CAPACITY = 127;
-                if (_pendingGarbage.size() > MAX_GARBAGE_CAPACITY) {
-                    collectGarbage();
-                }
-            }
-            return true;
-        } else {
-            // attempt to remove shape that has no refs
-            assert(false);
-        }
-    } else {
-        // attempt to remove unmanaged shape
-        assert(false);
-    }
-    return false;
+    ShapeInfo info(shape);
+    return releaseShape(info);
 }
-*/
 
 void ShapeManager::collectGarbage() {
     int numShapes = _pendingGarbage.size();

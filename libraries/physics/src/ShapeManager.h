@@ -17,27 +17,17 @@
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
+#include "DoubleHashKey.h"
 #include "ShapeInfo.h"
 
-class ShapeKey
+class ShapeKey : public DoubleHashKey
 {
 public:
-    ShapeKey(const ShapeInfo& info) : _hash(0), _hash2(0) {
+    ShapeKey(const ShapeInfo& info) : DoubleHashKey() {
         _hash = info.computeHash();
         _hash2 = info.computeHash2();
     }
-
-    bool equals(const ShapeKey& other) const {
-        return _hash == other._hash && _hash2 == other._hash2;
-    }
-
-    unsigned int getHash() const { return (unsigned int)_hash; }
-
-private:
-    int _hash;
-    int _hash2;
 };
-
 
 class ShapeManager {
 public:
@@ -50,7 +40,7 @@ public:
 
     /// \return true if shape was found and released
     bool releaseShape(const ShapeInfo& info);
-//    bool removeReference(const btCollisionShape*);
+    bool releaseShape(const btCollisionShape* shape);
 
     /// delete shapes that have zero references
     void collectGarbage();

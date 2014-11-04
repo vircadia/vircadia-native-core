@@ -17,6 +17,8 @@
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
+#include "DoubleHashKey.h"
+
 class ShapeInfo {
 public:
     ShapeInfo() : _type(INVALID_SHAPE_PROXYTYPE) {}
@@ -35,9 +37,6 @@ public:
     int computeHash() const;
     int computeHash2() const;
    
-    static unsigned int hashFunction(unsigned int value, int primeIndex);
-    static unsigned int hashFunction2(unsigned int value);
-
     btCollisionShape* createShape() const;
 
 private:
