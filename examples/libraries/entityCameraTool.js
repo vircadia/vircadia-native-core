@@ -77,10 +77,6 @@ CameraManager = function() {
         var focalPoint = Vec3.sum(Camera.getPosition(),
                         Vec3.multiply(that.zoomDistance, Quat.getFront(Camera.getOrientation())));
 
-        if (Camera.getMode() == 'first person') {
-            that.targetZoomDistance = INITIAL_ZOOM_DISTANCE_FIRST_PERSON;
-        }
-
         // Determine the correct yaw and pitch to keep the camera in the same location
         var dPos = Vec3.subtract(focalPoint, Camera.getPosition());
         var xzDist = Math.sqrt(dPos.x * dPos.x + dPos.z * dPos.z);

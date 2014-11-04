@@ -51,6 +51,9 @@ var wantEntityGlow = false;
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
+var MENU_INSPECT_TOOL_ENABLED = 'Inspect Tool';
+var MENU_EASE_ON_FOCUS = 'Ease Orientation on Focus';
+
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
         HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
@@ -387,7 +390,6 @@ function isLocked(properties) {
 
 
 var selectedEntityID;
-var mouseLastPosition;
 var orientation;
 var intersection;
 
@@ -401,142 +403,154 @@ function rayPlaneIntersection(pickRay, point, normal) {
     return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, t));
 }
 
+function findClickedEntity(event) {
+    var pickRay = Camera.computePickRay(event.x, event.y);
+
+    var foundIntersection = Entities.findRayIntersection(pickRay);
+
+    if (!foundIntersection.accurate) {
+        return null;
+    }
+    var foundEntity = foundIntersection.entityID;
+
+    if (!foundEntity.isKnownID) {
+        var identify = Entities.identifyEntity(foundEntity);
+        if (!identify.isKnownID) {
+            print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
+            selectionManager.clearSelections();
+            return null;
+        }
+        foundEntity = identify;
+    }
+
+    return { pickRay: pickRay, entityID: foundEntity };
+}
+
 
 function mousePressEvent(event) {
-    mouseLastPosition = { x: event.x, y: event.y };
-    var clickedOverlay = Overlays.getOverlayAtPoint({ x: event.x, y: event.y });
-
-    var entitySelected = false;
-    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)
-        || cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
-        // Event handled; do nothing.
+    if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         return;
-    } else {
-
-        // If we aren't active and didn't click on an overlay: quit
-        if (!isActive) {
+    }
+    if (isActive) {
+        var entitySelected = false;
+        if (cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
+            // Event handled; do nothing.
             return;
-        }
-
-        var pickRay = Camera.computePickRay(event.x, event.y);
-        Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundIntersection = Entities.findRayIntersection(pickRay);
-
-        if(!foundIntersection.accurate) {
-            selectionManager.clearSelections();
-            return;
-        }
-        var foundEntity = foundIntersection.entityID;
-
-        if (!foundEntity.isKnownID) {
-            var identify = Entities.identifyEntity(foundEntity);
-            if (!identify.isKnownID) {
-                print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
+        } else {
+            var result = findClickedEntity(event);
+            if (result === null) {
                 selectionManager.clearSelections();
                 return;
             }
-            foundEntity = identify;
-        }
+            var pickRay = result.pickRay;
+            var foundEntity = result.entityID;
 
-        var properties = Entities.getEntityProperties(foundEntity);
-        if (isLocked(properties)) {
-            print("Model locked " + properties.id);
-        } else {
-            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+            var properties = Entities.getEntityProperties(foundEntity);
+            if (isLocked(properties)) {
+                print("Model locked " + properties.id);
+            } else {
+                var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
-            //                P         P - Model
-            //               /|         A - Palm
-            //              / | d       B - unit vector toward tip
-            //             /  |         X - base of the perpendicular line
-            //            A---X----->B  d - distance fom axis
-            //              x           x - distance from A
-            //
-            //            |X-A| = (P-A).B
-            //            X == A + ((P-A).B)B
-            //            d = |P-X|
+                print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+                //                P         P - Model
+                //               /|         A - Palm
+                //              / | d       B - unit vector toward tip
+                //             /  |         X - base of the perpendicular line
+                //            A---X----->B  d - distance fom axis
+                //              x           x - distance from A
+                //
+                //            |X-A| = (P-A).B
+                //            X == A + ((P-A).B)B
+                //            d = |P-X|
 
-            var A = pickRay.origin;
-            var B = Vec3.normalize(pickRay.direction);
-            var P = properties.position;
+                var A = pickRay.origin;
+                var B = Vec3.normalize(pickRay.direction);
+                var P = properties.position;
 
-            var x = Vec3.dot(Vec3.subtract(P, A), B);
-            var X = Vec3.sum(A, Vec3.multiply(B, x));
-            var d = Vec3.length(Vec3.subtract(P, X));
-            var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+                var x = Vec3.dot(Vec3.subtract(P, A), B);
+                var X = Vec3.sum(A, Vec3.multiply(B, x));
+                var d = Vec3.length(Vec3.subtract(P, X));
+                var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
 
-            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+                var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
 
-            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+                var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                                && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
 
-            if (0 < x && sizeOK) {
-                entitySelected = true;
-                selectedEntityID = foundEntity;
-                orientation = MyAvatar.orientation;
-                intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+                if (0 < x && sizeOK) {
+                    entitySelected = true;
+                    selectedEntityID = foundEntity;
+                    orientation = MyAvatar.orientation;
+                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
 
-                if (!event.isShifted) {
-                    selectionManager.clearSelections();
+                    if (!event.isShifted) {
+                        selectionManager.clearSelections();
+                    }
+                    selectionManager.addEntity(foundEntity);
+
+                    print("Model selected: " + foundEntity.id);
                 }
-                selectionManager.addEntity(foundEntity);
-
-                print("Model selected: " + foundEntity.id);
             }
         }
-    }
-    if (entitySelected) {
-        selectionDisplay.select(selectedEntityID, event);
+        if (entitySelected) {
+            selectionDisplay.select(selectedEntityID, event);
+        }
+    } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
+        var result = findClickedEntity(event);
+        if (result !== null && event.isRightButton) {
+            var currentProperties = Entities.getEntityProperties(result.entityID);
+            cameraManager.enable();
+            cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+            cameraManager.mousePressEvent(event);
+        }
     }
 }
 
 var highlightedEntityID = { isKnownID: false };
 
 function mouseMoveEvent(event) {
-    if (!isActive) {
-        return;
-    }
-
-    // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
-    if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
-        return;
-    }
-
-    var pickRay = Camera.computePickRay(event.x, event.y);
-    var entityIntersection = Entities.findRayIntersection(pickRay);
-    if (entityIntersection.accurate) {
-        if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
-            selectionDisplay.unhighlightSelectable(highlightedEntityID);
-            highlightedEntityID = { id: -1, isKnownID: false };
+    if (isActive) {
+        // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
+        if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
+            return;
         }
 
-        var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
-
-        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
-                                        entityIntersection.properties.position)) * 180 / 3.14;
-
-        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-        if (entityIntersection.entityID.isKnownID && sizeOK) {
-            if (wantEntityGlow) {
-                Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+        var pickRay = Camera.computePickRay(event.x, event.y);
+        var entityIntersection = Entities.findRayIntersection(pickRay);
+        if (entityIntersection.accurate) {
+            if(highlightedEntityID.isKnownID && highlightedEntityID.id != entityIntersection.entityID.id) {
+                selectionDisplay.unhighlightSelectable(highlightedEntityID);
+                highlightedEntityID = { id: -1, isKnownID: false };
             }
-            highlightedEntityID = entityIntersection.entityID;
-            selectionDisplay.highlightSelectable(entityIntersection.entityID);
-        }
 
+            var halfDiagonal = Vec3.length(entityIntersection.properties.dimensions) / 2.0;
+
+            var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(),
+                                            entityIntersection.properties.position)) * 180 / 3.14;
+
+            var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                            && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+            if (entityIntersection.entityID.isKnownID && sizeOK) {
+                if (wantEntityGlow) {
+                    Entities.editEntity(entityIntersection.entityID, { glowLevel: 0.25 });
+                }
+                highlightedEntityID = entityIntersection.entityID;
+                selectionDisplay.highlightSelectable(entityIntersection.entityID);
+            }
+
+        }
+    } else {
+        cameraManager.mouseMoveEvent(event);
     }
 }
 
 
 function mouseReleaseEvent(event) {
-    if (!isActive) {
-        return;
-    }
-    if (selectionManager.hasSelection()) {
+    if (isActive && selectionManager.hasSelection()) {
         tooltip.show(false);
     }
+
     cameraManager.mouseReleaseEvent(event);
 }
 
@@ -574,6 +588,9 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
+
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: "Edit Entities Help...", isCheckable: true });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED, isCheckable: true });
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -594,6 +611,9 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Export Models");
     Menu.removeMenuItem("File", "Import Models");
     Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
+
+    Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
+    Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
 }
 
 Script.scriptEnding.connect(function() {
@@ -684,7 +704,11 @@ Controller.keyReleaseEvent.connect(function (event) {
     } else if (event.text == "TAB") {
         selectionDisplay.toggleSpaceMode();
     } else if (event.text == "f") {
-        cameraManager.focus();
+        if (isActive) {
+            cameraManager.focus(selectionManager.worldPosition,
+                                selectionManager.worldDimensions,
+                                Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+        }
     } else if (event.text == '[') {
         if (isActive) {
             cameraManager.enable();
