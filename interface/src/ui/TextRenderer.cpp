@@ -295,6 +295,8 @@ void TextRenderer::drawBatch() {
         return;
     }
 
+    gpu::GLBackend::checkGLError();
+
     // TODO: Right now the drawBatch is called while calling the draw() function but in the future we'll need to apply the correct transform stack
     /*
     GLint matrixMode;
@@ -315,31 +317,11 @@ void TextRenderer::drawBatch() {
     // TODO: Apply the correct font atlas texture, for now only one texture per TextRenderer so it should be good
     glBindTexture(GL_TEXTURE_2D, _currentTextureID);
 
-/*
-    GLuint vbo = gpu::GLBackend::getBufferID(_glyphsBuffer);
-    GLuint colorvbo = gpu::GLBackend::getBufferID(_glyphsColorBuffer);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    const int NUM_POS_COORDS = 2;
-    const int NUM_TEX_COORDS = 2;
-    const int VERTEX_STRIDE = (NUM_POS_COORDS + NUM_TEX_COORDS) * sizeof(float);
-    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexPointer(2, GL_FLOAT, VERTEX_STRIDE, 0);
-    glTexCoordPointer(2, GL_FLOAT, VERTEX_STRIDE, (GLvoid*) VERTEX_TEXCOORD_OFFSET );
-
-    glBindBuffer(GL_ARRAY_BUFFER, colorvbo);
-    glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
-*/
     batch.setInputFormat(_glyphsStreamFormat);
     batch.setInputStream(0, *_glyphsStream);
     batch.draw(gpu::PRIMITIVE_QUADS, _numGlyphsBatched * 4, 0);
 
     gpu::GLBackend::renderBatch(batch);
-  //  glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);

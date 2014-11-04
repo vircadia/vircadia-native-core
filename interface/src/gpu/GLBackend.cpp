@@ -421,6 +421,7 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
     } else {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
+    CHECK_GL_ERROR();
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface
@@ -1010,6 +1011,7 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
     if (!object) {
         object = new GLBuffer();
         glGenBuffers(1, &object->_buffer);
+        CHECK_GL_ERROR();
         Backend::setGPUObject(buffer, object);
     }
 
@@ -1022,6 +1024,7 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
     object->_stamp = buffer.getSysmem().getStamp();
     object->_size = buffer.getSysmem().getSize();
     //}
+    CHECK_GL_ERROR();
 }
 
 
