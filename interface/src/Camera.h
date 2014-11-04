@@ -56,7 +56,6 @@ public:
     void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
     void setScale(const float s) { _scale = s; }
     
-    glm::vec3 getPosition() const { return _position + _hmdPosition; }
     glm::quat getRotation() const { return _rotation * _hmdRotation; }
     const glm::vec3& getHmdPosition() const { return _hmdPosition; }
     const glm::quat& getHmdRotation() const { return _hmdRotation; }
@@ -73,6 +72,7 @@ public slots:
     QString getModeString() const;
     void setModeString(const QString& mode);
 
+    glm::vec3 getPosition() const { return _position + _hmdPosition; }
     void setPosition(const glm::vec3& position) { _position = position; }
     
     void setOrientation(const glm::quat& orientation) { setRotation(orientation); }
