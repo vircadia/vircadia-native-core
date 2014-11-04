@@ -303,7 +303,14 @@ public:
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
-    float getRenderResolutionScale() const { return _renderResolutionScale; }
+    float getRenderResolutionScale() const;
+
+    unsigned int getRenderTargetFramerate() const;
+    bool isVSyncOn() const;
+    bool isVSyncEditable() const;
+
+
+    void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
 signals:
 
@@ -367,12 +374,7 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setRenderTargetFramerate(unsigned int framerate, bool vsyncOn = true);
-    bool isVSyncOn() { return _isVSyncOn; }
-    bool isVSyncEditable();
-    unsigned int  getRenderTargetFramerate() const { return _renderTargetFramerate; }
-
-    void setRenderResolutionScale(float scale);
+    void setVSyncEnabled(bool vsyncOn);
 
     void resetSensors();
 
@@ -624,9 +626,7 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    int _renderTargetFramerate;
     bool _isVSyncOn;
-    float _renderResolutionScale;
 };
 
 #endif // hifi_Application_h

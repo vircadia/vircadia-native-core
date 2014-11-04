@@ -278,6 +278,7 @@ public:
     float size; ///< the size of the voxel in all dimensions
     QVector<AttributeValue> inputValues;
     QVector<OwnedAttributeValue> outputValues;
+    float lodBase;
     bool isLODLeaf;
     bool isLeaf;
     
@@ -537,6 +538,7 @@ public:
     MetavoxelVisitation(MetavoxelVisitation* previous, MetavoxelVisitor* visitor, int inputNodesSize, int outputNodesSize);
     MetavoxelVisitation();
     
+    bool isInputLeaf(int index) const;
     bool allInputNodesLeaves() const;
     AttributeValue getInheritedOutputValue(int index) const;
 };

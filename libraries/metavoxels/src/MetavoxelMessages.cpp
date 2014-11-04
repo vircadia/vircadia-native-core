@@ -445,69 +445,9 @@ PaintHeightfieldMaterialEditVisitor::PaintHeightfieldMaterialEditVisitor(const g
     _material(material),
     _color(color) {
     
-    glm::vec3 extents(_radius, _radius, _radius);
+    const float LARGE_EXTENT = 100000.0f;
+    glm::vec3 extents(_radius, LARGE_EXTENT, _radius);
     _bounds = Box(_position - extents, _position + extents);
-}
-
-static QHash<uchar, int> countIndices(const QByteArray& contents) {
-    QHash<uchar, int> counts;
-    for (const uchar* src = (const uchar*)contents.constData(), *end = src + contents.size(); src != end; src++) {
-        if (*src != 0) {
-            counts[*src]++;
-        }
-    }
-    return counts;
-}
-
-uchar getMaterialIndex(const SharedObjectPointer& material, QVector<SharedObjectPointer>& materials, QByteArray& contents) {
-    if (!(material && static_cast<MaterialObject*>(material.data())->getDiffuse().isValid())) {
-        return 0;
-    }
-    // first look for a matching existing material, noting the first reusable slot
-    int firstEmptyIndex = -1;
-    for (int i = 0; i < materials.size(); i++) {
-        const SharedObjectPointer& existingMaterial = materials.at(i);
-        if (existingMaterial) {
-            if (existingMaterial->equals(material.data())) {
-                return i + 1;
-            }
-        } else if (firstEmptyIndex == -1) {
-            firstEmptyIndex = i;
-        }
-    }
-    // if nothing found, use the first empty slot or append
-    if (firstEmptyIndex != -1) {
-        materials[firstEmptyIndex] = material;
-        return firstEmptyIndex + 1;
-    }
-    if (materials.size() < EIGHT_BIT_MAXIMUM) {
-        materials.append(material);
-        return materials.size();
-    }
-    // last resort: find the least-used material and remove it
-    QHash<uchar, int> counts = countIndices(contents);
-    uchar materialIndex = 0;
-    int lowestCount = INT_MAX;
-    for (QHash<uchar, int>::const_iterator it = counts.constBegin(); it != counts.constEnd(); it++) {
-        if (it.value() < lowestCount) {
-            materialIndex = it.key();
-            lowestCount = it.value();
-        }
-    }
-    contents.replace((char)materialIndex, (char)0);
-    return materialIndex;
-}
-
-void clearUnusedMaterials(QVector<SharedObjectPointer>& materials, QByteArray& contents) {
-    QHash<uchar, int> counts = countIndices(contents);
-    for (int i = 0; i < materials.size(); i++) {
-        if (counts.value(i + 1) == 0) {
-            materials[i] = SharedObjectPointer();
-        }
-    }
-    while (!(materials.isEmpty() || materials.last())) {
-        materials.removeLast();
-    }
 }
 
 int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
@@ -581,7 +521,6 @@ int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
         uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
         float squaredRadius = scaledRadius * scaledRadius; 
         bool changed = false;
-        QHash<uchar, int> counts;
         for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
             uchar* dest = lineDest;
             for (float x = startX; x <= endX; x += 1.0f, dest++) {

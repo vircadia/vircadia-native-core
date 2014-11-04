@@ -140,6 +140,9 @@ EntityPropertyDialogBox = (function () {
 
         array.push({ label: "Visible:", value: properties.visible });
         index++;
+
+        array.push({ label: "Script:", value: properties.script });
+        index++;
     
         if (properties.type == "Box" || properties.type == "Sphere") {
             array.push({ label: "Color:", type: "header" });
@@ -282,6 +285,7 @@ EntityPropertyDialogBox = (function () {
 
             properties.lifetime = array[index++].value;
             properties.visible = array[index++].value;
+            properties.script = array[index++].value;
 
             if (properties.type == "Box" || properties.type == "Sphere") {
                 index++; // skip header

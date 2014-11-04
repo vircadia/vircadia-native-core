@@ -253,6 +253,7 @@ public:
     
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
+    virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init

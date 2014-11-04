@@ -230,9 +230,7 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
-    void changeRenderTargetFramerate(QAction* action);
     void changeVSync();
-    void changeRenderResolution(QAction* action);
 
 private:
     static Menu* _instance;

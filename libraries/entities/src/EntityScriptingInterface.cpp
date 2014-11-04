@@ -217,7 +217,8 @@ RayToEntityIntersectionResult::RayToEntityIntersectionResult() :
     entityID(),
     properties(),
     distance(0),
-    face()
+    face(),
+    entity(NULL)
 { 
 }
 
