@@ -41,17 +41,17 @@ var HELMET_ATTACHMENT_URL = "https://hifi-public.s3.amazonaws.com/models/attachm
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
-  return Vec3.sum(Camera.getPosition(), Vec3.multiply(Quat.getFront(Camera.getOrientation()), RETICLE_DISTANCE));
+  return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
 }
 
 function drawLobby() {
   if (!panelWall) {
     print("Adding overlays for the lobby panel wall and orb shell.");
     
-    var cameraEuler = Quat.safeEulerAngles(Camera.getOrientation());
+    var cameraEuler = Quat.safeEulerAngles(Camera.orientation);
     var towardsMe = Quat.angleAxis(cameraEuler.y + 180, { x: 0, y: 1, z: 0});
     
-    var orbPosition = Vec3.sum(Camera.getPosition(), Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
+    var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
       url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
