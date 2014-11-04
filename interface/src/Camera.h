@@ -53,6 +53,8 @@ public:
     void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
     void setScale(const float s) { _scale = s; }
     
+    PickRay getPickRay() const { return PickRay(getPosition(), getRotation() * IDENTITY_FRONT); }
+    
     glm::vec3 getPosition() const { return _position + _hmdPosition; }
     glm::quat getRotation() const { return _rotation * _hmdRotation; }
     const glm::vec3& getHmdPosition() const { return _hmdPosition; }
@@ -66,7 +68,7 @@ public:
     const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
     float getScale() const { return _scale; }
-
+    
 signals:
     void modeUpdated(CameraMode newMode);
     

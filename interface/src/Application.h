@@ -287,8 +287,6 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    QPointF getViewportCenter() const
-        { return QPointF(_glWidget->getDeviceWidth() / 2.0f, _glWidget->getDeviceHeight() / 2.0f); }
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
@@ -599,6 +597,7 @@ private:
     std::vector<VoxelFade> _voxelFades;
     QReadWriteLock _voxelFadesLock;
     ControllerScriptingInterface _controllerScriptingInterface;
+    CameraScriptableObject _cameraScriptableObject;
     QPointer<LogDialog> _logDialog;
     QPointer<SnapshotShareDialog> _snapshotShareDialog;
 

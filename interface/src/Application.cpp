@@ -177,6 +177,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _nodeBoundsDisplay(this),
+        _cameraScriptableObject(&_myCamera, &_viewFrustum),
         _previousScriptLocation(),
         _applicationOverlay(),
         _runningScriptsWidget(NULL),
@@ -1116,7 +1117,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                    PickRay actionRay;
+                    
+                    HFActionEvent startActionEvent(HFActionEvent::startType(), actionRay);
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1207,7 +1210,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+                HFActionEvent endActionEvent(HFActionEvent::endType(), Application::getInstance()->getCamera()->getPickRay());
                 sendEvent(this, &endActionEvent);
             }
             
@@ -1301,7 +1304,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::startType(),
+                                      _cameraScriptableObject.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1335,7 +1339,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::endType(),
+                                      _cameraScriptableObject.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -3846,9 +3851,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
     scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
 
-    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
-    scriptEngine->registerGlobalObject("Camera", cameraScriptable);
-    connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+    scriptEngine->registerGlobalObject("Camera", &_cameraScriptableObject);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
