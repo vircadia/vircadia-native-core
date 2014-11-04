@@ -1109,6 +1109,14 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     
     domainObject[AUTOMATIC_NETWORKING_KEY] = _automaticNetworkingSetting;
     
+    // add a flag to indicate if this domain uses restricted access - for now that will exclude it from listings
+    const QString RESTRICTED_ACCESS_FLAG = "restricted";
+    
+    const QVariant* allowedUsersVariant = valueForKeyPath(_settingsManager.getSettingsMap(),
+                                                          ALLOWED_USERS_SETTINGS_KEYPATH);
+    QStringList allowedUsers = allowedUsersVariant ? allowedUsersVariant->toStringList() : QStringList();
+    domainObject[RESTRICTED_ACCESS_FLAG] = (allowedUsers.size() > 0);
+    
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
     foreach(const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
