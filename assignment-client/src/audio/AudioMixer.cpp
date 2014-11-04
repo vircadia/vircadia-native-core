@@ -400,15 +400,12 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
             penumbraFilterGainR += (1.f - penumbraFilterGainR) * (1.f - distanceBetween / RADIUS_OF_HEAD);
         }
 
-
-#if 0
-            qDebug() << "gainL="
-                     << penumbraFilterGainL
-                     << "gainR="
-                     << penumbraFilterGainR
-                     << "angle="
-                     << -bearingRelativeAngleToSource;
-#endif
+        bool wantDebug = false;
+        if (wantDebug) {
+            qDebug() << "gainL=" << penumbraFilterGainL
+                     << "gainR=" << penumbraFilterGainR
+                     << "angle=" << -bearingRelativeAngleToSource;
+        }
         
         // Get our per listener/source data so we can get our filter
         AudioFilterHSF1s& penumbraFilter = listenerNodeData->getListenerSourcePairData(streamUUID)->getPenumbraFilter();
