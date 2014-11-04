@@ -1117,9 +1117,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
-                    PickRay actionRay;
-                    
-                    HFActionEvent startActionEvent(HFActionEvent::startType(), actionRay);
+                    HFActionEvent startActionEvent(HFActionEvent::startType(),
+                                                   Application::getInstance()->getCamera()->getPickRay());
                     sendEvent(this, &startActionEvent);
                 }
                 
