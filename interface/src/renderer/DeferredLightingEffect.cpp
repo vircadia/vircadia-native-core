@@ -73,6 +73,12 @@ void DeferredLightingEffect::renderWireCube(float size) {
     releaseSimpleProgram();
 }
 
+void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
+    bindSimpleProgram();
+    Application::getInstance()->getGeometryCache()->renderCone(base, height, slices, stacks);
+    releaseSimpleProgram();
+}
+
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
         const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation,
         float linearAttenuation, float quadraticAttenuation) {
