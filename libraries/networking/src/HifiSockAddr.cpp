@@ -31,9 +31,17 @@ HifiSockAddr::HifiSockAddr(const QHostAddress& address, quint16 port) :
     
 }
 
-HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) {
-    _address = otherSockAddr._address;
-    _port = otherSockAddr._port;
+HifiSockAddr::HifiSockAddr(const HifiSockAddr& otherSockAddr) :
+    _address(otherSockAddr._address),
+    _port(otherSockAddr._port)
+{
+    
+}
+
+HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
+    HifiSockAddr temp(rhsSockAddr);
+    swap(temp);
+    return *this;
 }
 
 HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool shouldBlockForLookup) :
@@ -44,12 +52,12 @@ HifiSockAddr::HifiSockAddr(const QString& hostname, quint16 hostOrderPort, bool 
     if (_address.protocol() != QAbstractSocket::IPv4Protocol) {
         // lookup the IP by the hostname
         if (shouldBlockForLookup) {
-            qDebug() << "Asynchronously looking up IP address for hostname" << hostname;
+            qDebug() << "Synchronously looking up IP address for hostname" << hostname;
             QHostInfo result = QHostInfo::fromName(hostname);
             handleLookupResult(result);
         } else {
             int lookupID = QHostInfo::lookupHost(hostname, this, SLOT(handleLookupResult(QHostInfo)));
-            qDebug() << "Synchronously looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
+            qDebug() << "Asynchronously looking up IP address for hostname" << hostname << "- lookup ID is" << lookupID;
         }
     }
 }
@@ -62,13 +70,6 @@ HifiSockAddr::HifiSockAddr(const sockaddr* sockaddr) {
     } else {
         _port = ntohs(reinterpret_cast<const sockaddr_in6*>(sockaddr)->sin6_port);
     }
-}
-
-HifiSockAddr& HifiSockAddr::operator=(const HifiSockAddr& rhsSockAddr) {
-    _address = rhsSockAddr._address;
-    _port = rhsSockAddr._port;
-    
-    return *this;
 }
 
 void HifiSockAddr::swap(HifiSockAddr& otherSockAddr) {

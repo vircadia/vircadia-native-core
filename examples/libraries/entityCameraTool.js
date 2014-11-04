@@ -88,8 +88,8 @@ CameraManager = function() {
 
         that.focalPoint = focalPoint;
         that.setFocalPoint(focalPoint);
-        that.previousCameraMode = Camera.getMode();
-        Camera.setMode("independent");
+        that.previousCameraMode = Camera.mode;
+        Camera.mode = "independent";
 
         that.updateCamera();
 
@@ -102,7 +102,7 @@ CameraManager = function() {
         that.mode = MODE_INACTIVE;
 
         if (!ignoreCamera) {
-            Camera.setMode(that.previousCameraMode);
+            Camera.mode = that.previousCameraMode;
         }
         cameraTool.setVisible(false);
     }
@@ -271,7 +271,7 @@ CameraManager = function() {
     }
 
     that.updateCamera = function() {
-        if (!that.enabled || Camera.getMode() != "independent") return;
+        if (!that.enabled || Camera.mode != "independent") return;
 
         var yRot = Quat.angleAxis(that.yaw, { x: 0, y: 1, z: 0 });
         var xRot = Quat.angleAxis(that.pitch, { x: 1, y: 0, z: 0 });
@@ -300,7 +300,7 @@ CameraManager = function() {
 
     // Ease the position and orbit of the camera
     that.update = function(dt) {
-        if (Camera.getMode() != "independent") {
+        if (Camera.mode != "independent") {
             return;
         }
 
@@ -339,7 +339,6 @@ CameraManager = function() {
     // Last mode that was first or third person
     var lastAvatarCameraMode = "first person";
     Camera.modeUpdated.connect(function(newMode) {
-        print("Camera mode has been updated: " + newMode);
         if (newMode == "first person" || newMode == "third person") {
             lastAvatarCameraMode = newMode;
             that.disable(true);
@@ -350,7 +349,7 @@ CameraManager = function() {
 
     Controller.keyReleaseEvent.connect(function (event) {
         if (event.text == "ESC" && that.enabled) {
-            Camera.setMode(lastAvatarCameraMode);
+            Camera.mode = lastAvatarCameraMode;
             cameraManager.disable(true);
         }
     });

@@ -12,14 +12,17 @@
 #ifndef hifi_HFActionEvent_h
 #define hifi_HFActionEvent_h
 
-#include "HFMetaEvent.h"
 
 #include <qscriptengine.h>
+
+#include <RegisteredMetaTypes.h>
+
+#include "HFMetaEvent.h"
 
 class HFActionEvent : public HFMetaEvent {
 public:
     HFActionEvent() {};
-    HFActionEvent(QEvent::Type type, const QPointF& localPosition);
+    HFActionEvent(QEvent::Type type, const PickRay& actionRay);
     
     static QEvent::Type startType();
     static QEvent::Type endType();
@@ -27,7 +30,7 @@ public:
     static QScriptValue toScriptValue(QScriptEngine* engine, const HFActionEvent& event);
     static void fromScriptValue(const QScriptValue& object, HFActionEvent& event);
     
-    QPointF localPosition;
+    PickRay actionRay;
 };
 
 Q_DECLARE_METATYPE(HFActionEvent)
