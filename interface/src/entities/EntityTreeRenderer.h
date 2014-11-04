@@ -64,12 +64,6 @@ public:
     /// clears the tree
     virtual void clear();
 
-    //Q_INVOKABLE Model* getModel(const ModelEntityItem* modelEntityItem);
-
-    // renderers for various types of entities
-    void renderEntityTypeBox(EntityItem* entity, RenderArgs* args);
-    void renderEntityTypeModel(EntityItem* entity, RenderArgs* args);
-    
     static QThread* getMainThread();
     
     /// if a renderable entity item needs a model, we will allocate it for them

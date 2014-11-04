@@ -50,14 +50,14 @@ var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
 var modelURLs = [
-        HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
-        HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/pug.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
         HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
-        HIFI_PUBLIC_BUCKET + "meshes/minotaur/mino_full.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/Combat_tank_V01.FBX",
-        HIFI_PUBLIC_BUCKET + "meshes/orc.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/slimer.fbx"
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed7.fbx"
     ];
 
 var jointList = MyAvatar.getJointNames();
