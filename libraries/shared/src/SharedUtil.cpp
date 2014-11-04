@@ -46,6 +46,26 @@ quint64 usecTimestampNow() {
         TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
         timestampTimer.start();
         usecTimestampNowIsInitialized = true;
+    } else {
+        // We've seen the QElapsedTimer begin to introduce dramatic errors if it's been
+        // continuously running for a long time. So we will periodically reset it.
+        const quint64 SECS_TO_NSECS = 1000000000;
+        const quint64 RESET_AFTER_ELAPSED_SECS = 60 * 60; // 1 hour: 60 minutes * 60 seconds
+        const quint64 RESET_AFTER_ELAPSED_NSECS = RESET_AFTER_ELAPSED_SECS * SECS_TO_NSECS; 
+        const quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
+        if (nsecsElapsed > RESET_AFTER_ELAPSED_NSECS) {
+            quint64 msecsElapsed = timestampTimer.restart();
+            quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
+            TIME_REFERENCE += usecsElapsed;
+            const bool wantDebug = false;
+            if (wantDebug) {
+                qDebug() << "usecTimestampNow() - resetting QElapsedTimer. ";
+                qDebug() << "    RESET_AFTER_ELAPSED_NSECS:" << RESET_AFTER_ELAPSED_NSECS;
+                qDebug() << "    nsecsElapsed:" << nsecsElapsed;
+                qDebug() << "    msecsElapsed:" << msecsElapsed;
+                qDebug() << "    usecsElapsed:" << usecsElapsed;
+            }
+        }
     }
     
     //          usec                       nsec to usec                   usec
