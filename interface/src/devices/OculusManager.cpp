@@ -420,7 +420,7 @@ void OculusManager::endFrameTiming() {
 //Sets the camera FoV and aspect ratio
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
-    camera.setAspectRatio(_renderTargetSize.w / _renderTargetSize.h);
+    camera.setAspectRatio((float)_renderTargetSize.w / _renderTargetSize.h);
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
 #endif    
 }
@@ -511,12 +511,13 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
 
         _camera->update(1.0f / Application::getInstance()->getFps());
 
-        Matrix4f proj = ovrMatrix4f_Projection(_eyeRenderDesc[eye].Fov, whichCamera.getNearClip(), whichCamera.getFarClip(), true);
-        proj.Transpose();
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity();
-        glLoadMatrixf((GLfloat *)proj.M);
-
+        const ovrFovPort& port = _eyeFov[_activeEyeIndex];
+        float nearClip = whichCamera.getNearClip(), farClip = whichCamera.getFarClip();
+        glFrustum(-nearClip * port.LeftTan, nearClip * port.RightTan, -nearClip * port.DownTan,
+            nearClip * port.UpTan, nearClip, farClip);
+        
         glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
                    _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
 
