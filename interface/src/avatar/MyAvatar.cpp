@@ -416,7 +416,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.2, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.2f, 10.0f, 10.0f);
     glPopMatrix();
 
     //  Head Sphere
@@ -424,7 +424,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.15, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.15f, 10.0f, 10.0f);
     glPopMatrix();
 }
 
@@ -1002,10 +1002,6 @@ bool MyAvatar::isLookingAtLeftEye() {
         _isLookingAtLeftEye = !_isLookingAtLeftEye;
     }
     return _isLookingAtLeftEye;
-}
-
-glm::vec3 MyAvatar::getUprightHeadPosition() const {
-    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
