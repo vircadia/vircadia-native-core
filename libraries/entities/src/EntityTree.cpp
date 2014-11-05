@@ -1069,6 +1069,24 @@ void EntityTree::dumpTree() {
     recurseTreeWithOperator(&theOperator);
 }
 
+class PruneOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element) { return true; }
+    virtual bool postRecursion(OctreeElement* element);
+};
+
+bool PruneOperator::postRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->pruneChildren();
+    return true;
+}
+
+void EntityTree::pruneTree() {
+    // First, look for the existing entity in the tree..
+    PruneOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+}
+
 void EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z) {
     SendEntitiesOperationArgs args;
     args.packetSender = packetSender;
