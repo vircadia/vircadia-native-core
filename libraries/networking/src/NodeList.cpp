@@ -449,7 +449,8 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::pingInactiveNodes() {
-    for (auto it = _nodeHash.cbegin(); !it.is_end(); it++) {
+    NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
         if (!it->second->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
             pingPunchForInactiveNode(it->second);
