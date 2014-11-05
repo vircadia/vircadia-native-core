@@ -126,6 +126,7 @@ void OculusManager::connect() {
 
         if (!_camera) {
             _camera = new Camera;
+            configureCamera(*_camera, 0, 0); // no need to use screen dimensions; they're ignored
         }
 
         if (!_programInitialized) {
@@ -420,7 +421,7 @@ void OculusManager::endFrameTiming() {
 //Sets the camera FoV and aspect ratio
 void OculusManager::configureCamera(Camera& camera, int screenWidth, int screenHeight) {
 #ifdef HAVE_LIBOVR
-    camera.setAspectRatio((float)_renderTargetSize.w / _renderTargetSize.h);
+    camera.setAspectRatio(_renderTargetSize.w * 0.5f / _renderTargetSize.h);
     camera.setFieldOfView(atan(_eyeFov[0].UpTan) * DEGREES_PER_RADIAN * 2.0f);
 #endif    
 }

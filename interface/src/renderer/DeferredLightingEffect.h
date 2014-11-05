@@ -47,6 +47,9 @@ public:
 
     //// Renders a wireframe cube with the simple program.
     void renderWireCube(float size);
+
+    //// Renders a solid cone with the simple program.
+    void renderSolidCone(float base, float height, int slices, int stacks);
     
     /// Adds a point light to render for the current frame.
     void addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient = glm::vec3(0.0f, 0.0f, 0.0f),
