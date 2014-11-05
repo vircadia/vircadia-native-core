@@ -232,6 +232,8 @@ void DeferredLightingEffect::render() {
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.1f;
     
+    const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
+    
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
         _pointLight.setUniformValue(_pointLightLocations.nearLocation, nearVal);
@@ -250,9 +252,24 @@ void DeferredLightingEffect::render() {
             glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
          
             glPushMatrix();
-            glTranslatef(light.position.x, light.position.y, light.position.z);
             
-            Application::getInstance()->getGeometryCache()->renderSphere(light.radius * (1.0f + SCALE_EXPANSION), 32, 32);
+            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius) {
+                glLoadIdentity();
+                
+                glMatrixMode(GL_PROJECTION);
+                glPushMatrix();
+                glLoadIdentity();
+                
+                renderFullscreenQuad();
+            
+                glPopMatrix();
+                glMatrixMode(GL_MODELVIEW);
+                
+            } else {
+                glTranslatef(light.position.x, light.position.y, light.position.z);   
+                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 32, 32);
+            }
             
             glPopMatrix();
         }
@@ -282,15 +299,30 @@ void DeferredLightingEffect::render() {
             glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
             
             glPushMatrix();
-            glTranslatef(light.position.x, light.position.y, light.position.z);
-            glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light.direction);
-            glm::vec3 axis = glm::axis(spotRotation);
-            glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);
             
-            glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));
             float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            Application::getInstance()->getGeometryCache()->renderCone(expandedRadius * glm::tan(light.cutoff),
-                expandedRadius, 32, 8);
+            float edgeRadius = expandedRadius / glm::cos(light.cutoff);
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius) {
+                glLoadIdentity();
+                
+                glMatrixMode(GL_PROJECTION);
+                glPushMatrix();
+                glLoadIdentity();
+                
+                renderFullscreenQuad();
+                
+                glPopMatrix();
+                glMatrixMode(GL_MODELVIEW);
+                
+            } else {
+                glTranslatef(light.position.x, light.position.y, light.position.z);
+                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light.direction);
+                glm::vec3 axis = glm::axis(spotRotation);
+                glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
+                glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
+                Application::getInstance()->getGeometryCache()->renderCone(expandedRadius * glm::tan(light.cutoff),
+                    expandedRadius, 32, 8);
+            }
             
             glPopMatrix();
         }
