@@ -28,6 +28,8 @@
 #include <QtNetwork/QHostAddress>
 #include <QtNetwork/QUdpSocket>
 
+#include <libcuckoo/cuckoohash_map.hh>
+
 #include "DomainHandler.h"
 #include "Node.h"
 
