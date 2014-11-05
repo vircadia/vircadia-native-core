@@ -141,7 +141,8 @@ private:
     static VoxelsScriptingInterface _voxelsScriptingInterface;
     static EntityScriptingInterface _entityScriptingInterface;
 
-    AbstractControllerScriptingInterface* _controllerScriptingInterface;    AvatarData* _avatarData;
+    AbstractControllerScriptingInterface* _controllerScriptingInterface;
+    AvatarData* _avatarData;
     QString _scriptName;
     QString _fileNameString;
     Quat _quatLibrary;
