@@ -10,8 +10,11 @@ if (WIN32)
   target_link_libraries(${TARGET_NAME} ws2_32.lib)
 endif ()
 
-# find OpenSSL
+# find required dependencies
 find_package(OpenSSL REQUIRED)
+
+list(APPEND LIBCUCKOO_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/externals/libcuckoo")
+find_package(libcuckoo REQUIRED)
 
 if (APPLE AND ${OPENSSL_INCLUDE_DIR} STREQUAL "/usr/include")
   # this is a user on OS X using system OpenSSL, which is going to throw warnings since they're deprecating for their common crypto

@@ -32,5 +32,9 @@ DerivedData
 interface/external/*/*
 !interface/external/*/readme.txt
 
+# ignore libraries externals
+libraries/*/externals/*/*
+!libraries/*/externals/*/readme.txt
+
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
