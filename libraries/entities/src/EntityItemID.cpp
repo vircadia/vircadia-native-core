@@ -124,6 +124,10 @@ void EntityItemID::handleAddEntityResponse(const QByteArray& packet) {
     _tokenIDsToIDs[creatorTokenID] = entityID;
 }
 
+QScriptValue EntityItemID::toScriptValue(QScriptEngine* engine) const { 
+    return EntityItemIDtoScriptValue(engine, *this); 
+}
+
 QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& id) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("id", id.id.toString());

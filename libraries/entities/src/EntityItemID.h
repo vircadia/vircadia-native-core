@@ -49,11 +49,16 @@ public:
     EntityItemID convertToKnownIDVersion() const;
     EntityItemID convertToCreatorTokenVersion() const;
 
+    bool isInvalidID() const { return id == UNKNOWN_ENTITY_ID && creatorTokenID == UNKNOWN_ENTITY_TOKEN && isKnownID == false; }
+
     // these methods allow you to create models, and later edit them.
+    static EntityItemID createInvalidEntityID() { return EntityItemID(UNKNOWN_ENTITY_ID, UNKNOWN_ENTITY_TOKEN, false); }
     static EntityItemID getIDfromCreatorTokenID(uint32_t creatorTokenID);
     static uint32_t getNextCreatorTokenID();
     static void handleAddEntityResponse(const QByteArray& packet);
     static EntityItemID readEntityItemIDFromBuffer(const unsigned char* data, int bytesLeftToRead);
+
+    QScriptValue toScriptValue(QScriptEngine* engine) const;
     
 private:
     friend class EntityTree;
@@ -68,10 +73,20 @@ inline bool operator<(const EntityItemID& a, const EntityItemID& b) {
 }
 
 inline bool operator==(const EntityItemID& a, const EntityItemID& b) {
+    if (a.isInvalidID() && b.isInvalidID()) {
+        return true;
+    }
+    if (a.isInvalidID() != b.isInvalidID()) {
+        return false;
+    }
     if (a.id == UNKNOWN_ENTITY_ID || b.id == UNKNOWN_ENTITY_ID) {
         return a.creatorTokenID == b.creatorTokenID;
     }
     return a.id == b.id;
+}
+
+inline bool operator!=(const EntityItemID& a, const EntityItemID& b) {
+    return !(a == b);
 }
 
 inline uint qHash(const EntityItemID& a, uint seed) {
@@ -93,6 +108,5 @@ Q_DECLARE_METATYPE(EntityItemID);
 Q_DECLARE_METATYPE(QVector<EntityItemID>);
 QScriptValue EntityItemIDtoScriptValue(QScriptEngine* engine, const EntityItemID& properties);
 void EntityItemIDfromScriptValue(const QScriptValue &object, EntityItemID& properties);
-
 
 #endif // hifi_EntityItemID_h

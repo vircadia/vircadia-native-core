@@ -118,14 +118,14 @@ function handlePanMode(dx, dy) {
 }
 
 function saveCameraState() {
-    oldMode = Camera.getMode();
+    oldMode = Camera.mode;
     var oldPosition = Camera.getPosition();
-    Camera.setMode("independent");
+    Camera.mode = "independent";
     Camera.setPosition(oldPosition);
 }
 
 function restoreCameraState() {
-    Camera.setMode(oldMode);
+    Camera.mode = oldMode;
 }
 
 function handleModes() {

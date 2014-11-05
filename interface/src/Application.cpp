@@ -107,8 +107,8 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
-                                                 //  in the idle loop?  (60 FPS is default)
+const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+
 static QTimer* idleTimer = NULL;
 
 const QString CHECK_VERSION_URL = "https://highfidelity.io/latestVersion.xml";
@@ -148,7 +148,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
-        _entityClipboardRenderer(),
+        _entities(true),
+        _entityCollisionSystem(),
+        _entityClipboardRenderer(false),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
         _viewFrustum(),
@@ -182,9 +184,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _renderTargetFramerate(0),
-        _isVSyncOn(true),
-        _renderResolutionScale(1.0f)
+        _isVSyncOn(true)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -347,9 +347,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     billboardPacketTimer->start(AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS);
 
     QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-
     QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
     QNetworkDiskCache* cache = new QNetworkDiskCache();
+    cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
     cache->setCacheDirectory(!cachePath.isEmpty() ? cachePath : "interfaceCache");
     networkAccessManager.setCache(cache);
 
@@ -450,6 +450,9 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
+    
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
@@ -601,7 +604,7 @@ void Application::paintGL() {
     if (OculusManager::isConnected()) {
         _textureCache.setFrameBufferSize(OculusManager::getRenderTargetSize());
     } else {
-        QSize fbSize = _glWidget->getDeviceSize() * _renderResolutionScale;
+        QSize fbSize = _glWidget->getDeviceSize() * getRenderResolutionScale();
         _textureCache.setFrameBufferSize(fbSize);
     }
 
@@ -620,8 +623,8 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
-        _myCamera.setPosition(_myAvatar->getUprightHeadPosition() +
-                              _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
@@ -1116,7 +1119,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                    HFActionEvent startActionEvent(HFActionEvent::startType(),
+                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1207,7 +1211,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
                 sendEvent(this, &endActionEvent);
             }
             
@@ -1248,6 +1252,8 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_lastMouseMoveWasSimulated) {
         showMouse = false;
     }
+    
+    _entities.mouseMoveEvent(event, deviceID);
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1269,6 +1275,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+
+    _entities.mousePressEvent(event, deviceID);
+
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1296,7 +1305,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::startType(),
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1306,6 +1316,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+
+    _entities.mouseReleaseEvent(event, deviceID);
+
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
     // if one of our scripts have asked to capture this event, then stop processing it
@@ -1327,7 +1340,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::endType(),
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -1471,12 +1485,11 @@ void Application::idle() {
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
 
-    //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
+    //  Only run simulation code if more than the targetFramePeriod have passed since last time we ran
     double targetFramePeriod = 0.0;
-    if (_renderTargetFramerate > 0) {
-        targetFramePeriod = 1000.0 / _renderTargetFramerate;
-    } else if (_renderTargetFramerate < 0) {
-        targetFramePeriod = IDLE_SIMULATE_MSECS;
+    unsigned int targetFramerate = getRenderTargetFramerate();
+    if (targetFramerate > 0) {
+        targetFramePeriod = 1000.0 / targetFramerate;
     }
     double timeSinceLastUpdate = (double)_lastTimeUpdated.nsecsElapsed() / 1000000.0;
     if (timeSinceLastUpdate > targetFramePeriod) {
@@ -1940,6 +1953,10 @@ void Application::init() {
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
 
+    // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
+    // of events related clicking, hovering over, and entering entities
+    _entities.connectSignalsToSlots(ScriptEngine::getEntityScriptingInterface());
+
     _entityClipboardRenderer.init();
     _entityClipboardRenderer.setViewFrustum(getViewFrustum());
     _entityClipboardRenderer.setTree(&_entityClipboard);
@@ -1965,6 +1982,9 @@ void Application::init() {
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
+
+    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
+        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
@@ -3176,7 +3196,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     } else {
         // if not rendering the billboard, the region is in device independent coordinates; must convert to device
         QSize size = getTextureCache()->getFrameBufferSize();
-        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * _renderResolutionScale;
+        float ratio = QApplication::desktop()->windowHandle()->devicePixelRatio() * getRenderResolutionScale();
         int x = region.x() * ratio, y = region.y() * ratio, width = region.width() * ratio, height = region.height() * ratio;
         glViewport(x, size.height() - y - height, width, height);
         glScissor(x, size.height() - y - height, width, height);
@@ -3819,35 +3839,7 @@ void joystickFromScriptValue(const QScriptValue &object, Joystick* &out) {
     out = qobject_cast<Joystick*>(object.toQObject());
 }
 
-ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
-    bool loadScriptFromEditor, bool activateMainWindow) {
-    QUrl scriptUrl(scriptFilename);
-    const QString& scriptURLString = scriptUrl.toString();
-    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
-        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
-
-        return _scriptEnginesHash[scriptURLString];
-    }
-
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
-    scriptEngine->setUserLoaded(isUserLoaded);
-
+void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine) {
     // setup the packet senders and jurisdiction listeners of the script engine's scripting interfaces so
     // we can use the same ones from the application.
     scriptEngine->getVoxelsScriptingInterface()->setPacketSender(&_voxelEditSender);
@@ -3863,9 +3855,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
     scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
 
-    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
-    scriptEngine->registerGlobalObject("Camera", cameraScriptable);
-    connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+    scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
@@ -3929,6 +3919,38 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
 
     // Starts an event loop, and emits workerThread->started()
     workerThread->start();
+}
+
+ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUserLoaded,
+    bool loadScriptFromEditor, bool activateMainWindow) {
+    QUrl scriptUrl(scriptFilename);
+    const QString& scriptURLString = scriptUrl.toString();
+    if (_scriptEnginesHash.contains(scriptURLString) && loadScriptFromEditor
+        && !_scriptEnginesHash[scriptURLString]->isFinished()) {
+
+        return _scriptEnginesHash[scriptURLString];
+    }
+
+    ScriptEngine* scriptEngine;
+    if (scriptFilename.isNull()) {
+        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
+    } else {
+        // start the script on a new thread...
+        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
+
+        if (!scriptEngine->hasScript()) {
+            qDebug() << "Application::loadScript(), script failed to load...";
+            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
+            return NULL;
+        }
+
+        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
+        _runningScriptsWidget->setRunningScripts(getRunningScripts());
+        UserActivityLogger::getInstance().loadedScript(scriptURLString);
+    }
+    scriptEngine->setUserLoaded(isUserLoaded);
+    
+    registerScriptEngineWithApplicationServices(scriptEngine);
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {
@@ -4234,37 +4256,56 @@ void Application::takeSnapshot() {
     _snapshotShareDialog->show();
 }
 
-void Application::setRenderTargetFramerate(unsigned int framerate, bool vsyncOn) {
-    if (vsyncOn != _isVSyncOn) {
+void Application::setVSyncEnabled(bool vsyncOn) {
 #if defined(Q_OS_WIN)
-        if (wglewGetExtension("WGL_EXT_swap_control")) {
-            wglSwapIntervalEXT(vsyncOn);
-            int swapInterval = wglGetSwapIntervalEXT();
-            _isVSyncOn = swapInterval;
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        } else {
-            qDebug("V-Sync is FORCED ON on this system\n");
-        }
-#elif defined(Q_OS_LINUX)
-        // TODO: write the poper code for linux
-        /*
-        if (glQueryExtension.... ("GLX_EXT_swap_control")) {
-            glxSwapIntervalEXT(vsyncOn);
-            int swapInterval = xglGetSwapIntervalEXT();
-            _isVSyncOn = swapInterval;
-            qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
-        } else {
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        wglSwapIntervalEXT(vsyncOn);
+        int swapInterval = wglGetSwapIntervalEXT();
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    } else {
         qDebug("V-Sync is FORCED ON on this system\n");
-        }
-        */
-#else
-        qDebug("V-Sync is FORCED ON on this system\n");
-#endif
     }
-    _renderTargetFramerate = framerate;
+#elif defined(Q_OS_LINUX)
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        glxSwapIntervalEXT(vsyncOn);
+        int swapInterval = xglGetSwapIntervalEXT();
+        _isVSyncOn = swapInterval;
+        qDebug("V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
+    } else {
+    qDebug("V-Sync is FORCED ON on this system\n");
+    }
+    */
+#else
+    qDebug("V-Sync is FORCED ON on this system\n");
+#endif
 }
 
-bool Application::isVSyncEditable() {
+bool Application::isVSyncOn() const {
+#if defined(Q_OS_WIN)
+    if (wglewGetExtension("WGL_EXT_swap_control")) {
+        int swapInterval = wglGetSwapIntervalEXT();
+        return (swapInterval > 0);
+    } else {
+        return true;
+    }
+#elif defined(Q_OS_LINUX)
+    // TODO: write the poper code for linux
+    /*
+    if (glQueryExtension.... ("GLX_EXT_swap_control")) {
+        int swapInterval = xglGetSwapIntervalEXT();
+        return (swapInterval > 0);
+    } else {
+        return true;
+    }
+    */
+#else
+    return true;
+#endif
+}
+
+bool Application::isVSyncEditable() const {
 #if defined(Q_OS_WIN)
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         return true;
@@ -4281,6 +4322,33 @@ bool Application::isVSyncEditable() {
     return false;
 }
 
-void Application::setRenderResolutionScale(float scale) {
-    _renderResolutionScale = scale;
+unsigned int Application::getRenderTargetFramerate() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerateUnlimited)) {
+        return 0;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate60)) {
+        return 60;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate50)) {
+        return 50;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate40)) {
+        return 40;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderTargetFramerate30)) {
+        return 30;
+    }
+    return 0;
+}
+
+float Application::getRenderResolutionScale() const {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
+        return 1.f;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
+        return 0.666f;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
+        return 0.5f;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionThird)) {
+        return 0.333f;
+    } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
+        return 0.25f;
+    } else {
+        return 1.f;
+    }
 }

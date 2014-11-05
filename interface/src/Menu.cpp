@@ -377,13 +377,12 @@ Menu::Menu() :
     {
         QMenu* framerateMenu = renderOptionsMenu->addMenu(MenuOption::RenderTargetFramerate);
         QActionGroup* framerateGroup = new QActionGroup(framerateMenu);
-
+        framerateGroup->setExclusive(true);
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerateUnlimited, 0, true));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate60, 0, false));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate50, 0, false));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate40, 0, false));
         framerateGroup->addAction(addCheckableActionToQMenuAndActionHash(framerateMenu, MenuOption::RenderTargetFramerate30, 0, false));
-        connect(framerateMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderTargetFramerate(QAction*)));
 
 #if defined(Q_OS_MAC)
 #else
@@ -394,12 +393,12 @@ Menu::Menu() :
 
     QMenu* resolutionMenu = renderOptionsMenu->addMenu(MenuOption::RenderResolution);
     QActionGroup* resolutionGroup = new QActionGroup(resolutionMenu);
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, false));
+    resolutionGroup->setExclusive(true);
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionOne, 0, true));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionTwoThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionHalf, 0, false));
-    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, true));
+    resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionThird, 0, false));
     resolutionGroup->addAction(addCheckableActionToQMenuAndActionHash(resolutionMenu, MenuOption::RenderResolutionQuarter, 0, false));
-    connect(resolutionMenu, SIGNAL(triggered(QAction*)), this, SLOT(changeRenderResolution(QAction*)));
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu,
@@ -1261,46 +1260,7 @@ void Menu::muteEnvironment() {
 }
 
 void Menu::changeVSync() {
-    Application::getInstance()->setRenderTargetFramerate(
-        Application::getInstance()->getRenderTargetFramerate(),
-        isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
-}
-void Menu::changeRenderTargetFramerate(QAction* action) {
-    bool vsynOn = Application::getInstance()->isVSyncOn();
-
-    QString text = action->text();
-    if (text == MenuOption::RenderTargetFramerateUnlimited) {
-        Application::getInstance()->setRenderTargetFramerate(0, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate60) {
-        Application::getInstance()->setRenderTargetFramerate(60, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate50) {
-        Application::getInstance()->setRenderTargetFramerate(50, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate40) {
-        Application::getInstance()->setRenderTargetFramerate(40, vsynOn);
-    }
-    else if (text == MenuOption::RenderTargetFramerate30) {
-        Application::getInstance()->setRenderTargetFramerate(30, vsynOn);
-    }
-}
-
-void Menu::changeRenderResolution(QAction* action) {
-    QString text = action->text();
-    if (text == MenuOption::RenderResolutionOne) {
-        Application::getInstance()->setRenderResolutionScale(1.f);
-    } else if (text == MenuOption::RenderResolutionTwoThird) {
-        Application::getInstance()->setRenderResolutionScale(0.666f);
-    } else if (text == MenuOption::RenderResolutionHalf) {
-        Application::getInstance()->setRenderResolutionScale(0.5f);
-    } else if (text == MenuOption::RenderResolutionThird) {
-        Application::getInstance()->setRenderResolutionScale(0.333f);
-    } else if (text == MenuOption::RenderResolutionQuarter) {
-        Application::getInstance()->setRenderResolutionScale(0.25f);
-    } else {
-        Application::getInstance()->setRenderResolutionScale(1.f);
-    }
+    Application::getInstance()->setVSyncEnabled(isOptionChecked(MenuOption::RenderTargetFramerateVSyncOn));
 }
 
 void Menu::displayNameLocationResponse(const QString& errorString) {
