@@ -328,8 +328,11 @@ void Stats::display(
         // Now handle voxel servers, since there could be more than one, we average their ping times
         unsigned long totalPingVoxel = 0;
         int voxelServerCount = 0;
-
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        
+        NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+        
+        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+            SharedNodePointer node = it->second;
             // TODO: this should also support entities
             if (node->getType() == NodeType::VoxelServer) {
                 totalPingVoxel += node->getPingMs();

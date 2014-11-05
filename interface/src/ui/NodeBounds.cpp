@@ -53,8 +53,11 @@ void NodeBounds::draw() {
     float selectedScale = 0;
 
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
+        
         NodeType_t nodeType = node->getType();
 
         if (nodeType == NodeType::VoxelServer && _showVoxelNodes) {

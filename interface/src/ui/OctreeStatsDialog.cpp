@@ -248,8 +248,10 @@ void OctreeStatsDialog::showOctreeServersOfType(int& serverCount, NodeType_t ser
     QLocale locale(QLocale::English);
     
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         // only send to the NodeTypes that are NodeType_t_VOXEL_SERVER
         if (node->getType() == serverType) {
             serverCount++;
