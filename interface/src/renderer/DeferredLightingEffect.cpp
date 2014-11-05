@@ -256,6 +256,7 @@ void DeferredLightingEffect::render() {
             float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
             if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius) {
                 glLoadIdentity();
+                glTranslatef(0.0f, 0.0f, -1.0f);
                 
                 glMatrixMode(GL_PROJECTION);
                 glPushMatrix();
@@ -304,6 +305,7 @@ void DeferredLightingEffect::render() {
             float edgeRadius = expandedRadius / glm::cos(light.cutoff);
             if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius) {
                 glLoadIdentity();
+                glTranslatef(0.0f, 0.0f, -1.0f);
                 
                 glMatrixMode(GL_PROJECTION);
                 glPushMatrix();
