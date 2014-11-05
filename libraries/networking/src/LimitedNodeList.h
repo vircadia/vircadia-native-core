@@ -55,6 +55,7 @@ typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
 typedef cuckoohash_map<QUuid, SharedNodePointer, UUIDCityHasher > NodeHash;
+typedef std::vector<std::pair<QUuid, SharedNodePointer> > SnapshotNodeHash;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -95,7 +96,7 @@ public:
 
     void(*linkedDataCreateCallback)(Node *);
 
-    NodeHash getNodeHash();
+    const NodeHash& getNodeHash() { return _nodeHash; }
     int size() const { return _nodeHash.size(); }
 
     SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
@@ -154,15 +155,11 @@ protected:
     
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
                          const QUuid& connectionSecret);
-
-    NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
-
     
     void changeSocketBufferSizes(int numBytes);
 
     QUuid _sessionUUID;
-    cuckoohash_map<QByteArray, SharedNodePointer> _nodeHash;
-    QMutex _nodeHashMutex;
+    NodeHash _nodeHash;
     QUdpSocket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;

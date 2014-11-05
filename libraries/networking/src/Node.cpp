@@ -94,30 +94,48 @@ void Node::updateClockSkewUsec(int clockSkewSample) {
 }
 
 void Node::setPublicSocket(const HifiSockAddr& publicSocket) {
-    if (_activeSocket == &_publicSocket) {
-        // if the active socket was the public socket then reset it to NULL
-        _activeSocket = NULL;
+    if (publicSocket != _publicSocket) {
+        if (_activeSocket == &_publicSocket) {
+            // if the active socket was the public socket then reset it to NULL
+            _activeSocket = NULL;
+        }
+        
+        if (!_publicSocket.isNull()) {
+            qDebug() << "Public socket change for node" << *this;
+        }
+        
+        _publicSocket = publicSocket;
     }
-    
-    _publicSocket = publicSocket;
 }
 
 void Node::setLocalSocket(const HifiSockAddr& localSocket) {
-    if (_activeSocket == &_localSocket) {
-        // if the active socket was the local socket then reset it to NULL
-        _activeSocket = NULL;
+    if (localSocket != _localSocket) {
+        if (_activeSocket == &_localSocket) {
+            // if the active socket was the local socket then reset it to NULL
+            _activeSocket = NULL;
+        }
+        
+        if (!_localSocket.isNull()) {
+            qDebug() << "Local socket change for node" << *this;
+        }
+        
+        _localSocket = localSocket;
     }
-    
-    _localSocket = localSocket;
 }
 
 void Node::setSymmetricSocket(const HifiSockAddr& symmetricSocket) {
-    if (_activeSocket == &_symmetricSocket) {
-        // if the active socket was the symmetric socket then reset it to NULL
-        _activeSocket = NULL;
+    if (symmetricSocket != _symmetricSocket) {
+        if (_activeSocket == &_symmetricSocket) {
+            // if the active socket was the symmetric socket then reset it to NULL
+            _activeSocket = NULL;
+        }
+        
+        if (!_symmetricSocket.isNull()) {
+            qDebug() << "Symmetric socket change for node" << *this;
+        }
+        
+        _symmetricSocket = symmetricSocket;
     }
-    
-    _symmetricSocket = symmetricSocket;
 }
 
 void Node::activateLocalSocket() {
