@@ -102,3 +102,9 @@ void Cube3DOverlay::render(RenderArgs* args) {
         delete glower;
     }
 }
+
+Cube3DOverlay* Cube3DOverlay::createClone() {
+    Cube3DOverlay* clone = new Cube3DOverlay();
+    writeToClone(clone);
+    return clone;
+}

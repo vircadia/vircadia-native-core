@@ -125,4 +125,12 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+TextOverlay* TextOverlay::createClone() {
+    TextOverlay* clone = new TextOverlay();
+    writeToClone(clone);
+    return clone;
+}
 
+void TextOverlay::writeToClone(TextOverlay* clone) {
+    Overlay2D::writeToClone(clone);
+}

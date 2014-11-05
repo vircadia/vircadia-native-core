@@ -179,4 +179,12 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
 
 }
 
+Text3DOverlay* Text3DOverlay::createClone() {
+    Text3DOverlay* clone = new Text3DOverlay();
+    writeToClone(clone);
+    return clone;
+}
 
+void Text3DOverlay::writeToClone(Text3DOverlay* clone) {
+    Planar3DOverlay::writeToClone(clone);
+}

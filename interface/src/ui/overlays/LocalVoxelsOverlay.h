@@ -39,6 +39,7 @@ public:
     
     virtual void setProperties(const QScriptValue& properties);
     
+    virtual LocalVoxelsOverlay* createClone();
 private:
     static QMap<QString, WeakVoxelSystemPointer> _voxelSystemMap; // treeName/voxelSystem
     

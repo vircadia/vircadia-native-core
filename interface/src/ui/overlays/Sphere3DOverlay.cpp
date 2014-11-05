@@ -70,3 +70,9 @@ void Sphere3DOverlay::render(RenderArgs* args) {
     }
 
 }
+
+Sphere3DOverlay* Sphere3DOverlay::createClone() {
+    Sphere3DOverlay* clone = new Sphere3DOverlay();
+    writeToClone(clone);
+    return clone;
+}

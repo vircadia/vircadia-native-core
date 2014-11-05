@@ -48,7 +48,10 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
 
+    virtual Text3DOverlay* createClone();
+
 private:
+    virtual void writeToClone(Text3DOverlay* clone);
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);
 
     QString _text;

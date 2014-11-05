@@ -29,7 +29,11 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
 
+    virtual Line3DOverlay* createClone();
+
 protected:
+    virtual void writeToClone(Line3DOverlay* clone);
+
     glm::vec3 _end;
 };
 

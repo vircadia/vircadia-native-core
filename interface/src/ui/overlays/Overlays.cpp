@@ -190,6 +190,16 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
     return thisID;
 }
 
+unsigned int Overlays::cloneOverlay(unsigned int id) {
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    }
+    return addOverlay(thisOverlay->createClone());
+}
+
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     Overlay* thisOverlay = NULL;
     QWriteLocker lock(&_lock);

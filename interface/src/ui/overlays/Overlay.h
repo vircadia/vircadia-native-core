@@ -77,8 +77,10 @@ public:
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual Overlay* createClone() = 0;
 
 protected:
+    virtual void writeToClone(Overlay* clone);
     float updatePulse();
 
     QGLWidget* _parent;

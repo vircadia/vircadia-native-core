@@ -20,6 +20,8 @@ public:
     Cube3DOverlay();
     ~Cube3DOverlay();
     virtual void render(RenderArgs* args);
+
+    virtual Cube3DOverlay* createClone();
 };
 
  

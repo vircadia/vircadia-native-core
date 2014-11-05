@@ -48,3 +48,9 @@ void LocalModelsOverlay::render(RenderArgs* args) {
 
     }
 }
+
+LocalModelsOverlay* LocalModelsOverlay::createClone() {
+    LocalModelsOverlay* clone = new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer());
+    writeToClone(clone);
+    return clone;
+}

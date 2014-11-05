@@ -155,5 +155,12 @@ void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end)
 
 }
 
-
-
+void Base3DOverlay::writeToClone(Base3DOverlay* clone) {
+    Overlay::writeToClone(clone);
+    clone->setPosition(getPosition());
+    clone->setLineWidth(getLineWidth());
+    clone->setIsSolid(getIsSolid());
+    clone->setIsDashedLine(getIsDashedLine());
+    clone->setRotation(getRotation());
+    clone->setIgnoreRayIntersection(getIgnoreRayIntersection());
+}

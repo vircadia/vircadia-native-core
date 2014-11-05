@@ -28,6 +28,8 @@ public:
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction, 
                                                     float& distance, BoxFace& face, QString& extraInfo) const;
 
+    virtual ModelOverlay* createClone();
+
 private:
     
     Model _model;

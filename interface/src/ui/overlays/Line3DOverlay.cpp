@@ -79,3 +79,14 @@ void Line3DOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 }
+
+Line3DOverlay* Line3DOverlay::createClone() {
+    Line3DOverlay* clone = new Line3DOverlay();
+    writeToClone(clone);
+    return clone;
+}
+
+
+void Line3DOverlay::writeToClone(Line3DOverlay* clone) {
+    Base3DOverlay::writeToClone(clone);
+}

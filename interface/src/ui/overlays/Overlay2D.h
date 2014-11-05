@@ -49,6 +49,7 @@ public:
     virtual void setProperties(const QScriptValue& properties);
 
 protected:
+    virtual void writeToClone(Overlay2D* clone);
     QRect _bounds; // where on the screen to draw
 };
 

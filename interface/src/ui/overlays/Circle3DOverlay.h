@@ -47,8 +47,12 @@ public:
     void setMinorTickMarksColor(const xColor& value) { _minorTickMarksColor = value; }
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+
+    virtual Circle3DOverlay* createClone();
     
 protected:
+    virtual void writeToClone(Circle3DOverlay* clone);
+
     float _startAt;
     float _endAt;
     float _outerRadius;

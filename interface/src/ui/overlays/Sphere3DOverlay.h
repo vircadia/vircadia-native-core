@@ -20,6 +20,8 @@ public:
     Sphere3DOverlay();
     ~Sphere3DOverlay();
     virtual void render(RenderArgs* args);
+
+    virtual Sphere3DOverlay* createClone();
 };
 
  

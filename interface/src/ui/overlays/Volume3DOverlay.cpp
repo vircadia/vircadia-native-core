@@ -108,3 +108,7 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
     }
     return false;
 }
+
+void Volume3DOverlay::writeToClone(Volume3DOverlay* clone) {
+    Base3DOverlay::writeToClone(clone);
+}

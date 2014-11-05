@@ -106,9 +106,8 @@ void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
     Planar3DOverlay::setProperties(properties);
 }
 
-
-
-
-
-
-
+Rectangle3DOverlay* Rectangle3DOverlay::createClone() {
+    Rectangle3DOverlay* clone = new Rectangle3DOverlay();
+    writeToClone(clone);
+    return clone;
+}

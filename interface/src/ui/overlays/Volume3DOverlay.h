@@ -42,6 +42,7 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
 
 protected:
+    virtual void writeToClone(Volume3DOverlay* clone);
     glm::vec3 _dimensions;
 };
 

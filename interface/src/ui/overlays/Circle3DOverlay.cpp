@@ -319,9 +319,12 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
     return intersects;
 }
 
+Circle3DOverlay* Circle3DOverlay::createClone() {
+    Circle3DOverlay* clone = new Circle3DOverlay();
+    writeToClone(clone);
+    return clone;
+}
 
-
-
-
-
-
+void Circle3DOverlay::writeToClone(Circle3DOverlay* clone) {
+    Planar3DOverlay::writeToClone(clone);
+}

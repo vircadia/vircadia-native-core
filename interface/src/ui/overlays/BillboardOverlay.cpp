@@ -198,3 +198,17 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
     return false;
 }
 
+BillboardOverlay* BillboardOverlay::createClone() {
+    BillboardOverlay* clone = new BillboardOverlay();
+    writeToClone(clone);
+    return clone;
+}
+
+void BillboardOverlay::writeToClone(BillboardOverlay* clone) {
+    Base3DOverlay::writeToClone(clone);
+    clone->setScale(_scale);
+    clone->setIsFacingAvatar(_isFacingAvatar);
+    clone->setClipFromSource(_fromImage);
+    clone->_url = _url;
+    clone->_billboard = QByteArray::QByteArray(_billboard);
+}

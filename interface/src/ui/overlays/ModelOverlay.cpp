@@ -135,4 +135,8 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo);
 }
 
-
+ModelOverlay* ModelOverlay::createClone() {
+    ModelOverlay* clone = new ModelOverlay();
+    writeToClone(clone);
+    return clone;
+}

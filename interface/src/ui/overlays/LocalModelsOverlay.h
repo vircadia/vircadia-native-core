@@ -25,6 +25,8 @@ public:
     virtual void update(float deltatime);
     virtual void render(RenderArgs* args);
 
+    virtual LocalModelsOverlay* createClone();
+
 private:
     EntityTreeRenderer* _entityTreeRenderer;
 };

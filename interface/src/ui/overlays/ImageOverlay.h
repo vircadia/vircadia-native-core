@@ -45,10 +45,13 @@ public:
     void setImageURL(const QUrl& url);
     virtual void setProperties(const QScriptValue& properties);
 
+    virtual ImageOverlay* createClone();
+
 private slots:
     void replyFinished(); // we actually want to hide this...
 
 private:
+    virtual void writeToClone(ImageOverlay* clone);
 
     QUrl _imageURL;
     QImage _textureImage;

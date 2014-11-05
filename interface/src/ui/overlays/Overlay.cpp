@@ -173,3 +173,19 @@ float Overlay::updatePulse() {
     
     return _pulse;
 }
+
+void Overlay::writeToClone(Overlay* clone) {
+    clone->setAlpha(getAlpha());
+    clone->setAlphaPulse(getAlphaPulse());
+    clone->setAnchor(getAnchor());
+    clone->setColor(getColor());
+    clone->setColorPulse(getColorPulse());
+    clone->setGlowLevel(getGlowLevel());
+    clone->setGlowLevelPulse(getGlowLevelPulse());
+    clone->setPulseDirection(getPulseDirection());
+    clone->setPulseMax(getPulseMax());
+    clone->setPulseMin(getPulseMin());
+    clone->setPulsePeriod(getPulsePeriod());
+    clone->setVisible(getVisible());
+    clone->_isLoaded = _isLoaded;
+}

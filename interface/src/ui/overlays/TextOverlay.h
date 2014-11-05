@@ -52,8 +52,10 @@ public:
     void setFontSize(int fontSize) { _fontSize = fontSize; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual TextOverlay* createClone();
 
 private:
+    virtual void writeToClone(TextOverlay* clone);
 
     QString _text;
     xColor _backgroundColor;

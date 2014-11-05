@@ -64,3 +64,8 @@ void Overlay2D::setProperties(const QScriptValue& properties) {
         //qDebug() << "set bounds to " << getBounds();
     }
 }
+
+void Overlay2D::writeToClone(Overlay2D* clone) {
+    Overlay::writeToClone(clone);
+    clone->setBounds(getBounds());
+}

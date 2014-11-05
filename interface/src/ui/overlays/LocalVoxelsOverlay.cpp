@@ -103,3 +103,8 @@ void LocalVoxelsOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+LocalVoxelsOverlay* LocalVoxelsOverlay::createClone() {
+    LocalVoxelsOverlay* clone = new LocalVoxelsOverlay();
+    writeToClone(clone);
+    return clone;
+}

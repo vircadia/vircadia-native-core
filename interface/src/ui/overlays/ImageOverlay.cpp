@@ -151,4 +151,15 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+ImageOverlay* ImageOverlay::createClone() {
+    ImageOverlay* clone = new ImageOverlay();
+    writeToClone(clone);
+    return clone;
+}
 
+void ImageOverlay::writeToClone(ImageOverlay* clone) {
+    Overlay2D::writeToClone(clone);
+    clone->_imageURL = _imageURL;
+    clone->_textureImage = _textureImage;
+    clone->_renderImage = _renderImage;
+}

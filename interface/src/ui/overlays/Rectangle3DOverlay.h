@@ -21,6 +21,8 @@ public:
     ~Rectangle3DOverlay();
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
+
+    virtual Rectangle3DOverlay* createClone();
 };
 
  

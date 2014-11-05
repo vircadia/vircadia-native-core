@@ -54,6 +54,7 @@ public:
     }
 
 protected:
+    virtual void writeToClone(Base3DOverlay* clone);
     void drawDashedLine(const glm::vec3& start, const glm::vec3& end);
 
     glm::vec3 _position;

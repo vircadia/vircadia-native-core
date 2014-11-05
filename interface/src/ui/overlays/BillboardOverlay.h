@@ -35,10 +35,14 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
     
+    virtual BillboardOverlay* createClone();
+
 private slots:
     void replyFinished();
 
 private:
+    virtual void writeToClone(BillboardOverlay* clone);
+
     void setBillboardURL(const QString& url);
     
     QString _url;
