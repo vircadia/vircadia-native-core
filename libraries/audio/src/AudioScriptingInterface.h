@@ -19,12 +19,20 @@ const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
 
 class AudioScriptingInterface : public QObject {
     Q_OBJECT
+public:
+    static AudioScriptingInterface& getInstance();
+    
+    void stopAllInjectors();
 public slots:
-    static AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
-    static void stopInjector(AudioInjector* injector);
-    static bool isInjectorPlaying(AudioInjector* injector);
-    static void startDrumSound(float volume, float frequency, float duration, float decay, 
-                    const AudioInjectorOptions* injectorOptions = NULL);
+    AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+    void stopInjector(AudioInjector* injector);
+    bool isInjectorPlaying(AudioInjector* injector);
+    
+    void injectorStopped();
+    
+private:
+    AudioScriptingInterface() {};
+    QSet<AudioInjector*> _activeInjectors;
 
 };
 #endif // hifi_AudioScriptingInterface_h
