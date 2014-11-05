@@ -128,7 +128,7 @@ int TextRenderer::draw(int x, int y, const char* str) {
                                                         leftBottom.x, rightTop.y, ls, tt, };
 
         const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
-        unsigned int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
+        int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
 
         gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
         gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
