@@ -178,8 +178,8 @@ void GLBackend::checkGLError() {
     }
 }
 
-#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
-//#define CHECK_GL_ERROR()
+//#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
+#define CHECK_GL_ERROR()
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
@@ -308,7 +308,7 @@ void GLBackend::updateInput() {
                 if ((*channelIt).first < buffers.size()) {
                     int bufferNum = (*channelIt).first;
 
-                    if (_inputBuffersState.at(bufferNum) || _needInputFormatUpdate) {
+                    if (_inputBuffersState.test(bufferNum) || _needInputFormatUpdate) {
                         GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
                         glBindBuffer(GL_ARRAY_BUFFER, vbo);
                         CHECK_GL_ERROR();
