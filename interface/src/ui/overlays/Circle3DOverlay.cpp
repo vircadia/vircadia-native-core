@@ -327,4 +327,15 @@ Circle3DOverlay* Circle3DOverlay::createClone() {
 
 void Circle3DOverlay::writeToClone(Circle3DOverlay* clone) {
     Planar3DOverlay::writeToClone(clone);
+    clone->setStartAt(getStartAt());
+    clone->setEndAt(getEndAt());
+    clone->setOuterRadius(getOuterRadius());
+    clone->setInnerRadius(getInnerRadius());
+    clone->setHasTickMarks(getHasTickMarks());
+    clone->setMajorTickMarksAngle(getMajorTickMarksAngle());
+    clone->setMinorTickMarksAngle(getMinorTickMarksAngle());
+    clone->setMajorTickMarksLength(getMajorTickMarksLength());
+    clone->setMinorTickMarksLength(getMinorTickMarksLength());
+    clone->setMajorTickMarksColor(getMajorTickMarksColor());
+    clone->setMinorTickMarksColor(getMinorTickMarksColor());
 }

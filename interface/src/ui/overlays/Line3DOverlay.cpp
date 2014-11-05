@@ -89,4 +89,5 @@ Line3DOverlay* Line3DOverlay::createClone() {
 
 void Line3DOverlay::writeToClone(Line3DOverlay* clone) {
     Base3DOverlay::writeToClone(clone);
+    clone->setEnd(getEnd());
 }

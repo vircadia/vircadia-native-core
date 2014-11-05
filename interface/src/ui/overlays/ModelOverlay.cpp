@@ -140,3 +140,15 @@ ModelOverlay* ModelOverlay::createClone() {
     writeToClone(clone);
     return clone;
 }
+
+void ModelOverlay::writeToClone(ModelOverlay* clone) {
+    Base3DOverlay::writeToClone(clone);
+    clone->_url = _url;
+    if (clone->_url.isValid()) {
+        clone->_updateModel = true;
+        clone->_isLoaded = false;
+    }
+    clone->_rotation = _rotation;
+    clone->_scale = _scale;
+    clone->_updateModel = _updateModel;
+}

@@ -187,4 +187,12 @@ Text3DOverlay* Text3DOverlay::createClone() {
 
 void Text3DOverlay::writeToClone(Text3DOverlay* clone) {
     Planar3DOverlay::writeToClone(clone);
+    clone->setText(getText());
+    clone->setLineHeight(getLineHeight());
+    clone->setLeftMargin(getLeftMargin());
+    clone->setTopMargin(getTopMargin());
+    clone->setRightMargin(getRightMargin());
+    clone->setBottomMargin(getBottomMargin());
+    clone->setIsFacingAvatar(getIsFacingAvatar());
+    clone->_backgroundColor = getBackgroundColor();
 }

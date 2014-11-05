@@ -31,7 +31,8 @@ public:
     virtual ModelOverlay* createClone();
 
 private:
-    
+    virtual void writeToClone(ModelOverlay* clone);
+
     Model _model;
     
     QUrl _url;

@@ -105,4 +105,5 @@ bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
 
 void Planar3DOverlay::writeToClone(Planar3DOverlay* clone) {
     Base3DOverlay::writeToClone(clone);
+    clone->setDimensions(getDimensions());
 }
