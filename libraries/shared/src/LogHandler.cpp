@@ -12,15 +12,7 @@
 
 #include <time.h>
 
-#ifdef _WIN32
-#include <process.h>
-#define getpid _getpid
-#define getppid _getpid // hack to build
-#define pid_t int // hack to build
-#elif __linux__
-#include <unistd.h> // for getpid() on linux
-#endif
-
+#include <qcoreapplication.h>
 #include <qdebug.h>
 #include <qtimer.h>
 
@@ -122,14 +114,8 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     prefixString.append(QString(" [%1]").arg(dateString));
     
     if (_shouldOutputPID) {
-        prefixString.append(QString(" [%1").arg(getpid()));
+        prefixString.append(QString(" [%1]").arg(QCoreApplication::instance()->applicationPid()));
         
-        pid_t parentProcessID = getppid();
-        if (parentProcessID != 0) {
-            prefixString.append(QString(":%1]").arg(parentProcessID));
-        } else {
-            prefixString.append("]");
-        }
     }
     
     if (!_targetName.isEmpty()) {
