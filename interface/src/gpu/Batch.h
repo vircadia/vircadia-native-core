@@ -243,7 +243,7 @@ public:
 
         class Vector {
         public:
-            std::vector<Cache<T>> _pointers;
+            std::vector< Cache<T> > _pointers;
 
             uint32 cache(const Pointer& pointer) {
                 uint32 offset = _pointers.size();
@@ -277,7 +277,7 @@ public:
         return (_resources.data() + offset);
     }
 
-    template < typename T >
+    template <typename T>
     T* editResourcePointer(uint32 offset) {
         if (offset >= _resources.size())
             return 0;

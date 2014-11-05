@@ -178,8 +178,8 @@ void GLBackend::checkGLError() {
     }
 }
 
-//#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
-#define CHECK_GL_ERROR()
+#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
+//#define CHECK_GL_ERROR()
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
