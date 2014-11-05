@@ -295,8 +295,6 @@ void TextRenderer::drawBatch() {
         return;
     }
 
-    gpu::GLBackend::checkGLError();
-
     // TODO: Right now the drawBatch is called while calling the draw() function but in the future we'll need to apply the correct transform stack
     /*
     GLint matrixMode;

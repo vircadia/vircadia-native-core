@@ -787,7 +787,6 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
         tempViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     }
     glFrustum(left, right, bottom, top, nearVal, farVal);
-    gpu::GLBackend::checkGLError();
 
     // save matrix
     glGetFloatv(GL_PROJECTION_MATRIX, (GLfloat*)&_projectionMatrix);

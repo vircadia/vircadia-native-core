@@ -132,8 +132,6 @@ GLBackend::~GLBackend() {
 }
 
 void GLBackend::renderBatch(Batch& batch) {
-    checkGLError();
-
     uint32 numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
@@ -146,8 +144,6 @@ void GLBackend::renderBatch(Batch& batch) {
         command++;
         offset++;
     }
-
-    checkGLError();
 }
 
 void GLBackend::checkGLError() {
