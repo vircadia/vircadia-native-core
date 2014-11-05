@@ -17,7 +17,18 @@ AudioScriptingInterface& AudioScriptingInterface::getInstance() {
 }
 
 void AudioScriptingInterface::stopAllInjectors() {
-    
+    QList<QPointer<AudioInjector> >::iterator injector = _activeInjectors.begin();
+    while (injector != _activeInjectors.end()) {
+        if (!injector->isNull()) {
+            injector->data()->stop();
+            
+            while (injector->data() && !injector->data()->isFinished()) {
+                // wait for this injector to go down
+            }
+        }
+        
+        injector = _activeInjectors.erase(injector);
+    }
 }
 
 AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
@@ -42,7 +53,7 @@ AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjec
     
     injectorThread->start();
     
-    _activeInjectors.insert(injector);
+    _activeInjectors.append(QPointer<AudioInjector>(injector));
     
     return injector;
 }
@@ -58,8 +69,5 @@ bool AudioScriptingInterface::isInjectorPlaying(AudioInjector* injector) {
 }
 
 void AudioScriptingInterface::injectorStopped() {
-    qDebug() << "Removing" << sender() << "from active injectors";
-    qDebug() << _activeInjectors.size();
-    _activeInjectors.remove(static_cast<AudioInjector*>(sender()));
-    qDebug() << _activeInjectors.size();
+    _activeInjectors.removeAll(QPointer<AudioInjector>(reinterpret_cast<AudioInjector*>(sender())));
 }

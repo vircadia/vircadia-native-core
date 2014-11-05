@@ -12,6 +12,8 @@
 #ifndef hifi_AudioScriptingInterface_h
 #define hifi_AudioScriptingInterface_h
 
+#include <qpointer.h>
+
 #include "AudioInjector.h"
 #include "Sound.h"
 
@@ -32,7 +34,7 @@ public slots:
     
 private:
     AudioScriptingInterface() {};
-    QSet<AudioInjector*> _activeInjectors;
+    QList< QPointer<AudioInjector> > _activeInjectors;
 
 };
 #endif // hifi_AudioScriptingInterface_h

@@ -26,6 +26,7 @@ AudioInjector::AudioInjector(QObject* parent) :
     _sound(NULL),
     _options(),
     _shouldStop(false),
+    _isFinished(false),
     _currentSendPosition(0)
 {
 }
@@ -34,6 +35,7 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _sound(sound),
     _options(injectorOptions),
     _shouldStop(false),
+    _isFinished(false),
     _currentSendPosition(0)
 {
 }
@@ -161,5 +163,6 @@ void AudioInjector::injectAudio() {
         }
     }
     
+    _isFinished = true;
     emit finished();
 }
