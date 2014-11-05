@@ -16,6 +16,7 @@
 
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
+#include <glm/glm.hpp>
 
 #include "DoubleHashKey.h"
 
@@ -30,6 +31,7 @@ public:
     void collectInfo(const btCollisionShape* shape);
 
     void setBox(const btVector3& halfExtents);
+    void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
     void setCylinder(float radius, float height);
     void setCapsule(float radius, float height);

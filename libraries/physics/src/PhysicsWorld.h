@@ -17,6 +17,35 @@
 #include <btBulletDynamicsCommon.h>
 
 #include "ShapeManager.h"
+#include "BulletUtil.h"
+#include "PositionHashKey.h"
+#include "VoxelObject.h"
+
+#ifdef COLLIDABLE
+enum MotionType {
+    MOTION_TYPE_STATIC,
+    MOTION_TYPE_DYNAMIC,
+    MOTION_TYPE_KINEMATIC
+};
+
+class EntityObject {
+public:
+    EntityObject();
+
+    bool makeStatic();
+    bool makeDynamic();
+    bool makeKinematic();
+
+    MotionType getMotionType() const { return _motionType; }
+
+private:
+    btCollisionObject* _object;
+    btMotionState* _motionState;
+    MotionType _motionType;
+    btVector3 _inertiaDiagLocal;
+    float _mass;
+};
+#endif // COLLIDABLE
 
 class PhysicsWorld {
 public:
@@ -27,7 +56,17 @@ public:
     ~PhysicsWorld();
 
     void init();
-    
+
+    /// \return true if Voxel added
+    /// \param position the minimum corner of the voxel
+    /// \param scale the length of the voxel side
+    bool addVoxel(const glm::vec3& position, float scale);
+
+    /// \return true if Voxel removed
+    /// \param position the minimum corner of the voxel
+    /// \param scale the length of the voxel side
+    bool removeVoxel(const glm::vec3& position, float scale);
+
 protected:
     btDefaultCollisionConfiguration* _collisionConfig;
     btCollisionDispatcher* _collisionDispatcher;
@@ -38,6 +77,7 @@ protected:
     ShapeManager _shapeManager;
 
 private:
+    btHashMap<PositionHashKey, VoxelObject> _voxels;
 };
 
 

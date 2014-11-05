@@ -11,8 +11,12 @@
 
 #ifdef USE_BULLET_PHYSICS
 
+#include <math.h>
 #include <btBulletDynamicsCommon.h>
 
+#include <SharedUtil.h> // for MILLIMETERS_PER_METER
+
+#include "BulletUtil.h"
 #include "ShapeInfo.h"
 
 void ShapeInfo::collectInfo(const btCollisionShape* shape) {
@@ -60,6 +64,14 @@ void ShapeInfo::setBox(const btVector3& halfExtents) {
     _data.push_back(halfExtents);
 }
 
+void ShapeInfo::setBox(const glm::vec3& halfExtents) {
+    _type = BOX_SHAPE_PROXYTYPE;
+    _data.clear();
+    btVector3 bulletHalfExtents;
+    glmToBullet(halfExtents, bulletHalfExtents);
+    _data.push_back(bulletHalfExtents);
+}
+
 void ShapeInfo::setSphere(float radius) {
     _type = SPHERE_SHAPE_PROXYTYPE;
     _data.clear();
@@ -80,8 +92,6 @@ void ShapeInfo::setCapsule(float radius, float height) {
     _data.push_back(btVector3(radius, 0.5f * height, 0.0f));
 }
 
-const float MILLIMETERS_PER_METER = 1000.0f;
-
 int ShapeInfo::computeHash() const {
     // scramble the bits of the type
     // TODO?: provide lookup table for hash of _type?
@@ -93,8 +103,10 @@ int ShapeInfo::computeHash() const {
     for (int i = 0; i < numData; ++i) {
         tmpData = _data[i];
         for (int j = 0; j < 3; ++j) {
-            // multiply these mm by a new prime
-            unsigned int floatHash = DoubleHashKey::hashFunction((unsigned int)(tmpData[j] * MILLIMETERS_PER_METER + 0.49f), primeIndex++);
+            // NOTE: 0.49f is used to bump the float up almost half a millimeter
+            // so the cast to int produces a round() effect rather than a floor()
+            unsigned int floatHash = 
+                DoubleHashKey::hashFunction((int)(tmpData[j] * MILLIMETERS_PER_METER + copysignf(1.0f, tmpData[j]) * 0.49f), primeIndex++);
             hash ^= floatHash;
         }
     }
@@ -111,7 +123,10 @@ int ShapeInfo::computeHash2() const {
     for (int i = 0; i < numData; ++i) {
         tmpData = _data[i];
         for (int j = 0; j < 3; ++j) {
-            unsigned int floatHash = DoubleHashKey::hashFunction2((unsigned int)(tmpData[j] * MILLIMETERS_PER_METER + 0.49f));
+            // NOTE: 0.49f is used to bump the float up almost half a millimeter
+            // so the cast to int produces a round() effect rather than a floor()
+            unsigned int floatHash = 
+                DoubleHashKey::hashFunction2((int)(tmpData[j] * MILLIMETERS_PER_METER + copysignf(1.0f, tmpData[j]) * 0.49f));
             hash += ~(floatHash << 17);
             hash ^=  (floatHash >> 11);
             hash +=  (floatHash << 4); 
