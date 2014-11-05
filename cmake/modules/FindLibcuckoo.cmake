@@ -19,7 +19,7 @@
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("libcuckoo")
 
-find_path(LIBCUCKOO_INCLUDE_DIRS cuckoohash_map.hh PATH_SUFFIXES libcuckoo HINTS ${LIBCUCKOO_SEARCH_DIRS})
+find_path(LIBCUCKOO_INCLUDE_DIRS libcuckoo/cuckoohash_map.hh PATH_SUFFIXES include HINTS ${LIBCUCKOO_SEARCH_DIRS})
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
