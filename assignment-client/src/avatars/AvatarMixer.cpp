@@ -122,7 +122,9 @@ void AvatarMixer::broadcastAvatarData() {
     AvatarMixerClientData* nodeData = NULL;
     AvatarMixerClientData* otherNodeData = NULL;
     
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()
             && (nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData()))->getMutex().tryLock()) {
             ++_sumListeners;
@@ -135,7 +137,9 @@ void AvatarMixer::broadcastAvatarData() {
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
-            foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
+            NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+            for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+                SharedNodePointer otherNode = it->second;
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()
                     && (otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData()))->getMutex().tryLock()) {
                     

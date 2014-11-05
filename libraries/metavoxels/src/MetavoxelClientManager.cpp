@@ -42,7 +42,11 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
         const glm::vec3& direction, const AttributePointer& attribute, float& distance) {
     SharedObjectPointer closestSpanner;
     float closestDistance = FLT_MAX;
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
+        
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
@@ -115,7 +119,11 @@ MetavoxelClient* MetavoxelClientManager::createClient(const SharedNodePointer& n
 }
 
 void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
+        
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());

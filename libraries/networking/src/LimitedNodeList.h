@@ -55,7 +55,7 @@ typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
 typedef cuckoohash_map<QUuid, SharedNodePointer, UUIDCityHasher > NodeHash;
-typedef std::vector<std::pair<QUuid, SharedNodePointer> > SnapshotNodeHash;
+typedef std::vector<std::pair<QUuid, SharedNodePointer> > NodeHashSnapshot;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -104,8 +104,6 @@ public:
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
-    SharedNodePointer updateSocketsForNode(const QUuid& uuid,
-                                           const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
 

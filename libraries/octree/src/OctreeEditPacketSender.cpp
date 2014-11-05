@@ -52,12 +52,13 @@ bool OctreeEditPacketSender::serversExist() const {
     bool hasServers = false;
     bool atLeastOneJurisdictionMissing = false; // assume the best
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-
+    
+    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
         // only send to the NodeTypes that are getMyNodeType()
+        SharedNodePointer node = it->second;
         if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
-
+            
             QUuid nodeUUID = node->getUUID();
             // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
             if (_serverJurisdictions) {
@@ -86,8 +87,11 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
 
     bool wantDebug = false;
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    
+    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
+        
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getType() == getMyNodeType() &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
@@ -194,8 +198,10 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, size_t le
     // But we can't really do that with a packed message, since each edit message could be destined
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
-
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
@@ -249,7 +255,9 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
 
     _packetsQueueLock.lock();
 
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
             QUuid nodeUUID = node->getUUID();
@@ -384,7 +392,7 @@ void OctreeEditPacketSender::processNackPacket(const QByteArray& packet) {
         // retrieve packet from history
         const QByteArray* packet = sentPacketHistory.getPacket(sequenceNumber);
         if (packet) {
-            const SharedNodePointer& node = NodeList::getInstance()->getNodeHash().value(sendingNodeUUID);
+            const SharedNodePointer& node = NodeList::getInstance()->nodeWithUUID(sendingNodeUUID);
             queuePacketForSending(node, *packet);
         }
     }

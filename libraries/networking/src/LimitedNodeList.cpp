@@ -392,7 +392,10 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     try {
         SharedNodePointer matchingNode = _nodeHash[uuid];
-        matchingNode->updateSockets(publicSocket, localSocket);
+        
+        matchingNode->setPublicSocket(publicSocket);
+        matchingNode->setLocalSocket(localSocket);
+        
         return matchingNode;
     } catch (std::out_of_range) {
         // we didn't have this node, so add them
@@ -412,7 +415,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
     
-    SnapshotNodeHash snapshotHash = _nodeHash.snapshot_table();
+    NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
     for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
         if (destinationNodeTypes.contains(it->second->getType())) {
             writeDatagram(packet, it->second);
@@ -459,7 +462,7 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
 
     if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
-        SnapshotNodeHash snapshotHash = _nodeHash.snapshot_table();
+        NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
         
         for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
             if (it->second->getType() == nodeType) {
@@ -483,7 +486,7 @@ void LimitedNodeList::resetPacketStats() {
 
 void LimitedNodeList::removeSilentNodes() {
     
-    SnapshotNodeHash snapshotHash = _nodeHash.snapshot_table();
+    NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
     
     for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
         SharedNodePointer node = it->second;

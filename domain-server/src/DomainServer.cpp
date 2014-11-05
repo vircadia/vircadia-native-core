@@ -821,7 +821,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
 
         if (nodeData->isAuthenticated()) {
             // if this authenticated node has any interest types, send back those nodes as well
-            foreach (const SharedNodePointer& otherNode, nodeList->getNodeHash()) {
+            NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+            
+            for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+                SharedNodePointer otherNode = it->second;
 
                 // reset our nodeByteArray and nodeDataStream
                 QByteArray nodeByteArray;
@@ -960,7 +963,10 @@ void DomainServer::readAvailableDatagrams() {
 
 void DomainServer::setupPendingAssignmentCredits() {
     // enumerate the NodeList to find the assigned nodes
-    foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
         if (!nodeData->getAssignmentUUID().isNull() && !nodeData->getWalletUUID().isNull()) {
@@ -1119,7 +1125,13 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
     
     // add the number of currently connected agent users
     int numConnectedAuthedUsers = 0;
-    foreach(const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+    
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        
+        SharedNodePointer node = it->second;
+        
         if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
             ++numConnectedAuthedUsers;
         }
@@ -1242,8 +1254,9 @@ void DomainServer::processDatagram(const QByteArray& receivedPacket, const HifiS
                     parseNodeDataFromByteArray(packetStream, throwawayNodeType, nodePublicAddress, nodeLocalAddress,
                                                senderSockAddr);
                     
-                    SharedNodePointer checkInNode = nodeList->updateSocketsForNode(nodeUUID,
-                                                                                   nodePublicAddress, nodeLocalAddress);
+                    SharedNodePointer checkInNode = nodeList->nodeWithUUID(nodeUUID);
+                    checkInNode->setPublicSocket(nodePublicAddress);
+                    checkInNode->setLocalSocket(nodeLocalAddress);
                     
                     // update last receive to now
                     quint64 timeNow = usecTimestampNow();
@@ -1425,7 +1438,12 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             QJsonObject assignedNodesJSON;
 
             // enumerate the NodeList to find the assigned nodes
-            foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
+            NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+            
+            for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+                
+                SharedNodePointer node = it->second;
+                
                 DomainServerNodeData* nodeData = reinterpret_cast<DomainServerNodeData*>(node->getLinkedData());
 
                 if (!nodeData->getAssignmentUUID().isNull()) {
@@ -1489,9 +1507,11 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             // enumerate the NodeList to find the assigned nodes
             LimitedNodeList* nodeList = LimitedNodeList::getInstance();
 
-            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+            NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+            
+            for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
                 // add the node using the UUID as the key
-                nodesJSONArray.append(jsonObjectForNode(node));
+                nodesJSONArray.append(jsonObjectForNode(it->second));
             }
 
             rootJSON["nodes"] = nodesJSONArray;
@@ -2023,8 +2043,10 @@ void DomainServer::addStaticAssignmentsToQueue() {
         bool foundMatchingAssignment = false;
 
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        foreach (const SharedNodePointer& node, LimitedNodeList::getInstance()->getNodeHash()) {
-            if (node->getUUID() == staticAssignment->data()->getUUID()) {
+        NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+        
+        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+            if (it->first == staticAssignment->data()->getUUID()) {
                 foundMatchingAssignment = true;
             }
         }

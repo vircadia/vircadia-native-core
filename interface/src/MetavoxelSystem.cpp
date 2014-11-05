@@ -163,7 +163,12 @@ void MetavoxelSystem::render() {
 }
 
 void MetavoxelSystem::refreshVoxelData() {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        
+        SharedNodePointer node = it->second;
+        
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());
@@ -685,7 +690,11 @@ MetavoxelClient* MetavoxelSystem::createClient(const SharedNodePointer& node) {
 }
 
 void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
+        
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelSystemClient* client = static_cast<MetavoxelSystemClient*>(node->getLinkedData());

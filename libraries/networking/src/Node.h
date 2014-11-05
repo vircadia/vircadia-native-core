@@ -81,8 +81,6 @@ public:
     const HifiSockAddr& getSymmetricSocket() const { return _symmetricSocket; }
     virtual void setSymmetricSocket(const HifiSockAddr& symmetricSocket);
     
-    void updateSockets(const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
-    
     const HifiSockAddr* getActiveSocket() const { return _activeSocket; }
     
     void activatePublicSocket();

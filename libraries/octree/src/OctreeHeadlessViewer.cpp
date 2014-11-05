@@ -76,8 +76,10 @@ void OctreeHeadlessViewer::queryOctree() {
     int totalServers = 0;
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
-
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
@@ -142,10 +144,10 @@ void OctreeHeadlessViewer::queryOctree() {
 
     NodeList* nodeList = NodeList::getInstance();
 
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer node = it->second;
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
-
 
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();

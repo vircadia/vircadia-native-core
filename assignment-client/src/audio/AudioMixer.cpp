@@ -437,7 +437,12 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
 
     // loop through all other nodes that have sufficient audio to mix
     int streamsMixed = 0;
-    foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
+    
+    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+        SharedNodePointer otherNode = it->second;
+        
         if (otherNode->getLinkedData()) {
             AudioMixerClientData* otherNodeClientData = (AudioMixerClientData*) otherNode->getLinkedData();
 
@@ -480,7 +485,11 @@ void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const Hif
             QByteArray packet = receivedPacket;
             populatePacketHeader(packet, PacketTypeMuteEnvironment);
             
-            foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+            NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+            
+            for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+                SharedNodePointer node = it->second;
+                
                 if (node->getType() == NodeType::Agent && node->getActiveSocket() && node->getLinkedData() && node != nodeList->sendingNodeForPacket(receivedPacket)) {
                     nodeList->writeDatagram(packet, packet.size(), node);
                 }
@@ -548,8 +557,10 @@ void AudioMixer::sendStatsPacket() {
     
     NodeList* nodeList = NodeList::getInstance();
     int clientNumber = 0;
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
-
+    
+    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+    
+    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
         // if we're too large, send the packet
         if (sizeOfStats > TOO_BIG_FOR_MTU) {
             nodeList->sendStatsToDomainServer(statsObject2);
@@ -559,9 +570,9 @@ void AudioMixer::sendStatsPacket() {
         }
 
         clientNumber++;
-        AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        AudioMixerClientData* clientData = static_cast<AudioMixerClientData*>(it->second->getLinkedData());
         if (clientData) {
-            QString property = "jitterStats." + node->getUUID().toString();
+            QString property = "jitterStats." + it->first.toString();
             QString value = clientData->getAudioStreamStatsString();
             statsObject2[qPrintable(property)] = value;
             somethingToSend = true;
@@ -706,7 +717,11 @@ void AudioMixer::run() {
             _lastPerSecondCallbackTime = now;
         }
         
-        foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+        NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+        
+        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+            SharedNodePointer node = it->second;
+            
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 
@@ -873,7 +888,11 @@ void AudioMixer::perSecondActions() {
             _timeSpentPerHashMatchCallStats.getWindowSum() / WINDOW_LENGTH_USECS * 100.0,
             _timeSpentPerHashMatchCallStats.getCurrentIntervalSum() / USECS_PER_SECOND * 100.0);
 
-        foreach(const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+        NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+        
+        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+            SharedNodePointer node = it->second;
+            
             if (node->getLinkedData()) {
                 AudioMixerClientData* nodeData = (AudioMixerClientData*)node->getLinkedData();
 

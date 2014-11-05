@@ -520,7 +520,11 @@ void ScriptEngine::run() {
                 
                 // write audio packet to AudioMixer nodes
                 NodeList* nodeList = NodeList::getInstance();
-                foreach(const SharedNodePointer& node, nodeList->getNodeHash()) {
+                NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
+                
+                for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+                    SharedNodePointer node = it->second;
+                    
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
                         // pack sequence number
