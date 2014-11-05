@@ -72,9 +72,9 @@ float Camera::getFarClip() const {
             : std::numeric_limits<int16_t>::max() - 1;
 }
 
-void Camera::setMode(CameraMode m) {
-    _mode = m;
-    emit modeUpdated(m);
+void Camera::setMode(CameraMode mode) {
+    _mode = mode;
+    emit modeUpdated(modeToString(mode));
 }
 
 
@@ -94,57 +94,45 @@ void Camera::setFarClip(float f) {
     _farClip = f;
 }
 
-CameraScriptableObject::CameraScriptableObject(Camera* camera, ViewFrustum* viewFrustum) :
-    _camera(camera), _viewFrustum(viewFrustum) 
-{
-    connect(_camera, &Camera::modeUpdated, this, &CameraScriptableObject::onModeUpdated);
-}
-
-PickRay CameraScriptableObject::computePickRay(float x, float y) {
+PickRay Camera::computePickRay(float x, float y) {
     float screenWidth = Application::getInstance()->getGLWidget()->width();
     float screenHeight = Application::getInstance()->getGLWidget()->height();
     PickRay result;
     if (OculusManager::isConnected()) {
-        result.origin = _camera->getPosition();
+        result.origin = getPosition();
         Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
     } else {
-        _viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+        Application::getInstance()->getViewFrustum()->computePickRay(x / screenWidth, y / screenHeight,
+                                                                     result.origin, result.direction);
     }
     return result;
 }
 
-QString CameraScriptableObject::getMode() const {
-    return modeToString(_camera->getMode());
-}
-
-void CameraScriptableObject::setMode(const QString& mode) {
-    CameraMode currentMode = _camera->getMode();
-    CameraMode targetMode = currentMode;
-    if (mode == "third person") {
-        targetMode = CAMERA_MODE_THIRD_PERSON;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
-    } else if (mode == "first person") {
-        targetMode = CAMERA_MODE_FIRST_PERSON;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, true);
-    } else if (mode == "mirror") {
-        targetMode = CAMERA_MODE_MIRROR;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
-    } else if (mode == "independent") {
-        targetMode = CAMERA_MODE_INDEPENDENT;
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+void Camera::setModeString(const QString& mode) {
+    CameraMode targetMode = stringToMode(mode);
+    
+    switch (targetMode) {
+        case CAMERA_MODE_THIRD_PERSON:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            break;
+        case CAMERA_MODE_MIRROR:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            break;
+        case CAMERA_MODE_INDEPENDENT:
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+            Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, false);
+            break;
+        default:
+            break;
     }
-    if (currentMode != targetMode) {
-        _camera->setMode(targetMode);
+    
+    if (_mode != targetMode) {
+        setMode(targetMode);
     }
 }
 
-void CameraScriptableObject::onModeUpdated(CameraMode m) {
-    emit modeUpdated(modeToString(m));
+QString Camera::getModeString() const {
+    return modeToString(_mode);
 }
-
-
-

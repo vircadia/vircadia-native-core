@@ -23,7 +23,7 @@ var THRUST_CONTROLLER = 0;
 var VIEW_CONTROLLER = 1;
 
 function checkCamera(deltaTime) {
-    if (Camera.getMode() == "independent") {
+    if (Camera.mode == "independent") {
         var THRUST_MAG_UP = 800.0;
         var THRUST_MAG_DOWN = 300.0;
         var THRUST_MAG_FWD = 500.0;
@@ -102,19 +102,19 @@ function keyPressEvent(event) {
     }
 
     if (event.text == "1") {
-        Camera.setMode("first person");
+        Camera.mode = "first person";
     }
 
     if (event.text == "2") {
-        Camera.setMode("mirror");
+        Camera.mode = "mirror";
     }
 
     if (event.text == "3") {
-        Camera.setMode("third person");
+        Camera.mode = "third person";
     }
 
     if (event.text == "4") {
-        Camera.setMode("independent");
+        Camera.mode = "independent";
         joysticksCaptured = true;
         Controller.captureJoystick(THRUST_CONTROLLER);
         Controller.captureJoystick(VIEW_CONTROLLER);

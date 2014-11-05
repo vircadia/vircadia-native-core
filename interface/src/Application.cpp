@@ -620,8 +620,8 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
-        _myCamera.setPosition(_myAvatar->getUprightHeadPosition() +
-                              _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
@@ -1116,7 +1116,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                    HFActionEvent startActionEvent(HFActionEvent::startType(),
+                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1207,7 +1208,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
                 sendEvent(this, &endActionEvent);
             }
             
@@ -1301,7 +1302,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::startType(),
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1335,7 +1337,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::endType(),
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -1976,6 +1979,9 @@ void Application::init() {
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
+
+    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
+        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
@@ -3846,9 +3852,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
     scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
 
-    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
-    scriptEngine->registerGlobalObject("Camera", cameraScriptable);
-    connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+    scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());

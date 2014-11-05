@@ -53,7 +53,8 @@ void qURLFromScriptValue(const QScriptValue& object, QUrl& url);
 
 class PickRay {
 public:
-    PickRay() : origin(0.0f), direction(0.0f)  { } 
+    PickRay() : origin(0.0f), direction(0.0f)  { }
+    PickRay(const glm::vec3& origin, const glm::vec3 direction) : origin(origin), direction(direction) {}
     glm::vec3 origin;
     glm::vec3 direction;
 };
