@@ -45,8 +45,7 @@ InboundAudioStream::InboundAudioStream(int numFrameSamples, int numFramesCapacit
     _currentJitterBufferFrames(0),
     _timeGapStatsForStatsPacket(0, STATS_FOR_STATS_PACKET_WINDOW_SECONDS),
     _repetitionWithFade(settings._repetitionWithFade),
-    _hasReverb(false),
-    _ignorePenumbra(false)
+    _hasReverb(false)
 {
 }
 
