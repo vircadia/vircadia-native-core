@@ -621,8 +621,8 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
-        _myCamera.setPosition(_myAvatar->getUprightHeadPosition() +
-                              _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
@@ -1981,6 +1981,9 @@ void Application::init() {
     connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
     connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
+
+    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
+        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);

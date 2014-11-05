@@ -41,6 +41,12 @@ public slots:
     void setInputVolume(float volume);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
+
+    bool getMuted();
+    void toggleMute();
+
+signals:
+    void muteToggled();
 };
 
 #endif // hifi_AudioDeviceScriptingInterface_h

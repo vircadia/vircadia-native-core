@@ -66,7 +66,6 @@ public:
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     glm::vec3 getGravity() const { return _gravity; }
-    glm::vec3 getUprightHeadPosition() const;
     glm::vec3 getDefaultEyePosition() const;
     bool getShouldRenderLocally() const { return _shouldRender; }
     
