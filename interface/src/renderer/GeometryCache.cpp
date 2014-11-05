@@ -110,15 +110,18 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+const int NUM_VERTICES_PER_TRIANGLE = 3;
+const int NUM_TRIANGLES_PER_QUAD = 2;
+const int NUM_VERTICES_PER_TRIANGULATED_QUAD = NUM_VERTICES_PER_TRIANGLE * NUM_TRIANGLES_PER_QUAD;
+const int NUM_COORDS_PER_VERTEX = 3;
+const int NUM_BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
+const int NUM_BYTES_PER_INDEX = sizeof(GLushort);
 
 void GeometryCache::renderSphere(float radius, int slices, int stacks) {
     VerticesIndices& vbo = _sphereVBOs[IntPair(slices, stacks)];
-    int vertices = slices * (stacks - 1) + 2;
-    const int NUM_VERTICES_PER_TRIANGLE = 3;
-    const int NUM_TRIANGLES_PER_QUAD = 2;
-    int indices = slices * NUM_TRIANGLES_PER_QUAD * NUM_VERTICES_PER_TRIANGLE * (stacks - 1) + slices * NUM_TRIANGLES_PER_QUAD * NUM_VERTICES_PER_TRIANGLE;
-    if (vbo.first == 0) {
-        const int NUM_COORDS_PER_VERTEX = 3;
+    int vertices = slices * (stacks - 1) + 2;    
+    int indices = slices * stacks * NUM_VERTICES_PER_TRIANGULATED_QUAD;
+    if (vbo.first == 0) {        
         GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX];
         GLfloat* vertex = vertexData;
 
@@ -148,8 +151,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        const int BYTES_PER_VERTEX = NUM_COORDS_PER_VERTEX * sizeof(GLfloat);
-        glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
         delete[] vertexData;
         
         GLushort* indexData = new GLushort[indices];
@@ -192,8 +194,7 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
         
         glGenBuffers(1, &vbo.second);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        const int BYTES_PER_INDEX = sizeof(GLushort);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
     
     } else {
@@ -239,8 +240,7 @@ void GeometryCache::renderSquare(int xDivisions, int yDivisions) {
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        const int BYTES_PER_VERTEX = 3 * sizeof(GLfloat);
-        glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
         delete[] vertexData;
         
         GLushort* indexData = new GLushort[indices];
@@ -263,8 +263,7 @@ void GeometryCache::renderSquare(int xDivisions, int yDivisions) {
         
         glGenBuffers(1, &vbo.second);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        const int BYTES_PER_INDEX = sizeof(GLushort);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
         
     } else {
@@ -313,8 +312,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
         
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        const int BYTES_PER_VERTEX = 3 * sizeof(GLfloat);
-        glBufferData(GL_ARRAY_BUFFER, 2 * vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, 2 * vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
         delete[] vertexData;
         
         GLushort* indexData = new GLushort[indices];
@@ -337,8 +335,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
         
         glGenBuffers(1, &vbo.second);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        const int BYTES_PER_INDEX = sizeof(GLushort);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
     
     } else {
@@ -353,6 +350,106 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
         
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
         
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_NORMAL_ARRAY);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+void GeometryCache::renderCone(float base, float height, int slices, int stacks) {
+    VerticesIndices& vbo = _halfCylinderVBOs[IntPair(slices, stacks)];
+    int vertices = (stacks + 2) * slices;
+    int baseTriangles = slices - 2;
+    int indices = NUM_VERTICES_PER_TRIANGULATED_QUAD * slices * stacks + NUM_VERTICES_PER_TRIANGLE * baseTriangles;
+    if (vbo.first == 0) {
+        GLfloat* vertexData = new GLfloat[vertices * NUM_COORDS_PER_VERTEX * 2];
+        GLfloat* vertex = vertexData;
+        // cap
+        for (int i = 0; i < slices; i++) {
+            float theta = TWO_PI * i / slices;
+            
+            //normals
+            *(vertex++) = 0.0f;
+            *(vertex++) = 0.0f;
+            *(vertex++) = -1.0f;
+
+            // vertices
+            *(vertex++) = cosf(theta);
+            *(vertex++) = sinf(theta);
+            *(vertex++) = 0.0f;
+        }
+        // body
+        for (int i = 0; i <= stacks; i++) {
+            float z = (float)i / stacks;
+            float radius = 1.0f - z;
+            
+            for (int j = 0; j < slices; j++) {
+                float theta = TWO_PI * j / slices;
+
+                //normals
+                *(vertex++) = cosf(theta) / SQUARE_ROOT_OF_2;
+                *(vertex++) = sinf(theta) / SQUARE_ROOT_OF_2;
+                *(vertex++) = 1.0f / SQUARE_ROOT_OF_2;
+
+                // vertices
+                *(vertex++) = radius * cosf(theta);
+                *(vertex++) = radius * sinf(theta);
+                *(vertex++) = z;
+            }
+        }
+        
+        glGenBuffers(1, &vbo.first);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBufferData(GL_ARRAY_BUFFER, 2 * vertices * NUM_BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        delete[] vertexData;
+        
+        GLushort* indexData = new GLushort[indices];
+        GLushort* index = indexData;
+        for (int i = 0; i < baseTriangles; i++) {
+            *(index++) = 0;
+            *(index++) = i + 1;
+            *(index++) = i + 2;
+        }
+        for (int i = 1; i <= stacks; i++) {
+            GLushort bottom = i * slices;
+            GLushort top = bottom + slices;
+            for (int j = 0; j < slices; j++) {
+                int next = (j + 1) % slices;
+                
+                *(index++) = bottom + j;
+                *(index++) = top + next;
+                *(index++) = top + j;
+                
+                *(index++) = bottom + j;
+                *(index++) = bottom + next;
+                *(index++) = top + next;
+            }
+        }
+        
+        glGenBuffers(1, &vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * NUM_BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        delete[] indexData;
+        
+    } else {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+    }
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
+
+    int stride = NUM_VERTICES_PER_TRIANGULATED_QUAD * sizeof(float);
+    glNormalPointer(GL_FLOAT, stride, 0);
+    glVertexPointer(NUM_COORDS_PER_VERTEX, GL_FLOAT, stride, (const void *)(NUM_COORDS_PER_VERTEX * sizeof(float)));
+    
+    glPushMatrix();
+    glScalef(base, base, height);
+    
+    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    
+    glPopMatrix();
+    
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_NORMAL_ARRAY);
     

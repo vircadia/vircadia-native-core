@@ -44,6 +44,7 @@ public:
     void renderSphere(float radius, int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
+    void renderCone(float base, float height, int slices, int stacks);
     void renderGrid(int xDivisions, int yDivisions);
 
     /// Loads geometry from the specified URL.
@@ -73,6 +74,7 @@ private:
     QHash<IntPair, VerticesIndices> _sphereVBOs;
     QHash<IntPair, VerticesIndices> _squareVBOs;
     QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
+    QHash<IntPair, VerticesIndices> _coneVBOs;
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
