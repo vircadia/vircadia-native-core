@@ -132,6 +132,8 @@ GLBackend::~GLBackend() {
 }
 
 void GLBackend::renderBatch(Batch& batch) {
+    checkGLError();
+
     uint32 numCommands = batch.getCommands().size();
     const Batch::Commands::value_type* command = batch.getCommands().data();
     const Batch::CommandOffsets::value_type* offset = batch.getCommandOffsets().data();
@@ -144,6 +146,8 @@ void GLBackend::renderBatch(Batch& batch) {
         command++;
         offset++;
     }
+
+    checkGLError();
 }
 
 void GLBackend::checkGLError() {
@@ -178,8 +182,8 @@ void GLBackend::checkGLError() {
     }
 }
 
-#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
-//#define CHECK_GL_ERROR()
+//#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
+#define CHECK_GL_ERROR()
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();

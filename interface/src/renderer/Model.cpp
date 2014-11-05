@@ -522,6 +522,7 @@ void Model::recalcuateMeshBoxes() {
 
 bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
+
     // render the attachments
     foreach (Model* attachment, _attachments) {
         attachment->render(alpha, mode);
