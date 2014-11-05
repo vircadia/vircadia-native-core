@@ -262,5 +262,85 @@
         "advanced": true
       }
     ]
-  }
+  },
+  {
+    "name": "entity_server_settings",
+    "label": "Entity Server Settings",
+    "assignment-types": [6],
+    "settings": [
+      {
+        "name": "statusHost",
+        "label": "Status Hostname",
+        "help": "host name or IP address of the server for accessing the status page",
+        "placeholder": "",
+        "default": "",
+        "advanced": true
+      },
+      {
+        "name": "statusPort",
+        "label": "Status Port",
+        "help": "port of the server for accessing the status page",
+        "placeholder": "",
+        "default": "",
+        "advanced": true
+      },
+      {
+        "name": "clockSkew",
+        "label": "Clock Skew",
+        "help": "Number of msecs to skew the server clock by to test clock skew",
+        "placeholder": "0",
+        "default": "0",
+        "advanced": true
+      }
+    ]
+  },
+  
+  
+  {
+    "name": "voxel_server_settings",
+    "label": "Voxel Server Settings",
+    "assignment-types": [3],
+    "settings": [
+
+      {
+        "name": "statusHost",
+        "label": "Status Hostname",
+        "help": "host name or IP address of the server for accessing the status page",
+        "placeholder": "",
+        "default": "",
+        "advanced": true
+      },
+      {
+        "name": "statusPort",
+        "label": "Status Port",
+        "help": "port of the server for accessing the status page",
+        "placeholder": "",
+        "default": "",
+        "advanced": true
+      },
+      {
+        "name": "clockSkew",
+        "label": "Clock Skew",
+        "help": "Number of msecs to skew the server clock by to test clock skew",
+        "placeholder": "0",
+        "default": "0",
+        "advanced": true
+      },
+      {
+        "name": "sendEnvironments",
+        "type": "checkbox",
+        "help": "send environmental data",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "minimalEnvironment",
+        "type": "checkbox",
+        "help": "send minimal environmental data if sending environmental data",
+        "default": false,
+        "advanced": true
+      }
+    ]
+  }  
+  
 ]
