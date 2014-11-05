@@ -268,7 +268,7 @@ void DeferredLightingEffect::render() {
                 
             } else {
                 glTranslatef(light.position.x, light.position.y, light.position.z);   
-                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 32, 32);
+                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 64, 64);
             }
             
             glPopMatrix();
@@ -321,7 +321,7 @@ void DeferredLightingEffect::render() {
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
                 glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
                 Application::getInstance()->getGeometryCache()->renderCone(expandedRadius * glm::tan(light.cutoff),
-                    expandedRadius, 32, 8);
+                    expandedRadius, 64, 32);
             }
             
             glPopMatrix();
