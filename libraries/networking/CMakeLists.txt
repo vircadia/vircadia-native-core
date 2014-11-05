@@ -25,7 +25,7 @@ endif ()
 include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
 
 # append OpenSSL to our list of libraries to link
-list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}")
+list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${OPENSSL_LIBRARIES}" "${LIBCUCKOO_LIBRARIES}")
 
 # append libcuckoo includes to our list of includes to bubble
 list(APPEND ${TARGET_NAME}_DEPENDENCY_INCLUDES "${LIBCUCKOO_INCLUDE_DIRS}")

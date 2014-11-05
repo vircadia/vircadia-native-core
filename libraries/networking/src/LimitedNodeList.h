@@ -26,12 +26,13 @@
 #include <QtCore/QSettings>
 #include <QtCore/QSharedPointer>
 #include <QtNetwork/QHostAddress>
-#include <QtNetwork/QUdpSocket>
+#include <QtNetwork/QUdpSocket> 
 
 #include <libcuckoo/cuckoohash_map.hh>
 
 #include "DomainHandler.h"
 #include "Node.h"
+#include "UUIDCityHasher.h"
 
 const int MAX_PACKET_SIZE = 1500;
 
@@ -51,8 +52,9 @@ class HifiSockAddr;
 typedef QSet<NodeType_t> NodeSet;
 
 typedef QSharedPointer<Node> SharedNodePointer;
-typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
+
+typedef cuckoohash_map<QUuid, SharedNodePointer, UUIDCityHasher > NodeHash;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -159,7 +161,7 @@ protected:
     void changeSocketBufferSizes(int numBytes);
 
     QUuid _sessionUUID;
-    NodeHash _nodeHash;
+    cuckoohash_map<QByteArray, SharedNodePointer> _nodeHash;
     QMutex _nodeHashMutex;
     QUdpSocket _nodeSocket;
     QUdpSocket* _dtlsSocket;

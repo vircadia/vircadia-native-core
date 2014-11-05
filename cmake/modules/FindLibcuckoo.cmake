@@ -21,9 +21,18 @@ hifi_library_search_hints("libcuckoo")
 
 find_path(LIBCUCKOO_INCLUDE_DIRS libcuckoo/cuckoohash_map.hh PATH_SUFFIXES include HINTS ${LIBCUCKOO_SEARCH_DIRS})
 
+find_library(CITYHASH_LIBRARY_RELEASE NAME cityhash PATH_SUFFIXES lib HINTS ${LIBCUCKOO_SEARCH_DIRS})
+find_library(CITYHASH_LIBRARY_DEBUG NAME cityhash PATH_SUFFIXES lib HINTS ${LIBCUCKOO_SEARCH_DIRS})
+
+include(SelectLibraryConfigurations)
+select_library_configurations(CITYHASH)
+
+set(LIBCUCKOO_LIBRARIES ${CITYHASH_LIBRARY})
+
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(
   libcuckoo
   "Could NOT find libcuckoo. Read libraries/networking/externals/libcuckoo/readme.txt" 
   LIBCUCKOO_INCLUDE_DIRS
+  LIBCUCKOO_LIBRARIES
 )
