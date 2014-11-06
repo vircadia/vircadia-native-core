@@ -94,6 +94,7 @@ void EntityTreeElement::initializeExtraEncodeData(EncodeBitstreamParams& params)
         
         // TODO: some of these inserts might be redundant!!!
         extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
+        //qDebug() << "{" <<  QThread::currentThread() << "} " << "  STORING extraEncodeData->insert(this...) --- STORING EXTRA DATA....";
     }
 }
 
@@ -238,6 +239,12 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
 
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
+
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << " TOP OF appendElementData()";
+    AACube elementCube = getAACube();
+    elementCube.scale(TREE_SCALE);
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  elementCube:" << elementCube;
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  getLastChanged():" << getLastChanged();
                      
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
@@ -248,7 +255,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (extraEncodeData && extraEncodeData->contains(this)) {
         entityTreeElementExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraEncodeData->value(this));
         hadElementExtraData = true;
+        //qDebug() << "{" <<  QThread::currentThread() << "} " << "  extraEncodeData->contains(this) --- USING PREVIOUS EXTRA DATA....";
     } else {
+        //qDebug() << "{" <<  QThread::currentThread() << "} " << "  NOT extraEncodeData->contains(this) --- CREATING NEW EXTRA DATA....";
         // if there wasn't one already, then create one
         entityTreeElementExtraEncodeData = new EntityTreeElementExtraEncodeData();
         entityTreeElementExtraEncodeData->elementCompleted = (_entityItems->size() == 0);
@@ -282,6 +291,8 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     uint16_t actualNumberOfEntities = 0;
     QVector<uint16_t> indexesOfEntitiesToInclude;
 
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  entityTreeElementExtraEncodeData->elementCompleted:" << entityTreeElementExtraEncodeData->elementCompleted;
+
     // It's possible that our element has been previous completed. In this case we'll simply not include any of our
     // entities for encoding. This is needed because we encode the element data at the "parent" level, and so we 
     // need to handle the case where our sibling elements need encoding but we don't.
@@ -289,7 +300,25 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
             bool includeThisEntity = true;
-            if (!params.forceSendScene && entity->getLastEdited() < params.lastViewFrustumSent) {
+            
+            bool ignoreFromLastEdit = (entity->getLastEdited() < params.lastViewFrustumSent);
+            bool ignoreFromChangeOnServer = (entity->getLastChangedOnServer() < params.lastViewFrustumSent);
+            
+            if (ignoreFromChangeOnServer != ignoreFromLastEdit) {
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "IGNORE MISMATCH!!";
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "IGNORE based on getLastEdited():" << ignoreFromLastEdit;
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "IGNORE based on getLastChangedOnServer():" << ignoreFromChangeOnServer;
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "getLastEdited():" << entity->getLastEdited();
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "getLastChangedOnServer():" << entity->getLastChangedOnServer();
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "params.lastViewFrustumSent:" << params.lastViewFrustumSent;
+            } else {
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "IGNORE MATCH!! - " << ignoreFromLastEdit;
+            }
+            
+            if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
+                qDebug() << "{" <<  QThread::currentThread() << "} " << "  ignore this entity cause it hasn't changed i:" << i;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  entity->getLastEdited():" << entity->getLastEdited();
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  params.lastViewFrustumSent:" << params.lastViewFrustumSent;
                 includeThisEntity = false;
             }
         
@@ -314,6 +343,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             if (includeThisEntity) {
                 indexesOfEntitiesToInclude << i;
                 numberOfEntities++;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  indexesOfEntitiesToInclude << i:" << i;
             }
         }
     }
@@ -321,11 +351,18 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     int numberOfEntitiesOffset = packetData->getUncompressedByteOffset();
     bool successAppendEntityCount = packetData->appendValue(numberOfEntities);
 
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  numberOfEntities:" << numberOfEntities;
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  successAppendEntityCount:" << successAppendEntityCount;
+
     if (successAppendEntityCount) {
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
 
             LevelDetails entityLevel = packetData->startLevel();
+
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "CALLING entity->appendEntityData()...";
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "     entity->getEntityItemID():" << entity->getEntityItemID();
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "     entity->getLastEdited():" << entity->getLastEdited();
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, 
                                                                         params, entityTreeElementExtraEncodeData);
 
@@ -375,6 +412,9 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
             } else {
                 // TODO: some of these inserts might be redundant!!!
                 extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
+
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  STORING extraEncodeData->insert(this...) --- STORING EXTRA DATA....";
+
             }
         } else {
         
@@ -383,11 +423,13 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 // If all of our items have been encoded, then we are complete as an element.
                 if (entityTreeElementExtraEncodeData->entities.size() == 0) {
                     entityTreeElementExtraEncodeData->elementCompleted = true;
+                    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  MARKING ENTITY AS DONE .... entityTreeElementExtraEncodeData->elementCompleted = true.... now:" << usecTimestampNow();
                 }
             }
 
             // TODO: some of these inserts might be redundant!!!
             extraEncodeData->insert(this, entityTreeElementExtraEncodeData);
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "  STORING extraEncodeData->insert(this...) --- STORING EXTRA DATA....";
         }
     }
 

@@ -496,7 +496,10 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     
                     // if the entityItem exists, then update it
                     if (existingEntity) {
+                        qDebug() << "Calling updateEntity() properties.getLastEdited(): " << properties.getLastEdited();
                         updateEntity(entityItemID, properties);
+                        existingEntity->markAsChangedOnServer();
+                        qDebug() << "AFTER updateEntity() now: " << usecTimestampNow();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
@@ -505,6 +508,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     entityItemID = assignEntityID(entityItemID);
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
+                        newEntity->markAsChangedOnServer();
                         notifyNewlyCreatedEntity(*newEntity, senderNode);
                     }
                 }
@@ -551,6 +555,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
         EntityTreeElementExtraEncodeData* thisExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraData);
         delete thisExtraEncodeData;
     }
+    //qDebug() << "{" <<  QThread::currentThread() << "} " << "EntityTree::releaseSceneEncodeData()...  now:" << usecTimestampNow();
     extraEncodeData->clear();
 }
 

@@ -344,6 +344,14 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
             // only set our last sent time if we weren't resetting due to frustum change
             quint64 now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "  OctreeSendThread::packetDistributor().... bag is empty so we must have sent our view";
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "        _nodeUUID:" << _nodeUUID;
+            if (_node->getActiveSocket()) {
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "        _node active socket:" << *(_node->getActiveSocket());
+            } else {
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "        _node active socket:" << "????";
+            }
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "        nodeData->setLastTimeBagEmpty() now:" << now;
         }
 
         // track completed scenes and send out the stats packet accordingly
@@ -450,13 +458,22 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 
                 quint64 lockWaitStart = usecTimestampNow();
                 _myServer->getOctree()->lockForRead();
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "TREE LOCKED FOR READ now:" << usecTimestampNow();
                 quint64 lockWaitEnd = usecTimestampNow();
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
 
                 quint64 encodeStart = usecTimestampNow();
 
-                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  OctreeSendThread::packetDistributor()....";
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     _nodeUUID:" << _nodeUUID;
+                AACube subTreeCube = subTree->getAACube();
+                subTreeCube.scale((float)TREE_SCALE);
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     subTree:" << subTreeCube;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     subTree->getLastChanged():" << subTree->getLastChanged();
                 
+
+                bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 
@@ -464,6 +481,18 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 // sent the entire scene. We want to know this below so we'll actually write this content into
                 // the packet and send it
                 completedScene = nodeData->elementBag.isEmpty();
+
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  OctreeSendThread::packetDistributor()....";
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     _nodeUUID:" << _nodeUUID;
+                if (_node->getActiveSocket()) {
+                    //qDebug() << "{" <<  QThread::currentThread() << "} " << "     _node active socket:" << *(_node->getActiveSocket());
+                } else {
+                    //qDebug() << "{" <<  QThread::currentThread() << "} " << "     _node active socket:" << "????";
+                }
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     params.lastViewFrustumSent:" << params.lastViewFrustumSent;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     params.stopReason:" << params.getStopReason();
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     bytesWritten:" << bytesWritten;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "     completedScene:" << completedScene;
 
                 // if we're trying to fill a full size packet, then we use this logic to determine if we have a DIDNT_FIT case.
                 if (_packetData.getTargetSize() == MAX_OCTREE_PACKET_DATA_SIZE) {
@@ -482,6 +511,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 }
 
                 nodeData->stats.encodeStopped();
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "TREE UNLOCKED AFTER READ now:" << usecTimestampNow();
                 _myServer->getOctree()->unlock();
             } else {
                 // If the bag was empty then we didn't even attempt to encode, and so we know the bytesWritten were 0
@@ -598,6 +628,7 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
         // the voxels from the current view frustum
         if (nodeData->elementBag.isEmpty()) {
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "        nodeData->updateLastKnownViewFrustum()";
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
