@@ -98,15 +98,28 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         quint64 sentAt = (*((quint64*)(packetData + numBytesPacketHeader + sizeof(sequence))));
         quint64 arrivedAt = usecTimestampNow();
+        if (sentAt > arrivedAt) {
+            if (debugProcessPacket || _myServer->wantsDebugReceiving()) {
+                qDebug() << "unreasonable sentAt=" << sentAt << " usecs";
+                qDebug() << "setting sentAt to arrivedAt=" << arrivedAt << " usecs";
+            }
+            sentAt = arrivedAt;
+        }
         quint64 transitTime = arrivedAt - sentAt;
         int editsInPacket = 0;
         quint64 processTime = 0;
         quint64 lockWaitTime = 0;
 
         if (debugProcessPacket || _myServer->wantsDebugReceiving()) {
-            qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount
-                    << " command from client receivedBytes=" << packet.size()
-                    << " sequence=" << sequence << " transitTime=" << transitTime << " usecs";
+            qDebug() << "PROCESSING THREAD: got '" << packetType << "' packet - " << _receivedPacketCount << " command from client";
+            qDebug() << "    receivedBytes=" << packet.size();
+            qDebug() << "         sequence=" << sequence;
+            qDebug() << "           sentAt=" << sentAt << " usecs";
+            qDebug() << "        arrivedAt=" << arrivedAt << " usecs";
+            qDebug() << "      transitTime=" << transitTime << " usecs";
+            qDebug() << "      sendingNode->getClockSkewUsec()=" << sendingNode->getClockSkewUsec() << " usecs";
+            
+            
         }
         
         if (debugProcessPacket) {
