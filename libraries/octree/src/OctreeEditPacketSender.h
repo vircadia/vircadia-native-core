@@ -101,7 +101,7 @@ protected:
     void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
     void queuePendingPacketToNodes(PacketType type, unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
     void queuePacketToNodes(unsigned char* buffer, size_t length, qint64 satoshiCost = 0);
-    void initializePacket(EditPacketBuffer& packetBuffer, PacketType type);
+    void initializePacket(EditPacketBuffer& packetBuffer, PacketType type, int nodeClockSkew);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
     
     void processPreServerExistsPackets();

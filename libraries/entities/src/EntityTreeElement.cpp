@@ -812,11 +812,20 @@ bool EntityTreeElement::pruneChildren() {
 
 void EntityTreeElement::debugDump() {
     qDebug() << "EntityTreeElement...";
-    qDebug() << "entity count:" << _entityItems->size();
-    qDebug() << "cube:" << getAACube();
-    for (uint16_t i = 0; i < _entityItems->size(); i++) {
-        EntityItem* entity = (*_entityItems)[i];
-        entity->debugDump();
+    AACube temp = getAACube();
+    temp.scale((float)TREE_SCALE);
+    qDebug() << "    cube:" << temp;
+    qDebug() << "    has child elements:" << getChildCount();
+    if (_entityItems->size()) {
+        qDebug() << "    has entities:" << _entityItems->size();
+        qDebug() << "--------------------------------------------------";
+        for (uint16_t i = 0; i < _entityItems->size(); i++) {
+            EntityItem* entity = (*_entityItems)[i];
+            entity->debugDump();
+        }
+        qDebug() << "--------------------------------------------------";
+    } else {
+        qDebug() << "    NO entities!";
     }
 }
     

@@ -131,6 +131,7 @@ public:
     void resetContainingElement(const EntityItemID& entityItemID, EntityTreeElement* element);
     void debugDumpMap();
     virtual void dumpTree();
+    virtual void pruneTree();
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 

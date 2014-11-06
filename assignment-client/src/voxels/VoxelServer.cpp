@@ -82,18 +82,18 @@ int VoxelServer::sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNod
 }
 
 
-void VoxelServer::beforeRun() {
+void VoxelServer::readAdditionalConfiguration(const QJsonObject& settingsSectionObject) {
     // should we send environments? Default is yes, but this command line suppresses sending
-    const char* SEND_ENVIRONMENTS = "--sendEnvironments";
-    bool dontSendEnvironments =  !cmdOptionExists(_argc, _argv, SEND_ENVIRONMENTS);
+    readOptionBool(QString("sendEnvironments"), settingsSectionObject, _sendEnvironments);
+    bool dontSendEnvironments = !_sendEnvironments;
     if (dontSendEnvironments) {
         qDebug("Sending environments suppressed...");
-        _sendEnvironments = false;
     } else {
-        _sendEnvironments = true;
         // should we send environments? Default is yes, but this command line suppresses sending
-        const char* MINIMAL_ENVIRONMENT = "--minimalEnvironment";
-        _sendMinimalEnvironment =  cmdOptionExists(_argc, _argv, MINIMAL_ENVIRONMENT);
+        //const char* MINIMAL_ENVIRONMENT = "--minimalEnvironment";
+        //_sendMinimalEnvironment =  cmdOptionExists(_argc, _argv, MINIMAL_ENVIRONMENT);
+
+        readOptionBool(QString("minimalEnvironment"), settingsSectionObject, _sendMinimalEnvironment);
         qDebug("Using Minimal Environment=%s", debug::valueOf(_sendMinimalEnvironment));
     }
     qDebug("Sending environments=%s", debug::valueOf(_sendEnvironments));
