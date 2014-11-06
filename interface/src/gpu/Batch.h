@@ -252,8 +252,9 @@ public:
             }
 
             Pointer get(uint32 offset) {
-                if (offset >= _pointers.size())
+                if (offset >= _pointers.size()) {
                     return Pointer();
+                }
                 return (_pointers.data() + offset)->_pointer;
             }
 
@@ -272,22 +273,25 @@ public:
     uint32 cacheResource(Resource* res);
     uint32 cacheResource(const void* pointer);
     ResourceCache* editResource(uint32 offset) {
-        if (offset >= _resources.size())
+        if (offset >= _resources.size()) {
             return 0;
+        }
         return (_resources.data() + offset);
     }
 
     template <typename T>
     T* editResourcePointer(uint32 offset) {
-        if (offset >= _resources.size())
+        if (offset >= _resources.size()) {
             return 0;
+        }
         return reinterpret_cast<T*>((_resources.data() + offset)->_pointer);
     }
 
     uint32 cacheData(uint32 size, const void* data);
     Byte* editData(uint32 offset) {
-        if (offset >= _data.size())
+        if (offset >= _data.size()) {
             return 0;
+        }
         return (_data.data() + offset);
     }
 
