@@ -497,6 +497,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     // if the entityItem exists, then update it
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
+                        existingEntity->markAsChangedOnServer();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
@@ -505,6 +506,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     entityItemID = assignEntityID(entityItemID);
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
+                        newEntity->markAsChangedOnServer();
                         notifyNewlyCreatedEntity(*newEntity, senderNode);
                     }
                 }
