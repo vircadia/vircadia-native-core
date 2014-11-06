@@ -77,16 +77,14 @@ void OctreeHeadlessViewer::queryOctree() {
     int inViewServers = 0;
     int unknownJurisdictionServers = 0;
     
-    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        SharedNodePointer node = it->second;
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
             totalServers++;
-
+            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-
+            
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             jurisdictions.lockForRead();
@@ -95,18 +93,18 @@ void OctreeHeadlessViewer::queryOctree() {
                 unknownJurisdictionServers++;
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-
+                
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     jurisdictions.unlock();
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-
+                    
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
-
+                    
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inViewServers++;
                     }
@@ -115,7 +113,9 @@ void OctreeHeadlessViewer::queryOctree() {
                 }
             }
         }
-    }
+        
+        return true;
+    });
 
     if (wantExtraDebugging) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d",
@@ -143,18 +143,16 @@ void OctreeHeadlessViewer::queryOctree() {
     }
 
     NodeList* nodeList = NodeList::getInstance();
-
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        SharedNodePointer node = it->second;
+    nodeList->eachNode([&](const SharedNodePointer& node){
         // only send to the NodeTypes that are serverType
         if (node->getActiveSocket() && node->getType() == serverType) {
-
+            
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-
+            
             bool inView = false;
             bool unknownView = false;
-
+            
             // if we haven't heard from this voxel server, go ahead and send it a query, so we
             // can get the jurisdiction...
             jurisdictions.lockForRead();
@@ -166,16 +164,16 @@ void OctreeHeadlessViewer::queryOctree() {
                 }
             } else {
                 const JurisdictionMap& map = (jurisdictions)[nodeUUID];
-
+                
                 unsigned char* rootCode = map.getRootOctalCode();
-
+                
                 if (rootCode) {
                     VoxelPositionSize rootDetails;
                     voxelDetailsForCode(rootCode, rootDetails);
                     jurisdictions.unlock();
                     AACube serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
                     serverBounds.scale(TREE_SCALE);
-
+                    
                     ViewFrustum::location serverFrustumLocation = _viewFrustum.cubeInFrustum(serverBounds);
                     if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                         inView = true;
@@ -189,7 +187,7 @@ void OctreeHeadlessViewer::queryOctree() {
                     }
                 }
             }
-
+            
             if (inView) {
                 _octreeQuery.setMaxOctreePacketsPerSecond(perServerPPS);
                 if (wantExtraDebugging) {
@@ -198,9 +196,9 @@ void OctreeHeadlessViewer::queryOctree() {
             } else if (unknownView) {
                 if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of "
-                            << perUnknownServer << " to send us jurisdiction.";
+                    << perUnknownServer << " to send us jurisdiction.";
                 }
-
+                
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 // If there's only one server, then don't do this, and just let the normal voxel query pass through
                 // as expected... this way, we will actually get a valid scene if there is one to be seen
@@ -224,19 +222,21 @@ void OctreeHeadlessViewer::queryOctree() {
             }
             // set up the packet for sending...
             unsigned char* endOfQueryPacket = queryPacket;
-
+            
             // insert packet type/version and node UUID
             endOfQueryPacket += populatePacketHeader(reinterpret_cast<char*>(endOfQueryPacket), packetType);
-
+            
             // encode the query data...
             endOfQueryPacket += _octreeQuery.getBroadcastData(endOfQueryPacket);
-
+            
             int packetLength = endOfQueryPacket - queryPacket;
-
+            
             // make sure we still have an active socket
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
         }
-    }
+        
+        return true;
+    });
 }
 
 
