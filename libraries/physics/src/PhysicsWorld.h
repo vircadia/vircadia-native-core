@@ -17,7 +17,7 @@
 #include <btBulletDynamicsCommon.h>
 
 #include "BulletUtil.h"
-#include "EntityMotionState.h"
+#include "CustomMotionState.h"
 #include "PositionHashKey.h"
 #include "ShapeManager.h"
 #include "UUIDHashKey.h"
