@@ -38,15 +38,15 @@ EntityPropertyDialogBox = (function () {
 
         array.push({ label: "Entity Type:" + properties.type, type: "header" });
         index++;
-        array.push({ label: "Locked:", value: properties.locked });
+        array.push({ label: "Locked:", type: "checkbox", value: properties.locked });
         index++;
-        
+
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
             index++;
             array.push({ label: "Animation URL:", value: properties.animationURL });
             index++;
-            array.push({ label: "Animation is playing:", value: properties.animationIsPlaying });
+            array.push({ label: "Animation is playing:", type: "checkbox", value: properties.animationIsPlaying });
             index++;
             array.push({ label: "Animation FPS:", value: properties.animationFPS });
             index++;
@@ -130,20 +130,20 @@ EntityPropertyDialogBox = (function () {
         index++;
         array.push({ label: "Mass:", value: properties.mass.toFixed(decimals) });
         index++;
-        array.push({ label: "Ignore for Collisions:", value: properties.ignoreForCollisions });
+        array.push({ label: "Ignore for Collisions:", type: "checkbox", value: properties.ignoreForCollisions });
         index++;
-        array.push({ label: "Collisions Will Move:", value: properties.collisionsWillMove });
+        array.push({ label: "Collisions Will Move:", type: "checkbox", value: properties.collisionsWillMove });
         index++;
 
         array.push({ label: "Lifetime:", value: properties.lifetime.toFixed(decimals) });
         index++;
 
-        array.push({ label: "Visible:", value: properties.visible });
+        array.push({ label: "Visible:", type: "checkbox", value: properties.visible });
         index++;
 
         array.push({ label: "Script:", value: properties.script });
         index++;
-    
+
         if (properties.type == "Box" || properties.type == "Sphere") {
             array.push({ label: "Color:", type: "header" });
             index++;
@@ -215,7 +215,7 @@ EntityPropertyDialogBox = (function () {
             var rescaledX = peekX * peekRescale / 100.0;
             var rescaledY = peekY * peekRescale / 100.0;
             var rescaledZ = peekZ * peekRescale / 100.0;
-        
+
             Window.reloadNonBlockingForm([
                 { value: rescaledX.toFixed(decimals), oldIndex: dimensionX },
                 { value: rescaledY.toFixed(decimals), oldIndex: dimensionY },
@@ -323,4 +323,3 @@ EntityPropertyDialogBox = (function () {
     return that;
 
 }());
-
