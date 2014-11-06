@@ -122,9 +122,7 @@ void AvatarMixer::broadcastAvatarData() {
     AvatarMixerClientData* nodeData = NULL;
     AvatarMixerClientData* otherNodeData = NULL;
     
-    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        SharedNodePointer node = it->second;
+    nodeList->eachNode([&](const SharedNodePointer& node) {
         if (node->getLinkedData() && node->getType() == NodeType::Agent && node->getActiveSocket()
             && (nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData()))->getMutex().tryLock()) {
             ++_sumListeners;
@@ -137,9 +135,7 @@ void AvatarMixer::broadcastAvatarData() {
             
             // this is an AGENT we have received head data from
             // send back a packet with other active node data to this node
-            NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
-            for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-                SharedNodePointer otherNode = it->second;
+            nodeList->eachNode([&](const SharedNodePointer& otherNode) {
                 if (otherNode->getLinkedData() && otherNode->getUUID() != node->getUUID()
                     && (otherNodeData = reinterpret_cast<AvatarMixerClientData*>(otherNode->getLinkedData()))->getMutex().tryLock()) {
                     
@@ -207,13 +203,13 @@ void AvatarMixer::broadcastAvatarData() {
                 
                     otherNodeData->getMutex().unlock();
                 }
-            }
+            });
             
             nodeList->writeDatagram(mixedAvatarByteArray, node);
             
             nodeData->getMutex().unlock();
         }
-    }
+    });
     
     _lastFrameTimestamp = QDateTime::currentMSecsSinceEpoch();
 }
