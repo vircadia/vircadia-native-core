@@ -81,6 +81,7 @@
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"

@@ -24,6 +24,8 @@
 
 #include <AnimationCache.h>
 
+#include "gpu/Stream.h"
+
 class Model;
 class NetworkGeometry;
 class NetworkMesh;
@@ -155,9 +157,12 @@ public:
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
-    
-    QOpenGLBuffer indexBuffer;
-    QOpenGLBuffer vertexBuffer;
+    gpu::BufferPointer _indexBuffer;
+    gpu::BufferPointer _vertexBuffer;
+
+    gpu::BufferStreamPointer _vertexStream;
+
+    gpu::Stream::FormatPointer _vertexFormat;
     
     QVector<NetworkMeshPart> parts;
     

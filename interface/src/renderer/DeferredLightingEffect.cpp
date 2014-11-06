@@ -248,9 +248,9 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
             glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.f ? light.constantAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.f ? light.linearAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.f ? light.quadraticAttenuation : 0.f));
          
             glPushMatrix();
             
@@ -293,9 +293,9 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
             glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.f ? light.constantAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.f ? light.linearAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.f ? light.quadraticAttenuation : 0.f));
             glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
             glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
             glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
