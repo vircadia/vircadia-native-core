@@ -16,9 +16,8 @@
 
 #include <vector>
 
-#include "gpu/Format.h"
-#include "gpu/Resource.h"
 #include "gpu/Stream.h"
+#include "gpu/Transform.h"
 
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
@@ -60,17 +59,27 @@ public:
 
     void clear();
 
+    // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
     void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
+    // Input Stage
+    // InputFormat
+    // InputBuffers
+    // IndexBuffer
     void setInputFormat(const Stream::FormatPointer& format);
 
     void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
     void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+
+    // Transform Stage
+    void setModelTransform(const TransformPointer& model);
+    void setViewTransform(const TransformPointer& view);
+    void setProjectionTransform(const TransformPointer& proj);
 
 
     // TODO: As long as we have gl calls explicitely issued from interface
@@ -138,10 +147,12 @@ public:
         COMMAND_drawIndexedInstanced,
 
         COMMAND_setInputFormat,
-
         COMMAND_setInputBuffer,
-
         COMMAND_setIndexBuffer,
+
+        COMMAND_setModelTransform,
+        COMMAND_setViewTransform,
+        COMMAND_setProjectionTransform,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -265,6 +276,7 @@ public:
     
     typedef Cache<Buffer>::Vector BufferCaches;
     typedef Cache<Stream::Format>::Vector StreamFormatCaches;
+    typedef Cache<Transform>::Vector TransformCaches;
 
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
@@ -298,6 +310,8 @@ public:
 
     BufferCaches _buffers;
     StreamFormatCaches _streamFormats;
+
+    TransformCaches _transforms;
 
     Bytes _data;
 protected:

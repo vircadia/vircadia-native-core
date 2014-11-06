@@ -156,3 +156,22 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
     _params.push_back(_buffers.cache(buffer));
     _params.push_back(type);
 }
+
+void Batch::setModelTransform(const TransformPointer& model) {
+    ADD_COMMAND(setModelTransform);
+
+    _params.push_back(_transforms.cache(model));
+}
+
+void Batch::setViewTransform(const TransformPointer& view) {
+    ADD_COMMAND(setViewTransform);
+
+    _params.push_back(_transforms.cache(view));
+}
+
+void Batch::setProjectionTransform(const TransformPointer& proj) {
+    ADD_COMMAND(setProjectionTransform);
+
+    _params.push_back(_transforms.cache(proj));
+}
+

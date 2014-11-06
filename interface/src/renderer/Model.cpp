@@ -556,6 +556,16 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     gpu::Batch batch;
 
+    // Capture the view matrix once for the rendering of this model
+    gpu::TransformPointer viewTransform(new gpu::Transform());
+
+    glm::mat4 v = Application::getInstance()->getUntranslatedViewMatrix();
+    viewTransform->evalFromRawMatrix(v);
+    glm::mat4 v2 = viewTransform->getMatrix();
+
+    viewTransform->localTranslate(Application::getInstance()->getViewMatrixTranslation());
+
+  //  batch.setViewTransform(viewTransform);
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
@@ -1853,17 +1863,42 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
         GLBATCH(glPushMatrix)();
         //Application::getInstance()->loadTranslatedViewMatrix(_translation);
-        GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
+    //    GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
+
+        // Capture the view matrix once for the rendering of this model
+        glm::mat4 v = Application::getInstance()->getUntranslatedViewMatrix();
+        
+        gpu::TransformPointer viewTransform(new gpu::Transform());
+        viewTransform->evalFromRawMatrix(v);
+
         glm::vec3 viewMatTranslation = Application::getInstance()->getViewMatrixTranslation();
-        GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y,
-            _translation.z + viewMatTranslation.z);
+
+        viewTransform->localTranslate(viewMatTranslation + _translation);
+        glm::mat4 v2 = viewTransform->getMatrix();
+       // batch.setViewTransform(viewTransform);
+
+   //     GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y,
+    //        _translation.z + viewMatTranslation.z);
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
+
+        //    gpu::TransformPointer modelTransform(new gpu::Transform());
+        //    modelTransform->setTranslation(_translation);
+         //   batch.setModelTransform(viewTransform);
+
+          //  gpu::TransformPointer mv(new gpu::Transform());
+          //  gpu::Transform::mult(*mv, *viewTransform, *modelTransform);
+            batch.setModelTransform(viewTransform);
         } else {
-            GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
+           // GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
+            gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
+            
+            gpu::TransformPointer mv(new gpu::Transform());
+            gpu::Transform::mult(*mv, *viewTransform, *modelTransform);
+            batch.setModelTransform(mv);
         }
         
         if (mesh.blendshapes.isEmpty()) {

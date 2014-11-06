@@ -24,10 +24,12 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexedInstanced),
 
     (&::gpu::GLBackend::do_setInputFormat),
-
     (&::gpu::GLBackend::do_setInputBuffer),
-
     (&::gpu::GLBackend::do_setIndexBuffer),
+
+    (&::gpu::GLBackend::do_setModelTransform),
+    (&::gpu::GLBackend::do_setViewTransform),
+    (&::gpu::GLBackend::do_setProjectionTransform),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -111,7 +113,6 @@ static const GLenum _elementTypeToGLType[NUM_TYPES]= {
 
 
 GLBackend::GLBackend() :
-
     _inputFormat(0),
     _inputAttributeActivation(0),
     _needInputFormatUpdate(true),
@@ -122,7 +123,10 @@ GLBackend::GLBackend() :
     _inputBufferStrides(_inputBuffersState.size(), 0),
 
     _indexBuffer(0),
-    _indexBufferOffset(0)
+    _indexBufferOffset(0),
+
+    _transform()
+
 {
 
 }
@@ -183,6 +187,7 @@ void GLBackend::checkGLError() {
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
+    updateTransform();
 
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -195,6 +200,7 @@ void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     updateInput();
+    updateTransform();
 
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -422,6 +428,68 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     CHECK_GL_ERROR();
+}
+
+// Transform Stage
+
+void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
+    TransformPointer modelTransform = batch._transforms.get(batch._params[paramOffset]._uint);
+
+    if (modelTransform != _transform._model) {
+        _transform._invalidModel = true;
+    }
+}
+
+void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
+    TransformPointer viewTransform = batch._transforms.get(batch._params[paramOffset]._uint);
+
+    if (viewTransform != _transform._view) {
+        _transform._invalidView = true;
+    }
+}
+
+void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
+    TransformPointer projectionTransform = batch._transforms.get(batch._params[paramOffset]._uint);
+
+    if (projectionTransform != _transform._projection) {
+        _transform._invalidProj = true;
+    }
+}
+
+void GLBackend::updateTransform() {
+    if (_transform._invalidProj) {
+        if (_transform._lastMode != GL_PROJECTION) {
+            glMatrixMode(GL_PROJECTION);
+            _transform._lastMode = GL_PROJECTION;
+        }
+        CHECK_GL_ERROR();
+    }
+
+    if (_transform._invalidModel || _transform._invalidView) {
+        if (_transform._lastMode != GL_MODELVIEW) {
+            glMatrixMode(GL_MODELVIEW);
+            _transform._lastMode = GL_MODELVIEW;
+        }
+
+        if (!_transform._model.isNull()) {
+            if (!_transform._view.isNull()) {
+                Transform::Mat4 mv = _transform._view->getMatrix() * _transform._model->getMatrix();
+                glLoadMatrixf((const GLfloat*) &mv[0]);
+            } else {
+                glLoadMatrixf((const GLfloat*) &_transform._model->getMatrix());
+            }
+        } else {
+            if (!_transform._view.isNull()) {
+                glLoadMatrixf((const GLfloat*) & _transform._view->getMatrix());
+            } else {
+               // glLoadIdentity();
+            }
+        }
+        CHECK_GL_ERROR();
+
+        _transform._invalidModel = false;
+        _transform._invalidView = false;
+    }
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface
