@@ -173,12 +173,12 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
             for (int j = 0; j < slices; j++) {
                 int next = (j + 1) % slices;
                 
-                *(index++) = bottom + j;
                 *(index++) = top + next;
+                *(index++) = bottom + j;
                 *(index++) = top + j;
                 
-                *(index++) = bottom + j;
                 *(index++) = bottom + next;
+                *(index++) = bottom + j;
                 *(index++) = top + next;
             }
         }
@@ -187,8 +187,8 @@ void GeometryCache::renderSphere(float radius, int slices, int stacks) {
         bottom = (stacks - 2) * slices + 1;
         top = bottom + slices;
         for (int i = 0; i < slices; i++) {    
-            *(index++) = bottom + i;
             *(index++) = bottom + (i + 1) % slices;
+            *(index++) = bottom + i;
             *(index++) = top;
         }
         
@@ -408,8 +408,8 @@ void GeometryCache::renderCone(float base, float height, int slices, int stacks)
         GLushort* index = indexData;
         for (int i = 0; i < baseTriangles; i++) {
             *(index++) = 0;
-            *(index++) = i + 1;
             *(index++) = i + 2;
+            *(index++) = i + 1;
         }
         for (int i = 1; i <= stacks; i++) {
             GLushort bottom = i * slices;
