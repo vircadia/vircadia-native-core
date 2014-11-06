@@ -520,21 +520,17 @@ void ScriptEngine::run() {
                 
                 // write audio packet to AudioMixer nodes
                 NodeList* nodeList = NodeList::getInstance();
-                NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
-                
-                for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-                    SharedNodePointer node = it->second;
-                    
+                nodeList->eachNode([this, &nodeList, &audioPacket, &numPreSequenceNumberBytes](const SharedNodePointer& node){
                     // only send to nodes of type AudioMixer
                     if (node->getType() == NodeType::AudioMixer) {
                         // pack sequence number
                         quint16 sequence = _outgoingScriptAudioSequenceNumbers[node->getUUID()]++;
                         memcpy(audioPacket.data() + numPreSequenceNumberBytes, &sequence, sizeof(quint16));
-
+                        
                         // send audio packet
                         nodeList->writeDatagram(audioPacket, node);
                     }
-                }
+                });
             }
         }
 
