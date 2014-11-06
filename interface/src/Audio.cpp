@@ -587,8 +587,9 @@ void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioF
     }
 }
 
-void Audio::handleLocalEchoAndReverb(QByteArray inputByteArray) {
+void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     bool hasEcho = Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio);
+    // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
     bool hasLocalReverb = (_reverb || _receivedAudioStream.hasReverb()) &&
                           !Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio);
     if (_muted || !_audioOutput || (!hasEcho && !hasLocalReverb)) {

@@ -273,7 +273,7 @@ private:
     void updateGverbOptions();
     void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
 
-    void handleLocalEchoAndReverb(QByteArray inputByteArray);
+    void handleLocalEchoAndReverb(QByteArray& inputByteArray);
     
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
