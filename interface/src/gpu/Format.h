@@ -29,23 +29,23 @@ typedef uint32 Offset;
 // Description of a scalar type
 enum Type {
 
-    TYPE_FLOAT = 0,
-    TYPE_INT32,
-    TYPE_UINT32,
-    TYPE_HALF,
-    TYPE_INT16,
-    TYPE_UINT16,
-    TYPE_INT8,
-    TYPE_UINT8,
+    FLOAT = 0,
+    INT32,
+    UINT32,
+    HALF,
+    INT16,
+    UINT16,
+    INT8,
+    UINT8,
 
-    TYPE_NFLOAT,
-    TYPE_NINT32,
-    TYPE_NUINT32,
-    TYPE_NHALF,
-    TYPE_NINT16,
-    TYPE_NUINT16,
-    TYPE_NINT8,
-    TYPE_NUINT8,
+    NFLOAT,
+    NINT32,
+    NUINT32,
+    NHALF,
+    NINT16,
+    NUINT16,
+    NINT8,
+    NUINT8,
 
     NUM_TYPES,
 };
@@ -72,12 +72,12 @@ static const int TYPE_SIZE[NUM_TYPES] = {
 
 // Dimension of an Element
 enum Dimension {
-    DIM_SCALAR = 0,
-    DIM_VEC2,
-    DIM_VEC3,
-    DIM_VEC4,
-    DIM_MAT3,
-    DIM_MAT4,
+    SCALAR = 0,
+    VEC2,
+    VEC3,
+    VEC4,
+    MAT3,
+    MAT4,
 
     NUM_DIMENSIONS,
 };
@@ -94,16 +94,16 @@ static const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
 // Semantic of an Element
 // Provide information on how to use the element
 enum Semantic {
-    SEMANTIC_RGB = 0,
-    SEMANTIC_RGBA,
-    SEMANTIC_XYZ,
-    SEMANTIC_XYZW,
-    SEMANTIC_POS_XYZ,
-    SEMANTIC_POS_XYZW,
-    SEMANTIC_QUAT,
-    SEMANTIC_DIR_XYZ,
-    SEMANTIC_UV,
-    SEMANTIC_R8,
+    RGB = 0,
+    RGBA,
+    XYZ,
+    XYZW,
+    POS_XYZ,
+    POS_XYZW,
+    QUAT,
+    DIR_XYZ,
+    UV,
+    R8,
 
     NUM_SEMANTICS,
 };
@@ -119,9 +119,9 @@ public:
         _type(type) 
     {}
     Element() :
-        _semantic(SEMANTIC_R8),
-        _dimension(DIM_SCALAR),
-        _type(TYPE_INT8)
+        _semantic(R8),
+        _dimension(SCALAR),
+        _type(INT8)
     {}
 
     Semantic getSemantic() const { return (Semantic)_semantic; }
@@ -130,7 +130,7 @@ public:
     uint8 getDimensionCount() const { return  DIMENSION_COUNT[(Dimension)_dimension]; }
 
     Type getType() const { return (Type)_type; }
-    bool isNormalized() const { return (getType() >= TYPE_NFLOAT); }
+    bool isNormalized() const { return (getType() >= NFLOAT); }
 
     uint32 getSize() const { return DIMENSION_COUNT[_dimension] * TYPE_SIZE[_type]; }
 

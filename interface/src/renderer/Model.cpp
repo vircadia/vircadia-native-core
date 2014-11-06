@@ -137,7 +137,7 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
 
 
-    glBindAttribLocation(program.programId(), gpu::Stream::INPUT_SLOT_TANGENT, "tangent");
+    glBindAttribLocation(program.programId(), gpu::Stream::TANGENT, "tangent");
 
     glLinkProgram(program.programId());
 
@@ -177,9 +177,9 @@ void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locati
 
     // HACK: Assign explicitely the attribute channel to avoid a bug on Yosemite
 
-    glBindAttribLocation(program.programId(), gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_INDEX, "clusterIndices");
+    glBindAttribLocation(program.programId(), gpu::Stream::SKIN_CLUSTER_INDEX, "clusterIndices");
 
-    glBindAttribLocation(program.programId(), gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_WEIGHT, "clusterWeights");
+    glBindAttribLocation(program.programId(), gpu::Stream::SKIN_CLUSTER_WEIGHT, "clusterWeights");
 
     glLinkProgram(program.programId());
 
@@ -671,9 +671,9 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
     GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
     GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
-    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::INPUT_SLOT_TANGENT);
-    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_INDEX);
-    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_WEIGHT);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::TANGENT);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_INDEX);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_WEIGHT);
     
     // bind with 0 to switch back to normal operation
     GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
@@ -1817,7 +1817,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         const FBXMesh& mesh = geometry.meshes.at(i);    
 
-        batch.setIndexBuffer(gpu::TYPE_UINT32, (networkMesh._indexBuffer), 0);
+        batch.setIndexBuffer(gpu::UINT32, (networkMesh._indexBuffer), 0);
         int vertexCount = mesh.vertices.size();
         if (vertexCount == 0) {
             // sanity check
@@ -1946,12 +1946,12 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             meshPartsRendered++;
             
             if (part.quadIndices.size() > 0) {
-                batch.drawIndexed(gpu::PRIMITIVE_QUADS, part.quadIndices.size(), offset);
+                batch.drawIndexed(gpu::QUADS, part.quadIndices.size(), offset);
                 offset += part.quadIndices.size() * sizeof(int);
             }
 
             if (part.triangleIndices.size() > 0) {
-                batch.drawIndexed(gpu::PRIMITIVE_TRIANGLES, part.triangleIndices.size(), offset);
+                batch.drawIndexed(gpu::TRIANGLES, part.triangleIndices.size(), offset);
                 offset += part.triangleIndices.size() * sizeof(int);
             }
 

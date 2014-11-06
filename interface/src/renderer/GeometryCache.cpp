@@ -923,13 +923,13 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
 
                 int channelNum = 0;
                 networkMesh._vertexFormat = gpu::Stream::FormatPointer(new gpu::Stream::Format());
-                networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_POSITION, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_POS_XYZ), 0);
-                if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_NORMAL, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_XYZ), 0);
-                if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_TANGENT, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_XYZ), 0);
-                if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_COLOR, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_RGB), 0);
-                if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_TEXCOORD, channelNum++, gpu::Element(gpu::DIM_VEC2, gpu::TYPE_FLOAT, gpu::SEMANTIC_UV), 0);
-                if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::DIM_VEC4, gpu::TYPE_NFLOAT, gpu::SEMANTIC_XYZW), 0);
-                if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::DIM_VEC4, gpu::TYPE_NFLOAT, gpu::SEMANTIC_XYZW), 0);
+                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ), 0);
+                if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+                if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+                if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+                if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+                if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
             }
             else {
                 int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
@@ -956,13 +956,13 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
 
                 int channelNum = 0;
                 networkMesh._vertexFormat = gpu::Stream::FormatPointer(new gpu::Stream::Format());
-                networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_POSITION, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_POS_XYZ), 0);
-                if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_NORMAL, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_XYZ), 0);
-                if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_TANGENT, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_XYZ), 0);
-                if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_COLOR, channelNum++, gpu::Element(gpu::DIM_VEC3, gpu::TYPE_FLOAT, gpu::SEMANTIC_RGB), 0);
-                if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_TEXCOORD, channelNum++, gpu::Element(gpu::DIM_VEC2, gpu::TYPE_FLOAT, gpu::SEMANTIC_UV), 0);
-                if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::DIM_VEC4, gpu::TYPE_NFLOAT, gpu::SEMANTIC_XYZW), 0);
-                if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::INPUT_SLOT_SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::DIM_VEC4, gpu::TYPE_NFLOAT, gpu::SEMANTIC_XYZW), 0);
+                networkMesh._vertexFormat->setAttribute(gpu::Stream::POSITION, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::POS_XYZ));
+                if (mesh.normals.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::NORMAL, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+                if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
+                if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
+                if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
+                if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
 
             }
         }
