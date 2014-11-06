@@ -862,8 +862,6 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                     // append the nodeByteArray to the current state of broadcastDataStream
                     broadcastPacket.append(nodeByteArray);
                 }
-                
-                return true;
             });
         }
 
@@ -995,8 +993,6 @@ void DomainServer::setupPendingAssignmentCredits() {
                 _pendingAssignmentCredits.insert(nodeData->getWalletUUID(), freshTransaction);
             }
         }
-        
-        return true;
     });
 }
 
@@ -1127,8 +1123,6 @@ void DomainServer::sendHeartbeatToDataServer(const QString& networkAddress) {
         if (node->getLinkedData() && !static_cast<DomainServerNodeData*>(node->getLinkedData())->getUsername().isEmpty()) {
             ++numConnectedAuthedUsers;
         }
-        
-        return true;
     });
     
     const QString DOMAIN_HEARTBEAT_KEY = "heartbeat";
@@ -1440,8 +1434,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
                     QString uuidString = uuidStringWithoutCurlyBraces(nodeData->getAssignmentUUID());
                     assignedNodesJSON[uuidString] = jsonObjectForNode(node);
                 }
-                
-                return true;
             });
 
             assignmentJSON["fulfilled"] = assignedNodesJSON;
@@ -1499,8 +1491,6 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             LimitedNodeList::getInstance()->eachNode([this, &nodesJSONArray](const SharedNodePointer& node){
                 // add the node using the UUID as the key
                 nodesJSONArray.append(jsonObjectForNode(node));
-                
-                return true;
             });
 
             rootJSON["nodes"] = nodesJSONArray;

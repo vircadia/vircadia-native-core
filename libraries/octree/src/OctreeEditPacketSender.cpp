@@ -52,7 +52,7 @@ bool OctreeEditPacketSender::serversExist() const {
     bool hasServers = false;
     bool atLeastOneJurisdictionMissing = false; // assume the best
     
-    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
+    NodeList::getInstance()->eachNodeBreakable([&](const SharedNodePointer& node){
         if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
             
             QUuid nodeUUID = node->getUUID();
@@ -126,8 +126,6 @@ void OctreeEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned c
                 " transitTimeSoFar=" << transitTime << " usecs";
             }
         }
-        
-        return true;
     });
 }
 
@@ -209,8 +207,6 @@ void OctreeEditPacketSender::queuePacketToNodes(unsigned char* buffer, size_t le
                 queuePacketToNode(nodeUUID, buffer, length, satoshiCost);
             }
         }
-        
-        return true;
     });
 }
 
@@ -299,8 +295,6 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 packetBuffer._satoshiCost += satoshiCost;
             }
         }
-        
-        return true;
     });
 
     _packetsQueueLock.unlock();

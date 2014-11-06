@@ -43,8 +43,6 @@ bool JurisdictionListener::queueJurisdictionRequest() {
             _packetSender.queuePacketForSending(node, QByteArray(reinterpret_cast<char*>(bufferOut), sizeOut));
             nodeCount++;
         }
-        
-        return true;
     });
 
     if (nodeCount > 0){

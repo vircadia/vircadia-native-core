@@ -422,8 +422,6 @@ unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeS
             writeDatagram(packet, node);
             ++n;
         }
-        
-        return true;
     });
 
     return n;

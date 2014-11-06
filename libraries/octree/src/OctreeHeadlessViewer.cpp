@@ -113,8 +113,6 @@ void OctreeHeadlessViewer::queryOctree() {
                 }
             }
         }
-        
-        return true;
     });
 
     if (wantExtraDebugging) {
@@ -234,8 +232,6 @@ void OctreeHeadlessViewer::queryOctree() {
             // make sure we still have an active socket
             nodeList->writeUnverifiedDatagram(reinterpret_cast<const char*>(queryPacket), packetLength, node);
         }
-        
-        return true;
     });
 }
 
