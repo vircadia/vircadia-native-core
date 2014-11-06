@@ -124,11 +124,7 @@ void EntityServer::pruneDeletedEntities() {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
         
-        NodeHashSnapshot snapshotHash =  NodeList::getInstance()->getNodeHash().snapshot_table();
-        
-        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-            SharedNodePointer node = it->second;
-            
+        NodeList::getInstance()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
             if (node->getLinkedData()) {
                 EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
                 quint64 nodeLastDeletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
@@ -136,7 +132,8 @@ void EntityServer::pruneDeletedEntities() {
                     earliestLastDeletedEntitiesSent = nodeLastDeletedEntitiesSentAt;
                 }
             }
-        }
+        });
+        
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }

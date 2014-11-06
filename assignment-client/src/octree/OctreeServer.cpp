@@ -1138,12 +1138,11 @@ void OctreeServer::aboutToFinish() {
     qDebug() << qPrintable(_safeServerName) << "inform Octree Inbound Packet Processor that we are shutting down...";
     _octreeInboundPacketProcessor->shuttingDown();
     
-    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
+    NodeList::getInstance()->eachNode([this](const SharedNodePointer& node) {
+        qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
+        forceNodeShutdown(node);
+    });
     
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *it->second;
-        forceNodeShutdown(it->second);
-    }
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
 
