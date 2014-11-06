@@ -312,11 +312,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                 qDebug() << "{" <<  QThread::currentThread() << "} " << "getLastChangedOnServer():" << entity->getLastChangedOnServer();
                 qDebug() << "{" <<  QThread::currentThread() << "} " << "params.lastViewFrustumSent:" << params.lastViewFrustumSent;
             } else {
-                qDebug() << "{" <<  QThread::currentThread() << "} " << "IGNORE MATCH!! - " << ignoreFromLastEdit;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "IGNORE MATCH!! - " << ignoreFromLastEdit;
             }
             
             if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
-                qDebug() << "{" <<  QThread::currentThread() << "} " << "  ignore this entity cause it hasn't changed i:" << i;
+                //qDebug() << "{" <<  QThread::currentThread() << "} " << "  ignore this entity cause it hasn't changed i:" << i;
                 //qDebug() << "{" <<  QThread::currentThread() << "} " << "  entity->getLastEdited():" << entity->getLastEdited();
                 //qDebug() << "{" <<  QThread::currentThread() << "} " << "  params.lastViewFrustumSent:" << params.lastViewFrustumSent;
                 includeThisEntity = false;

@@ -164,7 +164,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     quint64 lastEdited = getLastEdited();
 
-    const bool wantDebug = true;
+    const bool wantDebug = false;
     if (wantDebug) {
         float editedAgo = getEditedAgo();
         QString agoAsString = formatSecondsElapsed(editedAgo);
