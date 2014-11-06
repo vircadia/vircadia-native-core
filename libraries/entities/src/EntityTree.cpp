@@ -555,7 +555,6 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
         EntityTreeElementExtraEncodeData* thisExtraEncodeData = static_cast<EntityTreeElementExtraEncodeData*>(extraData);
         delete thisExtraEncodeData;
     }
-    //qDebug() << "{" <<  QThread::currentThread() << "} " << "EntityTree::releaseSceneEncodeData()...  now:" << usecTimestampNow();
     extraEncodeData->clear();
 }
 

@@ -1088,9 +1088,6 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
     if (suppressEmptySubtrees() && params.includeColor && childBytesWritten == 2) {
         childBytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
-        //qDebug() << "{" <<  QThread::currentThread() << "} " << "EncodeBitstreamParams::UNKNOWN????  line:" << __LINE__;
-        
-        
     }
 
     // if we wrote child bytes, then return our result of all bytes written
@@ -1100,7 +1097,6 @@ int Octree::encodeTreeBitstream(OctreeElement* element,
         // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
         bytesWritten = 0;
         //params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
-        //qDebug() << "{" <<  QThread::currentThread() << "} " << "EncodeBitstreamParams::UNKNOWN????  line:" << __LINE__;
     }
 
     if (bytesWritten == 0) {
@@ -1236,9 +1232,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
             if (params.stats) {
                 params.stats->skippedNoChange(element);
             }
-            //qDebug() << "{" <<  QThread::currentThread() << "} " << "params.stopReason = EncodeBitstreamParams::NO_CHANGE ... ";
-            //qDebug() << "{" <<  QThread::currentThread() << "} " << "    params.lastViewFrustumSent:" << params.lastViewFrustumSent;
-            //qDebug() << "{" <<  QThread::currentThread() << "} " << "    element->getLastChanged():" << element->getLastChanged();
             params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
         }
@@ -1529,12 +1522,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
                     // to be completed.
                     LevelDetails childDataLevelKey = packetData->startLevel();
                     
-                    //qDebug() << "{" <<  QThread::currentThread() << "} " << "appendElementData()";
-                    AACube childElementCube = childElement->getAACube();
-                    childElementCube.scale(TREE_SCALE);
-                    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  childElementCube:" << childElementCube;
-                    //qDebug() << "{" <<  QThread::currentThread() << "} " << "  childElement->getLastChanged():" << childElement->getLastChanged();
-
                     OctreeElement::AppendState childAppendState = childElement->appendElementData(packetData, params);
                     
                     // allow our tree subclass to do any additional bookkeeping it needs to do with encoded data state
@@ -1886,7 +1873,6 @@ int Octree::encodeTreeBitstreamRecursion(OctreeElement* element,
         element->elementEncodeComplete(params, &bag);
     }
 
-    //qDebug() << "{" <<  QThread::currentThread() << "} " << "got to bottom... didn't set stopReason...";
     return bytesAtThisLevel;
 }
 
