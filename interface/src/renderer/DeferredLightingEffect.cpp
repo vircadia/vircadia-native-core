@@ -230,9 +230,10 @@ void DeferredLightingEffect::render() {
     glTexGenfv(GL_T, GL_OBJECT_PLANE, (const GLfloat*)&tCoefficients);
     
     // enlarge the scales slightly to account for tesselation
-    const float SCALE_EXPANSION = 0.1f;
+    const float SCALE_EXPANSION = 0.05f;
     
     const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
+    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
@@ -254,7 +255,7 @@ void DeferredLightingEffect::render() {
             glPushMatrix();
             
             float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius) {
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -303,7 +304,7 @@ void DeferredLightingEffect::render() {
             
             float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
             float edgeRadius = expandedRadius / glm::cos(light.cutoff);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius) {
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
