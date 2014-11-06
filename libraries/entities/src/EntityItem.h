@@ -59,10 +59,10 @@ public:
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
     
-    /// returns true is something changed
+    /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
-    /// override this in your derived class if you'd like to be informed when something about the state of the entity
+    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
