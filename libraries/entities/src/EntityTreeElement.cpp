@@ -238,7 +238,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
 
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
-                     
+
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
@@ -289,7 +289,8 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
             bool includeThisEntity = true;
-            if (!params.forceSendScene && entity->getLastEdited() < params.lastViewFrustumSent) {
+            
+            if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
                 includeThisEntity = false;
             }
         
@@ -324,7 +325,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (successAppendEntityCount) {
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
-
             LevelDetails entityLevel = packetData->startLevel();
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, 
                                                                         params, entityTreeElementExtraEncodeData);
