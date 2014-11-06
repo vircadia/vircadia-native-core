@@ -40,16 +40,17 @@ uniform float radius;
 
 void main(void) {
     // get the depth and exit early if it doesn't pass the test
-    float depth = texture2D(depthMap, gl_TexCoord[0].st).r;
+    vec2 texCoord = gl_TexCoord[0].st / gl_TexCoord[0].q;
+    float depth = texture2D(depthMap, texCoord).r;
     if (depth < gl_FragCoord.z) {
         discard;
     }
     // compute the view space position using the depth
     float z = near / (depth * depthScale - 1.0);
-    vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 1.0);
+    vec4 position = vec4((depthTexCoordOffset + texCoord * depthTexCoordScale) * z, z, 1.0);
     
     // get the normal from the map
-    vec4 normal = texture2D(normalMap, gl_TexCoord[0].st);
+    vec4 normal = texture2D(normalMap, texCoord);
     vec4 normalizedNormal = normalize(normal * 2.0 - vec4(1.0, 1.0, 1.0, 2.0));
     
     // compute the base color based on OpenGL lighting model
@@ -58,7 +59,7 @@ void main(void) {
     lightVector = lightVector / lightDistance;
     float diffuse = dot(normalizedNormal, lightVector);
     float facingLight = step(0.0, diffuse);
-    vec4 baseColor = texture2D(diffuseMap, gl_TexCoord[0].st) * (gl_FrontLightProduct[1].ambient +
+    vec4 baseColor = texture2D(diffuseMap, texCoord) * (gl_FrontLightProduct[1].ambient +
         gl_FrontLightProduct[1].diffuse * (diffuse * facingLight));
     
     // compute attenuation based on distance, etc.
@@ -69,6 +70,6 @@ void main(void) {
     // add base to specular, modulate by attenuation
     float specular = facingLight * max(0.0, dot(normalize(lightVector - normalize(vec4(position.xyz, 0.0))),
         normalizedNormal));    
-    vec4 specularColor = texture2D(specularMap, gl_TexCoord[0].st);
+    vec4 specularColor = texture2D(specularMap, texCoord);
     gl_FragColor = vec4((baseColor.rgb + pow(specular, specularColor.a * 128.0) * specularColor.rgb) * attenuation, 0.0);
 }

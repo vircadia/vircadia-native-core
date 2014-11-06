@@ -81,6 +81,7 @@
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -450,6 +451,9 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
+    
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();

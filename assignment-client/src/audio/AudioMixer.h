@@ -62,6 +62,8 @@ private:
     int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
     void perSecondActions();
+    
+    bool shouldMute(float quietestFrame, float loudestFrame);
 
     QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
     QString getReadPendingDatagramsPacketsPerCallStatsString() const;
@@ -74,6 +76,7 @@ private:
     float _minAudibilityThreshold;
     float _performanceThrottlingRatio;
     float _attenuationPerDoublingInDistance;
+    float _noiseMutingThreshold;
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;

@@ -290,7 +290,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 
     registerGlobalObject("Script", this);
-    registerGlobalObject("Audio", &_audioScriptingInterface);
+    registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Entities", &_entityScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);

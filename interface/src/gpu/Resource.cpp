@@ -120,7 +120,7 @@ Resource::Size Resource::Sysmem::resize(Size size) {
 
 Resource::Size Resource::Sysmem::setData( Size size, const Byte* bytes ) {
     if (allocate(size) == size) {
-        if (bytes) {
+        if (size && bytes) {
             memcpy( _data, bytes, _size );
             _stamp++;
         }
@@ -129,7 +129,7 @@ Resource::Size Resource::Sysmem::setData( Size size, const Byte* bytes ) {
 }
 
 Resource::Size Resource::Sysmem::setSubData( Size offset, Size size, const Byte* bytes) {
-    if (((offset + size) <= getSize()) && bytes) {
+    if (size && ((offset + size) <= getSize()) && bytes) {
         memcpy( _data + offset, bytes, size );
         _stamp++;
         return size;
