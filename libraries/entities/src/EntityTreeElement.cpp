@@ -325,9 +325,7 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (successAppendEntityCount) {
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
-
             LevelDetails entityLevel = packetData->startLevel();
-
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, 
                                                                         params, entityTreeElementExtraEncodeData);
 

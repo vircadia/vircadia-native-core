@@ -496,10 +496,8 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     
                     // if the entityItem exists, then update it
                     if (existingEntity) {
-                        qDebug() << "Calling updateEntity() properties.getLastEdited(): " << properties.getLastEdited();
                         updateEntity(entityItemID, properties);
                         existingEntity->markAsChangedOnServer();
-                        qDebug() << "AFTER updateEntity() now: " << usecTimestampNow();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }

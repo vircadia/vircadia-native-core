@@ -19,7 +19,6 @@
 #include <fstream> // to load voxels from file
 
 #include <QDebug>
-#include <QThread>
 #include <QVector>
 
 #include <GeometryUtil.h>
