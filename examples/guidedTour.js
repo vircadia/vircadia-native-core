@@ -12,6 +12,8 @@ var MIN_CHANGE = 2.0;
 var LANDING_DISTANCE = 2.0;
 var LANDING_RANDOM = 0.2;
 
+var relativePosition;
+
 function update(deltaTime) {
 
   if (Math.random() < deltaTime) {
@@ -26,20 +28,15 @@ function update(deltaTime) {
   }
 
   if (guide) {
+    relativePosition = Vec3.subtract(MyAvatar.position, lastGuidePosition);
     //  Check whether guide has moved, update if so
     if (Vec3.length(lastGuidePosition) == 0.0) {
       lastGuidePosition = guide.position;
     } else {
       if (Vec3.length(Vec3.subtract(lastGuidePosition, guide.position)) > MIN_CHANGE) {
-        var meToGuide = Vec3.multiply(Vec3.normalize(Vec3.subtract(guide.position, MyAvatar.position)), LANDING_DISTANCE);
-        var newPosition = Vec3.subtract(guide.position, meToGuide);
-        newPosition = Vec3.sum(newPosition, {   x: Math.random() * LANDING_RANDOM - LANDING_RANDOM / 2.0, 
-                                                y: 0, 
-                                                z: Math.random() * LANDING_RANDOM - LANDING_RANDOM / 2.0 });
+        var newPosition = Vec3.sum(guide.position, relativePosition);
         MyAvatar.position = newPosition;
-
         lastGuidePosition = guide.position;
-        MyAvatar.orientation = guide.orientation;
       }
     }
   }

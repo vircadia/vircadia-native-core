@@ -33,6 +33,8 @@ public slots:
     void stop() { _shouldStop = true; }
     void setOptions(AudioInjectorOptions& options);
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
+    float getLoudness();
+    
 signals:
     void finished();
 private:
@@ -40,6 +42,7 @@ private:
     AudioInjectorOptions _options;
     bool _shouldStop;
     int _currentSendPosition;
+    float _loudness;
 };
 
 Q_DECLARE_METATYPE(AudioInjector*)

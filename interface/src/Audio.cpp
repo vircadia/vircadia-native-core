@@ -728,9 +728,8 @@ void Audio::handleAudioInput() {
                     _loudestFrame = _lastInputLoudness;
                 }
                 
-                const int FRAMES_FOR_NOISE_DETECTION = 300;
+                const int FRAMES_FOR_NOISE_DETECTION = 400;
                 if (_inputFrameCounter++ > FRAMES_FOR_NOISE_DETECTION) {
-                    qDebug() << "Quietest/loudest frame: " << _quietestFrame << " / " << _loudestFrame << " NGfloor: " << _noiseGateMeasuredFloor;
                     _quietestFrame = std::numeric_limits<float>::max();
                     _loudestFrame = 0.0f;
                     _inputFrameCounter = 0;

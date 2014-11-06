@@ -45,8 +45,9 @@ void PositionalAudioStream::resetStats() {
 void PositionalAudioStream::updateLastPopOutputLoudnessAndTrailingLoudness() {
     _lastPopOutputLoudness = _ringBuffer.getFrameLoudness(_lastPopOutput);
 
-    const int TRAILING_AVERAGE_FRAMES = 100;
-    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_AVERAGE_FRAMES;
+    const int TRAILING_MUTE_THRESHOLD_FRAMES = 400;
+    const int TRAILING_LOUDNESS_FRAMES = 200;
+    const float CURRENT_FRAME_RATIO = 1.0f / TRAILING_LOUDNESS_FRAMES;
     const float PREVIOUS_FRAMES_RATIO = 1.0f - CURRENT_FRAME_RATIO;
     const float LOUDNESS_EPSILON = 0.000001f;
 
@@ -59,7 +60,7 @@ void PositionalAudioStream::updateLastPopOutputLoudnessAndTrailingLoudness() {
             _lastPopOutputTrailingLoudness = 0;
         }
     }
-    if (_frameCounter++ == TRAILING_AVERAGE_FRAMES) {
+    if (_frameCounter++ == TRAILING_MUTE_THRESHOLD_FRAMES) {
         _frameCounter = 0;
         _quietestTrailingFrameLoudness = std::numeric_limits<float>::max();
         _loudestTrailingFrameLoudness = 0.0f;

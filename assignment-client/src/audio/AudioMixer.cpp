@@ -61,8 +61,7 @@
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
-const float DEFAULT_NOISE_MUTING_THRESHOLD = 100.0f;
-
+const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
@@ -81,7 +80,6 @@ bool AudioMixer::_enableFilter = true;
 
 bool AudioMixer::shouldMute(float quietestFrame, float loudestFrame) {
     return (quietestFrame > _noiseMutingThreshold);
-    qDebug() << "Muting, quiestest frame = " << quietestFrame;
 }
 
 AudioMixer::AudioMixer(const QByteArray& packet) :
@@ -1015,7 +1013,17 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                 qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
             }
         }
-        
+  
+        const QString NOISE_MUTING_THRESHOLD = "noise_muting_threshold";
+        if (audioEnvGroupObject[NOISE_MUTING_THRESHOLD].isString()) {
+            bool ok = false;
+            float noiseMutingThreshold = audioEnvGroupObject[NOISE_MUTING_THRESHOLD].toString().toFloat(&ok);
+            if (ok) {
+                _noiseMutingThreshold = noiseMutingThreshold;
+                qDebug() << "Noise muting threshold changed to" << _noiseMutingThreshold;
+            }
+        }
+
         const QString FILTER_KEY = "enable_filter";
         if (audioEnvGroupObject[FILTER_KEY].isBool()) {
             _enableFilter = audioEnvGroupObject[FILTER_KEY].toBool();
