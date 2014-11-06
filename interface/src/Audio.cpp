@@ -589,7 +589,6 @@ void Audio::handleLocalEchoAndReverb(QByteArray inputByteArray) {
     bool hasLocalReverb = (_reverb || _receivedAudioStream.hasReverb()) &&
                           !Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio);
     if (_muted || !_audioOutput || (!hasEcho && !hasLocalReverb)) {
-        //qDebug() << "No Echo/Reverb:" << hasEcho << _reverb << _receivedAudioStream.hasReverb();
         return;
     }
     
@@ -613,7 +612,6 @@ void Audio::handleLocalEchoAndReverb(QByteArray inputByteArray) {
     }
     
     if (hasLocalReverb) {
-        //qDebug() << "Has Reverb";
         QByteArray loopbackCopy;
         if (!hasEcho) {
             loopbackCopy = loopBackByteArray;
@@ -626,7 +624,6 @@ void Audio::handleLocalEchoAndReverb(QByteArray inputByteArray) {
         
         if (!hasEcho) {
             int16_t* loopbackCopySamples = (int16_t*) loopbackCopy.data();
-            
             for (int i = 0; i < numLoopbackSamples; ++i) {
                 loopbackSamples[i] = glm::clamp((int)loopbackSamples[i] - loopbackCopySamples[i],
                                                 -32768, 32767);
@@ -635,7 +632,6 @@ void Audio::handleLocalEchoAndReverb(QByteArray inputByteArray) {
     }
     
     if (_loopbackOutputDevice) {
-        //qDebug() << "Writing";
         _loopbackOutputDevice->write(loopBackByteArray);
     }
 }
