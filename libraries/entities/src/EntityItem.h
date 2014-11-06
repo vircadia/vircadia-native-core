@@ -34,6 +34,10 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
+#ifdef USE_BULLET_PHYSICS
+class EntityMotionState;
+#endif // USE_BULLET_PHYSICS
+
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -254,6 +258,11 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+
+#ifdef USE_BULLET_PHYSICS
+    //EntityMotionState* createMotionState() = 0;
+    EntityMotionState* createMotionState() { return NULL; }
+#endif // USE_BULLET_PHYSICS
     
 protected:
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init

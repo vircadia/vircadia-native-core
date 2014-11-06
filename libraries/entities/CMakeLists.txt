@@ -4,6 +4,7 @@ set(TARGET_NAME entities)
 setup_hifi_library(Network Script)
 
 include_glm()
+include_bullet()
 
 link_hifi_libraries(shared octree fbx networking animation physics)
 
