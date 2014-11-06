@@ -76,10 +76,10 @@ bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
     return false;
 }
 
-bool PhysicsWorld::addEntity(const QUuid& id, EntityMotionState* motionState) {
+bool PhysicsWorld::addEntity(const QUuid& id, CustomMotionState* motionState) {
     assert(motionState);
     UUIDHashKey key(id);
-    EntityMotionState** statePtr = _entities.find(key);
+    CustomMotionState** statePtr = _entities.find(key);
     if (!statePtr) {
         // BOOKMARK: Andrew to implement this
     } else {
@@ -90,7 +90,7 @@ bool PhysicsWorld::addEntity(const QUuid& id, EntityMotionState* motionState) {
 
 bool PhysicsWorld::removeEntity(const QUuid& id) {
     UUIDHashKey key(id);
-    EntityMotionState** statePtr = _entities.find(key);
+    CustomMotionState** statePtr = _entities.find(key);
     if (statePtr) {
         // BOOKMARK: Andrew to implement this
     }

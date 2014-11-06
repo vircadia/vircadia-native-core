@@ -1,5 +1,5 @@
 //
-//  EntityMotionState.h
+//  CustomMotionState.h
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.11.05
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_EntityMotionState_h
-#define hifi_EntityMotionState_h
+#ifndef hifi_CustomMotionState_h
+#define hifi_CustomMotionState_h
 
 #ifdef USE_BULLET_PHYSICS
 
@@ -25,9 +25,9 @@ enum MotionType {
     MOTION_TYPE_KINEMATIC   // keyframed motion
 };
 
-class EntityMotionState : public btMotionState {
+class CustomMotionState : public btMotionState {
 public:
-    EntityMotionState();
+    CustomMotionState();
 
     //// these override methods of the btMotionState base class
     //virtual void getWorldTransform (btTransform &worldTrans) const;
@@ -54,4 +54,4 @@ private:
 };
 
 #endif // USE_BULLET_PHYSICS
-#endif // hifi_EntityMotionState_h
+#endif // hifi_CustomMotionState_h

@@ -45,7 +45,7 @@ public:
 
     /// \return true if Entity added
     /// \param info information about collision shapes to create
-    bool addEntity(const QUuid& id, EntityMotionState* motionState);
+    bool addEntity(const QUuid& id, CustomMotionState* motionState);
 
     /// \return true if Entity removed
     /// \param id UUID of the entity
@@ -62,7 +62,7 @@ protected:
 
 private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
-    btHashMap<UUIDHashKey, EntityMotionState*> _entities;
+    btHashMap<UUIDHashKey, CustomMotionState*> _entities;
 };
 
 

@@ -1,5 +1,5 @@
 //
-//  EntityMotionState.cpp
+//  CustomMotionState.cpp
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.11.05
@@ -11,28 +11,28 @@
 
 #ifdef USE_BULLET_PHYSICS
 
-#include "EntityMotionState.h"
+#include "CustomMotionState.h"
 
-EntityMotionState::EntityMotionState() : _motionType(MOTION_TYPE_STATIC), 
+CustomMotionState::CustomMotionState() : _motionType(MOTION_TYPE_STATIC), 
     _inertiaDiagLocal(1.0f, 1.0f, 1.0f), _mass(1.0f), 
     _shape(NULL), _object(NULL) {
 }
 
 /*
-void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
+void CustomMotionState::getWorldTransform (btTransform &worldTrans) const {
 }
 
-void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
+void CustomMotionState::setWorldTransform (const btTransform &worldTrans) {
 }
 
-void EntityMotionState::computeMassProperties() {
+void CustomMotionState::computeMassProperties() {
 }
 
-void EntityMotionState::getShapeInfo(ShapeInfo& info) {
+void CustomMotionState::getShapeInfo(ShapeInfo& info) {
 }
 */
 
-bool EntityMotionState::makeStatic() {
+bool CustomMotionState::makeStatic() {
     if (_motionType == MOTION_TYPE_STATIC) {
         return true;
     }
@@ -43,7 +43,7 @@ bool EntityMotionState::makeStatic() {
     return false;
 }
 
-bool EntityMotionState::makeDynamic() {
+bool CustomMotionState::makeDynamic() {
     if (_motionType == MOTION_TYPE_DYNAMIC) {
         return true;
     }
@@ -54,7 +54,7 @@ bool EntityMotionState::makeDynamic() {
     return false;
 }
 
-bool EntityMotionState::makeKinematic() {
+bool CustomMotionState::makeKinematic() {
     if (_motionType == MOTION_TYPE_KINEMATIC) {
         return true;
     }
