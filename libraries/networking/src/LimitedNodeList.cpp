@@ -345,11 +345,8 @@ int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packe
 }
 
 SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
-    try {
-        return _nodeHash.at(nodeUUID);
-    } catch (std::out_of_range) {
-        return SharedNodePointer();
-    }
+    NodeHash::const_iterator it = _nodeHash.find(nodeUUID);
+    return it == _nodeHash.cend() ? SharedNodePointer() : it->second;
  }
 
 SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet) {
