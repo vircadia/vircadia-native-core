@@ -43,24 +43,22 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     SharedObjectPointer closestSpanner;
     float closestDistance = FLT_MAX;
     
-    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        SharedNodePointer node = it->second;
-        
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
                 float clientDistance;
                 SharedObjectPointer clientSpanner = client->getDataCopy().findFirstRaySpannerIntersection(
-                    origin, direction, attribute, clientDistance);
+                                                                                                          origin, direction, attribute, clientDistance);
                 if (clientSpanner && clientDistance < closestDistance) {
                     closestSpanner = clientSpanner;
                     closestDistance = clientDistance;
                 }
             }
         }
-    }
+    });
+    
     if (closestSpanner) {
         distance = closestDistance;
     }
@@ -119,11 +117,7 @@ MetavoxelClient* MetavoxelClientManager::createClient(const SharedNodePointer& n
 }
 
 void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
-    NodeHashSnapshot snapshotHash = NodeList::getInstance()->getNodeHash().snapshot_table();
-    
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        SharedNodePointer node = it->second;
-        
+    NodeList::getInstance()->eachNode([&visitor](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
@@ -131,7 +125,7 @@ void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
                 client->getDataCopy().guide(visitor);
             }
         }
-    }
+    });
 }
 
 MetavoxelUpdater::MetavoxelUpdater(MetavoxelClientManager* clientManager) :
