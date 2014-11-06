@@ -155,7 +155,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
             quint64 startLock = usecTimestampNow();
             _myServer->getOctree()->lockForWrite();
 
-            qDebug() << "{" <<  QThread::currentThread() << "} " << "TREE LOCKED FOR EDIT now:" << usecTimestampNow();
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "TREE LOCKED FOR EDIT now:" << usecTimestampNow();
 
             quint64 startProcess = usecTimestampNow();
             int editDataBytesRead = _myServer->getOctree()->processEditPacketData(packetType,
@@ -168,7 +168,7 @@ void OctreeInboundPacketProcessor::processPacket(const SharedNodePointer& sendin
                                 << "editDataBytesRead=" << editDataBytesRead;
             }
 
-            qDebug() << "{" <<  QThread::currentThread() << "} " << "TREE UNLOCKED AFTER EDIT now:" << usecTimestampNow();
+            //qDebug() << "{" <<  QThread::currentThread() << "} " << "TREE UNLOCKED AFTER EDIT now:" << usecTimestampNow();
             _myServer->getOctree()->unlock();
             quint64 endProcess = usecTimestampNow();
 
