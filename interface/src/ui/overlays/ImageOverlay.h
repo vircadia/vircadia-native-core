@@ -34,7 +34,7 @@ class ImageOverlay : public Overlay2D {
 public:
     ImageOverlay();
     ~ImageOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
 
     // getters
     const QRect& getClipFromSource() const { return _fromImage; }

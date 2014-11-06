@@ -183,7 +183,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
     float dist = sqrt(x * x + y * y);
     float z = -sqrt(1.0f - dist * dist);
 
-    glm::vec3 relativePosition = myAvatar->getHead()->getEyePosition() +
+    glm::vec3 relativePosition = myAvatar->getDefaultEyePosition() +
         glm::normalize(myAvatar->getOrientation() * glm::vec3(x, y, z));
 
     //Rotate the UI pick ray by the avatar orientation
@@ -380,7 +380,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     glPushMatrix();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getHead()->getEyePosition();
+    const glm::vec3& position = myAvatar->getDefaultEyePosition();
 
     glm::mat4 rotation = glm::toMat4(orientation);
 
@@ -414,7 +414,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
     renderTexturedHemisphere();
 
-    renderPointersOculus(myAvatar->getHead()->getEyePosition());
+    renderPointersOculus(myAvatar->getDefaultEyePosition());
 
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -1220,7 +1220,7 @@ void ApplicationOverlay::renderTexturedHemisphere() {
     Application* application = Application::getInstance();
     MyAvatar* myAvatar = application->getAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getHead()->getEyePosition();
+    const glm::vec3& position = myAvatar->getDefaultEyePosition();
 
     glm::mat4 rotation = glm::toMat4(orientation);
 

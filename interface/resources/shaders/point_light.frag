@@ -39,8 +39,13 @@ uniform vec2 depthTexCoordScale;
 uniform float radius;
 
 void main(void) {
+    // get the depth and exit early if it doesn't pass the test
+    float depth = texture2D(depthMap, gl_TexCoord[0].st).r;
+    if (depth < gl_FragCoord.z) {
+        discard;
+    }
     // compute the view space position using the depth
-    float z = near / (texture2D(depthMap, gl_TexCoord[0].st).r * depthScale - 1.0);
+    float z = near / (depth * depthScale - 1.0);
     vec4 position = vec4((depthTexCoordOffset + gl_TexCoord[0].st * depthTexCoordScale) * z, z, 1.0);
     
     // get the normal from the map

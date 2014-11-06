@@ -75,6 +75,12 @@ enum EntityPropertyList {
     PROP_EXPONENT,
     PROP_CUTOFF,
 
+    // available to all entities
+    PROP_LOCKED,
+    
+    // used by Model entities
+    PROP_TEXTURES,
+
     PROP_LAST_ITEM = PROP_CUTOFF
 };
 
@@ -258,20 +264,27 @@ public:
     bool ambientColorChanged() const { return _ambientColorChanged; }
     bool specularColorChanged() const { return _specularColorChanged; }
 
-    bool getConstantAttenuation() const { return _constantAttenuation; }
+    float getConstantAttenuation() const { return _constantAttenuation; }
     void setConstantAttenuation(float value) { _constantAttenuation = value; _constantAttenuationChanged = true; }
 
-    bool getLinearAttenuation() const { return _linearAttenuation; }
+    float getLinearAttenuation() const { return _linearAttenuation; }
     void setLinearAttenuation(float value) { _linearAttenuation = value; _linearAttenuationChanged = true; }
 
-    bool getQuadraticAttenuation() const { return _quadraticAttenuation; }
+    float getQuadraticAttenuation() const { return _quadraticAttenuation; }
     void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; _quadraticAttenuationChanged = true; }
 
-    bool getExponent() const { return _exponent; }
-    void setExponent(bool value) { _exponent = value; _exponentChanged = true; }
+    float getExponent() const { return _exponent; }
+    void setExponent(float value) { _exponent = value; _exponentChanged = true; }
 
-    bool getCutoff() const { return _cutoff; }
-    void setCutoff(bool value) { _cutoff = value; _cutoffChanged = true; }
+    float getCutoff() const { return _cutoff; }
+    void setCutoff(float value) { _cutoff = value; _cutoffChanged = true; }
+
+    bool getLocked() const { return _locked; }
+    void setLocked(bool value) { _locked = value; _lockedChanged = true; }
+    bool lockedChanged() const { return _lockedChanged; }
+
+    const QString& getTextures() const { return _textures; }
+    void setTextures(const QString& value) { _textures = value; _texturesChanged = true; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -348,6 +361,8 @@ private:
     float _quadraticAttenuation;
     float _exponent;
     float _cutoff;
+    bool _locked;
+    QString _textures;
 
     bool _diffuseColorChanged;
     bool _ambientColorChanged;
@@ -357,12 +372,14 @@ private:
     bool _quadraticAttenuationChanged;
     bool _exponentChanged;
     bool _cutoffChanged;
+    bool _lockedChanged;
+    bool _texturesChanged;
 
     bool _defaultSettings;
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
-    QVector<SittingPoint>* _sittingPoints;
+    QVector<SittingPoint> _sittingPoints;
     glm::vec3 _naturalDimensions;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);

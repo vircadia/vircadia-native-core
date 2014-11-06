@@ -35,15 +35,6 @@
 
 namespace gpu {
 
-class Batch;
-// TODO: move the backend namespace into dedicated files, for now we keep it close to the gpu objects definition for convenience
-namespace backend {
-
-    void renderBatch(Batch& batch);
-
-    void checkGLError();
-};
-
 class Buffer;
 class Resource;
 typedef int  Stamp;
@@ -76,6 +67,9 @@ public:
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
     // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
+    // For now, instead of calling the raw glCall, use the equivalent call on the batch so the call is beeing recorded
+    // THe implementation of these functions is in GLBackend.cpp
+
     void _glEnable(GLenum cap);
     void _glDisable(GLenum cap);
 
@@ -127,8 +121,6 @@ public:
     void _glMaterialf(GLenum face, GLenum pname, GLfloat param);
     void _glMaterialfv(GLenum face, GLenum pname, const GLfloat *params);
 
-
-protected:
 
     enum Command {
         COMMAND_draw = 0,
@@ -196,12 +188,14 @@ protected:
 
         COMMAND_glMaterialf,
         COMMAND_glMaterialfv,
+
+        NUM_COMMANDS,
     };
     typedef std::vector<Command> Commands;
-    typedef void (Batch::*CommandCall)(uint32);
-    typedef std::vector<CommandCall> CommandCalls;
     typedef std::vector<uint32> CommandOffsets;
 
+    const Commands& getCommands() const { return _commands; }
+    const CommandOffsets& getCommandOffsets() const { return _commandOffsets; }
 
     class Param {
     public:
@@ -219,6 +213,8 @@ protected:
     };
     typedef std::vector<Param> Params;
 
+    const Params& getParams() const { return _params; }
+
     class ResourceCache {
     public:
         union {
@@ -232,13 +228,6 @@ protected:
 
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
-
-    Commands _commands;
-    CommandCalls _commandCalls;
-    CommandOffsets _commandOffsets;
-    Params _params;
-    Resources _resources;
-    Bytes _data;
 
     uint32 cacheResource(Resource* res);
     uint32 cacheResource(const void* pointer);
@@ -255,79 +244,12 @@ protected:
         return (_data.data() + offset);
     }
 
-    void runCommand(uint32 index) {
-        uint32 offset = _commandOffsets[index];
-        CommandCall call = _commandCalls[index];
-        (this->*(call))(offset);
-    }
-
-    void runLastCommand() {
-        uint32 index = _commands.size() - 1;
-        runCommand(index);
-    }
-
-    void runCommand(Command com, uint32 offset);
-
-    void do_draw(uint32 paramOffset) {}
-    void do_drawIndexed(uint32 paramOffset) {}
-    void do_drawInstanced(uint32 paramOffset) {}
-    void do_drawIndexedInstanced(uint32 paramOffset) {}
-
-    // TODO: As long as we have gl calls explicitely issued from interface
-    // code, we need to be able to record and batch these calls. THe long 
-    // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
-    void do_glEnable(uint32 paramOffset);
-    void do_glDisable(uint32 paramOffset);
-
-    void do_glEnableClientState(uint32 paramOffset);
-    void do_glDisableClientState(uint32 paramOffset);
-
-    void do_glCullFace(uint32 paramOffset);
-    void do_glAlphaFunc(uint32 paramOffset);
-
-    void do_glDepthFunc(uint32 paramOffset);
-    void do_glDepthMask(uint32 paramOffset);
-    void do_glDepthRange(uint32 paramOffset);
-
-    void do_glBindBuffer(uint32 paramOffset);
-
-    void do_glBindTexture(uint32 paramOffset);
-    void do_glActiveTexture(uint32 paramOffset);
-
-    void do_glDrawBuffers(uint32 paramOffset);
-
-    void do_glUseProgram(uint32 paramOffset);
-    void do_glUniform1f(uint32 paramOffset);
-    void do_glUniformMatrix4fv(uint32 paramOffset);
-
-    void do_glMatrixMode(uint32 paramOffset);
-    void do_glPushMatrix(uint32 paramOffset);
-    void do_glPopMatrix(uint32 paramOffset);
-    void do_glMultMatrixf(uint32 paramOffset);
-    void do_glLoadMatrixf(uint32 paramOffset);
-    void do_glLoadIdentity(uint32 paramOffset);
-    void do_glRotatef(uint32 paramOffset);
-    void do_glScalef(uint32 paramOffset);
-    void do_glTranslatef(uint32 paramOffset);
-
-    void do_glDrawArrays(uint32 paramOffset);
-    void do_glDrawRangeElements(uint32 paramOffset);
-
-    void do_glColorPointer(uint32 paramOffset);
-    void do_glNormalPointer(uint32 paramOffset);
-    void do_glTexCoordPointer(uint32 paramOffset);
-    void do_glVertexPointer(uint32 paramOffset);
-
-    void do_glVertexAttribPointer(uint32 paramOffset);
-    void do_glEnableVertexAttribArray(uint32 paramOffset);
-    void do_glDisableVertexAttribArray(uint32 paramOffset);
-
-    void do_glColor4f(uint32 paramOffset);
-
-    void do_glMaterialf(uint32 paramOffset);
-    void do_glMaterialfv(uint32 paramOffset);
-
-    friend void backend::renderBatch(Batch& batch);
+    Commands _commands;
+    CommandOffsets _commandOffsets;
+    Params _params;
+    Resources _resources;
+    Bytes _data;
+protected:
 };
 
 };

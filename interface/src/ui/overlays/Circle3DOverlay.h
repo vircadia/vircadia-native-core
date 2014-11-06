@@ -19,7 +19,7 @@ class Circle3DOverlay : public Planar3DOverlay {
 public:
     Circle3DOverlay();
     ~Circle3DOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
 
     float getStartAt() const { return _startAt; }

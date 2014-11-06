@@ -25,7 +25,6 @@ void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
         
-        _model.setScaleToFit(true, _scale);
         _model.setSnapModelToCenter(true);
         _model.setRotation(_rotation);
         _model.setTranslation(_position);
@@ -37,7 +36,7 @@ void ModelOverlay::update(float deltatime) {
     _isLoaded = _model.isActive();
 }
 
-void ModelOverlay::render() {
+void ModelOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return;
     }
@@ -49,7 +48,7 @@ void ModelOverlay::render() {
             if (glowLevel > 0.0f) {
                 glower = new Glower(glowLevel);
             }
-            _model.render(getAlpha());
+            _model.render(getAlpha(), Model::DEFAULT_RENDER_MODE, args);
             if (glower) {
                 delete glower;
             }
@@ -70,6 +69,7 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
     QScriptValue scaleValue = properties.property("scale");
     if (scaleValue.isValid()) {
         _scale = scaleValue.toVariant().toFloat();
+        _model.setScaleToFit(true, _scale);
         _updateModel = true;
     }
     
@@ -124,33 +124,15 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) const {
-
-    // if our model isn't active, we can't ray pick yet...
-    if (!_model.isActive()) {
-        return false;
-    }
-
-    // extents is the entity relative, scaled, centered extents of the entity
-    glm::vec3 position = getPosition();
-    glm::mat4 rotation = glm::mat4_cast(getRotation());
-    glm::mat4 translation = glm::translate(position);
-    glm::mat4 entityToWorldMatrix = translation * rotation;
-    glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
-
-    Extents modelExtents = _model.getMeshExtents(); // NOTE: unrotated
     
-    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the overlay frame of reference
-    AABox overlayFrameBox(corner, dimensions);
-
-    glm::vec3 overlayFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
-    glm::vec3 overlayFrameDirection = glm::vec3(worldToEntityMatrix * glm::vec4(direction, 0.0f));
-
-    // we can use the AABox's ray intersection by mapping our origin and direction into the overlays frame
-    // and testing intersection there.
-    if (overlayFrameBox.findRayIntersection(overlayFrameOrigin, overlayFrameDirection, distance, face)) {
-        return true;
-    }
-
-    return false;
+    QString subMeshNameTemp;
+    return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, subMeshNameTemp);
 }
+
+bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
+                                                        float& distance, BoxFace& face, QString& extraInfo) const {
+    
+    return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo);
+}
+
+

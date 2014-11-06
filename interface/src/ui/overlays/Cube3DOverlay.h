@@ -19,7 +19,7 @@ class Cube3DOverlay : public Volume3DOverlay {
 public:
     Cube3DOverlay();
     ~Cube3DOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
 };
 
  

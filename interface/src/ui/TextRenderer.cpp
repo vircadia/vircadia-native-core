@@ -24,6 +24,8 @@
 #include "glm/glm.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "gpu/GLBackend.h"
+
 
 // the width/height of the cached glyph textures
 const int IMAGE_SIZE = 256;
@@ -297,8 +299,8 @@ void TextRenderer::drawBatch() {
     // TODO: Apply the correct font atlas texture, for now only one texture per TextRenderer so it should be good
     glBindTexture(GL_TEXTURE_2D, _currentTextureID);
 
-    GLuint vbo = _glyphsBuffer.getGLBufferObject();
-    GLuint colorvbo = _glyphsColorBuffer.getGLBufferObject();
+    GLuint vbo = gpu::GLBackend::getBufferID(_glyphsBuffer);
+    GLuint colorvbo = gpu::GLBackend::getBufferID(_glyphsColorBuffer);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);

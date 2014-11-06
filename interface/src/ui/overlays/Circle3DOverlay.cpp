@@ -36,7 +36,7 @@ Circle3DOverlay::Circle3DOverlay() :
 Circle3DOverlay::~Circle3DOverlay() {
 }
 
-void Circle3DOverlay::render() {
+void Circle3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

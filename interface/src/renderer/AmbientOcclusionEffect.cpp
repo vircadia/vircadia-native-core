@@ -51,8 +51,7 @@ void AmbientOcclusionEffect::init() {
     
     _occlusionProgram->bind();
     _occlusionProgram->setUniformValue("depthTexture", 0);
-    _occlusionProgram->setUniformValue("normalTexture", 1);
-    _occlusionProgram->setUniformValue("rotationTexture", 2);
+    _occlusionProgram->setUniformValue("rotationTexture", 1);
     _occlusionProgram->setUniformValueArray("sampleKernel", sampleKernel, SAMPLE_KERNEL_SIZE);
     _occlusionProgram->setUniformValue("radius", 0.1f);
     _occlusionProgram->release();
@@ -102,9 +101,6 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
     
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryNormalTextureID());
-    
-    glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
     // render with the occlusion shader to the secondary/tertiary buffer
@@ -140,9 +136,6 @@ void AmbientOcclusionEffect::render() {
     
     freeFBO->release();
     
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, 0);
     
     glActiveTexture(GL_TEXTURE0);

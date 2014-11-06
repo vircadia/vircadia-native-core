@@ -23,7 +23,7 @@ class BillboardOverlay : public Base3DOverlay {
 public:
     BillboardOverlay();
     
-    virtual void render();
+    virtual void render(RenderArgs* args);
 
     // setters
     void setURL(const QString& url);

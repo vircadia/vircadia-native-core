@@ -21,7 +21,7 @@ Line3DOverlay::Line3DOverlay() {
 Line3DOverlay::~Line3DOverlay() {
 }
 
-void Line3DOverlay::render() {
+void Line3DOverlay::render(RenderArgs* args) {
     if (!_visible) {
         return; // do nothing if we're not visible
     }

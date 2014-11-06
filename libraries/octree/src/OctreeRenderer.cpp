@@ -14,6 +14,7 @@
 
 #include <SharedUtil.h>
 #include <PerfStat.h>
+#include <RenderArgs.h>
 #include "OctreeRenderer.h"
 
 OctreeRenderer::OctreeRenderer() :
@@ -161,7 +162,7 @@ bool OctreeRenderer::renderOperation(OctreeElement* element, void* extraData) {
     return false;
 }
 
-void OctreeRenderer::render(RenderMode renderMode) {
+void OctreeRenderer::render(RenderArgs::RenderMode renderMode) {
     RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
                                         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     if (_tree) {

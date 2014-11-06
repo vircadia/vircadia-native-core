@@ -128,6 +128,9 @@ static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
 
+static const QString INFO_HELP_PATH = "html/interface-welcome-allsvg.html";
+static const QString INFO_EDIT_ENTITIES_PATH = "html/edit-entities-commands.html";
+
 class Application : public QApplication {
     Q_OBJECT
 
@@ -284,8 +287,6 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    QPointF getViewportCenter() const
-        { return QPointF(_glWidget->getDeviceWidth() / 2.0f, _glWidget->getDeviceHeight() / 2.0f); }
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
@@ -300,7 +301,14 @@ public:
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
-    float getRenderResolutionScale() const { return _renderResolutionScale; }
+    float getRenderResolutionScale() const;
+
+    unsigned int getRenderTargetFramerate() const;
+    bool isVSyncOn() const;
+    bool isVSyncEditable() const;
+
+
+    void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
 signals:
 
@@ -364,12 +372,7 @@ public slots:
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
 
-    void setRenderTargetFramerate(unsigned int framerate, bool vsyncOn = true);
-    bool isVSyncOn() { return _isVSyncOn; }
-    bool isVSyncEditable();
-    unsigned int  getRenderTargetFramerate() const { return _renderTargetFramerate; }
-
-    void setRenderResolutionScale(float scale);
+    void setVSyncEnabled(bool vsyncOn);
 
     void resetSensors();
 
@@ -621,9 +624,7 @@ private:
     quint64 _lastNackTime;
     quint64 _lastSendDownstreamAudioStats;
 
-    int _renderTargetFramerate;
     bool _isVSyncOn;
-    float _renderResolutionScale;
 };
 
 #endif // hifi_Application_h

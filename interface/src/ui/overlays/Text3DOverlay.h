@@ -15,6 +15,8 @@
 #include "InterfaceConfig.h"
 
 #include <QString>
+
+#include <RenderArgs.h>
 #include "Planar3DOverlay.h"
 
 class Text3DOverlay : public Planar3DOverlay {
@@ -23,7 +25,7 @@ class Text3DOverlay : public Planar3DOverlay {
 public:
     Text3DOverlay();
     ~Text3DOverlay();
-    virtual void render();
+    virtual void render(RenderArgs* args);
 
     // getters
     const QString& getText() const { return _text; }

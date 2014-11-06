@@ -23,7 +23,7 @@
 #include <MenuItemProperties.h>
 #include <OctreeConstants.h>
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
 
@@ -100,8 +100,6 @@ public:
     void setRealWorldFieldOfView(float realWorldFieldOfView) { _realWorldFieldOfView = realWorldFieldOfView; bumpSettings(); }
     float getOculusUIAngularSize() const { return _oculusUIAngularSize; }
     void setOculusUIAngularSize(float oculusUIAngularSize) { _oculusUIAngularSize = oculusUIAngularSize; bumpSettings(); }
-    int getOculusUIMaxFPS() const { return _oculusUIMaxFPS; }
-    void setOculusUIMaxFPS(int oculusUIMaxFPS) { _oculusUIMaxFPS = oculusUIMaxFPS; bumpSettings(); }
     float getSixenseReticleMoveSpeed() const { return _sixenseReticleMoveSpeed; }
     void setSixenseReticleMoveSpeed(float sixenseReticleMoveSpeed) { _sixenseReticleMoveSpeed = sixenseReticleMoveSpeed; bumpSettings(); }
     bool getInvertSixenseButtons() const { return _invertSixenseButtons; }
@@ -148,7 +146,7 @@ public:
 
     bool shouldRenderMesh(float largestDimension, float distanceToCamera);
 
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer* getSpeechRecognizer() { return &_speechRecognizer; }
 #endif
 
@@ -208,6 +206,7 @@ public slots:
 
 private slots:
     void aboutApp();
+    void showEditEntitiesHelp();
     void bumpSettings();
     void editPreferences();
     void editAttachments();
@@ -231,9 +230,7 @@ private slots:
     void displayAddressOfflineMessage();
     void displayAddressNotFoundMessage();
     void muteEnvironment();
-    void changeRenderTargetFramerate(QAction* action);
     void changeVSync();
-    void changeRenderResolution(QAction* action);
 
 private:
     static Menu* _instance;
@@ -288,13 +285,12 @@ private:
     LodToolsDialog* _lodToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
-#ifdef Q_OS_MAC
+#if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     SpeechRecognizer _speechRecognizer;
 #endif
     int _maxVoxels;
     float _voxelSizeScale;
     float _oculusUIAngularSize;
-    int _oculusUIMaxFPS;
     float _sixenseReticleMoveSpeed;
     bool _invertSixenseButtons;
     bool _automaticAvatarLOD;
@@ -386,6 +382,7 @@ namespace MenuOption {
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
     const QString DisableAutoAdjustLOD = "Disable Automatically Adjusting LOD";
+    const QString DisableLightEntities = "Disable Light Entities";
     const QString DisableNackPackets = "Disable NACK Packets";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayHands = "Show Hand Info";
@@ -398,9 +395,11 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EditEntitiesHelp = "Edit Entities Help...";
     const QString Enable3DTVMode = "Enable 3DTV Mode";
     const QString EnableGlowEffect = "Enable Glow Effect (Warning: Poor Oculus Performance)";
     const QString EnableVRMode = "Enable VR Mode";
+    const QString Entities = "Entities";
     const QString ExpandMyAvatarSimulateTiming = "Expand /myAvatar/simulation";
     const QString ExpandMyAvatarTiming = "Expand /myAvatar";
     const QString ExpandOtherAvatarTiming = "Expand /otherAvatar";
@@ -431,8 +430,6 @@ namespace MenuOption {
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
-    const QString ModelOptions = "Model Options";
-    const QString Models = "Models";
     const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";

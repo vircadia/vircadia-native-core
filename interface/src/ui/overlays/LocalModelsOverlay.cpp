@@ -25,7 +25,7 @@ void LocalModelsOverlay::update(float deltatime) {
     _entityTreeRenderer->update();
 }
 
-void LocalModelsOverlay::render() {
+void LocalModelsOverlay::render(RenderArgs* args) {
     if (_visible) {
 
         float glowLevel = getGlowLevel();

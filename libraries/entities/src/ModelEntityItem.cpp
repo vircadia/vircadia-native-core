@@ -41,20 +41,15 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
 
 EntityItemProperties ModelEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
-    properties._color = getXColor();
-    properties._modelURL = getModelURL();
-    properties._animationURL = getAnimationURL();
-    properties._animationIsPlaying = getAnimationIsPlaying();
-    properties._animationFrameIndex = getAnimationFrameIndex();
-    properties._animationFPS = getAnimationFPS();
-    properties._colorChanged = false;
-    properties._modelURLChanged = false;
-    properties._animationURLChanged = false;
-    properties._animationIsPlayingChanged = false;
-    properties._animationFrameIndexChanged = false;
-    properties._animationFPSChanged = false;
-    properties._glowLevel = getGlowLevel();
-    properties._glowLevelChanged = false;
+
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(color, getXColor);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(modelURL, getModelURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationURL, getAnimationURL);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationIsPlaying, getAnimationIsPlaying);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFrameIndex, getAnimationFrameIndex);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
     return properties;
 }
 
@@ -68,6 +63,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationIsPlaying, setAnimationIsPlaying);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -107,6 +103,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationFPS);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationFrameIndex);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationIsPlaying);
+    READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
 
     return bytesRead;
 }
@@ -230,6 +227,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
     requestedProperties += PROP_ANIMATION_PLAYING;
+    requestedProperties += PROP_TEXTURES;
     
     return requestedProperties;
 }
@@ -250,6 +248,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, getAnimationFPS());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
+    APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
 }
 
 

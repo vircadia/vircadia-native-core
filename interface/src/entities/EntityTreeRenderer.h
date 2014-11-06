@@ -16,20 +16,28 @@
 #include <stdint.h>
 
 #include <EntityTree.h>
+#include <EntityScriptingInterface.h> // for RayToEntityIntersectionResult
 #include <Octree.h>
 #include <OctreePacketData.h>
 #include <OctreeRenderer.h>
 #include <PacketHeaders.h>
+#include <RenderArgs.h>
 #include <SharedUtil.h>
 #include <ViewFrustum.h>
 
 #include "renderer/Model.h"
 
+class EntityScriptDetails {
+public:
+    QString scriptText;
+    QScriptValue scriptObject;
+};
+
 // Generic client side Octree renderer class.
 class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService {
     Q_OBJECT
 public:
-    EntityTreeRenderer();
+    EntityTreeRenderer(bool wantScripts);
     virtual ~EntityTreeRenderer();
 
     virtual Octree* createTree() { return new EntityTree(true); }
@@ -48,7 +56,7 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderMode renderMode = DEFAULT_RENDER_MODE);
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
@@ -56,12 +64,6 @@ public:
     /// clears the tree
     virtual void clear();
 
-    //Q_INVOKABLE Model* getModel(const ModelEntityItem* modelEntityItem);
-
-    // renderers for various types of entities
-    void renderEntityTypeBox(EntityItem* entity, RenderArgs* args);
-    void renderEntityTypeModel(EntityItem* entity, RenderArgs* args);
-    
     static QThread* getMainThread();
     
     /// if a renderable entity item needs a model, we will allocate it for them
@@ -74,9 +76,55 @@ public:
     void releaseModel(Model* model);
     
     void deleteReleasedModels();
+    
+    // event handles which may generate entity related events
+    void mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID);
+    void mousePressEvent(QMouseEvent* event, unsigned int deviceID);
+    void mouseMoveEvent(QMouseEvent* event, unsigned int deviceID);
+
+    /// connect our signals to anEntityScriptingInterface for firing of events related clicking,
+    /// hovering over, and entering entities
+    void connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface);
+
+signals:
+    void mousePressOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mouseMoveOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void mouseReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void clickDownOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void holdingClickOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void clickReleaseOnEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void hoverEnterEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverOverEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+    void hoverLeaveEntity(const EntityItemID& entityItemID, const MouseEvent& event);
+
+    void enterEntity(const EntityItemID& entityItemID);
+    void leaveEntity(const EntityItemID& entityItemID);
+    
 private:
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
+    PickRay computePickRay(float x, float y);
+    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType);
+
+    EntityItemID _currentHoverOverEntityID;
+    EntityItemID _currentClickingOnEntityID;
+
+    QScriptValueList createEntityArgs(const EntityItemID& entityID);
+    void checkEnterLeaveEntities();
+    glm::vec3 _lastAvatarPosition;
+    QVector<EntityItemID> _currentEntitiesInside;
+    
+    bool _wantScripts;
+    ScriptEngine* _entitiesScriptEngine;
+
+    QScriptValue loadEntityScript(EntityItem* entity);
+    QScriptValue loadEntityScript(const EntityItemID& entityItemID);
+    QString loadScriptContents(const QString& scriptMaybeURLorText);
+    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
+    
+    QHash<EntityItemID, EntityScriptDetails> _entityScripts;
 };
 
 #endif // hifi_EntityTreeRenderer_h

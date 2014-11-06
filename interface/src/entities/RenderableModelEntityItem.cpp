@@ -57,6 +57,47 @@ int RenderableModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned c
     return bytesRead;
 }
 
+void RenderableModelEntityItem::remapTextures() {
+    if (!_model) {
+        return; // nothing to do if we don't have a model
+    }
+    
+    if (_currentTextures == _textures) {
+        return; // nothing to do if our recently mapped textures match our desired textures
+    }
+    qDebug() << "void RenderableModelEntityItem::remapTextures()....";
+    
+    // since we're changing here, we need to run through our current texture map
+    // and any textures in the recently mapped texture, that is not in our desired
+    // textures, we need to "unset"
+    QJsonDocument currentTexturesAsJson = QJsonDocument::fromJson(_currentTextures.toUtf8());
+    QJsonObject currentTexturesAsJsonObject = currentTexturesAsJson.object();
+    QVariantMap currentTextureMap = currentTexturesAsJsonObject.toVariantMap();
+
+    QJsonDocument texturesAsJson = QJsonDocument::fromJson(_textures.toUtf8());
+    QJsonObject texturesAsJsonObject = texturesAsJson.object();
+    QVariantMap textureMap = texturesAsJsonObject.toVariantMap();
+
+    foreach(const QString& key, currentTextureMap.keys()) {
+        // if the desired texture map (what we're setting the textures to) doesn't
+        // contain this texture, then remove it by setting the URL to null
+        if (!textureMap.contains(key)) {
+            QUrl noURL;
+            qDebug() << "Removing texture named" << key << "by replacing it with no URL";
+            _model->setTextureWithNameToURL(key, noURL);
+        }
+    }
+
+    // here's where we remap any textures if needed...
+    foreach(const QString& key, textureMap.keys()) {
+        QUrl newTextureURL = textureMap[key].toUrl();
+        qDebug() << "Updating texture named" << key << "to texture at URL" << newTextureURL;
+        _model->setTextureWithNameToURL(key, newTextureURL);
+    }
+    
+    _currentTextures = _textures;
+}
+
 
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
@@ -69,6 +110,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     
     if (drawAsModel) {
+        remapTextures();
         glPushMatrix();
         {
             float alpha = getLocalRenderAlpha();
@@ -112,7 +154,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
 
                 // TODO: should we allow entityItems to have alpha on their models?
-                Model::RenderMode modelRenderMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE 
+                Model::RenderMode modelRenderMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE
                                                         ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
         
                 if (_model->isActive()) {
@@ -155,6 +197,10 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
         _myRenderer = renderer;
     }
     assert(_myRenderer == renderer); // you should only ever render on one renderer
+    
+    if (QThread::currentThread() != _myRenderer->thread()) {
+        return _model;
+    }
     
     _needsModelReload = false; // this is the reload
 

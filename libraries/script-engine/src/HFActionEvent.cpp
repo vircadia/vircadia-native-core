@@ -11,9 +11,9 @@
 
 #include "HFActionEvent.h"
 
-HFActionEvent::HFActionEvent(QEvent::Type type, const QPointF& localPosition) :
+HFActionEvent::HFActionEvent(QEvent::Type type, const PickRay& actionRay) :
 	HFMetaEvent(type),
-    localPosition(localPosition)
+    actionRay(actionRay)
 {
     
 }
@@ -30,8 +30,7 @@ QEvent::Type HFActionEvent::endType() {
 
 QScriptValue HFActionEvent::toScriptValue(QScriptEngine* engine, const HFActionEvent& event) {
     QScriptValue obj = engine->newObject();
-    obj.setProperty("x", event.localPosition.x());
-    obj.setProperty("y", event.localPosition.y());
+    obj.setProperty("actionRay", pickRayToScriptValue(engine, event.actionRay));
     return obj;
 }
 

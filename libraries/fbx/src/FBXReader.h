@@ -224,6 +224,12 @@ public:
 
     /// Returns the unscaled extents of the model's mesh
     Extents getUnscaledMeshExtents() const;
+
+
+    QHash<int, QString> meshIndicesToModelNames;
+    
+    /// given a meshIndex this will return the name of the model that mesh belongs to if known
+    QString getModelNameOfMesh(int meshIndex) const;
 };
 
 Q_DECLARE_METATYPE(FBXGeometry)

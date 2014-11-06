@@ -11,17 +11,24 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <QScriptSyntaxCheckResult>
+ 
 #include <FBXReader.h>
 
 #include "InterfaceConfig.h"
 
 #include <BoxEntityItem.h>
 #include <ModelEntityItem.h>
+#include <MouseEvent.h>
 #include <PerfStat.h>
+#include <RenderArgs.h>
 
 
 #include "Menu.h"
+#include "NetworkAccessManager.h"
 #include "EntityTreeRenderer.h"
+
+#include "devices/OculusManager.h"
 
 #include "RenderableBoxEntityItem.h"
 #include "RenderableLightEntityItem.h"
@@ -35,15 +42,21 @@ QThread* EntityTreeRenderer::getMainThread() {
 
 
 
-EntityTreeRenderer::EntityTreeRenderer() :
-    OctreeRenderer() {
+EntityTreeRenderer::EntityTreeRenderer(bool wantScripts) :
+    OctreeRenderer(),
+    _wantScripts(wantScripts),
+    _entitiesScriptEngine(NULL) {
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
+    
+    _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
 }
 
 EntityTreeRenderer::~EntityTreeRenderer() {
+    // do we need to delete the _entitiesScriptEngine?? or is it deleted by default
 }
 
 void EntityTreeRenderer::clear() {
@@ -53,6 +66,117 @@ void EntityTreeRenderer::clear() {
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
     static_cast<EntityTree*>(_tree)->setFBXService(this);
+
+    if (_wantScripts) {
+        _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities", 
+                                        Application::getInstance()->getControllerScriptingInterface());
+        Application::getInstance()->registerScriptEngineWithApplicationServices(_entitiesScriptEngine);
+    }
+
+    // make sure our "last avatar position" is something other than our current position, so that on our
+    // first chance, we'll check for enter/leave entity events.    
+    glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
+    _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
+}
+
+QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
+    EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    return loadEntityScript(entity);
+}
+
+
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText) {
+    QUrl url(scriptMaybeURLorText);
+    
+    // If the url is not valid, this must be script text...
+    if (!url.isValid()) {
+        return scriptMaybeURLorText;
+    }
+
+    QString scriptContents; // assume empty
+    
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        url = QUrl::fromLocalFile(scriptMaybeURLorText);
+    }
+
+    // ok, let's see if it's valid... and if so, load it
+    if (url.isValid()) {
+        if (url.scheme() == "file") {
+            QString fileName = url.toLocalFile();
+            QFile scriptFile(fileName);
+            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+                qDebug() << "Loading file:" << fileName;
+                QTextStream in(&scriptFile);
+                scriptContents = in.readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << fileName;
+            }
+        } else {
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            qDebug() << "Downloading script at" << url;
+            QEventLoop loop;
+            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+            loop.exec();
+            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+                scriptContents = reply->readAll();
+            } else {
+                qDebug() << "ERROR Loading file:" << url.toString();
+            }
+        }
+    }
+    
+    return scriptContents;
+}
+
+
+QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
+    if (!entity) {
+        return QScriptValue(); // no entity...
+    }
+    
+    EntityItemID entityID = entity->getEntityItemID();
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        
+        // check to make sure our script text hasn't changed on us since we last loaded it
+        if (details.scriptText == entity->getScript()) {
+            return details.scriptObject; // previously loaded
+        }
+        
+        // if we got here, then we previously loaded a script, but the entity's script value
+        // has changed and so we need to reload it.
+        _entityScripts.remove(entityID);
+    }
+    if (entity->getScript().isEmpty()) {
+        return QScriptValue(); // no script
+    }
+    
+    QString scriptContents = loadScriptContents(entity->getScript());
+    
+    if (QScriptEngine::checkSyntax(scriptContents).state() != QScriptSyntaxCheckResult::Valid) {
+        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
+        qDebug() << "    INVALID SYNTAX";
+        qDebug() << "    SCRIPT:" << scriptContents;
+        return QScriptValue(); // invalid script
+    }
+    
+    QScriptValue entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
+    
+    if (!entityScriptConstructor.isFunction()) {
+        qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
+        qDebug() << "    NOT CONSTRUCTOR";
+        qDebug() << "    SCRIPT:" << scriptContents;
+        return QScriptValue(); // invalid script
+    }
+
+    QScriptValue entityScriptObject = entityScriptConstructor.construct();
+    EntityScriptDetails newDetails = { entity->getScript(), entityScriptObject };
+    _entityScripts[entityID] = newDetails;
+
+    return entityScriptObject; // newly constructed
 }
 
 void EntityTreeRenderer::setTree(Octree* newTree) {
@@ -64,10 +188,62 @@ void EntityTreeRenderer::update() {
     if (_tree) {
         EntityTree* tree = static_cast<EntityTree*>(_tree);
         tree->update();
+        
+        // check to see if the avatar has moved and if we need to handle enter/leave entity logic
+        checkEnterLeaveEntities();
     }
 }
 
-void EntityTreeRenderer::render(RenderMode renderMode) {
+void EntityTreeRenderer::checkEnterLeaveEntities() {
+    if (_tree) {
+        glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
+        
+        if (avatarPosition != _lastAvatarPosition) {
+            float radius = 1.0f / (float) TREE_SCALE; // for now, assume 1 meter radius
+            QVector<const EntityItem*> foundEntities;
+            QVector<EntityItemID> entitiesContainingAvatar;
+            
+            // find the entities near us
+            static_cast<EntityTree*>(_tree)->findEntities(avatarPosition, radius, foundEntities);
+
+            // create a list of entities that actually contain the avatar's position
+            foreach(const EntityItem* entity, foundEntities) {
+                if (entity->contains(avatarPosition)) {
+                    entitiesContainingAvatar << entity->getEntityItemID();
+                }
+            }
+
+            // for all of our previous containing entities, if they are no longer containing then send them a leave event
+            foreach(const EntityItemID& entityID, _currentEntitiesInside) {
+                if (!entitiesContainingAvatar.contains(entityID)) {
+                    emit leaveEntity(entityID);
+                    QScriptValueList entityArgs = createEntityArgs(entityID);
+                    QScriptValue entityScript = loadEntityScript(entityID);
+                    if (entityScript.property("leaveEntity").isValid()) {
+                        entityScript.property("leaveEntity").call(entityScript, entityArgs);
+                    }
+
+                }
+            }
+
+            // for all of our new containing entities, if they weren't previously containing then send them an enter event
+            foreach(const EntityItemID& entityID, entitiesContainingAvatar) {
+                if (!_currentEntitiesInside.contains(entityID)) {
+                    emit enterEntity(entityID);
+                    QScriptValueList entityArgs = createEntityArgs(entityID);
+                    QScriptValue entityScript = loadEntityScript(entityID);
+                    if (entityScript.property("enterEntity").isValid()) {
+                        entityScript.property("enterEntity").call(entityScript, entityArgs);
+                    }
+                }
+            }
+            _currentEntitiesInside = entitiesContainingAvatar;
+            _lastAvatarPosition = avatarPosition;
+        }
+    }
+}
+
+void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
     OctreeRenderer::render(renderMode);
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
@@ -100,8 +276,8 @@ const Model* EntityTreeRenderer::getModelForEntityItem(const EntityItem* entityI
 }
 
 void renderElementProxy(EntityTreeElement* entityTreeElement) {
-    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float)TREE_SCALE;
-    float elementSize = entityTreeElement->getScale() * (float)TREE_SCALE;
+    glm::vec3 elementCenter = entityTreeElement->getAACube().calcCenter() * (float) TREE_SCALE;
+    float elementSize = entityTreeElement->getScale() * (float) TREE_SCALE;
     glColor3f(1.0f, 0.0f, 0.0f);
     glPushMatrix();
         glTranslatef(elementCenter.x, elementCenter.y, elementCenter.z);
@@ -165,7 +341,7 @@ void renderElementProxy(EntityTreeElement* entityTreeElement) {
 }
 
 void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* args) {
-    bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
+    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
     bool displayModelBounds = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelBounds);
     if (!isShadowMode && displayModelBounds) {
         PerformanceTimer perfTimer("renderProxies");
@@ -174,9 +350,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         AACube minCube = entity->getMinimumAACube();
         AABox entityBox = entity->getAABox();
 
-        maxCube.scale((float)TREE_SCALE);
-        minCube.scale((float)TREE_SCALE);
-        entityBox.scale((float)TREE_SCALE);
+        maxCube.scale((float) TREE_SCALE);
+        minCube.scale((float) TREE_SCALE);
+        entityBox.scale((float) TREE_SCALE);
 
         glm::vec3 maxCenter = maxCube.calcCenter();
         glm::vec3 minCenter = minCube.calcCenter();
@@ -206,9 +382,9 @@ void EntityTreeRenderer::renderProxies(const EntityItem* entity, RenderArgs* arg
         glPopMatrix();
 
 
-        glm::vec3 position = entity->getPosition() * (float)TREE_SCALE;
-        glm::vec3 center = entity->getCenter() * (float)TREE_SCALE;
-        glm::vec3 dimensions = entity->getDimensions() * (float)TREE_SCALE;
+        glm::vec3 position = entity->getPosition() * (float) TREE_SCALE;
+        glm::vec3 center = entity->getCenter() * (float) TREE_SCALE;
+        glm::vec3 dimensions = entity->getDimensions() * (float) TREE_SCALE;
         glm::quat rotation = entity->getRotation();
 
         glColor4f(1.0f, 0.0f, 1.0f, 1.0f);
@@ -239,7 +415,7 @@ void EntityTreeRenderer::renderElement(OctreeElement* element, RenderArgs* args)
 
     uint16_t numberOfEntities = entityItems.size();
 
-    bool isShadowMode = args->_renderMode == OctreeRenderer::SHADOW_RENDER_MODE;
+    bool isShadowMode = args->_renderMode == RenderArgs::SHADOW_RENDER_MODE;
     bool displayElementProxy = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelElementProxy);
 
 
@@ -378,6 +554,209 @@ void EntityTreeRenderer::deleteReleasedModels() {
             delete model;
         }
         _releasedModels.clear();
+    }
+}
+
+PickRay EntityTreeRenderer::computePickRay(float x, float y) {
+    float screenWidth = Application::getInstance()->getGLWidget()->width();
+    float screenHeight = Application::getInstance()->getGLWidget()->height();
+    PickRay result;
+    if (OculusManager::isConnected()) {
+        Camera* camera = Application::getInstance()->getCamera();
+        result.origin = camera->getPosition();
+        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
+    } else {
+        ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+        viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
+    }
+    return result;
+}
+
+
+RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType) {
+    RayToEntityIntersectionResult result;
+    if (_tree) {
+        EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+
+        OctreeElement* element;
+        EntityItem* intersectedEntity = NULL;
+        result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
+                                                                (void**)&intersectedEntity, lockType, &result.accurate);
+        if (result.intersects && intersectedEntity) {
+            result.entityID = intersectedEntity->getEntityItemID();
+            result.properties = intersectedEntity->getProperties();
+            result.intersection = ray.origin + (ray.direction * result.distance);
+            result.entity = intersectedEntity;
+        }
+    }
+    return result;
+}
+
+void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
+    connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
+    connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
+    connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
+
+    connect(this, &EntityTreeRenderer::clickDownOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickDownOnEntity);
+    connect(this, &EntityTreeRenderer::holdingClickOnEntity, entityScriptingInterface, &EntityScriptingInterface::holdingClickOnEntity);
+    connect(this, &EntityTreeRenderer::clickReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickReleaseOnEntity);
+
+    connect(this, &EntityTreeRenderer::hoverEnterEntity, entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity);
+    connect(this, &EntityTreeRenderer::hoverOverEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
+    connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+
+    connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
+    connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
+}
+
+QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID) {
+    QScriptValueList args;
+    args << entityID.toScriptValue(_entitiesScriptEngine);
+    args << MouseEvent(*event, deviceID).toScriptValue(_entitiesScriptEngine);
+    return args;
+}
+
+QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entityID) {
+    QScriptValueList args;
+    args << entityID.toScriptValue(_entitiesScriptEngine);
+    return args;
+}
+
+void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
+    PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
+    PickRay ray = computePickRay(event->x(), event->y());
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock);
+    if (rayPickResult.intersects) {
+        //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
+        emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+
+        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
+        QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
+        if (entityScript.property("mousePressOnEntity").isValid()) {
+            entityScript.property("mousePressOnEntity").call(entityScript, entityScriptArgs);
+        }
+        
+        _currentClickingOnEntityID = rayPickResult.entityID;
+        emit clickDownOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
+        if (entityScript.property("clickDownOnEntity").isValid()) {
+            entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
+        }
+    }
+}
+
+void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
+    PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
+    PickRay ray = computePickRay(event->x(), event->y());
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock);
+    if (rayPickResult.intersects) {
+        //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
+        emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+
+        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
+        QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
+        if (entityScript.property("mouseReleaseOnEntity").isValid()) {
+            entityScript.property("mouseReleaseOnEntity").call(entityScript, entityScriptArgs);
+        }
+    }
+    
+    // Even if we're no longer intersecting with an entity, if we started clicking on it, and now
+    // we're releasing the button, then this is considered a clickOn event
+    if (!_currentClickingOnEntityID.isInvalidID()) {
+        emit clickReleaseOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
+
+        QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
+        QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
+        if (currentClickingEntity.property("clickReleaseOnEntity").isValid()) {
+            currentClickingEntity.property("clickReleaseOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+        }
+    }
+    
+    // makes it the unknown ID, we just released so we can't be clicking on anything
+    _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
+}
+
+void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
+    PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
+    PickRay ray = computePickRay(event->x(), event->y());
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock);
+    if (rayPickResult.intersects) {
+        QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
+
+        // load the entity script if needed...
+        QScriptValue entityScript = loadEntityScript(rayPickResult.entity);
+        if (entityScript.property("mouseMoveEvent").isValid()) {
+            entityScript.property("mouseMoveEvent").call(entityScript, entityScriptArgs);
+        }
+    
+        //qDebug() << "mouseMoveEvent over entity:" << rayPickResult.entityID;
+        emit mouseMoveOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        if (entityScript.property("mouseMoveOnEntity").isValid()) {
+            entityScript.property("mouseMoveOnEntity").call(entityScript, entityScriptArgs);
+        }
+        
+        // handle the hover logic...
+        
+        // if we were previously hovering over an entity, and this new entity is not the same as our previous entity
+        // then we need to send the hover leave.
+        if (!_currentHoverOverEntityID.isInvalidID() && rayPickResult.entityID != _currentHoverOverEntityID) {
+            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
+
+            QScriptValueList currentHoverEntityArgs = createMouseEventArgs(_currentHoverOverEntityID, event, deviceID);
+
+            QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
+            if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
+                currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
+            }
+        }
+
+        // If the new hover entity does not match the previous hover entity then we are entering the new one
+        // this is true if the _currentHoverOverEntityID is known or unknown
+        if (rayPickResult.entityID != _currentHoverOverEntityID) {
+            emit hoverEnterEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+            if (entityScript.property("hoverEnterEntity").isValid()) {
+                entityScript.property("hoverEnterEntity").call(entityScript, entityScriptArgs);
+            }
+        }
+
+        // and finally, no matter what, if we're intersecting an entity then we're definitely hovering over it, and
+        // we should send our hover over event
+        emit hoverOverEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
+        if (entityScript.property("hoverOverEntity").isValid()) {
+            entityScript.property("hoverOverEntity").call(entityScript, entityScriptArgs);
+        }
+
+        // remember what we're hovering over
+        _currentHoverOverEntityID = rayPickResult.entityID;
+
+    } else {
+        // handle the hover logic...
+        // if we were previously hovering over an entity, and we're no longer hovering over any entity then we need to 
+        // send the hover leave for our previous entity
+        if (!_currentHoverOverEntityID.isInvalidID()) {
+            emit hoverLeaveEntity(_currentHoverOverEntityID, MouseEvent(*event, deviceID));
+
+            QScriptValueList currentHoverEntityArgs = createMouseEventArgs(_currentHoverOverEntityID, event, deviceID);
+
+            QScriptValue currentHoverEntity = loadEntityScript(_currentHoverOverEntityID);
+            if (currentHoverEntity.property("hoverLeaveEntity").isValid()) {
+                currentHoverEntity.property("hoverLeaveEntity").call(currentHoverEntity, currentHoverEntityArgs);
+            }
+
+            _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
+        }
+    }
+    
+    // Even if we're no longer intersecting with an entity, if we started clicking on an entity and we have
+    // not yet released the hold then this is still considered a holdingClickOnEntity event
+    if (!_currentClickingOnEntityID.isInvalidID()) {
+        emit holdingClickOnEntity(_currentClickingOnEntityID, MouseEvent(*event, deviceID));
+
+        QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, event, deviceID);
+
+        QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
+        if (currentClickingEntity.property("holdingClickOnEntity").isValid()) {
+            currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+        }
     }
 }
 

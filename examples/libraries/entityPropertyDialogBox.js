@@ -35,6 +35,12 @@ EntityPropertyDialogBox = (function () {
 
         var array = new Array();
         var index = 0;
+
+        array.push({ label: "Entity Type:" + properties.type, type: "header" });
+        index++;
+        array.push({ label: "Locked:", value: properties.locked });
+        index++;
+        
         if (properties.type == "Model") {
             array.push({ label: "Model URL:", value: properties.modelURL });
             index++;
@@ -45,6 +51,8 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Animation FPS:", value: properties.animationFPS });
             index++;
             array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
+            index++;
+            array.push({ label: "Textures:", value: properties.textures });
             index++;
         }
         array.push({ label: "Position:", type: "header" });
@@ -131,6 +139,9 @@ EntityPropertyDialogBox = (function () {
         index++;
 
         array.push({ label: "Visible:", value: properties.visible });
+        index++;
+
+        array.push({ label: "Script:", value: properties.script });
         index++;
     
         if (properties.type == "Box" || properties.type == "Sphere") {
@@ -219,12 +230,15 @@ EntityPropertyDialogBox = (function () {
         if (Window.getNonBlockingFormResult(array)) {
             var properties = propertiesForEditedEntity;
             var index = 0;
+            index++; // skip type header
+            properties.locked = array[index++].value;
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
                 properties.animationURL = array[index++].value;
                 properties.animationIsPlaying = array[index++].value;
                 properties.animationFPS = array[index++].value;
                 properties.animationFrameIndex = array[index++].value;
+                properties.textures = array[index++].value;
             }
             index++; // skip header
             properties.position.x = array[index++].value;
@@ -271,6 +285,7 @@ EntityPropertyDialogBox = (function () {
 
             properties.lifetime = array[index++].value;
             properties.visible = array[index++].value;
+            properties.script = array[index++].value;
 
             if (properties.type == "Box" || properties.type == "Sphere") {
                 index++; // skip header
@@ -298,7 +313,9 @@ EntityPropertyDialogBox = (function () {
             }
 
             Entities.editEntity(editModelID, properties);
-            selectionDisplay.select(editModelID, false);
+            if (typeof(selectionDisplay) != "undefined") {
+                selectionDisplay.select(editModelID, false);
+            }
         }
         modelSelected = false;
     });
