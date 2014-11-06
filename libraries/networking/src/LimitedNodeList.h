@@ -24,8 +24,8 @@
 #include <qreadwritelock.h>
 #include <qset.h>
 #include <qsharedpointer.h>
-#include <qhostaddress.h>
-#include <qudpsocket.h>
+#include <QtNetwork/qudpsocket.h>
+#include <QtNetwork/qhostaddress.h>
 
 #include <tbb/concurrent_unordered_map.h>
 
