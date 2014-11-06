@@ -27,13 +27,13 @@ public:
 
     // Possible input slots identifiers
     enum InputSlot {
-        INPUT_SLOT_POSITION = 0,
-        INPUT_SLOT_NORMAL,
-        INPUT_SLOT_COLOR,
-        INPUT_SLOT_TEXCOORD,
-        INPUT_SLOT_TANGENT,
-        INPUT_SLOT_SKIN_CLUSTER_INDEX,
-        INPUT_SLOT_SKIN_CLUSTER_WEIGHT,
+        POSITION = 0,
+        NORMAL,
+        COLOR,
+        TEXCOORD,
+        TANGENT,
+        SKIN_CLUSTER_INDEX,
+        SKIN_CLUSTER_WEIGHT,
 
         NUM_INPUT_SLOTS,
     };
@@ -42,15 +42,15 @@ public:
 
     // Frequency describer
     enum Frequency {
-        FREQUENCY_PER_VERTEX = 0,
-        FREQUENCY_PER_INSTANCE,
+        PER_VERTEX = 0,
+        PER_INSTANCE,
     };
 
     // The attribute description
     // Every thing that is needed to detail a stream attribute and how to interpret it
     class Attribute {
     public:
-        Attribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX) :
+        Attribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX) :
             _slot(slot),
             _channel(channel),
             _element(element),
@@ -58,11 +58,11 @@ public:
             _frequency(frequency)
         {}
         Attribute() :
-            _slot(INPUT_SLOT_POSITION),
+            _slot(POSITION),
             _channel(0),
             _element(),
             _offset(0),
-            _frequency(FREQUENCY_PER_VERTEX)
+            _frequency(PER_VERTEX)
         {}
 
 
@@ -106,7 +106,7 @@ public:
 
         uint32 getElementTotalSize() const { return _elementTotalSize; }
 
-        bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = FREQUENCY_PER_VERTEX);
+        bool setAttribute(Slot slot, Slot channel, Element element, Offset offset = 0, Frequency frequency = PER_VERTEX);
 
     protected:
         AttributeMap _attributes;

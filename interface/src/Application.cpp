@@ -451,6 +451,9 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
+    
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();

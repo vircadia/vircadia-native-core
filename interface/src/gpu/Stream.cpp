@@ -34,13 +34,11 @@ bool Stream::Format::setAttribute(Slot slot, Slot channel, Element element, Offs
 
 BufferStream::BufferStream() :
     _buffers(),
-    _offsets()
+    _offsets(),
+    _strides()
 {}
 
-BufferStream::~BufferStream()
-{
-    _buffers.clear();
-    _offsets.clear();
+BufferStream::~BufferStream() {
 }
 
 void BufferStream::addBuffer(BufferPointer& buffer, Offset offset, Offset stride) {

@@ -27,19 +27,25 @@ public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
     
+    bool isFinished() const { return _isFinished; }
     int getCurrentSendPosition() const { return _currentSendPosition; }
 public slots:
     void injectAudio();
     void stop() { _shouldStop = true; }
     void setOptions(AudioInjectorOptions& options);
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
+    float getLoudness();
+    
 signals:
     void finished();
 private:
     Sound* _sound;
     AudioInjectorOptions _options;
     bool _shouldStop;
+    float _loudness;
+    bool _isFinished;
     int _currentSendPosition;
+
 };
 
 Q_DECLARE_METATYPE(AudioInjector*)

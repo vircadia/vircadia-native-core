@@ -63,7 +63,9 @@ int InjectedAudioStream::parseStreamProperties(PacketType type,
     quint8 attenuationByte = 0;
     packetStream >> attenuationByte;
     _attenuationRatio = attenuationByte / (float)MAX_INJECTOR_VOLUME;
-
+    
+    packetStream >> _ignorePenumbra;
+    
     int numAudioBytes = packetAfterSeqNum.size() - packetStream.device()->pos();
     numAudioSamples = numAudioBytes / sizeof(int16_t);
 

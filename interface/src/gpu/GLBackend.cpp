@@ -246,7 +246,7 @@ void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
 
 #define SUPPORT_LEGACY_OPENGL
 #if defined(SUPPORT_LEGACY_OPENGL)
-static const int NUM_CLASSIC_ATTRIBS = Stream::INPUT_SLOT_TANGENT;
+static const int NUM_CLASSIC_ATTRIBS = Stream::TANGENT;
 static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
     GL_VERTEX_ARRAY,
     GL_NORMAL_ARRAY,
@@ -330,16 +330,16 @@ void GLBackend::updateInput() {
                             #if defined(SUPPORT_LEGACY_OPENGL)
                             if (slot < NUM_CLASSIC_ATTRIBS) {
                                 switch (slot) {
-                                case Stream::INPUT_SLOT_POSITION:
+                                case Stream::POSITION:
                                     glVertexPointer(count, type, stride, (GLvoid*)pointer);
                                     break;
-                                case Stream::INPUT_SLOT_NORMAL:
+                                case Stream::NORMAL:
                                     glNormalPointer(type, stride, (GLvoid*)pointer);
                                     break;
-                                case Stream::INPUT_SLOT_COLOR:
+                                case Stream::COLOR:
                                     glColorPointer(count, type, stride, (GLvoid*)pointer);
                                     break;
-                                case Stream::INPUT_SLOT_TEXCOORD:
+                                case Stream::TEXCOORD:
                                     glTexCoordPointer(count, type, stride, (GLvoid*)pointer); 
                                     break;
                                 };
