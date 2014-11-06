@@ -132,7 +132,9 @@ public:
         QReadLocker readLock(&_nodeMutex);
         
         for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
-            functor(it->second);
+            if (!functor(it->second)) {
+                break;
+            }
         }
     }
     

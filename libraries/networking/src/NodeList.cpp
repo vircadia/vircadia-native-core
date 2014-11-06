@@ -454,6 +454,8 @@ void NodeList::pingInactiveNodes() {
             // we don't have an active link to this node, ping it to set that up
             pingPunchForInactiveNode(node);
         }
+        
+        return true;
     });
 }
 

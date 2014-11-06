@@ -51,12 +51,8 @@ OctreeEditPacketSender::~OctreeEditPacketSender() {
 bool OctreeEditPacketSender::serversExist() const {
     bool hasServers = false;
     bool atLeastOneJurisdictionMissing = false; // assume the best
-    NodeList* nodeList = NodeList::getInstance();
     
-    NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        // only send to the NodeTypes that are getMyNodeType()
-        SharedNodePointer node = it->second;
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
         if (node->getType() == getMyNodeType() && node->getActiveSocket()) {
             
             QUuid nodeUUID = node->getUUID();
@@ -72,10 +68,13 @@ bool OctreeEditPacketSender::serversExist() const {
             }
             hasServers = true;
         }
+        
         if (atLeastOneJurisdictionMissing) {
-            break; // no point in looking further...
+            return false; // no point in looking further - return false from anonymous function
+        } else {
+            return true;
         }
-    }
+    });
 
     return (hasServers && !atLeastOneJurisdictionMissing);
 }
