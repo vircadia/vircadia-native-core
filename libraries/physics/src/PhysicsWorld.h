@@ -16,36 +16,12 @@
 
 #include <btBulletDynamicsCommon.h>
 
-#include "ShapeManager.h"
 #include "BulletUtil.h"
+#include "EntityMotionState.h"
 #include "PositionHashKey.h"
+#include "ShapeManager.h"
+#include "UUIDHashKey.h"
 #include "VoxelObject.h"
-
-#ifdef COLLIDABLE
-enum MotionType {
-    MOTION_TYPE_STATIC,
-    MOTION_TYPE_DYNAMIC,
-    MOTION_TYPE_KINEMATIC
-};
-
-class EntityObject {
-public:
-    EntityObject();
-
-    bool makeStatic();
-    bool makeDynamic();
-    bool makeKinematic();
-
-    MotionType getMotionType() const { return _motionType; }
-
-private:
-    btCollisionObject* _object;
-    btMotionState* _motionState;
-    MotionType _motionType;
-    btVector3 _inertiaDiagLocal;
-    float _mass;
-};
-#endif // COLLIDABLE
 
 class PhysicsWorld {
 public:
@@ -67,6 +43,14 @@ public:
     /// \param scale the length of the voxel side
     bool removeVoxel(const glm::vec3& position, float scale);
 
+    /// \return true if Entity added
+    /// \param info information about collision shapes to create
+    bool addEntity(const QUuid& id, EntityMotionState* motionState);
+
+    /// \return true if Entity removed
+    /// \param id UUID of the entity
+    bool removeEntity(const QUuid& id);
+
 protected:
     btDefaultCollisionConfiguration* _collisionConfig;
     btCollisionDispatcher* _collisionDispatcher;
@@ -78,6 +62,7 @@ protected:
 
 private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
+    btHashMap<UUIDHashKey, EntityMotionState*> _entities;
 };
 
 

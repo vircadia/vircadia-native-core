@@ -22,9 +22,6 @@ void PhysicsWorld::init() {
     _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 }
 
-/// \return true if Voxel added
-/// \param position the minimum corner of the voxel
-/// \param scale the length of the voxel side
 bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
     glm::vec3 center = position + halfExtents;
@@ -55,9 +52,6 @@ bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
     return false;
 }
 
-/// \return true if Voxel removed
-/// \param position the minimum corner of the voxel
-/// \param scale the length of voxel side
 bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
     glm::vec3 center = position + halfExtents;
@@ -78,6 +72,27 @@ bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
         delete proxy->_object;
         _voxels.remove(key);
         return true;
+    }
+    return false;
+}
+
+bool PhysicsWorld::addEntity(const QUuid& id, EntityMotionState* motionState) {
+    assert(motionState);
+    UUIDHashKey key(id);
+    EntityMotionState** statePtr = _entities.find(key);
+    if (!statePtr) {
+        // BOOKMARK: Andrew to implement this
+    } else {
+        assert(*statePtr == motionState);
+    }
+    return false;
+}
+
+bool PhysicsWorld::removeEntity(const QUuid& id) {
+    UUIDHashKey key(id);
+    EntityMotionState** statePtr = _entities.find(key);
+    if (statePtr) {
+        // BOOKMARK: Andrew to implement this
     }
     return false;
 }
