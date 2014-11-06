@@ -285,6 +285,27 @@
         "advanced": true
       },
       {
+        "name": "verboseDebug",
+        "type": "checkbox",
+        "help": "lots of debugging",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "debugReceiving",
+        "type": "checkbox",
+        "help": "extra debugging on receiving",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "debugSending",
+        "type": "checkbox",
+        "help": "extra debugging on sending",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "clockSkew",
         "label": "Clock Skew",
         "help": "Number of msecs to skew the server clock by to test clock skew",
