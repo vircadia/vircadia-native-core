@@ -26,6 +26,9 @@ public:
     
     void stopAllInjectors();
 public slots:
+
+    static float getLoudness(AudioInjector* injector);
+
     AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
     void stopInjector(AudioInjector* injector);
     bool isInjectorPlaying(AudioInjector* injector);
@@ -35,6 +38,7 @@ public slots:
 private:
     AudioScriptingInterface() {};
     QList< QPointer<AudioInjector> > _activeInjectors;
+
 
 };
 #endif // hifi_AudioScriptingInterface_h
