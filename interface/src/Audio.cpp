@@ -1026,8 +1026,6 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
     }
 }
 
-
-
 void Audio::addReceivedAudioToStream(const QByteArray& audioByteArray) {
     if (_audioOutput) {
         // Audio output must exist and be correctly set up if we're going to process received audio
