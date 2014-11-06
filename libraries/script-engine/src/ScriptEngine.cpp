@@ -322,6 +322,11 @@ QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* ob
     return QScriptValue::NullValue;
 }
 
+void ScriptEngine::registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments) {
+    QScriptValue scriptFun = newFunction(fun, numArguments);
+    globalObject().setProperty(name, scriptFun);
+}
+
 void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                         QScriptEngine::FunctionSignature setter, QScriptValue object) {
     QScriptValue setterFunction = newFunction(setter, 1);

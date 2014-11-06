@@ -35,6 +35,12 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 Script.include("libraries/entityCameraTool.js");
 var cameraManager = new CameraManager();
 
+Script.include("libraries/gridTool.js");
+var grid = Grid();
+gridTool = GridTool({ horizontalGrid: grid });
+gridTool.addListener(function(data) {
+});
+
 selectionManager.setEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -258,6 +264,7 @@ var toolBar = (function () {
 
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
+            gridTool.setVisible(isActive);
             if (!isActive) {
                 selectionManager.clearSelections();
                 cameraManager.disable();
@@ -747,25 +754,32 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
+    } else if (event.text == 'g') {
+        if (isActive && selectionManager.hasSelection()) {
+            var newPosition = selectionManager.worldPosition;
+            newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+            grid.setPosition(newPosition);
+        }
     } else if (isActive) {
         var delta = null;
+        var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
 
         if (event.text == 'UP') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: 1, z: 0 };
+                delta = { x: 0, y: increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: -1 };
+                delta = { x: 0, y: 0, z: -increment };
             }
         } else if (event.text == 'DOWN') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: -1, z: 0 };
+                delta = { x: 0, y: -increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: 1 };
+                delta = { x: 0, y: 0, z: increment };
             }
         } else if (event.text == 'LEFT') {
-            delta = { x: -1, y: 0, z: 0 };
+            delta = { x: -increment, y: 0, z: 0 };
         } else if (event.text == 'RIGHT') {
-            delta = { x: 1, y: 0, z: 0 };
+            delta = { x: increment, y: 0, z: 0 };
         }
 
         if (delta != null) {
@@ -820,7 +834,6 @@ function applyEntityProperties(data) {
         var properties = data.createEntities[i].properties;
         var newEntityID = Entities.addEntity(properties);
         DELETED_ENTITY_MAP[entityID.id] = newEntityID;
-        print(newEntityID.isKnownID);
         if (data.selectCreated) {
             selectedEntityIDs.push(newEntityID);
         }

@@ -65,6 +65,7 @@ public:
     QScriptValue registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                               QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
+    void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
