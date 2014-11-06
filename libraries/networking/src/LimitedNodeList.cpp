@@ -21,6 +21,8 @@
 
 #include <LogHandler.h>
 
+#include <tbb/parallel_for.h>
+
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
@@ -342,9 +344,9 @@ int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packe
     return 0;
 }
 
-SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID, bool blockingLock) {
+SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
     try {
-        return _nodeHash[nodeUUID];
+        return _nodeHash.at(nodeUUID);
     } catch (std::out_of_range) {
         return SharedNodePointer();
     }
@@ -360,12 +362,12 @@ SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet
 void LimitedNodeList::eraseAllNodes() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
-    // iterate the current nodes and note that they are going down
-    for (auto it = _nodeHash.cbegin(); !it.is_end(); it++) {
+    // iterate the current nodes, emit that they are dying and remove them from the hash
+    QWriteLocker writeLock(&_nodeMutex);
+    for (NodeHash::iterator it = _nodeHash.begin(); it != _nodeHash.end(); ++it) {
         emit nodeKilled(it->second);
+        it = _nodeHash.unsafe_erase(it);
     }
-    
-    _nodeHash.clear();
 }
 
 void LimitedNodeList::reset() {
@@ -373,10 +375,13 @@ void LimitedNodeList::reset() {
 }
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
-    SharedNodePointer matchingNode = nodeWithUUID(nodeUUID);
-    if (matchingNode) {
+    NodeHash::iterator it = _nodeHash.find(nodeUUID);
+    if (it != _nodeHash.end()) {
+        SharedNodePointer matchingNode = it->second;
+        
+        QWriteLocker writeLocker(&_nodeMutex);
+        _nodeHash.unsafe_erase(it);
         emit nodeKilled(matchingNode);
-        _nodeHash.erase(nodeUUID);
     }
 }
 
@@ -391,7 +396,7 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
     try {
-        SharedNodePointer matchingNode = _nodeHash[uuid];
+        SharedNodePointer matchingNode = _nodeHash.at(uuid);
         
         matchingNode->setPublicSocket(publicSocket);
         matchingNode->setLocalSocket(localSocket);
@@ -402,7 +407,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
         
-        _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
+        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodeSharedPointer));
         
         qDebug() << "Added" << *newNode;
         
@@ -415,13 +420,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
 unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
     
-    NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        if (destinationNodeTypes.contains(it->second->getType())) {
-            writeDatagram(packet, it->second);
+    eachNode([&](const SharedNodePointer& node){
+        if (destinationNodeTypes.contains(node->getType())) {
+            writeDatagram(packet, node);
             ++n;
         }
-    }
+    });
 
     return n;
 }
@@ -460,17 +464,9 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 }
 
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
-
-    if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
-        NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
-        
-        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-            if (it->second->getType() == nodeType) {
-                return it->second;
-            }
-        }
-    }
-    return SharedNodePointer();
+    return nodeMatchingPredicate([&](const SharedNodePointer& node){
+        return node->getType() == nodeType;
+    });
 }
 
 void LimitedNodeList::getPacketStats(float& packetsPerSecond, float& bytesPerSecond) {
@@ -485,20 +481,21 @@ void LimitedNodeList::resetPacketStats() {
 }
 
 void LimitedNodeList::removeSilentNodes() {
-    
-    NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
-    
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
+    eachNodeHashIterator([this](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * 1000)) {
             // call the NodeHash erase to get rid of this node
-            _nodeHash.erase(it->first);
+            it = _nodeHash.unsafe_erase(it);
+            emit nodeKilled(node);
+        } else {
+            // we didn't erase this node, push the iterator forwards
+            ++it;
         }
         
         node->getMutex().unlock();
-    }
+    });
 }
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;

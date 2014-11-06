@@ -20,19 +20,18 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <QtCore/QElapsedTimer>
-#include <QtCore/QMutex>
-#include <QtCore/QSet>
-#include <QtCore/QSettings>
-#include <QtCore/QSharedPointer>
-#include <QtNetwork/QHostAddress>
-#include <QtNetwork/QUdpSocket> 
+#include <qelapsedtimer.h>
+#include <qreadwritelock.h>
+#include <qset.h>
+#include <qsharedpointer.h>
+#include <qhostaddress.h>
+#include <qudpsocket.h>
 
-#include <libcuckoo/cuckoohash_map.hh>
+#include <tbb/concurrent_unordered_map.h>
 
 #include "DomainHandler.h"
 #include "Node.h"
-#include "UUIDCityHasher.h"
+#include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1500;
 
@@ -54,8 +53,9 @@ typedef QSet<NodeType_t> NodeSet;
 typedef QSharedPointer<Node> SharedNodePointer;
 Q_DECLARE_METATYPE(SharedNodePointer)
 
-typedef cuckoohash_map<QUuid, SharedNodePointer, UUIDCityHasher > NodeHash;
-typedef std::vector<std::pair<QUuid, SharedNodePointer> > NodeHashSnapshot;
+using namespace tbb;
+typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
+typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -73,7 +73,6 @@ public:
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
-    
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -95,11 +94,10 @@ public:
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     void(*linkedDataCreateCallback)(Node *);
-
-    const NodeHash& getNodeHash() { return _nodeHash; }
+    
     int size() const { return _nodeHash.size(); }
 
-    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
@@ -128,6 +126,29 @@ public:
     
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
                                   QUuid headerID = QUuid(), const QUuid& connectRequestID = QUuid());
+    
+    template<typename NodeLambda>
+    void eachNode(NodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+        
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            functor(it->second);
+        }
+    }
+    
+    template<typename PredLambda>
+    SharedNodePointer nodeMatchingPredicate(const PredLambda predicate) {
+        QReadLocker readLock(&_nodeMutex);
+        
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            if (predicate(it->second)) {
+                return it->second;
+            }
+        }
+        
+        return SharedNodePointer();
+    }
+    
 public slots:
     void reset();
     void eraseAllNodes();
@@ -158,6 +179,7 @@ protected:
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
+    QReadWriteLock _nodeMutex;
     QUdpSocket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;
@@ -166,6 +188,17 @@ protected:
     int _numCollectedPackets;
     int _numCollectedBytes;
     QElapsedTimer _packetStatTimer;
+    
+    template<typename IteratorLambda>
+    void eachNodeHashIterator(IteratorLambda functor) {
+        QWriteLocker writeLock(&_nodeMutex);
+        NodeHash::iterator it = _nodeHash.begin();
+        
+        while (it != _nodeHash.end()) {
+            functor(it);
+        }
+    }
+    
 };
 
 #endif // hifi_LimitedNodeList_h

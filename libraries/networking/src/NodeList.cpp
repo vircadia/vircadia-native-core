@@ -449,13 +449,12 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::pingInactiveNodes() {
-    NodeHashSnapshot snapshotHash = _nodeHash.snapshot_table();
-    for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-        if (!it->second->getActiveSocket()) {
+    eachNode([this](const SharedNodePointer& node){
+        if (!node->getActiveSocket()) {
             // we don't have an active link to this node, ping it to set that up
-            pingPunchForInactiveNode(it->second);
+            pingPunchForInactiveNode(node);
         }
-    }
+    });
 }
 
 void NodeList::activateSocketFromNodeCommunication(const QByteArray& packet, const SharedNodePointer& sendingNode) {
