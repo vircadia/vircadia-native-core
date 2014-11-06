@@ -329,10 +329,7 @@ void Stats::display(
         unsigned long totalPingVoxel = 0;
         int voxelServerCount = 0;
         
-        NodeHashSnapshot snapshotHash = nodeList->getNodeHash().snapshot_table();
-        
-        for (auto it = snapshotHash.begin(); it != snapshotHash.end(); it++) {
-            SharedNodePointer node = it->second;
+        nodeList->eachNode([&totalPingVoxel, &pingVoxelMax, &voxelServerCount](const SharedNodePointer& node){
             // TODO: this should also support entities
             if (node->getType() == NodeType::VoxelServer) {
                 totalPingVoxel += node->getPingMs();
@@ -341,7 +338,7 @@ void Stats::display(
                     pingVoxelMax = node->getPingMs();
                 }
             }
-        }
+        });
 
         if (voxelServerCount) {
             pingVoxel = totalPingVoxel/voxelServerCount;
