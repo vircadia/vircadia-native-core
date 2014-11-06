@@ -16,34 +16,6 @@
 
 using namespace gpu;
 
-const int TYPE_SIZE[NUM_TYPES] = {
-    4,
-    4,
-    4,
-    2,
-    2,
-    2,
-    1,
-    1,
-    4,
-    4,
-    4,
-    2,
-    2,
-    2,
-    1,
-    1
-}; 
-
-const int DIMENSION_COUNT[NUM_DIMENSIONS] = {
-    1,
-    2,
-    3,
-    4,
-    9,
-    16
-};
-
 Batch::Batch() :
     _commands(),
     _commandOffsets(),
