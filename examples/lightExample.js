@@ -1,11 +1,11 @@
 //
-//  spotlightExample.js
+//  lightExample.js
 //  examples
 //
-//  Created by Brad Hefta-Gaub on 10/28/14.
+//  Created by Philip Rosedale on November 5, 2014
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  This is an example script that demonstrates creating and editing a particle
+//  Makes a light right in front of your avatar, as well as a sphere at that location. 
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
