@@ -14,5 +14,6 @@
 void main(void) {
     gl_Position = ftransform();
     vec4 projected = gl_Position / gl_Position.w;
-    gl_TexCoord[0] = vec4(dot(projected, gl_ObjectPlaneS[3]), dot(projected, gl_ObjectPlaneT[3]), 0.0, 1.0);
+    gl_TexCoord[0] = vec4(dot(projected, gl_ObjectPlaneS[3]) * gl_Position.w,
+        dot(projected, gl_ObjectPlaneT[3]) * gl_Position.w, 0.0, gl_Position.w);
 }
