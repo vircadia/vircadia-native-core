@@ -102,6 +102,8 @@ void AudioInjector::injectAudio() {
         quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         packetStream << volume;
         
+        packetStream << _options.ignorePenumbra();
+        
         QElapsedTimer timer;
         timer.start();
         int nextFrame = 0;

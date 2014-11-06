@@ -29,6 +29,7 @@ PositionalAudioStream::PositionalAudioStream(PositionalAudioStream::Type type, b
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _shouldLoopbackForNode(false),
     _isStereo(isStereo),
+    _ignorePenumbra(false),
     _lastPopOutputTrailingLoudness(0.0f),
     _lastPopOutputLoudness(0.0f)
 {

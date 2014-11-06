@@ -29,6 +29,7 @@ class AudioInjectorOptions : public QObject {
     Q_PROPERTY(float volume READ getVolume WRITE setVolume)
     Q_PROPERTY(bool loop READ getLoop WRITE setLoop)
     Q_PROPERTY(bool isStereo READ isStereo WRITE setIsStereo)
+    Q_PROPERTY(bool ignorePenumbra READ ignorePenumbra WRITE setIgnorePenumbra)
 public:
     AudioInjectorOptions(QObject* parent = 0);
     AudioInjectorOptions(const AudioInjectorOptions& other);
@@ -49,6 +50,9 @@ public:
     const bool isStereo() const { return _isStereo; }
     void setIsStereo(const bool isStereo) { _isStereo = isStereo; }
     
+    const bool ignorePenumbra() const {return _ignorePenumbra; }
+    void setIgnorePenumbra(bool ignorePenumbra) { _ignorePenumbra = ignorePenumbra; }
+    
     AbstractAudioInterface* getLoopbackAudioInterface() const { return _loopbackAudioInterface; }
     void setLoopbackAudioInterface(AbstractAudioInterface* loopbackAudioInterface)
         { _loopbackAudioInterface = loopbackAudioInterface; }
@@ -58,6 +62,7 @@ private:
     bool _loop;
     glm::quat _orientation;
     bool _isStereo;
+    bool _ignorePenumbra;
     AbstractAudioInterface* _loopbackAudioInterface;
 };
 
