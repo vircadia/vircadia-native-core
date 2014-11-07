@@ -185,7 +185,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isVSyncOn(true)
+        _isVSyncOn(true),
+        _aboutToQuit(false)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -390,6 +391,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
@@ -421,6 +423,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+}
+
+void Application::aboutToQuit() {
+    _aboutToQuit = true;
 }
 
 Application::~Application() {
@@ -1255,7 +1261,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
     
-    _entities.mouseMoveEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseMoveEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1278,7 +1286,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mousePressEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mousePressEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
@@ -1319,7 +1329,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mouseReleaseEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseReleaseEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
