@@ -696,6 +696,7 @@ bool EntityItemProperties::encodeEraseEntityMessage(const EntityItemID& entityIt
 
 void EntityItemProperties::markAllChanged() {
     _positionChanged = true;
+    _dimensionsChanged = true;
     _rotationChanged = true;
     _massChanged = true;
     _velocityChanged = true;
@@ -716,6 +717,8 @@ void EntityItemProperties::markAllChanged() {
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;
+    _ignoreForCollisionsChanged = true;
+    _collisionsWillMoveChanged = true;
 
     _diffuseColorChanged = true;
     _ambientColorChanged = true;
