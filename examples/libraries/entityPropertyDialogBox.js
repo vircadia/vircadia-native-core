@@ -54,7 +54,7 @@ EntityPropertyDialogBox = (function () {
             index++;
             array.push({ label: "Textures:", value: properties.textures });
             index++;
-            array.push({ label: "Texture Names:\n" + properties.textureNames, type: "header" });
+            array.push({ label: "Original Textures:\n" + properties.originalTextures, type: "header" });
             index++;
         }
         array.push({ label: "Position:", type: "header" });
