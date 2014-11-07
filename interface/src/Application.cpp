@@ -255,6 +255,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
 
@@ -3565,9 +3566,8 @@ void Application::changeDomainHostname(const QString &newDomainHostname) {
     }
 }
 
-void Application::domainChanged(const QString& domainHostname) {
-    updateWindowTitle();
-
+void Application::clearDomainOctreeDetails() {
+    qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3576,13 +3576,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _voxelServerJurisdictions.unlock();
 
+    _entityServerJurisdictions.lockForWrite();
+    _entityServerJurisdictions.clear();
+    _entityServerJurisdictions.unlock();
+
+    _octreeSceneStatsLock.lockForWrite();
     _octreeServerSceneStats.clear();
+    _octreeSceneStatsLock.unlock();
 
     // reset the model renderer
     _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+}
+
+void Application::domainChanged(const QString& domainHostname) {
+    updateWindowTitle();
+    clearDomainOctreeDetails();
 }
 
 void Application::connectedToDomain(const QString& hostname) {

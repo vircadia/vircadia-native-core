@@ -377,6 +377,7 @@ public slots:
     void resetSensors();
 
 private slots:
+    void clearDomainOctreeDetails();
     void timer();
     void idle();
 
