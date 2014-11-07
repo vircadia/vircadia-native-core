@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual void handleAudioByteArray(const QByteArray& audioByteArray);
+    virtual void handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& options);
 
     void sendDownstreamAudioStatsPacket();
 

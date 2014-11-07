@@ -734,6 +734,32 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
     }
 }
 
+QStringList NetworkGeometry::getTextureNames() const {
+    QStringList result;
+    for (int i = 0; i < _meshes.size(); i++) {
+        const NetworkMesh& mesh = _meshes[i];
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            const NetworkMeshPart& part = mesh.parts[j];
+            
+            if (!part.diffuseTextureName.isEmpty()) {
+                QString textureURL = part.diffuseTexture->getURL().toString();
+                result << part.diffuseTextureName + ":" + textureURL;
+            }
+
+            if (!part.normalTextureName.isEmpty()) {
+                QString textureURL = part.normalTexture->getURL().toString();
+                result << part.normalTextureName + ":" + textureURL;
+            }
+
+            if (!part.specularTextureName.isEmpty()) {
+                QString textureURL = part.specularTexture->getURL().toString();
+                result << part.specularTextureName + ":" + textureURL;
+            }
+        }
+    }
+    return result;
+}
+
 /// Reads geometry in a worker thread.
 class GeometryReader : public QRunnable {
 public:

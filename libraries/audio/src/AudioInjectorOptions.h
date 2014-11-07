@@ -19,8 +19,6 @@
 
 #include <RegisteredMetaTypes.h>
 
-#include "AbstractAudioInterface.h"
-
 class AudioInjectorOptions : public QObject {
     Q_OBJECT
     
@@ -53,9 +51,6 @@ public:
     const bool ignorePenumbra() const {return _ignorePenumbra; }
     void setIgnorePenumbra(bool ignorePenumbra) { _ignorePenumbra = ignorePenumbra; }
     
-    AbstractAudioInterface* getLoopbackAudioInterface() const { return _loopbackAudioInterface; }
-    void setLoopbackAudioInterface(AbstractAudioInterface* loopbackAudioInterface)
-        { _loopbackAudioInterface = loopbackAudioInterface; }
 private:
     glm::vec3 _position;
     float _volume;
@@ -63,7 +58,8 @@ private:
     glm::quat _orientation;
     bool _isStereo;
     bool _ignorePenumbra;
-    AbstractAudioInterface* _loopbackAudioInterface;
 };
+
+Q_DECLARE_METATYPE(AudioInjectorOptions)
 
 #endif // hifi_AudioInjectorOptions_h
