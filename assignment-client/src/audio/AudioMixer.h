@@ -60,7 +60,7 @@ private:
 
     void perSecondActions();
     
-    bool shouldMute(float quietestFrame, float loudestFrame);
+    bool shouldMute(float quietestFrame);
 
     QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
     QString getReadPendingDatagramsPacketsPerCallStatsString() const;
