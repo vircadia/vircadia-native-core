@@ -196,6 +196,7 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
+        _tree->lockForRead();
         glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
@@ -240,6 +241,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
         }
+        _tree->unlock();
     }
 }
 

@@ -77,6 +77,9 @@ Audio::Audio(QObject* parent) :
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),
+    _inputFrameCounter(0),
+    _quietestFrame(std::numeric_limits<float>::max()),
+    _loudestFrame(0.0f),
     _timeSinceLastClip(-1.0),
     _dcOffset(0),
     _noiseGateMeasuredFloor(0),
@@ -717,6 +720,20 @@ void Audio::handleAudioInput() {
                 }
                 
                 _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+
+                if (_quietestFrame > _lastInputLoudness) {
+                    _quietestFrame = _lastInputLoudness;
+                }
+                if (_loudestFrame < _lastInputLoudness) {
+                    _loudestFrame = _lastInputLoudness;
+                }
+                
+                const int FRAMES_FOR_NOISE_DETECTION = 400;
+                if (_inputFrameCounter++ > FRAMES_FOR_NOISE_DETECTION) {
+                    _quietestFrame = std::numeric_limits<float>::max();
+                    _loudestFrame = 0.0f;
+                    _inputFrameCounter = 0;
+                }
                 
                 //  If Noise Gate is enabled, check and turn the gate on and off
                 if (!_audioSourceInjectEnabled && _noiseGateEnabled) {
