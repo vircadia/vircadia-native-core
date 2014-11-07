@@ -1331,9 +1331,10 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
+void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& injectorOptions) {
     // TODO: either create a new audio device (up to the limit of the sound card or a hard limit)
     // or send to the mixer and use delayed loopback
+    
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {

@@ -14,8 +14,11 @@
 
 #include <qpointer.h>
 
+#include "AbstractAudioInterface.h"
 #include "AudioInjector.h"
 #include "Sound.h"
+
+class AbstractAudioInterface;
 
 const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
 
@@ -25,19 +28,24 @@ public:
     static AudioScriptingInterface& getInstance();
     
     void stopAllInjectors();
+    
+    void setLocalLoopbackInterface(AbstractAudioInterface* audioInterface) { _localLoopbackInterface = audioInterface; }
 public slots:
 
     static float getLoudness(AudioInjector* injector);
 
+    void playLocalSound(Sound *sound, const AudioInjectorOptions* injectorOptions = NULL);
     AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+    
     void stopInjector(AudioInjector* injector);
     bool isInjectorPlaying(AudioInjector* injector);
     
     void injectorStopped();
     
 private:
-    AudioScriptingInterface() {};
+    AudioScriptingInterface();
     QList< QPointer<AudioInjector> > _activeInjectors;
+    AbstractAudioInterface* _localLoopbackInterface;
 
 
 };
