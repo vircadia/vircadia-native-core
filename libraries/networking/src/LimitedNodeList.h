@@ -187,6 +187,8 @@ protected:
                          const QUuid& connectionSecret);
     
     void changeSocketBufferSizes(int numBytes);
+    
+    void handleNodeKill(const SharedNodePointer& node);
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;

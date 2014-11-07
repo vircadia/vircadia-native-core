@@ -2019,9 +2019,9 @@ void DomainServer::addStaticAssignmentsToQueue() {
     QHash<QUuid, SharedAssignmentPointer>::iterator staticAssignment = staticHashCopy.begin();
     while (staticAssignment != staticHashCopy.end()) {
         // add any of the un-matched static assignments to the queue
-
+        
         // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-        if (NodeList::getInstance()->nodeWithUUID(staticAssignment->data()->getUUID())) {
+        if (!NodeList::getInstance()->nodeWithUUID(staticAssignment->data()->getUUID())) {
             // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
             refreshStaticAssignmentAndAddToQueue(*staticAssignment);
         }

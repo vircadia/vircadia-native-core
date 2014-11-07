@@ -359,11 +359,18 @@ SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet
 void LimitedNodeList::eraseAllNodes() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
+    QSet<SharedNodePointer> killedNodes;
+    eachNode([&killedNodes](const SharedNodePointer& node){
+        killedNodes.insert(node);
+    });
+    
     // iterate the current nodes, emit that they are dying and remove them from the hash
-    QWriteLocker writeLock(&_nodeMutex);
-    for (NodeHash::iterator it = _nodeHash.begin(); it != _nodeHash.end(); ++it) {
-        emit nodeKilled(it->second);
-        it = _nodeHash.unsafe_erase(it);
+    _nodeMutex.lockForWrite();
+    _nodeHash.clear();
+    _nodeMutex.unlock();
+    
+    foreach(const SharedNodePointer& killedNode, killedNodes) {
+        handleNodeKill(killedNode);
     }
 }
 
@@ -378,7 +385,8 @@ void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
         
         QWriteLocker writeLocker(&_nodeMutex);
         _nodeHash.unsafe_erase(it);
-        emit nodeKilled(matchingNode);
+        
+        handleNodeKill(matchingNode);
     }
 }
 
@@ -388,6 +396,11 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
 
     // kill the node with this UUID, if it exists
     killNodeWithUUID(nodeUUID);
+}
+
+void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
+    qDebug() << "Killed" << *node;
+    emit nodeKilled(node);
 }
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
@@ -478,14 +491,17 @@ void LimitedNodeList::resetPacketStats() {
 }
 
 void LimitedNodeList::removeSilentNodes() {
-    eachNodeHashIterator([this](NodeHash::iterator& it){
+    QSet<SharedNodePointer> killedNodes;
+    
+    eachNodeHashIterator([&](NodeHash::iterator& it){
         SharedNodePointer node = it->second;
         node->getMutex().lock();
         
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * 1000)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
-            emit nodeKilled(node);
+            
+            killedNodes.insert(node);
         } else {
             // we didn't erase this node, push the iterator forwards
             ++it;
@@ -493,6 +509,10 @@ void LimitedNodeList::removeSilentNodes() {
         
         node->getMutex().unlock();
     });
+    
+    foreach(const SharedNodePointer& killedNode, killedNodes) {
+        handleNodeKill(killedNode);
+    }
 }
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
