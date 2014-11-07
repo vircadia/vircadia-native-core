@@ -37,10 +37,12 @@ public:
         _model(NULL),
         _needsInitialSimulation(true),
         _needsModelReload(true),
-        _myRenderer(NULL) { }
+        _myRenderer(NULL),
+        _originalTexturesRead(false) { }
 
     virtual ~RenderableModelEntityItem();
 
+    virtual EntityItemProperties getProperties() const;
     virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy);
     virtual int readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead, 
                                                 ReadBitstreamToTreeParams& args,
@@ -59,6 +61,8 @@ private:
     bool _needsModelReload;
     EntityTreeRenderer* _myRenderer;
     QString _currentTextures;
+    QStringList _originalTextures;
+    bool _originalTexturesRead;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

@@ -112,6 +112,7 @@ public:
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
+    QStringList getTextureNames() const;
     
 protected:
 
