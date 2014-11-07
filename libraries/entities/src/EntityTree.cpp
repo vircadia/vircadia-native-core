@@ -185,6 +185,8 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
+    emit deletingEntity(entityID);
+
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this, entityID);
     recurseTreeWithOperator(&theOperator);
@@ -197,6 +199,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     foreach(const EntityItemID& entityID, entityIDs) {
         // tell our delete operator about this entityID
         theOperator.addEntityIDToDeleteList(entityID);
+        emit deletingEntity(entityID);
     }
 
     recurseTreeWithOperator(&theOperator);

@@ -62,14 +62,6 @@ void AudioInjector::injectAudio() {
     
     // make sure we actually have samples downloaded to inject
     if (soundByteArray.size()) {
-        // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
-        if (_options.getLoopbackAudioInterface()) {
-            // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-            QMetaObject::invokeMethod(_options.getLoopbackAudioInterface(), "handleAudioByteArray",
-                                      Qt::AutoConnection,
-                                      Q_ARG(QByteArray, soundByteArray));
-            
-        }
         
         // setup the packet for injected audio
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
@@ -86,7 +78,7 @@ void AudioInjector::injectAudio() {
         packetStream << _options.isStereo();
         
         // pack the flag for loopback
-        uchar loopbackFlag = (uchar) (!_options.getLoopbackAudioInterface());
+        uchar loopbackFlag = (uchar) true;
         packetStream << loopbackFlag;
         
         // pack the position for injected audio
