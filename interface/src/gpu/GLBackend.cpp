@@ -436,6 +436,7 @@ void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
     TransformPointer modelTransform = batch._transforms.get(batch._params[paramOffset]._uint);
 
     if (modelTransform != _transform._model) {
+        _transform._model = modelTransform;
         _transform._invalidModel = true;
     }
 }
@@ -444,6 +445,7 @@ void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
     TransformPointer viewTransform = batch._transforms.get(batch._params[paramOffset]._uint);
 
     if (viewTransform != _transform._view) {
+        _transform._view = viewTransform;
         _transform._invalidView = true;
     }
 }
@@ -452,26 +454,27 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
     TransformPointer projectionTransform = batch._transforms.get(batch._params[paramOffset]._uint);
 
     if (projectionTransform != _transform._projection) {
+        _transform._projection = projectionTransform;
         _transform._invalidProj = true;
     }
 }
 
 void GLBackend::updateTransform() {
     if (_transform._invalidProj) {
-        if (_transform._lastMode != GL_PROJECTION) {
+    /*    if (_transform._lastMode != GL_PROJECTION) {
             glMatrixMode(GL_PROJECTION);
             _transform._lastMode = GL_PROJECTION;
         }
-        CHECK_GL_ERROR();
+        CHECK_GL_ERROR();*/
+        _transform._invalidProj;
     }
 
     if (_transform._invalidModel || _transform._invalidView) {
-        if (_transform._lastMode != GL_MODELVIEW) {
-            glMatrixMode(GL_MODELVIEW);
-            _transform._lastMode = GL_MODELVIEW;
-        }
-
         if (!_transform._model.isNull()) {
+            if (_transform._lastMode != GL_MODELVIEW) {
+                glMatrixMode(GL_MODELVIEW);
+                _transform._lastMode = GL_MODELVIEW;
+            }
             if (!_transform._view.isNull()) {
                 Transform::Mat4 mv = _transform._view->getMatrix() * _transform._model->getMatrix();
                 glLoadMatrixf((const GLfloat*) &mv[0]);
@@ -480,6 +483,10 @@ void GLBackend::updateTransform() {
             }
         } else {
             if (!_transform._view.isNull()) {
+                if (_transform._lastMode != GL_MODELVIEW) {
+                    glMatrixMode(GL_MODELVIEW);
+                    _transform._lastMode = GL_MODELVIEW;
+                }
                 glLoadMatrixf((const GLfloat*) & _transform._view->getMatrix());
             } else {
                // glLoadIdentity();

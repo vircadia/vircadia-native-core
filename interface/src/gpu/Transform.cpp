@@ -40,21 +40,22 @@ void Transform::updateCache() const {
         _matrix[1] = Vec4(rot[1], 0.f);
         _matrix[2] = Vec4(rot[2], 0.f);
 
-        _matrix[3] = Vec4(_translation, 0.f);
+        _matrix[3] = Vec4(_translation, 1.f);
 
         validCache();
     }
 }
 
-void Transform::localTranslate( Vec3 const & translation) {
-    Vec3 tt = glm::rotate(_rotation, translation);
-    _translation += tt * _scale;
+void Transform::postTranslate(const Vec3& translation) {
+    invalidCache();
+    Vec3 tt = glm::rotate(_rotation, translation * _scale);
+    _translation += tt;
 }
 
 Transform::Mat4& Transform::evalRelativeTransform( Mat4& result, const Vec3& origin) {
     updateCache();
     result = _matrix;
-    result[3] = Vec4(_translation - origin, 0.f);
+    result[3] = Vec4(_translation - origin, 1.f);
     return result;
 }
 

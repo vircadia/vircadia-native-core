@@ -42,10 +42,11 @@ public:
 
     void setTranslation(const Vec3& translation) { invalidCache(); flagTranslation(); _translation = translation; }
     const Vec3& getTranslation() const { return _translation; }
-    void parentTranslate(const Vec3& translation) { _translation += translation; }
-    void localTranslate( Vec3 const & translation);
 
-    void setRotation(const Quat& rotation) { invalidCache(); flagRotation(); _rotation = rotation; }
+    void preTranslate(const Vec3& translation) { invalidCache(); _translation += translation; }
+    void postTranslate( Vec3 const & translation);
+
+    void setRotation(const Quat& rotation) { invalidCache(); flagRotation(); _rotation = glm::normalize(rotation); }
     const Quat& getRotation() const { return _rotation; }
 
     void setNoScale() { invalidCache(); flagNoScaling(); _scale = Vec3(1.f); }
@@ -63,6 +64,9 @@ public:
     static Transform& mult( Transform& result, const Transform& left, const Transform& right);
 
     bool isScaling() const { return _flags[FLAG_UNIFORM_SCALING] || _flags[FLAG_NON_UNIFORM_SCALING]; }
+    bool isUniform() const { return !isNonUniform(); }
+    bool isNonUniform() const { return _flags[FLAG_NON_UNIFORM_SCALING]; }
+
 protected:
 
     enum Flag {
