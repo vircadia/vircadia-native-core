@@ -59,6 +59,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
+    _changedOnServer = 0;
 
     _position = glm::vec3(0,0,0);
     _rotation = DEFAULT_ROTATION;
@@ -87,6 +88,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
+    _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
 }
 
@@ -97,6 +99,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
+    _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
 }
