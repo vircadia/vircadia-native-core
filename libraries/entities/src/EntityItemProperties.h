@@ -285,6 +285,9 @@ public:
 
     const QString& getTextures() const { return _textures; }
     void setTextures(const QString& value) { _textures = value; _texturesChanged = true; }
+
+    const QStringList& getTextureNames() const { return _textureNames; }
+    void setTextureNames(const QStringList& value) { _textureNames = value; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -381,6 +384,7 @@ private:
     // properties of model geometry. But these properties are not serialized like other properties.
     QVector<SittingPoint> _sittingPoints;
     glm::vec3 _naturalDimensions;
+    QStringList _textureNames;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);

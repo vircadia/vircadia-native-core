@@ -141,6 +141,9 @@ public:
     void trackDeletedEntity(const EntityItemID& entityID);
 
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
+    
+signals:
+    void deletingEntity(const EntityItemID& entityID);
 
 private:
 
