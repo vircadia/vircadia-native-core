@@ -742,15 +742,18 @@ QStringList NetworkGeometry::getTextureNames() const {
             const NetworkMeshPart& part = mesh.parts[j];
             
             if (!part.diffuseTextureName.isEmpty()) {
-                result << part.diffuseTextureName;
+                QString textureURL = part.diffuseTexture->getURL().toString();
+                result << part.diffuseTextureName + ":" + textureURL;
             }
 
             if (!part.normalTextureName.isEmpty()) {
-                result << part.normalTextureName;
+                QString textureURL = part.normalTexture->getURL().toString();
+                result << part.normalTextureName + ":" + textureURL;
             }
 
             if (!part.specularTextureName.isEmpty()) {
-                result << part.specularTextureName;
+                QString textureURL = part.specularTexture->getURL().toString();
+                result << part.specularTextureName + ":" + textureURL;
             }
         }
     }

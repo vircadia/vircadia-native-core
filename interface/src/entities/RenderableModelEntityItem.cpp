@@ -62,10 +62,13 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
+    if (!_model->isLoadedWithTextures()) {
+        return; // nothing to do if the model has not yet loaded it's default textures
+    }
+    
     if (_currentTextures == _textures) {
         return; // nothing to do if our recently mapped textures match our desired textures
     }
-    qDebug() << "void RenderableModelEntityItem::remapTextures()....";
     
     // since we're changing here, we need to run through our current texture map
     // and any textures in the recently mapped texture, that is not in our desired
