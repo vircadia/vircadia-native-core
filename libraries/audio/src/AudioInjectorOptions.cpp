@@ -18,8 +18,7 @@ AudioInjectorOptions::AudioInjectorOptions(QObject* parent) :
     _loop(false),
     _orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
     _isStereo(false),
-    _ignorePenumbra(false),
-    _loopbackAudioInterface(NULL)
+    _ignorePenumbra(false)
 {
 }
 
@@ -30,7 +29,6 @@ AudioInjectorOptions::AudioInjectorOptions(const AudioInjectorOptions& other) {
     _orientation = other._orientation;
     _isStereo = other._isStereo;
     _ignorePenumbra = other._ignorePenumbra;
-    _loopbackAudioInterface = other._loopbackAudioInterface;
 }
 
 void AudioInjectorOptions::operator=(const AudioInjectorOptions& other) {
@@ -40,5 +38,4 @@ void AudioInjectorOptions::operator=(const AudioInjectorOptions& other) {
     _orientation = other._orientation;
     _isStereo = other._isStereo;
     _ignorePenumbra = other._ignorePenumbra;
-    _loopbackAudioInterface = other._loopbackAudioInterface;
 }

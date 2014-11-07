@@ -14,6 +14,8 @@
 
 #include <QtCore/QObject>
 
+#include "AudioInjectorOptions.h"
+
 class AbstractAudioInterface : public QObject {
     Q_OBJECT
 public:
@@ -22,7 +24,7 @@ public:
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) = 0;
     virtual void startDrumSound(float volume, float frequency, float duration, float decay) = 0;
 public slots:
-    virtual void handleAudioByteArray(const QByteArray& audioByteArray) = 0;
+    virtual void handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& options) = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)
