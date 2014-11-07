@@ -2009,25 +2009,17 @@ void Application::init() {
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);
     }
 }
 
 void Application::restoreMirrorView() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
 
 void Application::shrinkMirrorView() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
