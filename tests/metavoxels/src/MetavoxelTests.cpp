@@ -439,8 +439,6 @@ static bool testSerialization(Bitstream::MetadataType metadataType) {
     return false;
 }
 
-static AttributePointer simpleAttribute;
-
 bool MetavoxelTests::run() {
     LimitedNodeList::createInstance();
 
@@ -448,7 +446,7 @@ bool MetavoxelTests::run() {
     srand(0xBAAAAABE);
 
     // register our test attribute
-    simpleAttribute = AttributeRegistry::getInstance()->registerAttribute(new FloatAttribute("simpleAttribute"));
+    AttributePointer testAttribute = AttributeRegistry::getInstance()->registerAttribute(new FloatAttribute("testAttribute"));
 
     // check for an optional command line argument specifying a single test
     QStringList arguments = this->arguments();
@@ -587,7 +585,8 @@ public:
 };
 
 RandomVisitor::RandomVisitor() :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << simpleAttribute),
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getAttribute("testAttribute")),
     leafCount(0) {
 }
 
@@ -815,7 +814,8 @@ private:
 };
 
 MutateVisitor::MutateVisitor() :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << simpleAttribute),
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getAttribute("testAttribute")),
     _mutationsRemaining(randIntInRange(2, 4)) {
 }
 
