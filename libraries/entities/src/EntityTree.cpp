@@ -497,6 +497,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     // if the entityItem exists, then update it
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
+                        existingEntity->markAsChangedOnServer();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
@@ -505,6 +506,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     entityItemID = assignEntityID(entityItemID);
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
+                        newEntity->markAsChangedOnServer();
                         notifyNewlyCreatedEntity(*newEntity, senderNode);
                     }
                 }
@@ -1066,6 +1068,24 @@ bool DebugOperator::preRecursion(OctreeElement* element) {
 void EntityTree::dumpTree() {
     // First, look for the existing entity in the tree..
     DebugOperator theOperator;
+    recurseTreeWithOperator(&theOperator);
+}
+
+class PruneOperator : public RecurseOctreeOperator {
+public:
+    virtual bool preRecursion(OctreeElement* element) { return true; }
+    virtual bool postRecursion(OctreeElement* element);
+};
+
+bool PruneOperator::postRecursion(OctreeElement* element) {
+    EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
+    entityTreeElement->pruneChildren();
+    return true;
+}
+
+void EntityTree::pruneTree() {
+    // First, look for the existing entity in the tree..
+    PruneOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }
 

@@ -68,6 +68,14 @@ bool AudioScriptingInterface::isInjectorPlaying(AudioInjector* injector) {
     return (injector != NULL);
 }
 
+float AudioScriptingInterface::getLoudness(AudioInjector* injector) {
+    if (injector) {
+        return injector->getLoudness();
+    } else {
+        return 0.0f;
+    }
+}
+
 void AudioScriptingInterface::injectorStopped() {
     _activeInjectors.removeAll(QPointer<AudioInjector>(reinterpret_cast<AudioInjector*>(sender())));
 }

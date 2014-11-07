@@ -246,9 +246,7 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
     // But we can't really do that with a packed message, since each edit message could be destined
     // for a different server... So we need to actually manage multiple queued packets... one
     // for each server
-
     _packetsQueueLock.lock();
-
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         // only send to the NodeTypes that are getMyNodeType()
         if (node->getActiveSocket() && node->getType() == getMyNodeType()) {
@@ -277,12 +275,12 @@ void OctreeEditPacketSender::queueOctreeEditMessage(PacketType type, unsigned ch
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) ||
                     (packetBuffer._currentSize + length >= (size_t)_maxPacketSize)) {
                     releaseQueuedPacket(packetBuffer);
-                    initializePacket(packetBuffer, type);
+                    initializePacket(packetBuffer, type, node->getClockSkewUsec());
                 }
 
                 // If the buffer is empty and not correctly initialized for our type...
                 if (type != packetBuffer._currentType && packetBuffer._currentSize == 0) {
-                    initializePacket(packetBuffer, type);
+                    initializePacket(packetBuffer, type, node->getClockSkewUsec());
                 }
 
                 // This is really the first time we know which server/node this particular edit message
@@ -330,14 +328,14 @@ void OctreeEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer)
     _releaseQueuedPacketMutex.unlock();
 }
 
-void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type) {
+void OctreeEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PacketType type, int nodeClockSkew) {
     packetBuffer._currentSize = populatePacketHeader(reinterpret_cast<char*>(&packetBuffer._currentBuffer[0]), type);
 
     // skip over sequence number for now; will be packed when packet is ready to be sent out
     packetBuffer._currentSize += sizeof(quint16);
 
     // pack in timestamp
-    quint64 now = usecTimestampNow();
+    quint64 now = usecTimestampNow() + nodeClockSkew;
     quint64* timeAt = (quint64*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
     *timeAt = now;
     packetBuffer._currentSize += sizeof(quint64); // nudge past timestamp

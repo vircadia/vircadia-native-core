@@ -352,6 +352,7 @@ public:
     void setIsClient(bool isClient) { _isServer = !isClient; }
     
     virtual void dumpTree() { };
+    virtual void pruneTree() { };
 
 signals:
     void importSize(float x, float y, float z);

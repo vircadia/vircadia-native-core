@@ -69,6 +69,7 @@ public:
     virtual const char* getMyLoggingServerTargetName() const = 0;
     virtual const char* getMyDefaultPersistFilename() const = 0;
     virtual PacketType getMyEditNackType() const = 0;
+    virtual QString getMyDomainSettingsKey() const { return QString("octree_server_settings"); }
 
     // subclass may implement these method
     virtual void beforeRun() { }
@@ -131,6 +132,11 @@ public slots:
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
 protected:
+    bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
+    bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
+    bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
+    void readConfiguration();
+    virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject) { };
     void parsePayload();
     void initHTTPManager(int port);
     void resetSendingStats();
