@@ -40,7 +40,7 @@ RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds, QSettings* se
     _zoomHeadTextureId = _parent->bindTexture(QImage(Application::resourcesPath() + "images/plus.svg"));
     _zoomBodyTextureId = _parent->bindTexture(QImage(Application::resourcesPath() + "images/minus.svg"));
 
-    _shrinkIconRect = QRect(ICON_PADDING, ICON_SIZE + ICON_PADDING, ICON_SIZE, ICON_SIZE);
+    _shrinkIconRect = QRect(ICON_PADDING, ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _resetIconRect = QRect(_bounds.width() - ICON_SIZE - ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
     _bodyZoomIconRect = QRect(_bounds.width() - ICON_SIZE - ICON_PADDING, _bounds.bottom() - ICON_PADDING - ICON_SIZE, ICON_SIZE, ICON_SIZE);
@@ -106,7 +106,7 @@ bool RearMirrorTools::mousePressEvent(int x, int y) {
     }
     
     if (_fullScreen) {
-        if (_shrinkIconRect.contains(x, 2 * _shrinkIconRect.top() - y)) {
+        if (_shrinkIconRect.contains(x, y)) {
             _fullScreen = false;
             emit shrinkView();
             return true;
