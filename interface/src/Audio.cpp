@@ -184,9 +184,9 @@ QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& de
         QAudioDeviceInfo::defaultOutputDevice();
 #else
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
-        qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
+            break;
         }
     }
 #endif
@@ -1332,9 +1332,21 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
 }
 
 void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& injectorOptions) {
-    // TODO: either create a new audio device (up to the limit of the sound card or a hard limit)
-    // or send to the mixer and use delayed loopback
-    
+    if (audioByteArray.size() > 0) {
+        QAudioFormat localFormat = _outputFormat;
+        
+        if (!injectorOptions.isStereo()) {
+            localFormat.setChannelCount(1);
+        }
+        
+        QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
+        
+        QIODevice* localIODevice = localSoundOutput->start();
+        qDebug() << "Writing" << audioByteArray.size() << "to" << localIODevice;
+        localIODevice->write(audioByteArray);
+    } else {
+        qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
+    }
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {
@@ -1904,6 +1916,7 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
             }
         }
     }
+    
     return supportedFormat;
 }
 
@@ -1962,6 +1975,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             supportedFormat = true;
         }
     }
+    
     return supportedFormat;
 }
 

@@ -18,8 +18,6 @@
 #include "AudioInjector.h"
 #include "Sound.h"
 
-class AbstractAudioInterface;
-
 const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
 
 class AudioScriptingInterface : public QObject {
@@ -46,7 +44,5 @@ private:
     AudioScriptingInterface();
     QList< QPointer<AudioInjector> > _activeInjectors;
     AbstractAudioInterface* _localLoopbackInterface;
-
-
 };
 #endif // hifi_AudioScriptingInterface_h
