@@ -243,6 +243,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     boundingBox.setProperty("dimensions", boundingBoxDimensions);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(boundingBox, boundingBox); // gettable, but not settable
 
+    QString textureNamesList = _textureNames.join(",");
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(textureNames, textureNamesList); // gettable, but not settable
+
     return properties;
 }
 

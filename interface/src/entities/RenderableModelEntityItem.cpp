@@ -234,6 +234,17 @@ bool RenderableModelEntityItem::needsSimulation() const {
     return _needsInitialSimulation || simulationState == Moving || simulationState == Changing;
 }
 
+EntityItemProperties RenderableModelEntityItem::getProperties() const {
+    EntityItemProperties properties = ModelEntityItem::getProperties(); // get the properties from our base class
+    if (_model) {
+        const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
+        if (networkGeometry) {
+            properties.setTextureNames(networkGeometry->getTextureNames());
+        }
+    }
+    return properties;
+}
+
 
 
 
