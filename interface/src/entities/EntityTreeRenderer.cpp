@@ -767,8 +767,6 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-    if (_entityScripts.contains(entityID)) {
-        _entityScripts.remove(entityID);
-    }
+    _entityScripts.remove(entityID);
 }
 
