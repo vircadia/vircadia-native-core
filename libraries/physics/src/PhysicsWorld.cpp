@@ -24,8 +24,8 @@ void PhysicsWorld::init() {
 
 bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
-    glm::vec3 center = position + halfExtents;
-    PositionHashKey key(center);
+    glm::vec3 trueCenter = position + halfExtents;
+    PositionHashKey key(trueCenter);
     VoxelObject* proxy = _voxels.find(key);
     if (!proxy) {
         // create a shape
@@ -40,11 +40,13 @@ bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
             object->setCollisionShape(shape);
             btTransform transform;
             transform.setIdentity();
-            transform.setOrigin(btVector3(center.x, center.y, center.z));
+            // we shift the center into the simulation's frame
+            glm::vec3 shiftedCenter = (position - _originOffset) + halfExtents;
+            transform.setOrigin(btVector3(shiftedCenter.x, shiftedCenter.y, shiftedCenter.z));
             object->setWorldTransform(transform);
 
             // add to map and world
-            _voxels.insert(key, VoxelObject(center, object));
+            _voxels.insert(key, VoxelObject(trueCenter, object));
             _dynamicsWorld->addCollisionObject(object);
             return true;
         }
@@ -54,8 +56,8 @@ bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
 
 bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
-    glm::vec3 center = position + halfExtents;
-    PositionHashKey key(center);
+    glm::vec3 trueCenter = position + halfExtents;
+    PositionHashKey key(trueCenter);
     VoxelObject* proxy = _voxels.find(key);
     if (proxy) {
         // remove from world
@@ -85,8 +87,9 @@ bool PhysicsWorld::addEntity(CustomMotionState* motionState, float mass) {
         btVector3 inertia;
         shape->calculateLocalInertia(mass, inertia);
         btRigidBody* body = new btRigidBody(mass, motionState, shape, inertia);
-        _dynamicsWorld->addRigidBody(body);
         motionState->_body = body;
+        // TODO: set dynamic/kinematic/static property from data stored in motionState
+        _dynamicsWorld->addRigidBody(body);
     }
     return false;
 }

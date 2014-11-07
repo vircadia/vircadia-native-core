@@ -14,6 +14,20 @@
 #include "EntityItem.h"
 #include "EntityMotionState.h"
 
+// TODO: store _cachedWorldOffset in a more central location -- VoxelTree and others also need to know about it
+// origin of physics simulation in world frame
+glm::vec3 _cachedWorldOffset(0.0f);
+
+// static 
+void EntityMotionState::setWorldOffset(const glm::vec3& offset) {
+    _cachedWorldOffset = offset;
+}
+
+// static 
+const glm::vec3& getWorldOffset() {
+    return _cachedWorldOffset;
+}
+
 EntityMotionState::EntityMotionState(EntityItem* entity) : _entity(entity) {
     assert(entity != NULL);
 }
@@ -28,10 +42,11 @@ EntityMotionState::~EntityMotionState() {
 //     it is an opportunity for outside code to update the position of the object
 void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
     btVector3 pos;
-    glmToBullet(_entity->getPosition(), pos);
+    glmToBullet(_entity->getPosition() - _cachedWorldOffset, pos);
+    worldTrans.setOrigin(pos);
+
     btQuaternion rot;
     glmToBullet(_entity->getRotation(), rot);
-    worldTrans.setOrigin(pos);
     worldTrans.setRotation(rot);
 }
 
@@ -40,7 +55,8 @@ void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
 void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     glm::vec3 pos;
     bulletToGLM(worldTrans.getOrigin(), pos);
-    _entity->setPositionInMeters(pos);
+    _entity->setPositionInMeters(pos + _cachedWorldOffset);
+
     glm::quat rot;
     bulletToGLM(worldTrans.getRotation(), rot);
     _entity->setRotation(rot);

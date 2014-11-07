@@ -18,6 +18,9 @@
 
 class EntityMotionState : public CustomMotionState {
 public:
+    static void setWorldOffset(const glm::vec3& offset);
+    static const glm::vec3& getWorldOffset();
+
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 

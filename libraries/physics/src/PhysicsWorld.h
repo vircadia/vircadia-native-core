@@ -25,12 +25,21 @@
 class PhysicsWorld {
 public:
 
-    PhysicsWorld() : _collisionConfig(NULL), _collisionDispatcher(NULL), 
-        _broadphaseFilter(NULL), _constraintSolver(NULL), _dynamicsWorld(NULL) { }
+    PhysicsWorld(const glm::vec3& offset)
+        :   _collisionConfig(NULL), 
+            _collisionDispatcher(NULL), 
+            _broadphaseFilter(NULL), 
+            _constraintSolver(NULL), 
+            _dynamicsWorld(NULL),
+            _originOffset(offset),
+            _voxels() {
+    }
 
     ~PhysicsWorld();
 
     void init();
+
+    const glm::vec3& getOriginOffset() const { return _originOffset; }
 
     /// \return true if Voxel added
     /// \param position the minimum corner of the voxel
@@ -63,6 +72,7 @@ protected:
     ShapeManager _shapeManager;
 
 private:
+    glm::vec3 _originOffset;
     btHashMap<PositionHashKey, VoxelObject> _voxels;
 };
 
