@@ -306,6 +306,7 @@ public:
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;
     bool isVSyncEditable() const;
+    bool isAboutToQuit() const { return _aboutToQuit; }
 
 
     void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
@@ -377,8 +378,10 @@ public slots:
     void resetSensors();
 
 private slots:
+    void clearDomainOctreeDetails();
     void timer();
     void idle();
+    void aboutToQuit();
 
     void connectedToDomain(const QString& hostname);
 
@@ -625,6 +628,8 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    
+    bool _aboutToQuit;
 };
 
 #endif // hifi_Application_h
