@@ -49,7 +49,7 @@ public:
     
     EntityItem(const EntityItemID& entityItemID);
     EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
-    virtual ~EntityItem() { }
+    virtual ~EntityItem();
 
     // ID and EntityItemID related methods
     QUuid getID() const { return _id; }
@@ -260,8 +260,7 @@ public:
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
 
 #ifdef USE_BULLET_PHYSICS
-    //EntityMotionState* createMotionState() = 0;
-    EntityMotionState* createMotionState() { return NULL; }
+    virtual EntityMotionState* createMotionState() { return NULL; }
 #endif // USE_BULLET_PHYSICS
     
 protected:
@@ -304,6 +303,9 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+#ifdef USE_BULLET_PHYSICS
+    EntityMotionState* _motionState;
+#endif // USE_BULLET_PHYSICS
 };
 
 

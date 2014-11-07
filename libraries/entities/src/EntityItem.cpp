@@ -21,6 +21,7 @@
 
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
+#include "EntityMotionState.h"
 #include "EntityTree.h"
 
 const float EntityItem::IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
@@ -87,6 +88,9 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
+#ifdef USE_BULLET_PHYSICS
+    _motionState = NULL;
+#endif // USE_BULLET_PHYSICS
     initFromEntityItemID(entityItemID);
 }
 
@@ -97,8 +101,19 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
+#ifdef USE_BULLET_PHYSICS
+    _motionState = NULL;
+#endif // USE_BULLET_PHYSICS
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
+}
+
+EntityItem::~EntityItem() {
+#ifdef USE_BULLET_PHYSICS
+    // make sure the _motionState is already deleted (e.g. the entity has been removed
+    // from the physics simulation) BEFORE you get here
+    assert(_motionState == NULL);
+#endif // USE_BULLET_PHYSICS
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {

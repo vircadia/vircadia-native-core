@@ -11,58 +11,50 @@
 
 #ifdef USE_BULLET_PHYSICS
 
+#include <math.h>
+
 #include "CustomMotionState.h"
 
-CustomMotionState::CustomMotionState() : _motionType(MOTION_TYPE_STATIC), 
-    _inertiaDiagLocal(1.0f, 1.0f, 1.0f), _mass(1.0f), 
-    _shape(NULL), _object(NULL) {
+const float MIN_DENSITY = 200.0f;
+const float DEFAULT_DENSITY = 1000.0f;
+const float MAX_DENSITY = 20000.0f;
+
+const float MIN_VOLUME = 0.001f;
+const float DEFAULT_VOLUME = 1.0f;
+const float MAX_VOLUME = 1000000.0f;
+
+const float DEFAULT_FRICTION = 0.5f;
+const float MAX_FRICTION = 10.0f;
+
+const float DEFAULT_RESTITUTION = 0.0f;
+
+CustomMotionState::CustomMotionState() : 
+        _density(DEFAULT_DENSITY), 
+        _volume(DEFAULT_VOLUME), 
+        _friction(DEFAULT_FRICTION), 
+        _restitution(DEFAULT_RESTITUTION), 
+        _motionType(MOTION_TYPE_STATIC), 
+        _body(NULL) {
 }
 
-/*
-void CustomMotionState::getWorldTransform (btTransform &worldTrans) const {
+CustomMotionState::~CustomMotionState() {
+    assert(_body == NULL);
 }
 
-void CustomMotionState::setWorldTransform (const btTransform &worldTrans) {
+void CustomMotionState::setDensity(float density) {
+    _density = btMax(btMin(fabsf(density), MAX_DENSITY), MIN_DENSITY);
 }
 
-void CustomMotionState::computeMassProperties() {
+void CustomMotionState::setFriction(float friction) {
+    _friction = btMax(btMin(fabsf(friction), MAX_FRICTION), 0.0f);
 }
 
-void CustomMotionState::getShapeInfo(ShapeInfo& info) {
-}
-*/
-
-bool CustomMotionState::makeStatic() {
-    if (_motionType == MOTION_TYPE_STATIC) {
-        return true;
-    }
-    if (!_object) {
-        _motionType = MOTION_TYPE_STATIC;
-        return true;
-    }
-    return false;
+void CustomMotionState::setRestitution(float restitution) {
+    _restitution = btMax(btMin(fabsf(restitution), 1.0f), 0.0f);
 }
 
-bool CustomMotionState::makeDynamic() {
-    if (_motionType == MOTION_TYPE_DYNAMIC) {
-        return true;
-    }
-    if (!_object) {
-        _motionType = MOTION_TYPE_DYNAMIC;
-        return true;
-    }
-    return false;
-}
-
-bool CustomMotionState::makeKinematic() {
-    if (_motionType == MOTION_TYPE_KINEMATIC) {
-        return true;
-    }
-    if (!_object) {
-        _motionType = MOTION_TYPE_KINEMATIC;
-        return true;
-    }
-    return false;
+void CustomMotionState::setVolume(float volume) {
+    _volume = btMax(btMin(fabsf(volume), MAX_VOLUME), MIN_VOLUME);
 }
 
 #endif // USE_BULLET_PHYSICS

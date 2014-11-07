@@ -17,7 +17,6 @@
 #include <btBulletDynamicsCommon.h>
 
 #include "ShapeInfo.h"
-#include "UUIDHashKey.h"
 
 enum MotionType {
     MOTION_TYPE_STATIC,     // no motion
@@ -28,29 +27,34 @@ enum MotionType {
 class CustomMotionState : public btMotionState {
 public:
     CustomMotionState();
+    ~CustomMotionState();
 
     //// these override methods of the btMotionState base class
     //virtual void getWorldTransform (btTransform &worldTrans) const;
     //virtual void setWorldTransform (const btTransform &worldTrans);
 
-    virtual void computeMassProperties() = 0;
-    virtual void getShapeInfo(ShapeInfo& info) = 0;
-
-    bool makeStatic();
-    bool makeDynamic();
-    bool makeKinematic();
+    virtual void computeShapeInfo(ShapeInfo& info) = 0;
 
     MotionType getMotionType() const { return _motionType; }
 
-private:
-    friend class PhysicsWorld;
+    void setDensity(float density);
+    void setFriction(float friction);
+    void setRestitution(float restitution);
+    void setVolume(float volume);
 
-    //EntityItem* _entity;
+    float getMass() const { return _volume * _density; }
+
+    friend class PhysicsWorld;
+protected:
+
+    float _density;
+    float _volume;
+    float _friction;
+    float _restitution;
+
+    // The data members below have NO setters.  They are only changed by a PhysicsWorld instance.
     MotionType _motionType;
-    btVector3 _inertiaDiagLocal;
-    float _mass;
-    btCollisionShape* _shape;
-    btCollisionObject* _object;
+    btRigidBody* _body;
 };
 
 #endif // USE_BULLET_PHYSICS

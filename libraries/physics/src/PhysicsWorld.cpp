@@ -76,23 +76,44 @@ bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
     return false;
 }
 
-bool PhysicsWorld::addEntity(const QUuid& id, CustomMotionState* motionState) {
+bool PhysicsWorld::addEntity(CustomMotionState* motionState, float mass) {
     assert(motionState);
-    UUIDHashKey key(id);
-    CustomMotionState** statePtr = _entities.find(key);
-    if (!statePtr) {
-        // BOOKMARK: Andrew to implement this
-    } else {
-        assert(*statePtr == motionState);
+    ShapeInfo info;
+    motionState->computeShapeInfo(info);
+    btCollisionShape* shape = _shapeManager.getShape(info);
+    if (shape) {
+        btVector3 inertia;
+        shape->calculateLocalInertia(mass, inertia);
+        btRigidBody* body = new btRigidBody(mass, motionState, shape, inertia);
+        _dynamicsWorld->addRigidBody(body);
+        motionState->_body = body;
     }
     return false;
 }
 
-bool PhysicsWorld::removeEntity(const QUuid& id) {
-    UUIDHashKey key(id);
-    CustomMotionState** statePtr = _entities.find(key);
-    if (statePtr) {
-        // BOOKMARK: Andrew to implement this
+bool PhysicsWorld::removeEntity(CustomMotionState* motionState) {
+    assert(motionState);
+    btRigidBody* body = motionState->_body;
+    if (body) {
+        const btCollisionShape* shape = body->getCollisionShape();
+        ShapeInfo info;
+        info.collectInfo(shape);
+        _dynamicsWorld->removeRigidBody(body);
+        _shapeManager.releaseShape(info);
+        delete body;
+        motionState->_body = NULL;
     }
+    return false;
+}
+
+bool PhysicsWorld::updateEntityMotionType(CustomMotionState* motionState, MotionType type) {
+    // TODO: implement this
+    assert(motionState);
+    return false;
+}
+
+bool PhysicsWorld::updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues) {
+    // TODO: implement this
+    assert(motionState);
     return false;
 }

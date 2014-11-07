@@ -20,7 +20,6 @@
 #include "CustomMotionState.h"
 #include "PositionHashKey.h"
 #include "ShapeManager.h"
-#include "UUIDHashKey.h"
 #include "VoxelObject.h"
 
 class PhysicsWorld {
@@ -45,11 +44,15 @@ public:
 
     /// \return true if Entity added
     /// \param info information about collision shapes to create
-    bool addEntity(const QUuid& id, CustomMotionState* motionState);
+    bool addEntity(CustomMotionState* motionState, float mass);
 
     /// \return true if Entity removed
     /// \param id UUID of the entity
-    bool removeEntity(const QUuid& id);
+    bool removeEntity(CustomMotionState* motionState);
+
+    bool updateEntityMotionType(CustomMotionState* motionState, MotionType type);
+
+    bool updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues);
 
 protected:
     btDefaultCollisionConfiguration* _collisionConfig;
@@ -57,12 +60,10 @@ protected:
     btBroadphaseInterface* _broadphaseFilter;
     btSequentialImpulseConstraintSolver* _constraintSolver;
     btDiscreteDynamicsWorld* _dynamicsWorld;
-    
     ShapeManager _shapeManager;
 
 private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
-    btHashMap<UUIDHashKey, CustomMotionState*> _entities;
 };
 
 
