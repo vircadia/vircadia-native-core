@@ -11,7 +11,6 @@
 
 #include <QDateTime>
 #include <QDebugStateSaver>
-#include <QScriptEngine>
 #include <QThread>
 #include <QtDebug>
 
@@ -21,12 +20,9 @@
 
 #include "MetavoxelData.h"
 #include "MetavoxelUtil.h"
-#include "ScriptCache.h"
 
 REGISTER_META_OBJECT(MetavoxelGuide)
 REGISTER_META_OBJECT(DefaultMetavoxelGuide)
-REGISTER_META_OBJECT(ScriptedMetavoxelGuide)
-REGISTER_META_OBJECT(ThrobbingMetavoxelGuide)
 REGISTER_META_OBJECT(MetavoxelRenderer)
 REGISTER_META_OBJECT(DefaultMetavoxelRenderer)
 REGISTER_META_OBJECT(Spanner)
@@ -401,7 +397,7 @@ private:
 FirstRaySpannerIntersectionVisitor::FirstRaySpannerIntersectionVisitor(
         const glm::vec3& origin, const glm::vec3& direction, const AttributePointer& attribute, const MetavoxelLOD& lod) :
     RaySpannerIntersectionVisitor(origin, direction, QVector<AttributePointer>() << attribute,
-        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
     _spanner(NULL) {
 }
 
@@ -714,6 +710,7 @@ bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& l
         return false;
     }
     if (_roots.size() != other._roots.size()) {
+        qDebug() << _roots << other._roots;
         return false;
     }
     glm::vec3 minimum = getMinimum();
@@ -1367,12 +1364,10 @@ MetavoxelVisitation& MetavoxelVisitor::acquireVisitation() {
     return _visitations[_depth];
 }
 
-SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& spannerMasks,
-        const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs,
-        const MetavoxelLOD& lod, int order) :
-    MetavoxelVisitor(inputs + spannerInputs + spannerMasks, outputs, lod),
+SpannerVisitor::SpannerVisitor(const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod, int order) :
+    MetavoxelVisitor(inputs + spannerInputs, outputs, lod),
     _spannerInputCount(spannerInputs.size()),
-    _spannerMaskCount(spannerMasks.size()),
     _order(order) {
 }
 
@@ -1382,34 +1377,15 @@ void SpannerVisitor::prepare(MetavoxelData* data) {
 }
 
 int SpannerVisitor::visit(MetavoxelInfo& info) {
-    for (int end = _inputs.size() - _spannerMaskCount, i = end - _spannerInputCount, j = end; i < end; i++, j++) {
+    for (int end = _inputs.size(), i = end - _spannerInputCount; i < end; i++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
-            if (!(spanner->isMasked() && j < _inputs.size()) && spanner->testAndSetVisited(_visit) &&
-                    !visit(spanner, glm::vec3(), 0.0f)) {
+            if (spanner->testAndSetVisited(_visit) && !visit(spanner)) {
                 return SHORT_CIRCUIT;
             }
         }
     }
-    if (!info.isLeaf) {
-        return _order;
-    }
-    for (int i = _inputs.size() - _spannerMaskCount; i < _inputs.size(); i++) {
-        float maskValue = info.inputValues.at(i).getInlineValue<float>();
-        if (maskValue < 0.5f) {
-            const MetavoxelInfo* nextInfo = &info;
-            do {
-                foreach (const SharedObjectPointer& object, nextInfo->inputValues.at(
-                        i - _spannerInputCount).getInlineValue<SharedObjectSet>()) {
-                    Spanner* spanner = static_cast<Spanner*>(object.data());
-                    if (spanner->isMasked() && !visit(spanner, info.minimum, info.size)) {
-                        return SHORT_CIRCUIT;
-                    }
-                }                
-            } while ((nextInfo = nextInfo->parentInfo));
-        }
-    }
-    return STOP_RECURSION;
+    return info.isLeaf ? STOP_RECURSION : _order;
 }
 
 RayIntersectionVisitor::RayIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
@@ -1429,11 +1405,10 @@ int RayIntersectionVisitor::visit(MetavoxelInfo& info) {
 }
 
 RaySpannerIntersectionVisitor::RaySpannerIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction,
-        const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& spannerMasks,
-        const QVector<AttributePointer>& inputs, const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
-    RayIntersectionVisitor(origin, direction, inputs + spannerInputs + spannerMasks, outputs, lod),
-    _spannerInputCount(spannerInputs.size()),
-    _spannerMaskCount(spannerMasks.size()) {
+        const QVector<AttributePointer>& spannerInputs, const QVector<AttributePointer>& inputs,
+        const QVector<AttributePointer>& outputs, const MetavoxelLOD& lod) :
+    RayIntersectionVisitor(origin, direction, inputs + spannerInputs, outputs, lod),
+    _spannerInputCount(spannerInputs.size()) {
 }
 
 void RaySpannerIntersectionVisitor::prepare(MetavoxelData* data) {
@@ -1453,12 +1428,12 @@ bool operator<(const SpannerDistance& first, const SpannerDistance& second) {
 
 int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
     QVarLengthArray<SpannerDistance, 4> spannerDistances;
-    for (int end = _inputs.size() - _spannerMaskCount, i = end - _spannerInputCount, j = end; i < end; i++, j++) {
+    for (int end = _inputs.size(), i = end - _spannerInputCount; i < end; i++) {
         foreach (const SharedObjectPointer& object, info.inputValues.at(i).getInlineValue<SharedObjectSet>()) {
             Spanner* spanner = static_cast<Spanner*>(object.data());
-            if (!(spanner->isMasked() && j < _inputs.size()) && spanner->testAndSetVisited(_visit)) {
+            if (spanner->testAndSetVisited(_visit)) {
                 SpannerDistance spannerDistance = { spanner };
-                if (spanner->findRayIntersection(_origin, _direction, glm::vec3(), 0.0f, spannerDistance.distance)) {
+                if (spanner->findRayIntersection(_origin, _direction, spannerDistance.distance)) {
                     spannerDistances.append(spannerDistance);
                 }
             }
@@ -1470,36 +1445,7 @@ int RaySpannerIntersectionVisitor::visit(MetavoxelInfo& info, float distance) {
             }
         }
     }
-    if (!info.isLeaf) {
-        return _order;
-    }
-    for (int i = _inputs.size() - _spannerMaskCount; i < _inputs.size(); i++) {
-        float maskValue = info.inputValues.at(i).getInlineValue<float>();
-        if (maskValue < 0.5f) {
-            const MetavoxelInfo* nextInfo = &info;
-            do {
-                foreach (const SharedObjectPointer& object, nextInfo->inputValues.at(
-                        i - _spannerInputCount).getInlineValue<SharedObjectSet>()) {
-                    Spanner* spanner = static_cast<Spanner*>(object.data());
-                    if (spanner->isMasked()) {
-                        SpannerDistance spannerDistance = { spanner };
-                        if (spanner->findRayIntersection(_origin, _direction,
-                                info.minimum, info.size, spannerDistance.distance)) {
-                            spannerDistances.append(spannerDistance);
-                        }
-                    }
-                }                
-            } while ((nextInfo = nextInfo->parentInfo));
-            
-            qStableSort(spannerDistances);
-            foreach (const SpannerDistance& spannerDistance, spannerDistances) {
-                if (!visitSpanner(spannerDistance.spanner, spannerDistance.distance)) {
-                    return SHORT_CIRCUIT;
-                }
-            }
-        }
-    }
-    return STOP_RECURSION;
+    return info.isLeaf ? STOP_RECURSION : _order;
 }
 
 bool MetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
@@ -1765,143 +1711,6 @@ bool DefaultMetavoxelGuide::guideToDifferent(MetavoxelVisitation& visitation) {
     return true;
 }
 
-ThrobbingMetavoxelGuide::ThrobbingMetavoxelGuide() : _rate(10.0) {
-}
-
-bool ThrobbingMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    AttributePointer colorAttribute = AttributeRegistry::getInstance()->getColorAttribute();
-    for (int i = 0; i < visitation.info.inputValues.size(); i++) {
-        AttributeValue& attributeValue = visitation.info.inputValues[i]; 
-        if (attributeValue.getAttribute() == colorAttribute) {
-            QRgb base = attributeValue.getInlineValue<QRgb>();
-            double seconds = QDateTime::currentMSecsSinceEpoch() / 1000.0;
-            double amplitude = sin(_rate * seconds) * 0.5 + 0.5;
-            attributeValue.setInlineValue<QRgb>(qRgba(qRed(base) * amplitude, qGreen(base) * amplitude,
-                qBlue(base) * amplitude, qAlpha(base)));
-        }
-    }
-    
-    return DefaultMetavoxelGuide::guide(visitation);
-}
-
-static QScriptValue getAttributes(QScriptEngine* engine, ScriptedMetavoxelGuide* guide,
-        const QVector<AttributePointer>& attributes) {
-    
-    QScriptValue attributesValue = engine->newArray(attributes.size());
-    for (int i = 0; i < attributes.size(); i++) {
-        attributesValue.setProperty(i, engine->newQObject(attributes.at(i).data(), QScriptEngine::QtOwnership,
-            QScriptEngine::PreferExistingWrapperObject));
-    }
-    return attributesValue;
-}
-
-QScriptValue ScriptedMetavoxelGuide::getInputs(QScriptContext* context, QScriptEngine* engine) {
-    ScriptedMetavoxelGuide* guide = static_cast<ScriptedMetavoxelGuide*>(context->callee().data().toVariant().value<void*>());
-    return getAttributes(engine, guide, guide->_visitation->visitor->getInputs());
-}
-
-QScriptValue ScriptedMetavoxelGuide::getOutputs(QScriptContext* context, QScriptEngine* engine) {
-    ScriptedMetavoxelGuide* guide = static_cast<ScriptedMetavoxelGuide*>(context->callee().data().toVariant().value<void*>());
-    return getAttributes(engine, guide, guide->_visitation->visitor->getOutputs());
-}
-
-QScriptValue ScriptedMetavoxelGuide::visit(QScriptContext* context, QScriptEngine* engine) {
-    ScriptedMetavoxelGuide* guide = static_cast<ScriptedMetavoxelGuide*>(context->callee().data().toVariant().value<void*>());
-
-    // start with the basics, including inherited attribute values
-    QScriptValue infoValue = context->argument(0);
-    QScriptValue minimum = infoValue.property(guide->_minimumHandle);
-    MetavoxelInfo info(NULL, 0, 0);
-    info.inputValues = guide->_visitation->info.inputValues;
-    info.outputValues = guide->_visitation->info.outputValues;
-    info.minimum = glm::vec3(minimum.property(0).toNumber(), minimum.property(1).toNumber(), minimum.property(2).toNumber());
-    info.size = (float)infoValue.property(guide->_sizeHandle).toNumber();
-    info.isLeaf = infoValue.property(guide->_isLeafHandle).toBool();
-    
-    // extract and convert the values provided by the script
-    QScriptValue inputValues = infoValue.property(guide->_inputValuesHandle);
-    const QVector<AttributePointer>& inputs = guide->_visitation->visitor->getInputs();
-    for (int i = 0; i < inputs.size(); i++) {
-        QScriptValue attributeValue = inputValues.property(i);
-        if (attributeValue.isValid()) {
-            info.inputValues[i] = AttributeValue(inputs.at(i),
-                inputs.at(i)->createFromScript(attributeValue, engine));
-        }
-    }
-    
-    QScriptValue result = guide->_visitation->visitor->visit(info);
-    
-    // destroy any created values
-    for (int i = 0; i < inputs.size(); i++) {
-        if (inputValues.property(i).isValid()) {
-            info.inputValues[i].getAttribute()->destroy(info.inputValues[i].getValue());
-        }
-    }
-    
-    return result;
-}
-
-ScriptedMetavoxelGuide::ScriptedMetavoxelGuide() {
-}
-
-bool ScriptedMetavoxelGuide::guide(MetavoxelVisitation& visitation) {
-    QScriptValue guideFunction;
-    if (_guideFunction) {
-        guideFunction = _guideFunction->getValue();    
-        
-    } else if (_url.isValid()) {
-        _guideFunction = ScriptCache::getInstance()->getValue(_url);
-        guideFunction = _guideFunction->getValue();
-    }
-    if (!guideFunction.isValid()) {
-        // before we load, just use the default behavior
-        return DefaultMetavoxelGuide::guide(visitation);
-    }
-    QScriptEngine* engine = guideFunction.engine();
-    if (!_minimumHandle.isValid()) {
-        _minimumHandle = engine->toStringHandle("minimum");
-        _sizeHandle = engine->toStringHandle("size");
-        _inputValuesHandle = engine->toStringHandle("inputValues");
-        _outputValuesHandle = engine->toStringHandle("outputValues");
-        _isLeafHandle = engine->toStringHandle("isLeaf");
-        _getInputsFunction = engine->newFunction(getInputs, 0);
-        _getOutputsFunction = engine->newFunction(getOutputs, 0);
-        _visitFunction = engine->newFunction(visit, 1);
-        _info = engine->newObject();
-        _minimum = engine->newArray(3);
-        
-        _arguments.clear();
-        _arguments.append(engine->newObject());
-        QScriptValue visitor = engine->newObject();
-        visitor.setProperty("getInputs", _getInputsFunction);
-        visitor.setProperty("getOutputs", _getOutputsFunction);
-        visitor.setProperty("visit", _visitFunction);
-        _arguments[0].setProperty("visitor", visitor);
-        _arguments[0].setProperty("info", _info);
-        _info.setProperty(_minimumHandle, _minimum);
-    }
-    QScriptValue data = engine->newVariant(QVariant::fromValue<void*>(this));
-    _getInputsFunction.setData(data);
-    _visitFunction.setData(data);
-    _minimum.setProperty(0, visitation.info.minimum.x);
-    _minimum.setProperty(1, visitation.info.minimum.y);
-    _minimum.setProperty(2, visitation.info.minimum.z);
-    _info.setProperty(_sizeHandle, visitation.info.size);
-    _info.setProperty(_isLeafHandle, visitation.info.isLeaf);
-    _visitation = &visitation;
-    guideFunction.call(QScriptValue(), _arguments);
-    if (engine->hasUncaughtException()) {
-        qDebug() << "Script error: " << engine->uncaughtException().toString();
-    }
-    return true;
-}
-
-void ScriptedMetavoxelGuide::setURL(const ParameterizedURL& url) {
-    _url = url;
-    _guideFunction.reset();
-    _minimumHandle = QScriptString();
-}
-
 MetavoxelVisitation::MetavoxelVisitation(MetavoxelVisitation* previous,
         MetavoxelVisitor* visitor, int inputNodesSize, int outputNodesSize) :
     previous(previous),
@@ -1997,8 +1806,7 @@ const float DEFAULT_VOXELIZATION_GRANULARITY = powf(2.0f, -3.0f);
 Spanner::Spanner() :
     _renderer(NULL),
     _placementGranularity(DEFAULT_PLACEMENT_GRANULARITY),
-    _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY),
-    _masked(false) {
+    _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY) {
 }
 
 void Spanner::setBounds(const Box& bounds) {
@@ -2007,24 +1815,6 @@ void Spanner::setBounds(const Box& bounds) {
     }
     emit boundsWillChange();
     emit boundsChanged(_bounds = bounds);
-}
-
-const QVector<AttributePointer>& Spanner::getAttributes() const {
-    static QVector<AttributePointer> emptyVector;
-    return emptyVector;
-}
-
-const QVector<AttributePointer>& Spanner::getVoxelizedAttributes() const {
-    static QVector<AttributePointer> emptyVector;
-    return emptyVector;
-}
-
-bool Spanner::getAttributeValues(MetavoxelInfo& info, bool force) const {
-    return false;
-}
-
-bool Spanner::blendAttributeValues(MetavoxelInfo& info, bool force) const {
-    return false;
 }
 
 bool Spanner::testAndSetVisited(int visit) {
@@ -2052,8 +1842,7 @@ SpannerRenderer* Spanner::getRenderer() {
     return _renderer;
 }
 
-bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
@@ -2103,12 +1892,11 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
+void SpannerRenderer::render(const glm::vec4& color, Mode mode) {
     // nothing by default
 }
 
-bool SpannerRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+bool SpannerRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     return false;
 }
 
@@ -2149,92 +1937,7 @@ Sphere::Sphere() {
     updateBounds();
 }
 
-const QVector<AttributePointer>& Sphere::getAttributes() const {
-    static QVector<AttributePointer> attributes = QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getColorAttribute() << AttributeRegistry::getInstance()->getNormalAttribute();
-    return attributes;
-}
-
-const QVector<AttributePointer>& Sphere::getVoxelizedAttributes() const {
-    static QVector<AttributePointer> attributes = QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getSpannerColorAttribute() <<
-        AttributeRegistry::getInstance()->getSpannerNormalAttribute();
-    return attributes;
-}
-
-bool Sphere::getAttributeValues(MetavoxelInfo& info, bool force) const {
-    // bounds check
-    Box bounds = info.getBounds();
-    if (!(force || getBounds().intersects(bounds))) {
-        return false;
-    }
-    // count the points inside the sphere
-    int pointsWithin = 0;
-    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
-        if (glm::distance(bounds.getVertex(i), getTranslation()) <= getScale()) {
-            pointsWithin++;
-        }
-    }
-    if (pointsWithin == Box::VERTEX_COUNT) {
-        // entirely contained
-        info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(_color.rgba()));
-        info.outputValues[1] = getNormal(info, _color.alpha());
-        return false;
-    }
-    if (force || info.size <= getVoxelizationGranularity()) {
-        // best guess
-        if (pointsWithin > 0) {
-            int alpha = _color.alpha() * pointsWithin / Box::VERTEX_COUNT;
-            info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(qRgba(
-                _color.red(), _color.green(), _color.blue(), alpha)));
-            info.outputValues[1] = getNormal(info, alpha);
-        }
-        return false;
-    }
-    return true;
-}
-
-bool Sphere::blendAttributeValues(MetavoxelInfo& info, bool force) const {
-    // bounds check
-    Box bounds = info.getBounds();
-    if (!(force || getBounds().intersects(bounds))) {
-        return false;
-    }
-    // count the points inside the sphere
-    int pointsWithin = 0;
-    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
-        if (glm::distance(bounds.getVertex(i), getTranslation()) <= getScale()) {
-            pointsWithin++;
-        }
-    }
-    if (pointsWithin == Box::VERTEX_COUNT) {
-        // entirely contained
-        info.outputValues[0] = AttributeValue(getAttributes().at(0), encodeInline<QRgb>(_color.rgba()));
-        info.outputValues[1] = getNormal(info, _color.alpha());
-        return false;
-    }
-    if (force || info.size <= getVoxelizationGranularity()) {
-        // best guess
-        if (pointsWithin > 0) {
-            const AttributeValue& oldColor = info.outputValues.at(0).getAttribute() ?
-                info.outputValues.at(0) : info.inputValues.at(0);
-            const AttributeValue& oldNormal = info.outputValues.at(1).getAttribute() ?
-                info.outputValues.at(1) : info.inputValues.at(1);
-            int oldAlpha = qAlpha(oldColor.getInlineValue<QRgb>());
-            int newAlpha = _color.alpha() * pointsWithin / Box::VERTEX_COUNT;
-            float combinedAlpha = (float)newAlpha / (oldAlpha + newAlpha);
-            int baseAlpha = _color.alpha() * pointsWithin / Box::VERTEX_COUNT;
-            info.outputValues[0].mix(oldColor, AttributeValue(getAttributes().at(0),
-                encodeInline<QRgb>(qRgba(_color.red(), _color.green(), _color.blue(), baseAlpha))), combinedAlpha);
-            info.outputValues[1].mix(oldNormal, getNormal(info, baseAlpha), combinedAlpha);
-        }
-        return false;
-    }
-    return true;
-}
-
-bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+bool Sphere::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     return findRaySphereIntersection(origin, direction, getTranslation(), getScale(), distance);
 }
 
@@ -2277,23 +1980,6 @@ QByteArray Sphere::getRendererClassName() const {
 void Sphere::updateBounds() {
     glm::vec3 extent(getScale(), getScale(), getScale());
     setBounds(Box(getTranslation() - extent, getTranslation() + extent));
-}
-
-AttributeValue Sphere::getNormal(MetavoxelInfo& info, int alpha) const {
-    glm::vec3 normal = info.getCenter() - getTranslation();
-    float length = glm::length(normal);
-    QRgb color;
-    if (alpha != 0 && length > EPSILON) {
-        const float NORMAL_SCALE = 127.0f;
-        float scale = NORMAL_SCALE / length;
-        const int BYTE_MASK = 0xFF;
-        color = qRgba((int)(normal.x * scale) & BYTE_MASK, (int)(normal.y * scale) & BYTE_MASK,
-            (int)(normal.z * scale) & BYTE_MASK, alpha);
-        
-    } else {
-        color = QRgb();
-    }
-    return AttributeValue(getAttributes().at(1), encodeInline<QRgb>(color));
 }
 
 Cuboid::Cuboid() :
@@ -2388,11 +2074,10 @@ void StaticModel::setURL(const QUrl& url) {
     }
 }
 
-bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+bool StaticModel::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     // delegate to renderer, if we have one
-    return _renderer ? _renderer->findRayIntersection(origin, direction, clipMinimum, clipSize, distance) :
-        Spanner::findRayIntersection(origin, direction, clipMinimum, clipSize, distance);
+    return _renderer ? _renderer->findRayIntersection(origin, direction, distance) :
+        Spanner::findRayIntersection(origin, direction, distance);
 }
 
 QByteArray StaticModel::getRendererClassName() const {

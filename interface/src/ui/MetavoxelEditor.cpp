@@ -122,7 +122,6 @@ MetavoxelEditor::MetavoxelEditor() :
     addTool(new InsertSpannerTool(this));
     addTool(new RemoveSpannerTool(this));
     addTool(new ClearSpannersTool(this));
-    addTool(new SetSpannerTool(this));
     addTool(new HeightfieldHeightBrushTool(this));
     addTool(new HeightfieldMaterialBrushTool(this));
     addTool(new ImportHeightfieldTool(this));
@@ -241,7 +240,7 @@ void MetavoxelEditor::createNewAttribute() {
     form.addRow("Name:", &name);
     
     SharedObjectEditor editor(&Attribute::staticMetaObject, false);
-    editor.setObject(new QRgbAttribute());
+    editor.setObject(new FloatAttribute());
     layout.addWidget(&editor);
     
     QDialogButtonBox buttons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
@@ -622,7 +621,7 @@ void PlaceSpannerTool::render() {
     const float SPANNER_ALPHA = 0.25f;
     QColor color = getColor();
     spanner->getRenderer()->render(glm::vec4(color.redF(), color.greenF(), color.blueF(), SPANNER_ALPHA),
-        SpannerRenderer::DEFAULT_MODE, glm::vec3(), 0.0f);
+        SpannerRenderer::DEFAULT_MODE);
 }
 
 bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
@@ -710,244 +709,6 @@ void ClearSpannersTool::clear() {
     }
     MetavoxelEditMessage message = { QVariant::fromValue(ClearSpannersEdit(attribute)) };
     Application::getInstance()->getMetavoxels()->applyEdit(message);
-}
-
-SetSpannerTool::SetSpannerTool(MetavoxelEditor* editor) :
-    PlaceSpannerTool(editor, "Set Spanner", "Set") {
-}
-
-bool SetSpannerTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute == AttributeRegistry::getInstance()->getSpannersAttribute();
-}
-
-glm::quat DIRECTION_ROTATIONS[] = {
-    rotationBetween(glm::vec3(-1.0f, 0.0f, 0.0f), IDENTITY_FRONT),
-    rotationBetween(glm::vec3(1.0f, 0.0f, 0.0f), IDENTITY_FRONT),
-    rotationBetween(glm::vec3(0.0f, -1.0f, 0.0f), IDENTITY_FRONT),
-    rotationBetween(glm::vec3(0.0f, 1.0f, 0.0f), IDENTITY_FRONT),
-    rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), IDENTITY_FRONT),
-    rotationBetween(glm::vec3(0.0f, 0.0f, 1.0f), IDENTITY_FRONT) };
-
-/// Represents a view from one direction of the spanner to be voxelized.
-class DirectionImages {
-public:
-    QImage color;
-    QVector<float> depth;
-    glm::vec3 minima;
-    glm::vec3 maxima;
-    glm::vec3 scale;
-};
-
-class Voxelizer : public QRunnable {
-public:
-
-    Voxelizer(float size, const Box& bounds, float granularity, const QVector<DirectionImages>& directionImages);
-    
-    virtual void run();
-
-private:
-    
-    void voxelize(const glm::vec3& center);
-    
-    float _size;
-    Box _bounds;
-    float _granularity;
-    QVector<DirectionImages> _directionImages;
-};
-
-Voxelizer::Voxelizer(float size, const Box& bounds, float granularity, const QVector<DirectionImages>& directionImages) :
-    _size(size),
-    _bounds(bounds),
-    _granularity(granularity),
-    _directionImages(directionImages) {
-}
-
-void Voxelizer::run() {
-    // voxelize separately each cell within the bounds
-    float halfSize = _size * 0.5f;
-    for (float x = _bounds.minimum.x + halfSize; x < _bounds.maximum.x; x += _size) {
-        for (float y = _bounds.minimum.y + halfSize; y < _bounds.maximum.y; y += _size) {
-            for (float z = _bounds.minimum.z + halfSize; z < _bounds.maximum.z; z += _size) {
-                voxelize(glm::vec3(x, y, z));
-            }
-        }
-    }
-}
-
-class VoxelizationVisitor : public MetavoxelVisitor {
-public:
-    
-    VoxelizationVisitor(const QVector<DirectionImages>& directionImages, const glm::vec3& center, float granularity);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    QVector<DirectionImages> _directionImages;
-    glm::vec3 _center;
-    float _granularity;
-};
-
-VoxelizationVisitor::VoxelizationVisitor(const QVector<DirectionImages>& directionImages,
-        const glm::vec3& center, float granularity) :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getColorAttribute()),
-    _directionImages(directionImages),
-    _center(center),
-    _granularity(granularity) {
-}
-
-bool checkDisjoint(const DirectionImages& images, const glm::vec3& minimum, const glm::vec3& maximum, float extent) {
-    for (int x = qMax(0, (int)minimum.x), xmax = qMin(images.color.width(), (int)maximum.x); x < xmax; x++) {
-        for (int y = qMax(0, (int)minimum.y), ymax = qMin(images.color.height(), (int)maximum.y); y < ymax; y++) {
-            float depth = 1.0f - images.depth.at(y * images.color.width() + x);
-            if (depth - minimum.z >= -extent - EPSILON) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-int VoxelizationVisitor::visit(MetavoxelInfo& info) {
-    float halfSize = info.size * 0.5f;
-    glm::vec3 center = info.minimum + _center + glm::vec3(halfSize, halfSize, halfSize);
-    const float EXTENT_SCALE = 2.0f;
-    if (info.size > _granularity) {    
-        for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
-            glm::vec3 rotated = DIRECTION_ROTATIONS[i] * center;
-            const DirectionImages& images = _directionImages.at(i);
-            glm::vec3 relative = (rotated - images.minima) * images.scale;
-            glm::vec3 extents = images.scale * halfSize;
-            glm::vec3 minimum = relative - extents;
-            glm::vec3 maximum = relative + extents;
-            if (checkDisjoint(images, minimum, maximum, extents.z * EXTENT_SCALE)) {
-                info.outputValues[0] = AttributeValue(_outputs.at(0));
-                return STOP_RECURSION;
-            }
-        }
-        return DEFAULT_ORDER;
-    }
-    QRgb closestColor = QRgb();
-    float closestDistance = FLT_MAX;
-    for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
-        glm::vec3 rotated = DIRECTION_ROTATIONS[i] * center;
-        const DirectionImages& images = _directionImages.at(i);
-        glm::vec3 relative = (rotated - images.minima) * images.scale;
-        int x = qMax(qMin((int)glm::round(relative.x), images.color.width() - 1), 0);
-        int y = qMax(qMin((int)glm::round(relative.y), images.color.height() - 1), 0);
-        float depth = 1.0f - images.depth.at(y * images.color.width() + x);
-        float distance = depth - relative.z;
-        float extent = images.scale.z * halfSize * EXTENT_SCALE;
-        if (distance < -extent - EPSILON) {
-            info.outputValues[0] = AttributeValue(_outputs.at(0));
-            return STOP_RECURSION;
-        }
-        QRgb color = images.color.pixel(x, y);
-        if (distance < extent + EPSILON) {
-            info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<QRgb>(color));
-            return STOP_RECURSION;
-        }
-        if (distance < closestDistance) {
-            closestColor = color;
-            closestDistance = distance;
-        }
-    }
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<QRgb>(closestColor));
-    return STOP_RECURSION;
-}
-
-void Voxelizer::voxelize(const glm::vec3& center) {
-    MetavoxelData data;
-    data.setSize(_size);
-    
-    VoxelizationVisitor visitor(_directionImages, center, _granularity);
-    data.guide(visitor);
-    
-    MetavoxelEditMessage edit = { QVariant::fromValue(SetDataEdit(
-        center - glm::vec3(_size, _size, _size) * 0.5f, data, true)) };
-    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "applyEdit",
-        Q_ARG(const MetavoxelEditMessage&, edit), Q_ARG(bool, true));
-}
-
-void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
-    Spanner* spannerData = static_cast<Spanner*>(spanner.data());
-    Box bounds = spannerData->getBounds();
-    float longestSide(qMax(bounds.getLongestSide(), spannerData->getPlacementGranularity()));
-    float size = powf(2.0f, floorf(logf(longestSide) / logf(2.0f)));
-    Box cellBounds(glm::floor(bounds.minimum / size) * size, glm::ceil(bounds.maximum / size) * size);
-    
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
-    
-    glEnable(GL_SCISSOR_TEST);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_BLEND);
-        
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    
-    QVector<DirectionImages> directionImages;
-    
-    for (unsigned int i = 0; i < sizeof(DIRECTION_ROTATIONS) / sizeof(DIRECTION_ROTATIONS[0]); i++) {
-        glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX);
-        glm::vec3 maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-        for (int j = 0; j < Box::VERTEX_COUNT; j++) {
-            glm::vec3 rotated = DIRECTION_ROTATIONS[i] * cellBounds.getVertex(j);
-            minima = glm::min(minima, rotated);
-            maxima = glm::max(maxima, rotated);
-        }
-        float renderGranularity = spannerData->getVoxelizationGranularity() / 4.0f;
-        int width = glm::round((maxima.x - minima.x) / renderGranularity);
-        int height = glm::round((maxima.y - minima.y) / renderGranularity);
-        
-        glViewport(0, 0, width, height);
-        glScissor(0, 0, width, height);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        glLoadIdentity();
-        glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
-        
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        glm::vec3 axis = glm::axis(DIRECTION_ROTATIONS[i]);
-        glRotatef(glm::degrees(glm::angle(DIRECTION_ROTATIONS[i])), axis.x, axis.y, axis.z);
-        
-        Application::getInstance()->setupWorldLight();
-        
-        Application::getInstance()->updateUntranslatedViewMatrix();
-        
-        const glm::vec4 OPAQUE_WHITE(1.0f, 1.0f, 1.0f, 1.0f);
-        spannerData->getRenderer()->render(OPAQUE_WHITE, SpannerRenderer::DIFFUSE_MODE, glm::vec3(), 0.0f);
-        
-        DirectionImages images = { QImage(width, height, QImage::Format_ARGB32),
-            QVector<float>(width * height), minima, maxima, glm::vec3(width / (maxima.x - minima.x),
-                height / (maxima.y - minima.y), 1.0f / (maxima.z - minima.z)) };
-        glReadPixels(0, 0, width, height, GL_BGRA, GL_UNSIGNED_BYTE, images.color.bits());
-        glReadPixels(0, 0, width, height, GL_DEPTH_COMPONENT, GL_FLOAT, images.depth.data());
-        directionImages.append(images);
-        
-        glMatrixMode(GL_PROJECTION);
-    }
-    glPopMatrix();
- 
-    glMatrixMode(GL_MODELVIEW);
-    glPopMatrix();
-    
-    glEnable(GL_BLEND);
-    glDisable(GL_SCISSOR_TEST);
-    
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
-
-    glViewport(0, 0, Application::getInstance()->getGLWidget()->getDeviceWidth(),
-        Application::getInstance()->getGLWidget()->getDeviceHeight());
-    
-    // send the images off to the lab for processing
-    QThreadPool::globalInstance()->start(new Voxelizer(size, cellBounds,
-        spannerData->getVoxelizationGranularity(), directionImages));
 }
 
 HeightfieldTool::HeightfieldTool(MetavoxelEditor* editor, const QString& name) :

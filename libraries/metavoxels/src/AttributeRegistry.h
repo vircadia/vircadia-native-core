@@ -88,21 +88,6 @@ public:
     /// Returns a reference to the standard SharedObjectSet "spanners" attribute.
     const AttributePointer& getSpannersAttribute() const { return _spannersAttribute; }
     
-    /// Returns a reference to the standard QRgb "color" attribute.
-    const AttributePointer& getColorAttribute() const { return _colorAttribute; }
-    
-    /// Returns a reference to the standard packed normal "normal" attribute.
-    const AttributePointer& getNormalAttribute() const { return _normalAttribute; }
-    
-    /// Returns a reference to the standard QRgb "spannerColor" attribute.
-    const AttributePointer& getSpannerColorAttribute() const { return _spannerColorAttribute; }
-    
-    /// Returns a reference to the standard packed normal "spannerNormal" attribute.
-    const AttributePointer& getSpannerNormalAttribute() const { return _spannerNormalAttribute; }
-    
-    /// Returns a reference to the standard "spannerMask" attribute.
-    const AttributePointer& getSpannerMaskAttribute() const { return _spannerMaskAttribute; }
-    
     /// Returns a reference to the standard HeightfieldHeightDataPointer "heightfield" attribute.
     const AttributePointer& getHeightfieldAttribute() const { return _heightfieldAttribute; }
     
@@ -131,11 +116,6 @@ private:
     AttributePointer _guideAttribute;
     AttributePointer _rendererAttribute;
     AttributePointer _spannersAttribute;
-    AttributePointer _colorAttribute;
-    AttributePointer _normalAttribute;
-    AttributePointer _spannerColorAttribute;
-    AttributePointer _spannerNormalAttribute;
-    AttributePointer _spannerMaskAttribute;
     AttributePointer _heightfieldAttribute;
     AttributePointer _heightfieldColorAttribute;
     AttributePointer _heightfieldMaterialAttribute;
@@ -366,51 +346,13 @@ template<class T, int bits> inline bool SimpleInlineAttribute<T, bits>::merge(
     return allChildrenEqual;
 }
 
-/// Simple float attribute.
+/// A simple float attribute.
 class FloatAttribute : public SimpleInlineAttribute<float> {
     Q_OBJECT
-    Q_PROPERTY(float defaultValue MEMBER _defaultValue)
-
+    
 public:
     
-    Q_INVOKABLE FloatAttribute(const QString& name = QString(), float defaultValue = 0.0f);
-};
-
-/// Provides appropriate averaging for RGBA values.
-class QRgbAttribute : public InlineAttribute<QRgb> {
-    Q_OBJECT
-    Q_PROPERTY(uint defaultValue MEMBER _defaultValue)
-
-public:
-    
-    Q_INVOKABLE QRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    
-    virtual void* mix(void* first, void* second, float alpha) const;
-    
-    virtual void* blend(void* source, void* dest) const;
-    
-    virtual void* createFromScript(const QScriptValue& value, QScriptEngine* engine) const;
-    
-    virtual void* createFromVariant(const QVariant& value) const;
-    
-    virtual QWidget* createEditor(QWidget* parent = NULL) const;
-};
-
-/// Provides appropriate averaging for packed normals.
-class PackedNormalAttribute : public QRgbAttribute {
-    Q_OBJECT
-
-public:
-    
-    Q_INVOKABLE PackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    
-    virtual void* mix(void* first, void* second, float alpha) const;
-    
-    virtual void* blend(void* source, void* dest) const;
+    Q_INVOKABLE FloatAttribute(const QString& name = QString());
 };
 
 /// Packs a normal into an RGB value.
@@ -421,42 +363,6 @@ QRgb packNormal(const glm::vec3& normal, int alpha);
 
 /// Unpacks a normal from an RGB value.
 glm::vec3 unpackNormal(QRgb value);
-
-/// RGBA values for voxelized spanners.
-class SpannerQRgbAttribute : public QRgbAttribute {
-    Q_OBJECT
-
-public:
-    
-    Q_INVOKABLE SpannerQRgbAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
-    
-    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
-    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-    
-    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    
-    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
-};
-
-/// Packed normals for voxelized spanners.
-class SpannerPackedNormalAttribute : public PackedNormalAttribute {
-    Q_OBJECT
-
-public:
-    
-    Q_INVOKABLE SpannerPackedNormalAttribute(const QString& name = QString(), QRgb defaultValue = QRgb());
-    
-    virtual void read(Bitstream& in, void*& value, bool isLeaf) const;
-    virtual void write(Bitstream& out, void* value, bool isLeaf) const;
-    
-    virtual MetavoxelNode* createMetavoxelNode(const AttributeValue& value, const MetavoxelNode* original) const;
-    
-    virtual bool merge(void*& parent, void* children[], bool postRead = false) const;
-    
-    virtual AttributeValue inherit(const AttributeValue& parentValue) const;
-};
 
 typedef QExplicitlySharedDataPointer<DataBlock> DataBlockPointer;
 

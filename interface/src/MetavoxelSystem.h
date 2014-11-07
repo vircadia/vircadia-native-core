@@ -54,7 +54,6 @@ public:
     void setNetworkSimulation(const NetworkSimulation& simulation);
     NetworkSimulation getNetworkSimulation();
     
-    const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
     const AttributePointer& getVoxelBufferAttribute() { return _voxelBufferAttribute; }
     
@@ -103,7 +102,6 @@ private:
     
     void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
-    AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
     AttributePointer _voxelBufferAttribute;
     
@@ -123,18 +121,6 @@ public slots:
     
     virtual void handle() = 0;
 };
-
-/// Describes contents of a point in a point buffer.
-class BufferPoint {
-public:
-    glm::vec4 vertex;
-    quint8 color[3];
-    quint8 normal[3];
-};
-
-typedef QVector<BufferPoint> BufferPointVector;
-
-Q_DECLARE_METATYPE(BufferPointVector)
 
 /// Simple throttle for limiting bandwidth on a per-second basis.
 class Throttle {
@@ -202,21 +188,6 @@ public:
 };
 
 typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
-
-/// Contains the information necessary to render a group of points.
-class PointBuffer : public BufferData {
-public:
-
-    PointBuffer(const BufferPointVector& points);
-
-    virtual void render(bool cursor = false);
-
-private:
-    
-    BufferPointVector _points;
-    QOpenGLBuffer _buffer;
-    int _pointCount;
-};
 
 /// Contains the information necessary to render a heightfield block.
 class HeightfieldBuffer : public BufferData {
@@ -369,9 +340,6 @@ public:
     
     static void init();
 
-    static ProgramObject& getPointProgram() { return _pointProgram; }
-    static int getPointScaleLocation() { return _pointScaleLocation; }
-    
     static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
     static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
     static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
@@ -411,9 +379,6 @@ private:
 
     static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
     
-    static ProgramObject _pointProgram;
-    static int _pointScaleLocation;
-    
     static ProgramObject _baseHeightfieldProgram;
     static int _baseHeightScaleLocation;
     static int _baseColorScaleLocation;
@@ -438,49 +403,30 @@ private:
     static ProgramObject _voxelCursorProgram;
 };
 
-/// Base class for spanner renderers; provides clipping.
-class ClippedRenderer : public SpannerRenderer {
-    Q_OBJECT
-
-public:
-    
-    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
-    
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode) = 0;
-};
-
 /// Renders spheres.
-class SphereRenderer : public ClippedRenderer {
+class SphereRenderer : public SpannerRenderer {
     Q_OBJECT
 
 public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
-    
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+    virtual void render(const glm::vec4& color, Mode mode);
 };
 
 /// Renders cuboids.
-class CuboidRenderer : public ClippedRenderer {
+class CuboidRenderer : public SpannerRenderer {
     Q_OBJECT
 
 public:
     
     Q_INVOKABLE CuboidRenderer();
     
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+    virtual void render(const glm::vec4& color, Mode mode);
 };
 
 /// Renders static models.
-class StaticModelRenderer : public ClippedRenderer {
+class StaticModelRenderer : public SpannerRenderer {
     Q_OBJECT
 
 public:
@@ -489,12 +435,8 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
-
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+    virtual void render(const glm::vec4& color, Mode mode);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
 

@@ -242,21 +242,6 @@ private slots:
     void clear();
 };
 
-/// Allows setting the value by placing a spanner.
-class SetSpannerTool : public PlaceSpannerTool {
-    Q_OBJECT
-
-public:
-    
-    SetSpannerTool(MetavoxelEditor* editor);
-    
-    virtual bool appliesTo(const AttributePointer& attribute) const;
-
-protected:
-
-    virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
-};
-
 /// Base class for heightfield tools.
 class HeightfieldTool : public MetavoxelTool {
     Q_OBJECT

@@ -37,8 +37,6 @@ REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(CuboidRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
 
-static int bufferPointVectorMetaTypeId = qRegisterMetaType<BufferPointVector>();
-
 MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repeatRate,
         int minimumDelay, int maximumDelay, int bandwidthLimit) :
     dropRate(dropRate),
@@ -58,8 +56,6 @@ MetavoxelSystem::~MetavoxelSystem() {
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
     DefaultMetavoxelRendererImplementation::init();
-    
-    _pointBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(new BufferDataAttribute("pointBuffer"));
     
     _heightfieldBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
         new BufferDataAttribute("heightfieldBuffer"));  
@@ -920,36 +916,6 @@ void MetavoxelSystemClient::sendDatagram(const QByteArray& data) {
 BufferData::~BufferData() {
 }
 
-PointBuffer::PointBuffer(const BufferPointVector& points) :
-    _points(points) {
-}
-
-void PointBuffer::render(bool cursor) {
-    // initialize buffer, etc. on first render
-    if (!_buffer.isCreated()) {
-        _buffer.setUsagePattern(QOpenGLBuffer::StaticDraw);
-        _buffer.create();
-        _buffer.bind();
-        _pointCount = _points.size();
-        _buffer.allocate(_points.constData(), _pointCount * sizeof(BufferPoint));
-        _points.clear();
-        _buffer.release();
-    }
-    if (_pointCount == 0) {
-        return;
-    }
-    _buffer.bind();
-    
-    BufferPoint* point = 0;
-    glVertexPointer(4, GL_FLOAT, sizeof(BufferPoint), &point->vertex);
-    glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(BufferPoint), &point->color);
-    glNormalPointer(GL_BYTE, sizeof(BufferPoint), &point->normal);
-    
-    glDrawArrays(GL_POINTS, 0, _pointCount);
-    
-    _buffer.release();
-}
-
 const int HeightfieldBuffer::HEIGHT_BORDER = 1;
 const int HeightfieldBuffer::SHARED_EDGE = 1;
 const int HeightfieldBuffer::HEIGHT_EXTENSION = 2 * HeightfieldBuffer::HEIGHT_BORDER + HeightfieldBuffer::SHARED_EDGE;
@@ -1576,17 +1542,7 @@ AttributeValue BufferDataAttribute::inherit(const AttributeValue& parentValue) c
 }
 
 void DefaultMetavoxelRendererImplementation::init() {
-    if (!_pointProgram.isLinked()) {
-        _pointProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/metavoxel_point.vert");
-        _pointProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_voxel_base.frag");
-        _pointProgram.link();
-       
-        _pointProgram.bind();
-        _pointScaleLocation = _pointProgram.uniformLocation("pointScale");
-        _pointProgram.release();
-        
+    if (!_baseHeightfieldProgram.isLinked()) {
         _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
             "shaders/metavoxel_heightfield_base.vert");
         _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
@@ -1629,76 +1585,6 @@ void DefaultMetavoxelRendererImplementation::init() {
 }
 
 DefaultMetavoxelRendererImplementation::DefaultMetavoxelRendererImplementation() {
-}
-
-class PointAugmentVisitor : public MetavoxelVisitor {
-public:
-
-    PointAugmentVisitor(const MetavoxelLOD& lod);
-    
-    virtual void prepare(MetavoxelData* data);
-    virtual int visit(MetavoxelInfo& info);
-    virtual bool postVisit(MetavoxelInfo& info);
-
-private:
-    
-    BufferPointVector _points;
-    float _pointLeafSize;
-};
-
-PointAugmentVisitor::PointAugmentVisitor(const MetavoxelLOD& lod) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getColorAttribute() <<
-        AttributeRegistry::getInstance()->getNormalAttribute(), QVector<AttributePointer>() <<
-            Application::getInstance()->getMetavoxels()->getPointBufferAttribute(), lod) {
-}
-
-const int ALPHA_RENDER_THRESHOLD = 0;
-
-void PointAugmentVisitor::prepare(MetavoxelData* data) {
-    MetavoxelVisitor::prepare(data);
-    const float MAX_POINT_LEAF_SIZE = 64.0f;
-    _pointLeafSize = qMin(data->getSize(), MAX_POINT_LEAF_SIZE);
-}
-
-int PointAugmentVisitor::visit(MetavoxelInfo& info) {
-    if (!info.isLeaf) {
-        return (info.size > _pointLeafSize) ? DEFAULT_ORDER : (DEFAULT_ORDER | ALL_NODES_REST);    
-    }
-    QRgb color = info.inputValues.at(0).getInlineValue<QRgb>();
-    quint8 alpha = qAlpha(color);
-    if (alpha > ALPHA_RENDER_THRESHOLD) {
-        QRgb normal = info.inputValues.at(1).getInlineValue<QRgb>();
-        BufferPoint point = { glm::vec4(info.minimum + glm::vec3(info.size, info.size, info.size) * 0.5f, info.size),
-            { quint8(qRed(color)), quint8(qGreen(color)), quint8(qBlue(color)) }, 
-            { quint8(qRed(normal)), quint8(qGreen(normal)), quint8(qBlue(normal)) } };
-        _points.append(point);
-    }
-    if (info.size >= _pointLeafSize) {
-        PointBuffer* buffer = NULL;
-        if (!_points.isEmpty()) { 
-            BufferPointVector swapPoints;
-            _points.swap(swapPoints);
-            buffer = new PointBuffer(swapPoints);
-        }
-        BufferDataPointer pointer(buffer);
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
-    }
-    return STOP_RECURSION;
-}
-
-bool PointAugmentVisitor::postVisit(MetavoxelInfo& info) {
-    if (info.size != _pointLeafSize) {
-        return false;
-    }
-    PointBuffer* buffer = NULL;
-    if (!_points.isEmpty()) {
-        BufferPointVector swapPoints;
-        _points.swap(swapPoints);
-        buffer = new PointBuffer(swapPoints);
-    }
-    BufferDataPointer pointer(buffer);
-    info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline(pointer));
-    return true;
 }
 
 class HeightfieldFetchVisitor : public MetavoxelVisitor {
@@ -2749,15 +2635,9 @@ void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const 
     while (expandedPrevious.getSize() < data.getSize()) {
         expandedPrevious.expand();
     }
-    const AttributePointer& pointBufferAttribute = Application::getInstance()->getMetavoxels()->getPointBufferAttribute();
-    MetavoxelNode* root = expandedPrevious.getRoot(pointBufferAttribute);
-    if (root) {
-        data.setRoot(pointBufferAttribute, root);
-        root->incrementReferenceCount();
-    }
     const AttributePointer& heightfieldBufferAttribute =
         Application::getInstance()->getMetavoxels()->getHeightfieldBufferAttribute();
-    root = expandedPrevious.getRoot(heightfieldBufferAttribute);
+    MetavoxelNode* root = expandedPrevious.getRoot(heightfieldBufferAttribute);
     if (root) {
         data.setRoot(heightfieldBufferAttribute, root);
         root->incrementReferenceCount();
@@ -2769,10 +2649,6 @@ void DefaultMetavoxelRendererImplementation::augment(MetavoxelData& data, const 
         data.setRoot(voxelBufferAttribute, root);
         root->incrementReferenceCount();
     }
-    
-    PointAugmentVisitor pointAugmentVisitor(lod);
-    data.guideToDifferent(expandedPrevious, pointAugmentVisitor);
-    
     HeightfieldRegionVisitor heightfieldRegionVisitor(lod);
     data.guideToDifferent(expandedPrevious, heightfieldRegionVisitor);
     
@@ -2789,7 +2665,7 @@ public:
     
     SpannerSimulateVisitor(float deltaTime, const MetavoxelLOD& lod);
     
-    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+    virtual bool visit(Spanner* spanner);
 
 private:
     
@@ -2798,11 +2674,11 @@ private:
 
 SpannerSimulateVisitor::SpannerSimulateVisitor(float deltaTime, const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
     _deltaTime(deltaTime) {
 }
 
-bool SpannerSimulateVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+bool SpannerSimulateVisitor::visit(Spanner* spanner) {
     spanner->getRenderer()->simulate(_deltaTime);
     return true;
 }
@@ -2819,7 +2695,7 @@ public:
     SpannerRenderVisitor(const MetavoxelLOD& lod);
     
     virtual int visit(MetavoxelInfo& info);
-    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
+    virtual bool visit(Spanner* spanner);
 
 private:
     
@@ -2828,8 +2704,8 @@ private:
 
 SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), QVector<AttributePointer>(),
-        lod, encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod,
+        encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
@@ -2845,9 +2721,9 @@ int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
     return SpannerVisitor::visit(info);
 }
 
-bool SpannerRenderVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
+bool SpannerRenderVisitor::visit(Spanner* spanner) {
     const glm::vec4 OPAQUE_WHITE(1.0f, 1.0f, 1.0f, 1.0f);
-    spanner->getRenderer()->render(OPAQUE_WHITE, SpannerRenderer::DEFAULT_MODE, clipMinimum, clipSize);
+    spanner->getRenderer()->render(OPAQUE_WHITE, SpannerRenderer::DEFAULT_MODE);
     return true;
 }
 
@@ -2893,40 +2769,10 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
     SpannerRenderVisitor spannerRenderVisitor(lod);
     data.guide(spannerRenderVisitor);
     
-    int viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
-    const int VIEWPORT_WIDTH_INDEX = 2;
-    const int VIEWPORT_HEIGHT_INDEX = 3;
-    float viewportWidth = viewport[VIEWPORT_WIDTH_INDEX];
-    float viewportHeight = viewport[VIEWPORT_HEIGHT_INDEX];
-    float viewportDiagonal = sqrtf(viewportWidth * viewportWidth + viewportHeight * viewportHeight);
-    float worldDiagonal = glm::distance(Application::getInstance()->getDisplayViewFrustum()->getNearBottomLeft(),
-        Application::getInstance()->getDisplayViewFrustum()->getNearTopRight());
-
-    _pointProgram.bind();
-    _pointProgram.setUniformValue(_pointScaleLocation, viewportDiagonal *
-        Application::getInstance()->getDisplayViewFrustum()->getNearClip() / worldDiagonal);
-        
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-
-    glEnable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
-
-    glDisable(GL_BLEND);
-    
-    BufferRenderVisitor pointRenderVisitor(Application::getInstance()->getMetavoxels()->getPointBufferAttribute());
-    data.guide(pointRenderVisitor);
-    
-    glDisable(GL_VERTEX_PROGRAM_POINT_SIZE_ARB);
-    
-    glDisableClientState(GL_COLOR_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    
-    _pointProgram.release();
-    
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glDisable(GL_BLEND);
     glEnable(GL_CULL_FACE);
     glEnable(GL_ALPHA_TEST);
     glAlphaFunc(GL_EQUAL, 0.0f);
@@ -2994,8 +2840,6 @@ void DefaultMetavoxelRendererImplementation::loadSplatProgram(const char* type,
     program.release();
 }
 
-ProgramObject DefaultMetavoxelRendererImplementation::_pointProgram;
-int DefaultMetavoxelRendererImplementation::_pointScaleLocation;
 ProgramObject DefaultMetavoxelRendererImplementation::_baseHeightfieldProgram;
 int DefaultMetavoxelRendererImplementation::_baseHeightScaleLocation;
 int DefaultMetavoxelRendererImplementation::_baseColorScaleLocation;
@@ -3007,55 +2851,10 @@ ProgramObject DefaultMetavoxelRendererImplementation::_splatVoxelProgram;
 DefaultMetavoxelRendererImplementation::SplatLocations DefaultMetavoxelRendererImplementation::_splatVoxelLocations;
 ProgramObject DefaultMetavoxelRendererImplementation::_voxelCursorProgram;
 
-static void enableClipPlane(GLenum plane, float x, float y, float z, float w) {
-    GLdouble coefficients[] = { x, y, z, w };
-    glClipPlane(plane, coefficients);
-    glEnable(plane);
-}
-
-void ClippedRenderer::render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
-    if (clipSize == 0.0f) {
-        renderUnclipped(color, mode);
-        return;
-    }
-    enableClipPlane(GL_CLIP_PLANE0, -1.0f, 0.0f, 0.0f, clipMinimum.x + clipSize);
-    enableClipPlane(GL_CLIP_PLANE1, 1.0f, 0.0f, 0.0f, -clipMinimum.x);
-    enableClipPlane(GL_CLIP_PLANE2, 0.0f, -1.0f, 0.0f, clipMinimum.y + clipSize);
-    enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
-    enableClipPlane(GL_CLIP_PLANE4, 0.0f, 0.0f, -1.0f, clipMinimum.z + clipSize);
-    enableClipPlane(GL_CLIP_PLANE5, 0.0f, 0.0f, 1.0f, -clipMinimum.z);
-    
-    renderUnclipped(color, mode);
-    
-    glDisable(GL_CLIP_PLANE0);
-    glDisable(GL_CLIP_PLANE1);
-    glDisable(GL_CLIP_PLANE2);
-    glDisable(GL_CLIP_PLANE3);
-    glDisable(GL_CLIP_PLANE4);
-    glDisable(GL_CLIP_PLANE5);
-}
-
 SphereRenderer::SphereRenderer() {
 }
 
-void SphereRenderer::render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize) {
-    if (clipSize == 0.0f) {
-        renderUnclipped(color, mode);
-        return;
-    }
-    // slight performance optimization: don't render if clip bounds are entirely within sphere
-    Sphere* sphere = static_cast<Sphere*>(_spanner);
-    Box clipBox(clipMinimum, clipMinimum + glm::vec3(clipSize, clipSize, clipSize));
-    for (int i = 0; i < Box::VERTEX_COUNT; i++) {
-        const float CLIP_PROPORTION = 0.95f;
-        if (glm::distance(sphere->getTranslation(), clipBox.getVertex(i)) >= sphere->getScale() * CLIP_PROPORTION) {
-            ClippedRenderer::render(color, mode, clipMinimum, clipSize);
-            return;
-        }
-    }
-}
-
-void SphereRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
+void SphereRenderer::render(const glm::vec4& color, Mode mode) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
     const QColor& ownColor = sphere->getColor();
     glColor4f(ownColor.redF() * color.r, ownColor.greenF() * color.g, ownColor.blueF() * color.b, ownColor.alphaF() * color.a);
@@ -3075,7 +2874,7 @@ void SphereRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
 CuboidRenderer::CuboidRenderer() {
 }
 
-void CuboidRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
+void CuboidRenderer::render(const glm::vec4& color, Mode mode) {
     Cuboid* cuboid = static_cast<Cuboid*>(_spanner);
     const QColor& ownColor = cuboid->getColor();
     glColor4f(ownColor.redF() * color.r, ownColor.greenF() * color.g, ownColor.blueF() * color.b, ownColor.alphaF() * color.a);
@@ -3126,7 +2925,7 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
+void StaticModelRenderer::render(const glm::vec4& color, Mode mode) {
     switch (mode) {
         case DIFFUSE_MODE:
             _model->render(color.a, Model::DIFFUSE_RENDER_MODE);
@@ -3143,8 +2942,7 @@ void StaticModelRenderer::renderUnclipped(const glm::vec4& color, Mode mode) {
     _model->render(color.a);
 }
 
-bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const {
+bool StaticModelRenderer::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     RayIntersectionInfo info;
     info._rayStart = origin;
     info._rayDirection = direction;
