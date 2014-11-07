@@ -123,6 +123,8 @@ public:
     void setCache(ResourceCache* cache) { _cache = cache; }
 
     Q_INVOKABLE void allReferencesCleared();
+    
+    const QUrl& getURL() const { return _url; }
 
 signals:
 

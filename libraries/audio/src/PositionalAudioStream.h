@@ -36,8 +36,7 @@ public:
     void updateLastPopOutputLoudnessAndTrailingLoudness();
     float getLastPopOutputTrailingLoudness() const { return _lastPopOutputTrailingLoudness; }
     float getLastPopOutputLoudness() const { return _lastPopOutputLoudness; }
-    float getQuietestTrailingFrameLoudness() const { return _quietestTrailingFrameLoudness; }
-    float getLoudestTrailingFrameLoudness() const { return _loudestTrailingFrameLoudness; }
+    float getQuietestFrameLoudness() const { return _quietestFrameLoudness; }
 
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
     bool isStereo() const { return _isStereo; }
@@ -67,7 +66,7 @@ protected:
     float _lastPopOutputTrailingLoudness;
     float _lastPopOutputLoudness;
     float _quietestTrailingFrameLoudness;
-    float _loudestTrailingFrameLoudness;
+    float _quietestFrameLoudness;
     int _frameCounter;
 };
 

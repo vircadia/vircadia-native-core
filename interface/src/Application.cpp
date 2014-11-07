@@ -185,7 +185,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isVSyncOn(true)
+        _isVSyncOn(true),
+        _aboutToQuit(false)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -255,6 +256,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
 
@@ -389,6 +391,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
@@ -413,6 +416,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _trayIcon->show();
     
+    // set the local loopback interface for local sounds from audio scripts
+    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
@@ -420,6 +426,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+}
+
+void Application::aboutToQuit() {
+    _aboutToQuit = true;
 }
 
 Application::~Application() {
@@ -1254,7 +1264,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
     
-    _entities.mouseMoveEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseMoveEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1277,7 +1289,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mousePressEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mousePressEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
@@ -1318,7 +1332,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mouseReleaseEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseReleaseEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
@@ -3565,9 +3581,8 @@ void Application::changeDomainHostname(const QString &newDomainHostname) {
     }
 }
 
-void Application::domainChanged(const QString& domainHostname) {
-    updateWindowTitle();
-
+void Application::clearDomainOctreeDetails() {
+    qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3576,13 +3591,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _voxelServerJurisdictions.unlock();
 
+    _entityServerJurisdictions.lockForWrite();
+    _entityServerJurisdictions.clear();
+    _entityServerJurisdictions.unlock();
+
+    _octreeSceneStatsLock.lockForWrite();
     _octreeServerSceneStats.clear();
+    _octreeSceneStatsLock.unlock();
 
     // reset the model renderer
     _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+}
+
+void Application::domainChanged(const QString& domainHostname) {
+    updateWindowTitle();
+    clearDomainOctreeDetails();
 }
 
 void Application::connectedToDomain(const QString& hostname) {

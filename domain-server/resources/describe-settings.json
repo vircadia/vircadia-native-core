@@ -93,8 +93,8 @@
         "name": "noise_muting_threshold",
         "label": "Noise Muting Threshold",
         "help": "Loudness value for noise background between 0 and 1.0 (0: mute everyone, 1.0: never mute)",
-        "placeholder": "0.003",
-        "default": "0.003",
+        "placeholder": "0.001",
+        "default": "0.001",
         "advanced": false
       },
       {
