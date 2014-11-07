@@ -37,7 +37,8 @@ public:
         _model(NULL),
         _needsInitialSimulation(true),
         _needsModelReload(true),
-        _myRenderer(NULL) { }
+        _myRenderer(NULL),
+        _originalTexturesRead(false) { }
 
     virtual ~RenderableModelEntityItem();
 
@@ -60,6 +61,8 @@ private:
     bool _needsModelReload;
     EntityTreeRenderer* _myRenderer;
     QString _currentTextures;
+    QStringList _originalTextures;
+    bool _originalTexturesRead;
 };
 
 #endif // hifi_RenderableModelEntityItem_h
