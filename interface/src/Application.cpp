@@ -108,7 +108,7 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const qint64 MAXIMUM_CACHE_SIZE = 10737418240L;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -724,11 +724,11 @@ void Application::paintGL() {
         displaySide(*whichCamera);
         glPopMatrix();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
-
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
+        
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(_mirrorViewRect);       
         }
 
         _glowEffect.render();
@@ -4314,8 +4314,6 @@ bool Application::isVSyncOn() const {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
         return (swapInterval > 0);
-    } else {
-        return true;
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4326,10 +4324,9 @@ bool Application::isVSyncOn() const {
     } else {
         return true;
     }
-    */
-#else
-    return true;
+    */    
 #endif
+    return true;
 }
 
 bool Application::isVSyncEditable() const {
@@ -4344,7 +4341,6 @@ bool Application::isVSyncEditable() const {
         return true;
     }
     */
-#else
 #endif
     return false;
 }
