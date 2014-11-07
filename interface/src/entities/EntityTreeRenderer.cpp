@@ -61,11 +61,13 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 
 void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
+    _entityScripts.clear();
 }
 
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
-    static_cast<EntityTree*>(_tree)->setFBXService(this);
+    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    entityTree->setFBXService(this);
 
     if (_wantScripts) {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities", 
@@ -77,6 +79,8 @@ void EntityTreeRenderer::init() {
     // first chance, we'll check for enter/leave entity events.    
     glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
     _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
+    
+    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
@@ -762,4 +766,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     }
 }
 
+void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
+    if (_entityScripts.contains(entityID)) {
+        _entityScripts.remove(entityID);
+    }
+}
 
