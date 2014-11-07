@@ -984,7 +984,9 @@ void ApplicationOverlay::renderAudioMeter() {
     const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
 
     int audioMeterY;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    bool boxed = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
+    if (boxed) {
         audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
     } else {
         audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
@@ -1022,9 +1024,7 @@ void ApplicationOverlay::renderAudioMeter() {
         renderCollisionOverlay(glWidget->width(), glWidget->height(), magnitude, 1.0f);
     }
 
-    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP,
-                         audioMeterY,
-                         Menu::getInstance()->isOptionChecked(MenuOption::Mirror));
+    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
 
     audio->renderScope(glWidget->width(), glWidget->height());
 
