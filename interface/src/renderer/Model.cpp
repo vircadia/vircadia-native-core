@@ -554,14 +554,18 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     }
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
-    gpu::Batch batch;
+    _renderBatch.clear();
+    gpu::Batch& batch = _renderBatch;
     GLBATCH(glPushMatrix)();
 
     // Capture the view matrix once for the rendering of this model
-    gpu::TransformPointer viewTransform(new gpu::Transform(Application::getInstance()->getUntranslatedViewMatrix()));
-    viewTransform->postTranslate(Application::getInstance()->getViewMatrixTranslation());
+    if (_transforms.empty()) {
+        _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
+    }
+    _transforms[0]->evalFromRawMatrix(Application::getInstance()->getUntranslatedViewMatrix());
+    _transforms[0]->postTranslate(Application::getInstance()->getViewMatrixTranslation() + _translation);
 
-    batch.setViewTransform(viewTransform);
+    batch.setViewTransform(_transforms[0]);
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
@@ -692,7 +696,6 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     {
         PROFILE_RANGE("render Batch");
         ::gpu::GLBackend::renderBatch(batch);
-        batch.clear();
     }
 
     // restore all the default material settings
@@ -1875,13 +1878,11 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
                 (const float*)state.clusterMatrices.constData());
 
             gpu::TransformPointer modelTransform(new gpu::Transform());
-            modelTransform->preTranslate(_translation);
             batch.setModelTransform(modelTransform);
         } else {
         //    GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
 
             gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
-            modelTransform->preTranslate(_translation);
             batch.setModelTransform(modelTransform);
         }
 

@@ -60,6 +60,7 @@ public:
 
     Transform& evalInverseTranspose(Transform& result);
     void evalFromRawMatrix(const Mat4& matrix);
+    void evalRotationScale(const Mat3& rotationScalematrix);
 
     static Transform& mult( Transform& result, const Transform& left, const Transform& right);
 
@@ -110,6 +111,7 @@ protected:
 };
 
 typedef QSharedPointer< Transform > TransformPointer;
+typedef std::vector< TransformPointer > Transforms;
 
 };
 

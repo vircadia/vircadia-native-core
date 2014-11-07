@@ -59,20 +59,31 @@ Transform::Mat4& Transform::evalRelativeTransform( Mat4& result, const Vec3& ori
     return result;
 }
 
+void Transform::evalRotationScale(const Mat3& rotationScaleMatrix) {
+    Vec3 scale(glm::length(rotationScaleMatrix[0]), glm::length(rotationScaleMatrix[1]), glm::length(rotationScaleMatrix[2]));
+    if (scale.x < 0.00001f) scale.x = 0.00001f;
+    if (scale.y < 0.00001f) scale.y = 0.00001f;
+    if (scale.z < 0.00001f) scale.z = 0.00001f;
+
+    Mat3 matRotScale(
+        rotationScaleMatrix[0] / scale.x,
+        rotationScaleMatrix[1] / scale.y,
+        rotationScaleMatrix[2] / scale.z);
+    setRotation(glm::quat_cast(matRotScale));
+
+    float determinant = glm::determinant(matRotScale);
+    if (determinant < 0.f) {
+        scale.x = -scale.x;
+    }
+
+    setScale(scale);
+}
+
 void Transform::evalFromRawMatrix(const Mat4& matrix) {
     if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.f)) {
         setTranslation(Vec3(matrix[3]));
 
-        Mat3 matRS = Mat3(matrix);
-
-        Vec3 scale(glm::length(matRS[0]), glm::length(matRS[1]), glm::length(matRS[2]));
-
-        matRS[0] *= 1/scale.x;
-        matRS[1] *= 1/scale.y;
-        matRS[2] *= 1/scale.z;
-
-        setRotation(glm::quat_cast(matRS));
-        setScale(scale);
+        evalRotationScale(Mat3(matrix));
     }
 }
 
@@ -91,18 +102,9 @@ Transform& Transform::mult( Transform& result, const Transform& left, const Tran
     left.updateCache();
 
     result.setTranslation(Vec3(left.getMatrix() * Vec4(right.getTranslation(), 1.f)));
-    
+
     Mat4 mat = left.getMatrix() * right.getMatrix();
-    Mat3 matRS = Mat3(mat);
-
-    Vec3 scale(glm::length(matRS[0]), glm::length(matRS[1]), glm::length(matRS[2]));
-
-    matRS[0] *= 1/scale.x;
-    matRS[1] *= 1/scale.y;
-    matRS[2] *= 1/scale.z;
-
-    result.setRotation(glm::quat_cast(matRS));
-    result.setScale(scale);
+    result.evalRotationScale(Mat3(mat));
 
     return result;
 }
