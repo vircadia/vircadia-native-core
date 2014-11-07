@@ -353,7 +353,7 @@ var leapHands = (function () {
                     handOffset.x = -handOffset.x;
 
                     // Hand rotation in camera coordinates ...
-                    handRotation = wrists[h].controller.getAbsRotation();
+                    handRotation = hands[h].controller.getAbsRotation();
                     handRotation = {
                         x: handRotation.z,
                         y: handRotation.y,
@@ -386,7 +386,7 @@ var leapHands = (function () {
                         z: hands[h].zeroPosition.z - handOffset.z
                     };
 
-                    handRotation = wrists[h].controller.getAbsRotation();
+                    handRotation = hands[h].controller.getAbsRotation();
                     handRotation = {
                         x: handRotation.z,
                         y: handRotation.y,
