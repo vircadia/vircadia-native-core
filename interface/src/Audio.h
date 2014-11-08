@@ -40,12 +40,12 @@
 #include <QByteArray>
 
 #include <AbstractAudioInterface.h>
-#include <StdDev.h>
+#include <StDev.h>
 
 #include "MixedProcessedAudioStream.h"
 #include "AudioEffectOptions.h"
 #include <AudioRingBuffer.h>
-#include <StdDev.h>
+#include <StDev.h>
 
 extern "C" {
     #include <gverb.h>

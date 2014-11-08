@@ -35,7 +35,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include <StdDev.h>
+#include <StDev.h>
 #include <UUID.h>
 #include <glm/glm.hpp>
 
