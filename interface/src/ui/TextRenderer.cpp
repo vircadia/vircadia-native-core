@@ -37,12 +37,13 @@ static uint qHash(const TextRenderer::Properties& key, uint seed = 0) {
 }
 
 static bool operator==(const TextRenderer::Properties& p1, const TextRenderer::Properties& p2) {
-    return p1.font == p2.font && p1.effect == p2.effect && p1.effectThickness == p2.effectThickness && p1.color == p2.color;
+    return p1.font == p2.font && p1.effect == p2.effect && p1.effectThickness == p2.effectThickness && p1.color == p2.color 
+        && p1.copy == p2.copy;
 }
 
 TextRenderer* TextRenderer::getInstance(const char* family, int pointSize, int weight, bool italic,
-        EffectType effect, int effectThickness, const QColor& color) {
-    Properties properties = { QFont(family, pointSize, weight, italic), effect, effectThickness, color };
+        EffectType effect, int effectThickness, const QColor& color, int copy) {
+    Properties properties = { QFont(family, pointSize, weight, italic), effect, effectThickness, color, copy };
     TextRenderer*& instance = _instances[properties];
     if (!instance) {
         instance = new TextRenderer(properties);

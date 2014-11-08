@@ -17,6 +17,8 @@
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_MARGIN = 0.1f;
+const int FIXED_FONT_POINT_SIZE = 40;
+const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
@@ -87,11 +89,9 @@ void Text3DOverlay::render(RenderArgs* args) {
             glVertex3f(-halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
         glEnd();
         
-        const int FIXED_FONT_POINT_SIZE = 40;
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float LINE_SCALE_RATIO = 1.2f;
         float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
@@ -179,4 +179,11 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
 
 }
 
+float Text3DOverlay::textWidth(const QString& text) {
+    const int TEXT3DOVERLAY_TEXTWIDTH_RENDERER = 2;  // Separate to that used for drawing text so that doesn't interfere.
+    TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE, -1, false, 
+        TextRenderer::NO_EFFECT, 1, QColor(255, 255, 255), TEXT3DOVERLAY_TEXTWIDTH_RENDERER);
 
+    float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)textRenderer->calculateHeight("X");
+    return scaleFactor * (float)textRenderer->computeWidth(qPrintable(text));
+}
