@@ -13,14 +13,15 @@
 #include <cmath>
 #include "StdDev.h"
 
-const int NUM_SAMPLES = 1000;
-
-StDev::StDev() {
-    _data = new float[NUM_SAMPLES];
-    _sampleCount = 0;
+StDev::StDev() :
+    _data(),
+    _sampleCount(0)
+{
+    reset();
 }
 
 void StDev::reset() {
+    memset(&_data, 0, sizeof(_data));
     _sampleCount = 0;
 }
 

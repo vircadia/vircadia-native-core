@@ -12,6 +12,8 @@
 #ifndef hifi_StdDev_h
 #define hifi_StdDev_h
 
+const int NUM_SAMPLES = 1000;
+
 class StDev {
 public:
     StDev();
@@ -21,7 +23,7 @@ public:
     float getStDev() const;
     int getSamples() const { return _sampleCount; }
 private:
-    float* _data;
+    float _data[NUM_SAMPLES];
     int _sampleCount;
 };
 
