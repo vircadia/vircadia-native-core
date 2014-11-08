@@ -90,25 +90,22 @@ Motion = function() {
 
         for (var i = 0; i < this.avatarJointNames.length; i++) {
 
-            if (i > 17 || i < 34)
+            if (i > 17 || i < 34) {
                 // left hand fingers
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(16, 0, 0));
-
-            else if (i > 33 || i < 38)
+			} else if (i > 33 || i < 38) {
                 // left hand thumb
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(4, 0, 0));
-
-            else if (i > 41 || i < 58)
+			} else if (i > 41 || i < 58) {
                 // right hand fingers
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(16, 0, 0));
-
-            else if (i > 57 || i < 62)
+			} else if (i > 57 || i < 62) {
                 // right hand thumb
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(4, 0, 0));
-
-            else
+            } else {
                 // zero out the remaining joints
                 MyAvatar.clearJointData(this.avatarJointNames[i]);
+			}
         }
     }
 
@@ -123,15 +120,16 @@ Motion = function() {
     this.walkWheelPos = 0;
 
     this.advanceWalkWheel = function(angle){
-
         this.walkWheelPos += angle;
-        if (motion.walkWheelPos >= 360)
+        if (motion.walkWheelPos >= 360) {
             this.walkWheelPos = this.walkWheelPos % 360;
+		}
     }
 
     // last frame history
     this.lastDirection = 0;
     this.lastVelocity = 0;
+    this.lastStrideLength = 0; // kept for use during transitions
 
 };  // end Motion constructor
 
@@ -159,7 +157,7 @@ state = (function () {
         // status vars
         powerOn: true,
         minimised: true,
-        editing:false,
+        editing: false,
         editingTranslation: false,
 
         setInternalState: function(newInternalState) {
@@ -284,10 +282,11 @@ state = (function () {
                     if (motion.strideLength === 0) {
 
                         motion.setGender(MALE);
-                        if (motion.direction === BACKWARDS)
+                        if (motion.direction === BACKWARDS) {
                             motion.strideLength = motion.selWalk.calibration.strideLengthBackwards;
-                        else
+						} else {
                             motion.strideLength = motion.selWalk.calibration.strideLengthForwards;
+						}
                     }
                     return;
             }
@@ -299,26 +298,30 @@ state = (function () {
 Transition = function(lastAnimation, nextAnimation, reachPoses, transitionDuration, easingLower, easingUpper) {
 
     this.lastAnim = lastAnimation; // name of last animation
+    this.nextAnimation = nextAnimation; // name of next animation
     if (lastAnimation === motion.selWalk ||
         nextAnimation === motion.selSideStepLeft ||
-        nextAnimation === motion.selSideStepRight)
-        this.walkingAtStart = true; // boolean - is the last animation a walking animation?
-    else
-        this.walkingAtStart = false; // boolean - is the last animation a walking animation?
-    this.nextAnimation = nextAnimation; // name of next animation
+        nextAnimation === motion.selSideStepRight) {
+		// boolean - is the last animation a walking animation?
+        this.walkingAtStart = true;
+	} else {
+        this.walkingAtStart = false;
+	}
     if (nextAnimation === motion.selWalk ||
         nextAnimation === motion.selSideStepLeft ||
-        nextAnimation === motion.selSideStepRight)
-        this.walkingAtEnd = true; // boolean - is the next animation a walking animation?
-    else
-        this.walkingAtEnd = false; // boolean - is the next animation a walking animation?
+        nextAnimation === motion.selSideStepRight) {
+		// boolean - is the next animation a walking animation?
+        this.walkingAtEnd = true;
+	} else {
+        this.walkingAtEnd = false;
+	}
     this.reachPoses = reachPoses; // placeholder / stub: array of reach poses for squash and stretch techniques
     this.transitionDuration = transitionDuration; // length of transition (seconds)
     this.easingLower = easingLower; // Bezier curve handle (normalised)
     this.easingUpper = easingUpper; // Bezier curve handle (normalised)
     this.startTime = new Date().getTime(); // Starting timestamp (seconds)
     this.progress = 0; // how far are we through the transition?
-    this.walkWheelIncrement = 6; // how much to turn the walkwheel each frame when transitioning to / from walking
+    this.walkWheelIncrement = 3; // how much to turn the walkwheel each frame when transitioning to / from walking
     this.walkWheelAdvance = 0; // how many degrees the walk wheel has been advanced during the transition
     this.walkStopAngle = 0; // what angle should we stop the walk cycle?
 

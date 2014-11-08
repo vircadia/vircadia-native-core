@@ -17,7 +17,6 @@ AveragingFilter = function(length) {
     this.pastValues = [];
 
     for(var i = 0; i < length; i++) {
-
         this.pastValues.push(0);
     }
 
@@ -26,17 +25,14 @@ AveragingFilter = function(length) {
 
         if (this.pastValues.length === 0 && arguments[0]) {
             return arguments[0];
-        }
-        else if (arguments[0]) {
-
+        } else if (arguments[0]) {
             // apply quick and simple LP filtering
             this.pastValues.push(arguments[0]);
             this.pastValues.shift();
             var nextOutputValue = 0;
             for (var ea in this.pastValues) nextOutputValue += this.pastValues[ea];
             return nextOutputValue / this.pastValues.length;
-        }
-        else return 0;
+        } else return 0;
     };
 };
 
@@ -44,15 +40,10 @@ AveragingFilter = function(length) {
 // provides LP filtering with a more stable frequency / phase response
 ButterworthFilter = function(cutOff) {
 
-    switch(cutOff) {
-
-        case 5:
-
-            this.gain = 20.20612010;
-            this.coeffOne = -0.4775922501;
-            this.coeffTwo = 1.2796324250;
-            break;
-    }
+	// cut off frequency = 5Hz
+	this.gain = 20.20612010;
+	this.coeffOne = -0.4775922501;
+	this.coeffTwo = 1.2796324250;
 
     // initialise the arrays
     this.xv = [];
@@ -95,39 +86,42 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
         var harmonics = 0;
         var multiplier = 0;
         var iterations = this.numHarmonics * 2 + 2;
-        if (this.waveShape === TRIANGLE) iterations++;
+        if (this.waveShape === TRIANGLE) {
+			iterations++;
+		}
 
         for(var n = 2; n < iterations; n++) {
 
             switch(this.waveShape) {
 
-                case SAWTOOTH:
+                case SAWTOOTH: {
 
                     multiplier = 1 / n;
                     harmonics += multiplier * Math.sin(n * frequency);
                     break;
+				}
 
-                case TRIANGLE:
+                case TRIANGLE: {
 
                     if (n % 2 === 1) {
-
                         var mulitplier = 1 / (n * n);
-
-                        // multiply every (4n-1)th harmonic by -1
-                        if (n === 3 || n === 7 || n === 11 || n === 15)
+                        // multiply (4n-1)th harmonics by -1
+                        if (n === 3 || n === 7 || n === 11 || n === 15) {
                             mulitplier *= -1;
+						}
                         harmonics += mulitplier * Math.sin(n * frequency);
                     }
                     break;
+				}
 
-                case SQUARE:
+                case SQUARE: {
 
                     if (n % 2 === 1) {
-
                         multiplier = 1 / n;
                         harmonics += multiplier * Math.sin(n * frequency);
                     }
                     break;
+				}
             }
         }
 
@@ -216,13 +210,13 @@ filter = (function() {
             return pos;
         },
 
-        // simple clipping filter (faster way to make square waveforms)
+        // simple clipping filter (clips bottom of wave only, special case for hips y-axis skeleton offset)
         clipTrough: function(inputValue, peak, strength) {
 
             var outputValue = inputValue * strength;
-            if (outputValue < -peak)
+            if (outputValue < -peak) {
                 outputValue = -peak;
-
+			}
             return outputValue;
         }
     }

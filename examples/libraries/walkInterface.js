@@ -1363,22 +1363,20 @@ walkInterface = (function() {
 
     function setBackground(backgroundID) {
         for (var i in _backgroundOverlays) {
-            if (_backgroundOverlays[i] === backgroundID)
+            if (_backgroundOverlays[i] === backgroundID) {
                 Overlays.editOverlay(_backgroundOverlays[i], {
                     visible: true
                 });
-            else Overlays.editOverlay(_backgroundOverlays[i], {
-                visible: false
-            });
+			} else {
+				Overlays.editOverlay(_backgroundOverlays[i], { visible: false });
+			}
         }
     };
 
     // top row menu type buttons (on | walk | stand | fly | hide)
     function hideMenuButtons() {
         for (var i in _buttonOverlays) {
-            Overlays.editOverlay(_buttonOverlays[i], {
-                visible: false
-            });
+            Overlays.editOverlay(_buttonOverlays[i], { visible: false });
         }
     };
 
@@ -1401,9 +1399,7 @@ walkInterface = (function() {
     function setButtonOverlayVisible(buttonOverlayName) {
         for (var i in _buttonOverlays) {
             if (_buttonOverlays[i] === buttonOverlayName) {
-                Overlays.editOverlay(buttonOverlayName, {
-                    visible: true
-                });
+                Overlays.editOverlay(buttonOverlayName, { visible: true });
             }
         }
     };
@@ -1484,13 +1480,13 @@ walkInterface = (function() {
             });
         }
 
-        if (!showButtons) return;
+        if (!showButtons) {
+			return;
+		}
 
         // set all the non-selected ones to showing
         for (var i = 8; i < _bigbuttonOverlays.length; i += 2) {
-            Overlays.editOverlay(_bigbuttonOverlays[i], {
-                visible: true
-            });
+            Overlays.editOverlay(_bigbuttonOverlays[i], { visible: true });
         }
 
         // set the currently selected one
@@ -1877,6 +1873,7 @@ walkInterface = (function() {
                 _motion.curJointIndex = 4;
                 initialiseJointsEditingPanel();
                 return;
+
             } else if (clickX > 78 && clickX < 121 && clickY > 111 && clickY < 128) {
                 _motion.curJointIndex = 5;
                 initialiseJointsEditingPanel();
@@ -1962,7 +1959,7 @@ walkInterface = (function() {
                 return;
 
             case _hideButton:
-                _hideButtonSelected:
+            case _hideButtonSelected:
 
                     Overlays.editOverlay(_hideButton, {
                         visible: false
@@ -2084,8 +2081,11 @@ walkInterface = (function() {
 
             case _standardWalkBigButton:
 
-                if (_motion.avatarGender === FEMALE) _motion.selWalk = _motion.femaleStandardWalk;
-                else _motion.selWalk = _motion.maleStandardWalk;
+                if (_motion.avatarGender === FEMALE) {
+					_motion.selWalk = _motion.femaleStandardWalk;
+				} else {
+					_motion.selWalk = _motion.maleStandardWalk;
+				}
                 _motion.curAnim = _motion.selWalk;
                 initialiseWalkStylesPanel(true);
                 return;
@@ -2095,7 +2095,9 @@ walkInterface = (function() {
                 // toggle forwards / backwards walk display
                 if (_motion.direction === FORWARDS) {
                     _motion.direction = BACKWARDS;
-                } else _motion.direction = FORWARDS;
+                } else {
+					_motion.direction = FORWARDS;
+				}
                 return;
 
             case _sliderOne:
@@ -2240,7 +2242,9 @@ walkInterface = (function() {
 
         // workaround for bug (https://worklist.net/20160)
         if ((event.x > 310 && event.x < 318 && event.y > 1350 && event.y < 1355) ||
-           (event.x > 423 && event.x < 428 && event.y > 1505 && event.y < 1508 )) return;
+           (event.x > 423 && event.x < 428 && event.y > 1505 && event.y < 1508 )) {
+			   return;
+		}
 
         if (_state.currentState === _state.EDIT_WALK_JOINTS ||
             _state.currentState === _state.EDIT_STANDING ||
@@ -2252,8 +2256,11 @@ walkInterface = (function() {
 
             var thumbClickOffsetX = event.x - _minSliderX;
             var thumbPositionNormalised = thumbClickOffsetX / _sliderRangeX;
-            if (thumbPositionNormalised < 0) thumbPositionNormalised = 0;
-            if (thumbPositionNormalised > 1) thumbPositionNormalised = 1;
+            if (thumbPositionNormalised < 0) {
+				thumbPositionNormalised = 0;
+			} else if (thumbPositionNormalised > 1) {
+				thumbPositionNormalised = 1;
+			}
             var sliderX = thumbPositionNormalised * _sliderRangeX; // sets range
 
             if (_movingSliderOne) {
@@ -2263,12 +2270,9 @@ walkInterface = (function() {
                     x: sliderX + _minSliderX
                 });
                 if (_state.editingTranslation) {
-
                     _motion.curAnim.joints[0].sway =
                         thumbPositionNormalised * _sliderRanges.joints[0].swayRange;
-
                 } else {
-
                     _motion.curAnim.joints[_motion.curJointIndex].pitch =
                         thumbPositionNormalised * _sliderRanges.joints[_motion.curJointIndex].pitchRange;
                 }
@@ -2280,12 +2284,9 @@ walkInterface = (function() {
                     x: sliderX + _minSliderX
                 });
                 if (_state.editingTranslation) {
-
                     _motion.curAnim.joints[0].bob =
                         thumbPositionNormalised * _sliderRanges.joints[0].bobRange;
-
                 } else {
-
                     _motion.curAnim.joints[_motion.curJointIndex].yaw =
                         thumbPositionNormalised * _sliderRanges.joints[_motion.curJointIndex].yawRange;
                 }
@@ -2297,12 +2298,9 @@ walkInterface = (function() {
                     x: sliderX + _minSliderX
                 });
                 if (_state.editingTranslation) {
-
                     _motion.curAnim.joints[0].thrust =
                         thumbPositionNormalised * _sliderRanges.joints[0].thrustRange;
-
                 } else {
-
                     _motion.curAnim.joints[_motion.curJointIndex].roll =
                         thumbPositionNormalised * _sliderRanges.joints[_motion.curJointIndex].rollRange;
                 }
@@ -2317,11 +2315,8 @@ walkInterface = (function() {
                 var newPhase = 360 * thumbPositionNormalised - 180;
 
                 if (_state.editingTranslation) {
-
                     _motion.curAnim.joints[0].swayPhase = newPhase;
-
                 } else {
-
                     _motion.curAnim.joints[_motion.curJointIndex].pitchPhase = newPhase;
                 }
 
@@ -2335,11 +2330,8 @@ walkInterface = (function() {
                 var newPhase = 360 * thumbPositionNormalised - 180;
 
                 if (_state.editingTranslation) {
-
                     _motion.curAnim.joints[0].bobPhase = newPhase;
-
                 } else {
-
                     _motion.curAnim.joints[_motion.curJointIndex].yawPhase = newPhase;
                 }
 
@@ -2353,11 +2345,8 @@ walkInterface = (function() {
                 var newPhase = 360 * thumbPositionNormalised - 180;
 
                 if (_state.editingTranslation) {
-
                     _motion.curAnim.joints[0].thrustPhase = newPhase;
-
                 } else {
-
                     _motion.curAnim.joints[_motion.curJointIndex].rollPhase = newPhase;
                 }
 
@@ -2368,13 +2357,10 @@ walkInterface = (function() {
                     x: sliderX + _minSliderX
                 });
                 if (_state.editingTranslation) {
-
                     var newOffset = (thumbPositionNormalised - 0.5) *
                                      2 * _sliderRanges.joints[0].swayOffsetRange;
                     _motion.curAnim.joints[0].swayOffset = newOffset;
-
                 } else {
-
                     var newOffset = (thumbPositionNormalised - 0.5) *
                                      2 * _sliderRanges.joints[_motion.curJointIndex].pitchOffsetRange;
                     _motion.curAnim.joints[_motion.curJointIndex].pitchOffset = newOffset;
@@ -2387,13 +2373,10 @@ walkInterface = (function() {
                     x: sliderX + _minSliderX
                 });
                 if (_state.editingTranslation) {
-
                     var newOffset = (thumbPositionNormalised - 0.5) *
                                      2 *_sliderRanges.joints[0].bobOffsetRange;
                     _motion.curAnim.joints[0].bobOffset = newOffset;
-
                 } else {
-
                     var newOffset = (thumbPositionNormalised - 0.5) *
                                      2 * _sliderRanges.joints[_motion.curJointIndex].yawOffsetRange;
                     _motion.curAnim.joints[_motion.curJointIndex].yawOffset = newOffset;
@@ -2406,21 +2389,19 @@ walkInterface = (function() {
                     x: sliderX + _minSliderX
                 });
                 if (_state.editingTranslation) {
-
                     var newOffset = (thumbPositionNormalised - 0.5) *
                                      2 * _sliderRanges.joints[0].thrustOffsetRange;
                     _motion.curAnim.joints[0].thrustOffset = newOffset;
-
                 } else {
-
                     var newOffset = (thumbPositionNormalised - 0.5) *
                                      2 * _sliderRanges.joints[_motion.curJointIndex].rollOffsetRange;
                     _motion.curAnim.joints[_motion.curJointIndex].rollOffset = newOffset;
                 }
             }
 
-        } // end if editing joints
-        else if (_state.currentState === _state.EDIT_WALK_TWEAKS) {
+		// end if editing joints
+
+        } else if (_state.currentState === _state.EDIT_WALK_TWEAKS) {
 
             // sliders for commonly required walk adjustments
             var thumbClickOffsetX = event.x - _minSliderX;
@@ -2430,50 +2411,39 @@ walkInterface = (function() {
             var sliderX = thumbPositionNormalised * _sliderRangeX; // sets range
 
             if (_movingSliderOne) {
-
                 // walk speed
                 Overlays.editOverlay(_sliderOne, {
                     x: sliderX + _minSliderX
                 });
                 _motion.curAnim.calibration.frequency = thumbPositionNormalised * MAX_WALK_SPEED;
-
             } else if (_movingSliderTwo) {
-
                 // lean (hips pitch offset)
                 Overlays.editOverlay(_sliderTwo, {
                     x: sliderX + _minSliderX
                 });
                 var newOffset = (thumbPositionNormalised - 0.5) * 2 * _sliderRanges.joints[0].pitchOffsetRange;
                 _motion.curAnim.joints[0].pitchOffset = newOffset;
-
             } else if (_movingSliderThree) {
-
                 // stride (upper legs pitch)
                 Overlays.editOverlay(_sliderThree, {
                     x: sliderX + _minSliderX
                 });
                 _motion.curAnim.joints[1].pitch = thumbPositionNormalised * _sliderRanges.joints[1].pitchRange;
-
             } else if (_movingSliderFour) {
-
                 // legs separation (upper legs roll)
                 Overlays.editOverlay(_sliderFour, {
                     x: sliderX + _minSliderX
                 });
                 _motion.curAnim.joints[1].rollOffset = (thumbPositionNormalised - 0.5) *
                     2 * _sliderRanges.joints[1].rollOffsetRange;
-
             } else if (_movingSliderFive) {
-
                 // legs forward (lower legs pitch offset)
                 Overlays.editOverlay(_sliderFive, {
                     x: sliderX + _minSliderX
                 });
                 _motion.curAnim.joints[1].pitchOffset = (thumbPositionNormalised - 0.5) *
                     2 * _sliderRanges.joints[1].pitchOffsetRange;
-
             } else if (_movingSliderSix) {
-
                 // lower legs splay (lower legs roll offset)
                 Overlays.editOverlay(_sliderSix, {
                     x: sliderX + _minSliderX
@@ -2482,25 +2452,20 @@ walkInterface = (function() {
                     2 * _sliderRanges.joints[2].rollOffsetRange;
 
             } else if (_movingSliderSeven) {
-
                 // arms forward (upper arms yaw offset)
                 Overlays.editOverlay(_sliderSeven, {
                     x: sliderX + _minSliderX
                 });
                 _motion.curAnim.joints[9].yawOffset = (thumbPositionNormalised - 0.5) *
                     2 * _sliderRanges.joints[9].yawOffsetRange;
-
             } else if (_movingSliderEight) {
-
                 // arms out (upper arm pitch offset)
                 Overlays.editOverlay(_sliderEight, {
                     x: sliderX + _minSliderX
                 });
                 _motion.curAnim.joints[9].pitchOffset = (thumbPositionNormalised - 0.5) *
                     -2 * _sliderRanges.joints[9].pitchOffsetRange;
-
             } else if (_movingSliderNine) {
-
                 // lower arms splay (lower arm pitch offset)
                 Overlays.editOverlay(_sliderNine, {
                     x: sliderX + _minSliderX
@@ -2508,21 +2473,30 @@ walkInterface = (function() {
                 _motion.curAnim.joints[10].pitchOffset = (thumbPositionNormalised - 0.5) *
                     -2 * _sliderRanges.joints[10].pitchOffsetRange;
             }
-
         } // if tweaking
     };
 
     function mouseReleaseEvent(event) {
 
-        if (_movingSliderOne) _movingSliderOne = false;
-        else if (_movingSliderTwo) _movingSliderTwo = false;
-        else if (_movingSliderThree) _movingSliderThree = false;
-        else if (_movingSliderFour) _movingSliderFour = false;
-        else if (_movingSliderFive) _movingSliderFive = false;
-        else if (_movingSliderSix) _movingSliderSix = false;
-        else if (_movingSliderSeven) _movingSliderSeven = false;
-        else if (_movingSliderEight) _movingSliderEight = false;
-        else if (_movingSliderNine) _movingSliderNine = false;
+        if (_movingSliderOne) {
+			_movingSliderOne = false;
+		} else if (_movingSliderTwo) {
+			_movingSliderTwo = false;
+		} else if (_movingSliderThree) {
+			_movingSliderThree = false;
+		} else if (_movingSliderFour) {
+			_movingSliderFour = false;
+		} else if (_movingSliderFive) {
+			_movingSliderFive = false;
+		} else if (_movingSliderSix) {
+			_movingSliderSix = false;
+		} else if (_movingSliderSeven) {
+			_movingSliderSeven = false;
+		} else if (_movingSliderEight) {
+			_movingSliderEight = false;
+		} else if (_movingSliderNine) {
+			_movingSliderNine = false;
+		}
     };
 
     Controller.mousePressEvent.connect(mousePressEvent);
@@ -2575,7 +2549,7 @@ walkInterface = (function() {
 
                     case _state.EDIT_WALK_STYLES:
                     case _state.EDIT_WALK_TWEAKS:
-                    case _state.EDIT_WALK_JOINTS:
+                    case _state.EDIT_WALK_JOINTS: {
 
                         hideMenuButtons();
                         initialiseFrontPanel(false);
@@ -2604,10 +2578,11 @@ walkInterface = (function() {
 
                         } else if (_state.currentState === _state.EDIT_WALK_JOINTS) {
 
-                            if (_state.editingTranslation)
+                            if (_state.editingTranslation) {
                                 setBackground(_controlsBackgroundWalkEditHipTrans);
-                            else
+							} else {
                                 setBackground(_controlsBackgroundWalkEditJoints);
+							}
 
                             initialiseWalkStylesPanel(false);
                             setSliderThumbsVisible(true);
@@ -2619,15 +2594,17 @@ walkInterface = (function() {
                         setButtonOverlayVisible(_onButton);
                         setButtonOverlayVisible(_backButton);
                         return;
+					}
 
                     case _state.EDIT_STANDING:
                     case _state.EDIT_SIDESTEP_LEFT:
-                    case _state.EDIT_SIDESTEP_RIGHT:
+                    case _state.EDIT_SIDESTEP_RIGHT: {
 
-                        if (_state.editingTranslation)
+                        if (_state.editingTranslation) {
                             setBackground(_controlsBackgroundWalkEditHipTrans);
-                        else
+						} else {
                             setBackground(_controlsBackgroundWalkEditJoints);
+						}
                         hideMenuButtons();
                         initialiseWalkStylesPanel(false);
                         initialiseFrontPanel(false);
@@ -2654,10 +2631,11 @@ walkInterface = (function() {
                         setButtonOverlayVisible(_onButton);
                         setButtonOverlayVisible(_backButton);
                         return;
+					}
 
                     case _state.EDIT_FLYING:
                     case _state.EDIT_FLYING_UP:
-                    case _state.EDIT_FLYING_DOWN:
+                    case _state.EDIT_FLYING_DOWN: {
 
                         setBackground(_controlsBackgroundWalkEditJoints);
                         hideMenuButtons();
@@ -2685,18 +2663,22 @@ walkInterface = (function() {
                         setButtonOverlayVisible(_onButton);
                         setButtonOverlayVisible(_backButton);
                         return;
+					}
 
                     case _state.STANDING:
                     case _state.WALKING:
                     case _state.FLYING:
                     case _state.SIDE_STEP:
-                    default:
+                    default: {
 
                         hideMenuButtons();
                         hideJointSelectors();
                         setBackground(_controlsBackground);
-                        if (_state.powerOn) setButtonOverlayVisible(_onButton);
-                        else setButtonOverlayVisible(_offButton);
+                        if (_state.powerOn) {
+							setButtonOverlayVisible(_onButton);
+						} else {
+							setButtonOverlayVisible(_offButton);
+						}
                         setButtonOverlayVisible(_configWalkButton);
                         setButtonOverlayVisible(_configStandButton);
                         setButtonOverlayVisible(_configFlyingButton);
@@ -2705,9 +2687,9 @@ walkInterface = (function() {
                         initialiseFrontPanel(true);
                         initialiseWalkStylesPanel(false);
                         return;
+					}
                 }
             }
         }
     }; // end public methods (return)
-
 })();

@@ -14,7 +14,7 @@
 // constants
 var MALE = 1;
 var FEMALE = 2;
-var MAX_WALK_SPEED = 2.5;
+var MAX_WALK_SPEED = 2.5;//3.919;
 var TAKE_FLIGHT_SPEED = 4.55;
 var TOP_SPEED = 300;
 var UP = 1;
@@ -24,7 +24,7 @@ var RIGHT = 8;
 var FORWARDS = 16;
 var BACKWARDS = 32;
 
-// ovelay images location
+// location of animation files and overlay images
 var pathToAssets = 'http://s3.amazonaws.com/hifi-public/WalkScript/';
 
 // load the UI
@@ -51,7 +51,7 @@ var SAWTOOTH = 1;
 var TRIANGLE = 2;
 var SQUARE = 4;
 
-// filters for synthesising more complex, natural waveforms
+// various filters for synthesising more complex, natural waveforms
 var leanPitchFilter = filter.createAveragingFilter(15);
 var leanRollFilter = filter.createAveragingFilter(15);
 var hipsYawShaper = filter.createWaveSynth(TRIANGLE, 3, 2);
@@ -71,56 +71,65 @@ Script.update.connect(function(deltaTime) {
 		// check for editing modes first, as these require no positioning calculations
 		switch (state.currentState) {
 
-			case state.EDIT_WALK_STYLES:
+			case state.EDIT_WALK_STYLES: {
 				motion.curAnim = motion.selWalk;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_WALK_TWEAKS:
+			case state.EDIT_WALK_TWEAKS: {
 				motion.curAnim = motion.selWalk;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_WALK_JOINTS:
+			case state.EDIT_WALK_JOINTS: {
 				motion.curAnim = motion.selWalk;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_STANDING:
+			case state.EDIT_STANDING: {
 				motion.curAnim = motion.selStand;
 				motion.direction = FORWARDS;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_SIDESTEP_LEFT:
+			case state.EDIT_SIDESTEP_LEFT: {
 				motion.curAnim = motion.selSideStepLeft;
 				motion.direction = LEFT;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_SIDESTEP_RIGHT:
+			case state.EDIT_SIDESTEP_RIGHT: {
 				motion.curAnim = motion.selSideStepRight;
 				motion.direction = RIGHT;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_FLYING:
+			case state.EDIT_FLYING: {
 				motion.curAnim = motion.selFly;
 				motion.direction = FORWARDS;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_FLYING_UP:
+			case state.EDIT_FLYING_UP: {
 				motion.curAnim = motion.selFlyUp;
 				motion.direction = UP;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
-			case state.EDIT_FLYING_DOWN:
+			case state.EDIT_FLYING_DOWN: {
 				motion.curAnim = motion.selFlyDown;
 				motion.direction = DOWN;
 				animateAvatar(deltaTime, speed);
 				break;
+			}
 
 			default:
 				break;
@@ -137,60 +146,78 @@ Script.update.connect(function(deltaTime) {
 			return;
 		}
 		var localVelocity = {x: 0, y: 0, z: 0};
-		if (speed > 0)
+		if (speed > 0) {
 			localVelocity = Vec3.multiplyQbyV(Quat.inverse(MyAvatar.orientation), velocity);
+		}
 
 		if (!state.editing) {
 
 			// determine the candidate animation state
 			var actionToTake = undefined;
-			if (speed < 0.05) actionToTake = state.STANDING; // as per MIN_AVATAR_SPEED, MyAvatar.cpp
-			else if (speed < TAKE_FLIGHT_SPEED) actionToTake = state.WALKING;
-			else if (speed >= TAKE_FLIGHT_SPEED) actionToTake = state.FLYING;
+			if (speed < 0.05) {
+				actionToTake = state.STANDING;
+			} else if (speed < TAKE_FLIGHT_SPEED) {
+				actionToTake = state.WALKING;
+			} else if (speed >= TAKE_FLIGHT_SPEED) {
+				actionToTake = state.FLYING;
+			}
 
 			// determine the principle direction
 			if (Math.abs(localVelocity.x) > Math.abs(localVelocity.y) &&
 				Math.abs(localVelocity.x) > Math.abs(localVelocity.z)) {
 
-				if (localVelocity.x < 0) motion.direction = LEFT;
-				else motion.direction = RIGHT;
+				if (localVelocity.x < 0) {
+					motion.direction = LEFT;
+				} else {
+					motion.direction = RIGHT;
+				}
 
 			} else if (Math.abs(localVelocity.y) > Math.abs(localVelocity.x) &&
 					   Math.abs(localVelocity.y) > Math.abs(localVelocity.z)) {
 
-				if (localVelocity.y > 0) motion.direction = UP;
-				else motion.direction = DOWN;
+				if (localVelocity.y > 0) {
+					motion.direction = UP;
+				} else {
+					motion.direction = DOWN;
+				}
 
 			} else if (Math.abs(localVelocity.z) > Math.abs(localVelocity.x) &&
 					   Math.abs(localVelocity.z) > Math.abs(localVelocity.y)) {
 
-				if (localVelocity.z < 0) motion.direction = FORWARDS;
-				else motion.direction = BACKWARDS;
+				if (localVelocity.z < 0) {
+					motion.direction = FORWARDS;
+				} else {
+					motion.direction = BACKWARDS;
+				}
 			}
 
 			// maybe at walking speed, but sideways?
 			if (actionToTake === state.WALKING &&
-				(motion.direction === LEFT ||
-					motion.direction === RIGHT))
-						actionToTake = state.SIDE_STEP;
+			   (motion.direction === LEFT ||
+				motion.direction === RIGHT)) {
+					actionToTake = state.SIDE_STEP;
+			}
 
 			// maybe at walking speed, but flying up or down?
 			if (actionToTake === state.WALKING &&
-				(motion.direction === UP))// ||
-					//motion.direction === DOWN))
-						actionToTake = state.FLYING;
+			   (motion.direction === UP ||
+			    motion.direction === DOWN)) {
+					actionToTake = state.FLYING;
+			}
 
 			// select appropriate animation and initiate Transition if required
+			// note: The transitions are not compete, and are the most likely
+			// candidate for the next worklist item
 			switch (actionToTake) {
 
-				case state.STANDING:
+				case state.STANDING: {
 
 					// do we need to change state?
 					if (state.currentState !== state.STANDING) {
 
 						switch (motion.curAnim) {
 
-							case motion.selWalk:
+							case motion.selWalk: {
 
 								// Walking to standing
 								motion.curTransition = new Transition(
@@ -200,21 +227,24 @@ Script.update.connect(function(deltaTime) {
 									{x: 0.1, y: 0.5},
 									{x: -0.25, y: 1.22});
 								break;
+							}
 
-							case motion.selSideStepLeft:
-							case motion.selSideStepRight:
+							case motion.selFly:
+							case motion.selFlyUp:
+							case motion.selFlyDown: {
 
-								break;
-
-							default:
-
-								// flying to standing
+								// Flying to Standing
 								motion.curTransition = new Transition(
 									motion.curAnim,
 									motion.selStand,
-									[], 0.25,
+									[], 0.5,
 									{x: 0.5, y: 0.08},
 									{x: 0.28, y: 1});
+								break;
+							}
+
+							default:
+
 								break;
 						}
 						state.setInternalState(state.STANDING);
@@ -222,35 +252,35 @@ Script.update.connect(function(deltaTime) {
 					}
 					animateAvatar(deltaTime, speed);
 					break;
+				}
 
-				case state.WALKING:
+				case state.WALKING: {
 
 					if (state.currentState !== state.WALKING) {
 
-						if (motion.direction === BACKWARDS)
-								 motion.walkWheelPos = motion.selWalk.calibration.startAngleBackwards;
-
-						else motion.walkWheelPos = motion.selWalk.calibration.startAngleForwards;
+						if (motion.direction === BACKWARDS) {
+							motion.walkWheelPos = motion.selWalk.calibration.startAngleBackwards;
+						} else {
+							motion.walkWheelPos = motion.selWalk.calibration.startAngleForwards;
+						}
 
 						switch (motion.curAnim) {
 
-							case motion.selStand:
+							case motion.selStand: {
 
 								// Standing to Walking
 								motion.curTransition = new Transition(
 									motion.curAnim,
 									motion.selWalk,
-									[], 0.1,
-									{x: 0.5, y: 0.1},
-									{x: 0.5, y: 0.9});
+									[], 0.25,
+									{x: 0.5, y: 0.5},
+									{x: 0.5, y: 0.5});
 								break;
+							}
 
-							case motion.selSideStepLeft:
-							case motion.selSideStepRight:
-
-								break;
-
-							default:
+							case motion.selFly:
+							case motion.selFlyUp:
+							case motion.selFlyDown: {
 
 								// Flying to Walking
 								motion.curTransition = new Transition(
@@ -260,69 +290,56 @@ Script.update.connect(function(deltaTime) {
 									{x: 0.24, y: 0.03},
 									{x: 0.42, y: 1.0});
 								break;
+							}
+
+							default:
+
+								break;
 						}
 						state.setInternalState(state.WALKING);
 					}
 					motion.curAnim = motion.selWalk;
 					animateAvatar(deltaTime, speed);
 					break;
+				}
 
-				case state.SIDE_STEP:
+				case state.SIDE_STEP: {
 
 					var selSideStep = 0;
 					if (motion.direction === LEFT) {
 
-						if (motion.lastDirection !== LEFT)
+						if (motion.lastDirection !== LEFT) {
 							motion.walkWheelPos = motion.selSideStepLeft.calibration.cycleStart;
+						}
 						selSideStep = motion.selSideStepLeft;
 
 					} else {
 
-						if (motion.lastDirection !== RIGHT)
+						if (motion.lastDirection !== RIGHT) {
 							motion.walkWheelPos = motion.selSideStepRight.calibration.cycleStart;
+						}
 						selSideStep = motion.selSideStepRight;
 					}
 
 					if (state.currentState !== state.SIDE_STEP) {
 
 						if (motion.direction === LEFT) {
-
 							motion.walkWheelPos = motion.selSideStepLeft.calibration.cycleStart;
-							switch (motion.curAnim) {
-
-								case motion.selStand:
-
-									break;
-
-								default:
-
-									break;
-							}
-
 						} else {
-
 							motion.walkWheelPos = motion.selSideStepRight.calibration.cycleStart;
-							switch (motion.curAnim) {
-
-								case motion.selStand:
-
-									break;
-
-								default:
-
-									break;
-							}
 						}
 						state.setInternalState(state.SIDE_STEP);
 					}
 					motion.curAnim = selSideStep;
 					animateAvatar(deltaTime, speed);
 					break;
+				}
 
-				case state.FLYING:
+				case state.FLYING: {
 
-					if (state.currentState !== state.FLYING)
+					if (state.currentState !== state.FLYING) {
 						state.setInternalState(state.FLYING);
+					}
 
 					// change animation for flying directly up or down
 					if (motion.direction === UP) {
@@ -332,23 +349,21 @@ Script.update.connect(function(deltaTime) {
 							switch (motion.curAnim) {
 
 								case motion.selStand:
-								case motion.selWalk:
+								case motion.selWalk: {
 
 									// standing | walking to flying up
 									motion.curTransition = new Transition(
 										motion.curAnim,
 										motion.selFlyUp,
-										[], 0.25,
+										[], 0.35,
 										{x: 0.5, y: 0.08},
 										{x: 0.28, y: 1});
 									break;
+								}
 
-								case motion.selSideStepLeft:
-								case motion.selSideStepRight:
-
-									break;
-
-								default:
+								case motion.selFly:
+								case motion.selFlyUp:
+								case motion.selFlyDown: {
 
 									motion.curTransition = new Transition(
 										motion.curAnim,
@@ -356,6 +371,11 @@ Script.update.connect(function(deltaTime) {
 										[], 0.35,
 										{x: 0.5, y: 0.08},
 										{x: 0.28, y: 1});
+									break;
+								}
+
+								default:
+
 									break;
 							}
 							motion.curAnim = motion.selFlyUp;
@@ -368,7 +388,7 @@ Script.update.connect(function(deltaTime) {
 							switch (motion.curAnim) {
 
 								case motion.selStand:
-								case motion.selWalk:
+								case motion.selWalk: {
 
 									motion.curTransition = new Transition(
 										motion.curAnim,
@@ -377,20 +397,23 @@ Script.update.connect(function(deltaTime) {
 										{x: 0.5, y: 0.08},
 										{x: 0.28, y: 1});
 									break;
+								}
 
-								case motion.selSideStepLeft:
-								case motion.selSideStepRight:
-
-									break;
-
-								default:
+								case motion.selFly:
+								case motion.selFlyUp:
+								case motion.selFlyDown: {
 
 									motion.curTransition = new Transition(
 										motion.curAnim,
 										motion.selFlyDown,
-										[], 0.5,
+										[], 0.45,
 										{x: 0.5, y: 0.08},
 										{x: 0.28, y: 1});
+									break;
+								}
+
+								default:
+
 									break;
 							}
 							motion.curAnim = motion.selFlyDown;
@@ -403,7 +426,7 @@ Script.update.connect(function(deltaTime) {
 							switch (motion.curAnim) {
 
 								case motion.selStand:
-								case motion.selWalk:
+								case motion.selWalk: {
 
 									motion.curTransition = new Transition(
 										motion.curAnim,
@@ -412,13 +435,11 @@ Script.update.connect(function(deltaTime) {
 										{x: 1.44, y:0.24},
 										{x: 0.61, y:0.92});
 									break;
+								}
 
-								case motion.selSideStepLeft:
-								case motion.selSideStepRight:
-
-									break;
-
-								default:
+								case motion.selFly:
+								case motion.selFlyUp:
+								case motion.selFlyDown: {
 
 									motion.curTransition = new Transition(
 										motion.curAnim,
@@ -427,12 +448,18 @@ Script.update.connect(function(deltaTime) {
 										{x: 0.5, y: 0.08},
 										{x: 0.28, y: 1});
 									break;
+								}
+
+								default:
+
+									break;
 							}
 							motion.curAnim = motion.selFly;
 						}
 					}
 					animateAvatar(deltaTime, speed);
 					break;
+				}// end case state.FLYING
 
 			} // end switch(actionToTake)
 
@@ -447,17 +474,20 @@ Script.update.connect(function(deltaTime) {
 // the faster we go, the further we lean forward. the angle is calcualted here
 function getLeanPitch(speed) {
 
-	if (speed > TOP_SPEED) speed = TOP_SPEED;
+	if (speed > TOP_SPEED) {
+		speed = TOP_SPEED;
+	}
 	var leanProgress = speed / TOP_SPEED;
 
 	if (motion.direction === LEFT ||
-	   motion.direction === RIGHT)
+	   motion.direction === RIGHT) {
 		leanProgress = 0;
-
-	else {
+	} else {
 
 		var responseSharpness = 1.5;
-		if (motion.direction == BACKWARDS) responseSharpness = 3.0;
+		if (motion.direction == BACKWARDS) {
+			responseSharpness = 3.0;
+		}
 
 		leanProgress = filter.bezier((1 - leanProgress),
 										{x: 0, y: 0.0},
@@ -466,10 +496,11 @@ function getLeanPitch(speed) {
 										{x: 1, y: 1}).y;
 
 		// determine final pitch and adjust for direction of momentum
-		if (motion.direction === BACKWARDS)
+		if (motion.direction === BACKWARDS) {
 			leanProgress = -motion.motionPitchMax * leanProgress;
-		else
+		} else {
 			leanProgress = motion.motionPitchMax * leanProgress;
+		}
 	}
 
 	// return the smoothed response
@@ -480,19 +511,26 @@ function getLeanPitch(speed) {
 function getLeanRoll(deltaTime, speed) {
 
 	var leanRollProgress = 0;
-	if (speed > TOP_SPEED) speed = TOP_SPEED;
+	if (speed > TOP_SPEED) {
+		speed = TOP_SPEED;
+	}
 
 	// what's our our anglular velocity?
 	var angularVelocityMax = 70; // from observation
 	var angularVelocity = filter.radToDeg(MyAvatar.getAngularVelocity().y);
-	if (angularVelocity > angularVelocityMax) angularVelocity = angularVelocityMax;
-	if (angularVelocity < -angularVelocityMax) angularVelocity = -angularVelocityMax;
+	if (angularVelocity > angularVelocityMax) {
+		angularVelocity = angularVelocityMax;
+	}
+	if (angularVelocity < -angularVelocityMax) {
+		angularVelocity = -angularVelocityMax;
+	}
 
 	leanRollProgress = speed / TOP_SPEED;
 
 	if (motion.direction !== LEFT &&
-	   motion.direction !== RIGHT)
+	    motion.direction !== RIGHT) {
 			leanRollProgress *= (Math.abs(angularVelocity) / angularVelocityMax);
+	}
 
 	// apply our response curve
 	leanRollProgress = filter.bezier((1 - leanRollProgress),
@@ -502,14 +540,17 @@ function getLeanRoll(deltaTime, speed) {
 											   {x: 1, y: 1}).y;
 	// which way to lean?
 	var turnSign = -1;
-	if (angularVelocity < 0.001) turnSign = 1;
+	if (angularVelocity < 0.001) {
+		turnSign = 1;
+	}
 	if (motion.direction === BACKWARDS ||
-	   motion.direction === LEFT)
+	    motion.direction === LEFT) {
 		turnSign *= -1;
-
+	}
 	if (motion.direction === LEFT ||
-	   motion.direction === RIGHT)
+	    motion.direction === RIGHT) {
 	   		leanRollProgress *= 2;
+	}
 
 	// add damping with simple averaging filter
 	leanRollProgress = leanRollFilter.process(turnSign * leanRollProgress);
@@ -520,12 +561,13 @@ function playFootstep(side) {
 
 	var options = new AudioInjectionOptions();
 	options.position = Camera.getPosition();
-	options.volume = 0.2;
+	options.volume = 0.3;
 	var soundNumber = 2; // 0 to 2
-	if (side === RIGHT && motion.makesFootStepSounds)
+	if (side === RIGHT && motion.makesFootStepSounds) {
 		Audio.playSound(walkAssets.footsteps[soundNumber + 1], options);
-	else if (side === LEFT && motion.makesFootStepSounds)
+	} else if (side === LEFT && motion.makesFootStepSounds) {
 		Audio.playSound(walkAssets.footsteps[soundNumber], options);
+	}
 }
 
 // animate the avatar using sine wave generators. inspired by Victorian clockwork dolls
@@ -545,13 +587,15 @@ function animateAvatar(deltaTime, speed) {
 
 	// don't lean into the direction of travel if going up
 	var leanMod = 1;
-	if (motion.direction === UP)
+	if (motion.direction === UP) {
 		leanMod = 0;
+	}
 
 	// adjust leaning direction for flying
 	var flyingModifier = 1;
-	if (state.currentState.FLYING)
+	if (state.currentState.FLYING) {
 		flyingModifier = -1;
+	}
 
 	if (motion.curTransition !== nullTransition) {
 
@@ -573,20 +617,22 @@ function animateAvatar(deltaTime, speed) {
 				// find the closest stop point from the walk wheel's angle
 				var angleToLeftStop = 180 - Math.abs(Math.abs(motion.walkWheelPos - leftStop) - 180);
 				var angleToRightStop = 180 - Math.abs(Math.abs(motion.walkWheelPos - rightStop) - 180);
-				if (motion.walkWheelPos > angleToLeftStop) angleToLeftStop = 360 - angleToLeftStop;
-				if (motion.walkWheelPos > angleToRightStop) angleToRightStop = 360 - angleToRightStop;
-
+				if (motion.walkWheelPos > angleToLeftStop) {
+					angleToLeftStop = 360 - angleToLeftStop;
+				}
+				if (motion.walkWheelPos > angleToRightStop) {
+					angleToRightStop = 360 - angleToRightStop;
+				}
 
 				motion.curTransition.walkWheelIncrement = 3;
 
 				// keep the walkwheel turning by setting the walkWheelIncrement
 				// until our feet are tucked nicely underneath us.
-				if (angleToLeftStop < angleToRightStop)
-
+				if (angleToLeftStop < angleToRightStop) {
 					motion.curTransition.walkStopAngle = leftStop;
-
-				else
+				} else {
 					motion.curTransition.walkStopAngle = rightStop;
+				}
 
 			} else {
 
@@ -622,11 +668,9 @@ function animateAvatar(deltaTime, speed) {
 						motion.curTransition.walkWheelIncrement = 0;
 					}
 					// keep turning walk wheel until both feet are below the avi
-
 					motion.advanceWalkWheel(motion.curTransition.walkWheelIncrement);
-					//motion.curTransition.walkWheelAdvance += motion.curTransition.walkWheelIncrement;
-				}
-				else motion.curTransition.walkWheelIncrement = 0; // sidestep
+
+				} else motion.curTransition.walkWheelIncrement = 0; // sidestep
 			}
 		} } // end motion.curTransition !== nullTransition
 
@@ -636,8 +680,9 @@ function animateAvatar(deltaTime, speed) {
 
 		// if the timing's right, take a snapshot of the stride max and recalibrate
 		var strideMaxAt = motion.curAnim.calibration.forwardStrideMaxAt;
-		if (motion.direction === BACKWARDS)
+		if (motion.direction === BACKWARDS) {
 			strideMaxAt = motion.curAnim.calibration.backwardsStrideMaxAt;
+		}
 
 		var tolerance = 1.0;
 		if (motion.walkWheelPos < (strideMaxAt + tolerance) &&
@@ -648,18 +693,20 @@ function animateAvatar(deltaTime, speed) {
 			var footLPos = MyAvatar.getJointPosition("LeftFoot");
 			motion.strideLength = Vec3.distance(footRPos, footLPos);
 
-			if (motion.direction === FORWARDS)
+			if (motion.direction === FORWARDS) {
 				motion.curAnim.calibration.strideLengthForwards = motion.strideLength;
-			else if (motion.direction === BACKWARDS)
+			} else if (motion.direction === BACKWARDS) {
 				motion.curAnim.calibration.strideLengthBackwards = motion.strideLength;
+			}
 
 		} else {
 
 			// use the saved value for stride length
-			if (motion.direction === FORWARDS)
+			if (motion.direction === FORWARDS) {
 				motion.strideLength = motion.curAnim.calibration.strideLengthForwards;
-			else if (motion.direction === BACKWARDS)
+			} else if (motion.direction === BACKWARDS) {
 				motion.strideLength = motion.curAnim.calibration.strideLengthBackwards;
+			}
 		}
 	} // end get walk stride length
 
@@ -714,8 +761,9 @@ function animateAvatar(deltaTime, speed) {
 
 		// if we are in an edit mode, we will need fake time to turn the wheel
 		if (state.currentState !== state.WALKING &&
-			state.currentState !== state.SIDE_STEP)
+			state.currentState !== state.SIDE_STEP) {
 			degreesTurnedSinceLastFrame = motion.curAnim.calibration.frequency / 70;
+		}
 
 		// advance the walk wheel the appropriate amount
 		motion.advanceWalkWheel(degreesTurnedSinceLastFrame);
@@ -758,12 +806,6 @@ function animateAvatar(deltaTime, speed) {
 	var sideStepFootPitchModifier = 1;
 	var sideStepHandPitchSign = 1;
 
-	// The below code should probably be optimised into some sort of loop, where
-	// the joints are iterated through. However, this has not been done yet, as there
-	// are still some quite fundamental changes to be made (e.g. turning on the spot
-	// animation and sidestepping transitions) so it's been left as is for ease of
-	// understanding and editing.
-
 	// calculate hips translation
 	if (motion.curTransition !== nullTransition) {
 
@@ -774,7 +816,9 @@ function animateAvatar(deltaTime, speed) {
 					  motion.curAnim.joints[0].swayPhase)) + motion.curAnim.joints[0].swayOffset;
 
 			var bobPhase = motion.curAnim.joints[0].bobPhase;
-			if (motion.direction === motion.BACKWARDS) bobPhase += 90;
+			if (motion.direction === motion.BACKWARDS) {
+				bobPhase += 90;
+			}
 			bobOsc = motion.curAnim.joints[0].bob *
 					 Math.sin(filter.degToRad(motion.cumulativeTime *
 					 motion.curAnim.calibration.frequency + bobPhase)) +
@@ -792,7 +836,9 @@ function animateAvatar(deltaTime, speed) {
 						  motion.curTransition.lastAnim.joints[0].swayOffset;
 
 			var bobPhaseLast = motion.curTransition.lastAnim.joints[0].bobPhase;
-			if (motion.direction === motion.BACKWARDS) bobPhaseLast +=90;
+			if (motion.direction === motion.BACKWARDS) {
+				bobPhaseLast +=90;
+			}
 			bobOscLast = motion.curTransition.lastAnim.joints[0].bob *
 						 Math.sin(filter.degToRad(motion.walkWheelPos + bobPhaseLast));
 			bobOscLast = filter.clipTrough(bobOscLast, motion.curTransition.lastAnim.joints[0].bob , 2);
@@ -804,15 +850,18 @@ function animateAvatar(deltaTime, speed) {
 							motion.curTransition.lastAnim.joints[0].thrustPhase)) +
 							motion.curTransition.lastAnim.joints[0].thrustOffset;
 
-		} // end if walking at start of transition
-		else {
+		// end if walking at start of transition
+
+		} else {
 
 			swayOsc = motion.curAnim.joints[0].sway *
 					  Math.sin(filter.degToRad(cycle * adjFreq + motion.curAnim.joints[0].swayPhase)) +
 					  motion.curAnim.joints[0].swayOffset;
 
 			var bobPhase = motion.curAnim.joints[0].bobPhase;
-			if (motion.direction === motion.BACKWARDS) bobPhase += 90;
+			if (motion.direction === motion.BACKWARDS) {
+				bobPhase += 90;
+			}
 			bobOsc = motion.curAnim.joints[0].bob *
 					 Math.sin(filter.degToRad(cycle * adjFreq * 2 + bobPhase));
 			if (state.currentState === state.WALKING ||
@@ -854,8 +903,9 @@ function animateAvatar(deltaTime, speed) {
 		bobOsc = (transProgress * bobOsc) + ((1 - transProgress) * bobOscLast);
 		thrustOsc = (transProgress * thrustOsc) + ((1 - transProgress) * thrustOscLast);
 
-	}// if current transition active
-	else {
+		// end if walking at start of transition
+
+		} else {
 
 		swayOsc = motion.curAnim.joints[0].sway *
 				  Math.sin(filter.degToRad(cycle * adjFreq + motion.curAnim.joints[0].swayPhase)) +
