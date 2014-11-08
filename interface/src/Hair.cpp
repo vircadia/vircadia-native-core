@@ -90,6 +90,17 @@ Hair::Hair(int strands,
     }
 }
 
+Hair::~Hair() {
+    delete[] _hairPosition;
+    delete[] _hairOriginalPosition;
+    delete[] _hairLastPosition;
+    delete[] _hairQuadDelta;
+    delete[] _hairNormals;
+    delete[] _hairColors;
+    delete[] _hairIsMoveable;
+    delete[] _hairConstraints;
+}
+
 const float SOUND_THRESHOLD = 40.0f;
 
 void Hair::simulate(float deltaTime) {
