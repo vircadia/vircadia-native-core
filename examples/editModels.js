@@ -1125,12 +1125,12 @@ var toolBar = (function () {
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
-        menuItemWidth,
+        menuItemWidth = 125,
         menuItemOffset,
         menuItemHeight,
         menuItemMargin = 5,
         menuTextColor = { red: 255, green: 255, blue: 255 },
-        menuBackgroundColor = { red: 18, green: 66, blue: 66 };
+        menuBackgoundColor = { red: 18, green: 66, blue: 66 };
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
@@ -1167,8 +1167,9 @@ var toolBar = (function () {
         loadURLMenuItem = Overlays.addOverlay("text", {
             x: newModelButton.x - menuItemWidth,
             y: newModelButton.y + menuItemOffset,
+            width: menuItemWidth,
             height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
+            backgroundColor: menuBackgoundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
@@ -1178,18 +1179,14 @@ var toolBar = (function () {
         loadFileMenuItem = Overlays.addOverlay("text", {
             x: newModelButton.x - menuItemWidth,
             y: newModelButton.y + menuItemOffset + menuItemHeight,
+            width: menuItemWidth,
             height: menuItemHeight,
-            backgroundColor: menuBackgroundColor,
+            backgroundColor: menuBackgoundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
             visible: false
         });
-
-        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
-            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
-        Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
-        Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",

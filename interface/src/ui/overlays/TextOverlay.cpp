@@ -126,10 +126,3 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
 }
 
 
-float TextOverlay::textWidth(const QString& text) {
-    const int TEXTOVERLAY_GETTEXTWIDTH_TEXTRENDERER = 1;  // Separate to that used for drawing text so that doesn't interfere.
-    TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, -1, false, TextRenderer::NO_EFFECT, 1, 
-        QColor(255, 255, 255), TEXTOVERLAY_GETTEXTWIDTH_TEXTRENDERER);
-
-    return textRenderer->computeWidth(qPrintable(text));
-}

@@ -48,8 +48,6 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
 
-    float textWidth(const QString& text);  // Meters
-
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);
 
