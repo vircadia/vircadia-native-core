@@ -1,5 +1,5 @@
 //
-//  StdDev.cpp
+//  StDev.cpp
 //  libraries/shared/src
 //
 //  Created by Philip Rosedale on 3/12/13.
@@ -11,10 +11,11 @@
 
 #include <limits>   
 #include <cmath>
-#include "StdDev.h"
+#include <string>
+
+#include "StDev.h"
 
 StDev::StDev() :
-    _data(),
     _sampleCount(0)
 {
     reset();

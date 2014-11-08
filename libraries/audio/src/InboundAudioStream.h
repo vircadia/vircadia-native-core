@@ -18,7 +18,7 @@
 #include "SequenceNumberStats.h"
 #include "AudioStreamStats.h"
 #include "PacketHeaders.h"
-#include "StdDev.h"
+#include "StDev.h"
 #include "TimeWeightedAvg.h"
 
 // This adds some number of frames to the desired jitter buffer frames target we use when we're dropping frames.
