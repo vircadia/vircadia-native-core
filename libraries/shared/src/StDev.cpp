@@ -11,7 +11,7 @@
 
 #include <limits>   
 #include <cmath>
-#include <string>
+#include <string.h>
 
 #include "StDev.h"
 
