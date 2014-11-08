@@ -53,8 +53,6 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
 
-    float textWidth(const QString& text);  // Pixels
-
 private:
 
     QString _text;

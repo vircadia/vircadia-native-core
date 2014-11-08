@@ -9,7 +9,6 @@
 //
 
 #include <limits>
-#include <typeinfo>
 #include <Application.h>
 #include <Menu.h>
 
@@ -358,18 +357,3 @@ bool Overlays::isLoaded(unsigned int id) {
     return overlay->isLoaded();
 }
 
-float Overlays::textWidth(unsigned int id, const QString& text) {
-    if (_overlays2D.contains(id)) {
-        Overlay* thisOverlay = _overlays2D[id];
-        if (typeid(*thisOverlay) == typeid(TextOverlay)) {
-            return static_cast<TextOverlay*>(thisOverlay)->textWidth(text);
-        }
-    } 
-    if (_overlays3D.contains(id)) {
-        Overlay* thisOverlay = _overlays3D[id];
-        if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
-            return static_cast<Text3DOverlay*>(thisOverlay)->textWidth(text);
-        }
-    }
-    return 0.f;
-}

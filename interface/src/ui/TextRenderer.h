@@ -50,11 +50,10 @@ public:
         EffectType effect;
         int effectThickness;
         QColor color;
-        int copy;  // Use to separate renderers that are otherwise identical.
     };
 
     static TextRenderer* getInstance(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
-        EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255), int copy = 0);
+        EffectType effect = NO_EFFECT, int effectThickness = 1, const QColor& color = QColor(255, 255, 255));
 
     ~TextRenderer();
 
