@@ -20,7 +20,7 @@
 #include <SequenceNumberStats.h>
 #include <SharedUtil.h> // for usecTimestampNow
 #include <SimpleMovingAverage.h>
-#include <StdDev.h>
+#include <StDev.h>
 
 const quint64 MSEC_TO_USEC = 1000;
 const quint64 LARGE_STATS_TIME = 500; // we don't expect stats calculation to take more than this many usecs

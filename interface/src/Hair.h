@@ -37,6 +37,7 @@ public:
          float radius = DEFAULT_HAIR_RADIUS,
          float linkLength = DEFAULT_HAIR_LINK_LENGTH,
          float hairThickness = DEFAULT_HAIR_THICKNESS);
+    ~Hair();
     void simulate(float deltaTime);
     void render();
     void setAcceleration(const glm::vec3& acceleration) { _acceleration = acceleration; }
