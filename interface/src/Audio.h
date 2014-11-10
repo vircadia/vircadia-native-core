@@ -248,11 +248,13 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb *_gverb;
+    ty_gverb* _gverb;
     GLuint _micTextureId;
     GLuint _muteTextureId;
     GLuint _boxTextureId;
     QRect _iconBounds;
+    float _iconColor;
+    int _iconPulseFactor;
     
     /// Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);

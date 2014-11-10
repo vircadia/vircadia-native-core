@@ -54,6 +54,9 @@ static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.
 
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
+static const float PULSE_MIN = 0.0f;
+static const float PULSE_MAX = 1.0f;
+static const float PULSE_STEP = 0.05f;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
@@ -97,6 +100,9 @@ Audio::Audio(QObject* parent) :
     _muted(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
+    _gverb(NULL),
+    _iconColor(1.0f),
+    _iconPulseFactor(-1),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
@@ -1390,11 +1396,22 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!_muted) {
         glBindTexture(GL_TEXTURE_2D, _micTextureId);
+        _iconColor = 1.0f;
+        _iconPulseFactor = -1;
     } else {
         glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        // Make muted icon pulsate
+        _iconColor += _iconPulseFactor * PULSE_STEP;
+        if (_iconColor >= PULSE_MAX) {
+            _iconColor = PULSE_MAX;
+            _iconPulseFactor = -1;
+        } else if (_iconColor <= PULSE_MIN) {
+            _iconColor = PULSE_MIN;
+            _iconPulseFactor = 1;
+        }
     }
 
-    glColor3f(1,1,1);
+    glColor3f(_iconColor, _iconColor, _iconColor);
     glBegin(GL_QUADS);
 
     glTexCoord2f(1, 1);
