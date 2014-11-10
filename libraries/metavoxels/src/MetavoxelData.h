@@ -549,6 +549,9 @@ public:
     void setVoxelizationGranularity(float granularity) { _voxelizationGranularity = granularity; }
     float getVoxelizationGranularity() const { return _voxelizationGranularity; }
     
+    void setMerged(bool merged) { _merged = merged; }
+    bool isMerged() const { return _merged; }
+    
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
     bool testAndSetVisited(int visit);
@@ -597,6 +600,7 @@ private:
     Box _bounds;
     float _placementGranularity;
     float _voxelizationGranularity;
+    bool _merged;
     QHash<QThread*, int> _lastVisits; ///< last visit identifiers for each thread
     QMutex _lastVisitsMutex;
     

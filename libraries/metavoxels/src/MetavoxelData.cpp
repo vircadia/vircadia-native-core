@@ -1806,7 +1806,8 @@ const float DEFAULT_VOXELIZATION_GRANULARITY = powf(2.0f, -3.0f);
 Spanner::Spanner() :
     _renderer(NULL),
     _placementGranularity(DEFAULT_PLACEMENT_GRANULARITY),
-    _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY) {
+    _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY),
+    _merged(false) {
 }
 
 void Spanner::setBounds(const Box& bounds) {
