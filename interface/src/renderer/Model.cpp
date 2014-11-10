@@ -489,6 +489,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                 if (distanceToSubMesh < bestDistance) {
                     bestDistance = distanceToSubMesh;
                     intersectedSomething = true;
+                    face = subMeshFace;
                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                 }
             }
