@@ -54,9 +54,6 @@ static const int APPROXIMATELY_30_SECONDS_OF_AUDIO_PACKETS = (int)(30.0f * 1000.
 
 // Mute icon configration
 static const int MUTE_ICON_SIZE = 24;
-static const float PULSE_MIN = 0.0f;
-static const float PULSE_MAX = 1.0f;
-static const float PULSE_STEP = 0.05f;
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 100;
 
@@ -102,7 +99,7 @@ Audio::Audio(QObject* parent) :
     _reverbOptions(&_scriptReverbOptions),
     _gverb(NULL),
     _iconColor(1.0f),
-    _iconPulseFactor(-1),
+    _iconPulseTimeReference(usecTimestampNow()),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
@@ -1397,33 +1394,37 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     if (!_muted) {
         glBindTexture(GL_TEXTURE_2D, _micTextureId);
         _iconColor = 1.0f;
-        _iconPulseFactor = -1;
     } else {
         glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        
         // Make muted icon pulsate
-        _iconColor += _iconPulseFactor * PULSE_STEP;
-        if (_iconColor >= PULSE_MAX) {
-            _iconColor = PULSE_MAX;
-            _iconPulseFactor = -1;
-        } else if (_iconColor <= PULSE_MIN) {
-            _iconColor = PULSE_MIN;
-            _iconPulseFactor = 1;
+        static const float PULSE_MIN = 0.4f;
+        static const float PULSE_MAX = 1.0f;
+        static const float PULSE_FREQUENCY = 1.0f; // in Hz
+        qint64 now = usecTimestampNow();
+        if (now - _iconPulseTimeReference > USECS_PER_SECOND) {
+            // Prevents t from getting too big, which would diminish glm::cos precision
+            _iconPulseTimeReference = now - ((now - _iconPulseTimeReference) % USECS_PER_SECOND);
         }
+        float t = (float)(now - _iconPulseTimeReference) / (float)USECS_PER_SECOND;
+        float pulseFactor = (glm::cos(t * PULSE_FREQUENCY * 2.0f * PI) + 1.0f) / 2.0f;
+        _iconColor = PULSE_MIN + (PULSE_MAX - PULSE_MIN) * pulseFactor;
+        
     }
 
     glColor3f(_iconColor, _iconColor, _iconColor);
     glBegin(GL_QUADS);
 
-    glTexCoord2f(1, 1);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.top());
 
-    glTexCoord2f(0, 1);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.top());
 
-    glTexCoord2f(0, 0);
+    glTexCoord2f(0.0f, 0.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.bottom());
 
-    glTexCoord2f(1, 0);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.bottom());
 
     glEnd();

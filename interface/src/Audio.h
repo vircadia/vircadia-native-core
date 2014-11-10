@@ -254,7 +254,7 @@ private:
     GLuint _boxTextureId;
     QRect _iconBounds;
     float _iconColor;
-    int _iconPulseFactor;
+    qint64 _iconPulseTimeReference;
     
     /// Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
