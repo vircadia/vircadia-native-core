@@ -740,7 +740,6 @@ void AudioMixer::run() {
                     }
                 }
                 
-                
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
                     && nodeData->getAvatarAudioStream()) {
 
