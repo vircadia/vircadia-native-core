@@ -1342,8 +1342,11 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioIn
         QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
         
         QIODevice* localIODevice = localSoundOutput->start();
-        qDebug() << "Writing" << audioByteArray.size() << "to" << localIODevice;
-        localIODevice->write(audioByteArray);
+        if (localIODevice) {
+            localIODevice->write(audioByteArray);
+        } else {
+            qDebug() << "Unable to handle audio byte array. Error:" << localSoundOutput->error();
+        }
     } else {
         qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
     }
