@@ -141,11 +141,6 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         return 0;
     }
     
-    // if the stream should be muted, bail
-    if (shouldMute(streamToAdd->getQuietestFrameLoudness())) {
-        return 0;
-    }
-    
     float bearingRelativeAngleToSource = 0.0f;
     float attenuationCoefficient = 1.0f;
     int numSamplesDelay = 0;
@@ -722,6 +717,25 @@ void AudioMixer::run() {
                 // That's how the popped audio data will be read for mixing (but only if the pop was successful)
                 nodeData->checkBuffersBeforeFrameSend();
             
+                // if the stream should be muted, send mute packet
+                if (shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
+                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+                    int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
+                    
+                    // Fake data to force mute
+                    glm::vec3 position = nodeData->getAvatarAudioStream()->getPosition();
+                    float radius = 1.0f;
+                    
+                    char* packet = (char*)malloc(packetSize);
+                    populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                    memcpy(packet + headerSize, &position, sizeof(glm::vec3));
+                    memcpy(packet + headerSize + sizeof(glm::vec3), &radius, sizeof(float));
+                    
+                    nodeList->writeDatagram(packet, packetSize, node);
+                    free(packet);
+                }
+                
+                
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
                     && nodeData->getAvatarAudioStream()) {
 
