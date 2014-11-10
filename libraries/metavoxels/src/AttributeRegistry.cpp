@@ -17,6 +17,7 @@
 
 #include "AttributeRegistry.h"
 #include "MetavoxelData.h"
+#include "Spanner.h"
 
 REGISTER_META_OBJECT(FloatAttribute)
 REGISTER_META_OBJECT(MaterialObject)
@@ -54,6 +55,7 @@ AttributeRegistry::AttributeRegistry() :
     // our baseline LOD threshold is for voxels; spanners and heightfields are a different story
     const float SPANNER_LOD_THRESHOLD_MULTIPLIER = 8.0f;
     _spannersAttribute->setLODThresholdMultiplier(SPANNER_LOD_THRESHOLD_MULTIPLIER);
+    _spannersAttribute->setUserFacing(true);
     
     const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);

@@ -450,4 +450,15 @@ private:
     Model* _model;
 };
 
+/// Renders heightfields.
+class HeightfieldRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE HeightfieldRenderer();
+    
+    virtual void render(const glm::vec4& color, Mode mode);
+};
+
 #endif // hifi_MetavoxelSystem_h

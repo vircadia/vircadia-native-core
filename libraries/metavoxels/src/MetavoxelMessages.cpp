@@ -10,6 +10,7 @@
 //
 
 #include "MetavoxelMessages.h"
+#include "Spanner.h"
 
 void MetavoxelEditMessage::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     static_cast<const MetavoxelEdit*>(edit.data())->apply(data, objects);
@@ -754,7 +755,7 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
     }
     
     // create spanner if necessary
-    Heightfield* spanner = static_cast<Heightfield*>(_spanner.data());
+    TempHeightfield* spanner = static_cast<TempHeightfield*>(_spanner.data());
     float increment = 1.0f / heightScale;
     if (!spanner) {    
         _spannerBounds.minimum = glm::floor(_bounds.minimum / increment) * increment;
@@ -767,7 +768,7 @@ int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
         Box innerBounds = _spannerBounds;
         innerBounds.maximum.x -= increment;
         innerBounds.maximum.z -= increment;
-        _spanner = spanner = new Heightfield(innerBounds, increment, QByteArray(heightfieldArea, 0),
+        _spanner = spanner = new TempHeightfield(innerBounds, increment, QByteArray(heightfieldArea, 0),
             QByteArray(heightfieldArea * DataBlock::COLOR_BYTES, 0), QByteArray(heightfieldArea, 0),
             QVector<SharedObjectPointer>());
     }

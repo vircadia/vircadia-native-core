@@ -36,6 +36,7 @@ REGISTER_META_OBJECT(DefaultMetavoxelRendererImplementation)
 REGISTER_META_OBJECT(SphereRenderer)
 REGISTER_META_OBJECT(CuboidRenderer)
 REGISTER_META_OBJECT(StaticModelRenderer)
+REGISTER_META_OBJECT(HeightfieldRenderer)
 
 MetavoxelSystem::NetworkSimulation::NetworkSimulation(float dropRate, float repeatRate,
         int minimumDelay, int maximumDelay, int bandwidthLimit) :
@@ -2854,6 +2855,7 @@ ProgramObject DefaultMetavoxelRendererImplementation::_voxelCursorProgram;
 SphereRenderer::SphereRenderer() {
 }
 
+
 void SphereRenderer::render(const glm::vec4& color, Mode mode) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
     const QColor& ownColor = sphere->getColor();
@@ -2968,4 +2970,10 @@ void StaticModelRenderer::applyScale(float scale) {
 
 void StaticModelRenderer::applyURL(const QUrl& url) {
     _model->setURL(url);
+}
+
+HeightfieldRenderer::HeightfieldRenderer() {
+}
+
+void HeightfieldRenderer::render(const glm::vec4& color, Mode mode) {
 }
