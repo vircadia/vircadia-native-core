@@ -1409,7 +1409,6 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
         float t = (float)(now - _iconPulseTimeReference) / (float)USECS_PER_SECOND;
         float pulseFactor = (glm::cos(t * PULSE_FREQUENCY * 2.0f * PI) + 1.0f) / 2.0f;
         _iconColor = PULSE_MIN + (PULSE_MAX - PULSE_MIN) * pulseFactor;
-        
     }
 
     glColor3f(_iconColor, _iconColor, _iconColor);
