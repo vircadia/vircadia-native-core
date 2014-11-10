@@ -563,7 +563,13 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
     }
     _transforms[0]->evalFromRawMatrix(Application::getInstance()->getUntranslatedViewMatrix());
-    _transforms[0]->postTranslate(Application::getInstance()->getViewMatrixTranslation() + _translation);
+
+    gpu::TransformPointer currentView(Application::getInstance()->getViewTransform());
+
+    _transforms[0]->setTranslation(currentView->getTranslation());
+    _transforms[0]->setRotation(currentView->getRotation());
+    _transforms[0]->setScale(currentView->getScale());
+    _transforms[0]->postTranslate(_translation);
 
     batch.setViewTransform(_transforms[0]);
 
@@ -1862,7 +1868,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             }
         }
 
-       // GLBATCH(glPushMatrix)();
+        GLBATCH(glPushMatrix)();
       //  Application::getInstance()->loadTranslatedViewMatrix(_translation);
     //    GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
 
@@ -1995,7 +2001,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
         }
 
-      //  GLBATCH(glPopMatrix)();
+        GLBATCH(glPopMatrix)();
 
     }
 

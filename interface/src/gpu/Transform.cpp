@@ -11,7 +11,6 @@
 
 #include "Transform.h"
 
-#include <glm/gtx/quaternion.hpp>
 
 using namespace gpu;
 
@@ -24,32 +23,6 @@ Transform::Transform() :
 }
 Transform::Transform(const Mat4& raw) {
     evalFromRawMatrix(raw);
-}
-
-void Transform::updateCache() const {
-    if (isCacheInvalid()) {
-        glm::mat3x3 rot = glm::mat3_cast(_rotation);
-
-        if ((_scale.x != 1.f) || (_scale.y != 1.f) || (_scale.z != 1.f)) {
-            rot[0] *= _scale.x;
-            rot[1] *= _scale.y;
-            rot[2] *= _scale.z;
-        }
-
-        _matrix[0] = Vec4(rot[0], 0.f);
-        _matrix[1] = Vec4(rot[1], 0.f);
-        _matrix[2] = Vec4(rot[2], 0.f);
-
-        _matrix[3] = Vec4(_translation, 1.f);
-
-        validCache();
-    }
-}
-
-void Transform::postTranslate(const Vec3& translation) {
-    invalidCache();
-    Vec3 tt = glm::rotate(_rotation, translation * _scale);
-    _translation += tt;
 }
 
 Transform::Mat4& Transform::evalRelativeTransform( Mat4& result, const Vec3& origin) {
@@ -97,16 +70,5 @@ Transform& Transform::evalInverseTranspose(Transform& result) {
     return result;
 }
 
-Transform& Transform::mult( Transform& result, const Transform& left, const Transform& right) {
-    right.updateCache();
-    left.updateCache();
-
-    result.setTranslation(Vec3(left.getMatrix() * Vec4(right.getTranslation(), 1.f)));
-
-    Mat4 mat = left.getMatrix() * right.getMatrix();
-    result.evalRotationScale(Mat3(mat));
-
-    return result;
-}
 
  

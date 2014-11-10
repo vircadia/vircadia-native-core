@@ -108,7 +108,8 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+//const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const quint64 MAXIMUM_CACHE_SIZE = 10737418240L;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -186,7 +187,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _aboutToQuit(false)
+        _aboutToQuit(false),
+        _viewTransform(new gpu::Transform())
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -3115,6 +3117,8 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
+    _viewTransform->evalFromRawMatrix(_untranslatedViewMatrix);
+    _viewTransform->postTranslate(viewMatrixTranslation);
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {

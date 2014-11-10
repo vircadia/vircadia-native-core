@@ -22,6 +22,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <bitset>
 
@@ -37,22 +38,67 @@ public:
     typedef glm::quat Quat;
 
     Transform();
+    Transform(const Transform& transform) :
+        _translation(transform._translation),
+        _rotation(transform._rotation),
+        _scale(transform._scale),
+        _flags(transform._flags)
+    {
+        invalidCache();
+    }
     Transform(const Mat4& raw);
     ~Transform() {}
 
     void setTranslation(const Vec3& translation) { invalidCache(); flagTranslation(); _translation = translation; }
     const Vec3& getTranslation() const { return _translation; }
 
-    void preTranslate(const Vec3& translation) { invalidCache(); _translation += translation; }
-    void postTranslate( Vec3 const & translation);
+    void preTranslate(const Vec3& translation) { invalidCache(); flagTranslation(); _translation += translation; }
+    void postTranslate(const Vec3& translation) {
+        invalidCache();
+        flagTranslation();
+        if (isRotating()) {
+            _translation += glm::rotate(_rotation, translation * _scale);
+        } else {
+            _translation += translation * _scale;
+        }
+    }
 
-    void setRotation(const Quat& rotation) { invalidCache(); flagRotation(); _rotation = glm::normalize(rotation); }
+    void setRotation(const Quat& rotation) { invalidCache(); flagRotation(); _rotation = rotation; }
     const Quat& getRotation() const { return _rotation; }
 
-    void setNoScale() { invalidCache(); flagNoScaling(); _scale = Vec3(1.f); }
-    void setScale(float scale) { invalidCache(); flagUniformScaling(); _scale = Vec3(scale); }
-    void setScale(const Vec3& scale) { invalidCache(); flagNonUniformScaling(); _scale = scale; }
+    void preRotate(const Quat& rotation) {
+        invalidCache();
+        if (isRotating()) {
+            _rotation = rotation * _rotation;
+        } else {
+            _rotation = rotation;
+        }
+        flagRotation();
+        _translation = glm::rotate(rotation, _translation);
+    }
+    void postRotate(const Quat& rotation) {
+        invalidCache();
+        if (isRotating()) {
+            _rotation *= rotation;
+        } else {
+            _rotation = rotation;
+        }
+         flagRotation();
+    }
+
+    void setScale(float scale) { invalidCache(); flagScaling(); _scale = Vec3(scale); }
+    void setScale(const Vec3& scale) { invalidCache(); flagScaling(); _scale = scale; }
     const Vec3& getScale() const { return _scale; }
+
+    void postScale(const Vec3& scale) {
+        invalidCache();
+        if (isScaling()) {
+            _scale *= scale;
+        } else {
+            _scale = scale;
+        }
+        flagScaling();
+    }
 
     const Mat4& getMatrix() const { updateCache(); return _matrix; }
 
@@ -62,11 +108,17 @@ public:
     void evalFromRawMatrix(const Mat4& matrix);
     void evalRotationScale(const Mat3& rotationScalematrix);
 
-    static Transform& mult( Transform& result, const Transform& left, const Transform& right);
+    static Transform& mult( Transform& result, const Transform& left, const Transform& right) {
+        result = left;
+        if ( right.isTranslating()) result.postTranslate(right.getTranslation());
+        if ( right.isRotating()) result.postRotate(right.getRotation());
+        if (right.isScaling()) result.postScale(right.getScale());
+        return result;
+    }
 
-    bool isScaling() const { return _flags[FLAG_UNIFORM_SCALING] || _flags[FLAG_NON_UNIFORM_SCALING]; }
-    bool isUniform() const { return !isNonUniform(); }
-    bool isNonUniform() const { return _flags[FLAG_NON_UNIFORM_SCALING]; }
+    bool isTranslating() const { return _flags[FLAG_TRANSLATION]; }
+    bool isRotating() const { return _flags[FLAG_ROTATION]; }
+    bool isScaling() const { return _flags[FLAG_SCALING]; }
 
 protected:
 
@@ -75,9 +127,7 @@ protected:
 
         FLAG_TRANSLATION,
         FLAG_ROTATION,
-        FLAG_UNIFORM_SCALING,
-        FLAG_NON_UNIFORM_SCALING,
-        FLAG_SHEARING,
+        FLAG_SCALING,
 
         FLAG_PROJECTION,
 
@@ -103,11 +153,32 @@ protected:
     void flagTranslation() { _flags.set(FLAG_TRANSLATION, true); }
     void flagRotation() { _flags.set(FLAG_ROTATION, true); }
    
-    void flagNoScaling() { _flags.set(FLAG_UNIFORM_SCALING, false); _flags.set(FLAG_NON_UNIFORM_SCALING, false); }
-    void flagUniformScaling() { _flags.set(FLAG_UNIFORM_SCALING, true); _flags.set(FLAG_NON_UNIFORM_SCALING, false); }
-    void flagNonUniformScaling() { _flags.set(FLAG_UNIFORM_SCALING, false); _flags.set(FLAG_NON_UNIFORM_SCALING, true); }
+    void flagScaling() { _flags.set(FLAG_SCALING, true); }
 
-    void updateCache() const;
+    void updateCache() const {
+        if (isCacheInvalid()) {
+            if (isRotating()) {
+                glm::mat3x3 rot = glm::mat3_cast(_rotation);
+
+                if ((_scale.x != 1.f) || (_scale.y != 1.f) || (_scale.z != 1.f)) {
+                    rot[0] *= _scale.x;
+                    rot[1] *= _scale.y;
+                    rot[2] *= _scale.z;
+                }
+
+                _matrix[0] = Vec4(rot[0], 0.f);
+                _matrix[1] = Vec4(rot[1], 0.f);
+                _matrix[2] = Vec4(rot[2], 0.f);
+            } else {
+                _matrix[0] = Vec4(_scale.x, 0.f, 0.f, 0.f);
+                _matrix[1] = Vec4(0.f, _scale.y, 0.f, 0.f);
+                _matrix[2] = Vec4(0.f, 0.f, _scale.z, 0.f);
+            }
+
+            _matrix[3] = Vec4(_translation, 1.f);
+            validCache();
+        }
+    }
 };
 
 typedef QSharedPointer< Transform > TransformPointer;
