@@ -42,7 +42,7 @@ void AudioScriptingInterface::stopAllInjectors() {
     }
 }
 
-AudioInjector* AudioScriptingInterface::playSound(Sound* sound, AudioInjectorOptions& injectorOptions) {
+AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
     
     AudioInjector* injector = new AudioInjector(sound, injectorOptions);
     
