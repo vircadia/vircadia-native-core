@@ -124,6 +124,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     } else {
         // check to see if we need to simulate this entity...
         EntityItem::SimulationState oldState = existingEntity->getSimulationState();
+        QString entityScriptBefore = existingEntity->getScript();
     
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
@@ -131,6 +132,12 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 
         EntityItem::SimulationState newState = existingEntity->getSimulationState();
         changeEntityState(existingEntity, oldState, newState);
+
+        QString entityScriptAfter = existingEntity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entityID); // the entity script has changed
+        }
+
     }
     
     containingElement = getContainingElement(entityID);

@@ -81,7 +81,8 @@ void EntityTreeRenderer::init() {
     _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
-    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::checkAndCallPreload);
     connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
@@ -772,9 +773,7 @@ void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     _entityScripts.remove(entityID);
 }
 
-void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
-    qDebug() << "addingEntity() entityID:" << entityID;
-    
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
     // load the entity script if needed...
     QScriptValue entityScript = loadEntityScript(entityID);
     if (entityScript.property("preload").isValid()) {
@@ -785,6 +784,10 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
 }
 
 void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
-    qDebug() << "changingEntityID() oldEntityID:" << oldEntityID << "newEntityID:" << newEntityID;
+    if (_entityScripts.contains(oldEntityID)) {
+        EntityScriptDetails details = _entityScripts[oldEntityID];
+        _entityScripts.remove(oldEntityID);
+        _entityScripts[newEntityID] = details;
+    }
 }
 
