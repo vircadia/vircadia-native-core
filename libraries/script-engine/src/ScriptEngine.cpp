@@ -74,14 +74,6 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
-}
-
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
     return engine->newQObject(in);
 }

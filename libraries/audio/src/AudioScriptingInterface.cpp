@@ -13,6 +13,7 @@
 
 void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
+    qScriptRegisterMetaType(engine, soundToScriptValue, soundFromScriptValue);
 }
 
 AudioScriptingInterface& AudioScriptingInterface::getInstance() {
@@ -23,7 +24,7 @@ AudioScriptingInterface& AudioScriptingInterface::getInstance() {
 AudioScriptingInterface::AudioScriptingInterface() :
     _localLoopbackInterface(NULL)
 {
-    qRegisterMetaType<AudioInjectorOptions>("AudioInjectorOptions");
+    
 }
 
 void AudioScriptingInterface::stopAllInjectors() {
@@ -41,12 +42,9 @@ void AudioScriptingInterface::stopAllInjectors() {
     }
 }
 
-AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
+AudioInjector* AudioScriptingInterface::playSound(Sound* sound, AudioInjectorOptions& injectorOptions) {
     
-    if (sound->isStereo()) {
-        const_cast<AudioInjectorOptions*>(injectorOptions)->stereo = true;
-    }
-    AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
+    AudioInjector* injector = new AudioInjector(sound, injectorOptions);
     
     QThread* injectorThread = new QThread();
     
