@@ -25,7 +25,7 @@
         playSound();
     }; 
 
-    this.leaveEntity = function(entityID) { 
+    this.leaveEntity = function(entityID) {
         playSound();
     }; 
 })
