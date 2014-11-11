@@ -22,7 +22,7 @@ AudioScriptingInterface& AudioScriptingInterface::getInstance() {
 }
 
 AudioScriptingInterface::AudioScriptingInterface() :
-    _localLoopbackInterface(NULL)
+    _localAudioInterface(NULL)
 {
     
 }
@@ -45,6 +45,7 @@ void AudioScriptingInterface::stopAllInjectors() {
 AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
     
     AudioInjector* injector = new AudioInjector(sound, injectorOptions);
+    injector->setLocalAudioInterface(_localAudioInterface);
     
     QThread* injectorThread = new QThread();
     

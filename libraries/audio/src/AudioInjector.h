@@ -21,6 +21,8 @@
 #include "AudioInjectorOptions.h"
 #include "Sound.h"
 
+class AbstractAudioInterface;
+
 class AudioInjector : public QObject {
     Q_OBJECT
 public:
@@ -29,6 +31,8 @@ public:
     
     bool isFinished() const { return _isFinished; }
     int getCurrentSendPosition() const { return _currentSendPosition; }
+    
+    void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 public slots:
     void injectAudio();
     void stop() { _shouldStop = true; }
@@ -45,6 +49,7 @@ private:
     float _loudness;
     bool _isFinished;
     int _currentSendPosition;
+    AbstractAudioInterface* _localAudioInterface;
 
 };
 

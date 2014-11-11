@@ -417,7 +417,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
