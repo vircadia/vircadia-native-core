@@ -14,7 +14,8 @@
 #include "AvatarAudioStream.h"
 
 AvatarAudioStream::AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings) :
-    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, settings)
+    PositionalAudioStream(PositionalAudioStream::Microphone, isStereo, settings),
+    _lastMuted(usecTimestampNow())
 {
 }
 

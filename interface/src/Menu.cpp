@@ -386,7 +386,7 @@ Menu::Menu() :
 
 #if defined(Q_OS_MAC)
 #else
-        QAction* vsyncAction = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
 #endif
     }
 

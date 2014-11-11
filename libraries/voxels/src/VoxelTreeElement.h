@@ -79,8 +79,8 @@ public:
     
 protected:
 
-    uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
-             _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
+    uint32_t _glBufferIndex : 24; /// Client only, vbo index for this voxel if being rendered, 3 bytes
+    uint32_t _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
 
     // Support for _voxelSystemIndex, we use these static member variables to track the VoxelSystems that are
     // in use by various voxel nodes. We map the VoxelSystem pointers into an 1 byte key, this limits us to at
