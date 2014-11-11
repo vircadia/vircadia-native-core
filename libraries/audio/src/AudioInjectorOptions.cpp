@@ -19,7 +19,8 @@ AudioInjectorOptions::AudioInjectorOptions() :
     loop(false),
     orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
     stereo(false),
-    ignorePenumbra(false)
+    ignorePenumbra(false),
+    localOnly(false)
 {
 
 }
@@ -32,6 +33,7 @@ QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInje
     obj.setProperty("orientation", quatToScriptValue(engine, injectorOptions.orientation));
     obj.setProperty("stereo", injectorOptions.stereo);
     obj.setProperty("ignorePenumbra", injectorOptions.ignorePenumbra);
+    obj.setProperty("localOnly", injectorOptions.localOnly);
     return obj;
 }
 
@@ -58,5 +60,9 @@ void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOpt
     
     if (object.property("ignorePenumbra").isValid()) {
         injectorOptions.ignorePenumbra = object.property("ignorePenumbra").toBool();
+    }
+    
+    if (object.property("localOnly").isValid()) {
+        injectorOptions.localOnly = object.property("localOnly").toBool();
     }
  }

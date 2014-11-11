@@ -43,6 +43,9 @@ public slots:
 signals:
     void finished();
 private:
+    void injectToMixer();
+    void injectLocally();
+    
     Sound* _sound;
     AudioInjectorOptions _options;
     bool _shouldStop;

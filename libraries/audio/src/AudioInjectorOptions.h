@@ -26,6 +26,7 @@ public:
     glm::quat orientation;
     bool stereo;
     bool ignorePenumbra;
+    bool localOnly;
 };
 
 Q_DECLARE_METATYPE(AudioInjectorOptions);

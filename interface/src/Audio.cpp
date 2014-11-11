@@ -1334,10 +1334,13 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-QAudioOutput* Audio::newLocalOutputInterface(bool isStereo) {
-    QAudioFormat localFormat = _outputFormat;
+QIODevice* Audio::newLocalOutputDevice(bool isStereo) {
+    QAudioFormat localFormat = _desiredOutputFormat;
     localFormat.setChannelCount(isStereo ? 2 : 1);
-    return new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat);
+    QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
+                                                localFormat);
+    
+    return localOutput->start();
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {

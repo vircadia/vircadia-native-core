@@ -58,9 +58,37 @@ float AudioInjector::getLoudness() {
     return _loudness;
 }
 
+void AudioInjector::injectAudio() {
+    if (_options.localOnly) {
+        injectLocally();
+    } else {
+        injectToMixer();
+    }
+}
+
+void AudioInjector::injectLocally() {
+    if (_localAudioInterface) {
+        
+        QIODevice* localBuffer = NULL;
+        
+        QMetaObject::invokeMethod(_localAudioInterface, "newLocalOutputDevice", Qt::BlockingQueuedConnection,
+                                  Q_RETURN_ARG(QIODevice*, localBuffer),
+                                  Q_ARG(bool, _options.stereo));
+        
+        if (localBuffer) {
+            // immediately write the byte array to the local device
+            localBuffer->write(_sound->getByteArray());
+        } else {
+            qDebug() << "AudioInject::injectLocally did not get a valid QIODevice from _localAudioInterface";
+        }
+    } else {
+        qDebug() << "AudioInject::injectLocally cannot inject locally with no local audio interface present.";
+    }
+}
+
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
-void AudioInjector::injectAudio() {
+void AudioInjector::injectToMixer() {
     QByteArray soundByteArray = _sound->getByteArray();
     
     if (_currentSendPosition < 0 ||

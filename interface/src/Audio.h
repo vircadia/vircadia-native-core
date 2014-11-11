@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual QAudioOutput* newLocalOutputInterface(bool isStereo);
+    virtual QIODevice* newLocalOutputDevice(bool isStereo);
 
     void sendDownstreamAudioStatsPacket();
 
