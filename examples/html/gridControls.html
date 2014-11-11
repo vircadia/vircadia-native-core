@@ -1,0 +1,193 @@
+<html>
+<head>
+    <script>
+        function loaded() {
+            var gridColor = { red: 0, green: 0, blue: 0 };
+            var gridColors = [
+                { red: 0, green: 0, blue: 0 },
+                { red: 128, green: 128, blue: 128 },
+                { red: 255, green: 0, blue: 0 },
+                { red: 0, green: 255, blue: 0},
+                { red: 0, green: 0, blue: 255 },
+            ];
+
+            posY = document.getElementById("horiz-y");
+            minorSpacing = document.getElementById("minor-spacing");
+            majorSpacing = document.getElementById("major-spacing");
+            gridOn = document.getElementById("grid-on");
+            snapToGrid = document.getElementById("snap-to-grid");
+            hGridVisible = document.getElementById("horiz-grid-visible");
+
+
+            if (window.EventBridge !== undefined) {
+                EventBridge.scriptEventReceived.connect(function(data) {
+                    data = JSON.parse(data);
+                    if (data.origin) {
+
+                        var origin = data.origin;
+                        posY.value = origin.y;
+                    }
+
+                    if (data.minorGridSpacing) {
+                        minorSpacing.value = data.minorGridSpacing;
+                    }
+
+                    if (data.majorGridEvery) {
+                        majorSpacing.value = data.majorGridEvery;
+                    }
+
+                    if (data.gridColor) {
+                        gridColor = data.gridColor;
+                    }
+
+                    if (data.snapToGrid !== undefined) {
+                        snapToGrid.checked = data.snapToGrid == true;
+                    }
+
+                    if (data.visible !== undefined) {
+                        hGridVisible.checked = data.visible == true;
+                    }
+                });
+
+                function emitUpdate() {
+                    EventBridge.emitWebEvent(JSON.stringify({
+                        type: "update",
+                        origin: {
+                            y: posY.value,
+                        },
+                        minorGridSpacing: minorSpacing.value,
+                        majorGridEvery: majorSpacing.value,
+                        gridColor: gridColor,
+                        snapToGrid: snapToGrid.checked,
+                        visible: hGridVisible.checked,
+                    }));
+                }
+
+            }
+
+            document.addEventListener("input", emitUpdate);
+            hGridVisible.addEventListener("change", emitUpdate);
+            snapToGrid.addEventListener("change", emitUpdate);
+
+            var gridColorBox = document.getElementById('grid-color');
+
+            for (var i = 0; i < gridColors.length; i++) {
+                var colors = gridColors[i];
+                var box = document.createElement('div');
+                box.setAttribute('class', 'color-box');
+                box.style.background = 'rgb(' + colors.red + ', ' + colors.green + ', ' + colors.blue + ')';
+                document.getElementById("grid-colors").appendChild(box);
+                box.addEventListener("click", function(color) { 
+                    return function() {
+                        gridColor = color;
+                        emitUpdate();
+                    }
+                }({ red: colors.red, green: colors.green, blue: colors.blue }));
+            }
+
+            EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
+        }
+    </script>
+    <style>
+        * {
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+
+            background: #DDD;
+            font-family: Sans-Serif;
+            font-size: 12px;
+
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        input {
+            line-height: 2;
+        }
+
+        .input-left {
+            display: inline-block;
+            width: 20px;
+        }
+
+        .color-box {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 1px solid black;
+            background: blue;
+            margin: 2px;
+        }
+
+        .color-box.highlight {
+            width: 18px;
+            height: 18px;
+            border: 2px solid black;
+        }
+
+        .section-header {
+            background: #AAA;
+            border-bottom: 1px solid #CCC;
+        }
+
+        .section-header label {
+            font-weight: bold;
+        }
+
+        .grid-section {
+            border-top: 1px solid #DDD;
+            padding: 4px 0px 4px 20px;
+            background: #DDD;
+        }
+    </style>
+</head>
+<body onload='loaded();'>
+    <div class="section-header">
+        <input type='checkbox' id="horiz-grid-visible">
+        <label>Horizontal Grid</label>
+    </div>
+    <div class="grid-section">
+
+        <label>Snap to grid</label>
+        <div>
+            <div class="input-left">
+            </div>
+            <input type='checkbox' id="snap-to-grid">
+        </div>
+
+        <label>Position (Y Axis)</label>
+        <div id="horizontal-position">
+            <div class="input-left">
+            </div>
+            <input type='number' id="horiz-y" class="number" value="0.0" step="0.1"></input>
+        </div>
+
+        <label>Minor Grid Size</label>
+        <div>
+            <div class="input-left">
+            </div>
+            <input type='number' id="minor-spacing" min="0" step="0.01", ></input>
+        </div>
+
+        <label>Major Grid Every</label>
+        <div>
+            <div class="input-left">
+            </div>
+            <input type='number' id="major-spacing" min="2" step="1", ></input>
+        </div>
+
+        <label>Grid Color</label>
+        <div id="grid-colors">
+            <div class="input-left">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

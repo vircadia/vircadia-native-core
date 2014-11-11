@@ -140,10 +140,16 @@ public:
 
     void trackDeletedEntity(const EntityItemID& entityID);
 
+    void emitAddingEntity(const EntityItemID& entityItemID);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID);
+
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
     
 signals:
     void deletingEntity(const EntityItemID& entityID);
+    void addingEntity(const EntityItemID& entityID);
+    void entityScriptChanging(const EntityItemID& entityItemID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
 
 private:
 
