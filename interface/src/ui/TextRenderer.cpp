@@ -129,7 +129,7 @@ int TextRenderer::draw(int x, int y, const char* str) {
                                                         leftBottom.x, rightTop.y, ls, tt, };
 
         const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
-        unsigned int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
+        int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
 
         gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
         gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
@@ -181,9 +181,9 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _color(properties.color),
     _glyphsBuffer(new gpu::Buffer()),
     _glyphsColorBuffer(new gpu::Buffer()),
-    _numGlyphsBatched(0),
     _glyphsStreamFormat(new gpu::Stream::Format()),
-    _glyphsStream(new gpu::BufferStream())
+    _glyphsStream(new gpu::BufferStream()),
+    _numGlyphsBatched(0)
 {
     _glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
     const int NUM_POS_COORDS = 2;

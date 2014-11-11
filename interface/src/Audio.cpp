@@ -547,7 +547,7 @@ void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioF
         gverb_do(_gverb, value, &lValue, &rValue);
 
         // Mix, accounting for clipping, the left and right channels. Ignore the rest.
-        for (unsigned int j = sample; j < sample + audioFormat.channelCount(); j++) {
+        for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
                 int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction), -32768, 32767);
@@ -1345,8 +1345,11 @@ void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioIn
         QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
         
         QIODevice* localIODevice = localSoundOutput->start();
-        qDebug() << "Writing" << audioByteArray.size() << "to" << localIODevice;
-        localIODevice->write(audioByteArray);
+        if (localIODevice) {
+            localIODevice->write(audioByteArray);
+        } else {
+            qDebug() << "Unable to handle audio byte array. Error:" << localSoundOutput->error();
+        }
     } else {
         qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
     }
