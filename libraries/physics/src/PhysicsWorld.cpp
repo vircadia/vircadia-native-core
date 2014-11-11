@@ -22,6 +22,17 @@ void PhysicsWorld::init() {
     _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 }
 
+void PhysicsWorld::stepSimulation() {
+    const float MAX_TIMESTEP = 1.0f / 30.0f;
+    const int MAX_NUM_SUBSTEPS = 2;
+    const float FIXED_SUBSTEP = 1.0f / 60.0f;
+
+    float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
+    _clock.reset();
+    float timeStep = btMin(dt, MAX_TIMESTEP);
+    _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
+}
+
 bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
     glm::vec3 trueCenter = position + halfExtents;

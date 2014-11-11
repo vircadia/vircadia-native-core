@@ -2009,6 +2009,10 @@ void Application::init() {
 
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::updateMyAvatarTransform);
+
+#ifdef USE_BULLET_PHYSICS
+    _physicsWorld.init();
+#endif // USE_BULLET_PHYSICS
 }
 
 void Application::closeMirrorView() {
@@ -2313,6 +2317,13 @@ void Application::update(float deltaTime) {
     updateCamera(deltaTime); // handle various camera tweaks like off axis projection
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
+
+#ifdef USE_BULLET_PHYSICS
+    {
+        PerformanceTimer perfTimer("physics");
+        _physicsWorld.stepSimulation();
+    }
+#endif // USE_BULLET_PHYSICS
 
     {
         PerformanceTimer perfTimer("entities");

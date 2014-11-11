@@ -41,6 +41,8 @@ public:
 
     void init();
 
+    void stepSimulation();
+
     /// \param offset position of simulation origin in domain-frame
     void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }
 
@@ -70,6 +72,7 @@ public:
     bool updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues);
 
 protected:
+    btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig;
     btCollisionDispatcher* _collisionDispatcher;
     btBroadphaseInterface* _broadphaseFilter;
