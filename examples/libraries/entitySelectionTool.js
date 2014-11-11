@@ -399,6 +399,7 @@ SelectionDisplay = (function () {
                     alpha: 0.5,
                     solid: true,
                     visible: false,
+                    width: 300, height: 200,
                     rotation: baseOverlayRotation,
                     ignoreRayIntersection: true, // always ignore this
                 });
