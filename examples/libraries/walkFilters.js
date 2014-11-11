@@ -1,7 +1,7 @@
 //
 //  walkFilters.js
 //
-//  version 1.000
+//  version 1.001
 //
 //  Created by David Wooldridge, Autumn 2014
 //
@@ -32,7 +32,9 @@ AveragingFilter = function(length) {
             var nextOutputValue = 0;
             for (var ea in this.pastValues) nextOutputValue += this.pastValues[ea];
             return nextOutputValue / this.pastValues.length;
-        } else return 0;
+        } else {
+            return 0;
+        }
     };
 };
 
@@ -40,10 +42,10 @@ AveragingFilter = function(length) {
 // provides LP filtering with a more stable frequency / phase response
 ButterworthFilter = function(cutOff) {
 
-	// cut off frequency = 5Hz
-	this.gain = 20.20612010;
-	this.coeffOne = -0.4775922501;
-	this.coeffTwo = 1.2796324250;
+    // cut off frequency = 5Hz
+    this.gain = 20.20612010;
+    this.coeffOne = -0.4775922501;
+    this.coeffTwo = 1.2796324250;
 
     // initialise the arrays
     this.xv = [];
@@ -87,8 +89,8 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
         var multiplier = 0;
         var iterations = this.numHarmonics * 2 + 2;
         if (this.waveShape === TRIANGLE) {
-			iterations++;
-		}
+            iterations++;
+        }
 
         for(var n = 2; n < iterations; n++) {
 
@@ -99,7 +101,7 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
                     multiplier = 1 / n;
                     harmonics += multiplier * Math.sin(n * frequency);
                     break;
-				}
+                }
 
                 case TRIANGLE: {
 
@@ -108,11 +110,11 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
                         // multiply (4n-1)th harmonics by -1
                         if (n === 3 || n === 7 || n === 11 || n === 15) {
                             mulitplier *= -1;
-						}
+                        }
                         harmonics += mulitplier * Math.sin(n * frequency);
                     }
                     break;
-				}
+                }
 
                 case SQUARE: {
 
@@ -121,7 +123,7 @@ WaveSynth = function(waveShape, numHarmonics, smoothing) {
                         harmonics += multiplier * Math.sin(n * frequency);
                     }
                     break;
-				}
+                }
             }
         }
 
@@ -141,10 +143,9 @@ HarmonicsFilter = function(magnitudes, phaseAngles) {
         var harmonics = 0;
         var numHarmonics = magnitudes.length;
 
-        for(var n = 0; n < numHarmonics; n++)
-
+        for(var n = 0; n < numHarmonics; n++) {
             harmonics += this.magnitudes[n] * Math.cos(n * twoPiFT - this.phaseAngles[n]);
-
+        }
         return harmonics;
     };
 };
@@ -216,7 +217,7 @@ filter = (function() {
             var outputValue = inputValue * strength;
             if (outputValue < -peak) {
                 outputValue = -peak;
-			}
+            }
             return outputValue;
         }
     }

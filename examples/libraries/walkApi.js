@@ -1,7 +1,7 @@
 //
 //  walkObjects.js
 //
-//  version 1.000
+//  version 1.001
 //
 //  Created by David Wooldridge, Autumn 2014
 //
@@ -93,19 +93,19 @@ Motion = function() {
             if (i > 17 || i < 34) {
                 // left hand fingers
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(16, 0, 0));
-			} else if (i > 33 || i < 38) {
+            } else if (i > 33 || i < 38) {
                 // left hand thumb
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(4, 0, 0));
-			} else if (i > 41 || i < 58) {
+            } else if (i > 41 || i < 58) {
                 // right hand fingers
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(16, 0, 0));
-			} else if (i > 57 || i < 62) {
+            } else if (i > 57 || i < 62) {
                 // right hand thumb
                 MyAvatar.setJointData(this.avatarJointNames[i], Quat.fromPitchYawRollDegrees(4, 0, 0));
             } else {
                 // zero out the remaining joints
                 MyAvatar.clearJointData(this.avatarJointNames[i]);
-			}
+            }
         }
     }
 
@@ -123,7 +123,7 @@ Motion = function() {
         this.walkWheelPos += angle;
         if (motion.walkWheelPos >= 360) {
             this.walkWheelPos = this.walkWheelPos % 360;
-		}
+        }
     }
 
     // last frame history
@@ -284,9 +284,9 @@ state = (function () {
                         motion.setGender(MALE);
                         if (motion.direction === BACKWARDS) {
                             motion.strideLength = motion.selWalk.calibration.strideLengthBackwards;
-						} else {
+                        } else {
                             motion.strideLength = motion.selWalk.calibration.strideLengthForwards;
-						}
+                        }
                     }
                     return;
             }
@@ -302,19 +302,19 @@ Transition = function(lastAnimation, nextAnimation, reachPoses, transitionDurati
     if (lastAnimation === motion.selWalk ||
         nextAnimation === motion.selSideStepLeft ||
         nextAnimation === motion.selSideStepRight) {
-		// boolean - is the last animation a walking animation?
+        // boolean - is the last animation a walking animation?
         this.walkingAtStart = true;
-	} else {
+    } else {
         this.walkingAtStart = false;
-	}
+    }
     if (nextAnimation === motion.selWalk ||
         nextAnimation === motion.selSideStepLeft ||
         nextAnimation === motion.selSideStepRight) {
-		// boolean - is the next animation a walking animation?
+        // boolean - is the next animation a walking animation?
         this.walkingAtEnd = true;
-	} else {
+    } else {
         this.walkingAtEnd = false;
-	}
+    }
     this.reachPoses = reachPoses; // placeholder / stub: array of reach poses for squash and stretch techniques
     this.transitionDuration = transitionDuration; // length of transition (seconds)
     this.easingLower = easingLower; // Bezier curve handle (normalised)
