@@ -75,7 +75,7 @@ void AudioInjector::injectAudio() {
         packetStream << QUuid::createUuid();
         
         // pack the stereo/mono type of the stream
-        packetStream << _options.isStereo();
+        packetStream << _options.stereo;
         
         // pack the flag for loopback
         uchar loopbackFlag = (uchar) true;
@@ -83,13 +83,13 @@ void AudioInjector::injectAudio() {
         
         // pack the position for injected audio
         int positionOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()),
-                                  sizeof(_options.getPosition()));
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
+                                  sizeof(_options.position));
         
         // pack our orientation for injected audio
         int orientationOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()),
-                                  sizeof(_options.getOrientation()));
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
+                                  sizeof(_options.orientation));
         
         // pack zero for radius
         float radius = 0;
@@ -97,23 +97,23 @@ void AudioInjector::injectAudio() {
         
         // pack 255 for attenuation byte
         int volumeOptionOffset = injectAudioPacket.size();
-        quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+        quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
         packetStream << volume;
         
-        packetStream << _options.ignorePenumbra();
+        packetStream << _options.ignorePenumbra;
         
         QElapsedTimer timer;
         timer.start();
         int nextFrame = 0;
         
         int numPreAudioDataBytes = injectAudioPacket.size();
-        bool shouldLoop = _options.getLoop();
+        bool shouldLoop = _options.loop;
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (_currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
-            int bytesToCopy = std::min(((_options.isStereo()) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
+            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - _currentSendPosition);
             
             //  Measure the loudness of this frame
@@ -125,12 +125,12 @@ void AudioInjector::injectAudio() {
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
             memcpy(injectAudioPacket.data() + positionOptionOffset,
-                   &_options.getPosition(),
-                   sizeof(_options.getPosition()));
+                   &_options.position,
+                   sizeof(_options.position));
             memcpy(injectAudioPacket.data() + orientationOptionOffset,
-                   &_options.getOrientation(),
-                   sizeof(_options.getOrientation()));
-            volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+                   &_options.orientation,
+                   sizeof(_options.orientation));
+            volume = MAX_INJECTOR_VOLUME * _options.volume;
             memcpy(injectAudioPacket.data() + volumeOptionOffset, &volume, sizeof(volume));
             
             // resize the QByteArray to the right size

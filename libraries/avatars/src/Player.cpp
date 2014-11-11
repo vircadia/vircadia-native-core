@@ -166,8 +166,8 @@ void Player::pausePlayer() {
 
 void Player::setupAudioThread() {
     _audioThread = new QThread();
-    _options.setPosition(_avatar->getPosition());
-    _options.setOrientation(_avatar->getOrientation());
+    _options.position = _avatar->getPosition();
+    _options.orientation = _avatar->getOrientation();
     _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
     _injector->moveToThread(_audioThread);
     _audioThread->start();
@@ -292,8 +292,8 @@ void Player::play() {
         qDebug() << "WARNING: Player couldn't find head data.";
     }
     
-    _options.setPosition(_avatar->getPosition());
-    _options.setOrientation(_avatar->getOrientation());
+    _options.position = _avatar->getPosition();
+    _options.orientation = _avatar->getOrientation();
     _injector->setOptions(_options);
 }
 
@@ -360,7 +360,7 @@ void Player::setCurrentTime(unsigned int currentTime) {
 }
 
 void Player::setVolume(float volume) {
-    _options.setVolume(volume);
+    _options.volume = volume;
     if (_injector) {
         _injector->setOptions(_options);
     }

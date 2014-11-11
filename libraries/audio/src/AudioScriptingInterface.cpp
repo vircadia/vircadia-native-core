@@ -11,6 +11,10 @@
 
 #include "AudioScriptingInterface.h"
 
+void registerAudioMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
+}
+
 AudioScriptingInterface& AudioScriptingInterface::getInstance() {
     static AudioScriptingInterface staticInstance;
     return staticInstance;
@@ -40,7 +44,7 @@ void AudioScriptingInterface::stopAllInjectors() {
 AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
     
     if (sound->isStereo()) {
-        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
+        const_cast<AudioInjectorOptions*>(injectorOptions)->stereo = true;
     }
     AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
     

@@ -44,4 +44,7 @@ private:
     QList< QPointer<AudioInjector> > _activeInjectors;
     AbstractAudioInterface* _localLoopbackInterface;
 };
+
+void registerAudioMetaTypes(QScriptEngine* engine);
+
 #endif // hifi_AudioScriptingInterface_h
