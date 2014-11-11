@@ -91,7 +91,7 @@
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
-#include "scripting/WebWindow.h"
+#include "scripting/WebWindowClass.h"
 
 #include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
@@ -3873,7 +3873,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
 
-    scriptEngine->registerFunction("WebWindow", WebWindow::constructor, 1);
+    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());

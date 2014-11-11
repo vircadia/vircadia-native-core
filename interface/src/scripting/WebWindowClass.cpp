@@ -1,5 +1,5 @@
 //
-//  WebWindow.cpp
+//  WebWindowClass.cpp
 //  interface/src/scripting
 //
 //  Created by Ryan Huffman on 11/06/14.
@@ -15,7 +15,7 @@
 #include <QWebView>
 
 #include "WindowScriptingInterface.h"
-#include "WebWindow.h"
+#include "WebWindowClass.h"
 
 ScriptEventBridge::ScriptEventBridge(QObject* parent) : QObject(parent) {
 }
@@ -28,7 +28,7 @@ void ScriptEventBridge::emitScriptEvent(const QString& data) {
     emit scriptEventReceived(data);
 }
 
-WebWindow::WebWindow(const QString& url, int width, int height)
+WebWindowClass::WebWindowClass(const QString& url, int width, int height)
     : QObject(NULL),
       _window(new QWidget(NULL, Qt::Tool)),
       _eventBridge(new ScriptEventBridge(this)) {
@@ -43,26 +43,26 @@ WebWindow::WebWindow(const QString& url, int width, int height)
     layout->setContentsMargins(0, 0, 0, 0);
     _window->setGeometry(0, 0, width, height);
 
-    connect(this, &WebWindow::destroyed, _window, &QWidget::deleteLater);
+    connect(this, &WebWindowClass::destroyed, _window, &QWidget::deleteLater);
 }
 
-WebWindow::~WebWindow() {
+WebWindowClass::~WebWindowClass() {
 }
 
-void WebWindow::setVisible(bool visible) {
+void WebWindowClass::setVisible(bool visible) {
     QMetaObject::invokeMethod(_window, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
 
-QScriptValue WebWindow::constructor(QScriptContext* context, QScriptEngine* engine) {
-    WebWindow* retVal;
+QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
+    WebWindowClass* retVal;
     QString file = context->argument(0).toString();
-    QMetaObject::invokeMethod(WindowScriptingInterface::getInstance(), "doCreateWebWindow", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(WebWindow*, retVal),
+    QMetaObject::invokeMethod(WindowScriptingInterface::getInstance(), "doCreateWebWindowClass", Qt::BlockingQueuedConnection,
+            Q_RETURN_ARG(WebWindowClass*, retVal),
             Q_ARG(const QString&, file),
             Q_ARG(int, context->argument(1).toInteger()),
             Q_ARG(int, context->argument(2).toInteger()));
 
-    connect(engine, &QScriptEngine::destroyed, retVal, &WebWindow::deleteLater);
+    connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
 
     return engine->newQObject(retVal);//, QScriptEngine::ScriptOwnership);
 }

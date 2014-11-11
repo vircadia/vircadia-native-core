@@ -1,5 +1,5 @@
 //
-//  WebWindow.h
+//  WebWindowClass.h
 //  interface/src/scripting
 //
 //  Created by Ryan Huffman on 11/06/14.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_WebWindow_h
-#define hifi_WebWindow_h
+#ifndef hifi_WebWindowClass_h
+#define hifi_WebWindowClass_h
 
 #include <QScriptContext>
 #include <QScriptEngine>
@@ -30,12 +30,12 @@ signals:
 
 };
 
-class WebWindow : public QObject {
+class WebWindowClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* eventBridge READ getEventBridge)
 public:
-    WebWindow(const QString& url, int width, int height);
-    ~WebWindow();
+    WebWindowClass(const QString& url, int width, int height);
+    ~WebWindowClass();
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
 
