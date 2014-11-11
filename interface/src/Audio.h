@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual QIODevice* newLocalOutputDevice(bool isStereo, int numBytes, QObject* injector);
+    virtual QIODevice* newLocalOutputDevice(bool isStereo, qreal volume, int numBytes, AudioInjector* injector);
 
     void sendDownstreamAudioStatsPacket();
 
@@ -180,10 +180,10 @@ signals:
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
 
+private slots:
+    void cleanupLocalOutputInterface();
 private:
     void outputFormatChanged();
-
-private:
 
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
@@ -365,6 +365,8 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
+    
+    QHash<QObject*, QAudioOutput*> _injectedOutputInterfaces;
 };
 
 

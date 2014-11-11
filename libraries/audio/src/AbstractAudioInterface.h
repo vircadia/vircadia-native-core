@@ -17,6 +17,8 @@
 
 #include "AudioInjectorOptions.h"
 
+class AudioInjector;
+
 class AbstractAudioInterface : public QObject {
     Q_OBJECT
 public:
@@ -25,7 +27,7 @@ public:
     virtual void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) = 0;
     virtual void startDrumSound(float volume, float frequency, float duration, float decay) = 0;
 public slots:
-    virtual QIODevice* newLocalOutputDevice(bool isStereo, int numBytes, QObject* injector) = 0;
+    virtual QIODevice* newLocalOutputDevice(bool isStereo, qreal volume, int numBytes, AudioInjector* injector) = 0;
 };
 
 Q_DECLARE_METATYPE(AbstractAudioInterface*)

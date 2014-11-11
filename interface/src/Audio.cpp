@@ -32,18 +32,20 @@
 #include <QtMultimedia/QAudioOutput>
 #include <QSvgRenderer>
 
+#include <glm/glm.hpp>
+
+#include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
 #include <UUID.h>
-#include <glm/glm.hpp>
-
-#include "Audio.h"
 
 #include "Menu.h"
 #include "Util.h"
 #include "PositionalAudioStream.h"
+
+#include "Audio.h"
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -1334,15 +1336,31 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-QIODevice* Audio::newLocalOutputDevice(bool isStereo, int numBytes, QObject* injector) {
+QIODevice* Audio::newLocalOutputDevice(bool isStereo, qreal volume, int numBytes, AudioInjector* injector) {
     QAudioFormat localFormat = _desiredOutputFormat;
     localFormat.setChannelCount(isStereo ? 2 : 1);
     
     QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
                                                 localFormat, this);
     localOutput->setBufferSize(numBytes);
+    localOutput->setVolume(volume);
+    
+    // add this to our list of local injected outputs, we will need to clean it up when the injector says it is done
+    _injectedOutputInterfaces.insert(injector, localOutput);
+    
+    connect(injector, &AudioInjector::finished, this, &Audio::cleanupLocalOutputInterface);
     
     return localOutput->start();
+}
+
+void Audio::cleanupLocalOutputInterface() {
+    QAudioOutput* outputInterface = _injectedOutputInterfaces.value(sender());
+    if (outputInterface) {
+        qDebug() << "Stopping a QAudioOutput interface since injector" << sender() << "is finished";
+        
+        outputInterface->stop();
+        outputInterface->deleteLater();
+    }
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {

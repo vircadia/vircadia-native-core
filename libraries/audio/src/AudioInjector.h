@@ -35,7 +35,7 @@ public:
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 public slots:
     void injectAudio();
-    void stop() { _shouldStop = true; }
+    void stop();
     void setOptions(AudioInjectorOptions& options);
     void setCurrentSendPosition(int currentSendPosition) { _currentSendPosition = currentSendPosition; }
     float getLoudness();
@@ -53,7 +53,7 @@ private:
     bool _isFinished;
     int _currentSendPosition;
     AbstractAudioInterface* _localAudioInterface;
-
+    QIODevice* _localDevice;
 };
 
 Q_DECLARE_METATYPE(AudioInjector*)

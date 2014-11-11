@@ -39,6 +39,7 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
 var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 var droneSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.raw")
+var currentDrone;
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
@@ -90,7 +91,7 @@ function drawLobby() {
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     // start the drone sound
-    Audio.playSound(droneSound, { stereo: true, localOnly: true });
+    currentDrone = Audio.playSound(droneSound, { stereo: true, localOnly: true });
   }
 }
 
@@ -120,6 +121,9 @@ function cleanupLobby() {
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
+  
+  currentDrone.stop();
+  currentDrone = null;
   
   panelWall = false;
   orbShell = false;

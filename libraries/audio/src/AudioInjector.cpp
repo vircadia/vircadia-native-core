@@ -36,7 +36,8 @@ AudioInjector::AudioInjector(QObject* parent) :
     _shouldStop(false),
     _loudness(0.0f),
     _isFinished(false),
-    _currentSendPosition(0)
+    _currentSendPosition(0),
+    _localDevice(NULL)
 {
 }
 
@@ -67,22 +68,21 @@ void AudioInjector::injectAudio() {
 }
 
 void AudioInjector::injectLocally() {
-    if (_localAudioInterface) {
-        
-        QIODevice* localBuffer = NULL;
-        
+    if (_localAudioInterface) {        
         const QByteArray& soundByteArray = _sound->getByteArray();
         
         if (soundByteArray.size() > 0) {
             QMetaObject::invokeMethod(_localAudioInterface, "newLocalOutputDevice", Qt::BlockingQueuedConnection,
-                                      Q_RETURN_ARG(QIODevice*, localBuffer),
+                                      Q_RETURN_ARG(QIODevice*, _localDevice),
                                       Q_ARG(bool, _options.stereo),
+                                      Q_ARG(qreal, _options.volume),
                                       Q_ARG(int, soundByteArray.size()),
-                                      Q_ARG(QObject*, this));
+                                      Q_ARG(AudioInjector*, this));
             
-            if (localBuffer) {
+            if (_localDevice) {
                 // immediately write the byte array to the local device
-                qDebug() << "Writing" << localBuffer->write(soundByteArray) << "bytes to local audio device";
+                qDebug() << "Writing" << soundByteArray.size() << "bytes to local audio device";
+                _localDevice->write(soundByteArray);
             } else {
                 qDebug() << "AudioInjector::injectLocally did not get a valid QIODevice from _localAudioInterface";
             }
@@ -219,4 +219,14 @@ void AudioInjector::injectToMixer() {
     
     _isFinished = true;
     emit finished();
+}
+
+void AudioInjector::stop() {
+    _shouldStop = true;
+    
+    if (_localDevice) {
+        // we're only a local injector, so we can say we are finished and the AbstractAudioInterface should clean us up
+        _isFinished = true;
+        emit finished();
+    }
 }
