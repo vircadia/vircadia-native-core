@@ -491,7 +491,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_QUAT(PROP_ROTATION, _rotation);
         READ_ENTITY_PROPERTY(PROP_MASS, float, _mass);
         READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, _velocity);
-        qDebug() << "    readEntityDataFromBuffer() _velocity:" << _velocity << "line:" << __LINE__;
         READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, _gravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
