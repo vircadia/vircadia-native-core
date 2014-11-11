@@ -15,10 +15,9 @@
     var bird = new Sound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
     this.clickDownOnEntity = function(entityID, mouseEvent) { 
         print("clickDownOnEntity()...");
-		var options = new AudioInjectionOptions();
-		var position = MyAvatar.position; 
-		options.position = position;
-		options.volume = 0.5;
-		Audio.playSound(bird, options);
+		    Audio.playSound(bird,  {
+		      position: MyAvatar.position,
+          volume: 0.5
+		    });
     }; 
 })

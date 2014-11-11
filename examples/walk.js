@@ -285,9 +285,11 @@ function resetJoints() {
 // play footstep sound
 function playFootstep(side) {
 
-    var options = new AudioInjectionOptions();
-    options.position = Camera.getPosition();
-    options.volume = 0.5;
+    var options = {
+      position: Camera.getPosition(),
+      volume: 0.5
+    }
+    
     var walkNumber = 2; // 0 to 2
     if(side===DIRECTION_RIGHT && playFootStepSounds) {
 		Audio.playSound(footsteps[walkNumber+1], options);

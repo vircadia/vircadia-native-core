@@ -14,12 +14,11 @@
 (function(){ 
     var bird = new Sound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
 
-    function playSound(entityID) { 
-        var options = new AudioInjectionOptions();
-        var position = MyAvatar.position; 
-        options.position = position;
-        options.volume = 0.5;
-        Audio.playSound(bird, options);
+    function playSound(entityID) {
+        Audio.playSound(bird, {
+          position: MyAvatar.position,
+          volume: 0.5
+        });
     }; 
 
     this.enterEntity = function(entityID) { 
