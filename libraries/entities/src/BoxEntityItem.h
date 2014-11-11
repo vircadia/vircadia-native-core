@@ -46,11 +46,15 @@ public:
 
     void setColor(const rgbColor& value) { memcpy(_color, value, sizeof(_color)); }
     void setColor(const xColor& value) {
-            _color[RED_INDEX] = value.red;
-            _color[GREEN_INDEX] = value.green;
-            _color[BLUE_INDEX] = value.blue;
+        _color[RED_INDEX] = value.red;
+        _color[GREEN_INDEX] = value.green;
+        _color[BLUE_INDEX] = value.blue;
     }
     
+#ifdef USE_BULLET_PHYSICS
+    EntityMotionState* createMotionState();
+#endif // USE_BULLET_PHYSICS
+
 protected:
     rgbColor _color;
 };

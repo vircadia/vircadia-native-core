@@ -39,7 +39,7 @@ EntityMotionState::~EntityMotionState() {
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
 // (2) at the beginning of each simulation frame for KINEMATIC RigidBody's --
-//     it is an opportunity for outside code to update the position of the object
+//     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
     btVector3 pos;
     glmToBullet(_entity->getPosition() - _cachedWorldOffset, pos);

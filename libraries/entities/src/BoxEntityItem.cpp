@@ -14,9 +14,10 @@
 
 #include <ByteCountCoding.h>
 
+#include "BoxEntityItem.h"
+#include "EntityMotionState.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
-#include "BoxEntityItem.h"
 
 
 EntityItem* BoxEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -95,3 +96,15 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
+
+#ifdef USE_BULLET_PHYSICS
+// BOOKMARK: move EntityMotionState implementation to Entities
+// also define interface for it (dunno what to call it)
+EntityMotionState* BoxEntityItem::createMotionState() {
+    if (!_motionState) {
+        _motionState = new EntityMotionState(this);
+    }
+    return _motionState;
+}
+#endif // USE_BULLET_PHYSICS
+
