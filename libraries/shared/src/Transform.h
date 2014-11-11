@@ -1,6 +1,6 @@
 //
 //  Transform.h
-//  interface/src/gpu
+//  shared/src/gpu
 //
 //  Created by Sam Gateau on 11/4/2014.
 //  Copyright 2014 High Fidelity, Inc.
@@ -12,12 +12,6 @@
 #define hifi_gpu_Transform_h
 
 #include <assert.h>
-#include "InterfaceConfig.h"
-
-#include "gpu/Format.h"
-
-
-#include <QSharedPointer>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -25,8 +19,6 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <bitset>
-
-namespace gpu {
 
 class Transform {
 public:
@@ -113,6 +105,13 @@ public:
         if ( right.isTranslating()) result.postTranslate(right.getTranslation());
         if ( right.isRotating()) result.postRotate(right.getRotation());
         if (right.isScaling()) result.postScale(right.getScale());
+
+        Transform::Mat4 mv = left.getMatrix() * right.getMatrix();
+        Transform::Mat4 mv2 = result.getMatrix();
+
+        result.evalFromRawMatrix(mv);
+        Transform::Mat4 mv3 = result.getMatrix();
+
         return result;
     }
 
@@ -179,11 +178,6 @@ protected:
             validCache();
         }
     }
-};
-
-typedef QSharedPointer< Transform > TransformPointer;
-typedef std::vector< TransformPointer > Transforms;
-
 };
 
 

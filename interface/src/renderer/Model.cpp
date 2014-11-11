@@ -565,7 +565,10 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     _transforms[0]->evalFromRawMatrix(Application::getInstance()->getUntranslatedViewMatrix());
 
     gpu::TransformPointer currentView(Application::getInstance()->getViewTransform());
+    currentView->getMatrix();
 
+    gpu::Transform::Mat4 glview = Application::getInstance()->getUntranslatedViewMatrix();
+    
     _transforms[0]->setTranslation(currentView->getTranslation());
     _transforms[0]->setRotation(currentView->getRotation());
     _transforms[0]->setScale(currentView->getScale());

@@ -16,6 +16,7 @@
 #include <QObject>
 #include <QUrl>
 
+#include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <PhysicsEntity.h>
@@ -38,7 +39,6 @@ typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 
 #include "gpu/Stream.h"
-#include "gpu/Transform.h"
 #include "gpu/Batch.h"
 
 /// A generic 3D model displaying geometry loaded from a URL.

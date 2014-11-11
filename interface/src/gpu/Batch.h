@@ -14,10 +14,11 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include "Transform.h"
+
 #include <vector>
 
 #include "gpu/Stream.h"
-#include "gpu/Transform.h"
 
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
@@ -48,6 +49,10 @@ enum Primitive {
 
     NUM_PRIMITIVES,
 };
+
+typedef ::Transform Transform;
+typedef QSharedPointer<::gpu::Transform> TransformPointer;
+typedef std::vector< TransformPointer > Transforms;
 
 class Batch {
 public:

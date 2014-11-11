@@ -2890,12 +2890,15 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
+    gpu::Transform viewTransform;
+
     // load the view frustum
     loadViewFrustum(whichCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
+        viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
         glFrontFace(GL_CW);
 
     } else {
@@ -2906,7 +2909,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+    viewTransform.preRotate(glm::quat(-glm::angle(eyeOffsetOrient), glm::vec3(eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z)));
+     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+    viewTransform.preTranslate(glm::vec3(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z));
 
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
@@ -2915,9 +2920,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::quat rotation = whichCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    viewTransform.preRotate(glm::quat(-glm::angle(rotation), axis));
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
+    viewTransform.preTranslate(-whichCamera.getPosition());
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 

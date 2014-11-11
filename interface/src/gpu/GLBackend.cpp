@@ -476,7 +476,9 @@ void GLBackend::updateTransform() {
                 _transform._lastMode = GL_MODELVIEW;
             }
             if (!_transform._view.isNull()) {
-                Transform::Mat4 mv = _transform._view->getMatrix() * _transform._model->getMatrix();
+                Transform mvx;
+                Transform::mult(mvx, (*_transform._view), (*_transform._model));
+                Transform::Mat4 mv = mvx.getMatrix();
                 glLoadMatrixf((const GLfloat*) &mv[0]);
             } else {
                 glLoadMatrixf((const GLfloat*) &_transform._model->getMatrix());
