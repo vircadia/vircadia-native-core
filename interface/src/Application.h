@@ -35,6 +35,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <PhysicsWorld.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
 #include <ViewFrustum.h>
@@ -368,6 +369,7 @@ public slots:
     
     void openUrl(const QUrl& url);
 
+    void updateMyAvatarTransform();
     void bumpSettings() { ++_numChangedSettings; }
     
     void domainSettingsReceived(const QJsonObject& domainSettingsObject);
@@ -497,6 +499,10 @@ private:
     bool _wantToKillLocalVoxels;
 
     MetavoxelSystem _metavoxels;
+
+#ifdef USE_BULLET_PHYSICS
+    PhysicsWorld _physicsWorld;
+#endif // USE_BULLET_PHYSICS
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)

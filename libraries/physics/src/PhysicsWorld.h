@@ -22,6 +22,8 @@
 #include "ShapeManager.h"
 #include "VoxelObject.h"
 
+const float HALF_SIMULATION_EXTENT = 512.0f; // meters
+
 class PhysicsWorld {
 public:
 
@@ -39,24 +41,28 @@ public:
 
     void init();
 
+    /// \param offset position of simulation origin in domain-frame
+    void setOriginOffset(const glm::vec3& offset) { _originOffset = offset; }
+
+    /// \return position of simulation origin in domain-frame
     const glm::vec3& getOriginOffset() const { return _originOffset; }
 
-    /// \return true if Voxel added
     /// \param position the minimum corner of the voxel
     /// \param scale the length of the voxel side
+    /// \return true if Voxel added
     bool addVoxel(const glm::vec3& position, float scale);
 
-    /// \return true if Voxel removed
     /// \param position the minimum corner of the voxel
     /// \param scale the length of the voxel side
+    /// \return true if Voxel removed
     bool removeVoxel(const glm::vec3& position, float scale);
 
-    /// \return true if Entity added
     /// \param info information about collision shapes to create
+    /// \return true if Entity added
     bool addEntity(CustomMotionState* motionState, float mass);
 
-    /// \return true if Entity removed
     /// \param id UUID of the entity
+    /// \return true if Entity removed
     bool removeEntity(CustomMotionState* motionState);
 
     bool updateEntityMotionType(CustomMotionState* motionState, MotionType type);

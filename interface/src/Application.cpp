@@ -153,6 +153,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _entityClipboardRenderer(false),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
+#ifdef USE_BULLET_PHYSICS
+        _physicsWorld(glm::vec3(0.0f)),
+#endif // USE_BULLET_PHYSICS
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
@@ -1987,7 +1990,7 @@ void Application::init() {
         &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
     // save settings when avatar changes
-    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
+    connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::updateMyAvatarTransform);
 }
 
 void Application::closeMirrorView() {
@@ -4057,6 +4060,26 @@ void Application::openUrl(const QUrl& url) {
             QDesktopServices::openUrl(url);
         }
     }
+}
+
+void Application::updateMyAvatarTransform() {
+    bumpSettings();
+#ifdef USE_BULLET_PHYSICS
+    const float SIMULATION_OFFSET_QUANTIZATION = 8.0f; // meters
+    glm::vec3 avatarPosition = _myAvatar->getPosition();
+    glm::vec3 physicsWorldOffset = _physicsWorld.getOriginOffset();
+    if (glm::distance(avatarPosition, physicsWorldOffset) > HALF_SIMULATION_EXTENT) {
+        //_entityCollisionSystem.forgetAllPhysics();
+        glm::vec3 newOriginOffset = avatarPosition;
+        int halfExtent = (int)HALF_SIMULATION_EXENT;
+        for (int i = 0; i < 3; ++i) {
+            newOriginOffset[i] = (float)(glm::max(halfExtent, 
+                    ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
+        }
+        _physicsWorld.setOriginOffset(newOrigin);
+        //_entityCollisionSystem.rememberAllPhysics();
+    }
+#endif // USE_BULLET_PHYSICS
 }
 
 void Application::domainSettingsReceived(const QJsonObject& domainSettingsObject) {
