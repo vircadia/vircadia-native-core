@@ -724,11 +724,11 @@ void Application::paintGL() {
         displaySide(*whichCamera);
         glPopMatrix();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
-
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
+        
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(_mirrorViewRect);       
         }
 
         _glowEffect.render();
@@ -786,7 +786,7 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-        computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
         // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
         // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
@@ -2009,25 +2009,17 @@ void Application::init() {
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);
     }
 }
 
 void Application::restoreMirrorView() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
 
 void Application::shrinkMirrorView() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
@@ -4314,8 +4306,6 @@ bool Application::isVSyncOn() const {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
         return (swapInterval > 0);
-    } else {
-        return true;
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4326,10 +4316,9 @@ bool Application::isVSyncOn() const {
     } else {
         return true;
     }
-    */
-#else
-    return true;
+    */    
 #endif
+    return true;
 }
 
 bool Application::isVSyncEditable() const {
@@ -4344,7 +4333,6 @@ bool Application::isVSyncEditable() const {
         return true;
     }
     */
-#else
 #endif
     return false;
 }
