@@ -15,8 +15,6 @@
 #include <QScriptContext>
 #include <QScriptEngine>
 
-// #include "ScriptWebView.h"
-
 class ScriptEventBridge : public QObject {
     Q_OBJECT
 public:
