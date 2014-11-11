@@ -475,8 +475,9 @@ private:
     GLuint _materialTextureID;
     QVector<NetworkTexturePointer> _networkTextures;
     
+    typedef QPair<int, int> IntPair;
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
-    static QHash<int, BufferPair> _bufferPairs;
+    static QHash<IntPair, BufferPair> _bufferPairs;
 };
 
 #endif // hifi_MetavoxelSystem_h

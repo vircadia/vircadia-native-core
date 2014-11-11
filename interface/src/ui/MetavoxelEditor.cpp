@@ -135,6 +135,8 @@ MetavoxelEditor::MetavoxelEditor() :
     
     connect(Application::getInstance(), SIGNAL(simulating(float)), SLOT(simulate(float)));
     connect(Application::getInstance(), SIGNAL(renderingInWorldInterface()), SLOT(render()));
+    connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
+        this, &MetavoxelEditor::renderPreview);
     
     Application::getInstance()->getGLWidget()->installEventFilter(this);
     
@@ -369,6 +371,13 @@ void MetavoxelEditor::render() {
     glDepthMask(GL_TRUE);
 }
 
+void MetavoxelEditor::renderPreview() {
+    MetavoxelTool* tool = getActiveTool();
+    if (tool) {
+        tool->renderPreview();
+    }
+}
+
 void MetavoxelEditor::addTool(MetavoxelTool* tool) {
     _tools.append(tool);
     layout()->addWidget(tool);
@@ -403,6 +412,10 @@ void MetavoxelTool::simulate(float deltaTime) {
 }
 
 void MetavoxelTool::render() {
+    // nothing by default
+}
+
+void MetavoxelTool::renderPreview() {
     // nothing by default
 }
 
@@ -586,6 +599,15 @@ void GlobalSetTool::apply() {
 PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name, const QString& placeText, bool usesValue) :
     MetavoxelTool(editor, name, usesValue) {
     
+    QWidget* widget = new QWidget(this);
+    layout()->addWidget(widget);
+    QHBoxLayout* box = new QHBoxLayout();
+    widget->setLayout(box);
+    box->setContentsMargins(QMargins());
+    box->addStretch(1);
+    box->addWidget(_followMouse = new QCheckBox("Follow Mouse"));
+    box->addStretch(1);
+    
     if (!placeText.isEmpty()) {
         QPushButton* button = new QPushButton(placeText);
         layout()->addWidget(button);
@@ -594,12 +616,12 @@ PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name,
 }
 
 void PlaceSpannerTool::simulate(float deltaTime) {
-    if (Application::getInstance()->isMouseHidden()) {
+    if (!Application::getInstance()->getGLWidget()->hasFocus() || Application::getInstance()->isMouseHidden()) {
         return;
     }
     Spanner* spanner = static_cast<Spanner*>(getSpanner(true).data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
-    if (transformable) {
+    if (transformable && _followMouse->isChecked()) {
         // find the intersection of the mouse ray with the grid and place the transformable there
         glm::quat rotation = _editor->getGridRotation();
         glm::quat inverseRotation = glm::inverse(rotation);
@@ -613,14 +635,10 @@ void PlaceSpannerTool::simulate(float deltaTime) {
     spanner->getRenderer()->simulate(deltaTime);
 }
 
-void PlaceSpannerTool::render() {
-    if (Application::getInstance()->isMouseHidden()) {
-        return;
-    }
+void PlaceSpannerTool::renderPreview() {
     Spanner* spanner = static_cast<Spanner*>(getSpanner().data());
-    const float SPANNER_ALPHA = 0.25f;
     QColor color = getColor();
-    spanner->getRenderer()->render(glm::vec4(color.redF(), color.greenF(), color.blueF(), SPANNER_ALPHA),
+    spanner->getRenderer()->render(glm::vec4(color.redF(), color.greenF(), color.blueF(), 1.0f),
         SpannerRenderer::DEFAULT_MODE);
 }
 
@@ -782,9 +800,10 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     
     _form->addRow("Color:", _color = new QPushButton());
     connect(_color, &QAbstractButton::clicked, this, &ImportHeightfieldTool::selectColorFile);
-    
-    connect(Application::getInstance()->getMetavoxels(), &MetavoxelSystem::rendering,
-        this, &ImportHeightfieldTool::renderPreview);
+}
+
+void ImportHeightfieldTool::renderPreview() {
+    _preview.render(_translation->getValue(), _translation->getSingleStep());
 }
 
 void ImportHeightfieldTool::apply() {
@@ -959,12 +978,6 @@ void ImportHeightfieldTool::updatePreview() {
         }
     }
     _preview.setBuffers(buffers);
-}
-
-void ImportHeightfieldTool::renderPreview() {
-    if (isVisible()) {
-        _preview.render(_translation->getValue(), _translation->getSingleStep());
-    }
 }
 
 EraseHeightfieldTool::EraseHeightfieldTool(MetavoxelEditor* editor) :

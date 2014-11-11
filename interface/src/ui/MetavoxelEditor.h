@@ -62,6 +62,7 @@ private slots:
     
     void simulate(float deltaTime);
     void render();
+    void renderPreview();
     
 private:
     
@@ -103,6 +104,9 @@ public:
     
     /// Renders the tool's interface, if any.
     virtual void render();
+
+    /// Renders the tool's metavoxel preview, if any.
+    virtual void renderPreview();
 
 protected:
     
@@ -184,7 +188,7 @@ public:
 
     virtual void simulate(float deltaTime);
 
-    virtual void render();
+    virtual void renderPreview();
 
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
@@ -199,6 +203,10 @@ protected:
 protected slots:
     
     void place();
+
+private:
+    
+    QCheckBox* _followMouse;
 };
 
 /// Allows inserting a spanner into the scene.
@@ -273,6 +281,8 @@ public:
     
     ImportHeightfieldTool(MetavoxelEditor* editor);
     
+    virtual void renderPreview();
+    
 protected:
 
     virtual void apply();
@@ -283,7 +293,6 @@ private slots:
     void selectColorFile();
     void updateHeightImage();
     void updatePreview();
-    void renderPreview();
     
 private:
 

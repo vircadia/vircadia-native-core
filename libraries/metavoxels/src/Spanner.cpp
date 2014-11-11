@@ -687,11 +687,6 @@ void HeightfieldHeightEditor::select() {
         return;
     }
     settings.setValue("heightDir", QFileInfo(result).path());
-    QImage image;
-    if (!image.load(result)) {
-        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
-        return;
-    }
     const quint16 CONVERSION_OFFSET = 1;
     if (result.toLower().endsWith(".raw")) {
         QFile input(result);
@@ -721,6 +716,11 @@ void HeightfieldHeightEditor::select() {
         }
         emit heightChanged(_height = new HeightfieldHeight(size, contents));
         _clear->setEnabled(true);
+        return;
+    }
+    QImage image;
+    if (!image.load(result)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
         return;
     }
     image = image.convertToFormat(QImage::Format_RGB888);
@@ -949,5 +949,5 @@ QByteArray Heightfield::getRendererClassName() const {
 void Heightfield::updateBounds() {
     glm::vec3 extent(getScale(), getScale() * _aspectY, getScale() * _aspectZ);
     glm::mat4 rotationMatrix = glm::mat4_cast(getRotation());
-    setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(-extent, extent));
+    setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(glm::vec3(), extent));
 }
