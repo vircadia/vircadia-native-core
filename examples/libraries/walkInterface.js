@@ -1961,12 +1961,8 @@ walkInterface = (function() {
             case _hideButton:
             case _hideButtonSelected:
 
-                    Overlays.editOverlay(_hideButton, {
-                        visible: false
-                    });
-                Overlays.editOverlay(_hideButtonSelected, {
-                    visible: true
-                });
+				Overlays.editOverlay(_hideButton, {visible: false});
+                Overlays.editOverlay(_hideButtonSelected, {visible: true});
                 _state.minimised = true;
                 momentaryButtonTimer = Script.setInterval(function() {
                     minimiseDialog(_state.minimised);
