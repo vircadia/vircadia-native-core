@@ -16,6 +16,8 @@
 
 #include "gpu/Context.h"
 #include "gpu/Batch.h"
+#include <bitset>
+
 
 namespace gpu {
 
@@ -43,7 +45,41 @@ public:
 
     static GLuint getBufferID(const Buffer& buffer);
 
+    static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
+    static const int MAX_NUM_INPUT_BUFFERS = 16;
+
+    uint32 getNumInputBuffers() const { return _inputBuffersState.size(); }
+
 protected:
+
+    bool _needInputFormatUpdate;
+    Stream::FormatPointer _inputFormat;
+
+    typedef std::bitset<MAX_NUM_INPUT_BUFFERS> InputBuffersState;
+    InputBuffersState _inputBuffersState;
+    Buffers _inputBuffers;
+    Offsets _inputBufferOffsets;
+    Offsets _inputBufferStrides;
+
+    BufferPointer _indexBuffer;
+    Offset _indexBufferOffset;
+    Type _indexBufferType;
+
+    typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
+    InputActivationCache _inputAttributeActivation;
+
+    void do_draw(Batch& batch, uint32 paramOffset);
+    void do_drawIndexed(Batch& batch, uint32 paramOffset);
+    void do_drawInstanced(Batch& batch, uint32 paramOffset);
+    void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
+
+    void updateInput();
+    void do_setInputFormat(Batch& batch, uint32 paramOffset);
+
+    void do_setInputBuffer(Batch& batch, uint32 paramOffset);
+
+    void do_setVertexBuffer(Batch& batch, uint32 paramOffset);
+    void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

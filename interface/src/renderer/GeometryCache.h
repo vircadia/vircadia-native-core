@@ -24,6 +24,8 @@
 
 #include <AnimationCache.h>
 
+#include "gpu/Stream.h"
+
 class Model;
 class NetworkGeometry;
 class NetworkMesh;
@@ -42,6 +44,7 @@ public:
     void renderSphere(float radius, int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
     void renderHalfCylinder(int slices, int stacks);
+    void renderCone(float base, float height, int slices, int stacks);
     void renderGrid(int xDivisions, int yDivisions);
 
     /// Loads geometry from the specified URL.
@@ -71,6 +74,7 @@ private:
     QHash<IntPair, VerticesIndices> _sphereVBOs;
     QHash<IntPair, VerticesIndices> _squareVBOs;
     QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
+    QHash<IntPair, VerticesIndices> _coneVBOs;
     QHash<IntPair, QOpenGLBuffer> _gridBuffers;
     
     QHash<QUrl, QWeakPointer<NetworkGeometry> > _networkGeometry;
@@ -108,6 +112,7 @@ public:
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
+    QStringList getTextureNames() const;
     
 protected:
 
@@ -153,9 +158,12 @@ public:
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
-    
-    QOpenGLBuffer indexBuffer;
-    QOpenGLBuffer vertexBuffer;
+    gpu::BufferPointer _indexBuffer;
+    gpu::BufferPointer _vertexBuffer;
+
+    gpu::BufferStreamPointer _vertexStream;
+
+    gpu::Stream::FormatPointer _vertexFormat;
     
     QVector<NetworkMeshPart> parts;
     

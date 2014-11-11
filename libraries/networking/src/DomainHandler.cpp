@@ -14,6 +14,7 @@
 #include <QtCore/QJsonDocument>
 
 #include "Assignment.h"
+#include "HifiSockAddr.h"
 #include "NodeList.h"
 #include "PacketHeaders.h"
 #include "UserActivityLogger.h"
@@ -144,7 +145,10 @@ void DomainHandler::setIceServerHostnameAndID(const QString& iceServerHostname, 
         hardReset();
         
         _iceDomainID = id;
-        _iceServerSockAddr = HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
+        
+        HifiSockAddr* replaceableSockAddr = &_iceServerSockAddr;
+        replaceableSockAddr->~HifiSockAddr();
+        replaceableSockAddr = new (replaceableSockAddr) HifiSockAddr(iceServerHostname, ICE_SERVER_DEFAULT_PORT);
         
         // refresh our ICE client UUID to something new
         _iceClientID = QUuid::createUuid();

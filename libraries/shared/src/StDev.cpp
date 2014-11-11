@@ -1,5 +1,5 @@
 //
-//  StdDev.cpp
+//  StDev.cpp
 //  libraries/shared/src
 //
 //  Created by Philip Rosedale on 3/12/13.
@@ -11,16 +11,18 @@
 
 #include <limits>   
 #include <cmath>
-#include "StdDev.h"
+#include <cstring>
 
-const int NUM_SAMPLES = 1000;
+#include "StDev.h"
 
-StDev::StDev() {
-    _data = new float[NUM_SAMPLES];
-    _sampleCount = 0;
+StDev::StDev() :
+    _sampleCount(0)
+{
+    reset();
 }
 
 void StDev::reset() {
+    memset(&_data, 0, sizeof(_data));
     _sampleCount = 0;
 }
 

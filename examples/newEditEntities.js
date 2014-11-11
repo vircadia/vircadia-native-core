@@ -56,20 +56,22 @@ var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
 var MENU_GRID_TOOL_ENABLED = 'Grid Tool';
-var MENU_INSPECT_TOOL_ENABLED = 'Inspect Tool';
-var MENU_EASE_ON_FOCUS = 'Ease Orientation on Focus';
+var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
+var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
+var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
+var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_GRID_TOOL_ENABLED = 'GridToolEnabled';
 
 var modelURLs = [
-        HIFI_PUBLIC_BUCKET + "meshes/Feisar_Ship.FBX",
-        HIFI_PUBLIC_BUCKET + "meshes/birarda/birarda_head.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/pug.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush1.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Bush6.fbx",
         HIFI_PUBLIC_BUCKET + "meshes/newInvader16x16-large-purple.svo",
-        HIFI_PUBLIC_BUCKET + "meshes/minotaur/mino_full.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/Combat_tank_V01.FBX",
-        HIFI_PUBLIC_BUCKET + "meshes/orc.fbx",
-        HIFI_PUBLIC_BUCKET + "meshes/slimer.fbx"
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed2.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed4.fbx",
+        HIFI_PUBLIC_BUCKET + "models/entities/3-Buildings-1-Rustic-Shed7.fbx"
     ];
 
 var mode = 0;
@@ -506,10 +508,14 @@ function mousePressEvent(event) {
         }
     } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
         var result = findClickedEntity(event);
-        if (result !== null && event.isRightButton) {
-            var currentProperties = Entities.getEntityProperties(result.entityID);
-            cameraManager.enable();
-            cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+        if (event.isRightButton) {
+            if (result !== null) {
+                var currentProperties = Entities.getEntityProperties(result.entityID);
+                cameraManager.enable();
+                cameraManager.focus(currentProperties.position, null, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+                cameraManager.mousePressEvent(event);
+            }
+        } else {
             cameraManager.mousePressEvent(event);
         }
     }
@@ -601,8 +607,10 @@ function setupModelMenus() {
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_GRID_TOOL_ENABLED, afterItem: "Edit Entities Help...", isCheckable: true,
                        isChecked: Settings.getValue(SETTING_GRID_TOOL_ENABLED) == 'true'});
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: MENU_GRID_TOOL_ENABLED, isCheckable: true });
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED, isCheckable: true });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: MENU_GRID_TOOL_ENABLED,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
+                       isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -632,6 +640,9 @@ function cleanupModelMenus() {
 }
 
 Script.scriptEnding.connect(function() {
+    Settings.setValue(SETTING_INSPECT_TOOL_ENABLED, Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED));
+    Settings.setValue(SETTING_EASE_ON_FOCUS, Menu.isOptionChecked(MENU_EASE_ON_FOCUS));
+
     progressDialog.cleanup();
     toolBar.cleanup();
     cleanupModelMenus();

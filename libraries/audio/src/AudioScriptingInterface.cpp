@@ -11,6 +11,44 @@
 
 #include "AudioScriptingInterface.h"
 
+AudioScriptingInterface& AudioScriptingInterface::getInstance() {
+    static AudioScriptingInterface staticInstance;
+    return staticInstance;
+}
+
+AudioScriptingInterface::AudioScriptingInterface() :
+    _localLoopbackInterface(NULL)
+{
+    qRegisterMetaType<AudioInjectorOptions>("AudioInjectorOptions");
+}
+
+void AudioScriptingInterface::stopAllInjectors() {
+    QList<QPointer<AudioInjector> >::iterator injector = _activeInjectors.begin();
+    while (injector != _activeInjectors.end()) {
+        if (!injector->isNull()) {
+            injector->data()->stop();
+            
+            while (injector->data() && !injector->data()->isFinished()) {
+                // wait for this injector to go down
+            }
+        }
+        
+        injector = _activeInjectors.erase(injector);
+    }
+}
+
+void AudioScriptingInterface::playLocalSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
+    if (sound->isStereo()) {
+        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
+    }
+    
+    // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
+    QMetaObject::invokeMethod(_localLoopbackInterface, "handleAudioByteArray",
+                              Qt::AutoConnection,
+                              Q_ARG(QByteArray, sound->getByteArray()),
+                              Q_ARG(const AudioInjectorOptions&, *injectorOptions));
+}
+
 AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
     
     if (sound->isStereo()) {
@@ -23,14 +61,17 @@ AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjec
     injector->moveToThread(injectorThread);
     
     // start injecting when the injector thread starts
-    connect(injectorThread, SIGNAL(started()), injector, SLOT(injectAudio()));
+    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
     
     // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
-    connect(injector, SIGNAL(finished()), injector, SLOT(deleteLater()));
-    connect(injector, SIGNAL(finished()), injectorThread, SLOT(quit()));
-    connect(injectorThread, SIGNAL(finished()), injectorThread, SLOT(deleteLater()));
+    connect(injector, &AudioInjector::finished, injector, &AudioInjector::deleteLater);
+    connect(injector, &AudioInjector::finished, injectorThread, &QThread::quit);
+    connect(injector, &AudioInjector::finished, this, &AudioScriptingInterface::injectorStopped);
+    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
     
     injectorThread->start();
+    
+    _activeInjectors.append(QPointer<AudioInjector>(injector));
     
     return injector;
 }
@@ -45,24 +86,14 @@ bool AudioScriptingInterface::isInjectorPlaying(AudioInjector* injector) {
     return (injector != NULL);
 }
 
-void AudioScriptingInterface::startDrumSound(float volume, float frequency, float duration, float decay, 
-                                    const AudioInjectorOptions* injectorOptions) {
+float AudioScriptingInterface::getLoudness(AudioInjector* injector) {
+    if (injector) {
+        return injector->getLoudness();
+    } else {
+        return 0.0f;
+    }
+}
 
-    Sound* sound = new Sound(volume, frequency, duration, decay);
-    AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
-    sound->setParent(injector);
-    
-    QThread* injectorThread = new QThread();
-    
-    injector->moveToThread(injectorThread);
-    
-    // start injecting when the injector thread starts
-    connect(injectorThread, SIGNAL(started()), injector, SLOT(injectAudio()));
-    
-    // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
-    connect(injector, SIGNAL(finished()), injector, SLOT(deleteLater()));
-    connect(injector, SIGNAL(finished()), injectorThread, SLOT(quit()));
-    connect(injectorThread, SIGNAL(finished()), injectorThread, SLOT(deleteLater()));
-    
-    injectorThread->start();
+void AudioScriptingInterface::injectorStopped() {
+    _activeInjectors.removeAll(QPointer<AudioInjector>(reinterpret_cast<AudioInjector*>(sender())));
 }

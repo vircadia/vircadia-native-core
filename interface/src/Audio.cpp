@@ -35,7 +35,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include <StdDev.h>
+#include <StDev.h>
 #include <UUID.h>
 #include <glm/glm.hpp>
 
@@ -77,6 +77,9 @@ Audio::Audio(QObject* parent) :
     _isStereoInput(false),
     _averagedLatency(0.0),
     _lastInputLoudness(0),
+    _inputFrameCounter(0),
+    _quietestFrame(std::numeric_limits<float>::max()),
+    _loudestFrame(0.0f),
     _timeSinceLastClip(-1.0),
     _dcOffset(0),
     _noiseGateMeasuredFloor(0),
@@ -94,6 +97,9 @@ Audio::Audio(QObject* parent) :
     _muted(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
+    _gverb(NULL),
+    _iconColor(1.0f),
+    _iconPulseTimeReference(usecTimestampNow()),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
@@ -181,9 +187,9 @@ QAudioDeviceInfo getNamedAudioDeviceForMode(QAudio::Mode mode, const QString& de
         QAudioDeviceInfo::defaultOutputDevice();
 #else
     foreach(QAudioDeviceInfo audioDevice, QAudioDeviceInfo::availableDevices(mode)) {
-        qDebug() << audioDevice.deviceName() << " " << deviceName;
         if (audioDevice.deviceName().trimmed() == deviceName.trimmed()) {
             result = audioDevice;
+            break;
         }
     }
 #endif
@@ -541,7 +547,7 @@ void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioF
         gverb_do(_gverb, value, &lValue, &rValue);
 
         // Mix, accounting for clipping, the left and right channels. Ignore the rest.
-        for (unsigned int j = sample; j < sample + audioFormat.channelCount(); j++) {
+        for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
                 int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction), -32768, 32767);
@@ -717,6 +723,20 @@ void Audio::handleAudioInput() {
                 }
                 
                 _lastInputLoudness = fabs(loudness / NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+
+                if (_quietestFrame > _lastInputLoudness) {
+                    _quietestFrame = _lastInputLoudness;
+                }
+                if (_loudestFrame < _lastInputLoudness) {
+                    _loudestFrame = _lastInputLoudness;
+                }
+                
+                const int FRAMES_FOR_NOISE_DETECTION = 400;
+                if (_inputFrameCounter++ > FRAMES_FOR_NOISE_DETECTION) {
+                    _quietestFrame = std::numeric_limits<float>::max();
+                    _loudestFrame = 0.0f;
+                    _inputFrameCounter = 0;
+                }
                 
                 //  If Noise Gate is enabled, check and turn the gate on and off
                 if (!_audioSourceInjectEnabled && _noiseGateEnabled) {
@@ -1314,9 +1334,25 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-void Audio::handleAudioByteArray(const QByteArray& audioByteArray) {
-    // TODO: either create a new audio device (up to the limit of the sound card or a hard limit)
-    // or send to the mixer and use delayed loopback
+void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& injectorOptions) {
+    if (audioByteArray.size() > 0) {
+        QAudioFormat localFormat = _outputFormat;
+        
+        if (!injectorOptions.isStereo()) {
+            localFormat.setChannelCount(1);
+        }
+        
+        QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
+        
+        QIODevice* localIODevice = localSoundOutput->start();
+        if (localIODevice) {
+            localIODevice->write(audioByteArray);
+        } else {
+            qDebug() << "Unable to handle audio byte array. Error:" << localSoundOutput->error();
+        }
+    } else {
+        qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
+    }
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {
@@ -1360,23 +1396,37 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!_muted) {
         glBindTexture(GL_TEXTURE_2D, _micTextureId);
+        _iconColor = 1.0f;
     } else {
         glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        
+        // Make muted icon pulsate
+        static const float PULSE_MIN = 0.4f;
+        static const float PULSE_MAX = 1.0f;
+        static const float PULSE_FREQUENCY = 1.0f; // in Hz
+        qint64 now = usecTimestampNow();
+        if (now - _iconPulseTimeReference > USECS_PER_SECOND) {
+            // Prevents t from getting too big, which would diminish glm::cos precision
+            _iconPulseTimeReference = now - ((now - _iconPulseTimeReference) % USECS_PER_SECOND);
+        }
+        float t = (float)(now - _iconPulseTimeReference) / (float)USECS_PER_SECOND;
+        float pulseFactor = (glm::cos(t * PULSE_FREQUENCY * 2.0f * PI) + 1.0f) / 2.0f;
+        _iconColor = PULSE_MIN + (PULSE_MAX - PULSE_MIN) * pulseFactor;
     }
 
-    glColor3f(1,1,1);
+    glColor3f(_iconColor, _iconColor, _iconColor);
     glBegin(GL_QUADS);
 
-    glTexCoord2f(1, 1);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.top());
 
-    glTexCoord2f(0, 1);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.top());
 
-    glTexCoord2f(0, 0);
+    glTexCoord2f(0.0f, 0.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.bottom());
 
-    glTexCoord2f(1, 0);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.bottom());
 
     glEnd();
@@ -1886,6 +1936,7 @@ bool Audio::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
             }
         }
     }
+    
     return supportedFormat;
 }
 
@@ -1944,6 +1995,7 @@ bool Audio::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) 
             supportedFormat = true;
         }
     }
+    
     return supportedFormat;
 }
 

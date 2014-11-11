@@ -143,7 +143,6 @@ private:
     static EntityScriptingInterface _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
-    AudioScriptingInterface _audioScriptingInterface;
     AvatarData* _avatarData;
     QString _scriptName;
     QString _fileNameString;

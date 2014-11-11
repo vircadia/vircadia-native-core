@@ -287,8 +287,6 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
-    QPointF getViewportCenter() const
-        { return QPointF(_glWidget->getDeviceWidth() / 2.0f, _glWidget->getDeviceHeight() / 2.0f); }
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
     NodeToJurisdictionMap& getEntityServerJurisdictions() { return _entityServerJurisdictions; }
@@ -308,6 +306,7 @@ public:
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;
     bool isVSyncEditable() const;
+    bool isAboutToQuit() const { return _aboutToQuit; }
 
 
     void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
@@ -379,8 +378,10 @@ public slots:
     void resetSensors();
 
 private slots:
+    void clearDomainOctreeDetails();
     void timer();
     void idle();
+    void aboutToQuit();
 
     void connectedToDomain(const QString& hostname);
 
@@ -627,6 +628,8 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    
+    bool _aboutToQuit;
 };
 
 #endif // hifi_Application_h

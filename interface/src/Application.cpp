@@ -81,6 +81,7 @@
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -108,7 +109,7 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -185,7 +186,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isVSyncOn(true)
+        _isVSyncOn(true),
+        _aboutToQuit(false)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -255,6 +257,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
 
@@ -389,6 +392,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
@@ -413,6 +417,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _trayIcon->show();
     
+    // set the local loopback interface for local sounds from audio scripts
+    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
@@ -420,6 +427,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+}
+
+void Application::aboutToQuit() {
+    _aboutToQuit = true;
 }
 
 Application::~Application() {
@@ -451,6 +462,9 @@ Application::~Application() {
     _audio.thread()->quit();
     _audio.thread()->wait();
 
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
+    
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
@@ -621,8 +635,8 @@ void Application::paintGL() {
 
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         static const float THIRD_PERSON_CAMERA_DISTANCE = 1.5f;
-        _myCamera.setPosition(_myAvatar->getUprightHeadPosition() +
-                              _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+            _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, 1.0f) * THIRD_PERSON_CAMERA_DISTANCE * _myAvatar->getScale());
         if (OculusManager::isConnected()) {
             _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation());
         } else {
@@ -711,11 +725,11 @@ void Application::paintGL() {
         displaySide(*whichCamera);
         glPopMatrix();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
-
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
+        
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(_mirrorViewRect);       
         }
 
         _glowEffect.render();
@@ -773,7 +787,7 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-        computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
         // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
         // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
@@ -1117,7 +1131,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Space: {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
-                    HFActionEvent startActionEvent(HFActionEvent::startType(), getViewportCenter());
+                    HFActionEvent startActionEvent(HFActionEvent::startType(),
+                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1208,7 +1223,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), getViewportCenter());
+                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
                 sendEvent(this, &endActionEvent);
             }
             
@@ -1250,7 +1265,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
     
-    _entities.mouseMoveEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseMoveEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1273,7 +1290,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mousePressEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mousePressEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
@@ -1302,7 +1321,8 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // nobody handled this - make it an action event on the _window object
-            HFActionEvent actionEvent(HFActionEvent::startType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::startType(),
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
 
         } else if (event->button() == Qt::RightButton) {
@@ -1313,7 +1333,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mouseReleaseEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseReleaseEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
@@ -1336,7 +1358,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             }
             
             // fire an action end event
-            HFActionEvent actionEvent(HFActionEvent::endType(), event->localPos());
+            HFActionEvent actionEvent(HFActionEvent::endType(),
+                                      _myCamera.computePickRay(event->x(), event->y()));
             sendEvent(this, &actionEvent);
         }
     }
@@ -1978,31 +2001,26 @@ void Application::init() {
     connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
                         &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
 
+    connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
+        &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
+
     // save settings when avatar changes
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::bumpSettings);
 }
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);
     }
 }
 
 void Application::restoreMirrorView() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
 
 void Application::shrinkMirrorView() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
@@ -3556,9 +3574,8 @@ void Application::changeDomainHostname(const QString &newDomainHostname) {
     }
 }
 
-void Application::domainChanged(const QString& domainHostname) {
-    updateWindowTitle();
-
+void Application::clearDomainOctreeDetails() {
+    qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3567,13 +3584,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _voxelServerJurisdictions.unlock();
 
+    _entityServerJurisdictions.lockForWrite();
+    _entityServerJurisdictions.clear();
+    _entityServerJurisdictions.unlock();
+
+    _octreeSceneStatsLock.lockForWrite();
     _octreeServerSceneStats.clear();
+    _octreeSceneStatsLock.unlock();
 
     // reset the model renderer
     _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+}
+
+void Application::domainChanged(const QString& domainHostname) {
+    updateWindowTitle();
+    clearDomainOctreeDetails();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -3847,9 +3875,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->setAvatarData(_myAvatar, "MyAvatar"); // leave it as a MyAvatar class to expose thrust features
     scriptEngine->setAvatarHashMap(&_avatarManager, "AvatarList");
 
-    CameraScriptableObject* cameraScriptable = new CameraScriptableObject(&_myCamera, &_viewFrustum);
-    scriptEngine->registerGlobalObject("Camera", cameraScriptable);
-    connect(scriptEngine, SIGNAL(finished(const QString&)), cameraScriptable, SLOT(deleteLater()));
+    scriptEngine->registerGlobalObject("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
     scriptEngine->registerGlobalObject("SpeechRecognizer", Menu::getInstance()->getSpeechRecognizer());
@@ -4283,8 +4309,6 @@ bool Application::isVSyncOn() const {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
         return (swapInterval > 0);
-    } else {
-        return true;
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4295,10 +4319,9 @@ bool Application::isVSyncOn() const {
     } else {
         return true;
     }
-    */
-#else
-    return true;
+    */    
 #endif
+    return true;
 }
 
 bool Application::isVSyncEditable() const {
@@ -4313,7 +4336,6 @@ bool Application::isVSyncEditable() const {
         return true;
     }
     */
-#else
 #endif
     return false;
 }

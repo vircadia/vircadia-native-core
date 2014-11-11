@@ -16,6 +16,10 @@
 
 #include <vector>
 
+#include "gpu/Format.h"
+#include "gpu/Resource.h"
+#include "gpu/Stream.h"
+
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"
     class ProfileRange {
@@ -35,23 +39,20 @@
 
 namespace gpu {
 
-class Buffer;
-class Resource;
-typedef int  Stamp;
-typedef unsigned int uint32;
-typedef int int32;
-
 enum Primitive {
-    PRIMITIVE_POINTS = 0,
-    PRIMITIVE_LINES,
-    PRIMITIVE_LINE_STRIP,
-    PRIMITIVE_TRIANGLES,
-    PRIMITIVE_TRIANGLE_STRIP,
-    PRIMITIVE_QUADS,
+    POINTS = 0,
+    LINES,
+    LINE_STRIP,
+    TRIANGLES,
+    TRIANGLE_STRIP,
+    QUADS,
+
+    NUM_PRIMITIVES,
 };
 
 class Batch {
 public:
+    typedef Stream::Slot Slot;
 
     Batch();
     Batch(const Batch& batch);
@@ -59,10 +60,18 @@ public:
 
     void clear();
 
-    void draw(Primitive primitiveType, int nbVertices, int startVertex = 0);
-    void drawIndexed(Primitive primitiveType, int nbIndices, int startIndex = 0);
-    void drawInstanced(uint32 nbInstances, Primitive primitiveType, int nbVertices, int startVertex = 0, int startInstance = 0);
-    void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, int nbIndices, int startIndex = 0, int startInstance = 0);
+    void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
+    void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
+    void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
+    void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
+
+    void setInputFormat(const Stream::FormatPointer& format);
+
+    void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
+    void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
+
+    void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 
@@ -127,13 +136,12 @@ public:
         COMMAND_drawIndexed,
         COMMAND_drawInstanced,
         COMMAND_drawIndexedInstanced,
-        
-        COMMAND_SET_PIPE_STATE,
-        COMMAND_SET_VIEWPORT,
-        COMMAND_SET_FRAMEBUFFER,
-        COMMAND_SET_RESOURCE,
-        COMMAND_SET_VERTEX_STREAM,
-        COMMAND_SET_INDEX_STREAM,
+
+        COMMAND_setInputFormat,
+
+        COMMAND_setInputBuffer,
+
+        COMMAND_setIndexBuffer,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -226,21 +234,64 @@ public:
     };
     typedef std::vector<ResourceCache> Resources;
 
+    template <typename T>
+    class Cache {
+    public:
+        typedef QSharedPointer<T> Pointer;
+        Pointer _pointer;
+        Cache<T>(const Pointer& pointer) : _pointer(pointer) {}
+
+        class Vector {
+        public:
+            std::vector< Cache<T> > _pointers;
+
+            uint32 cache(const Pointer& pointer) {
+                uint32 offset = _pointers.size();
+                _pointers.push_back(Cache<T>(pointer));
+                return offset;
+            }
+
+            Pointer get(uint32 offset) {
+                if (offset >= _pointers.size()) {
+                    return Pointer();
+                }
+                return (_pointers.data() + offset)->_pointer;
+            }
+
+            void clear() {
+                _pointers.clear();
+            }
+        };
+    };
+    
+    typedef Cache<Buffer>::Vector BufferCaches;
+    typedef Cache<Stream::Format>::Vector StreamFormatCaches;
+
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
 
     uint32 cacheResource(Resource* res);
     uint32 cacheResource(const void* pointer);
     ResourceCache* editResource(uint32 offset) {
-        if (offset >= _resources.size())
+        if (offset >= _resources.size()) {
             return 0;
+        }
         return (_resources.data() + offset);
+    }
+
+    template <typename T>
+    T* editResourcePointer(uint32 offset) {
+        if (offset >= _resources.size()) {
+            return 0;
+        }
+        return reinterpret_cast<T*>((_resources.data() + offset)->_pointer);
     }
 
     uint32 cacheData(uint32 size, const void* data);
     Byte* editData(uint32 offset) {
-        if (offset >= _data.size())
+        if (offset >= _data.size()) {
             return 0;
+        }
         return (_data.data() + offset);
     }
 
@@ -248,6 +299,10 @@ public:
     CommandOffsets _commandOffsets;
     Params _params;
     Resources _resources;
+
+    BufferCaches _buffers;
+    StreamFormatCaches _streamFormats;
+
     Bytes _data;
 protected:
 };

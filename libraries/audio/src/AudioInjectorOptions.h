@@ -19,8 +19,6 @@
 
 #include <RegisteredMetaTypes.h>
 
-#include "AbstractAudioInterface.h"
-
 class AudioInjectorOptions : public QObject {
     Q_OBJECT
     
@@ -29,6 +27,7 @@ class AudioInjectorOptions : public QObject {
     Q_PROPERTY(float volume READ getVolume WRITE setVolume)
     Q_PROPERTY(bool loop READ getLoop WRITE setLoop)
     Q_PROPERTY(bool isStereo READ isStereo WRITE setIsStereo)
+    Q_PROPERTY(bool ignorePenumbra READ ignorePenumbra WRITE setIgnorePenumbra)
 public:
     AudioInjectorOptions(QObject* parent = 0);
     AudioInjectorOptions(const AudioInjectorOptions& other);
@@ -49,16 +48,18 @@ public:
     const bool isStereo() const { return _isStereo; }
     void setIsStereo(const bool isStereo) { _isStereo = isStereo; }
     
-    AbstractAudioInterface* getLoopbackAudioInterface() const { return _loopbackAudioInterface; }
-    void setLoopbackAudioInterface(AbstractAudioInterface* loopbackAudioInterface)
-        { _loopbackAudioInterface = loopbackAudioInterface; }
+    const bool ignorePenumbra() const {return _ignorePenumbra; }
+    void setIgnorePenumbra(bool ignorePenumbra) { _ignorePenumbra = ignorePenumbra; }
+    
 private:
     glm::vec3 _position;
     float _volume;
     bool _loop;
     glm::quat _orientation;
     bool _isStereo;
-    AbstractAudioInterface* _loopbackAudioInterface;
+    bool _ignorePenumbra;
 };
+
+Q_DECLARE_METATYPE(AudioInjectorOptions)
 
 #endif // hifi_AudioInjectorOptions_h

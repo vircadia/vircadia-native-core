@@ -49,7 +49,7 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float MAX_WALKING_SPEED = 4.5f;
+const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
@@ -416,7 +416,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.2, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.2f, 10.0f, 10.0f);
     glPopMatrix();
 
     //  Head Sphere
@@ -424,7 +424,7 @@ void MyAvatar::renderDebugBodyPoints() {
     glPushMatrix();
     glColor4f(0, 1, 0, .5f);
     glTranslatef(position.x, position.y, position.z);
-    Application::getInstance()->getGeometryCache()->renderSphere(0.15, 10, 10);
+    Application::getInstance()->getGeometryCache()->renderSphere(0.15f, 10.0f, 10.0f);
     glPopMatrix();
 }
 
@@ -1002,10 +1002,6 @@ bool MyAvatar::isLookingAtLeftEye() {
         _isLookingAtLeftEye = !_isLookingAtLeftEye;
     }
     return _isLookingAtLeftEye;
-}
-
-glm::vec3 MyAvatar::getUprightHeadPosition() const {
-    return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, getPelvisToHeadLength(), 0.0f);
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {

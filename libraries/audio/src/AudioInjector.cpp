@@ -26,6 +26,8 @@ AudioInjector::AudioInjector(QObject* parent) :
     _sound(NULL),
     _options(),
     _shouldStop(false),
+    _loudness(0.0f),
+    _isFinished(false),
     _currentSendPosition(0)
 {
 }
@@ -34,12 +36,18 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _sound(sound),
     _options(injectorOptions),
     _shouldStop(false),
+    _loudness(0.0f),
+    _isFinished(false),
     _currentSendPosition(0)
 {
 }
 
 void AudioInjector::setOptions(AudioInjectorOptions& options) {
     _options = options;
+}
+
+float AudioInjector::getLoudness() {
+    return _loudness;
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
@@ -54,14 +62,6 @@ void AudioInjector::injectAudio() {
     
     // make sure we actually have samples downloaded to inject
     if (soundByteArray.size()) {
-        // give our sample byte array to the local audio interface, if we have it, so it can be handled locally
-        if (_options.getLoopbackAudioInterface()) {
-            // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-            QMetaObject::invokeMethod(_options.getLoopbackAudioInterface(), "handleAudioByteArray",
-                                      Qt::AutoConnection,
-                                      Q_ARG(QByteArray, soundByteArray));
-            
-        }
         
         // setup the packet for injected audio
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
@@ -78,7 +78,7 @@ void AudioInjector::injectAudio() {
         packetStream << _options.isStereo();
         
         // pack the flag for loopback
-        uchar loopbackFlag = (uchar) (!_options.getLoopbackAudioInterface());
+        uchar loopbackFlag = (uchar) true;
         packetStream << loopbackFlag;
         
         // pack the position for injected audio
@@ -100,6 +100,8 @@ void AudioInjector::injectAudio() {
         quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
         packetStream << volume;
         
+        packetStream << _options.ignorePenumbra();
+        
         QElapsedTimer timer;
         timer.start();
         int nextFrame = 0;
@@ -113,6 +115,15 @@ void AudioInjector::injectAudio() {
             
             int bytesToCopy = std::min(((_options.isStereo()) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - _currentSendPosition);
+            
+            //  Measure the loudness of this frame
+            _loudness = 0.0f;
+            for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
+                _loudness += abs(*reinterpret_cast<int16_t*>(soundByteArray.data() + _currentSendPosition + i)) /
+                (MAX_SAMPLE_VALUE / 2.0f);
+            }
+            _loudness /= (float)(bytesToCopy / sizeof(int16_t));
+
             memcpy(injectAudioPacket.data() + positionOptionOffset,
                    &_options.getPosition(),
                    sizeof(_options.getPosition()));
@@ -161,5 +172,6 @@ void AudioInjector::injectAudio() {
         }
     }
     
+    _isFinished = true;
     emit finished();
 }

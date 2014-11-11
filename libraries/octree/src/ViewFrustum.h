@@ -17,6 +17,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <RegisteredMetaTypes.h>
+
 #include "AABox.h"
 #include "AACube.h"
 #include "Plane.h"
@@ -105,6 +107,7 @@ public:
     bool isVerySimilar(const ViewFrustum& compareTo, bool debug = false) const;
     bool isVerySimilar(const ViewFrustum* compareTo, bool debug = false) const { return isVerySimilar(*compareTo, debug); }
 
+    PickRay computePickRay(float x, float y);
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& nearValue, float& farValue,

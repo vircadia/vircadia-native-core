@@ -68,7 +68,8 @@ void OctreeElement::init(unsigned char * octalCode) {
     // set up the _children union
     _childBitmask = 0;
     _childrenExternal = false;
-
+    
+    
 #ifdef BLENDED_UNION_CHILDREN
     _children.external = NULL;
     _singleChildrenCount++;
@@ -660,6 +661,11 @@ void OctreeElement::deleteAllChildren() {
             delete childAt;
         }
     }
+    
+    if (_childrenExternal) {
+        // if the children_t union represents _children.external we need to delete it here
+        delete[] _children.external;
+    }
 
 #ifdef BLENDED_UNION_CHILDREN
     // now, reset our internal state and ANY and all population data
@@ -757,6 +763,8 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         memset(_children.external, 0, sizeof(OctreeElement*) * NUMBER_OF_CHILDREN);
         _children.external[firstIndex] = previousChild;
         _children.external[childIndex] = child;
+        
+        _childrenExternal = true;
 
         _externalChildrenMemoryUsage += NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
 
@@ -764,7 +772,10 @@ void OctreeElement::setChildAtIndex(int childIndex, OctreeElement* child) {
         assert(!child); // we are removing a child, so this must be true!
         OctreeElement* previousFirstChild = _children.external[firstIndex];
         OctreeElement* previousSecondChild = _children.external[secondIndex];
+
         delete[] _children.external;
+        _childrenExternal = false;
+        
         _externalChildrenMemoryUsage -= NUMBER_OF_CHILDREN * sizeof(OctreeElement*);
         if (childIndex == firstIndex) {
             _children.single = previousSecondChild;

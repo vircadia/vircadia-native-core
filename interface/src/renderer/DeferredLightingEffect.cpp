@@ -73,6 +73,12 @@ void DeferredLightingEffect::renderWireCube(float size) {
     releaseSimpleProgram();
 }
 
+void DeferredLightingEffect::renderSolidCone(float base, float height, int slices, int stacks) {
+    bindSimpleProgram();
+    Application::getInstance()->getGeometryCache()->renderCone(base, height, slices, stacks);
+    releaseSimpleProgram();
+}
+
 void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& ambient,
         const glm::vec3& diffuse, const glm::vec3& specular, float constantAttenuation,
         float linearAttenuation, float quadraticAttenuation) {
@@ -216,10 +222,18 @@ void DeferredLightingEffect::render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_ONE, GL_ONE);
     
+    glEnable(GL_CULL_FACE);
+    
     glm::vec4 sCoefficients(sWidth / 2.0f, 0.0f, 0.0f, sMin + sWidth / 2.0f);
     glm::vec4 tCoefficients(0.0f, tHeight / 2.0f, 0.0f, tMin + tHeight / 2.0f);
     glTexGenfv(GL_S, GL_OBJECT_PLANE, (const GLfloat*)&sCoefficients);
     glTexGenfv(GL_T, GL_OBJECT_PLANE, (const GLfloat*)&tCoefficients);
+    
+    // enlarge the scales slightly to account for tesselation
+    const float SCALE_EXPANSION = 0.05f;
+    
+    const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
+    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
@@ -234,11 +248,32 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
             glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.f ? light.constantAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.f ? light.linearAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.f ? light.quadraticAttenuation : 0.f));
          
-            renderFullscreenQuad();   
+            glPushMatrix();
+            
+            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius + nearRadius) {
+                glLoadIdentity();
+                glTranslatef(0.0f, 0.0f, -1.0f);
+                
+                glMatrixMode(GL_PROJECTION);
+                glPushMatrix();
+                glLoadIdentity();
+                
+                renderFullscreenQuad();
+            
+                glPopMatrix();
+                glMatrixMode(GL_MODELVIEW);
+                
+            } else {
+                glTranslatef(light.position.x, light.position.y, light.position.z);   
+                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 32, 32);
+            }
+            
+            glPopMatrix();
         }
         _pointLights.clear();
         
@@ -258,14 +293,41 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
             glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.f ? light.constantAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.f ? light.linearAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.f ? light.quadraticAttenuation : 0.f));
             glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
             glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
             glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
             
-            renderFullscreenQuad();
+            glPushMatrix();
+            
+            float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
+            float edgeRadius = expandedRadius / glm::cos(light.cutoff);
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius + nearRadius) {
+                glLoadIdentity();
+                glTranslatef(0.0f, 0.0f, -1.0f);
+                
+                glMatrixMode(GL_PROJECTION);
+                glPushMatrix();
+                glLoadIdentity();
+                
+                renderFullscreenQuad();
+                
+                glPopMatrix();
+                glMatrixMode(GL_MODELVIEW);
+                
+            } else {
+                glTranslatef(light.position.x, light.position.y, light.position.z);
+                glm::quat spotRotation = rotationBetween(glm::vec3(0.0f, 0.0f, -1.0f), light.direction);
+                glm::vec3 axis = glm::axis(spotRotation);
+                glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
+                glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
+                Application::getInstance()->getGeometryCache()->renderCone(expandedRadius * glm::tan(light.cutoff),
+                    expandedRadius, 32, 1);
+            }
+            
+            glPopMatrix();
         }
         _spotLights.clear();
         
@@ -284,6 +346,8 @@ void DeferredLightingEffect::render() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     freeFBO->release();
+    
+    glDisable(GL_CULL_FACE);
     
     // now transfer the lit region to the primary fbo
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
