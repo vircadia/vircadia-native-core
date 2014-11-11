@@ -479,9 +479,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         float bestDistance = std::numeric_limits<float>::max();
         float distanceToSubMesh;
         BoxFace subMeshFace;
-        BoxFace bestSubMeshFace;
         int subMeshIndex = 0;
-        int bestSubMeshIndex = -1;
     
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
@@ -489,10 +487,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
                 if (distanceToSubMesh < bestDistance) {
-                    bestSubMeshIndex = subMeshIndex;
                     bestDistance = distanceToSubMesh;
-                    bestSubMeshFace = subMeshFace;
                     intersectedSomething = true;
+                    face = subMeshFace;
                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                 }
             }

@@ -156,6 +156,9 @@ void RearMirrorTools::displayIcon(QRect bounds, QRect iconBounds, GLuint texture
     }
     glEnd();
     glPopMatrix();
+    
+    glMatrixMode(GL_MODELVIEW);
+    
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
 }
