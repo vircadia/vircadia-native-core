@@ -1149,29 +1149,25 @@ SelectionDisplay = (function () {
 
             // If shifted, constrain to one axis
             if (event.isShifted) {
-                // if (Math.abs(vector.x) > Math.abs(vector.z)) {
-                //     vector.z = 0;
-                // } else {
-                //     vector.x = 0;
-                // }
+                if (Math.abs(vector.x) > Math.abs(vector.z)) {
+                    vector.z = 0;
+                } else {
+                    vector.x = 0;
+                }
                 if (!isConstrained) {
-                    // Overlays.editOverlay(xRailOverlay, { visible: true });
-                    // var xStart = Vec3.sum(startPosition, { x: -10000, y: 0, z: 0 });
-                    // var xEnd = Vec3.sum(startPosition, { x: 10000, y: 0, z: 0 });
-                    // var zStart = Vec3.sum(startPosition, { x: 0, y: 0, z: -10000 });
-                    // var zEnd = Vec3.sum(startPosition, { x: 0, y: 0, z: 10000 });
-                    // Overlays.editOverlay(xRailOverlay, { start: xStart, end: xEnd, visible: true });
-                    // Overlays.editOverlay(zRailOverlay, { start: zStart, end: zEnd, visible: true });
+                    Overlays.editOverlay(xRailOverlay, { visible: true });
+                    var xStart = Vec3.sum(startPosition, { x: -10000, y: 0, z: 0 });
+                    var xEnd = Vec3.sum(startPosition, { x: 10000, y: 0, z: 0 });
+                    var zStart = Vec3.sum(startPosition, { x: 0, y: 0, z: -10000 });
+                    var zEnd = Vec3.sum(startPosition, { x: 0, y: 0, z: 10000 });
+                    Overlays.editOverlay(xRailOverlay, { start: xStart, end: xEnd, visible: true });
+                    Overlays.editOverlay(zRailOverlay, { start: zStart, end: zEnd, visible: true });
                     isConstrained = true;
                 }
-                // constrainMajorOnly = event.isControl;
-                // vector = Vec3.subtract(
-                //     grid.snapToGrid(Vec3.sum(startPosition, vector), constrainMajorOnly),
-                //     startPosition);
             } else {
                 if (isConstrained) {
-                    // Overlays.editOverlay(xRailOverlay, { visible: false });
-                    // Overlays.editOverlay(zRailOverlay, { visible: false });
+                    Overlays.editOverlay(xRailOverlay, { visible: false });
+                    Overlays.editOverlay(zRailOverlay, { visible: false });
                     isConstrained = false;
                 }
             }
