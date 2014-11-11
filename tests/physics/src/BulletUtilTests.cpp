@@ -16,6 +16,7 @@
 
 #include "BulletUtilTests.h"
 
+#ifdef USE_BULLET_PHYSICS
 void BulletUtilTests::fromBulletToGLM() {
     btVector3 bV(1.23f, 4.56f, 7.89f);
     glm::vec3 gV;
@@ -105,3 +106,13 @@ void BulletUtilTests::runAllTests() {
     fromGLMToBullet();
 }
 
+#else // USE_BULLET_PHYSICS
+void BulletUtilTests::fromBulletToGLM() {
+}
+
+void BulletUtilTests::fromGLMToBullet() {
+}
+
+void BulletUtilTests::runAllTests() {
+}
+#endif // USE_BULLET_PHYSICS

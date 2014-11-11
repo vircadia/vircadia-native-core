@@ -10,6 +10,7 @@
 //
 
 #include "PhysicsWorld.h"
+#ifdef USE_BULLET_PHYSICS
 
 PhysicsWorld::~PhysicsWorld() {
 }
@@ -131,3 +132,5 @@ bool PhysicsWorld::updateEntityMassProperties(CustomMotionState* motionState, fl
     assert(motionState);
     return false;
 }
+
+#endif // USE_BULLET_PHYSICS

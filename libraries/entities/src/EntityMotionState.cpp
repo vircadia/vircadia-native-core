@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#ifdef USE_BULLET_PHYSICS
 #include <BulletUtil.h>
 
 #include "EntityItem.h"
@@ -70,3 +71,4 @@ void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
     info.setBox(bulletHalfExtents);
 }
 
+#endif // USE_BULLET_PHYSICS
