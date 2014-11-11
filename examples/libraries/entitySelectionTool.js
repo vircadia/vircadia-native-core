@@ -394,12 +394,12 @@ SelectionDisplay = (function () {
     var baseOverlayAngles = { x: 0, y: 0, z: 0 };
     var baseOverlayRotation = Quat.fromVec3Degrees(baseOverlayAngles);
     var baseOfEntityProjectionOverlay = Overlays.addOverlay("rectangle3d", {
-                    position: { x:0, y: 0, z: 0},
-                    size: 1,
+                    position: { x: 1, y: 0, z: 0},
                     color: { red: 51, green: 152, blue: 203 },
                     alpha: 0.5,
                     solid: true,
                     visible: false,
+                    width: 300, height: 200,
                     rotation: baseOverlayRotation,
                     ignoreRayIntersection: true, // always ignore this
                 });
@@ -570,6 +570,7 @@ SelectionDisplay = (function () {
         xRailOverlay,
         yRailOverlay,
         zRailOverlay,
+        baseOfEntityProjectionOverlay,
     ].concat(stretchHandles);
 
     overlayNames[highlightBox] = "highlightBox";
@@ -878,20 +879,24 @@ SelectionDisplay = (function () {
             translateHandlesVisible = false;
         }
         
-        var rotation = SelectionManager.worldRotation;
-        var dimensions = SelectionManager.worldDimensions;
-        var position = SelectionManager.worldPosition;
+        var rotation = selectionManager.worldRotation;
+        var dimensions = selectionManager.worldDimensions;
+        var position = selectionManager.worldPosition;
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, 
                             { 
-                                visible: true,
-                                solid:true,
-                                lineWidth: 2.0,
-                                position: { x: position.x,
-                                            y: 0,
-                                            z: position.z },
-
-                                dimensions: { x: dimensions.x, y: 0, z: dimensions.z },
+                                visible: mode != "ROTATE_YAW" && mode != "ROTATE_PITCH" && mode != "ROTATE_ROLL",
+                                solid: true,
+                                // lineWidth: 2.0,
+                                position: {
+                                    x: position.x,
+                                    y: grid.getOrigin().y,
+                                    z: position.z
+                                },
+                                dimensions: {
+                                    x: dimensions.x,
+                                    y: dimensions.z
+                                },
                                 rotation: rotation,
                             });
 
@@ -1098,6 +1103,7 @@ SelectionDisplay = (function () {
 
     var initialXZPick = null;
     var isConstrained = false;
+    var constrainMajorOnly = false;
     var startPosition = null;
     var duplicatedEntityIDs = null;
     var translateXZTool = {
@@ -1162,15 +1168,23 @@ SelectionDisplay = (function () {
                 if (isConstrained) {
                     Overlays.editOverlay(xRailOverlay, { visible: false });
                     Overlays.editOverlay(zRailOverlay, { visible: false });
+                    isConstrained = false;
                 }
             }
+
+            constrainMajorOnly = event.isControl;
+            var cornerPosition = Vec3.sum(startPosition, Vec3.multiply(-0.5, selectionManager.worldDimensions));
+            vector = Vec3.subtract(
+                    grid.snapToGrid(Vec3.sum(cornerPosition, vector), constrainMajorOnly),
+                    cornerPosition);
 
             var wantDebug = false;
 
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var properties = SelectionManager.savedProperties[SelectionManager.selections[i].id];
+                var newPosition = Vec3.sum(properties.position, { x: vector.x, y: 0, z: vector.z });
                 Entities.editEntity(SelectionManager.selections[i], {
-                    position: Vec3.sum(properties.position, vector),
+                    position: newPosition,
                 });
 
                 if (wantDebug) {
