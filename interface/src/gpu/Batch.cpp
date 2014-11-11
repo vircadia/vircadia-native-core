@@ -106,7 +106,7 @@ void Batch::setInputStream(Slot startChannel, const BufferStream& stream) {
         const Buffers& buffers = stream.getBuffers();
         const Offsets& offsets = stream.getOffsets();
         const Offsets& strides = stream.getStrides();
-        for (int i = 0; i < buffers.size(); i++) {
+        for (unsigned int i = 0; i < buffers.size(); i++) {
             setInputBuffer(startChannel + i, buffers[i], offsets[i], strides[i]);
         }
     }
