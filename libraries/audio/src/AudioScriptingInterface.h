@@ -32,7 +32,6 @@ public slots:
 
     static float getLoudness(AudioInjector* injector);
 
-    void playLocalSound(Sound *sound, const AudioInjectorOptions* injectorOptions = NULL);
     AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
     
     void stopInjector(AudioInjector* injector);

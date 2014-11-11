@@ -1334,22 +1334,10 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& injectorOptions) {
-    if (audioByteArray.size() > 0) {
-        QAudioFormat localFormat = _outputFormat;
-        
-        if (!injectorOptions.isStereo()) {
-            localFormat.setChannelCount(1);
-        }
-        
-        QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
-        
-        QIODevice* localIODevice = localSoundOutput->start();
-        qDebug() << "Writing" << audioByteArray.size() << "to" << localIODevice;
-        localIODevice->write(audioByteArray);
-    } else {
-        qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
-    }
+QAudioOutput* Audio::newLocalOutputInterface(bool isStereo) {
+    QAudioFormat localFormat = _outputFormat;
+    localFormat.setChannelCount(isStereo ? 2 : 1);
+    return new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat);
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {
