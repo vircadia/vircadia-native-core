@@ -81,6 +81,8 @@ void EntityTreeRenderer::init() {
     _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::addingEntity);
+    connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
@@ -768,5 +770,21 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     _entityScripts.remove(entityID);
+}
+
+void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
+    qDebug() << "addingEntity() entityID:" << entityID;
+    
+    // load the entity script if needed...
+    QScriptValue entityScript = loadEntityScript(entityID);
+    if (entityScript.property("preload").isValid()) {
+        QScriptValueList entityArgs = createEntityArgs(entityID);
+        entityScript.property("preload").call(entityScript, entityArgs);
+    }
+    
+}
+
+void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
+    qDebug() << "changingEntityID() oldEntityID:" << oldEntityID << "newEntityID:" << newEntityID;
 }
 

@@ -104,6 +104,8 @@ signals:
 
 public slots:
     void deletingEntity(const EntityItemID& entityID);
+    void addingEntity(const EntityItemID& entityID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     
 private:
     QList<Model*> _releasedModels;

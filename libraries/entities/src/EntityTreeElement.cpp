@@ -726,7 +726,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
                     entityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 }
-                
+
                 // If the item already exists in our tree, we want do the following...
                 // 1) allow the existing item to read from the databuffer
                 // 2) check to see if after reading the item, the containing element is still correct, fix it if needed
@@ -762,6 +762,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         addEntityItem(entityItem); // add this new entity to this elements entities
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
+                        _myTree->emitAddingEntity(entityItemID); // we just added an entity
                         EntityItem::SimulationState newState = entityItem->getSimulationState();
                         _myTree->changeEntityState(entityItem, EntityItem::Static, newState);
                     }
