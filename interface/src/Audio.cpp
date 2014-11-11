@@ -1334,11 +1334,13 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-QIODevice* Audio::newLocalOutputDevice(bool isStereo) {
+QIODevice* Audio::newLocalOutputDevice(bool isStereo, int numBytes, QObject* injector) {
     QAudioFormat localFormat = _desiredOutputFormat;
     localFormat.setChannelCount(isStereo ? 2 : 1);
+    
     QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
-                                                localFormat);
+                                                localFormat, this);
+    localOutput->setBufferSize(numBytes);
     
     return localOutput->start();
 }

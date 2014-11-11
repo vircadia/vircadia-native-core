@@ -71,18 +71,27 @@ void AudioInjector::injectLocally() {
         
         QIODevice* localBuffer = NULL;
         
-        QMetaObject::invokeMethod(_localAudioInterface, "newLocalOutputDevice", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(QIODevice*, localBuffer),
-                                  Q_ARG(bool, _options.stereo));
+        const QByteArray& soundByteArray = _sound->getByteArray();
         
-        if (localBuffer) {
-            // immediately write the byte array to the local device
-            localBuffer->write(_sound->getByteArray());
+        if (soundByteArray.size() > 0) {
+            QMetaObject::invokeMethod(_localAudioInterface, "newLocalOutputDevice", Qt::BlockingQueuedConnection,
+                                      Q_RETURN_ARG(QIODevice*, localBuffer),
+                                      Q_ARG(bool, _options.stereo),
+                                      Q_ARG(int, soundByteArray.size()),
+                                      Q_ARG(QObject*, this));
+            
+            if (localBuffer) {
+                // immediately write the byte array to the local device
+                qDebug() << "Writing" << localBuffer->write(soundByteArray) << "bytes to local audio device";
+            } else {
+                qDebug() << "AudioInjector::injectLocally did not get a valid QIODevice from _localAudioInterface";
+            }
         } else {
-            qDebug() << "AudioInject::injectLocally did not get a valid QIODevice from _localAudioInterface";
+            qDebug() << "AudioInjector::injectLocally called without any data in Sound QByteArray";
         }
+        
     } else {
-        qDebug() << "AudioInject::injectLocally cannot inject locally with no local audio interface present.";
+        qDebug() << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
     }
 }
 

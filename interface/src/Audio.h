@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual QIODevice* newLocalOutputDevice(bool isStereo);
+    virtual QIODevice* newLocalOutputDevice(bool isStereo, int numBytes, QObject* injector);
 
     void sendDownstreamAudioStatsPacket();
 
@@ -255,10 +255,6 @@ private:
     QRect _iconBounds;
     float _iconColor;
     qint64 _iconPulseTimeReference;
-    
-    /// Audio callback in class context.
-    inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-    
     
     bool _processSpatialAudio; /// Process received audio by spatial audio hooks
     unsigned int _spatialAudioStart; /// Start of spatial audio interval (in sample rate time base)
