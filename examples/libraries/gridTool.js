@@ -3,7 +3,7 @@ Grid = function(opts) {
 
     var color = { red: 100, green: 152, blue: 203 };
     var gridColor = { red: 100, green: 152, blue: 203 };
-    var gridAlpha = 0.9;
+    var gridAlpha = 1.0;
     var origin = { x: 0, y: 0, z: 0 };
     var majorGridEvery = 5;
     var minorGridSpacing = 0.2;
@@ -15,18 +15,16 @@ Grid = function(opts) {
     var minorGridWidth = 0.5;
     var majorGridWidth = 1.5;
 
-    var gridOverlays = [];
-
     var snapToGrid = true;
 
-    var gridPlane = Overlays.addOverlay("rectangle3d", {
-        position: origin,
-        color: color,
-        size: halfSize * 2 * minorGridSpacing * 1.05,
-        alpha: 0.2,
-        solid: true,
-        visible: false,
-        ignoreRayIntersection: true,
+    var gridOverlay = Overlays.addOverlay("grid", {
+        position: { x: 0 , y: 0, z: 0 },
+        visible: true,
+        color: { red: 0, green: 0, blue: 128 },
+        alpha: 1.0,
+        rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
+        minorGridWidth: 0.1,
+        majorGridEvery: 2,
     });
 
     that.getMinorIncrement = function() { return minorGridSpacing; };
@@ -43,10 +41,6 @@ Grid = function(opts) {
     that.setVisible = function(visible, noUpdate) {
         that.visible = visible;
         updateGrid();
-        // for (var i = 0; i < gridOverlays.length; i++) {
-        //     Overlays.editOverlay(gridOverlays[i], { visible: visible });
-        // }
-        // Overlays.editOverlay(gridPlane, { visible: visible });
 
         if (!noUpdate) {
             that.emitUpdate();
@@ -71,9 +65,10 @@ Grid = function(opts) {
 
     that.setPosition = function(newPosition, noUpdate) {
         origin = Vec3.subtract(newPosition, { x: 0, y: yOffset, z: 0 });
+        origin.x = 0;
+        origin.z = 0;
         updateGrid();
 
-        print("updated grid");
         if (!noUpdate) {
             that.emitUpdate();
         }
@@ -94,7 +89,6 @@ Grid = function(opts) {
     };
 
     that.update = function(data) {
-        print("Got update");
         if (data.snapToGrid !== undefined) {
             snapToGrid = data.snapToGrid;
         }
@@ -131,88 +125,18 @@ Grid = function(opts) {
     }
 
     function updateGrid() {
-        // Delete overlays
-        var gridLinesRequired = (halfSize * 2 + 1) * 2;
-        if (gridLinesRequired > gridOverlays.length) {
-            for (var i = gridOverlays.length; i < gridLinesRequired; i++) {
-                gridOverlays.push(Overlays.addOverlay("line3d", {}));
-            }
-        } else if (gridLinesRequired < gridOverlays.length) {
-            var numberToRemove = gridOverlays.length - gridLinesRequired;
-            var removed = gridOverlays.splice(gridOverlays.length - numberToRemove, numberToRemove);
-            for (var i = 0; i < removed.length; i++) {
-                Overlays.deleteOverlay(removed[i]);
-            }
-        }
-
-        Overlays.editOverlay(gridPlane, {
-            position: origin,
-            size: halfSize * 2 * minorGridSpacing * 1.05,
+        Overlays.editOverlay(gridOverlay, {
+            position: { x: origin.y, y: origin.y, z: -origin.y },
+            visible: that.visible,
+            minorGridWidth: minorGridSpacing,
+            majorGridEvery: majorGridEvery,
+                color: gridColor,
+                alpha: gridAlpha,
         });
-
-        var startX = {
-            x: origin.x - (halfSize * minorGridSpacing),
-            y: origin.y,
-            z: origin.z,
-        };
-        var endX = {
-            x: origin.x + (halfSize * minorGridSpacing),
-            y: origin.y,
-            z: origin.z,
-        };
-        var startZ = {
-            x: origin.x,
-            y: origin.y,
-            z: origin.z - (halfSize * minorGridSpacing)
-        };
-        var endZ = {
-            x: origin.x,
-            y: origin.y,
-            z: origin.z + (halfSize * minorGridSpacing)
-        };
-
-        var overlayIdx = 0;
-        for (var i = -halfSize; i <= halfSize; i++) {
-            // Offset for X-axis aligned grid line
-            var offsetX = { x: 0, y: 0, z: i * minorGridSpacing };
-
-            // Offset for Z-axis aligned grid line
-            var offsetZ = { x: i * minorGridSpacing, y: 0, z: 0 };
-
-            var position = Vec3.sum(origin, offsetX);
-            var size = i % majorGridEvery == 0 ? majorGridWidth : minorGridWidth;
-
-            var gridLineX = gridOverlays[overlayIdx++];
-            var gridLineZ = gridOverlays[overlayIdx++];
-
-            Overlays.editOverlay(gridLineX, {
-                start: Vec3.sum(startX, offsetX),
-                end: Vec3.sum(endX, offsetX),
-                lineWidth: size,
-                color: gridColor,
-                alpha: gridAlpha,
-                solid: true,
-                visible: that.visible,
-                ignoreRayIntersection: true,
-            });
-            Overlays.editOverlay(gridLineZ, {
-                start: Vec3.sum(startZ, offsetZ),
-                end: Vec3.sum(endZ, offsetZ),
-                lineWidth: size,
-                color: gridColor,
-                alpha: gridAlpha,
-                solid: true,
-                visible: that.visible,
-                ignoreRayIntersection: true,
-            });
-        }
     }
 
     function cleanup() {
-        Overlays.deleteOverlay(gridPlane);
-        for (var i = 0; i < gridOverlays.length; i++) {
-            Overlays.deleteOverlay(gridOverlays[i]);
-        }
+        Overlays.deleteOverlay(gridOverlay);
     }
 
     that.addListener = function(callback) {
@@ -234,18 +158,17 @@ GridTool = function(opts) {
     var verticalGrid = opts.verticalGrid;
     var listeners = [];
 
-    // var webView = Window.createWebView('http://localhost:8000/gridControls.html', 200, 280);
-    var webView = new WebWindow('http://localhost:8000/gridControls.html', 200, 280);
+    var url = Script.resolvePath('html/gridControls.html');
+    var webView = new WebWindow(url, 200, 280);
 
     horizontalGrid.addListener(function(data) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
     });
 
     webView.eventBridge.webEventReceived.connect(function(data) {
-        print('got event: ' + data);
         data = JSON.parse(data);
         if (data.type == "init") {
-            horizontalGrid.emitUpdate(); 
+            horizontalGrid.emitUpdate();
         } else if (data.type == "update") {
             horizontalGrid.update(data);
             for (var i = 0; i < listeners.length; i++) {

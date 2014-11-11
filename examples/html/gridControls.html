@@ -2,20 +2,13 @@
 <head>
     <script>
         function loaded() {
-            function log(msg) {
-                var el = document.createElement('div');
-                el.innerHTML = msg;
-                document.body.appendChild(el);
-            }
-
             var gridColor = { red: 0, green: 0, blue: 0 };
             var gridColors = [
                 { red: 0, green: 0, blue: 0 },
                 { red: 128, green: 128, blue: 128 },
-                // { red: 255, green: 255, blue: 255 },
-                { red: 255, green: 128, blue: 128 },
-                { red: 128, green: 255, blue: 128 },
-                { red: 128, green: 128, blue: 255 },
+                { red: 255, green: 0, blue: 0 },
+                { red: 0, green: 255, blue: 0},
+                { red: 0, green: 0, blue: 255 },
             ];
 
             posY = document.getElementById("horiz-y");
@@ -32,9 +25,7 @@
                     if (data.origin) {
 
                         var origin = data.origin;
-                        // posX.value = origin.x;
                         posY.value = origin.y;
-                        // posZ.value = origin.z;
                     }
 
                     if (data.minorGridSpacing) {
@@ -62,9 +53,7 @@
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "update",
                         origin: {
-                            // x: posX.value,
                             y: posY.value,
-                            // z: posZ.value,
                         },
                         minorGridSpacing: minorSpacing.value,
                         majorGridEvery: majorSpacing.value,
@@ -91,8 +80,6 @@
                 box.addEventListener("click", function(color) { 
                     return function() {
                         gridColor = color;
-                        // this.setAttribute('class', 'color-box highlight');
-
                         emitUpdate();
                     }
                 }({ red: colors.red, green: colors.green, blue: colors.blue }));

@@ -104,6 +104,7 @@ public slots:
     void include(const QString& includeFile);
     void load(const QString& loadfile);
     void print(const QString& message);
+    QUrl resolvePath(const QString& path) const;
 
     void nodeKilled(SharedNodePointer node);
 
@@ -132,7 +133,6 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
-    QUrl resolveInclude(const QString& include) const;
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
