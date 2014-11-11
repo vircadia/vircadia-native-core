@@ -64,6 +64,7 @@
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
+#include <PhysicsWorld.h>
 #include <ResourceCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
@@ -81,6 +82,7 @@
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -107,7 +109,7 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -187,7 +189,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isVSyncOn(true)
+        _isVSyncOn(true),
+        _aboutToQuit(false)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -257,6 +260,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
 
@@ -391,6 +395,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
@@ -415,6 +420,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _trayIcon->show();
     
+    // set the local loopback interface for local sounds from audio scripts
+    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
@@ -422,6 +430,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+}
+
+void Application::aboutToQuit() {
+    _aboutToQuit = true;
 }
 
 Application::~Application() {
@@ -716,11 +728,11 @@ void Application::paintGL() {
         displaySide(*whichCamera);
         glPopMatrix();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
-
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
+        
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(_mirrorViewRect);       
         }
 
         _glowEffect.render();
@@ -778,7 +790,7 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-        computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
         // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
         // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
@@ -1256,7 +1268,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
     
-    _entities.mouseMoveEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseMoveEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1279,7 +1293,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mousePressEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mousePressEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
@@ -1320,7 +1336,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mouseReleaseEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseReleaseEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
@@ -1995,25 +2013,17 @@ void Application::init() {
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);
     }
 }
 
 void Application::restoreMirrorView() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
 
 void Application::shrinkMirrorView() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
@@ -3567,9 +3577,8 @@ void Application::changeDomainHostname(const QString &newDomainHostname) {
     }
 }
 
-void Application::domainChanged(const QString& domainHostname) {
-    updateWindowTitle();
-
+void Application::clearDomainOctreeDetails() {
+    qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3578,13 +3587,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _voxelServerJurisdictions.unlock();
 
+    _entityServerJurisdictions.lockForWrite();
+    _entityServerJurisdictions.clear();
+    _entityServerJurisdictions.unlock();
+
+    _octreeSceneStatsLock.lockForWrite();
     _octreeServerSceneStats.clear();
+    _octreeSceneStatsLock.unlock();
 
     // reset the model renderer
     _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+}
+
+void Application::domainChanged(const QString& domainHostname) {
+    updateWindowTitle();
+    clearDomainOctreeDetails();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -4065,18 +4085,18 @@ void Application::openUrl(const QUrl& url) {
 void Application::updateMyAvatarTransform() {
     bumpSettings();
 #ifdef USE_BULLET_PHYSICS
-    const float SIMULATION_OFFSET_QUANTIZATION = 8.0f; // meters
+    const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
     glm::vec3 physicsWorldOffset = _physicsWorld.getOriginOffset();
-    if (glm::distance(avatarPosition, physicsWorldOffset) > HALF_SIMULATION_EXTENT) {
+    if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
         //_entityCollisionSystem.forgetAllPhysics();
         glm::vec3 newOriginOffset = avatarPosition;
-        int halfExtent = (int)HALF_SIMULATION_EXENT;
+        int halfExtent = (int)HALF_SIMULATION_EXTENT;
         for (int i = 0; i < 3; ++i) {
             newOriginOffset[i] = (float)(glm::max(halfExtent, 
                     ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
         }
-        _physicsWorld.setOriginOffset(newOrigin);
+        _physicsWorld.setOriginOffset(newOriginOffset);
         //_entityCollisionSystem.rememberAllPhysics();
     }
 #endif // USE_BULLET_PHYSICS
@@ -4310,8 +4330,6 @@ bool Application::isVSyncOn() const {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
         return (swapInterval > 0);
-    } else {
-        return true;
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4322,10 +4340,9 @@ bool Application::isVSyncOn() const {
     } else {
         return true;
     }
-    */
-#else
-    return true;
+    */    
 #endif
+    return true;
 }
 
 bool Application::isVSyncEditable() const {
@@ -4340,7 +4357,6 @@ bool Application::isVSyncEditable() const {
         return true;
     }
     */
-#else
 #endif
     return false;
 }

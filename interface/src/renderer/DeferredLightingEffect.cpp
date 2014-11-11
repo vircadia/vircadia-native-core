@@ -230,9 +230,10 @@ void DeferredLightingEffect::render() {
     glTexGenfv(GL_T, GL_OBJECT_PLANE, (const GLfloat*)&tCoefficients);
     
     // enlarge the scales slightly to account for tesselation
-    const float SCALE_EXPANSION = 0.1f;
+    const float SCALE_EXPANSION = 0.05f;
     
     const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
+    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
@@ -247,14 +248,14 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
             glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.f ? light.constantAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.f ? light.linearAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.f ? light.quadraticAttenuation : 0.f));
          
             glPushMatrix();
             
             float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius) {
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < expandedRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -269,7 +270,7 @@ void DeferredLightingEffect::render() {
                 
             } else {
                 glTranslatef(light.position.x, light.position.y, light.position.z);   
-                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 64, 64);
+                Application::getInstance()->getGeometryCache()->renderSphere(expandedRadius, 32, 32);
             }
             
             glPopMatrix();
@@ -292,9 +293,9 @@ void DeferredLightingEffect::render() {
             glLightfv(GL_LIGHT1, GL_DIFFUSE, (const GLfloat*)&light.diffuse);
             glLightfv(GL_LIGHT1, GL_SPECULAR, (const GLfloat*)&light.specular);
             glLightfv(GL_LIGHT1, GL_POSITION, (const GLfloat*)&light.position);
-            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, light.constantAttenuation);
-            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, light.linearAttenuation);
-            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, light.quadraticAttenuation);
+            glLightf(GL_LIGHT1, GL_CONSTANT_ATTENUATION, (light.constantAttenuation > 0.f ? light.constantAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_LINEAR_ATTENUATION, (light.linearAttenuation > 0.f ? light.linearAttenuation : 0.f));
+            glLightf(GL_LIGHT1, GL_QUADRATIC_ATTENUATION, (light.quadraticAttenuation > 0.f ? light.quadraticAttenuation : 0.f));
             glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (const GLfloat*)&light.direction);
             glLightf(GL_LIGHT1, GL_SPOT_EXPONENT, light.exponent);
             glLightf(GL_LIGHT1, GL_SPOT_CUTOFF, glm::degrees(light.cutoff));
@@ -303,7 +304,7 @@ void DeferredLightingEffect::render() {
             
             float expandedRadius = light.radius * (1.0f + SCALE_EXPANSION);
             float edgeRadius = expandedRadius / glm::cos(light.cutoff);
-            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius) {
+            if (glm::distance(eyePoint, glm::vec3(light.position)) < edgeRadius + nearRadius) {
                 glLoadIdentity();
                 glTranslatef(0.0f, 0.0f, -1.0f);
                 
@@ -323,7 +324,7 @@ void DeferredLightingEffect::render() {
                 glRotatef(glm::degrees(glm::angle(spotRotation)), axis.x, axis.y, axis.z);   
                 glTranslatef(0.0f, 0.0f, -light.radius * (1.0f + SCALE_EXPANSION * 0.5f));  
                 Application::getInstance()->getGeometryCache()->renderCone(expandedRadius * glm::tan(light.cutoff),
-                    expandedRadius, 64, 32);
+                    expandedRadius, 32, 1);
             }
             
             glPopMatrix();

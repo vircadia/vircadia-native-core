@@ -74,9 +74,13 @@ public:
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
-    void setLastEdited(quint64 lastEdited) {  _lastEdited = _lastUpdated = lastEdited;  }
+    void setLastEdited(quint64 lastEdited) 
+        { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
+
+    void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
+    quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
@@ -276,6 +280,7 @@ protected:
     quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
     quint64 _created;
+    quint64 _changedOnServer;
 
     glm::vec3 _position;
     glm::vec3 _dimensions;

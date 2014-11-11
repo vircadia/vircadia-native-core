@@ -60,6 +60,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
+    _changedOnServer = 0;
 
     _position = glm::vec3(0,0,0);
     _rotation = DEFAULT_ROTATION;
@@ -91,6 +92,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
 #ifdef USE_BULLET_PHYSICS
     _motionState = NULL;
 #endif // USE_BULLET_PHYSICS
+    _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
 }
 
@@ -104,6 +106,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 #ifdef USE_BULLET_PHYSICS
     _motionState = NULL;
 #endif // USE_BULLET_PHYSICS
+    _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
 }

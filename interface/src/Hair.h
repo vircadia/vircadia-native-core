@@ -24,10 +24,10 @@
 const int HAIR_CONSTRAINTS = 2; 
 
 const int DEFAULT_HAIR_STRANDS = 20;
-const int DEFAULT_HAIR_LINKS = 10;
+const int DEFAULT_HAIR_LINKS = 11;
 const float DEFAULT_HAIR_RADIUS = 0.075f;
-const float DEFAULT_HAIR_LINK_LENGTH = 0.06f;
-const float DEFAULT_HAIR_THICKNESS = 0.025f;
+const float DEFAULT_HAIR_LINK_LENGTH = 0.1f;
+const float DEFAULT_HAIR_THICKNESS = 0.07f;
 const glm::vec3 DEFAULT_GRAVITY(0.0f, -9.8f, 0.0f);
 
 class Hair {
@@ -37,6 +37,7 @@ public:
          float radius = DEFAULT_HAIR_RADIUS,
          float linkLength = DEFAULT_HAIR_LINK_LENGTH,
          float hairThickness = DEFAULT_HAIR_THICKNESS);
+    ~Hair();
     void simulate(float deltaTime);
     void render();
     void setAcceleration(const glm::vec3& acceleration) { _acceleration = acceleration; }

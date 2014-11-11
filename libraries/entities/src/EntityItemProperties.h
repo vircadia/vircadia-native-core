@@ -285,6 +285,9 @@ public:
 
     const QString& getTextures() const { return _textures; }
     void setTextures(const QString& value) { _textures = value; _texturesChanged = true; }
+
+    const QStringList& getTextureNames() const { return _textureNames; }
+    void setTextureNames(const QStringList& value) { _textureNames = value; }
     
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
@@ -380,6 +383,7 @@ private:
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
     // properties of model geometry. But these properties are not serialized like other properties.
     QVector<SittingPoint> _sittingPoints;
+    QStringList _textureNames;
     glm::vec3 _naturalDimensions;
 };
 Q_DECLARE_METATYPE(EntityItemProperties);

@@ -62,10 +62,21 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
+    if (!_model->isLoadedWithTextures()) {
+        return; // nothing to do if the model has not yet loaded it's default textures
+    }
+    
+    if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
+        const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
+        if (networkGeometry) {
+            _originalTextures = networkGeometry->getTextureNames();
+            _originalTexturesRead = true;
+        }
+    }
+    
     if (_currentTextures == _textures) {
         return; // nothing to do if our recently mapped textures match our desired textures
     }
-    qDebug() << "void RenderableModelEntityItem::remapTextures()....";
     
     // since we're changing here, we need to run through our current texture map
     // and any textures in the recently mapped texture, that is not in our desired
@@ -232,6 +243,14 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 bool RenderableModelEntityItem::needsSimulation() const {
     SimulationState simulationState = getSimulationState();
     return _needsInitialSimulation || simulationState == Moving || simulationState == Changing;
+}
+
+EntityItemProperties RenderableModelEntityItem::getProperties() const {
+    EntityItemProperties properties = ModelEntityItem::getProperties(); // get the properties from our base class
+    if (_originalTexturesRead) {
+        properties.setTextureNames(_originalTextures);
+    }
+    return properties;
 }
 
 
