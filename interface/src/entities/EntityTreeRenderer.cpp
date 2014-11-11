@@ -780,7 +780,6 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
         QScriptValueList entityArgs = createEntityArgs(entityID);
         entityScript.property("preload").call(entityScript, entityArgs);
     }
-    
 }
 
 void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
