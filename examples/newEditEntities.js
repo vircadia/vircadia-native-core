@@ -35,6 +35,10 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 Script.include("libraries/entityCameraTool.js");
 var cameraManager = new CameraManager();
 
+Script.include("libraries/gridTool.js");
+var grid = Grid();
+gridTool = GridTool({ horizontalGrid: grid });
+
 selectionManager.setEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -51,11 +55,13 @@ var wantEntityGlow = false;
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
+var MENU_GRID_TOOL_ENABLED = 'Grid Tool';
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
+var SETTING_GRID_TOOL_ENABLED = 'GridToolEnabled';
 
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
@@ -262,10 +268,12 @@ var toolBar = (function () {
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
             if (!isActive) {
+                gridTool.setVisible(false);
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
+                gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
             }
             return true;
         }
@@ -597,7 +605,9 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: "Edit Entities Help...",
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_GRID_TOOL_ENABLED, afterItem: "Edit Entities Help...", isCheckable: true,
+                       isChecked: Settings.getValue(SETTING_GRID_TOOL_ENABLED) == 'true'});
+    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: MENU_GRID_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
@@ -623,6 +633,8 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Models");
     Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 
+    Settings.setValue(SETTING_GRID_TOOL_ENABLED, Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
+    Menu.removeMenuItem("View", MENU_GRID_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
 }
@@ -734,6 +746,10 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
+    } else if (menuItem == MENU_GRID_TOOL_ENABLED) {
+        if (isActive) {
+            gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
+        }
     }
     tooltip.show(false);
 }
@@ -759,25 +775,32 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
+    } else if (event.text == 'g') {
+        if (isActive && selectionManager.hasSelection()) {
+            var newPosition = selectionManager.worldPosition;
+            newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+            grid.setPosition(newPosition);
+        }
     } else if (isActive) {
         var delta = null;
+        var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
 
         if (event.text == 'UP') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: 1, z: 0 };
+                delta = { x: 0, y: increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: -1 };
+                delta = { x: 0, y: 0, z: -increment };
             }
         } else if (event.text == 'DOWN') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: -1, z: 0 };
+                delta = { x: 0, y: -increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: 1 };
+                delta = { x: 0, y: 0, z: increment };
             }
         } else if (event.text == 'LEFT') {
-            delta = { x: -1, y: 0, z: 0 };
+            delta = { x: -increment, y: 0, z: 0 };
         } else if (event.text == 'RIGHT') {
-            delta = { x: 1, y: 0, z: 0 };
+            delta = { x: increment, y: 0, z: 0 };
         }
 
         if (delta != null) {
