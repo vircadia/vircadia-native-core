@@ -2973,7 +2973,105 @@ void StaticModelRenderer::applyURL(const QUrl& url) {
 }
 
 HeightfieldRenderer::HeightfieldRenderer() {
+    glGenTextures(1, &_heightTextureID);
+    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        
+    glGenTextures(1, &_colorTextureID);
+    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glGenTextures(1, &_materialTextureID);
+    glBindTexture(GL_TEXTURE_2D, _materialTextureID);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+HeightfieldRenderer::~HeightfieldRenderer() {
+    glDeleteTextures(1, &_heightTextureID);
+    glDeleteTextures(1, &_colorTextureID);
+    glDeleteTextures(1, &_materialTextureID);
+}
+
+void HeightfieldRenderer::init(Spanner* spanner) {
+    SpannerRenderer::init(spanner);
+    
+    Heightfield* heightfield = static_cast<Heightfield*>(spanner);
+    applyHeight(heightfield->getHeight());
+    applyColor(heightfield->getColor());
+    applyMaterial(heightfield->getMaterial());
+    
+    connect(heightfield, &Heightfield::heightChanged, this, &HeightfieldRenderer::applyHeight);
+    connect(heightfield, &Heightfield::colorChanged, this, &HeightfieldRenderer::applyColor);
+    connect(heightfield, &Heightfield::materialChanged, this, &HeightfieldRenderer::applyMaterial);
 }
 
 void HeightfieldRenderer::render(const glm::vec4& color, Mode mode) {
+    
+}
+
+void HeightfieldRenderer::applyHeight(const HeightfieldHeightPointer& height) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+    if (height) {
+        const QVector<quint16>& contents = height->getContents();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, height->getWidth(), contents.size() / height->getWidth(), 0,
+            GL_RED, GL_UNSIGNED_SHORT, contents.constData());
+        
+    } else {
+        const quint16 ZERO_VALUE = 0;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 1, 1, 0, GL_RED, GL_UNSIGNED_SHORT, &ZERO_VALUE);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void HeightfieldRenderer::applyColor(const HeightfieldColorPointer& color) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    if (color) {
+        const QByteArray& contents = color->getContents();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, color->getWidth(),
+            contents.size() / (color->getWidth() * DataBlock::COLOR_BYTES), 0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
+        
+    } else {
+        const quint8 WHITE_COLOR[] = { 255, 255, 255 };
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void HeightfieldRenderer::applyMaterial(const HeightfieldMaterialPointer& material) {
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glBindTexture(GL_TEXTURE_2D, _materialTextureID);
+    if (material) {
+        const QByteArray& contents = material->getContents();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, material->getWidth(), contents.size() / material->getWidth(), 0,
+            GL_RED, GL_UNSIGNED_BYTE, contents.constData());
+            
+        const QVector<SharedObjectPointer>& materials = material->getMaterials();
+        _networkTextures.resize(materials.size());
+        for (int i = 0; i < materials.size(); i++) {
+            const SharedObjectPointer& material = materials.at(i);
+            if (material) {
+                _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                    static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
+            } else {
+                _networkTextures[i].clear();
+            }
+        }
+    } else {
+        const quint8 ZERO_VALUE = 0;
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
+        _networkTextures.clear();
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
 }

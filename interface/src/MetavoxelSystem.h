@@ -457,8 +457,26 @@ class HeightfieldRenderer : public SpannerRenderer {
 public:
     
     Q_INVOKABLE HeightfieldRenderer();
+    virtual ~HeightfieldRenderer();
     
+    virtual void init(Spanner* spanner);
     virtual void render(const glm::vec4& color, Mode mode);
+
+private slots:
+
+    void applyHeight(const HeightfieldHeightPointer& height);
+    void applyColor(const HeightfieldColorPointer& color);
+    void applyMaterial(const HeightfieldMaterialPointer& material);
+
+private:
+    
+    GLuint _heightTextureID;
+    GLuint _colorTextureID;
+    GLuint _materialTextureID;
+    QVector<NetworkTexturePointer> _networkTextures;
+    
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    static QHash<int, BufferPair> _bufferPairs;
 };
 
 #endif // hifi_MetavoxelSystem_h
