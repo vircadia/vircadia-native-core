@@ -303,6 +303,8 @@ private:
 class HeightfieldData : public DataBlock {
 public:
     
+    static const int SHARED_EDGE = 1;
+    
     HeightfieldData(int width = 0);
     
     int getWidth() const { return _width; }
@@ -318,6 +320,9 @@ typedef QExplicitlySharedDataPointer<HeightfieldHeight> HeightfieldHeightPointer
 class HeightfieldHeight : public HeightfieldData {
 public:
 
+    static const int HEIGHT_BORDER = 1;
+    static const int HEIGHT_EXTENSION = SHARED_EDGE + 2 * HEIGHT_BORDER;
+    
     HeightfieldHeight(int width, const QVector<quint16>& contents);
     HeightfieldHeight(Bitstream& in, int bytes);
     HeightfieldHeight(Bitstream& in, int bytes, const HeightfieldHeightPointer& reference);
@@ -339,6 +344,36 @@ Bitstream& operator>>(Bitstream& in, HeightfieldHeightPointer& value);
 
 template<> void Bitstream::writeRawDelta(const HeightfieldHeightPointer& value, const HeightfieldHeightPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldHeightPointer& value, const HeightfieldHeightPointer& reference);
+
+/// Allows editing heightfield height blocks.
+class HeightfieldHeightEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(HeightfieldHeightPointer height MEMBER _height WRITE setHeight NOTIFY heightChanged USER true)
+    
+public:
+    
+    HeightfieldHeightEditor(QWidget* parent = NULL);
+    
+signals:
+
+    void heightChanged(const HeightfieldHeightPointer& height);
+
+public slots:
+
+    void setHeight(const HeightfieldHeightPointer& height);
+
+private slots:
+    
+    void select();
+    void clear();    
+    
+private:
+    
+    HeightfieldHeightPointer _height;
+    
+    QPushButton* _select;
+    QPushButton* _clear;
+};
 
 typedef QExplicitlySharedDataPointer<HeightfieldColor> HeightfieldColorPointer;
 
@@ -367,6 +402,36 @@ Bitstream& operator>>(Bitstream& in, HeightfieldColorPointer& value);
 
 template<> void Bitstream::writeRawDelta(const HeightfieldColorPointer& value, const HeightfieldColorPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldColorPointer& value, const HeightfieldColorPointer& reference);
+
+/// Allows editing heightfield color blocks.
+class HeightfieldColorEditor : public QWidget {
+    Q_OBJECT
+    Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged USER true)
+    
+public:
+    
+    HeightfieldColorEditor(QWidget* parent = NULL);
+    
+signals:
+
+    void colorChanged(const HeightfieldColorPointer& color);
+
+public slots:
+
+    void setColor(const HeightfieldColorPointer& color);
+
+private slots:
+    
+    void select();
+    void clear();
+    
+private:
+    
+    HeightfieldColorPointer _color;
+    
+    QPushButton* _select;
+    QPushButton* _clear;
+};
 
 typedef QExplicitlySharedDataPointer<HeightfieldMaterial> HeightfieldMaterialPointer;
 
@@ -405,7 +470,7 @@ class Heightfield : public Transformable {
     Q_PROPERTY(float aspectZ MEMBER _aspectZ WRITE setAspectZ NOTIFY aspectZChanged)
     Q_PROPERTY(HeightfieldHeightPointer height MEMBER _height WRITE setHeight NOTIFY heightChanged)
     Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged)
-    Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged)
+    Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged DESIGNABLE false)
 
 public:
     

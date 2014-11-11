@@ -9,6 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <limits>
+
+#include <QFileDialog>
+#include <QHBoxLayout>
+#include <QItemEditorFactory>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QSettings>
 #include <QThread>
 
 #include <glm/gtx/transform.hpp>
@@ -16,6 +24,8 @@
 #include <GeometryUtil.h>
 
 #include "Spanner.h"
+
+using namespace std;
 
 REGISTER_META_OBJECT(Spanner)
 REGISTER_META_OBJECT(Sphere)
@@ -26,6 +36,21 @@ REGISTER_META_OBJECT(Heightfield)
 static int heightfieldHeightTypeId = registerSimpleMetaType<HeightfieldHeightPointer>();
 static int heightfieldColorTypeId = registerSimpleMetaType<HeightfieldColorPointer>();
 static int heightfieldMaterialTypeId = registerSimpleMetaType<HeightfieldMaterialPointer>();
+
+static QItemEditorCreatorBase* createHeightfieldHeightEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<HeightfieldHeightEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<HeightfieldHeightPointer>(), creator);
+    return creator;
+}
+
+static QItemEditorCreatorBase* createHeightfieldColorEditorCreator() {
+    QItemEditorCreatorBase* creator = new LazyItemEditorCreator<HeightfieldColorEditor>();
+    getItemEditorFactory()->registerEditor(qMetaTypeId<HeightfieldColorPointer>(), creator);
+    return creator;
+}
+
+static QItemEditorCreatorBase* heightfieldHeightEditorCreator = createHeightfieldHeightEditorCreator();
+static QItemEditorCreatorBase* heightfieldColorEditorCreator = createHeightfieldColorEditorCreator();
 
 const float DEFAULT_PLACEMENT_GRANULARITY = 0.01f;
 const float DEFAULT_VOXELIZATION_GRANULARITY = powf(2.0f, -3.0f);
@@ -627,6 +652,99 @@ template<> void Bitstream::writeRawDelta(const HeightfieldHeightPointer& value, 
 template<> void Bitstream::readRawDelta(HeightfieldHeightPointer& value, const HeightfieldHeightPointer& reference) {
 }
 
+HeightfieldHeightEditor::HeightfieldHeightEditor(QWidget* parent) :
+    QWidget(parent) {
+    
+    QHBoxLayout* layout = new QHBoxLayout();
+    setLayout(layout);
+    
+    layout->addWidget(_select = new QPushButton("Select"));
+    connect(_select, &QPushButton::clicked, this, &HeightfieldHeightEditor::select);
+    
+    layout->addWidget(_clear = new QPushButton("Clear"));
+    connect(_clear, &QPushButton::clicked, this, &HeightfieldHeightEditor::clear);
+    _clear->setEnabled(false);
+}
+
+void HeightfieldHeightEditor::setHeight(const HeightfieldHeightPointer& height) {
+    if ((_height = height)) {
+        _clear->setEnabled(true);
+    } else {
+        _clear->setEnabled(false);
+    }
+}
+
+static int getHeightfieldSize(int size) {
+    return (int)glm::pow(2.0f, glm::round(glm::log((float)size - HeightfieldData::SHARED_EDGE) /
+        glm::log(2.0f))) + HeightfieldData::SHARED_EDGE;
+}
+
+void HeightfieldHeightEditor::select() {
+    QSettings settings;
+    QString result = QFileDialog::getOpenFileName(this, "Select Height Image", settings.value("heightDir").toString(),
+        "Images (*.png *.jpg *.bmp *.raw)");
+    if (result.isNull()) {
+        return;
+    }
+    settings.setValue("heightDir", QFileInfo(result).path());
+    QImage image;
+    if (!image.load(result)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+        return;
+    }
+    const quint16 CONVERSION_OFFSET = 1;
+    if (result.toLower().endsWith(".raw")) {
+        QFile input(result);
+        input.open(QIODevice::ReadOnly);
+        QDataStream in(&input);
+        in.setByteOrder(QDataStream::LittleEndian);
+        QVector<quint16> rawContents;
+        while (!in.atEnd()) {
+            quint16 height;
+            in >> height;
+            rawContents.append(height);
+        }
+        if (rawContents.isEmpty()) {
+            QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+            return;
+        }
+        int rawSize = glm::sqrt((float)rawContents.size());
+        int size = getHeightfieldSize(rawSize) + 2 * HeightfieldHeight::HEIGHT_BORDER;
+        QVector<quint16> contents(size * size);
+        quint16* dest = contents.data() + (size + 1) * HeightfieldHeight::HEIGHT_BORDER;
+        const quint16* src = rawContents.constData();
+        const float CONVERSION_SCALE = 65534.0f / numeric_limits<quint16>::max();
+        for (int i = 0; i < rawSize; i++, dest += size) {
+            for (quint16* lineDest = dest, *end = dest + rawSize; lineDest != end; lineDest++, src++) {
+                *lineDest = (quint16)(*src * CONVERSION_SCALE) + CONVERSION_OFFSET;
+            }
+        }
+        emit heightChanged(_height = new HeightfieldHeight(size, contents));
+        _clear->setEnabled(true);
+        return;
+    }
+    image = image.convertToFormat(QImage::Format_RGB888);
+    int width = getHeightfieldSize(image.width()) + 2 * HeightfieldHeight::HEIGHT_BORDER;
+    int height = getHeightfieldSize(image.height()) + 2 * HeightfieldHeight::HEIGHT_BORDER;
+    QVector<quint16> contents(width * height);
+    quint16* dest = contents.data() + (width + 1) * HeightfieldHeight::HEIGHT_BORDER;
+    const float CONVERSION_SCALE = 65534.0f / EIGHT_BIT_MAXIMUM;
+    for (int i = 0; i < image.height(); i++, dest += width) {
+        const uchar* src = image.constScanLine(i);
+        for (quint16* lineDest = dest, *end = dest + image.width(); lineDest != end; lineDest++,
+                src += DataBlock::COLOR_BYTES) {
+            *lineDest = (quint16)(*src * CONVERSION_SCALE) + CONVERSION_OFFSET;
+        }
+    }
+    emit heightChanged(_height = new HeightfieldHeight(width, contents));
+    _clear->setEnabled(true);
+}
+
+void HeightfieldHeightEditor::clear() {
+    emit heightChanged(_height = HeightfieldHeightPointer());
+    _clear->setEnabled(false);
+}
+
 HeightfieldColor::HeightfieldColor(int width, const QByteArray& contents) :
     HeightfieldData(width),
     _contents(contents) {
@@ -675,6 +793,58 @@ template<> void Bitstream::writeRawDelta(const HeightfieldColorPointer& value, c
 }
 
 template<> void Bitstream::readRawDelta(HeightfieldColorPointer& value, const HeightfieldColorPointer& reference) {
+}
+
+HeightfieldColorEditor::HeightfieldColorEditor(QWidget* parent) :
+    QWidget(parent) {
+    
+    QHBoxLayout* layout = new QHBoxLayout();
+    setLayout(layout);
+    
+    layout->addWidget(_select = new QPushButton("Select"));
+    connect(_select, &QPushButton::clicked, this, &HeightfieldColorEditor::select);
+    
+    layout->addWidget(_clear = new QPushButton("Clear"));
+    connect(_clear, &QPushButton::clicked, this, &HeightfieldColorEditor::clear);
+    _clear->setEnabled(false);
+}
+
+void HeightfieldColorEditor::setColor(const HeightfieldColorPointer& color) {
+    if ((_color = color)) {
+        _clear->setEnabled(true);
+    } else {
+        _clear->setEnabled(false);
+    }
+}
+
+void HeightfieldColorEditor::select() {
+    QSettings settings;
+    QString result = QFileDialog::getOpenFileName(this, "Select Color Image", settings.value("heightDir").toString(),
+        "Images (*.png *.jpg *.bmp)");
+    if (result.isNull()) {
+        return;
+    }
+    settings.setValue("heightDir", QFileInfo(result).path());
+    QImage image;
+    if (!image.load(result)) {
+        QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
+        return;
+    }
+    image = image.convertToFormat(QImage::Format_RGB888);
+    int width = getHeightfieldSize(image.width());
+    int height = getHeightfieldSize(image.height());
+    QByteArray contents(width * height * DataBlock::COLOR_BYTES, 0);
+    char* dest = contents.data();
+    for (int i = 0; i < image.height(); i++, dest += width * DataBlock::COLOR_BYTES) {
+        memcpy(dest, image.constScanLine(i), image.width() * DataBlock::COLOR_BYTES);
+    }
+    emit colorChanged(_color = new HeightfieldColor(width, contents));
+    _clear->setEnabled(true);
+}
+
+void HeightfieldColorEditor::clear() {
+    emit colorChanged(_color = HeightfieldColorPointer());
+    _clear->setEnabled(false);
 }
 
 HeightfieldMaterial::HeightfieldMaterial(int width, const QByteArray& contents,
