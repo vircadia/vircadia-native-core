@@ -334,6 +334,8 @@ public:
     
 private:
     
+    void read(Bitstream& in, int bytes);
+    
     QVector<quint16> _contents;
 };
 
@@ -391,6 +393,8 @@ public:
     void writeDelta(Bitstream& out, const HeightfieldColorPointer& reference);
     
 private:
+    
+    void read(Bitstream& in, int bytes);
     
     QByteArray _contents;
 };
@@ -450,6 +454,8 @@ public:
     void writeDelta(Bitstream& out, const HeightfieldMaterialPointer& reference);
     
 private:
+    
+    void read(Bitstream& in, int bytes);
     
     QByteArray _contents;
     QVector<SharedObjectPointer> _materials;

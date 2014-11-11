@@ -329,7 +329,7 @@ static QByteArray encodeHeightfieldImage(const QImage& image, bool lossless = fa
     }
 }
 
-const QImage decodeHeightfieldImage(const QByteArray& data) {
+static QImage decodeHeightfieldImage(const QByteArray& data) {
     switch (data.at(0)) {
         case NULL_HEIGHTFIELD_IMAGE:
         default:
