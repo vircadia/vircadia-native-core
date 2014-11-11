@@ -97,6 +97,9 @@ Audio::Audio(QObject* parent) :
     _muted(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
+    _gverb(NULL),
+    _iconColor(1.0f),
+    _iconPulseTimeReference(usecTimestampNow()),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
@@ -1390,23 +1393,37 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!_muted) {
         glBindTexture(GL_TEXTURE_2D, _micTextureId);
+        _iconColor = 1.0f;
     } else {
         glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        
+        // Make muted icon pulsate
+        static const float PULSE_MIN = 0.4f;
+        static const float PULSE_MAX = 1.0f;
+        static const float PULSE_FREQUENCY = 1.0f; // in Hz
+        qint64 now = usecTimestampNow();
+        if (now - _iconPulseTimeReference > USECS_PER_SECOND) {
+            // Prevents t from getting too big, which would diminish glm::cos precision
+            _iconPulseTimeReference = now - ((now - _iconPulseTimeReference) % USECS_PER_SECOND);
+        }
+        float t = (float)(now - _iconPulseTimeReference) / (float)USECS_PER_SECOND;
+        float pulseFactor = (glm::cos(t * PULSE_FREQUENCY * 2.0f * PI) + 1.0f) / 2.0f;
+        _iconColor = PULSE_MIN + (PULSE_MAX - PULSE_MIN) * pulseFactor;
     }
 
-    glColor3f(1,1,1);
+    glColor3f(_iconColor, _iconColor, _iconColor);
     glBegin(GL_QUADS);
 
-    glTexCoord2f(1, 1);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.top());
 
-    glTexCoord2f(0, 1);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.top());
 
-    glTexCoord2f(0, 0);
+    glTexCoord2f(0.0f, 0.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.bottom());
 
-    glTexCoord2f(1, 0);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.bottom());
 
     glEnd();
