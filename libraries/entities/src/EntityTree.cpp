@@ -124,6 +124,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     } else {
         // check to see if we need to simulate this entity...
         EntityItem::SimulationState oldState = existingEntity->getSimulationState();
+        QString entityScriptBefore = existingEntity->getScript();
     
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
@@ -131,6 +132,12 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 
         EntityItem::SimulationState newState = existingEntity->getSimulationState();
         changeEntityState(existingEntity, oldState, newState);
+
+        QString entityScriptAfter = existingEntity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entityID); // the entity script has changed
+        }
+
     }
     
     containingElement = getContainingElement(entityID);
@@ -168,6 +175,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     if (result) {
         // this does the actual adding of the entity
         addEntityItem(result);
+        emitAddingEntity(entityID);
     }
     return result;
 }
@@ -182,6 +190,14 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
         _recentlyDeletedEntityItemIDs.insert(deletedAt, entityID.id);
         _recentlyDeletedEntitiesLock.unlock();
     }
+}
+
+void EntityTree::emitAddingEntity(const EntityItemID& entityItemID) {
+    emit addingEntity(entityItemID);
+}
+
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
+    emit entityScriptChanging(entityItemID);
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
@@ -290,6 +306,7 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
 
+
     // First look for and find the "viewed version" of this entity... it's possible we got
     // the known ID version sent to us between us creating our local version, and getting this
     // remapping message. If this happened, we actually want to find and delete that version of
@@ -310,6 +327,10 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
             creatorTokenContainingElement->updateEntityItemID(creatorTokenVersion, knownIDVersion);
             setContainingElement(creatorTokenVersion, NULL);
             setContainingElement(knownIDVersion, creatorTokenContainingElement);
+            
+            // because the ID of the entity is switching, we need to emit these signals for any 
+            // listeners who care about the changing of IDs
+            emit changingEntityID(creatorTokenVersion, knownIDVersion);
         }
     }
     unlock();
@@ -980,7 +1001,6 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
     }
     return processedBytes;
 }
-
 
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
