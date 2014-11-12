@@ -20,6 +20,7 @@
 #include <AnimationCache.h>
 #include <PhysicsEntity.h>
 
+#include "AnimationHandle.h"
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "JointState.h"
@@ -28,13 +29,9 @@
 
 class QScriptEngine;
 
-class AnimationHandle;
 class Shape;
 class RenderArgs;
 class ViewFrustum;
-
-typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
-typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
 
 namespace gpu {
     class Batch;
@@ -93,6 +90,12 @@ public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
+    
+    // Scene rendering support
+    static void startScene();
+    bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
+    static void endScene(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -259,14 +262,13 @@ protected:
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-
+    
 private:
     
     friend class AnimationHandle;
     
     void applyNextGeometry();
     void deleteGeometry();
-    int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -394,91 +396,20 @@ private:
     QVector<int> _meshesOpaqueTangentsSpecularSkinned;
     QVector<int> _meshesOpaqueSpecularSkinned;
 
+    // Scene rendering support
+    static QVector<Model*> _modelsInScene;
+    static void endSceneSimple(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endSceneSplitPass(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+
+    // helper functions used by render() or renderInScene()
+    void renderSetup(RenderArgs* args);
+    int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
+                        bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
-/// Represents a handle to a model animation.
-class AnimationHandle : public QObject {
-    Q_OBJECT
-    
-public:
-
-    void setRole(const QString& role) { _role = role; }
-    const QString& getRole() const { return _role; }
-
-    void setURL(const QUrl& url);
-    const QUrl& getURL() const { return _url; }
-    
-    void setFPS(float fps) { _fps = fps; }
-    float getFPS() const { return _fps; }
-
-    void setPriority(float priority);
-    float getPriority() const { return _priority; }
-    
-    void setLoop(bool loop) { _loop = loop; }
-    bool getLoop() const { return _loop; }
-    
-    void setHold(bool hold) { _hold = hold; }
-    bool getHold() const { return _hold; }
-    
-    void setStartAutomatically(bool startAutomatically);
-    bool getStartAutomatically() const { return _startAutomatically; }
-    
-    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
-    float getFirstFrame() const { return _firstFrame; }
-    
-    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
-    float getLastFrame() const { return _lastFrame; }
-    
-    void setMaskedJoints(const QStringList& maskedJoints);
-    const QStringList& getMaskedJoints() const { return _maskedJoints; }
-    
-    void setRunning(bool running);
-    bool isRunning() const { return _running; }
-
-    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
-    float getFrameIndex() const { return _frameIndex; }
-
-    AnimationDetails getAnimationDetails() const;
-
-signals:
-    
-    void runningChanged(bool running);
-
-public slots:
-
-    void start() { setRunning(true); }
-    void stop() { setRunning(false); }
-    
-private:
-
-    friend class Model;
-
-    AnimationHandle(Model* model);
-        
-    void simulate(float deltaTime);
-    void applyFrame(float frameIndex);
-    void replaceMatchingPriorities(float newPriority);
-    
-    Model* _model;
-    WeakAnimationHandlePointer _self;
-    AnimationPointer _animation;
-    QString _role;
-    QUrl _url;
-    float _fps;
-    float _priority;
-    bool _loop;
-    bool _hold;
-    bool _startAutomatically;
-    float _firstFrame;
-    float _lastFrame;
-    QStringList _maskedJoints;
-    bool _running;
-    QVector<int> _jointMappings;
-    float _frameIndex;
-};
 
 #endif // hifi_Model_h

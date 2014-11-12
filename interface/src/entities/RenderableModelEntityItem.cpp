@@ -172,7 +172,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
                     // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
                     PerformanceTimer perfTimer("model->render");
-                    _model->render(alpha, modelRenderMode, args);
+                    //_model->render(alpha, modelRenderMode, args);
+                    _model->renderInScene(alpha, args);
                 } else {
                     // if we couldn't get a model, then just draw a cube
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);

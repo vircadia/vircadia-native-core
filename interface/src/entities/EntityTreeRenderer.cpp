@@ -253,7 +253,40 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
-    OctreeRenderer::render(renderMode);
+    Model::startScene();
+    //OctreeRenderer::render(renderMode);
+    
+    RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
+                                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    if (_tree) {
+        _tree->lockForRead();
+        _tree->recurseTreeWithOperation(renderOperation, &args);
+        _tree->unlock();
+    }
+
+    Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
+                                        ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+    
+    Model::endScene(modelRenderMode, &args);
+    
+    // stats...
+    _meshesConsidered = args._meshesConsidered;
+    _meshesRendered = args._meshesRendered;
+    _meshesOutOfView = args._meshesOutOfView;
+    _meshesTooSmall = args._meshesTooSmall;
+
+    _elementsTouched = args._elementsTouched;
+    _itemsRendered = args._itemsRendered;
+    _itemsOutOfView = args._itemsOutOfView;
+    _itemsTooSmall = args._itemsTooSmall;
+
+    _materialSwitches = args._materialSwitches;
+    _trianglesRendered = args._trianglesRendered;
+    _quadsRendered = args._quadsRendered;
+
+    _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
+    _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+    
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
