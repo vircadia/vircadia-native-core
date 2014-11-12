@@ -20,6 +20,9 @@ var ChessGame = ChessGame || {
   blacksTileColor: { red: 190, green: 115, blue: 50 },
 
   board: null,
+  boardURL: "https://s3.amazonaws.com/hifi-public/models/props/chess/Board.fbx",
+  boardDimensions: { x: 773.191, y: 20.010, z: 773.191 },
+  sizeFactor: 1.0 / 773.191,
   pieces: {
     all: new Array(),
     king: {
@@ -38,7 +41,7 @@ var ChessGame = ChessGame || {
       whiteURL: "https://s3.amazonaws.com/hifi-public/models/props/chess/Bishop_White.fbx",
       blackURL: "https://s3.amazonaws.com/hifi-public/models/props/chess/Bishop_Black.fbx",
       dimensions: { x: 102.002, y: 213.941, z: 102.002 },
-      rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+      rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
       white: [],
       black: []
     },
@@ -72,30 +75,18 @@ var ChessGame = ChessGame || {
 
 // Board class
 ChessGame.Board = (function(position, size) {
-  this.size = size;
-  this.tileSize = this.size / ChessGame.BOARD_SIZE;
-  this.height = this.tileSize * 0.2;
+  this.tileSize = size / 10.0;
+  this.dimensions = Vec3.multiply(ChessGame.sizeFactor * size,
+                                 ChessGame.boardDimensions);
+  this.position = Vec3.sum(position, Vec3.multiply(0.5, this.dimensions));
 
-  this.position = position;
-  this.position.x += this.tileSize / 2.0;
-  this.position.y += this.height / 2.0;
-  this.position.z += this.tileSize / 2.0;
-
-  this.tiles = new Array();
+  this.entity = null;
 });
-// Applies operation to each tile where operation = function(i, j)
-ChessGame.Board.prototype.apply = function(operation) {
-  for (var i = 0; i < ChessGame.BOARD_SIZE; i++) {
-    for (var j = 0; j < ChessGame.BOARD_SIZE; j++) {
-      operation.call(this, i, j);
-    } 
-  }
-}
 // Returns tile position
 ChessGame.Board.prototype.tilePosition = function(i, j) {
-  return { x: this.position.x + i * this.tileSize,
-           y: this.position.y,
-           z: this.position.z + j * this.tileSize };
+  return { x: this.position.x + (i - 5.0 + 0.5) * this.tileSize,
+           y: this.position.y + this.dimensions.y / 2.0,
+           z: this.position.z + (j - 5.0 + 0.5) * this.tileSize };
 }
 // Checks the color of the tile
 ChessGame.Board.prototype.isWhite = function(x, y) {
@@ -107,20 +98,13 @@ ChessGame.Board.prototype.spawn = function() {
     print("Spawning board...");
   }
   
-  this.apply(function(i, j) {
-    var tile = Entities.addEntity({
-      type: "Box",
-      position: this.tilePosition(i, j),
-      dimensions: { x: this.tileSize, y: this.height, z: this.tileSize },
-      color: (this.isWhite(i, j)) ? ChessGame.whitesTileColor : ChessGame.blacksTileColor
-    });
-    
-    if (j === 0) {
-      // Create new row if needed
-      this.tiles.push(new Array());
-    }
-    this.tiles[i].push(tile); // Store tile
+  this.entity = Entities.addEntity({
+    type: "Model",
+    modelURL: ChessGame.boardURL,
+    position: this.position,
+    dimensions: this.dimensions
   });
+  
   print("Board spawned");
 }
 // Cleans up the entities of the board
@@ -128,17 +112,15 @@ ChessGame.Board.prototype.cleanup = function() {
   if (extraDebug) {
     print("Cleaning up board...");
   }
-  
-  this.apply(function(i, j) {
-    Entities.deleteEntity(this.tiles[i][j]);
-  });
+  Entities.deleteEntity(this.entity);
   print("Board cleaned up");
 }
 
 // Piece class
 ChessGame.Piece = (function(position, size, url, rotation) {
-  this.position = position;
   this.size = size;
+  this.position = position;
+  this.position.y += this.size.y / 2.0;
   this.entityProperties = {
     type: "Model",
     position: this.position,
@@ -164,14 +146,11 @@ ChessGame.Piece.prototype.cleanup = function() {
 }
 ChessGame.makePiece = function(properties, i, j, isWhite) {
   var url = (isWhite) ? properties.whiteURL : properties.blackURL;
-  var size = Vec3.multiply(1.0 / ChessGame.pieces.king.dimensions.y,
-                           properties.dimensions);
-  size = Vec3.multiply(1.5 * ChessGame.board.tileSize, size);
+  var size = Vec3.multiply(0.5 * ChessGame.sizeFactor, properties.dimensions);
   var rotation = (isWhite) ? properties.rotation
                            : Quat.multiply(Quat.fromPitchYawRollDegrees(0, 180, 0),
                                            properties.rotation);
-  var position = Vec3.sum(ChessGame.board.tilePosition(i, j),
-                          { x: 0, y: (size.y + ChessGame.board.height) / 2.0, z: 0});
+  var position = ChessGame.board.tilePosition(i, j);
                 
   var piece = new ChessGame.Piece(position, size, url, rotation);
   piece.spawn();
@@ -206,55 +185,55 @@ ChessGame.buildBoard = function() {
   
   // Setup white pieces
   // King
-  var piece = ChessGame.makePiece(ChessGame.pieces.king, 0, 3, true);
+  var piece = ChessGame.makePiece(ChessGame.pieces.king, 1, 4, true);
   ChessGame.pieces.king.white = piece;
   // Queen
-  piece = ChessGame.makePiece(ChessGame.pieces.queen, 0, 4, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.queen, 1, 5, true);
   ChessGame.pieces.queen.white = piece;
   // Bishop
-  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 0, 2, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 1, 3, true);
   ChessGame.pieces.bishop.white.push(piece);
-  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 0, 5, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 1, 6, true);
   ChessGame.pieces.bishop.white.push(piece);
   // Knight
-  piece = ChessGame.makePiece(ChessGame.pieces.knight, 0, 1, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.knight, 1, 2, true);
   ChessGame.pieces.knight.white.push(piece);
-  piece = ChessGame.makePiece(ChessGame.pieces.knight, 0, 6, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.knight, 1, 7, true);
   ChessGame.pieces.knight.white.push(piece);
   // Rook
-  piece = ChessGame.makePiece(ChessGame.pieces.rook, 0, 0, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.rook, 1, 1, true);
   ChessGame.pieces.rook.white.push(piece);
-  piece = ChessGame.makePiece(ChessGame.pieces.rook, 0, 7, true);
+  piece = ChessGame.makePiece(ChessGame.pieces.rook, 1, 8, true);
   ChessGame.pieces.rook.white.push(piece);
-  for(var j = 0; j < ChessGame.BOARD_SIZE; j++) {
-    piece = ChessGame.makePiece(ChessGame.pieces.pawn, 1, j, true);
+  for(var j = 1; j <= ChessGame.BOARD_SIZE; j++) {
+    piece = ChessGame.makePiece(ChessGame.pieces.pawn, 2, j, true);
     ChessGame.pieces.pawn.white.push(piece);
   }
   
   // Setup black pieces
   // King
-  var piece = ChessGame.makePiece(ChessGame.pieces.king, 7, 3, false);
+  var piece = ChessGame.makePiece(ChessGame.pieces.king, 8, 4, false);
   ChessGame.pieces.king.white = piece;
   // Queen
-  piece = ChessGame.makePiece(ChessGame.pieces.queen, 7, 4, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.queen, 8, 5, false);
   ChessGame.pieces.queen.white = piece;
   // Bishop
-  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 7, 2, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 8, 3, false);
   ChessGame.pieces.bishop.white.push(piece);
-  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 7, 5, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.bishop, 8, 6, false);
   ChessGame.pieces.bishop.white.push(piece);
   // Knight
-  piece = ChessGame.makePiece(ChessGame.pieces.knight, 7, 1, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.knight, 8, 2, false);
   ChessGame.pieces.knight.white.push(piece);
-  piece = ChessGame.makePiece(ChessGame.pieces.knight, 7, 6, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.knight, 8, 7, false);
   ChessGame.pieces.knight.white.push(piece);
   // Rook
-  piece = ChessGame.makePiece(ChessGame.pieces.rook, 7, 0, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.rook, 8, 1, false);
   ChessGame.pieces.rook.white.push(piece);
-  piece = ChessGame.makePiece(ChessGame.pieces.rook, 7, 7, false);
+  piece = ChessGame.makePiece(ChessGame.pieces.rook, 8, 8, false);
   ChessGame.pieces.rook.white.push(piece);
-  for(var j = 0; j < ChessGame.BOARD_SIZE; j++) {
-    piece = ChessGame.makePiece(ChessGame.pieces.pawn, 6, j, false);
+  for(var j = 1; j <= ChessGame.BOARD_SIZE; j++) {
+    piece = ChessGame.makePiece(ChessGame.pieces.pawn, 7, j, false);
     ChessGame.pieces.pawn.black.push(piece);
   }
 }
