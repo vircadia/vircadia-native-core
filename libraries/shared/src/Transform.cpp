@@ -25,14 +25,12 @@ void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotat
     Mat3 rotationMat = rotationScaleMatrix;
     do {
         Mat3 nextRotation;
-        Mat3 currInvTranspose = 
-          glm::inverse(glm::transpose(rotationMat));
+        Mat3 currInvTranspose = glm::inverse(glm::transpose(rotationMat));
         
         // Go through every component in the matrices and find the next matrix
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j <3; j++) {
-                nextRotation[j][i] = 0.5f * 
-                  (rotationMat[j][i] + currInvTranspose[j][i]);
+                nextRotation[j][i] = 0.5f * (rotationMat[j][i] + currInvTranspose[j][i]);
             }
         }
 
@@ -73,7 +71,8 @@ void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotat
 
     // Beware: even though the matRot is supposed to be normalized at that point,
     // glm::quat_cast doesn't always return a normalized quaternion...
-    rotation = glm::normalize(glm::quat_cast(matRot));
+   // rotation = glm::normalize(glm::quat_cast(matRot));
+    rotation = (glm::quat_cast(matRot));
 }
 
 

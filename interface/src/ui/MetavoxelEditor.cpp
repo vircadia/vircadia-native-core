@@ -919,7 +919,9 @@ void SetSpannerTool::applyEdit(const AttributePointer& attribute, const SharedOb
         Application::getInstance()->setupWorldLight();
         
         Application::getInstance()->updateUntranslatedViewMatrix();
-        
+        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
+        // setViewTransform(viewTransform);
+
         const glm::vec4 OPAQUE_WHITE(1.0f, 1.0f, 1.0f, 1.0f);
         spannerData->getRenderer()->render(OPAQUE_WHITE, SpannerRenderer::DIFFUSE_MODE, glm::vec3(), 0.0f);
         

@@ -21,7 +21,11 @@ Batch::Batch() :
     _commandOffsets(),
     _params(),
     _resources(),
-    _data(){
+    _data(),
+    _buffers(),
+    _streamFormats(),
+    _transforms()
+{
 }
 
 Batch::~Batch() {
@@ -32,8 +36,10 @@ void Batch::clear() {
     _commandOffsets.clear();
     _params.clear();
     _resources.clear();
-    _buffers.clear();
     _data.clear();
+    _buffers.clear();
+    _streamFormats.clear();
+    _transforms.clear();
 }
 
 uint32 Batch::cacheResource(Resource* res) {

@@ -316,13 +316,12 @@ public:
     CommandOffsets _commandOffsets;
     Params _params;
     Resources _resources;
+    Bytes _data;
 
     BufferCaches _buffers;
     StreamFormatCaches _streamFormats;
-
     TransformCaches _transforms;
 
-    Bytes _data;
 protected:
 };
 

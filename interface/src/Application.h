@@ -234,6 +234,7 @@ public:
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
     const gpu::TransformPointer& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const gpu::Transform& view);
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }

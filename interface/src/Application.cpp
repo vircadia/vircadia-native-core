@@ -2805,6 +2805,8 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
+        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
+        // setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -2883,6 +2885,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
+    
     gpu::Transform viewTransform;
 
     // load the view frustum
@@ -2902,9 +2905,9 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-    viewTransform.preRotate(glm::quat(-glm::angle(eyeOffsetOrient), glm::vec3(eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z)));
-     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
-    viewTransform.preTranslate(glm::vec3(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z));
+    viewTransform.postRotate(glm::conjugate(eyeOffsetOrient));
+    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+    viewTransform.postTranslate(-eyeOffsetPos);
 
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
@@ -2913,11 +2916,15 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::quat rotation = whichCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-    viewTransform.preRotate(glm::quat(-glm::angle(rotation), axis));
+    viewTransform.postRotate(glm::conjugate(rotation));
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
-    viewTransform.preTranslate(-whichCamera.getPosition());
+
+    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+    // the viewTransofmr object is updated with the correct value and saved,
+    // this is what is used for rendering the ENtities and avatars
+    setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
@@ -3120,8 +3127,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
-    _viewTransform->evalFromRawMatrix(_untranslatedViewMatrix);
-    _viewTransform->postTranslate(viewMatrixTranslation);
+}
+
+void Application::setViewTransform(const gpu::Transform& view) {
+    (*_viewTransform) = view;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {

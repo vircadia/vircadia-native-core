@@ -458,6 +458,7 @@ void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::updateTransform() {
     if (_transform._invalidProj) {
+        // TODO: implement the projection matrix assignment to gl state
     /*    if (_transform._lastMode != GL_PROJECTION) {
             glMatrixMode(GL_PROJECTION);
             _transform._lastMode = GL_PROJECTION;

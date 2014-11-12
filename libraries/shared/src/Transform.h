@@ -296,7 +296,7 @@ inline Transform& Transform::evalInverse(Transform& inverse) const {
         }
     }
     if (isRotating()) {
-        inverse.postRotate(-_rotation);
+        inverse.postRotate(glm::conjugate(_rotation));
     }
     if (isTranslating()) {
         inverse.postTranslate(-_translation);

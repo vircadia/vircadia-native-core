@@ -560,7 +560,8 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
     }
     (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
-    _transforms[0]->postTranslate(_translation);
+    // apply entity translation + camera position offset to the viewTransform  in one go
+    _transforms[0]->postTranslate(Application::getInstance()->getViewMatrixTranslation() + _translation);
 
     batch.setViewTransform(_transforms[0]);
 
