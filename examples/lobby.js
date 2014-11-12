@@ -40,7 +40,11 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
 var droneSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.raw")
-var currentDrone;
+var currentDrone = null;
+
+var latinSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.raw")
+var elevatorSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.raw")
+var currentMusak = null;
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
@@ -93,6 +97,9 @@ function drawLobby() {
     
     // start the drone sound
     currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true });
+    
+    // start one of our musak sounds
+    playRandomMusak();
   }
 }
 
@@ -118,13 +125,38 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
+function playRandomMusak() {
+  chosenSound = null;
+  
+  if (latinSound.downloaded && elevatorSound.downloaded) {
+    chosenSound = Math.random < 0.5 ? latinSound : elevatorSound;
+  } else if (latinSound.downloaded) {
+    chosenSound = latinSound;
+  } else if (elevator.downloaded) {
+    chosenSound = elevatorSound;
+  }
+  
+  if (chosenSound) {
+    currentMusak = Audio.playSound(chosenSound, { stereo: true, localOnly: true })
+  } else {
+    currentMusak = null;
+  }
+}
+
 function cleanupLobby() {
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
   
-  currentDrone.stop();
-  currentDrone = null;
+  if (currentDrone) {
+    currentDrone.stop();
+    currentDrone = null;
+  }
+  
+  if (currentMusak) {
+    currentMusak.stop();
+    currentMusak = null;
+  }
   
   panelWall = false;
   orbShell = false;
