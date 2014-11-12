@@ -39,7 +39,7 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
 var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
-var droneSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.raw")
+var droneSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.raw")
 var currentDrone;
 
 function reticlePosition() {
