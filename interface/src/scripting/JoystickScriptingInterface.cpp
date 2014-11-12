@@ -52,9 +52,12 @@ JoystickScriptingInterface::JoystickScriptingInterface() :
 
         for (int i = 0; i < joystickCount; i++) {
             SDL_GameController* controller = SDL_GameControllerOpen(i);
-            SDL_JoystickID id = getInstanceId(controller);
-            Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
-            _openJoysticks[id] = joystick;
+            
+            if (controller) {
+                SDL_JoystickID id = getInstanceId(controller);
+                Joystick* joystick = new Joystick(id, SDL_GameControllerName(controller), controller);
+                _openJoysticks[id] = joystick;
+            }
         }
 
         _isInitialized = true;

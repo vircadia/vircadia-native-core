@@ -837,14 +837,12 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
 }
 
 bool Application::event(QEvent* event) {
-
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        
-        if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+        if (fileEvent->url().isValid()) {
+            openUrl(fileEvent->url());
         }
         
         return false;
