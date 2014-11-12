@@ -297,7 +297,7 @@ void Player::play() {
     _injector->setOptions(_options);
 }
 
-void Player::setCurrentFrame(unsigned int currentFrame) {
+void Player::setCurrentFrame(int currentFrame) {
     if (_recording && currentFrame >= _recording->getFrameNumber()) {
         stopPlaying();
         return;
@@ -314,7 +314,7 @@ void Player::setCurrentFrame(unsigned int currentFrame) {
     }
 }
 
-void Player::setCurrentTime(unsigned int currentTime) {
+void Player::setCurrentTime(int currentTime) {
     if (currentTime >= _recording->getLength()) {
         stopPlaying();
         return;
@@ -393,7 +393,7 @@ bool Player::computeCurrentFrame() {
         _currentFrame = 0;
     }
     
-    quint64 elapsed = glm::clamp(Player::elapsed() - _audioOffset, (qint64)0, (qint64)_recording->getLength());
+    qint64 elapsed = glm::clamp(Player::elapsed() - _audioOffset, (qint64)0, (qint64)_recording->getLength());
     while(_currentFrame >= 0 &&
           _recording->getFrameTimestamp(_currentFrame) > elapsed) {
         --_currentFrame;

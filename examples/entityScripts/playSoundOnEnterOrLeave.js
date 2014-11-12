@@ -12,13 +12,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 (function(){ 
-    var bird = new Sound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
+    var bird;
 
     function playSound(entityID) {
         Audio.playSound(bird, {
           position: MyAvatar.position,
           volume: 0.5
         });
+    } 
+
+    this.preload = function(entityID) { 
+        print("preload("+entityID.id+")");
+        bird = new Sound("http://s3.amazonaws.com/hifi-public/sounds/Animals/bushtit_1.raw");
     }; 
 
     this.enterEntity = function(entityID) { 

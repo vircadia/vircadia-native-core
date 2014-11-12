@@ -311,6 +311,11 @@ QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* ob
     return QScriptValue::NullValue;
 }
 
+void ScriptEngine::registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments) {
+    QScriptValue scriptFun = newFunction(fun, numArguments);
+    globalObject().setProperty(name, scriptFun);
+}
+
 void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                                         QScriptEngine::FunctionSignature setter, QScriptValue object) {
     QScriptValue setterFunction = newFunction(setter, 1);
@@ -625,7 +630,7 @@ void ScriptEngine::stopTimer(QTimer *timer) {
     }
 }
 
-QUrl ScriptEngine::resolveInclude(const QString& include) const {
+QUrl ScriptEngine::resolvePath(const QString& include) const {
     // first lets check to see if it's already a full URL
     QUrl url(include);
     if (!url.scheme().isEmpty()) {
@@ -651,7 +656,7 @@ void ScriptEngine::print(const QString& message) {
 }
 
 void ScriptEngine::include(const QString& includeFile) {
-    QUrl url = resolveInclude(includeFile);
+    QUrl url = resolvePath(includeFile);
     QString includeContents;
 
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
@@ -689,7 +694,7 @@ void ScriptEngine::include(const QString& includeFile) {
 }
 
 void ScriptEngine::load(const QString& loadFile) {
-    QUrl url = resolveInclude(loadFile);
+    QUrl url = resolvePath(loadFile);
     emit loadScript(url.toString(), false);
 }
 
