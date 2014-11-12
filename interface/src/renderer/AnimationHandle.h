@@ -104,17 +104,6 @@ private:
     QVector<int> _jointMappings;
     
     AnimationLoop _animationLoop;
-
-    /*
-    float _fps;
-    bool _loop;
-    bool _hold;
-    bool _startAutomatically;
-    float _firstFrame;
-    float _lastFrame;
-    bool _running;
-    float _frameIndex;
-    */
 };
 
 

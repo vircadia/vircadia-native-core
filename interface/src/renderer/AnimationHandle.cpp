@@ -138,26 +138,12 @@ void AnimationHandle::simulate(float deltaTime) {
         return;
     }
     
-    /*
-    float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
-    float startFrameIndex = qMin(_firstFrame, endFrameIndex);
-    if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {
-        // passed the end; apply the last frame
-        applyFrame(glm::clamp(_frameIndex, startFrameIndex, endFrameIndex));
-        if (!_hold) {
-            stop();
-        }
-        return;
-    }
-    // wrap within the the desired range
-    if (_frameIndex < startFrameIndex) {
-        _frameIndex = endFrameIndex - glm::mod(endFrameIndex - _frameIndex, endFrameIndex - startFrameIndex);
-    
-    } else if (_frameIndex > endFrameIndex) {
-        _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
-    }
-    */
-    
+    // TODO: When moving the loop/frame calculations to AnimationLoop class, we changed this behavior
+    // see AnimationLoop class for more details. Do we need to support clamping the endFrameIndex to
+    // the max number of frames in the geometry???
+    //
+    // float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
+        
     // blend between the closest two frames
     applyFrame(getFrameIndex());
 }
