@@ -31,9 +31,9 @@ public:
 
     Transform() :
         _translation(0),
-        _rotation(1.f, 0, 0, 0),
-        _scale(1.f),
-        _flags(1) // invalid cache
+        _rotation(1.0f, 0, 0, 0),
+        _scale(1.0f),
+        _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
     {
     }
     Transform(const Transform& transform) :
@@ -67,7 +67,7 @@ public:
     void postScale(float scale);
     void postScale(const Vec3& scale);
 
-    bool isIdentity() const { return (_flags & ~Flags(1)).none(); }
+    bool isIdentity() const { return (_flags & ~Flags(FLAG_CACHE_INVALID_BITSET)).none(); }
     bool isTranslating() const { return _flags[FLAG_TRANSLATION]; }
     bool isRotating() const { return _flags[FLAG_ROTATION]; }
     bool isScaling() const { return _flags[FLAG_SCALING]; }
@@ -99,8 +99,9 @@ protected:
         FLAG_PROJECTION,
 
         NUM_FLAGS,
-    };
 
+        FLAG_CACHE_INVALID_BITSET = 1,
+    };
     typedef std::bitset<NUM_FLAGS> Flags;
 
 
@@ -133,9 +134,9 @@ protected:
 
 inline void Transform::setIdentity() {
     _translation = Vec3(0);
-    _rotation = Quat(1.f, 0, 0, 0);
-    _scale = Vec3(1.f);
-    _flags = Flags(1);
+    _rotation = Quat(1.0f, 0, 0, 0);
+    _scale = Vec3(1.0f);
+    _flags = Flags(FLAG_CACHE_INVALID_BITSET);
 }
 
 inline const Transform::Vec3& Transform::getTranslation() const {
@@ -224,7 +225,7 @@ inline const Transform::Vec3& Transform::getScale() const {
 inline void Transform::setScale(float scale) {
     invalidCache();
     flagUniform();
-    if (scale == 1.f) {
+    if (scale == 1.0f) {
         unflagScaling();
     } else {
         flagScaling();
@@ -244,7 +245,7 @@ inline void Transform::setScale(const Vec3& scale) {
 }
 
 inline void Transform::postScale(float scale) {
-    if (scale == 1.f) return;
+    if (scale == 1.0f) return;
     if (isScaling()) {
         // if already scaling, just invalid cache and aply uniform scale
         invalidCache();
@@ -289,10 +290,15 @@ inline void Transform::evalFromRawMatrix(const Mat3& rotationScaleMatrix) {
 inline Transform& Transform::evalInverse(Transform& inverse) const {
     inverse.setIdentity();
     if (isScaling()) {
+        // TODO: At some point we will face the case when scale is 0 and so 1/0 will blow up...
+        // WHat should we do for this one?
+        assert(_scale.x != 0);
+        assert(_scale.y != 0);
+        assert(_scale.z != 0);
         if (isNonUniform()) {
-            inverse.setScale(Vec3(1.f/_scale.x, 1.f/_scale.y, 1.f/_scale.z));
+            inverse.setScale(Vec3(1.0f/_scale.x, 1.0f/_scale.y, 1.0f/_scale.z));
         } else {
-            inverse.setScale(1.f/_scale.x);
+            inverse.setScale(1.0f/_scale.x);
         }
     }
     if (isRotating()) {
@@ -306,9 +312,15 @@ inline Transform& Transform::evalInverse(Transform& inverse) const {
 
 inline Transform& Transform::mult( Transform& result, const Transform& left, const Transform& right) {
     result = left;
-    if ( right.isTranslating()) result.postTranslate(right.getTranslation());
-    if ( right.isRotating()) result.postRotate(right.getRotation());
-    if (right.isScaling()) result.postScale(right.getScale());
+    if (right.isTranslating()) {
+        result.postTranslate(right.getTranslation());
+    }
+    if (right.isRotating()) {
+        result.postRotate(right.getRotation());
+    }
+    if (right.isScaling()) {
+        result.postScale(right.getScale());
+    }
 
     // HACK: In case of an issue in the Transform multiplication results, to make sure this code is
     // working properly uncomment the next 2 lines and compare the results, they should be the same...
@@ -321,7 +333,7 @@ inline Transform& Transform::mult( Transform& result, const Transform& left, con
 inline void Transform::updateCache() const {
     if (isCacheInvalid()) {
         if (isRotating()) {
-            glm::mat3x3 rot = glm::mat3_cast(_rotation);
+            Mat3 rot = glm::mat3_cast(_rotation);
 
             if (isScaling()) {
                 rot[0] *= _scale.x;
@@ -338,7 +350,7 @@ inline void Transform::updateCache() const {
             _matrix[2] = Vec4(0.f, 0.f, _scale.z, 0.f);
         }
 
-        _matrix[3] = Vec4(_translation, 1.f);
+        _matrix[3] = Vec4(_translation, 1.0f);
         validCache();
     }
 }
