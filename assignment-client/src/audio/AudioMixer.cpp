@@ -61,7 +61,7 @@
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
-const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.001f;
+const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
