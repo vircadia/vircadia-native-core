@@ -16,6 +16,17 @@
 
 #include "Overlay.h"
 
+class OverlayPropertyResult {
+public:
+    OverlayPropertyResult();
+    QScriptValue value;
+};
+
+Q_DECLARE_METATYPE(OverlayPropertyResult);
+
+QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& value);
+void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPropertyResult& value);
+
 class RayToOverlayIntersectionResult {
 public:
     RayToOverlayIntersectionResult();
@@ -26,6 +37,7 @@ public:
     glm::vec3 intersection;
     QString extraInfo;
 };
+
 
 Q_DECLARE_METATYPE(RayToOverlayIntersectionResult);
 
@@ -60,7 +72,7 @@ public slots:
     unsigned int getOverlayAtPoint(const glm::vec2& point);
 
     /// returns the value of specified property, or null if there is no such property
-    QScriptValue getProperty(unsigned int id, const QString& property);
+    OverlayPropertyResult getProperty(unsigned int id, const QString& property);
 
     /// returns details about the closest 3D Overlay hit by the pick ray
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray);
@@ -76,6 +88,7 @@ private:
     QGLWidget* _parent;
     QReadWriteLock _lock;
     QReadWriteLock _deleteLock;
+    QScriptEngine* _scriptEngine;
 };
 
 

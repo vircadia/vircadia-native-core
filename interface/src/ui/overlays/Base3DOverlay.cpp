@@ -118,6 +118,13 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Base3DOverlay::getProperty(const QString& property) {
+    if (property == "position") {
+        return vec3toScriptValue(_scriptEngine, _position);
+    }
+    return Overlay::getProperty(property);
+}
+
 bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) const {
     return false;

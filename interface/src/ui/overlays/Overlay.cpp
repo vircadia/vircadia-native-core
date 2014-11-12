@@ -39,8 +39,9 @@ Overlay::Overlay() :
 {
 }
 
-void Overlay::init(QGLWidget* parent) {
+void Overlay::init(QGLWidget* parent, QScriptEngine* scriptEngine) {
     _parent = parent;
+    _scriptEngine = scriptEngine;
 }
 
 
@@ -105,6 +106,9 @@ void Overlay::setProperties(const QScriptValue& properties) {
 }
 
 QScriptValue Overlay::getProperty(const QString& property) {
+    if (property == "color") {
+        return xColorToScriptValue(_scriptEngine, _color);
+    }
     return QScriptValue();
 }
 

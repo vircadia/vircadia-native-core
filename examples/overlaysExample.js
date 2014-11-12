@@ -169,6 +169,19 @@ var clipboardPreview = Overlays.addOverlay("clipboard", {
 // Demonstrate retrieving overlay properties
 print("Text overlay text property value =\n" + Overlays.getProperty(text, "text"));
 print("Text overlay unknown property vale =\n" + Overlays.getProperty(text, "unknown"));  // value = undefined
+var cubePosition = Overlays.getProperty(cube, "position");
+print("Cube overlay position =\n"
+    + "x: " + cubePosition.x + "\n"
+    + "y: " + cubePosition.y + "\n"
+    + "z: " + cubePosition.z
+    );
+var cubeColor = Overlays.getProperty(cube, "color");
+print("Cube overlay color =\n"
+    + "red:   " + cubeColor.red + "\n"
+    + "green: " + cubeColor.green + "\n"
+    + "blue:  " + cubeColor.blue
+    );
+print("Unknown overlay property =\n" + Overlays.getProperty(1000, "text"));  // value = undefined
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {
