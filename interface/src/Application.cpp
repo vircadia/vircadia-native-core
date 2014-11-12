@@ -92,6 +92,7 @@
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
+#include "scripting/WebWindowClass.h"
 
 #include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
@@ -836,14 +837,12 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
 }
 
 bool Application::event(QEvent* event) {
-
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        
-        if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+        if (fileEvent->url().isValid()) {
+            openUrl(fileEvent->url());
         }
         
         return false;
@@ -3897,6 +3896,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // register `location` on the global object.
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
+
+    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
