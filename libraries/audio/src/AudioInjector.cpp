@@ -21,11 +21,11 @@
 
 #include "AudioInjector.h"
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
+QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in) {
     return engine->newQObject(in);
 }
 
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
+void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out) {
     out = qobject_cast<AudioInjector*>(object.toQObject());
 }
 

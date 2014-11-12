@@ -63,7 +63,7 @@ private:
 
 Q_DECLARE_METATYPE(AudioInjector*)
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in);
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out);
+QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in);
+void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out);
 
 #endif // hifi_AudioInjector_h
