@@ -24,12 +24,17 @@ public:
     qint64 readData(char* data, qint64 maxSize);
     qint64 writeData(const char* data, qint64 maxSize) { return 0; }
     
-    void setIsLooping(bool isLooping) { _isLooping = isLooping; }
+    void setShouldLoop(bool shouldLoop) { _shouldLoop = shouldLoop; }
     
 private:
+    
+    qint64 recursiveReadFromFront(char* data, qint64 maxSize);
+    
     QByteArray _rawAudioArray;
-    bool _isLooping;
+    bool _shouldLoop;
     bool _isStopped;
+    
+    int _currentOffset;
 };
 
 #endif // hifi_AudioInjectorLocalBuffer_h

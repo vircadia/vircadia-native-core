@@ -83,9 +83,7 @@ void AudioInjector::injectLocally() {
             
             _localBuffer = new AudioInjectorLocalBuffer(_sound->getByteArray(), this);
             _localBuffer->open(QIODevice::ReadOnly);
-            _localBuffer->setIsLooping(_options.loop);
-            
-            qDebug() << "Passing off AudioInjectorLocatBuffer to localAudioInterface";
+            _localBuffer->setShouldLoop(_options.loop);
             
             QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
                                       Qt::BlockingQueuedConnection,

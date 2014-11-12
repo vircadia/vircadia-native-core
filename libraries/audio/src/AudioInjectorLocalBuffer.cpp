@@ -14,8 +14,9 @@
 AudioInjectorLocalBuffer::AudioInjectorLocalBuffer(const QByteArray& rawAudioArray, QObject* parent) :
     QIODevice(parent),
     _rawAudioArray(rawAudioArray),
-    _isLooping(false),
-    _isStopped(false)
+    _shouldLoop(false),
+    _isStopped(false),
+    _currentOffset(0)
 {
     
 }
@@ -27,17 +28,47 @@ void AudioInjectorLocalBuffer::stop() {
 
 qint64 AudioInjectorLocalBuffer::readData(char* data, qint64 maxSize) {
     if (!_isStopped) {
-        int bytesToEnd = _rawAudioArray.size() - pos();
         
-        int bytesToRead = maxSize;
+        // first copy to the end of the raw audio
+        int bytesToEnd = _rawAudioArray.size() - _currentOffset;
+        
+        int bytesRead = maxSize;
         
         if (maxSize > bytesToEnd) {
-            bytesToRead = bytesToEnd;
+            bytesRead = bytesToEnd;
         }
         
-        memcpy(data, _rawAudioArray.data() + pos(), bytesToRead);
-        return bytesToRead;
+        memcpy(data, _rawAudioArray.data() + _currentOffset, bytesRead);
+        
+        // now check if we are supposed to loop and if we can copy more from the beginning
+        if (_shouldLoop && maxSize != bytesRead) {
+            bytesRead += recursiveReadFromFront(data + bytesRead, maxSize - bytesRead);
+        } else {
+            _currentOffset += bytesRead;
+        }
+        
+        return bytesRead;
     } else {
         return 0;
+    }
+}
+
+qint64 AudioInjectorLocalBuffer::recursiveReadFromFront(char* data, qint64 maxSize) {
+    // see how much we can get in this pass
+    int bytesRead = maxSize;
+    
+    if (bytesRead > _rawAudioArray.size()) {
+        bytesRead = _rawAudioArray.size();
+    }
+    
+    // copy that amount
+    memcpy(data, _rawAudioArray.data(), bytesRead);
+    
+    // check if we need to call ourselves again and pull from the front again
+    if (bytesRead < maxSize) {
+        return bytesRead + recursiveReadFromFront(data, maxSize);
+    } else {
+        _currentOffset = bytesRead;
+        return bytesRead;
     }
 }

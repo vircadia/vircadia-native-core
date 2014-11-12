@@ -92,7 +92,7 @@ function drawLobby() {
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     // start the drone sound
-    currentDrone = Audio.playSound(droneSound, { stereo: true, localOnly: true });
+    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true });
   }
 }
 
