@@ -61,7 +61,7 @@ public:
 
     /// \param info information about collision shapes to create
     /// \return true if Entity added
-    bool addEntity(CustomMotionState* motionState, float mass);
+    bool addEntity(CustomMotionState* motionState);
 
     /// \param id UUID of the entity
     /// \return true if Entity removed

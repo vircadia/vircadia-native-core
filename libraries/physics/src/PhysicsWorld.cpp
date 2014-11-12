@@ -90,13 +90,14 @@ bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
     return false;
 }
 
-bool PhysicsWorld::addEntity(CustomMotionState* motionState, float mass) {
+bool PhysicsWorld::addEntity(CustomMotionState* motionState) {
     assert(motionState);
     ShapeInfo info;
     motionState->computeShapeInfo(info);
     btCollisionShape* shape = _shapeManager.getShape(info);
     if (shape) {
         btVector3 inertia;
+        float mass = motionState->getMass();
         shape->calculateLocalInertia(mass, inertia);
         btRigidBody* body = new btRigidBody(mass, motionState, shape, inertia);
         motionState->_body = body;
