@@ -23,6 +23,7 @@
 #include "Overlays.h"
 #include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
+#include "Grid3DOverlay.h"
 #include "TextOverlay.h"
 #include "Text3DOverlay.h"
 
@@ -155,6 +156,8 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
         thisOverlay = new Rectangle3DOverlay();
     } else if (type == "line3d") {
         thisOverlay = new Line3DOverlay();
+    } else if (type == "grid") {
+        thisOverlay = new Grid3DOverlay();
     } else if (type == "localvoxels") {
         thisOverlay = new LocalVoxelsOverlay();
     } else if (type == "localmodels") {

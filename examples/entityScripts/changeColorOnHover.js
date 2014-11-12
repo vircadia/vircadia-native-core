@@ -22,13 +22,21 @@
     this.oldColorKnown = true;
     print("storing old color... this.oldColor=" + this.oldColor.red + "," + this.oldColor.green + "," + this.oldColor.blue);
   };
+  
+  this.preload = function(entityID) {
+    print("preload");
+    this.storeOldColor(entityID);
+  };
+  
   this.hoverEnterEntity = function(entityID, mouseEvent) { 
+    print("hoverEnterEntity");
     if (!this.oldColorKnown) {
         this.storeOldColor(entityID);
     }
     Entities.editEntity(entityID, { color: { red: 0, green: 255, blue: 255} });
   }; 
   this.hoverLeaveEntity = function(entityID, mouseEvent) { 
+    print("hoverLeaveEntity");
     if (this.oldColorKnown) {
         print("leave restoring old color... this.oldColor=" 
                     + this.oldColor.red + "," + this.oldColor.green + "," + this.oldColor.blue);
