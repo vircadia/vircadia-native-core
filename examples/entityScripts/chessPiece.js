@@ -28,14 +28,13 @@
   this.snapToGrid = function() {
     var position = this.GRID_POSITION;
     var size = this.GRID_SIZE;
-    var tileSize = size / 8.0;
-    var height = tileSize * 0.2;
+    var tileSize = size / 10.0;
 
     var relative = Vec3.subtract(this.properties.position, position);
     var i = Math.floor(relative.x / tileSize);
     var j = Math.floor(relative.z / tileSize);
-    i = Math.min(Math.max(0, i), 7);
-    j = Math.min(Math.max(-1, j), 8);
+    i = Math.min(Math.max(1, i), 8);
+    j = Math.min(Math.max(0, j), 10);
     
     relative.x = (i + 0.5) * tileSize;
     relative.z = (j + 0.5) * tileSize;
