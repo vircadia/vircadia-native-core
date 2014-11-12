@@ -75,26 +75,25 @@ void AudioInjector::injectAudio() {
 }
 
 void AudioInjector::injectLocally() {
+    bool success = false;
     if (_localAudioInterface) {        
         const QByteArray& soundByteArray = _sound->getByteArray();
         
         if (soundByteArray.size() > 0) {
-            bool successfulOutput = false;
-            
             _localBuffer = new AudioInjectorLocalBuffer(_sound->getByteArray(), this);
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
             
             QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
                                       Qt::BlockingQueuedConnection,
-                                      Q_RETURN_ARG(bool, successfulOutput),
+                                      Q_RETURN_ARG(bool, success),
                                       Q_ARG(bool, _options.stereo),
                                       Q_ARG(qreal, _options.volume),
                                       Q_ARG(AudioInjector*, this));
             
             
             
-            if (!successfulOutput) {
+            if (!success) {
                 qDebug() << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
             }
         } else {
@@ -104,6 +103,12 @@ void AudioInjector::injectLocally() {
     } else {
         qDebug() << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
     }
+    
+    if (!success) {
+        // we never started so we are finished, call our stop method
+        stop();
+    }
+    
 }
 
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
@@ -235,11 +240,8 @@ void AudioInjector::injectToMixer() {
 void AudioInjector::stop() {
     _shouldStop = true;
     
-    if (_localBuffer) {
+    if (_options.localOnly) {
         // we're only a local injector, so we can say we are finished right away too
-        
-        _localBuffer->stop();
-        
         _isFinished = true;
         emit finished();
     }

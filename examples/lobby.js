@@ -132,7 +132,7 @@ function playRandomMusak() {
     chosenSound = Math.random < 0.5 ? latinSound : elevatorSound;
   } else if (latinSound.downloaded) {
     chosenSound = latinSound;
-  } else if (elevator.downloaded) {
+  } else if (elevatorSound.downloaded) {
     chosenSound = elevatorSound;
   }
   
@@ -148,15 +148,11 @@ function cleanupLobby() {
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
   
-  if (currentDrone) {
-    currentDrone.stop();
-    currentDrone = null;
-  }
+  Audio.stopInjector(currentDrone);
+  currentDrone = null;
   
-  if (currentMusak) {
-    currentMusak.stop();
-    currentMusak = null;
-  }
+  Audio.stopInjector(currentMusak);
+  currentMusak = null;
   
   panelWall = false;
   orbShell = false;
