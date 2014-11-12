@@ -126,3 +126,12 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
 }
 
 
+QScriptValue TextOverlay::getProperty(const QString& property) {
+    if (property == "text") {
+        return _text;
+    }
+
+    return Overlay::getProperty(property);
+}
+
+

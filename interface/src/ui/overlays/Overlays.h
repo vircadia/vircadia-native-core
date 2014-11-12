@@ -59,6 +59,9 @@ public slots:
     /// returns the top most 2D overlay at the screen point, or 0 if not overlay at that point
     unsigned int getOverlayAtPoint(const glm::vec2& point);
 
+    /// returns the value of specified property, or null if there is no such property
+    QScriptValue getProperty(unsigned int id, const QString& property);
+
     /// returns details about the closest 3D Overlay hit by the pick ray
     RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray);
     

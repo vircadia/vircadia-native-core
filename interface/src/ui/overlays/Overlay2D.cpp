@@ -64,3 +64,7 @@ void Overlay2D::setProperties(const QScriptValue& properties) {
         //qDebug() << "set bounds to " << getBounds();
     }
 }
+
+QScriptValue Overlay2D::getProperty(const QString& property) {
+    return Overlay::getProperty(property);
+}

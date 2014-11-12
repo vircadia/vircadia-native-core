@@ -241,6 +241,20 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
     return 0; // not found
 }
 
+QScriptValue Overlays::getProperty(unsigned int id, const QString& property) {
+    Overlay* thisOverlay = NULL;
+    QReadLocker lock(&_lock);
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    }
+    if (thisOverlay) {
+        return thisOverlay->getProperty(property);
+    }
+    return QScriptValue();
+}
+
 RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
     float bestDistance = std::numeric_limits<float>::max();
     RayToOverlayIntersectionResult result;

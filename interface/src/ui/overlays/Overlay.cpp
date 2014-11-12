@@ -104,6 +104,10 @@ void Overlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Overlay::getProperty(const QString& property) {
+    return QScriptValue();
+}
+
 xColor Overlay::getColor() { 
     if (_colorPulse == 0.0f) {
         return _color; 

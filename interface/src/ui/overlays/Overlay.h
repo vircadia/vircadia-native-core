@@ -77,6 +77,7 @@ public:
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
 protected:
     float updatePulse();

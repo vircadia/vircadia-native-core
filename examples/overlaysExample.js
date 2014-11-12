@@ -166,6 +166,9 @@ var clipboardPreview = Overlays.addOverlay("clipboard", {
                                            visible: true
                                            });
 
+// Demonstrate retrieving overlay properties
+print("Text overlay text property value =\n" + Overlays.getProperty(text, "text"));
+print("Text overlay unknown property vale =\n" + Overlays.getProperty(text, "unknown"));  // value = undefined
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {

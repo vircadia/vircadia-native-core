@@ -52,6 +52,7 @@ public:
     void setFontSize(int fontSize) { _fontSize = fontSize; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
 private:
 
