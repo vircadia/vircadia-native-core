@@ -264,7 +264,9 @@ public:
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
 
 #ifdef USE_BULLET_PHYSICS
+    EntityMotionState* getMotionState() const { return _motionState; }
     virtual EntityMotionState* createMotionState() { return NULL; }
+    void destroyMotionState();
 #endif // USE_BULLET_PHYSICS
     
 protected:

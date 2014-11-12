@@ -29,8 +29,11 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& info);
 
+    void getBoundingCubes(AACube& oldCube, AACube& newCube);
+
 protected:
     EntityItem* _entity;
+    AACube _oldBoundingCube;
 };
 
 #endif // USE_BULLET_PHYSICS

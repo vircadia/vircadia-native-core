@@ -10,15 +10,17 @@
 //
 
 #include <PerfStat.h>
+#include <PhysicsWorld.h>
 
 #include "EntityTree.h"
 
 #include "AddEntityOperator.h"
 #include "DeleteEntityOperator.h"
+#include "EntityMotionState.h"
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
-EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage) {
+EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _physicsWorld(NULL) {
     _rootElement = createNewElement();
 }
 
@@ -182,6 +184,13 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
         _recentlyDeletedEntityItemIDs.insert(deletedAt, entityID.id);
         _recentlyDeletedEntitiesLock.unlock();
     }
+}
+
+void EntityTree::setPhysicsWorld(PhysicsWorld* world) {
+    if (_physicsWorld) {
+        // TODO: remove all entities before we clear the world
+    }
+    _physicsWorld = world;
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
@@ -588,6 +597,9 @@ void EntityTree::changeEntityState(EntityItem* const entity,
 
         case EntityItem::Moving:
             _movingEntities.push_back(entity);
+            if (_physicsWorld && !entity->getMotionState()) {
+                addEntityToPhysicsWorld(entity);
+            }
             break;
 
         case EntityItem::Mortal:
@@ -596,6 +608,23 @@ void EntityTree::changeEntityState(EntityItem* const entity,
 
         default:
             break;
+    }
+}
+
+void EntityTree::addEntityToPhysicsWorld(EntityItem* entity) {
+    EntityMotionState* motionState = entity->createMotionState();
+    if (!_physicsWorld->addEntity(static_cast<CustomMotionState*>(motionState))) {
+        // failed to add to world: probably because of bad shape,
+        // probably because entity is too big or too small
+        entity->destroyMotionState();
+    }
+}
+
+void EntityTree::removeEntityFromPhysicsWorld(EntityItem* entity) {
+    EntityMotionState* motionState = entity->getMotionState();
+    if (motionState) {
+        _physicsWorld->removeEntity(static_cast<CustomMotionState*>(motionState));
+        entity->destroyMotionState();
     }
 }
 
@@ -684,9 +713,15 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                     entitiesToDelete << thisEntity->getEntityItemID();
                     entitiesBecomingStatic << thisEntity;
                 } else {
-                    AACube oldCube = thisEntity->getMaximumAACube();
-                    thisEntity->update(now);
-                    AACube newCube = thisEntity->getMaximumAACube();
+                    AACube oldCube, newCube;
+                    EntityMotionState* motionState = thisEntity->getMotionState();
+                    if (motionState) {
+                        motionState->getBoundingCubes(oldCube, newCube);
+                    } else {
+                        oldCube = thisEntity->getMaximumAACube();
+                        thisEntity->update(now);
+                        newCube = thisEntity->getMaximumAACube();
+                    }
                     
                     // check to see if this movement has sent the entity outside of the domain.
                     AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);

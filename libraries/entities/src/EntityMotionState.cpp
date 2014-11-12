@@ -31,6 +31,7 @@ const glm::vec3& getWorldOffset() {
 
 EntityMotionState::EntityMotionState(EntityItem* entity) : _entity(entity) {
     assert(entity != NULL);
+    _oldBoundingCube = _entity->getMaximumAACube();
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -69,6 +70,12 @@ void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
     btVector3 bulletHalfExtents;
     glmToBullet(halfExtents, bulletHalfExtents);
     info.setBox(bulletHalfExtents);
+}
+
+void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {
+    oldCube = _oldBoundingCube;
+    newCube = _entity->getMaximumAACube();
+    _oldBoundingCube = newCube;
 }
 
 #endif // USE_BULLET_PHYSICS

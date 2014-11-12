@@ -17,6 +17,7 @@
 
 
 class Model;
+class PhysicsWorld;
 
 class NewlyCreatedEntityHook {
 public:
@@ -138,9 +139,14 @@ public:
     void changeEntityState(EntityItem* const entity, 
                 EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
 
+    void addEntityToPhysicsWorld(EntityItem* entity);
+    void removeEntityFromPhysicsWorld(EntityItem* entity);
+
     void trackDeletedEntity(const EntityItemID& entityID);
 
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
+
+    void setPhysicsWorld(PhysicsWorld* world);
     
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -170,6 +176,8 @@ private:
     QList<EntityItem*> _movingEntities; // entities that are moving as part of update
     QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
     QList<EntityItem*> _mortalEntities; // entities that are mortal (have lifetime), but not moving or changing
+
+    PhysicsWorld* _physicsWorld;
 };
 
 #endif // hifi_EntityTree_h

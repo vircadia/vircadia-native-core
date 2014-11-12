@@ -103,6 +103,8 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 EntityMotionState* BoxEntityItem::createMotionState() {
     if (!_motionState) {
         _motionState = new EntityMotionState(this);
+        glm::vec3 extents = getDimensionsInMeters();
+        _motionState->setVolume(extents.x * extents.y * extents.z);
     }
     return _motionState;
 }
