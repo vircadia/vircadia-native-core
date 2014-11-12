@@ -492,7 +492,8 @@ void GLBackend::updateTransform() {
                 _transform._view->getMatrix(modelView);
                 glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
             } else {
-               // glLoadIdentity();
+                // TODO: eventually do something about the matrix when neither view nor model is specified?
+                // glLoadIdentity();
             }
         }
         CHECK_GL_ERROR();
