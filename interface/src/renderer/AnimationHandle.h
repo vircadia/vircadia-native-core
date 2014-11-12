@@ -70,6 +70,7 @@ public:
     float getFrameIndex() const { return _frameIndex; }
 
     AnimationDetails getAnimationDetails() const;
+    void setAnimationDetails(const AnimationDetails& details);
 
 signals:
     

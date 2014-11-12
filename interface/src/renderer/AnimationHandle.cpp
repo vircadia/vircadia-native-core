@@ -97,6 +97,23 @@ AnimationDetails AnimationHandle::getAnimationDetails() const {
     return details;
 }
 
+void AnimationHandle::setAnimationDetails(const AnimationDetails& details) {
+    setRole(details.role);
+    setURL(details.url);
+    setFPS(details.fps);
+    setPriority(details.priority);
+    setLoop(details.loop);
+    setHold(details.hold);
+    setStartAutomatically(details.startAutomatically);
+    setFirstFrame(details.firstFrame);
+    setLastFrame(details.lastFrame);
+    setRunning(details.running);
+    setFrameIndex(details.frameIndex);
+
+    // NOTE: AnimationDetails doesn't support maskedJoints
+    //setMaskedJoints(const QStringList& maskedJoints);
+}
+
 
 void AnimationHandle::simulate(float deltaTime) {
     _frameIndex += deltaTime * _fps;
