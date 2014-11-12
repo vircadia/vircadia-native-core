@@ -1866,11 +1866,8 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
-
-            gpu::TransformPointer modelTransform(new gpu::Transform());
-            batch.setModelTransform(modelTransform);
+            batch.setModelTransform(gpu::TransformPointer());
         } else {
-
             gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
             batch.setModelTransform(modelTransform);
         }
