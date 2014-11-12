@@ -51,7 +51,7 @@ enum Primitive {
 };
 
 typedef ::Transform Transform;
-typedef QSharedPointer<::gpu::Transform> TransformPointer;
+typedef QSharedPointer< ::gpu::Transform > TransformPointer;
 typedef std::vector< TransformPointer > Transforms;
 
 class Batch {
