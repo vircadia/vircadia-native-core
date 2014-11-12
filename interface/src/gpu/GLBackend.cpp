@@ -489,7 +489,7 @@ void GLBackend::updateTransform() {
                     _transform._lastMode = GL_MODELVIEW;
                 }
                 Transform::Mat4 modelView;
-                _transform._model->getMatrix(modelView);
+                _transform._view->getMatrix(modelView);
                 glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
             } else {
                // glLoadIdentity();
