@@ -90,7 +90,6 @@ public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
-    bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     
     // Scene rendering support
     static void startScene();
@@ -403,6 +402,7 @@ private:
 
     // helper functions used by render() or renderInScene()
     void renderSetup(RenderArgs* args);
+    bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
                         bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
 };

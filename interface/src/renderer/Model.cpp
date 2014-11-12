@@ -1475,12 +1475,11 @@ void Model::startScene() {
     _modelsInScene.clear();
 }
 
-void Model::endSceneSplitPass(RenderMode mode, RenderArgs* args) {
+void Model::endScene(RenderMode mode, RenderArgs* args) {
 
     // first, do all the batch/GPU setup work....
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
     gpu::Batch batch;
-
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
@@ -1564,31 +1563,31 @@ void Model::endSceneSplitPass(RenderMode mode, RenderArgs* args) {
         GLBATCH(glDrawBuffers)(bufferCount, buffers);
     }
 
-    int translucentMeshPartsRendered = 0;
+    int translucentParts = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
     }
     foreach(Model* model, _modelsInScene) {
-        translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
     }
     
     GLBATCH(glDisable)(GL_ALPHA_TEST);
@@ -1607,28 +1606,28 @@ void Model::endSceneSplitPass(RenderMode mode, RenderArgs* args) {
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
         }
         foreach(Model* model, _modelsInScene) {
-            translucentMeshPartsRendered += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
         }
     }
 
@@ -1665,21 +1664,8 @@ void Model::endSceneSplitPass(RenderMode mode, RenderArgs* args) {
     Application::getInstance()->setupWorldLight();
     
     if (args) {
-        args->_translucentMeshPartsRendered = translucentMeshPartsRendered;
+        args->_translucentMeshPartsRendered = translucentParts;
         args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
-    }
-}
-
-void Model::endScene(RenderMode mode, RenderArgs* args) {
-    //endSceneSimple(mode, args);
-    endSceneSplitPass(mode, args);
-}
-
-void Model::endSceneSimple(RenderMode mode, RenderArgs* args) {
-    // now, for each model in the scene, render the mesh portions
-    foreach(Model* model, _modelsInScene) {
-        float alpha = 1.0f;
-        model->render(alpha, mode, args);
     }
 }
 
