@@ -19,6 +19,7 @@
 #include <QVector>
 
 #include <AnimationCache.h>
+#include <AnimationLoop.h>
 
 class AnimationHandle;
 class Model;
@@ -38,36 +39,37 @@ public:
 
     void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
-    
-    void setFPS(float fps) { _fps = fps; }
-    float getFPS() const { return _fps; }
 
     void setPriority(float priority);
     float getPriority() const { return _priority; }
-    
-    void setLoop(bool loop) { _loop = loop; }
-    bool getLoop() const { return _loop; }
-    
-    void setHold(bool hold) { _hold = hold; }
-    bool getHold() const { return _hold; }
-    
-    void setStartAutomatically(bool startAutomatically);
-    bool getStartAutomatically() const { return _startAutomatically; }
-    
-    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
-    float getFirstFrame() const { return _firstFrame; }
-    
-    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
-    float getLastFrame() const { return _lastFrame; }
-    
+
     void setMaskedJoints(const QStringList& maskedJoints);
     const QStringList& getMaskedJoints() const { return _maskedJoints; }
     
-    void setRunning(bool running);
-    bool isRunning() const { return _running; }
 
-    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
-    float getFrameIndex() const { return _frameIndex; }
+    void setFPS(float fps) { _animationLoop.setFPS(fps); }
+    float getFPS() const { return _animationLoop.getFPS(); }
+
+    void setLoop(bool loop) { _animationLoop.setLoop(loop); }
+    bool getLoop() const { return _animationLoop.getLoop(); }
+    
+    void setHold(bool hold) { _animationLoop.setHold(hold); }
+    bool getHold() const { return _animationLoop.getHold(); }
+    
+    void setStartAutomatically(bool startAutomatically);
+    bool getStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
+    
+    void setFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
+    float getFirstFrame() const { return _animationLoop.getFirstFrame(); }
+    
+    void setLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
+    float getLastFrame() const { return _animationLoop.getLastFrame(); }
+    
+    void setRunning(bool running);
+    bool isRunning() const { return _animationLoop.isRunning(); }
+
+    void setFrameIndex(float frameIndex) { _animationLoop.setFrameIndex(frameIndex); }
+    float getFrameIndex() const { return _animationLoop.getFrameIndex(); }
 
     AnimationDetails getAnimationDetails() const;
     void setAnimationDetails(const AnimationDetails& details);
@@ -96,17 +98,23 @@ private:
     AnimationPointer _animation;
     QString _role;
     QUrl _url;
-    float _fps;
     float _priority;
+
+    QStringList _maskedJoints;
+    QVector<int> _jointMappings;
+    
+    AnimationLoop _animationLoop;
+
+    /*
+    float _fps;
     bool _loop;
     bool _hold;
     bool _startAutomatically;
     float _firstFrame;
     float _lastFrame;
-    QStringList _maskedJoints;
     bool _running;
-    QVector<int> _jointMappings;
     float _frameIndex;
+    */
 };
 
 

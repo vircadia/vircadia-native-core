@@ -33,7 +33,7 @@ void AnimationHandle::setPriority(float priority) {
     if (_priority == priority) {
         return;
     }
-    if (_running) {
+    if (isRunning()) {
         _model->_runningAnimations.removeOne(_self);
         if (priority < _priority) {
             replaceMatchingPriorities(priority);
@@ -47,7 +47,8 @@ void AnimationHandle::setPriority(float priority) {
 }
 
 void AnimationHandle::setStartAutomatically(bool startAutomatically) {
-    if ((_startAutomatically = startAutomatically) && !_running) {
+    _animationLoop.setStartAutomatically(startAutomatically);
+    if (getStartAutomatically() && !isRunning()) {
         start();
     }
 }
@@ -58,42 +59,36 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 }
 
 void AnimationHandle::setRunning(bool running) {
-    if (_running == running) {
+    if (isRunning() == running) {
+        // if we're already running, this is the same as a restart
         if (running) {
             // move back to the beginning
-            _frameIndex = _firstFrame;
+            setFrameIndex(getFirstFrame());
         }
         return;
     }
-    if ((_running = running)) {
+    _animationLoop.setRunning(running);
+    if (isRunning()) {
         if (!_model->_runningAnimations.contains(_self)) {
             insertSorted(_model->_runningAnimations, _self);
         }
-        _frameIndex = _firstFrame;
-          
     } else {
         _model->_runningAnimations.removeOne(_self);
         replaceMatchingPriorities(0.0f);
     }
-    emit runningChanged(_running);
+    emit runningChanged(isRunning());
 }
 
 AnimationHandle::AnimationHandle(Model* model) :
     QObject(model),
     _model(model),
-    _fps(30.0f),
-    _priority(1.0f),
-    _loop(false),
-    _hold(false),
-    _startAutomatically(false),
-    _firstFrame(0.0f),
-    _lastFrame(FLT_MAX),
-    _running(false) {
+    _priority(1.0f) 
+{
 }
 
 AnimationDetails AnimationHandle::getAnimationDetails() const {
-    AnimationDetails details(_role, _url, _fps, _priority, _loop, _hold,
-                        _startAutomatically, _firstFrame, _lastFrame, _running, _frameIndex);
+    AnimationDetails details(_role, _url, getFPS(), _priority, getLoop(), getHold(),
+                        getStartAutomatically(), getFirstFrame(), getLastFrame(), isRunning(), getFrameIndex());
     return details;
 }
 
@@ -116,7 +111,7 @@ void AnimationHandle::setAnimationDetails(const AnimationDetails& details) {
 
 
 void AnimationHandle::simulate(float deltaTime) {
-    _frameIndex += deltaTime * _fps;
+    _animationLoop.simulate(deltaTime);
     
     // update the joint mappings if necessary/possible
     if (_jointMappings.isEmpty()) {
@@ -142,6 +137,8 @@ void AnimationHandle::simulate(float deltaTime) {
         stop();
         return;
     }
+    
+    /*
     float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
     float startFrameIndex = qMin(_firstFrame, endFrameIndex);
     if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {
@@ -159,9 +156,10 @@ void AnimationHandle::simulate(float deltaTime) {
     } else if (_frameIndex > endFrameIndex) {
         _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
     }
+    */
     
     // blend between the closest two frames
-    applyFrame(_frameIndex);
+    applyFrame(getFrameIndex());
 }
 
 void AnimationHandle::applyFrame(float frameIndex) {
