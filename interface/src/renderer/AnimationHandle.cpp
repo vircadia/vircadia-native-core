@@ -1,5 +1,5 @@
 //
-//  Model.cpp
+//  AnimationHandle.cpp
 //  interface/src/renderer
 //
 //  Created by Andrzej Kapolka on 10/18/13.
