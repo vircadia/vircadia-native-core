@@ -770,8 +770,8 @@ QStringList NetworkGeometry::getTextureNames() const {
 }
 
 void NetworkGeometry::replaceTexturesWithPendingChanges() {
-    
     QHash<QString, QUrl>::Iterator it = _pendingTextureChanges.begin();
+    
     while (it != _pendingTextureChanges.end()) {
         setTextureWithNameToURL(it.key(), it.value());
         it = _pendingTextureChanges.erase(it);
