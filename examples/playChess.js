@@ -30,13 +30,16 @@ var ChessGame = ChessGame || {
 
 // Board class
 ChessGame.Board = (function(position, size) {
-  this.position = position;
   this.size = size;
   this.tileSize = this.size / ChessGame.BOARD_SIZE;
   this.height = this.tileSize * 0.2;
+
+  this.position = position;
+  this.position.x += this.tileSize / 2.0;
+  this.position.y += this.height / 2.0;
+  this.position.z += this.tileSize / 2.0;
+
   this.tiles = new Array();
-  
-  this.spawn();
 });
 // Applies operation to each tile where operation = function(i, j)
 ChessGame.Board.prototype.apply = function(operation) {
@@ -98,7 +101,8 @@ ChessGame.Piece = (function(position, size, url) {
     type: "Model",
     position: this.position,
     dimensions: this.size,
-    modelURL: url
+    modelURL: url,
+    script: "file:/Users/clement/hifi/examples/entityScripts/chessPiece.js"
   }
   this.entity = null;
 });
@@ -110,7 +114,6 @@ ChessGame.Piece.prototype.spawn = function() {
 ChessGame.Piece.prototype.cleanup = function() {
   Entities.deleteEntity(this.entity);
 }
-
 
 
 
@@ -147,6 +150,8 @@ ChessGame.scriptStarting = function() {
       ChessGame.pieces.push(piece);
     }
   }
+  
+  ChessGame.board.spawn();
 }
 
 ChessGame.scriptEnding = function() {
