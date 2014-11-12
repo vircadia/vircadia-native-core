@@ -479,9 +479,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         float bestDistance = std::numeric_limits<float>::max();
         float distanceToSubMesh;
         BoxFace subMeshFace;
-        BoxFace bestSubMeshFace;
         int subMeshIndex = 0;
-        int bestSubMeshIndex = -1;
     
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
@@ -489,10 +487,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
                 if (distanceToSubMesh < bestDistance) {
-                    bestSubMeshIndex = subMeshIndex;
                     bestDistance = distanceToSubMesh;
-                    bestSubMeshFace = subMeshFace;
                     intersectedSomething = true;
+                    face = subMeshFace;
                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                 }
             }
@@ -562,16 +559,7 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     if (_transforms.empty()) {
         _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
     }
-    _transforms[0]->evalFromRawMatrix(Application::getInstance()->getUntranslatedViewMatrix());
-
-    gpu::TransformPointer currentView(Application::getInstance()->getViewTransform());
-    currentView->getMatrix();
-
-    gpu::Transform::Mat4 glview = Application::getInstance()->getUntranslatedViewMatrix();
-    
-    _transforms[0]->setTranslation(currentView->getTranslation());
-    _transforms[0]->setRotation(currentView->getRotation());
-    _transforms[0]->setScale(currentView->getScale());
+    (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
     _transforms[0]->postTranslate(_translation);
 
     batch.setViewTransform(_transforms[0]);
@@ -1872,14 +1860,6 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         }
 
         GLBATCH(glPushMatrix)();
-      //  Application::getInstance()->loadTranslatedViewMatrix(_translation);
-    //    GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
-
-        glm::vec3 viewMatTranslation = Application::getInstance()->getViewMatrixTranslation();
-
-
-
-       // GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y, _translation.z + viewMatTranslation.z);
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
@@ -1889,7 +1869,6 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
             gpu::TransformPointer modelTransform(new gpu::Transform());
             batch.setModelTransform(modelTransform);
         } else {
-        //    GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
 
             gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
             batch.setModelTransform(modelTransform);

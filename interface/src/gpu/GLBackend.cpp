@@ -113,20 +113,16 @@ static const GLenum _elementTypeToGLType[NUM_TYPES]= {
 
 
 GLBackend::GLBackend() :
-    _inputFormat(0),
-    _inputAttributeActivation(0),
     _needInputFormatUpdate(true),
-
+    _inputFormat(0),
     _inputBuffersState(0),
     _inputBuffers(_inputBuffersState.size(), BufferPointer(0)),
     _inputBufferOffsets(_inputBuffersState.size(), 0),
     _inputBufferStrides(_inputBuffersState.size(), 0),
-
     _indexBuffer(0),
     _indexBufferOffset(0),
-
+    _inputAttributeActivation(0),
     _transform()
-
 {
 
 }
@@ -142,7 +138,7 @@ void GLBackend::renderBatch(Batch& batch) {
 
     GLBackend backend;
 
-    for (int i = 0; i < numCommands; i++) {
+    for (unsigned int i = 0; i < numCommands; i++) {
         CommandCall call = _commandCalls[(*command)];
         (backend.*(call))(batch, *offset);
         command++;
@@ -209,7 +205,7 @@ void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
 
     GLenum glType = _elementTypeToGLType[_indexBufferType];
 
-    glDrawElements(mode, numIndices, glType, (GLvoid*)(startIndex + _indexBufferOffset));
+    glDrawElements(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _indexBufferOffset));
     CHECK_GL_ERROR();
 }
 
@@ -271,7 +267,7 @@ void GLBackend::updateInput() {
             }
 
             // Manage Activation what was and what is expected now
-            for (int i = 0; i < newActivation.size(); i++) {
+            for (unsigned int i = 0; i < newActivation.size(); i++) {
                 bool newState = newActivation[i];
                 if (newState != _inputAttributeActivation[i]) {
 #if defined(SUPPORT_LEGACY_OPENGL)
@@ -320,7 +316,7 @@ void GLBackend::updateInput() {
                         CHECK_GL_ERROR();
                         _inputBuffersState[bufferNum] = false;
 
-                        for (int i = 0; i < channel._slots.size(); i++) {
+                        for (unsigned int i = 0; i < channel._slots.size(); i++) {
                             const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
                             GLuint slot = attrib._slot;
                             GLuint count = attrib._element.getDimensionCount();
@@ -331,16 +327,16 @@ void GLBackend::updateInput() {
                             if (slot < NUM_CLASSIC_ATTRIBS) {
                                 switch (slot) {
                                 case Stream::POSITION:
-                                    glVertexPointer(count, type, stride, (GLvoid*)pointer);
+                                    glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
                                     break;
                                 case Stream::NORMAL:
-                                    glNormalPointer(type, stride, (GLvoid*)pointer);
+                                    glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
                                     break;
                                 case Stream::COLOR:
-                                    glColorPointer(count, type, stride, (GLvoid*)pointer);
+                                    glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
                                     break;
                                 case Stream::TEXCOORD:
-                                    glTexCoordPointer(count, type, stride, (GLvoid*)pointer); 
+                                    glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer)); 
                                     break;
                                 };
                             } else {
@@ -348,7 +344,8 @@ void GLBackend::updateInput() {
                             {
                             #endif
                                 GLboolean isNormalized = attrib._element.isNormalized();
-                                glVertexAttribPointer(slot, count, type, isNormalized, stride, (GLvoid*)pointer);
+                                glVertexAttribPointer(slot, count, type, isNormalized, stride,
+                                    reinterpret_cast<GLvoid*>(pointer));
                             }
                             CHECK_GL_ERROR();
                         }
@@ -475,21 +472,24 @@ void GLBackend::updateTransform() {
                 glMatrixMode(GL_MODELVIEW);
                 _transform._lastMode = GL_MODELVIEW;
             }
+            Transform::Mat4 modelView;
             if (!_transform._view.isNull()) {
                 Transform mvx;
                 Transform::mult(mvx, (*_transform._view), (*_transform._model));
-                Transform::Mat4 mv = mvx.getMatrix();
-                glLoadMatrixf((const GLfloat*) &mv[0]);
+                mvx.getMatrix(modelView);
             } else {
-                glLoadMatrixf((const GLfloat*) &_transform._model->getMatrix());
+                _transform._model->getMatrix(modelView);
             }
+            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
         } else {
             if (!_transform._view.isNull()) {
                 if (_transform._lastMode != GL_MODELVIEW) {
                     glMatrixMode(GL_MODELVIEW);
                     _transform._lastMode = GL_MODELVIEW;
                 }
-                glLoadMatrixf((const GLfloat*) & _transform._view->getMatrix());
+                Transform::Mat4 modelView;
+                _transform._model->getMatrix(modelView);
+                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
             } else {
                // glLoadIdentity();
             }

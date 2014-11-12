@@ -12,27 +12,11 @@
 #include "Transform.h"
 
 
-Transform::Transform() :
-    _translation(0),
-    _rotation(1.f, 0, 0, 0),
-    _scale(1.f),
-    _flags(1) // invalid cache
-{
-}
-Transform::Transform(const Mat4& raw) {
-    evalFromRawMatrix(raw);
-}
-
-Transform::Mat4& Transform::evalRelativeTransform( Mat4& result, const Vec3& origin) {
-    updateCache();
-    result = _matrix;
-    result[3] = Vec4(_translation - origin, 1.f);
-    return result;
-}
-
-void Transform::evalRotationScale(const Mat3& rotationScaleMatrix) {
+void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotationScaleMatrix) {
     const float ACCURACY_THREASHOLD = 0.00001f;
 
+    // Following technique taken from:
+    // http://callumhay.blogspot.com/2010/10/decomposing-affine-transforms.html
     // Extract the rotation component - this is done using polar decompostion, where
     // we successively average the matrix with its inverse transpose until there is
     // no/a very small difference between successive averages
@@ -67,8 +51,7 @@ void Transform::evalRotationScale(const Mat3& rotationScaleMatrix) {
     // extract scale of the matrix as the length of each axis
     Mat3 scaleMat = glm::inverse(rotationMat) * rotationScaleMatrix;
 
-    Vec3 scale2(glm::length(rotationScaleMatrix[0]), glm::length(rotationScaleMatrix[1]), glm::length(rotationScaleMatrix[2]));
-    Vec3 scale(scaleMat[0][0], scaleMat[1][1], scaleMat[2][2]);
+    scale = Vec3(scaleMat[0][0], scaleMat[1][1], scaleMat[2][2]);
     if (scale.x < ACCURACY_THREASHOLD) scale.x = ACCURACY_THREASHOLD;
     if (scale.y < ACCURACY_THREASHOLD) scale.y = ACCURACY_THREASHOLD;
     if (scale.z < ACCURACY_THREASHOLD) scale.z = ACCURACY_THREASHOLD;
@@ -85,34 +68,15 @@ void Transform::evalRotationScale(const Mat3& rotationScaleMatrix) {
     float determinant = glm::determinant(matRot);
     if (determinant < 0.f) {
         scale.x = -scale.x;
-       // matRot[0] *= -1.f;
+        matRot[0] *= -1.f;
     }
 
     // Beware: even though the matRot is supposed to be normalized at that point,
     // glm::quat_cast doesn't always return a normalized quaternion...
-    setRotation(glm::normalize(glm::quat_cast(matRot)));
-
-    // and assign the scale
-    setScale(scale);
+    rotation = glm::normalize(glm::quat_cast(matRot));
 }
 
-void Transform::evalFromRawMatrix(const Mat4& matrix) {
-    // for now works only in the case of TRS transformation
-    if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.f)) {
-        setTranslation(Vec3(matrix[3]));
-        evalRotationScale(Mat3(matrix));
-    }
-}
 
-Transform& Transform::evalInverseTranspose(Transform& result) {
-    result.setTranslation(-_translation);
-    result.setRotation(-_rotation);
-    
-    if (isScaling()) {
-        result.setScale(Vec3(1.f/_scale.x, 1.f/_scale.y, 1.f/_scale.z));
-    }
-    return result;
-}
 
 
  
