@@ -18,6 +18,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "AudioInjectorLocalBuffer.h"
 #include "AudioInjectorOptions.h"
 #include "Sound.h"
 
@@ -28,9 +29,13 @@ class AudioInjector : public QObject {
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
+    ~AudioInjector();
     
     bool isFinished() const { return _isFinished; }
     int getCurrentSendPosition() const { return _currentSendPosition; }
+    
+    AudioInjectorLocalBuffer* getLocalBuffer() const { return _localBuffer; }
+    bool isLocalOnly() const { return _options.localOnly; }
     
     void setLocalAudioInterface(AbstractAudioInterface* localAudioInterface) { _localAudioInterface = localAudioInterface; }
 public slots:
@@ -53,7 +58,7 @@ private:
     bool _isFinished;
     int _currentSendPosition;
     AbstractAudioInterface* _localAudioInterface;
-    QIODevice* _localDevice;
+    AudioInjectorLocalBuffer* _localBuffer;
 };
 
 Q_DECLARE_METATYPE(AudioInjector*)

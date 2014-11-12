@@ -37,7 +37,7 @@ AudioInjector::AudioInjector(QObject* parent) :
     _loudness(0.0f),
     _isFinished(false),
     _currentSendPosition(0),
-    _localDevice(NULL)
+    _localBuffer(NULL)
 {
 }
 
@@ -47,8 +47,15 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _shouldStop(false),
     _loudness(0.0f),
     _isFinished(false),
-    _currentSendPosition(0)
+    _currentSendPosition(0),
+    _localBuffer(NULL)
 {
+}
+
+AudioInjector::~AudioInjector() {
+    if (_localBuffer) {
+        _localBuffer->stop();
+    }
 }
 
 void AudioInjector::setOptions(AudioInjectorOptions& options) {
@@ -72,19 +79,25 @@ void AudioInjector::injectLocally() {
         const QByteArray& soundByteArray = _sound->getByteArray();
         
         if (soundByteArray.size() > 0) {
-            QMetaObject::invokeMethod(_localAudioInterface, "newLocalOutputDevice", Qt::BlockingQueuedConnection,
-                                      Q_RETURN_ARG(QIODevice*, _localDevice),
+            bool successfulOutput = false;
+            
+            _localBuffer = new AudioInjectorLocalBuffer(_sound->getByteArray(), this);
+            _localBuffer->open(QIODevice::ReadOnly);
+            _localBuffer->setIsLooping(_options.loop);
+            
+            qDebug() << "Passing off AudioInjectorLocatBuffer to localAudioInterface";
+            
+            QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
+                                      Qt::BlockingQueuedConnection,
+                                      Q_RETURN_ARG(bool, successfulOutput),
                                       Q_ARG(bool, _options.stereo),
                                       Q_ARG(qreal, _options.volume),
-                                      Q_ARG(int, soundByteArray.size()),
                                       Q_ARG(AudioInjector*, this));
             
-            if (_localDevice) {
-                // immediately write the byte array to the local device
-                qDebug() << "Writing" << soundByteArray.size() << "bytes to local audio device";
-                _localDevice->write(soundByteArray);
-            } else {
-                qDebug() << "AudioInjector::injectLocally did not get a valid QIODevice from _localAudioInterface";
+            
+            
+            if (!successfulOutput) {
+                qDebug() << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
             }
         } else {
             qDebug() << "AudioInjector::injectLocally called without any data in Sound QByteArray";
@@ -224,8 +237,11 @@ void AudioInjector::injectToMixer() {
 void AudioInjector::stop() {
     _shouldStop = true;
     
-    if (_localDevice) {
-        // we're only a local injector, so we can say we are finished and the AbstractAudioInterface should clean us up
+    if (_localBuffer) {
+        // we're only a local injector, so we can say we are finished right away too
+        
+        _localBuffer->stop();
+        
         _isFinished = true;
         emit finished();
     }

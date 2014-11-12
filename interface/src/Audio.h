@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual QIODevice* newLocalOutputDevice(bool isStereo, qreal volume, int numBytes, AudioInjector* injector);
+    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
     void sendDownstreamAudioStatsPacket();
 
