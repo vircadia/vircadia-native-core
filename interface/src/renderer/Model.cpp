@@ -1527,7 +1527,6 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     int opaqueMeshPartsRendered = 0;
 
     // now, for each model in the scene, render the mesh portions
-    float alpha = 1.0f; // at this point we don't support per model alphas
     foreach(Model* model, _modelsInScene) {
         opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
     }
