@@ -38,6 +38,7 @@ CustomMotionState::CustomMotionState() :
 }
 
 CustomMotionState::~CustomMotionState() {
+    // NOTE: you MUST remove this MotionState from the world before you call the dtor.
     assert(_body == NULL);
 }
 
