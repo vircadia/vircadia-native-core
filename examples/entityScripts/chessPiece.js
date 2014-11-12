@@ -1,4 +1,6 @@
 (function(){
+  this.GRID_POSITION = { x: 1, y: 1, z: 1 };
+  this.GRID_SIZE = 1.0;
   this.sound = null;
   this.entityID = null;
   this.properties = null;
@@ -24,15 +26,16 @@
     Entities.editEntity(this.entityID, { position: intersection });
   }
   this.snapToGrid = function() {
-    var position = { x: 1, y: 1, z: 1 };
-    var size = 1.0;
+    var position = this.GRID_POSITION;
+    var size = this.GRID_SIZE;
     var tileSize = size / 8.0;
     var height = tileSize * 0.2;
 
-    
     var relative = Vec3.subtract(this.properties.position, position);
     var i = Math.floor(relative.x / tileSize);
     var j = Math.floor(relative.z / tileSize);
+    i = Math.min(Math.max(0, i), 7);
+    j = Math.min(Math.max(-1, j), 8);
     
     relative.x = (i + 0.5) * tileSize;
     relative.z = (j + 0.5) * tileSize;
@@ -57,7 +60,6 @@
 		options.volume = 0.5;
 		Audio.playSound(this.sound, options);
   }
-  
   
   this.clickDownOnEntity = function(entityID, mouseEvent){
     this.maybeDownloadSound();
