@@ -356,6 +356,8 @@ public:
     
     HeightfieldHeightEditor(QWidget* parent = NULL);
     
+    const HeightfieldHeightPointer& getHeight() const { return _height; }
+    
 signals:
 
     void heightChanged(const HeightfieldHeightPointer& height);
@@ -415,6 +417,8 @@ class HeightfieldColorEditor : public QWidget {
 public:
     
     HeightfieldColorEditor(QWidget* parent = NULL);
+    
+    const HeightfieldColorPointer& getColor() const { return _color; }
     
 signals:
 

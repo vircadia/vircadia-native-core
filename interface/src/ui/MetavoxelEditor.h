@@ -281,6 +281,8 @@ public:
     
     ImportHeightfieldTool(MetavoxelEditor* editor);
     
+    virtual void simulate(float deltaTime);
+    
     virtual void renderPreview();
     
 protected:
@@ -289,48 +291,17 @@ protected:
 
 private slots:
 
-    void selectHeightFile();
-    void selectColorFile();
-    void updateHeightImage();
-    void updatePreview();
-    
+    void updateSpanner();
+
 private:
 
-    QSpinBox* _blockSize;
-    
-    QPushButton* _height;
-    QWidget* _rawOptions;
     QDoubleSpinBox* _heightScale;
     QDoubleSpinBox* _heightOffset;
-    bool _loadingImage;
     
-    QPushButton* _color;
+    HeightfieldHeightEditor* _height;
+    HeightfieldColorEditor* _color;
     
-    QVector<quint16> _rawHeight;
-    QImage _heightImage;
-    QImage _colorImage;
-    
-    HeightfieldPreview _preview;
-};
-
-/// Allows clearing heighfield blocks.
-class EraseHeightfieldTool : public HeightfieldTool {
-    Q_OBJECT
-
-public:
-    
-    EraseHeightfieldTool(MetavoxelEditor* editor);
-    
-    virtual void render();
-    
-protected:
-    
-    virtual void apply();
-
-private:
-    
-    QSpinBox* _width;
-    QSpinBox* _length;
+    SharedObjectPointer _spanner;
 };
 
 /// Base class for tools that allow painting on heightfields.

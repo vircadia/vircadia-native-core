@@ -2868,7 +2868,7 @@ void SphereRenderer::render(const glm::vec4& color, Mode mode) {
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     
-    Application::getInstance()->getGeometryCache()->renderSphere(sphere->getScale(), 10, 10);
+    Application::getInstance()->getDeferredLightingEffect()->renderSolidSphere(sphere->getScale(), 32, 32);
     
     glPopMatrix();
 }
@@ -2889,7 +2889,7 @@ void CuboidRenderer::render(const glm::vec4& color, Mode mode) {
     glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
     glScalef(1.0f, cuboid->getAspectY(), cuboid->getAspectZ());
     
-    glutSolidCube(cuboid->getScale() * 2.0f);
+    Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(cuboid->getScale() * 2.0f);
     
     glPopMatrix();
 }
@@ -3038,12 +3038,12 @@ void HeightfieldRenderer::render(const glm::vec4& color, Mode mode) {
         float xStep = 1.0f / (innerWidth - 1);
         float zStep = 1.0f / (innerHeight - 1);
         float z = -zStep;
-        float sStep = 1.0f / innerWidth;
-        float tStep = 1.0f / innerHeight;
-        float t = -tStep / 2.0f;
+        float sStep = 1.0f / width;
+        float tStep = 1.0f / height;
+        float t = tStep / 2.0f;
         for (int i = 0; i < height; i++, z += zStep, t += tStep) {
             float x = -xStep;
-            float s = -sStep / 2.0f;
+            float s = sStep / 2.0f;
             const float SKIRT_LENGTH = 0.25f;
             float baseY = (i == 0 || i == height - 1) ? -SKIRT_LENGTH : 0.0f;
             for (int j = 0; j < width; j++, point++, x += xStep, s += sStep) {
@@ -3086,8 +3086,8 @@ void HeightfieldRenderer::render(const glm::vec4& color, Mode mode) {
     glTranslatef(heightfield->getTranslation().x, heightfield->getTranslation().y, heightfield->getTranslation().z);
     glm::vec3 axis = glm::axis(heightfield->getRotation());
     glRotatef(glm::degrees(glm::angle(heightfield->getRotation())), axis.x, axis.y, axis.z);
-    glScalef(heightfield->getScale(), heightfield->getScale() * heightfield->getAspectY(),
-        heightfield->getScale() * heightfield->getAspectZ());
+    float xScale = heightfield->getScale(), zScale = xScale * heightfield->getAspectZ();
+    glScalef(xScale, xScale * heightfield->getAspectY(), zScale);
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
@@ -3106,17 +3106,16 @@ void HeightfieldRenderer::render(const glm::vec4& color, Mode mode) {
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     
     DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
+    float sDistance = 2.0f / (innerWidth - 1);
+    float tDistance = 2.0f / (innerHeight - 1);
+    float distanceProduct = -sDistance * tDistance;
     DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
-        DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / innerWidth, 1.0f / innerHeight,
-        2.0f / (innerWidth * innerHeight));
-    if (heightfield->getColor()) {
-        int colorWidth = heightfield->getColor()->getWidth();
-        int colorHeight = heightfield->getColor()->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
-        DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
-            DefaultMetavoxelRendererImplementation::getBaseColorScaleLocation(), (float)innerWidth / colorWidth,
-                (float)innerHeight / colorHeight);
-    }
-        
+        DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / width, 1.0f / height,
+        sDistance / distanceProduct, tDistance / distanceProduct);
+    DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
+        DefaultMetavoxelRendererImplementation::getBaseColorScaleLocation(), (float)width / innerWidth,
+            (float)height / innerHeight);
+
     glBindTexture(GL_TEXTURE_2D, _heightTextureID);
     
     glActiveTexture(GL_TEXTURE1);
@@ -3127,18 +3126,92 @@ void HeightfieldRenderer::render(const glm::vec4& color, Mode mode) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0); 
     
-    glBindTexture(GL_TEXTURE_2D, 0);
+    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
     
     DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().release();
     
     glDisable(GL_ALPHA_TEST);
-    glDisable(GL_CULL_FACE);
     glEnable(GL_BLEND);
+    
+    if (heightfield->getMaterial() && !_networkTextures.isEmpty()) {
+        glDepthFunc(GL_LEQUAL);
+        glDepthMask(false);
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+        
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().bind();
+        const DefaultMetavoxelRendererImplementation::SplatLocations& locations =
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldLocations();
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+            locations.heightScale, 1.0f / width, 1.0f / height);
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+            locations.textureScale, (float)width / innerWidth, (float)height / innerHeight);
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(locations.splatTextureOffset,
+            glm::dot(heightfield->getTranslation(), heightfield->getRotation() * glm::vec3(1.0f, 0.0f, 0.0f)) / xScale,
+            glm::dot(heightfield->getTranslation(), heightfield->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) / zScale);
+            
+        glBindTexture(GL_TEXTURE_2D, _materialTextureID);
+    
+        const QVector<SharedObjectPointer>& materials = heightfield->getMaterial()->getMaterials();
+        for (int i = 0; i < materials.size(); i += SPLAT_COUNT) {
+            QVector4D scalesS, scalesT;
+            
+            for (int j = 0; j < SPLAT_COUNT; j++) {
+                glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[j]);
+                int index = i + j;
+                if (index < _networkTextures.size()) {
+                    const NetworkTexturePointer& texture = _networkTextures.at(index);
+                    if (texture) {
+                        MaterialObject* material = static_cast<MaterialObject*>(materials.at(index).data());
+                        scalesS[j] = xScale / material->getScaleS();
+                        scalesT[j] = zScale / material->getScaleT();
+                        glBindTexture(GL_TEXTURE_2D, texture->getID());    
+                    } else {
+                        glBindTexture(GL_TEXTURE_2D, 0);
+                    }
+                } else {
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                }
+            }
+            const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                locations.splatTextureScalesS, scalesS);
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                locations.splatTextureScalesT, scalesT);
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                locations.textureValueMinima,
+                (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                (i + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
+            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
+                locations.textureValueMaxima,
+                (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                (i + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP, (i + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
+            glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
+        }
+    
+        for (int i = 0; i < SPLAT_COUNT; i++) {
+            glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+    
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        glActiveTexture(GL_TEXTURE0);
+        
+        DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().release();
+        
+        glDisable(GL_POLYGON_OFFSET_FILL);
+        glDepthMask(true);
+        glDepthFunc(GL_LESS);
+    }
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glDisable(GL_CULL_FACE);
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);    
     glDisableClientState(GL_VERTEX_ARRAY);  
-    
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
     
     glPopMatrix();
     

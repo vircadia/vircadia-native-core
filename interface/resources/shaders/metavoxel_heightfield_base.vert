@@ -15,7 +15,7 @@
 uniform sampler2D heightMap;
 
 // the distance between height points in texture space
-uniform vec3 heightScale;
+uniform vec4 heightScale;
 
 // the scale between height and color textures
 uniform vec2 colorScale;
@@ -31,9 +31,9 @@ void main(void) {
         texture2D(heightMap, heightCoord - vec2(0.0, heightScale.t)).r,
         texture2D(heightMap, heightCoord + vec2(0.0, heightScale.t)).r);
     vec4 neighborsZero = step(1.0 / 65535.0, neighborHeights);
-    normal = normalize(gl_ModelViewMatrix * vec4(
-        heightScale.s * (neighborHeights.x - neighborHeights.y) * neighborsZero.x * neighborsZero.y, heightScale.p,
-        heightScale.t * (neighborHeights.z - neighborHeights.w) * neighborsZero.z * neighborsZero.w, 0.0));
+    normal = vec4(normalize(gl_NormalMatrix * vec3(
+        heightScale.p * (neighborHeights.y - neighborHeights.x) * neighborsZero.x * neighborsZero.y, 1.0,
+        heightScale.q * (neighborHeights.w - neighborHeights.z) * neighborsZero.z * neighborsZero.w)), 0.0);
     
     // add the height to the position
     float height = texture2D(heightMap, heightCoord).r;

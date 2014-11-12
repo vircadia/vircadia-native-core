@@ -59,7 +59,6 @@ AttributeRegistry::AttributeRegistry() :
     
     const float HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER = 32.0f;
     _heightfieldAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
-    _heightfieldAttribute->setUserFacing(true);
     _heightfieldColorAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     _heightfieldMaterialAttribute->setLODThresholdMultiplier(HEIGHTFIELD_LOD_THRESHOLD_MULTIPLIER);
     

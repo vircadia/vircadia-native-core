@@ -29,10 +29,10 @@
 using namespace std;
 
 REGISTER_META_OBJECT(Spanner)
+REGISTER_META_OBJECT(Heightfield)
 REGISTER_META_OBJECT(Sphere)
 REGISTER_META_OBJECT(Cuboid)
 REGISTER_META_OBJECT(StaticModel)
-REGISTER_META_OBJECT(Heightfield)
 
 static int heightfieldHeightTypeId = registerSimpleMetaType<HeightfieldHeightPointer>();
 static int heightfieldColorTypeId = registerSimpleMetaType<HeightfieldColorPointer>();
@@ -604,6 +604,33 @@ HeightfieldData::HeightfieldData(int width) :
     _width(width) {
 }
 
+const int HEIGHTFIELD_HEIGHT_HEADER_SIZE = sizeof(qint32) * 4;
+
+static QByteArray encodeHeightfieldHeight(int offsetX, int offsetY, int width, int height, const QVector<quint16>& contents) {
+    QByteArray inflated(HEIGHTFIELD_HEIGHT_HEADER_SIZE, 0);
+    qint32* header = (qint32*)inflated.data();
+    *header++ = offsetX;
+    *header++ = offsetY;
+    *header++ = width;
+    *header++ = height;
+    inflated.append((const char*)contents.constData(), contents.size() * sizeof(quint16));
+    return qCompress(inflated);
+}
+
+static QVector<quint16> decodeHeightfieldHeight(const QByteArray& encoded, int& offsetX, int& offsetY,
+        int& width, int& height) {
+    QByteArray inflated = qUncompress(encoded);
+    const qint32* header = (const qint32*)inflated.constData();
+    offsetX = *header++;
+    offsetY = *header++;
+    width = *header++;
+    height = *header++;
+    int payloadSize = inflated.size() - HEIGHTFIELD_HEIGHT_HEADER_SIZE;
+    QVector<quint16> decoded(payloadSize / sizeof(quint16));
+    memcpy(decoded.data(), inflated.constData() + HEIGHTFIELD_HEIGHT_HEADER_SIZE, payloadSize);
+    return decoded;
+}
+
 HeightfieldHeight::HeightfieldHeight(int width, const QVector<quint16>& contents) :
     HeightfieldData(width),
     _contents(contents) {
@@ -628,7 +655,7 @@ HeightfieldHeight::HeightfieldHeight(Bitstream& in, int bytes, const Heightfield
 void HeightfieldHeight::write(Bitstream& out) {
     QMutexLocker locker(&_encodedMutex);
     if (_encoded.isEmpty()) {
-        
+        _encoded = encodeHeightfieldHeight(0, 0, _width, _contents.size() / _width, _contents);
     }
     out << _encoded.size();
     out.writeAligned(_encoded);
@@ -648,6 +675,8 @@ void HeightfieldHeight::writeDelta(Bitstream& out, const HeightfieldHeightPointe
 }
 
 void HeightfieldHeight::read(Bitstream& in, int bytes) {
+    int offsetX, offsetY, height;
+    _contents = decodeHeightfieldHeight(_encoded = in.readAligned(bytes), offsetX, offsetY, _width, height);
 }
 
 Bitstream& operator<<(Bitstream& out, const HeightfieldHeightPointer& value) {
