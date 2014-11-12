@@ -47,7 +47,7 @@ private slots:
 
 Q_DECLARE_METATYPE(Sound*)
 
-QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const &in);
-void soundFromScriptValue(const QScriptValue &object, Sound* &out);
+QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const& in);
+void soundFromScriptValue(const QScriptValue& object, Sound*& out);
 
 #endif // hifi_Sound_h

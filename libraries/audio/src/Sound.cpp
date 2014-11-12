@@ -30,11 +30,11 @@
 #include "Sound.h"
 
 
-QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const &in) {
+QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const& in) {
     return engine->newQObject(in);
 }
 
-void soundFromScriptValue(const QScriptValue &object, Sound* &out) {
+void soundFromScriptValue(const QScriptValue& object, Sound*& out) {
     out = qobject_cast<Sound*>(object.toQObject());
 }
 
