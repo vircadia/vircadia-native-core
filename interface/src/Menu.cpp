@@ -438,10 +438,15 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontRenderEntitiesAsScene, 0, false);
+
     QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
+
+    
+    
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
