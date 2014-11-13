@@ -2012,7 +2012,7 @@ void Application::init() {
 
 #ifdef USE_BULLET_PHYSICS
     _physicsWorld.initSafe(_entities.getTree());
-    _entities.setPhysicsWorld(*_physicsWorld);
+    _entities.getTree()->setPhysicsWorld(&_physicsWorld);
 #endif // USE_BULLET_PHYSICS
 }
 
