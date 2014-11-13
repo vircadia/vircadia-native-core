@@ -283,7 +283,7 @@ private:
     QUrl _url;
 
     gpu::Buffers _blendedVertexBuffers;
-    gpu::Transforms _transforms;
+    std::vector<Transform> _transforms;
     gpu::Batch _renderBatch;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
