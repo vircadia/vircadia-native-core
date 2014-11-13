@@ -14,13 +14,12 @@
 (function(){ 
     var bird;
 
-    function playSound() { 
-        var options = new AudioInjectionOptions();
-        var position = MyAvatar.position; 
-        options.position = position;
-        options.volume = 0.5;
-        Audio.playSound(bird, options);
-    }; 
+    function playSound(entityID) {
+        Audio.playSound(bird, {
+          position: MyAvatar.position,
+          volume: 0.5
+        });
+    } 
 
     this.preload = function(entityID) { 
         print("preload("+entityID.id+")");
@@ -31,7 +30,7 @@
         playSound();
     }; 
 
-    this.leaveEntity = function(entityID) { 
+    this.leaveEntity = function(entityID) {
         playSound();
     }; 
 })

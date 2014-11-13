@@ -29,6 +29,15 @@
 #include "AudioEditBuffer.h"
 #include "Sound.h"
 
+
+QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const& in) {
+    return engine->newQObject(in);
+}
+
+void soundFromScriptValue(const QScriptValue& object, Sound*& out) {
+    out = qobject_cast<Sound*>(object.toQObject());
+}
+
 // procedural audio version of Sound
 Sound::Sound(float volume, float frequency, float duration, float decay, QObject* parent) :
     QObject(parent),

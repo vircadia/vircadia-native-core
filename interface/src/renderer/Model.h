@@ -16,6 +16,7 @@
 #include <QObject>
 #include <QUrl>
 
+#include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <PhysicsEntity.h>
@@ -33,11 +34,9 @@ class Shape;
 class RenderArgs;
 class ViewFrustum;
 
-namespace gpu {
-    class Batch;
-}
 
 #include "gpu/Stream.h"
+#include "gpu/Batch.h"
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
@@ -284,7 +283,9 @@ private:
     QUrl _url;
 
     gpu::Buffers _blendedVertexBuffers;
-    
+    gpu::Transforms _transforms;
+    gpu::Batch _renderBatch;
+
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
@@ -397,6 +398,8 @@ private:
 
     // Scene rendering support
     static QVector<Model*> _modelsInScene;
+    static gpu::Batch _sceneRenderBatch;
+
     static void endSceneSimple(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
     static void endSceneSplitPass(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
@@ -405,6 +408,8 @@ private:
     bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
                         bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
+    void setupBatchTransform(gpu::Batch& batch);
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)

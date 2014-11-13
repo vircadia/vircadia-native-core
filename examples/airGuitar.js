@@ -132,15 +132,16 @@ function checkHands(deltaTime) {
 }
 
 function playChord(position, volume) {
-	var options = new AudioInjectionOptions();
-	options.position = position;
-	options.volume = volume;
 	if (Audio.isInjectorPlaying(soundPlaying)) {
 		print("stopped sound");
 		Audio.stopInjector(soundPlaying);
 	}
+  
 	print("Played sound: " + whichChord + " at volume " + options.volume);
-	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], options);	
+	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
+	  position: position,
+    volume: volume
+	});	
 }
 
 function keyPressEvent(event) {

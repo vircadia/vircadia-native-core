@@ -348,7 +348,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
 
 
@@ -439,7 +438,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontRenderEntitiesAsScene, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::RenderEntitiesAsScene, 0, false);
 
     QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
@@ -722,7 +721,6 @@ Menu::Menu() :
     connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
-    addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
