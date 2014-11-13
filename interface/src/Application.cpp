@@ -2885,32 +2885,24 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
-    
-    gpu::Transform viewTransform;
-
     // load the view frustum
     loadViewFrustum(whichCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
-        viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
         glFrontFace(GL_CW);
 
     } else {
         glFrontFace(GL_CCW);
     }
 
-/*    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
+    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-   // viewTransform.postRotate(glm::conjugate(eyeOffsetOrient));
-    viewTransform.preRotate(eyeOffsetOrient);
     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
-    //viewTransform.postTranslate(-eyeOffsetPos);
-    viewTransform.preTranslate(eyeOffsetPos);
-*/
+
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -2918,16 +2910,21 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::quat rotation = whichCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-  //  viewTransform.postRotate(glm::conjugate(rotation));
-    viewTransform.setRotation(rotation);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
 
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-    // the viewTransofmr object is updatded with the correct value and saved,
-    // this is what is used for rendering the ENtities and avatars
+    // the viewTransofmr object is updatded with the correct values and saved,
+    // this is what is used for rendering the Entities and avatars
+    gpu::Transform viewTransform;
     viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setRotation(rotation);
+    viewTransform.postTranslate(eyeOffsetPos);
+    viewTransform.postRotate(eyeOffsetOrient);
+    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+         viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
+    }
     setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
