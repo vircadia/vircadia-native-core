@@ -19,24 +19,23 @@ var distance = 1;
 var debug = 0;
 
 function playSound() {
-    var options = new AudioInjectionOptions();
-    currentTime += deltaTime;
+  currentTime += deltaTime;
 
 	var s = distance * Math.sin(currentTime);
 	var c = distance * Math.cos(currentTime);
 
-    var soundOffset = { x:s, y:0, z:c };
+  var soundOffset = { x:s, y:0, z:c };
 
-    if (debug) {
-    	print("t=" + currentTime + "offset=" + soundOffset.x + "," + soundOffset.y + "," + soundOffset.z);
-    }
+  if (debug) {
+  	print("t=" + currentTime + "offset=" + soundOffset.x + "," + soundOffset.y + "," + soundOffset.z);
+  }
 
-    var avatarPosition = MyAvatar.position;
-    var soundPosition = Vec3.sum(avatarPosition,soundOffset);
+  var avatarPosition = MyAvatar.position;
+  var soundPosition = Vec3.sum(avatarPosition,soundOffset);
 
-    options.position = soundPosition
-    options.volume = 1.0;
-    Audio.playSound(soundClip, options);
+  Audio.playSound(soundClip, {
+    position: soundPosition
+  });
 }
 
 Script.setInterval(playSound, 250);

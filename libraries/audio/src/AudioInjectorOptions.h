@@ -12,54 +12,26 @@
 #ifndef hifi_AudioInjectorOptions_h
 #define hifi_AudioInjectorOptions_h
 
-#include <QtCore/QObject>
+#include <QtScript/qscriptengine.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include <RegisteredMetaTypes.h>
-
-class AudioInjectorOptions : public QObject {
-    Q_OBJECT
-    
-    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
-    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
-    Q_PROPERTY(float volume READ getVolume WRITE setVolume)
-    Q_PROPERTY(bool loop READ getLoop WRITE setLoop)
-    Q_PROPERTY(bool isStereo READ isStereo WRITE setIsStereo)
-    Q_PROPERTY(bool ignorePenumbra READ ignorePenumbra WRITE setIgnorePenumbra)
+class AudioInjectorOptions {
 public:
-    AudioInjectorOptions(QObject* parent = 0);
-    AudioInjectorOptions(const AudioInjectorOptions& other);
-    void operator=(const AudioInjectorOptions& other);
-    
-    const glm::vec3& getPosition() const { return _position; }
-    void setPosition(const glm::vec3& position) { _position = position; }
-    
-    float getVolume() const { return _volume; }
-    void setVolume(float volume) { _volume = volume; }
-    
-    bool getLoop() const { return _loop; }
-    void setLoop(bool loop) { _loop = loop; }
-
-    const glm::quat& getOrientation() const { return _orientation; }
-    void setOrientation(const glm::quat& orientation) { _orientation = orientation; }
-    
-    const bool isStereo() const { return _isStereo; }
-    void setIsStereo(const bool isStereo) { _isStereo = isStereo; }
-    
-    const bool ignorePenumbra() const {return _ignorePenumbra; }
-    void setIgnorePenumbra(bool ignorePenumbra) { _ignorePenumbra = ignorePenumbra; }
-    
-private:
-    glm::vec3 _position;
-    float _volume;
-    bool _loop;
-    glm::quat _orientation;
-    bool _isStereo;
-    bool _ignorePenumbra;
+    AudioInjectorOptions();
+    glm::vec3 position;
+    float volume;
+    bool loop;
+    glm::quat orientation;
+    bool stereo;
+    bool ignorePenumbra;
+    bool localOnly;
 };
 
-Q_DECLARE_METATYPE(AudioInjectorOptions)
+Q_DECLARE_METATYPE(AudioInjectorOptions);
+
+QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInjectorOptions& injectorOptions);
+void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOptions& injectorOptions);
 
 #endif // hifi_AudioInjectorOptions_h
