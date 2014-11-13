@@ -74,14 +74,6 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
-}
-
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
     return engine->newQObject(in);
 }
@@ -234,7 +226,6 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
 Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
@@ -254,6 +245,7 @@ void ScriptEngine::init() {
     registerMenuItemProperties(this);
     registerAnimationTypes(this);
     registerAvatarTypes(this);
+    registerAudioMetaTypes(this);
     Bitstream::registerTypes(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
@@ -274,9 +266,6 @@ void ScriptEngine::init() {
     QScriptValue soundConstructorValue = newFunction(soundConstructor);
     QScriptValue soundMetaObject = newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
     globalObject().setProperty("Sound", soundMetaObject);
-
-    QScriptValue injectionOptionValue = scriptValueFromQMetaObject<AudioInjectorOptions>();
-    globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);

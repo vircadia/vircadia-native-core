@@ -11,6 +11,7 @@
 
 #include <QDebug>
 #include <QObject>
+#include <QtCore/QJsonDocument>
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
@@ -66,6 +67,7 @@ EntityItemProperties::EntityItemProperties() :
     _animationIsPlaying(ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
     _animationFrameIndex(ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
     _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
+    _animationSettings(""),
     _glowLevel(0.0f),
     _localRenderAlpha(1.0f),
     _isSpotlight(false),
@@ -76,6 +78,8 @@ EntityItemProperties::EntityItemProperties() :
     _animationIsPlayingChanged(false),
     _animationFrameIndexChanged(false),
     _animationFPSChanged(false),
+    _animationSettingsChanged(false),
+
     _glowLevelChanged(false),
     _localRenderAlphaChanged(false),
     _isSpotlightChanged(false),
@@ -117,6 +121,58 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
     }
 }
 
+void EntityItemProperties::setAnimationSettings(const QString& value) { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    if (settingsMap.contains("fps")) {
+        float fps = settingsMap["fps"].toFloat();
+        setAnimationFPS(fps);
+    }
+
+    if (settingsMap.contains("frameIndex")) {
+        float frameIndex = settingsMap["frameIndex"].toFloat();
+        setAnimationFrameIndex(frameIndex);
+    }
+
+    if (settingsMap.contains("running")) {
+        bool running = settingsMap["running"].toBool();
+        setAnimationIsPlaying(running);
+    }
+    
+    _animationSettings = value; 
+    _animationSettingsChanged = true; 
+}
+
+QString EntityItemProperties::getAnimationSettings() const { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+    QString value = _animationSettings;
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    
+    QVariant fpsValue(getAnimationFPS());
+    settingsMap["fps"] = fpsValue;
+
+    QVariant frameIndexValue(getAnimationFrameIndex());
+    settingsMap["frameIndex"] = frameIndexValue;
+
+    QVariant runningValue(getAnimationIsPlaying());
+    settingsMap["running"] = runningValue;
+    
+    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
+    QJsonDocument newDocument(settingsAsJsonObject);
+    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
+    QString jsonByteString(jsonByteArray);
+    return jsonByteString;
+}
 
 void EntityItemProperties::debugDump() const {
     qDebug() << "EntityItemProperties...";
@@ -149,6 +205,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_PLAYING, animationIsPlaying);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FRAME_INDEX, animationFrameIndex);
     CHECK_PROPERTY_CHANGE(PROP_ANIMATION_FPS, animationFPS);
+    CHECK_PROPERTY_CHANGE(PROP_ANIMATION_SETTINGS, animationSettings);
     CHECK_PROPERTY_CHANGE(PROP_VISIBLE, visible);
     CHECK_PROPERTY_CHANGE(PROP_REGISTRATION_POINT, registrationPoint);
     CHECK_PROPERTY_CHANGE(PROP_ANGULAR_VELOCITY, angularVelocity);
@@ -201,8 +258,9 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(modelURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationURL);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings,getAnimationSettings());
     COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
@@ -276,6 +334,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(animationIsPlaying, setAnimationIsPlaying);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationSettings, setAnimationSettings);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localRenderAlpha, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
@@ -452,6 +511,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
+            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, properties.getAnimationSettings());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -661,7 +721,8 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXTURES, setTextures);
-
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, setAnimationSettings);
+    
     return valid;
 }
 
@@ -714,6 +775,7 @@ void EntityItemProperties::markAllChanged() {
     _animationIsPlayingChanged = true;
     _animationFrameIndexChanged = true;
     _animationFPSChanged = true;
+    _animationSettingsChanged = true;
     _glowLevelChanged = true;
     _localRenderAlphaChanged = true;
     _isSpotlightChanged = true;

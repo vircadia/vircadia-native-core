@@ -113,10 +113,7 @@ function checkControllerSide(whichSide) {
                                 inHand: true };
             Entities.editEntity(closestEntity, properties);
             
-    		var options = new AudioInjectionOptions();
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(catchSound, options);
+			      Audio.playSound(catchSound, { position: ballPosition });
             
             return; // exit early
         }
@@ -156,10 +153,7 @@ function checkControllerSide(whichSide) {
         }
 
         // Play a new ball sound
-        var options = new AudioInjectionOptions();
-        options.position = ballPosition;
-        options.volume = 1.0;
-        Audio.playSound(newSound, options);
+        Audio.playSound(newSound, { position: ballPosition});
         
         return; // exit early
     }
@@ -207,10 +201,7 @@ function checkControllerSide(whichSide) {
                 rightHandEntity = false;
             }
 
-    		var options = new AudioInjectionOptions();
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(throwSound, options);
+            Audio.playSound(throwSound, { position: ballPosition });
         }
     }
 }

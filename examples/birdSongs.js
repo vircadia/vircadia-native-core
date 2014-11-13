@@ -33,20 +33,22 @@ function maybePlaySound(deltaTime) {
 		//  Set the location and other info for the sound to play
 		var whichBird = Math.floor(Math.random() * birds.length);
 		//print("playing sound # " + whichBird);
-		var options = new AudioInjectionOptions();
-		var position = { x: lowerCorner.x + Math.random() * (upperCorner.x - lowerCorner.x), 
-						 y: lowerCorner.y + Math.random() * (upperCorner.y - lowerCorner.y), 
-						 z: lowerCorner.z + Math.random() * (upperCorner.z - lowerCorner.z) }; 
-		options.position = position;
-		options.volume = BIRD_MASTER_VOLUME;
-		//
+		var position = { 
+      x: lowerCorner.x + Math.random() * (upperCorner.x - lowerCorner.x), 
+	    y: lowerCorner.y + Math.random() * (upperCorner.y - lowerCorner.y), 
+      z: lowerCorner.z + Math.random() * (upperCorner.z - lowerCorner.z) 
+    }; 
+		var options = {
+		  position: position,
+      volume: BIRD_MASTER_VOLUME
+		};
 		var entityId = Entities.addEntity({
-                type: "Sphere",
-                position: position,
-                dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE },
-                color: birds[whichBird].color,
-                lifetime: 10
-            });
+        type: "Sphere",
+        position: position,
+        dimensions: { x: BIRD_SIZE, y: BIRD_SIZE, z: BIRD_SIZE },
+        color: birds[whichBird].color,
+        lifetime: 10
+    });
 
 		if (useLights) {
 			var lightId = Entities.addEntity({

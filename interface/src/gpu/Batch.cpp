@@ -21,7 +21,11 @@ Batch::Batch() :
     _commandOffsets(),
     _params(),
     _resources(),
-    _data(){
+    _data(),
+    _buffers(),
+    _streamFormats(),
+    _transforms()
+{
 }
 
 Batch::~Batch() {
@@ -32,8 +36,10 @@ void Batch::clear() {
     _commandOffsets.clear();
     _params.clear();
     _resources.clear();
-    _buffers.clear();
     _data.clear();
+    _buffers.clear();
+    _streamFormats.clear();
+    _transforms.clear();
 }
 
 uint32 Batch::cacheResource(Resource* res) {
@@ -128,3 +134,22 @@ void Batch::setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset
     _params.push_back(_buffers.cache(buffer));
     _params.push_back(type);
 }
+
+void Batch::setModelTransform(const TransformPointer& model) {
+    ADD_COMMAND(setModelTransform);
+
+    _params.push_back(_transforms.cache(model));
+}
+
+void Batch::setViewTransform(const TransformPointer& view) {
+    ADD_COMMAND(setViewTransform);
+
+    _params.push_back(_transforms.cache(view));
+}
+
+void Batch::setProjectionTransform(const TransformPointer& proj) {
+    ADD_COMMAND(setProjectionTransform);
+
+    _params.push_back(_transforms.cache(proj));
+}
+

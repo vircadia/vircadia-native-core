@@ -44,8 +44,9 @@ var targetLaunchSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/
 
 var gunModel = "http://public.highfidelity.io/models/attachments/HaloGun.fst";
 
-var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 0.9;
+var audioOptions {
+  volume: 0.9
+}
 
 var shotsFired = 0;
 
