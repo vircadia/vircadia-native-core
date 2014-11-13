@@ -101,9 +101,23 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
-    READ_ENTITY_PROPERTY_SETTER(PROP_ANIMATION_FPS, float, setAnimationFPS);
-    READ_ENTITY_PROPERTY_SETTER(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-    READ_ENTITY_PROPERTY_SETTER(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+
+    // Because we're using AnimationLoop which will reset the frame index if you change it's running state
+    // we want to read these values in the order they appear in the buffer, but call our setters in an
+    // order that allows AnimationLoop to preserve the correct frame rate.
+    float animationFPS = getAnimationFPS();
+    float animationFrameIndex = getAnimationFrameIndex();
+    bool animationIsPlaying = getAnimationIsPlaying();
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, animationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
+    
+    setAnimationIsPlaying(animationIsPlaying);
+    setAnimationFPS(animationFPS);
+    setAnimationFrameIndex(animationFrameIndex);
+
+qDebug() << "just read PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex():" << getAnimationFrameIndex();
+
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
 
     return bytesRead;

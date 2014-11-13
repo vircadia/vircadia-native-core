@@ -42,7 +42,7 @@ public:
     void setRunning(bool running);
     bool isRunning() const { return _running; }
 
-    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
+    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(frameIndex, _firstFrame, _lastFrame); }
     float getFrameIndex() const { return _frameIndex; }
     
     void start() { setRunning(true); }
