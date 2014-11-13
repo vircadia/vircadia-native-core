@@ -1553,10 +1553,6 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     int opaqueMeshPartsRendered = 0;
 
     // now, for each model in the scene, render the mesh portions
-    //bool pickProgramsNeeded = true;
-    //SkinLocations* skinLocations;
-    //GLenum specularTextureUnit;
-
     opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
     opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
     opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
@@ -2015,7 +2011,7 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
     }
     // if we selected a program, then unselect it
     if (!pickProgramsNeeded) {
-        //GLBATCH(glUseProgram)(0);
+        GLBATCH(glUseProgram)(0);
     }
     return meshPartsRendered;
 }
