@@ -335,9 +335,6 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationSettings, setAnimationSettings);
-    
-qDebug() << "_animationSettingsChanged:" << _animationSettingsChanged;
-    
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localRenderAlpha, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);
