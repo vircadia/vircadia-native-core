@@ -1,6 +1,7 @@
 (function(){
   this.GRID_POSITION = { x: 1, y: 1, z: 1 };
   this.GRID_SIZE = 1.0;
+  this.metadata = null;
   this.sound = null;
   this.entityID = null;
   this.properties = null;
@@ -34,7 +35,7 @@
     var i = Math.floor(relative.x / tileSize);
     var j = Math.floor(relative.z / tileSize);
     i = Math.min(Math.max(1, i), 8);
-    j = Math.min(Math.max(0, j), 9);
+    j = Math.min(Math.max(1, j), 8);
     
     relative.x = (i + 0.5) * tileSize;
     relative.z = (j + 0.5) * tileSize;
@@ -53,33 +54,37 @@
       this.sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW3Left-12db.wav");
     }
   }
+  
   this.playSound = function() {
-		var options = new AudioInjectionOptions();
-		options.position = this.properties.position;
-		options.volume = 0.5;
-		Audio.playSound(this.sound, options);
+    if (this.sound.downloaded) {
+  		Audio.playSound(this.sound, { position: this.properties.position });
+    }
   }
   this.getMetadata = function() {
-    var metadataObject = JSON.parse(this.properties.animationURL);
-    if (metadataObject.gamePosition) {
-      this.GRID_POSITION = metadataObject.gamePosition;
-    }
-    if (metadataObject.gameSize) {
-      this.GRID_SIZE = metadataObject.gameSize;
+    if (this.properties.animationURL !== "") {
+      var metadataObject = JSON.parse(this.properties.animationURL);
+      if (metadataObject.gamePosition) {
+        this.GRID_POSITION = metadataObject.gamePosition;
+      }
+      if (metadataObject.gameSize) {
+        this.GRID_SIZE = metadataObject.gameSize;
+      }
     }
   }
   
-  this.clickDownOnEntity = function(entityID, mouseEvent){
+  this.preload = function() {
     this.maybeDownloadSound();
+  }
+  this.clickDownOnEntity = function(entityID, mouseEvent) {
     this.updateProperties(entityID);
     this.getMetadata();
     this.updatePosition(mouseEvent);
   };
-  this.holdingClickOnEntity = function(entityID, mouseEvent){
+  this.holdingClickOnEntity = function(entityID, mouseEvent) {
     this.updateProperties(entityID);
     this.updatePosition(mouseEvent);
   };
-  this.clickReleaseOnEntity = function(entityID, mouseEvent){
+  this.clickReleaseOnEntity = function(entityID, mouseEvent) {
     this.updateProperties(entityID);
     this.updatePosition(mouseEvent);
     this.snapToGrid();
