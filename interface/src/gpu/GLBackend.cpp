@@ -432,7 +432,7 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
     TransformPointer modelTransform = batch._transforms.get(batch._params[paramOffset]._uint);
 
-    if (modelTransform != _transform._model) {
+    if (_transform._model.isNull() || (modelTransform != _transform._model)) {
         _transform._model = modelTransform;
         _transform._invalidModel = true;
     }
@@ -441,7 +441,7 @@ void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
     TransformPointer viewTransform = batch._transforms.get(batch._params[paramOffset]._uint);
 
-    if (viewTransform != _transform._view) {
+    if (_transform._view.isNull() || (viewTransform != _transform._view)) {
         _transform._view = viewTransform;
         _transform._invalidView = true;
     }
@@ -450,7 +450,7 @@ void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
     TransformPointer projectionTransform = batch._transforms.get(batch._params[paramOffset]._uint);
 
-    if (projectionTransform != _transform._projection) {
+    if (_transform._projection.isNull() || (projectionTransform != _transform._projection)) {
         _transform._projection = projectionTransform;
         _transform._invalidProj = true;
     }
