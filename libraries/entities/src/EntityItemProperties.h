@@ -80,8 +80,9 @@ enum EntityPropertyList {
     
     // used by Model entities
     PROP_TEXTURES,
+    PROP_ANIMATION_SETTINGS,
 
-    PROP_LAST_ITEM = PROP_CUTOFF
+    PROP_LAST_ITEM = PROP_ANIMATION_SETTINGS
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -178,6 +179,8 @@ public:
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
+    QString getAnimationSettings() const;
+
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
     const QString& getScript() const { return _script; }
@@ -189,6 +192,8 @@ public:
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
+    void setAnimationSettings(const QString& value);
+
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
     void setScript(const QString& value) { _script = value; _scriptChanged = true; }
@@ -342,6 +347,7 @@ private:
     bool _animationIsPlaying;
     float _animationFrameIndex;
     float _animationFPS;
+    QString _animationSettings;
     float _glowLevel;
     float _localRenderAlpha;
     bool _isSpotlight;
@@ -352,6 +358,7 @@ private:
     bool _animationIsPlayingChanged;
     bool _animationFrameIndexChanged;
     bool _animationFPSChanged;
+    bool _animationSettingsChanged;
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
     bool _isSpotlightChanged;
