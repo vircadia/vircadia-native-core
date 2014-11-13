@@ -430,30 +430,18 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
 // Transform Stage
 
 void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
-    TransformPointer modelTransform = batch._transforms.get(batch._params[paramOffset]._uint);
-
-    if (_transform._model.isNull() || (modelTransform != _transform._model)) {
-        _transform._model = modelTransform;
-        _transform._invalidModel = true;
-    }
+    _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidModel = true;
 }
 
 void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
-    TransformPointer viewTransform = batch._transforms.get(batch._params[paramOffset]._uint);
-
-    if (_transform._view.isNull() || (viewTransform != _transform._view)) {
-        _transform._view = viewTransform;
-        _transform._invalidView = true;
-    }
+    _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidView = true;
 }
 
 void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
-    TransformPointer projectionTransform = batch._transforms.get(batch._params[paramOffset]._uint);
-
-    if (_transform._projection.isNull() || (projectionTransform != _transform._projection)) {
-        _transform._projection = projectionTransform;
-        _transform._invalidProj = true;
-    }
+    _transform._projection = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidProj = true;
 }
 
 void GLBackend::updateTransform() {
@@ -468,28 +456,28 @@ void GLBackend::updateTransform() {
     }
 
     if (_transform._invalidModel || _transform._invalidView) {
-        if (!_transform._model.isNull()) {
+        if (!_transform._model.isIdentity()) {
             if (_transform._lastMode != GL_MODELVIEW) {
                 glMatrixMode(GL_MODELVIEW);
                 _transform._lastMode = GL_MODELVIEW;
             }
             Transform::Mat4 modelView;
-            if (!_transform._view.isNull()) {
+            if (!_transform._view.isIdentity()) {
                 Transform mvx;
-                Transform::inverseMult(mvx, (*_transform._view), (*_transform._model));
+                Transform::inverseMult(mvx, _transform._view, _transform._model);
                 mvx.getMatrix(modelView);
             } else {
-                _transform._model->getMatrix(modelView);
+                _transform._model.getMatrix(modelView);
             }
             glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
         } else {
-            if (!_transform._view.isNull()) {
+            if (!_transform._view.isIdentity()) {
                 if (_transform._lastMode != GL_MODELVIEW) {
                     glMatrixMode(GL_MODELVIEW);
                     _transform._lastMode = GL_MODELVIEW;
                 }
                 Transform::Mat4 modelView;
-                _transform._view->getInverseMatrix(modelView);
+                _transform._view.getInverseMatrix(modelView);
                 glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
             } else {
                 // TODO: eventually do something about the matrix when neither view nor model is specified?

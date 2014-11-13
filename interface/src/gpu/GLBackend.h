@@ -86,9 +86,9 @@ protected:
 
     void updateTransform();
     struct TransformStageState {
-        TransformPointer _model;
-        TransformPointer _view;
-        TransformPointer _projection;
+        Transform _model;
+        Transform _view;
+        Transform _projection;
         bool _invalidModel;
         bool _invalidView;
         bool _invalidProj;
@@ -96,9 +96,9 @@ protected:
         GLenum _lastMode;
 
         TransformStageState() :
-            _model(0),
-            _view(0),
-            _projection(0),
+            _model(),
+            _view(),
+            _projection(),
             _invalidModel(true),
             _invalidView(true),
             _invalidProj(true),

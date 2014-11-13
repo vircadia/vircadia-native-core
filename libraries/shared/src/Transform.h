@@ -20,6 +20,8 @@
 
 #include <bitset>
 
+#include <memory>
+
 class Transform {
 public:
     typedef glm::mat4 Mat4;
@@ -30,16 +32,16 @@ public:
     typedef glm::quat Quat;
 
     Transform() :
-        _translation(0),
         _rotation(1.0f, 0, 0, 0),
         _scale(1.0f),
+        _translation(0),
         _flags(FLAG_CACHE_INVALID_BITSET) // invalid cache
     {
     }
     Transform(const Transform& transform) :
-        _translation(transform._translation),
         _rotation(transform._rotation),
         _scale(transform._scale),
+        _translation(transform._translation),
         _flags(transform._flags)
     {
         invalidCache();
@@ -48,6 +50,15 @@ public:
         evalFromRawMatrix(raw);
     }
     ~Transform() {}
+
+    Transform& operator=(const Transform& transform) {
+        _rotation = transform._rotation;
+        _scale = transform._scale;
+        _translation = transform._translation;
+        _flags = transform._flags;
+        invalidCache();
+        return (*this);
+    }
 
     void setIdentity();
 
@@ -89,7 +100,6 @@ public:
     // Left will be inversed before the multiplication
     static Transform& inverseMult(Transform& result, const Transform& left, const Transform& right);
 
-
 protected:
 
     enum Flag {
@@ -111,14 +121,15 @@ protected:
 
 
     // TRS
-    Vec3 _translation;
     Quat _rotation;
     Vec3 _scale;
+    Vec3 _translation;
 
     mutable Flags _flags;
 
     // Cached transform
-    mutable Mat4 _matrix;
+    // TODO: replace this auto ptr by a "unique ptr" as soon as we are compiling in C++11
+    mutable std::auto_ptr<Mat4> _matrix;
 
     bool isCacheInvalid() const { return _flags[FLAG_CACHE_INVALID]; }
     void validCache() const { _flags.set(FLAG_CACHE_INVALID, false); }
@@ -135,6 +146,7 @@ protected:
     void flagNonUniform() { _flags.set(FLAG_NON_UNIFORM, true); }
 
     void updateCache() const;
+    Mat4& getCachedMatrix(Mat4& result) const;
 };
 
 inline void Transform::setIdentity() {
@@ -271,8 +283,25 @@ inline void Transform::postScale(const Vec3& scale) {
 }
 
 inline Transform::Mat4& Transform::getMatrix(Transform::Mat4& result) const {
-    updateCache();
-    result = _matrix;
+    if (isRotating()) {
+        Mat3 rot = glm::mat3_cast(_rotation);
+
+        if (isScaling()) {
+            rot[0] *= _scale.x;
+            rot[1] *= _scale.y;
+            rot[2] *= _scale.z;
+        }
+
+        result[0] = Vec4(rot[0], 0.f);
+        result[1] = Vec4(rot[1], 0.f);
+        result[2] = Vec4(rot[2], 0.f);
+    } else {
+        result[0] = Vec4(_scale.x, 0.f, 0.f, 0.f);
+        result[1] = Vec4(0.f, _scale.y, 0.f, 0.f);
+        result[2] = Vec4(0.f, 0.f, _scale.z, 0.f);
+    }
+
+    result[3] = Vec4(_translation, 1.0f);
     return result;
 }
 
@@ -369,27 +398,18 @@ inline Transform& Transform::inverseMult( Transform& result, const Transform& le
     return result;
 }
 
+inline Transform::Mat4& Transform::getCachedMatrix(Transform::Mat4& result) const {
+    updateCache();
+    result = (*_matrix);
+    return result;
+}
+
 inline void Transform::updateCache() const {
     if (isCacheInvalid()) {
-        if (isRotating()) {
-            Mat3 rot = glm::mat3_cast(_rotation);
-
-            if (isScaling()) {
-                rot[0] *= _scale.x;
-                rot[1] *= _scale.y;
-                rot[2] *= _scale.z;
-            }
-
-            _matrix[0] = Vec4(rot[0], 0.f);
-            _matrix[1] = Vec4(rot[1], 0.f);
-            _matrix[2] = Vec4(rot[2], 0.f);
-        } else {
-            _matrix[0] = Vec4(_scale.x, 0.f, 0.f, 0.f);
-            _matrix[1] = Vec4(0.f, _scale.y, 0.f, 0.f);
-            _matrix[2] = Vec4(0.f, 0.f, _scale.z, 0.f);
+        if (!_matrix.get()) {
+            _matrix.reset(new Mat4());
         }
-
-        _matrix[3] = Vec4(_translation, 1.0f);
+        getMatrix((*_matrix));
         validCache();
     }
 }
