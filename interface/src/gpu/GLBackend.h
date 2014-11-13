@@ -48,7 +48,7 @@ public:
     static const int MAX_NUM_ATTRIBUTES = Stream::NUM_INPUT_SLOTS;
     static const int MAX_NUM_INPUT_BUFFERS = 16;
 
-    uint32 getNumInputBuffers() const { return _inputBuffersState.size(); }
+    uint32 getNumInputBuffers() const { return _input._buffersState.size(); }
 
 protected:
 
@@ -62,22 +62,39 @@ protected:
     void do_setInputFormat(Batch& batch, uint32 paramOffset);
     void do_setInputBuffer(Batch& batch, uint32 paramOffset);
     void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
+
     void updateInput();
-    bool _needInputFormatUpdate;
-    Stream::FormatPointer _inputFormat;
-    typedef std::bitset<MAX_NUM_INPUT_BUFFERS> InputBuffersState;
-    InputBuffersState _inputBuffersState;
+    struct InputStageState {
+        bool _invalidFormat;
+        Stream::FormatPointer _format;
 
-    Buffers _inputBuffers;
-    Offsets _inputBufferOffsets;
-    Offsets _inputBufferStrides;
+        typedef std::bitset<MAX_NUM_INPUT_BUFFERS> BuffersState;
+        BuffersState _buffersState;
 
-    BufferPointer _indexBuffer;
-    Offset _indexBufferOffset;
-    Type _indexBufferType;
+        Buffers _buffers;
+        Offsets _bufferOffsets;
+        Offsets _bufferStrides;
 
-    typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
-    InputActivationCache _inputAttributeActivation;
+        BufferPointer _indexBuffer;
+        Offset _indexBufferOffset;
+        Type _indexBufferType;
+
+        typedef std::bitset<MAX_NUM_ATTRIBUTES> ActivationCache;
+        ActivationCache _attributeActivation;
+
+        InputStageState() :
+            _invalidFormat(true),
+            _format(0),
+            _buffersState(0),
+            _buffers(_buffersState.size(), BufferPointer(0)),
+            _bufferOffsets(_buffersState.size(), 0),
+            _bufferStrides(_buffersState.size(), 0),
+            _indexBuffer(0),
+            _indexBufferOffset(0),
+            _indexBufferType(UINT32),
+            _attributeActivation(0)
+             {}
+    } _input;
 
     // Transform Stage
     void do_setModelTransform(Batch& batch, uint32 paramOffset);
