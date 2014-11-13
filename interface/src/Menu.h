@@ -447,6 +447,7 @@ namespace MenuOption {
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
+    const QString RenderEntitiesAsScene = "Render Entities as Scene";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderHeightfields = "Render Heightfields";
