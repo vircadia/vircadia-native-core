@@ -168,7 +168,19 @@ var clipboardPreview = Overlays.addOverlay("clipboard", {
 
 // Demonstrate retrieving overlay properties
 print("Text overlay text property value =\n" + Overlays.getProperty(text, "text"));
-print("Text overlay unknown property vale =\n" + Overlays.getProperty(text, "unknown"));  // value = undefined
+print("Text overlay alpha =\n" + Overlays.getProperty(text, "alpha"));
+print("Text overlay visible =\n" + Overlays.getProperty(text, "visible"));
+print("Text overlay font size =\n" + Overlays.getProperty(text, "font").size);
+print("Text overlay anchor =\n" + Overlays.getProperty(text, "anchor"));
+print("Text overlay unknown property value =\n" + Overlays.getProperty(text, "unknown"));  // value = undefined
+var sliderBounds = Overlays.getProperty(slider, "bounds");
+print("Slider overlay bounds =\n"
+    + "x: " + sliderBounds.x + "\n"
+    + "y: " + sliderBounds.y + "\n"
+    + "width: " + sliderBounds.width + "\n"
+    + "height: " + sliderBounds.height
+    );
+
 var cubePosition = Overlays.getProperty(cube, "position");
 print("Cube overlay position =\n"
     + "x: " + cubePosition.x + "\n"
