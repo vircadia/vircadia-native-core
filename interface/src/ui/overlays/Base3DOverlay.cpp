@@ -119,9 +119,28 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
 }
 
 QScriptValue Base3DOverlay::getProperty(const QString& property) {
-    if (property == "position") {
+    if (property == "position" || property == "start" || property == "p1" || property == "point") {
         return vec3toScriptValue(_scriptEngine, _position);
     }
+    if (property == "lineWidth") {
+        return _lineWidth;
+    }
+    if (property == "rotation") {
+        return quatToScriptValue(_scriptEngine, _rotation);
+    }
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
+        return _isSolid;
+    }
+    if (property == "isWire" || property == "wire") {
+        return !_isSolid;
+    }
+    if (property == "isDashedLine" || property == "dashed") {
+        return _isDashedLine;
+    }
+    if (property == "ignoreRayIntersection") {
+        return _ignoreRayIntersection;
+    }
+
     return Overlay::getProperty(property);
 }
 

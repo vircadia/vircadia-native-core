@@ -193,6 +193,20 @@ print("Cube overlay color =\n"
     + "green: " + cubeColor.green + "\n"
     + "blue:  " + cubeColor.blue
     );
+var modelOverlayProperties = {
+    textures: {
+        filename1: "http://url1",
+        filename2: "http://url2"
+    }
+}
+var modelOverlay = Overlays.addOverlay("model", modelOverlayProperties);
+var textures = Overlays.getProperty(modelOverlay, "textures");
+var textureValues = "";
+for (key in textures) {
+    textureValues += "\n" + key + ": " + textures[key];
+}
+print("Model overlay textures =" + textureValues);
+Overlays.deleteOverlay(modelOverlay);
 print("Unknown overlay property =\n" + Overlays.getProperty(1000, "text"));  // value = undefined
 
 // When our script shuts down, we should clean up all of our overlays

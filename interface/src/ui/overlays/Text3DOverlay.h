@@ -47,6 +47,7 @@ public:
     void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);

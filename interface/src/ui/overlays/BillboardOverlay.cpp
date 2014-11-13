@@ -157,6 +157,28 @@ void BillboardOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+QScriptValue BillboardOverlay::getProperty(const QString& property) {
+    if (property == "url") {
+        return _url;
+    }
+    if (property == "subImage") {
+        QScriptValue subImage = _scriptEngine->newObject();
+        subImage.setProperty("x", _fromImage.x());
+        subImage.setProperty("y", _fromImage.y());
+        subImage.setProperty("width", _fromImage.width());
+        subImage.setProperty("height", _fromImage.height());
+        return subImage;
+    }
+    if (property == "scale") {
+        return _scale;
+    }
+    if (property == "isFacingAvatar") {
+        return _isFacingAvatar;
+    }
+
+    return Base3DOverlay::getProperty(property);
+}
+
 void BillboardOverlay::setURL(const QString& url) {
     setBillboardURL(url);
 }
