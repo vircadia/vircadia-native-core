@@ -438,7 +438,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontRenderEntitiesAsScene, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::RenderEntitiesAsScene, 0, false);
 
     QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);

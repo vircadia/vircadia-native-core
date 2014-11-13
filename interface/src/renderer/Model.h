@@ -284,7 +284,7 @@ private:
 
     gpu::Buffers _blendedVertexBuffers;
     gpu::Transforms _transforms;
-    gpu::Batch  _renderBatch;
+    gpu::Batch _renderBatch;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
@@ -398,6 +398,8 @@ private:
 
     // Scene rendering support
     static QVector<Model*> _modelsInScene;
+    static gpu::Batch _sceneRenderBatch;
+
     static void endSceneSimple(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
     static void endSceneSplitPass(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
@@ -406,6 +408,8 @@ private:
     bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
                         bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
+    void setupBatchTransform(gpu::Batch& batch);
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
