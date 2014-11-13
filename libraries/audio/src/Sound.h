@@ -21,17 +21,19 @@
 class Sound : public Resource {
     Q_OBJECT
     
-    Q_PROPERTY(bool downloaded READ isLoaded)
+    Q_PROPERTY(bool downloaded READ isReady)
 public:
     Sound(const QUrl& url, bool isStereo = false);
     
     bool isStereo() const { return _isStereo; }
-    
+    bool isReady() const { return _isReady; }
+     
     const QByteArray& getByteArray() { return _byteArray; }
 
 private:
     QByteArray _byteArray;
     bool _isStereo;
+    bool _isReady;
     
     void trimFrames();
     void downSample(const QByteArray& rawAudioByteArray);
@@ -39,5 +41,12 @@ private:
     
     virtual void downloadFinished(QNetworkReply* reply);
 };
+
+typedef QSharedPointer<Sound> SharedSoundPointer;
+
+Q_DECLARE_METATYPE(SharedSoundPointer)
+
+QScriptValue soundToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in);
+void soundFromScriptValue(const QScriptValue& object, SharedSoundPointer& out);
 
 #endif // hifi_Sound_h

@@ -29,18 +29,19 @@
 #include "AudioEditBuffer.h"
 #include "Sound.h"
 
-
-QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const& in) {
-    return engine->newQObject(in);
+QScriptValue soundToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in) {
+    return engine->newQObject(in.data());
 }
 
-void soundFromScriptValue(const QScriptValue& object, Sound*& out) {
-    out = qobject_cast<Sound*>(object.toQObject());
+void soundFromScriptValue(const QScriptValue &object, SharedSoundPointer &out) {
+    out = SharedSoundPointer(qobject_cast<Sound*>(object.toQObject()));
+    qDebug() << "Sound from script value" << out.data();
 }
 
 Sound::Sound(const QUrl& url, bool isStereo) :
     Resource(url),
-    _isStereo(isStereo)
+    _isStereo(isStereo),
+    _isReady(false)
 {
     
 }
@@ -70,6 +71,8 @@ void Sound::downloadFinished(QNetworkReply* reply) {
     } else {
         qDebug() << "Network reply without 'Content-Type'.";
     }
+    
+    _isReady = true;
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {
