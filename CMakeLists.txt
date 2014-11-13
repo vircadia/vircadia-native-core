@@ -34,8 +34,15 @@ elseif (CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-strict-aliasing")
 endif(WIN32)
 
-if (NOT QT_CMAKE_PREFIX_PATH)
-  set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+if (ANDROID)
+  if (NOT ANDROID_QT_CMAKE_PREFIX_PATH)
+    set(QT_CMAKE_PREFIX_PATH $ENV{ANDROID_QT_CMAKE_PREFIX_PATH})
+    message(${QT_CMAKE_PREFIX_PATH})
+  endif ()
+elseif ()
+  if (NOT QT_CMAKE_PREFIX_PATH)
+    set(QT_CMAKE_PREFIX_PATH $ENV{QT_CMAKE_PREFIX_PATH})
+  endif ()
 endif ()
 
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${QT_CMAKE_PREFIX_PATH})
@@ -60,11 +67,14 @@ foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
 endforeach()
 
-# targets on all platforms
+# add subdirectories for all targets
 add_subdirectory(assignment-client)
+
+if (NOT ANDROID)
 add_subdirectory(domain-server)
 add_subdirectory(ice-server)
 add_subdirectory(interface)
 add_subdirectory(tests)
 add_subdirectory(tools)
 add_subdirectory(voxel-edit)
+endif ()
