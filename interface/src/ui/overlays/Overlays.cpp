@@ -359,14 +359,14 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay* overlay = _overlays2D.value(id);
-    if (!overlay) {
-        _overlays3D.value(id);
-    }
-    if (!overlay) {
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    } else {
         return false; // not found
     }
-
-    return overlay->isLoaded();
+    return thisOverlay->isLoaded();
 }
 
