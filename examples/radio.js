@@ -15,10 +15,12 @@ var modelURL = HIFI_PUBLIC_BUCKET + "models/entities/radio/Speakers.fbx";
 var soundURL = HIFI_PUBLIC_BUCKET + "sounds/FamilyStereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
-var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 0.5;
-audioOptions.loop = true;
-audioOptions.isStereo = true;
+var audioOptions = {
+  volume: 0.5,
+  loop: true,
+  stereo: true
+}
+
 var injector = null;
 
 var sound = new Sound(soundURL, audioOptions.isStereo);

@@ -88,7 +88,6 @@ Script.update.connect(function(deltaTime) {
 				animateAvatar(deltaTime, speed);
 				break;
 			}
-
 			case state.EDIT_STANDING: {
 				motion.curAnim = motion.selStand;
 				motion.direction = FORWARDS;
@@ -559,9 +558,11 @@ function getLeanRoll(deltaTime, speed) {
 
 function playFootstep(side) {
 
-	var options = new AudioInjectionOptions();
-	options.position = Camera.getPosition();
-	options.volume = 0.3;
+	options = {
+	  position: Camera.getPosition(),
+    volume: 0.3
+	}
+  
 	var soundNumber = 2; // 0 to 2
 	if (side === RIGHT && motion.makesFootStepSounds) {
 		Audio.playSound(walkAssets.footsteps[soundNumber + 1], options);

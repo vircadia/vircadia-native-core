@@ -43,7 +43,6 @@
 #include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
-#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -480,8 +479,6 @@ private:
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
     Stars _stars;
-
-    BuckyBalls _buckyBalls;
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste

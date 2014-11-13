@@ -418,7 +418,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -454,22 +454,21 @@ Application::~Application() {
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
+    
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
 
     // stop the audio process
     QMetaObject::invokeMethod(&_audio, "stop");
-
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
-
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
     
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _entityEditSender.terminate();
-
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -1531,11 +1530,6 @@ void Application::idle() {
             if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
-            }
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-                PerformanceTimer perfTimer("buckyBalls");
-                _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
@@ -2986,13 +2980,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _audioReflector.render();
         }
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
-        }
-
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");

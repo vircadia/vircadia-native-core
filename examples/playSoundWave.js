@@ -14,11 +14,10 @@ Script.include("libraries/globals.js");
 var soundClip = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail%20Party%20Snippets/Walken1.wav");
 
 function playSound() {
-    var options = new AudioInjectionOptions();
-    var position = MyAvatar.position;
-    options.position = position;
-    options.volume = 0.5;
-    Audio.playSound(soundClip, options);
+    Audio.playSound(soundClip, {
+      position: MyAvatar.position,
+      volume: 0.5
+    });
 }
 
 Script.setInterval(playSound, 10000);

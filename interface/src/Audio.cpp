@@ -32,18 +32,20 @@
 #include <QtMultimedia/QAudioOutput>
 #include <QSvgRenderer>
 
+#include <glm/glm.hpp>
+
+#include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StDev.h>
 #include <UUID.h>
-#include <glm/glm.hpp>
-
-#include "Audio.h"
 
 #include "Menu.h"
 #include "Util.h"
 #include "PositionalAudioStream.h"
+
+#include "Audio.h"
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -1366,24 +1368,34 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& injectorOptions) {
-    if (audioByteArray.size() > 0) {
-        QAudioFormat localFormat = _outputFormat;
+bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
+    if (injector->getLocalBuffer()) {
+        QAudioFormat localFormat = _desiredOutputFormat;
+        localFormat.setChannelCount(isStereo ? 2 : 1);
         
-        if (!injectorOptions.isStereo()) {
-            localFormat.setChannelCount(1);
-        }
+        QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
+                                                     localFormat, this);
+        localOutput->setVolume(volume);
         
-        QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
+        // add this to our list of local injected outputs, we will need to clean it up when the injector says it is done
+        _injectedOutputInterfaces.insert(injector, localOutput);
         
-        QIODevice* localIODevice = localSoundOutput->start();
-        if (localIODevice) {
-            localIODevice->write(audioByteArray);
-        } else {
-            qDebug() << "Unable to handle audio byte array. Error:" << localSoundOutput->error();
-        }
-    } else {
-        qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
+        connect(injector, &AudioInjector::finished, this, &Audio::cleanupLocalOutputInterface);
+        
+        localOutput->start(injector->getLocalBuffer());
+        return localOutput->state() == QAudio::ActiveState;
+    }
+    
+    return false;
+}
+
+void Audio::cleanupLocalOutputInterface() {
+    QAudioOutput* outputInterface = _injectedOutputInterfaces.value(sender());
+    if (outputInterface) {
+        qDebug() << "Stopping a QAudioOutput interface since injector" << sender() << "is finished";
+        
+        outputInterface->stop();
+        outputInterface->deleteLater();
     }
 }
 
