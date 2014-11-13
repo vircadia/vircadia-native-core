@@ -109,6 +109,7 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
+
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
@@ -187,7 +188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _aboutToQuit(false)
+        _aboutToQuit(false),
+        _viewTransform(new gpu::Transform())
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -418,7 +420,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -454,22 +456,21 @@ Application::~Application() {
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
+    
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
 
     // stop the audio process
     QMetaObject::invokeMethod(&_audio, "stop");
-
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
-
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
     
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _entityEditSender.terminate();
-
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -1533,11 +1534,6 @@ void Application::idle() {
             if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
-            }
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-                PerformanceTimer perfTimer("buckyBalls");
-                _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
@@ -2803,6 +2799,8 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
+        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
+        // setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -2910,6 +2908,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
 
+    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+    // the viewTransofmr object is updatded with the correct values and saved,
+    // this is what is used for rendering the Entities and avatars
+    gpu::Transform viewTransform;
+    viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setRotation(rotation);
+    viewTransform.postTranslate(eyeOffsetPos);
+    viewTransform.postRotate(eyeOffsetOrient);
+    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+         viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
+    }
+    setViewTransform(viewTransform);
+
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2988,13 +2999,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _audioReflector.render();
         }
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
-        }
-
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -3034,13 +3038,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
+
+
     bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
-    
+
+
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -3099,7 +3106,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             emit renderingInWorldInterface();
         }
     }
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
@@ -3108,6 +3115,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
+}
+
+void Application::setViewTransform(const gpu::Transform& view) {
+    (*_viewTransform) = view;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {

@@ -217,7 +217,8 @@ function update(deltaTime) {
 
         if (invaderStepOfCycle % stepsPerSound == 0) {
             // play the move sound
-            var options = new AudioInjectionOptions();
+            var options = {};
+            
             if (soundInMyHead) {
                 options.position = { x: MyAvatar.position.x + 0.0, 
                                      y: MyAvatar.position.y + 0.1, 
@@ -225,7 +226,7 @@ function update(deltaTime) {
             } else {
                 options.position = getInvaderPosition(invadersPerRow / 2, numberOfRows / 2);
             }
-            options.volume = 1.0;
+            
             Audio.playSound(moveSounds[currentMoveSound], options);
             
             // get ready for next move sound
@@ -330,7 +331,7 @@ function fireMissile() {
                             lifetime: 5
                         });
 
-        var options = new AudioInjectionOptions();
+        var options = {}
         if (soundInMyHead) {
             options.position = { x: MyAvatar.position.x + 0.0, 
                                  y: MyAvatar.position.y + 0.1, 
@@ -338,7 +339,7 @@ function fireMissile() {
         } else {
             options.position = missilePosition;
         }
-        options.volume = 1.0;
+        
         Audio.playSound(shootSound, options);
 
         missileFired = true;
@@ -380,7 +381,7 @@ function deleteIfInvader(possibleInvaderEntity) {
                     Entities.deleteEntity(myMissile);
 
                     // play the hit sound
-                    var options = new AudioInjectionOptions();
+                    var options = {};
                     if (soundInMyHead) {
                         options.position = { x: MyAvatar.position.x + 0.0, 
                                              y: MyAvatar.position.y + 0.1, 
@@ -388,7 +389,7 @@ function deleteIfInvader(possibleInvaderEntity) {
                     } else {
                         options.position = getInvaderPosition(row, column);
                     }
-                    options.volume = 1.0;
+                    
                     Audio.playSound(hitSound, options);
                 }
             }

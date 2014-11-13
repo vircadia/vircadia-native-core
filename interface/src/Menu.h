@@ -364,7 +364,6 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
-    const QString BuckyBalls = "Bucky Balls";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
@@ -430,7 +429,6 @@ namespace MenuOption {
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
-    const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";

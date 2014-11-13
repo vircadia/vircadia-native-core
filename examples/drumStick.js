@@ -63,8 +63,11 @@ function checkSticks(deltaTime) {
 			//   Waiting for change in velocity direction or slowing to trigger drum sound
 			if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
 				state[palm] = 0;
-				var options = new AudioInjectionOptions();
-				options.position = Controller.getSpatialControlPosition(palm * 2 + 1);
+        
+        var options = {
+          position: Controller.getSpatialControlPosition(palm * 2 + 1);
+        }
+        
 				if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
 				options.volume = strokeSpeed[palm];
 

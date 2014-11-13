@@ -11,15 +11,20 @@
 
 #include "AudioScriptingInterface.h"
 
+void registerAudioMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
+    qScriptRegisterMetaType(engine, soundToScriptValue, soundFromScriptValue);
+}
+
 AudioScriptingInterface& AudioScriptingInterface::getInstance() {
     static AudioScriptingInterface staticInstance;
     return staticInstance;
 }
 
 AudioScriptingInterface::AudioScriptingInterface() :
-    _localLoopbackInterface(NULL)
+    _localAudioInterface(NULL)
 {
-    qRegisterMetaType<AudioInjectorOptions>("AudioInjectorOptions");
+    
 }
 
 void AudioScriptingInterface::stopAllInjectors() {
@@ -37,24 +42,10 @@ void AudioScriptingInterface::stopAllInjectors() {
     }
 }
 
-void AudioScriptingInterface::playLocalSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
-    if (sound->isStereo()) {
-        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
-    }
+AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
     
-    // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-    QMetaObject::invokeMethod(_localLoopbackInterface, "handleAudioByteArray",
-                              Qt::AutoConnection,
-                              Q_ARG(QByteArray, sound->getByteArray()),
-                              Q_ARG(const AudioInjectorOptions&, *injectorOptions));
-}
-
-AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
-    
-    if (sound->isStereo()) {
-        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
-    }
-    AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
+    AudioInjector* injector = new AudioInjector(sound, injectorOptions);
+    injector->setLocalAudioInterface(_localAudioInterface);
     
     QThread* injectorThread = new QThread();
     
