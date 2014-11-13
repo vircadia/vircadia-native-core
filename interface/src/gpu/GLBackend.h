@@ -52,11 +52,22 @@ public:
 
 protected:
 
+    // Draw Stage
+    void do_draw(Batch& batch, uint32 paramOffset);
+    void do_drawIndexed(Batch& batch, uint32 paramOffset);
+    void do_drawInstanced(Batch& batch, uint32 paramOffset);
+    void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
+
+    // Input Stage
+    void do_setInputFormat(Batch& batch, uint32 paramOffset);
+    void do_setInputBuffer(Batch& batch, uint32 paramOffset);
+    void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
+    void updateInput();
     bool _needInputFormatUpdate;
     Stream::FormatPointer _inputFormat;
-
     typedef std::bitset<MAX_NUM_INPUT_BUFFERS> InputBuffersState;
     InputBuffersState _inputBuffersState;
+
     Buffers _inputBuffers;
     Offsets _inputBufferOffsets;
     Offsets _inputBufferStrides;
@@ -68,18 +79,31 @@ protected:
     typedef std::bitset<MAX_NUM_ATTRIBUTES> InputActivationCache;
     InputActivationCache _inputAttributeActivation;
 
-    void do_draw(Batch& batch, uint32 paramOffset);
-    void do_drawIndexed(Batch& batch, uint32 paramOffset);
-    void do_drawInstanced(Batch& batch, uint32 paramOffset);
-    void do_drawIndexedInstanced(Batch& batch, uint32 paramOffset);
+    // Transform Stage
+    void do_setModelTransform(Batch& batch, uint32 paramOffset);
+    void do_setViewTransform(Batch& batch, uint32 paramOffset);
+    void do_setProjectionTransform(Batch& batch, uint32 paramOffset);
 
-    void updateInput();
-    void do_setInputFormat(Batch& batch, uint32 paramOffset);
+    void updateTransform();
+    struct TransformStageState {
+        TransformPointer _model;
+        TransformPointer _view;
+        TransformPointer _projection;
+        bool _invalidModel;
+        bool _invalidView;
+        bool _invalidProj;
 
-    void do_setInputBuffer(Batch& batch, uint32 paramOffset);
+        GLenum _lastMode;
 
-    void do_setVertexBuffer(Batch& batch, uint32 paramOffset);
-    void do_setIndexBuffer(Batch& batch, uint32 paramOffset);
+        TransformStageState() :
+            _model(0),
+            _view(0),
+            _projection(0),
+            _invalidModel(true),
+            _invalidView(true),
+            _invalidProj(true),
+            _lastMode(GL_TEXTURE) {}
+    } _transform;
 
     // TODO: As long as we have gl calls explicitely issued from interface
     // code, we need to be able to record and batch these calls. THe long 

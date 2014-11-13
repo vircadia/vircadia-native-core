@@ -14,10 +14,10 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include "Transform.h"
+
 #include <vector>
 
-#include "gpu/Format.h"
-#include "gpu/Resource.h"
 #include "gpu/Stream.h"
 
 #if defined(NSIGHT_FOUND)
@@ -50,6 +50,10 @@ enum Primitive {
     NUM_PRIMITIVES,
 };
 
+typedef ::Transform Transform;
+typedef QSharedPointer< ::gpu::Transform > TransformPointer;
+typedef std::vector< TransformPointer > Transforms;
+
 class Batch {
 public:
     typedef Stream::Slot Slot;
@@ -60,17 +64,32 @@ public:
 
     void clear();
 
+    // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
     void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
+    // Input Stage
+    // InputFormat
+    // InputBuffers
+    // IndexBuffer
     void setInputFormat(const Stream::FormatPointer& format);
 
     void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
     void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+
+    // Transform Stage
+    // Vertex position is transformed by ModelTransform from object space to world space
+    // Then by the inverse of the ViewTransform from world space to eye space
+    // finaly projected into the clip space by the projection transform
+    // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
+    // with the ModelTransformu to create the equivalent of the glModelViewMatrix
+    void setModelTransform(const TransformPointer& model);
+    void setViewTransform(const TransformPointer& view);
+    void setProjectionTransform(const TransformPointer& proj);
 
 
     // TODO: As long as we have gl calls explicitely issued from interface
@@ -138,10 +157,12 @@ public:
         COMMAND_drawIndexedInstanced,
 
         COMMAND_setInputFormat,
-
         COMMAND_setInputBuffer,
-
         COMMAND_setIndexBuffer,
+
+        COMMAND_setModelTransform,
+        COMMAND_setViewTransform,
+        COMMAND_setProjectionTransform,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -266,6 +287,7 @@ public:
     
     typedef Cache<Buffer>::Vector BufferCaches;
     typedef Cache<Stream::Format>::Vector StreamFormatCaches;
+    typedef Cache<Transform>::Vector TransformCaches;
 
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
@@ -299,11 +321,12 @@ public:
     CommandOffsets _commandOffsets;
     Params _params;
     Resources _resources;
+    Bytes _data;
 
     BufferCaches _buffers;
     StreamFormatCaches _streamFormats;
+    TransformCaches _transforms;
 
-    Bytes _data;
 protected:
 };
 

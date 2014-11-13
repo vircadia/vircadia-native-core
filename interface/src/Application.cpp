@@ -109,6 +109,7 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
+
 const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
@@ -187,7 +188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
         _isVSyncOn(true),
-        _aboutToQuit(false)
+        _aboutToQuit(false),
+        _viewTransform(new gpu::Transform())
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -836,12 +838,14 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
 }
 
 bool Application::event(QEvent* event) {
+
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        if (fileEvent->url().isValid()) {
-            openUrl(fileEvent->url());
+        
+        if (!fileEvent->url().isEmpty()) {
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
         }
         
         return false;
@@ -2795,6 +2799,8 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
+        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
+        // setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -2901,6 +2907,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
+
+    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+    // the viewTransofmr object is updatded with the correct values and saved,
+    // this is what is used for rendering the Entities and avatars
+    gpu::Transform viewTransform;
+    viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setRotation(rotation);
+    viewTransform.postTranslate(eyeOffsetPos);
+    viewTransform.postRotate(eyeOffsetOrient);
+    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+         viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
+    }
+    setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
@@ -3019,13 +3038,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
+
+
     bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
-    
+
+
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -3084,7 +3106,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             emit renderingInWorldInterface();
         }
     }
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
@@ -3093,6 +3115,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
+}
+
+void Application::setViewTransform(const gpu::Transform& view) {
+    (*_viewTransform) = view;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {

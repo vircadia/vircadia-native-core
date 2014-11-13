@@ -551,8 +551,19 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     }
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
-    gpu::Batch batch;
+    _renderBatch.clear();
+    gpu::Batch& batch = _renderBatch;
+    GLBATCH(glPushMatrix)();
 
+    // Capture the view matrix once for the rendering of this model
+    if (_transforms.empty()) {
+        _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
+    }
+    (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
+    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
+    _transforms[0]->preTranslate(-_translation);
+
+    batch.setViewTransform(_transforms[0]);
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
@@ -677,11 +688,12 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
     GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
 
+    GLBATCH(glPopMatrix)();
+
     // Render!
     {
         PROFILE_RANGE("render Batch");
         ::gpu::GLBackend::renderBatch(batch);
-        batch.clear();
     }
 
     // restore all the default material settings
@@ -1849,20 +1861,17 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         }
 
         GLBATCH(glPushMatrix)();
-        //Application::getInstance()->loadTranslatedViewMatrix(_translation);
-        GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
-        glm::vec3 viewMatTranslation = Application::getInstance()->getViewMatrixTranslation();
-        GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y,
-            _translation.z + viewMatTranslation.z);
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
+            batch.setModelTransform(gpu::TransformPointer());
         } else {
-            GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
+            gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
+            batch.setModelTransform(modelTransform);
         }
-        
+
         if (mesh.blendshapes.isEmpty()) {
             batch.setInputFormat(networkMesh._vertexFormat);
             batch.setInputStream(0, *networkMesh._vertexStream);
