@@ -68,7 +68,8 @@ var text = Overlays.addOverlay("text", {
                     color: { red: 255, green: 0, blue: 0},
                     topMargin: 4,
                     leftMargin: 4,
-                    text: "Here is some text.\nAnd a second line."
+                    text: "Here is some text.\nAnd a second line.",
+                    alpha: 0.7
                 });
 
 // This will create an image overlay, which starts out as invisible

@@ -69,14 +69,16 @@ int TextRenderer::calculateHeight(const char* str) {
     return maxHeight;
 }
 
-int TextRenderer::draw(int x, int y, const char* str) {
+int TextRenderer::draw(int x, int y, const char* str, float alpha) {
     // Grab the current color
     float currentColor[4];
     glGetFloatv(GL_CURRENT_COLOR, currentColor);
-    int compactColor =  ((int( currentColor[0] * 255.f) & 0xFF)) |
-                        ((int( currentColor[1] * 255.f) & 0xFF) << 8) |
-                        ((int( currentColor[2] * 255.f) & 0xFF) << 16) |
-                        ((int( currentColor[3] * 255.f) & 0xFF) << 24);
+    alpha = std::max(0.f, std::min(alpha, 1.f));
+    currentColor[3] *= alpha;
+    int compactColor = ((int(currentColor[0] * 255.f) & 0xFF)) |
+                       ((int(currentColor[1] * 255.f) & 0xFF) << 8) |
+                       ((int(currentColor[2] * 255.f) & 0xFF) << 16) |
+                       ((int(currentColor[3] * 255.f) & 0xFF) << 24);
 
 // TODO: Remove that code once we test for performance improvments
     //glEnable(GL_TEXTURE_2D);
