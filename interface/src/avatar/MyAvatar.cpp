@@ -39,6 +39,7 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
+#include "renderer/AnimationHandle.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;

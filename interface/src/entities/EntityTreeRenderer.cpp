@@ -253,7 +253,45 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
-    OctreeRenderer::render(renderMode);
+    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+    
+    if (dontRenderAsScene) {
+        OctreeRenderer::render(renderMode);
+    } else {
+        if (_tree) {
+            Model::startScene();
+            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
+                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            _tree->lockForRead();
+            _tree->recurseTreeWithOperation(renderOperation, &args);
+
+            Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
+                                                ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+
+            // we must call endScene while we still have the tree locked so that no one deletes a model
+            // on us while rendering the scene    
+            Model::endScene(modelRenderMode, &args);
+            _tree->unlock();
+        
+            // stats...
+            _meshesConsidered = args._meshesConsidered;
+            _meshesRendered = args._meshesRendered;
+            _meshesOutOfView = args._meshesOutOfView;
+            _meshesTooSmall = args._meshesTooSmall;
+
+            _elementsTouched = args._elementsTouched;
+            _itemsRendered = args._itemsRendered;
+            _itemsOutOfView = args._itemsOutOfView;
+            _itemsTooSmall = args._itemsTooSmall;
+
+            _materialSwitches = args._materialSwitches;
+            _trianglesRendered = args._trianglesRendered;
+            _quadsRendered = args._quadsRendered;
+
+            _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
+            _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+        }
+    }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
