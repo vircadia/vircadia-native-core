@@ -11,6 +11,7 @@
 
 #include <QDebug>
 #include <QObject>
+#include <QJSonDocument>
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
@@ -119,6 +120,63 @@ void EntityItemProperties::setSittingPoints(const QVector<SittingPoint>& sitting
         _sittingPoints.append(sitPoint);
     }
 }
+
+void EntityItemProperties::setAnimationSettings(const QString& value) { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    if (settingsMap.contains("fps")) {
+        float fps = settingsMap["fps"].toFloat();
+        setAnimationFPS(fps);
+    }
+
+    if (settingsMap.contains("frameIndex")) {
+        float frameIndex = settingsMap["frameIndex"].toFloat();
+        setAnimationFrameIndex(frameIndex);
+    }
+
+    if (settingsMap.contains("running")) {
+        bool running = settingsMap["running"].toBool();
+        setAnimationIsPlaying(running);
+    }
+    
+    _animationSettings = value; 
+    _animationSettingsChanged = true; 
+}
+
+/**
+QString EntityItemProperties::getAnimationSettings() const { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+    QString value = _animationSettings;
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    if (settingsMap.contains("fps")) {
+        float fps = settingsMap["fps"].toFloat();
+        setAnimationFPS(fps);
+    }
+
+    if (settingsMap.contains("frameIndex")) {
+        float frameIndex = settingsMap["frameIndex"].toFloat();
+        setAnimationFrameIndex(frameIndex);
+    }
+
+    if (settingsMap.contains("running")) {
+        bool running = settingsMap["running"].toBool();
+        setAnimationIsPlaying(running);
+    }
+    
+    _animationSettings = value; 
+    _animationSettingsChanged = true; 
+}
+**/
 
 
 void EntityItemProperties::debugDump() const {

@@ -192,9 +192,7 @@ public:
     void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
     void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
     void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
-    void setAnimationSettings(const QString& value) 
-            { _animationSettings = value; _animationSettingsChanged = true; }
-
+    void setAnimationSettings(const QString& value);
 
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
