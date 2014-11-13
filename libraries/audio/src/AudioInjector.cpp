@@ -21,6 +21,14 @@
 
 #include "AudioInjector.h"
 
+QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const& in) {
+    return engine->newQObject(in);
+}
+
+void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out) {
+    out = qobject_cast<AudioInjector*>(object.toQObject());
+}
+
 AudioInjector::AudioInjector(QObject* parent) :
     QObject(parent),
     _sound(NULL),
@@ -28,7 +36,8 @@ AudioInjector::AudioInjector(QObject* parent) :
     _shouldStop(false),
     _loudness(0.0f),
     _isFinished(false),
-    _currentSendPosition(0)
+    _currentSendPosition(0),
+    _localBuffer(NULL)
 {
 }
 
@@ -38,8 +47,15 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _shouldStop(false),
     _loudness(0.0f),
     _isFinished(false),
-    _currentSendPosition(0)
+    _currentSendPosition(0),
+    _localBuffer(NULL)
 {
+}
+
+AudioInjector::~AudioInjector() {
+    if (_localBuffer) {
+        _localBuffer->stop();
+    }
 }
 
 void AudioInjector::setOptions(AudioInjectorOptions& options) {
@@ -50,9 +66,54 @@ float AudioInjector::getLoudness() {
     return _loudness;
 }
 
+void AudioInjector::injectAudio() {
+    if (_options.localOnly) {
+        injectLocally();
+    } else {
+        injectToMixer();
+    }
+}
+
+void AudioInjector::injectLocally() {
+    bool success = false;
+    if (_localAudioInterface) {        
+        const QByteArray& soundByteArray = _sound->getByteArray();
+        
+        if (soundByteArray.size() > 0) {
+            _localBuffer = new AudioInjectorLocalBuffer(_sound->getByteArray(), this);
+            _localBuffer->open(QIODevice::ReadOnly);
+            _localBuffer->setShouldLoop(_options.loop);
+            
+            QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
+                                      Qt::BlockingQueuedConnection,
+                                      Q_RETURN_ARG(bool, success),
+                                      Q_ARG(bool, _options.stereo),
+                                      Q_ARG(qreal, _options.volume),
+                                      Q_ARG(AudioInjector*, this));
+            
+            
+            
+            if (!success) {
+                qDebug() << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
+            }
+        } else {
+            qDebug() << "AudioInjector::injectLocally called without any data in Sound QByteArray";
+        }
+        
+    } else {
+        qDebug() << "AudioInjector::injectLocally cannot inject locally with no local audio interface present.";
+    }
+    
+    if (!success) {
+        // we never started so we are finished, call our stop method
+        stop();
+    }
+    
+}
+
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
-void AudioInjector::injectAudio() {
+void AudioInjector::injectToMixer() {
     QByteArray soundByteArray = _sound->getByteArray();
     
     if (_currentSendPosition < 0 ||
@@ -75,7 +136,7 @@ void AudioInjector::injectAudio() {
         packetStream << QUuid::createUuid();
         
         // pack the stereo/mono type of the stream
-        packetStream << _options.isStereo();
+        packetStream << _options.stereo;
         
         // pack the flag for loopback
         uchar loopbackFlag = (uchar) true;
@@ -83,13 +144,13 @@ void AudioInjector::injectAudio() {
         
         // pack the position for injected audio
         int positionOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getPosition()),
-                                  sizeof(_options.getPosition()));
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.position),
+                                  sizeof(_options.position));
         
         // pack our orientation for injected audio
         int orientationOptionOffset = injectAudioPacket.size();
-        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.getOrientation()),
-                                  sizeof(_options.getOrientation()));
+        packetStream.writeRawData(reinterpret_cast<const char*>(&_options.orientation),
+                                  sizeof(_options.orientation));
         
         // pack zero for radius
         float radius = 0;
@@ -97,23 +158,23 @@ void AudioInjector::injectAudio() {
         
         // pack 255 for attenuation byte
         int volumeOptionOffset = injectAudioPacket.size();
-        quint8 volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+        quint8 volume = MAX_INJECTOR_VOLUME * _options.volume;
         packetStream << volume;
         
-        packetStream << _options.ignorePenumbra();
+        packetStream << _options.ignorePenumbra;
         
         QElapsedTimer timer;
         timer.start();
         int nextFrame = 0;
         
         int numPreAudioDataBytes = injectAudioPacket.size();
-        bool shouldLoop = _options.getLoop();
+        bool shouldLoop = _options.loop;
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         quint16 outgoingInjectedAudioSequenceNumber = 0;
         while (_currentSendPosition < soundByteArray.size() && !_shouldStop) {
             
-            int bytesToCopy = std::min(((_options.isStereo()) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
+            int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
                                        soundByteArray.size() - _currentSendPosition);
             
             //  Measure the loudness of this frame
@@ -125,12 +186,12 @@ void AudioInjector::injectAudio() {
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
 
             memcpy(injectAudioPacket.data() + positionOptionOffset,
-                   &_options.getPosition(),
-                   sizeof(_options.getPosition()));
+                   &_options.position,
+                   sizeof(_options.position));
             memcpy(injectAudioPacket.data() + orientationOptionOffset,
-                   &_options.getOrientation(),
-                   sizeof(_options.getOrientation()));
-            volume = MAX_INJECTOR_VOLUME * _options.getVolume();
+                   &_options.orientation,
+                   sizeof(_options.orientation));
+            volume = MAX_INJECTOR_VOLUME * _options.volume;
             memcpy(injectAudioPacket.data() + volumeOptionOffset, &volume, sizeof(volume));
             
             // resize the QByteArray to the right size
@@ -174,4 +235,14 @@ void AudioInjector::injectAudio() {
     
     _isFinished = true;
     emit finished();
+}
+
+void AudioInjector::stop() {
+    _shouldStop = true;
+    
+    if (_options.localOnly) {
+        // we're only a local injector, so we can say we are finished right away too
+        _isFinished = true;
+        emit finished();
+    }
 }

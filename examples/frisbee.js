@@ -177,10 +177,10 @@ function playSound(sound, position) {
     if (!SOUNDS_ENABLED) {
         return;
     }
-    var options = new AudioInjectionOptions();
-    options.position = position;
-    options.volume = 1.0;
-    Audio.playSound(sound, options);
+    
+    Audio.playSound(sound,{
+      position: position
+    });
 }
 
 function cleanupFrisbees() {
