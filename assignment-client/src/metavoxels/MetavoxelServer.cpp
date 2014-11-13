@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QCoreApplication>
 #include <QDateTime>
+#include <QDir>
 #include <QFile>
 #include <QSaveFile>
 #include <QThread>
@@ -304,19 +306,34 @@ MetavoxelPersister::MetavoxelPersister(MetavoxelServer* server) :
     _server(server) {
 }
 
-const char* SAVE_FILE = "metavoxels.dat";
+const char* SAVE_FILE = "/resources/metavoxels.dat";
+
+const int FILE_MAGIC = 0xDADAFACE;
+const int FILE_VERSION = 1;
 
 void MetavoxelPersister::load() {
-    QFile file(SAVE_FILE);
+    QString path = QCoreApplication::applicationDirPath() + SAVE_FILE;
+    QFile file(path);
     if (!file.exists()) {
         return;
     }
     MetavoxelData data;
     {
-        QDebug debug = qDebug() << "Reading from" << SAVE_FILE << "...";
+        QDebug debug = qDebug() << "Reading from" << path << "...";
         file.open(QIODevice::ReadOnly);
         QDataStream inStream(&file);
         Bitstream in(inStream);
+        int magic, version;
+        in >> magic;
+        if (magic != FILE_MAGIC) {
+            debug << "wrong file magic: " << magic;
+            return;
+        }
+        in >> version;
+        if (version != FILE_VERSION) {
+            debug << "wrong file version: " << version;
+            return;
+        }
         try {
             in >> data;
         } catch (const BitstreamException& e) {
@@ -330,12 +347,17 @@ void MetavoxelPersister::load() {
 }
 
 void MetavoxelPersister::save(const MetavoxelData& data) {
-    QDebug debug = qDebug() << "Writing to" << SAVE_FILE << "...";
-    QSaveFile file(SAVE_FILE);
+    QString path = QCoreApplication::applicationDirPath() + SAVE_FILE;
+    QDir directory = QFileInfo(path).dir();
+    if (!directory.exists()) {
+        directory.mkpath(".");
+    }
+    QDebug debug = qDebug() << "Writing to" << path << "...";
+    QSaveFile file(path);
     file.open(QIODevice::WriteOnly);
     QDataStream outStream(&file);
     Bitstream out(outStream);
-    out << data;
+    out << FILE_MAGIC << FILE_VERSION << data;
     out.flush();
     file.commit();
     debug << "done.";
