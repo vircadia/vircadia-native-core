@@ -567,11 +567,11 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
-        _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
+        _transforms.push_back(Transform());
     }
-    (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
+    _transforms[0] = Application::getInstance()->getViewTransform();
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    _transforms[0]->preTranslate(-_translation);
+    _transforms[0].preTranslate(-_translation);
 
     batch.setViewTransform(_transforms[0]);
 
@@ -1493,10 +1493,10 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
     
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
-        _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
+        _transforms.push_back(Transform());
     }
-    (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
-    _transforms[0]->preTranslate(-_translation);
+    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0].preTranslate(-_translation);
     batch.setViewTransform(_transforms[0]);
 }
 
@@ -2117,10 +2117,9 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
-            batch.setModelTransform(gpu::TransformPointer());
+            batch.setModelTransform(Transform());
         } else {
-            gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
-            batch.setModelTransform(modelTransform);
+            batch.setModelTransform(Transform(state.clusterMatrices[0]));
         }
 
         if (mesh.blendshapes.isEmpty()) {

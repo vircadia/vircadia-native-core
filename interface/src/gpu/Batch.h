@@ -50,10 +50,6 @@ enum Primitive {
     NUM_PRIMITIVES,
 };
 
-typedef ::Transform Transform;
-typedef QSharedPointer< ::gpu::Transform > TransformPointer;
-typedef std::vector< TransformPointer > Transforms;
-
 class Batch {
 public:
     typedef Stream::Slot Slot;
@@ -87,9 +83,9 @@ public:
     // finaly projected into the clip space by the projection transform
     // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
     // with the ModelTransformu to create the equivalent of the glModelViewMatrix
-    void setModelTransform(const TransformPointer& model);
-    void setViewTransform(const TransformPointer& view);
-    void setProjectionTransform(const TransformPointer& proj);
+    void setModelTransform(const Transform& model);
+    void setViewTransform(const Transform& view);
+    void setProjectionTransform(const Transform& proj);
 
 
     // TODO: As long as we have gl calls explicitely issued from interface
@@ -258,35 +254,35 @@ public:
     template <typename T>
     class Cache {
     public:
-        typedef QSharedPointer<T> Pointer;
-        Pointer _pointer;
-        Cache<T>(const Pointer& pointer) : _pointer(pointer) {}
+        typedef T Data;
+        Data _data;
+        Cache<T>(const Data& data) : _data(data) {}
 
         class Vector {
         public:
-            std::vector< Cache<T> > _pointers;
+            std::vector< Cache<T> > _items;
 
-            uint32 cache(const Pointer& pointer) {
-                uint32 offset = _pointers.size();
-                _pointers.push_back(Cache<T>(pointer));
+            uint32 cache(const Data& data) {
+                uint32 offset = _items.size();
+                _items.push_back(Cache<T>(data));
                 return offset;
             }
 
-            Pointer get(uint32 offset) {
-                if (offset >= _pointers.size()) {
-                    return Pointer();
+            Data get(uint32 offset) {
+                if (offset >= _items.size()) {
+                    return Data();
                 }
-                return (_pointers.data() + offset)->_pointer;
+                return (_items.data() + offset)->_data;
             }
 
             void clear() {
-                _pointers.clear();
+                _items.clear();
             }
         };
     };
-    
-    typedef Cache<Buffer>::Vector BufferCaches;
-    typedef Cache<Stream::Format>::Vector StreamFormatCaches;
+
+    typedef Cache<BufferPointer>::Vector BufferCaches;
+    typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
     typedef Cache<Transform>::Vector TransformCaches;
 
     typedef unsigned char Byte;
