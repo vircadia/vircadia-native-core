@@ -89,11 +89,11 @@ function maybePlaySound(deltaTime) {
 }
 
 function playClap(volume, position) {
-	var options = new AudioInjectionOptions();
-	options.position = position;
-	options.volume = 1.0;
 	var clip = Math.floor(Math.random() * numberOfSounds);
-	Audio.playSound(claps[clip], options);
+	Audio.playSound(claps[clip], {
+	  position: position,
+    volume: volume
+	});
 }
 
 var FASTEST_CLAP_INTERVAL = 150.0;

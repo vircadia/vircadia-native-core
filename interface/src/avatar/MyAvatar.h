@@ -47,7 +47,6 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
-    void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE, bool postLighting = false);
     void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);

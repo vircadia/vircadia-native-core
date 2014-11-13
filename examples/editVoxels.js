@@ -68,9 +68,11 @@ var numColors = 9;
 var whichColor = 0;            //  Starting color is 'Copy' mode
 
 //  Create sounds for for every script actions that require one
-var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 1.0;
-audioOptions.position = Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ); // start with audio slightly above the avatar
+// start with audio slightly above the avatar
+var audioOptions = {
+  position: Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ),
+  volume: 1.0
+};
 
 function SoundArray() {
     this.audioOptions = audioOptions

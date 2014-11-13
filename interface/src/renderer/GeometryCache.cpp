@@ -547,7 +547,8 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     Resource(url, delayLoad),
     _mapping(mapping),
     _textureBase(textureBase.isValid() ? textureBase : url),
-    _fallback(fallback) {
+    _fallback(fallback)
+{
     
     if (url.isEmpty()) {
         // make the minimal amount of dummy geometry to satisfy Model
@@ -562,6 +563,8 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
         _geometry.leftHandJointIndex = -1;
         _geometry.rightHandJointIndex = -1;
     }
+        
+    connect(this, &Resource::loaded, this, &NetworkGeometry::replaceTexturesWithPendingChanges);
 }
 
 bool NetworkGeometry::isLoadedWithTextures() const {
@@ -710,27 +713,33 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
 }
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
-    for (int i = 0; i < _meshes.size(); i++) {
-        NetworkMesh& mesh = _meshes[i];
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            NetworkMeshPart& part = mesh.parts[j];
-            
-            QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
-            if (part.diffuseTextureName == name) {
-                part.diffuseTexture =
+    if (_meshes.size() > 0) {
+        for (int i = 0; i < _meshes.size(); i++) {
+            NetworkMesh& mesh = _meshes[i];
+            for (int j = 0; j < mesh.parts.size(); j++) {
+                NetworkMeshPart& part = mesh.parts[j];
+                
+                QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
+                if (part.diffuseTextureName == name) {
+                    part.diffuseTexture =
                     Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
                                                                               _geometry.meshes[i].isEye, QByteArray());
-                part.diffuseTexture->setLoadPriorities(_loadPriorities);
-            } else if (part.normalTextureName == name) {
-                part.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
-                                                                                               false, QByteArray());
-                part.normalTexture->setLoadPriorities(_loadPriorities);
-            } else if (part.specularTextureName == name) {
-                part.specularTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                 false, QByteArray());
-                part.specularTexture->setLoadPriorities(_loadPriorities);
+                    part.diffuseTexture->setLoadPriorities(_loadPriorities);
+                } else if (part.normalTextureName == name) {
+                    part.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                                                                                                   false, QByteArray());
+                    part.normalTexture->setLoadPriorities(_loadPriorities);
+                } else if (part.specularTextureName == name) {
+                    part.specularTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                                                                                                     false, QByteArray());
+                    part.specularTexture->setLoadPriorities(_loadPriorities);
+                }
             }
         }
+    } else {
+        qDebug() << "Adding a name url pair to pending" << name << url;
+        // we don't have meshes downloaded yet, so hold this texture as pending
+        _pendingTextureChanges.insert(name, url);
     }
 }
 
@@ -758,6 +767,15 @@ QStringList NetworkGeometry::getTextureNames() const {
         }
     }
     return result;
+}
+
+void NetworkGeometry::replaceTexturesWithPendingChanges() {
+    QHash<QString, QUrl>::Iterator it = _pendingTextureChanges.begin();
+    
+    while (it != _pendingTextureChanges.end()) {
+        setTextureWithNameToURL(it.key(), it.value());
+        it = _pendingTextureChanges.erase(it);
+    }
 }
 
 /// Reads geometry in a worker thread.
@@ -807,6 +825,7 @@ void NetworkGeometry::init() {
     _geometry = FBXGeometry();
     _meshes.clear();
     _lods.clear();
+    _pendingTextureChanges.clear();
     _request.setUrl(_url);
     Resource::init();
 }
