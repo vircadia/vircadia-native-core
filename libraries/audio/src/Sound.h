@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
+#include <QtScript/qscriptengine.h>
 
 class Sound : public QObject {
     Q_OBJECT
@@ -43,5 +44,10 @@ private slots:
     void replyFinished();
     void replyError(QNetworkReply::NetworkError code);
 };
+
+Q_DECLARE_METATYPE(Sound*)
+
+QScriptValue soundToScriptValue(QScriptEngine* engine, Sound* const& in);
+void soundFromScriptValue(const QScriptValue& object, Sound*& out);
 
 #endif // hifi_Sound_h

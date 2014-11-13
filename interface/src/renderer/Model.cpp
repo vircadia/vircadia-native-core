@@ -23,6 +23,7 @@
 #include <ShapeCollider.h>
 #include <SphereShape.h>
 
+#include "AnimationHandle.h"
 #include "Application.h"
 #include "Model.h"
 
@@ -517,17 +518,7 @@ void Model::recalcuateMeshBoxes() {
     }
 }
 
-bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
-    PROFILE_RANGE(__FUNCTION__);
-
-    // render the attachments
-    foreach (Model* attachment, _attachments) {
-        attachment->render(alpha, mode);
-    }
-    if (_meshStates.isEmpty()) {
-        return false;
-    }
-
+void Model::renderSetup(RenderArgs* args) {
     // if we don't have valid mesh boxes, calculate them now, this only matters in cases
     // where our caller has passed RenderArgs which will include a view frustum we can cull
     // against. We cache the results of these calculations so long as the model hasn't been
@@ -549,10 +540,40 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     if (!_meshGroupsKnown) {
         segregateMeshGroups();
     }
+}
+
+bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
+    PROFILE_RANGE(__FUNCTION__);
+
+    // render the attachments
+    foreach (Model* attachment, _attachments) {
+        attachment->render(alpha, mode);
+    }
+    if (_meshStates.isEmpty()) {
+        return false;
+    }
+
+    renderSetup(args);
+    return renderCore(alpha, mode, args);
+}
+    
+bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
+    PROFILE_RANGE(__FUNCTION__);
 
     // Let's introduce a gpu::Batch to capture all the calls to the graphics api
-    gpu::Batch batch;
+    _renderBatch.clear();
+    gpu::Batch& batch = _renderBatch;
+    GLBATCH(glPushMatrix)();
 
+    // Capture the view matrix once for the rendering of this model
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
+    }
+    _transforms[0] = Application::getInstance()->getViewTransform();
+    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
+    _transforms[0].preTranslate(-_translation);
+
+    batch.setViewTransform(_transforms[0]);
 
     GLBATCH(glDisable)(GL_COLOR_MATERIAL);
     
@@ -677,11 +698,12 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
     GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
     GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
 
+    GLBATCH(glPopMatrix)();
+
     // Render!
     {
         PROFILE_RANGE("render Batch");
         ::gpu::GLBackend::renderBatch(batch);
-        batch.clear();
     }
 
     // restore all the default material settings
@@ -1459,6 +1481,279 @@ void Model::deleteGeometry() {
     _blendedBlendshapeCoefficients.clear();
 }
 
+// Scene rendering support
+QVector<Model*> Model::_modelsInScene;
+gpu::Batch Model::_sceneRenderBatch;
+void Model::startScene() {
+    _modelsInScene.clear();
+}
+
+void Model::setupBatchTransform(gpu::Batch& batch) {
+    GLBATCH(glPushMatrix)();
+    
+    // Capture the view matrix once for the rendering of this model
+    if (_transforms.empty()) {
+        _transforms.push_back(Transform());
+    }
+    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0].preTranslate(-_translation);
+    batch.setViewTransform(_transforms[0]);
+}
+
+void Model::endScene(RenderMode mode, RenderArgs* args) {
+    PROFILE_RANGE(__FUNCTION__);
+
+    // Let's introduce a gpu::Batch to capture all the calls to the graphics api
+    _sceneRenderBatch.clear();
+    gpu::Batch& batch = _sceneRenderBatch;
+
+    GLBATCH(glDisable)(GL_COLOR_MATERIAL);
+    
+    if (mode == DIFFUSE_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+        GLBATCH(glDisable)(GL_CULL_FACE);
+    } else {
+        GLBATCH(glEnable)(GL_CULL_FACE);
+        if (mode == SHADOW_RENDER_MODE) {
+            GLBATCH(glCullFace)(GL_FRONT);
+        }
+    }
+    
+    // render opaque meshes with alpha testing
+
+    GLBATCH(glDisable)(GL_BLEND);
+    GLBATCH(glEnable)(GL_ALPHA_TEST);
+    
+    if (mode == SHADOW_RENDER_MODE) {
+        GLBATCH(glAlphaFunc)(GL_EQUAL, 0.0f);
+    }
+
+
+    /*Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(
+        mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE,
+        mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE,
+        mode == DEFAULT_RENDER_MODE);
+        */
+    {
+        GLenum buffers[3];
+        int bufferCount = 0;
+        if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        }
+        if (mode == DEFAULT_RENDER_MODE || mode == NORMAL_RENDER_MODE) {
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        }
+        if (mode == DEFAULT_RENDER_MODE) {
+            buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        }
+        GLBATCH(glDrawBuffers)(bufferCount, buffers);
+    }
+
+    const float DEFAULT_ALPHA_THRESHOLD = 0.5f;
+
+    int opaqueMeshPartsRendered = 0;
+
+    // now, for each model in the scene, render the mesh portions
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    
+    // render translucent meshes afterwards
+    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
+    {
+        GLenum buffers[2];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT1;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT2;
+        GLBATCH(glDrawBuffers)(bufferCount, buffers);
+    }
+
+    int translucentParts = 0;
+    const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
+        GLBATCH(glPopMatrix)();
+    }
+    foreach(Model* model, _modelsInScene) {
+        model->setupBatchTransform(batch);
+        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+        GLBATCH(glPopMatrix)();
+    }
+    
+    GLBATCH(glDisable)(GL_ALPHA_TEST);
+    GLBATCH(glEnable)(GL_BLEND);
+    GLBATCH(glDepthMask)(false);
+    GLBATCH(glDepthFunc)(GL_LEQUAL);
+    
+    //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true);
+    {
+        GLenum buffers[1];
+        int bufferCount = 0;
+        buffers[bufferCount++] = GL_COLOR_ATTACHMENT0;
+        GLBATCH(glDrawBuffers)(bufferCount, buffers);
+    }
+    
+    if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
+        const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
+            GLBATCH(glPopMatrix)();
+        }
+        foreach(Model* model, _modelsInScene) {
+            model->setupBatchTransform(batch);
+            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+            GLBATCH(glPopMatrix)();
+        }
+    }
+
+    GLBATCH(glDepthMask)(true);
+    GLBATCH(glDepthFunc)(GL_LESS);
+    GLBATCH(glDisable)(GL_CULL_FACE);
+    
+    if (mode == SHADOW_RENDER_MODE) {
+        GLBATCH(glCullFace)(GL_BACK);
+    }
+
+    // deactivate vertex arrays after drawing
+    GLBATCH(glDisableClientState)(GL_NORMAL_ARRAY);
+    GLBATCH(glDisableClientState)(GL_VERTEX_ARRAY);
+    GLBATCH(glDisableClientState)(GL_TEXTURE_COORD_ARRAY);
+    GLBATCH(glDisableClientState)(GL_COLOR_ARRAY);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::TANGENT);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_INDEX);
+    GLBATCH(glDisableVertexAttribArray)(gpu::Stream::SKIN_CLUSTER_WEIGHT);
+    
+    // bind with 0 to switch back to normal operation
+    GLBATCH(glBindBuffer)(GL_ARRAY_BUFFER, 0);
+    GLBATCH(glBindBuffer)(GL_ELEMENT_ARRAY_BUFFER, 0);
+    GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+
+    // Render!
+    {
+        PROFILE_RANGE("render Batch");
+        ::gpu::GLBackend::renderBatch(batch);
+    }
+
+    // restore all the default material settings
+    Application::getInstance()->setupWorldLight();
+    
+    if (args) {
+        args->_translucentMeshPartsRendered = translucentParts;
+        args->_opaqueMeshPartsRendered = opaqueMeshPartsRendered;
+    }
+}
+
+bool Model::renderInScene(float alpha, RenderArgs* args) {
+    // render the attachments
+    foreach (Model* attachment, _attachments) {
+        attachment->renderInScene(alpha);
+    }
+    if (_meshStates.isEmpty()) {
+        return false;
+    }
+    renderSetup(args);
+    _modelsInScene.push_back(this);
+    return true;
+}
+
 void Model::segregateMeshGroups() {
     _meshesTranslucentTangents.clear();
     _meshesTranslucent.clear();
@@ -1849,20 +2144,16 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         }
 
         GLBATCH(glPushMatrix)();
-        //Application::getInstance()->loadTranslatedViewMatrix(_translation);
-        GLBATCH(glLoadMatrixf)((const GLfloat*)&Application::getInstance()->getUntranslatedViewMatrix());
-        glm::vec3 viewMatTranslation = Application::getInstance()->getViewMatrixTranslation();
-        GLBATCH(glTranslatef)(_translation.x + viewMatTranslation.x, _translation.y + viewMatTranslation.y,
-            _translation.z + viewMatTranslation.z);
 
         const MeshState& state = _meshStates.at(i);
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
+            batch.setModelTransform(Transform());
         } else {
-            GLBATCH(glMultMatrixf)((const GLfloat*)&state.clusterMatrices[0]);
+            batch.setModelTransform(Transform(state.clusterMatrices[0]));
         }
-        
+
         if (mesh.blendshapes.isEmpty()) {
             batch.setInputFormat(networkMesh._vertexFormat);
             batch.setInputStream(0, *networkMesh._vertexStream);
@@ -1980,166 +2271,3 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
     return meshPartsRendered;
 }
-
-void AnimationHandle::setURL(const QUrl& url) {
-    if (_url != url) {
-        _animation = Application::getInstance()->getAnimationCache()->getAnimation(_url = url);
-        _jointMappings.clear();
-    }
-}
-
-static void insertSorted(QList<AnimationHandlePointer>& handles, const AnimationHandlePointer& handle) {
-    for (QList<AnimationHandlePointer>::iterator it = handles.begin(); it != handles.end(); it++) {
-        if (handle->getPriority() > (*it)->getPriority()) {
-            handles.insert(it, handle);
-            return;
-        } 
-    }
-    handles.append(handle);
-}
-
-void AnimationHandle::setPriority(float priority) {
-    if (_priority == priority) {
-        return;
-    }
-    if (_running) {
-        _model->_runningAnimations.removeOne(_self);
-        if (priority < _priority) {
-            replaceMatchingPriorities(priority);
-        }
-        _priority = priority;
-        insertSorted(_model->_runningAnimations, _self);
-        
-    } else {
-        _priority = priority;
-    }
-}
-
-void AnimationHandle::setStartAutomatically(bool startAutomatically) {
-    if ((_startAutomatically = startAutomatically) && !_running) {
-        start();
-    }
-}
-
-void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
-    _maskedJoints = maskedJoints;
-    _jointMappings.clear();
-}
-
-void AnimationHandle::setRunning(bool running) {
-    if (_running == running) {
-        if (running) {
-            // move back to the beginning
-            _frameIndex = _firstFrame;
-        }
-        return;
-    }
-    if ((_running = running)) {
-        if (!_model->_runningAnimations.contains(_self)) {
-            insertSorted(_model->_runningAnimations, _self);
-        }
-        _frameIndex = _firstFrame;
-          
-    } else {
-        _model->_runningAnimations.removeOne(_self);
-        replaceMatchingPriorities(0.0f);
-    }
-    emit runningChanged(_running);
-}
-
-AnimationHandle::AnimationHandle(Model* model) :
-    QObject(model),
-    _model(model),
-    _fps(30.0f),
-    _priority(1.0f),
-    _loop(false),
-    _hold(false),
-    _startAutomatically(false),
-    _firstFrame(0.0f),
-    _lastFrame(FLT_MAX),
-    _running(false) {
-}
-
-AnimationDetails AnimationHandle::getAnimationDetails() const {
-    AnimationDetails details(_role, _url, _fps, _priority, _loop, _hold,
-                        _startAutomatically, _firstFrame, _lastFrame, _running, _frameIndex);
-    return details;
-}
-
-
-void AnimationHandle::simulate(float deltaTime) {
-    _frameIndex += deltaTime * _fps;
-    
-    // update the joint mappings if necessary/possible
-    if (_jointMappings.isEmpty()) {
-        if (_model->isActive()) {
-            _jointMappings = _model->getGeometry()->getJointMappings(_animation);
-        }
-        if (_jointMappings.isEmpty()) {
-            return;
-        }
-        if (!_maskedJoints.isEmpty()) {
-            const FBXGeometry& geometry = _model->getGeometry()->getFBXGeometry();
-            for (int i = 0; i < _jointMappings.size(); i++) {
-                int& mapping = _jointMappings[i];
-                if (mapping != -1 && _maskedJoints.contains(geometry.joints.at(mapping).name)) {
-                    mapping = -1;
-                }
-            }
-        }
-    }
-    
-    const FBXGeometry& animationGeometry = _animation->getGeometry();
-    if (animationGeometry.animationFrames.isEmpty()) {
-        stop();
-        return;
-    }
-    float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
-    float startFrameIndex = qMin(_firstFrame, endFrameIndex);
-    if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {
-        // passed the end; apply the last frame
-        applyFrame(glm::clamp(_frameIndex, startFrameIndex, endFrameIndex));
-        if (!_hold) {
-            stop();
-        }
-        return;
-    }
-    // wrap within the the desired range
-    if (_frameIndex < startFrameIndex) {
-        _frameIndex = endFrameIndex - glm::mod(endFrameIndex - _frameIndex, endFrameIndex - startFrameIndex);
-    
-    } else if (_frameIndex > endFrameIndex) {
-        _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
-    }
-    
-    // blend between the closest two frames
-    applyFrame(_frameIndex);
-}
-
-void AnimationHandle::applyFrame(float frameIndex) {
-    const FBXGeometry& animationGeometry = _animation->getGeometry();
-    int frameCount = animationGeometry.animationFrames.size();
-    const FBXAnimationFrame& floorFrame = animationGeometry.animationFrames.at((int)glm::floor(frameIndex) % frameCount);
-    const FBXAnimationFrame& ceilFrame = animationGeometry.animationFrames.at((int)glm::ceil(frameIndex) % frameCount);
-    float frameFraction = glm::fract(frameIndex);
-    for (int i = 0; i < _jointMappings.size(); i++) {
-        int mapping = _jointMappings.at(i);
-        if (mapping != -1) {
-            JointState& state = _model->_jointStates[mapping];
-            state.setRotationInConstrainedFrame(safeMix(floorFrame.rotations.at(i), ceilFrame.rotations.at(i), frameFraction), _priority);
-        }
-    }
-}
-
-void AnimationHandle::replaceMatchingPriorities(float newPriority) {
-    for (int i = 0; i < _jointMappings.size(); i++) {
-        int mapping = _jointMappings.at(i);
-        if (mapping != -1) {
-            JointState& state = _model->_jointStates[mapping];
-            if (_priority == state._animationPriority) {
-                state._animationPriority = newPriority;
-            }
-        }
-    }
-}
-

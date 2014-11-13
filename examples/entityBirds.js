@@ -135,10 +135,10 @@ function updateBirds(deltaTime) {
             // Tweeting behavior
             if (birds[i].tweeting == 0) {
                 if (Math.random() < CHANCE_OF_TWEETING) {
-                    var options = new AudioInjectionOptions();
-                    options.position = properties.position;
-                    options.volume = 0.75;
-                    Audio.playSound(birds[i].tweetSound, options);
+                    Audio.playSound(birds[i].tweetSound, {
+                      position: properties.position,
+                      volume: 0.75
+                    });
                     birds[i].tweeting = 10;
                 }
             } else {

@@ -30,6 +30,7 @@
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const int DEFAULT_MARGIN = 10;
 const int DEFAULT_FONTSIZE = 11;
+const int DEFAULT_FONT_WEIGHT = 50;
 
 class TextOverlay : public Overlay2D {
     Q_OBJECT
@@ -53,6 +54,8 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
+
+    float textWidth(const QString& text) const;  // Pixels
 
 private:
 
