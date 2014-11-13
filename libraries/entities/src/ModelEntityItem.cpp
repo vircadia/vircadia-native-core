@@ -112,9 +112,15 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
     READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
     
-    setAnimationIsPlaying(animationIsPlaying);
-    setAnimationFPS(animationFPS);
-    setAnimationFrameIndex(animationFrameIndex);
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+        setAnimationIsPlaying(animationIsPlaying);
+    }
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
+        setAnimationFPS(animationFPS);
+    }
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+        setAnimationFrameIndex(animationFrameIndex);
+    }
 
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
