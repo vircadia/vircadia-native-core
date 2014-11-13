@@ -162,12 +162,7 @@ QScriptValue BillboardOverlay::getProperty(const QString& property) {
         return _url;
     }
     if (property == "subImage") {
-        QScriptValue subImage = _scriptEngine->newObject();
-        subImage.setProperty("x", _fromImage.x());
-        subImage.setProperty("y", _fromImage.y());
-        subImage.setProperty("width", _fromImage.width());
-        subImage.setProperty("height", _fromImage.height());
-        return subImage;
+        return qRectToScriptValue(_scriptEngine, _fromImage);
     }
     if (property == "scale") {
         return _scale;
