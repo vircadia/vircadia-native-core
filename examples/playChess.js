@@ -124,9 +124,9 @@ ChessGame.Piece = (function(position, dimensions, url, rotation) {
     rotation: rotation,
     dimensions: this.dimensions,
     modelURL: url,
-    script: "https://s3.amazonaws.com/hifi-public/scripts/entityScripts/chessPiece.js"
+    //script: "https://s3.amazonaws.com/hifi-public/scripts/entityScripts/chessPiece.js"
     //script: "https://s3-us-west-1.amazonaws.com/highfidelity-dev/scripts/chessPiece.js"
-    //script: "file:/Users/clement/hifi/examples/entityScripts/chessPiece.js"
+    script: "file:/Users/clement/hifi/examples/entityScripts/chessPiece.js"
   }
   this.entity = null;
 });
@@ -160,8 +160,12 @@ ChessGame.makePiece = function(piece, i, j, isWhite) {
 ChessGame.buildMetadataString = function() {
   var metadataObject = {
     gamePosition: gamePosition,
-    gameSize: gameSize
+    gameSize: gameSize,
+    pieces: new Array()
   };
+  for (i in ChessGame.pieces) {
+    metadataObject.pieces.push(ChessGame.pieces[i].entity);
+  }
   return JSON.stringify(metadataObject);
 }
 
