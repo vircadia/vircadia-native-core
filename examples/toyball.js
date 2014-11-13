@@ -39,9 +39,9 @@ var rightBallAlreadyInHand = false;
 var leftHandEntity;
 var rightHandEntity;
 
-var newSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
-var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var throwSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
+var newSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
+var catchSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
+var throwSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
 var targetRadius = 1.0;
 
 
