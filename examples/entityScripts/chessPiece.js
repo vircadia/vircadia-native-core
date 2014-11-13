@@ -5,10 +5,12 @@
   this.sound = null;
   this.entityID = null;
   this.properties = null;
+  this.startingTile = null;
+  this.pieces = new Array();
+  
   this.updateProperties = function(entityID) {
     if (this.entityID === null) {
       this.entityID = entityID;
-      print("entityID=" + JSON.stringify(this.entityID));
     }
     if (!entityID.isKnownID || this.entityID.id !== entityID.id) {
       print("Something is very wrong: Bailing!");
@@ -19,27 +21,40 @@
       print("Unknown entityID " + this.entityID.id + " should be self.")
     } 
   }
+  
   this.updatePosition = function(mouseEvent) {
     var pickRay = Camera.computePickRay(mouseEvent.x, mouseEvent.y)
     var upVector = { x: 0, y: 1, z: 0 };
     var intersection = this.rayPlaneIntersection(pickRay.origin, pickRay.direction,
                                                  this.properties.position, upVector);
+    if (this.isOutsideGrid(this.getIndexPosition(intersection))) {
+      intersection = this.getAbsolutePosition(this.startingTile);
+    }
     Entities.editEntity(this.entityID, { position: intersection });
+    //this.moveDeadPiece();
+  }
+  this.isOutsideGrid = function(pos) {
+    return !(pos.i >= 0 && pos.j >= 0 && pos.i <= 9 && pos.j <= 9);
+  }
+  this.getIndexPosition = function(position) {
+    var tileSize = this.GRID_SIZE / 10.0;
+    var relative = Vec3.subtract(position, this.GRID_POSITION);
+    return {
+      i: Math.floor(relative.x / tileSize),
+      j: Math.floor(relative.z / tileSize)
+    }
+  }
+  this.getAbsolutePosition = function(pos) {
+    var tileSize = this.GRID_SIZE / 10.0;
+    var relative = Vec3.subtract(this.properties.position, this.GRID_POSITION);
+    relative.x = (pos.i + 0.5) * tileSize;
+    relative.z = (pos.j + 0.5) * tileSize;
+    
+    return Vec3.sum(this.GRID_POSITION, relative);
   }
   this.snapToGrid = function() {
-    var position = this.GRID_POSITION;
-    var size = this.GRID_SIZE;
-    var tileSize = size / 10.0;
-
-    var relative = Vec3.subtract(this.properties.position, position);
-    var i = Math.floor(relative.x / tileSize);
-    var j = Math.floor(relative.z / tileSize);
-    i = Math.min(Math.max(1, i), 8);
-    j = Math.min(Math.max(1, j), 8);
-    
-    relative.x = (i + 0.5) * tileSize;
-    relative.z = (j + 0.5) * tileSize;
-    var finalPos = Vec3.sum(position, relative);
+    var pos = this.getIndexPosition(this.properties.position);
+    var finalPos = this.getAbsolutePosition((this.isOutsideGrid(pos)) ?  this.startingTile : pos);
     Entities.editEntity(this.entityID, { position: finalPos });
   }
   // Pr, Vr are respectively the Ray's Point of origin and Vector director
@@ -56,8 +71,9 @@
   }
   
   this.playSound = function() {
-    if (this.sound.downloaded) {
+    if (this.sound !== null && this.sound.downloaded) {
   		Audio.playSound(this.sound, { position: this.properties.position });
+      print("playing sound");
     }
   }
   this.getMetadata = function() {
@@ -69,6 +85,36 @@
       if (metadataObject.gameSize) {
         this.GRID_SIZE = metadataObject.gameSize;
       }
+      if (metadataObject.pieces) {
+        this.pieces = metadataObject.pieces;
+      }
+    }
+  }
+
+  
+  this.grab = function(mouseEvent) {
+    this.startingTile = this.getIndexPosition(this.properties.position);
+    this.updatePosition(mouseEvent);
+  }
+  this.move = function(mouseEvent) {
+    this.updatePosition(mouseEvent);
+  }
+  this.release = function(mouseEvent) {
+    this.updatePosition(mouseEvent);
+    this.snapToGrid();
+    
+    this.playSound();
+  }
+  this.moveDeadPiece = function() {
+    var myPos = this.getIndexPosition(this.properties.position);
+    for (var i = 0; i < this.pieces.length; i++) {
+      if (this.pieces[i].id != this.entityID.id) {
+        var piecePos = this.getIndexPosition(Entities.getEntityProperties(this.pieces[i]).position);
+        if (myPos.i === piecePos.i && myPos.j === piecePos.j) {
+          Entities.editEntity(this.pieces[i], { position: this.getAbsolutePosition({ i: 0, j: 0 })});
+          break;
+        }
+      }
     }
   }
   
@@ -76,18 +122,17 @@
     this.maybeDownloadSound();
   }
   this.clickDownOnEntity = function(entityID, mouseEvent) {
+    this.maybeDownloadSound();
     this.updateProperties(entityID);
     this.getMetadata();
-    this.updatePosition(mouseEvent);
+    this.grab(mouseEvent);
   };
   this.holdingClickOnEntity = function(entityID, mouseEvent) {
     this.updateProperties(entityID);
-    this.updatePosition(mouseEvent);
+    this.move(mouseEvent);
   };
   this.clickReleaseOnEntity = function(entityID, mouseEvent) {
     this.updateProperties(entityID);
-    this.updatePosition(mouseEvent);
-    this.snapToGrid();
-    this.playSound();
+    this.release(mouseEvent);
   };
 })
