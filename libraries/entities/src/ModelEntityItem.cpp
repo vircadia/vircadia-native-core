@@ -49,6 +49,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
     return properties;
 }
 
@@ -63,6 +64,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -115,6 +117,7 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     setAnimationFrameIndex(animationFrameIndex);
 
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
+    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
 
     return bytesRead;
 }
@@ -244,6 +247,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
     requestedProperties += PROP_ANIMATION_PLAYING;
+    requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_TEXTURES;
     
     return requestedProperties;
@@ -266,6 +270,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
 }
 
 

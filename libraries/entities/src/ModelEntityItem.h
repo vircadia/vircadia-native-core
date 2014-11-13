@@ -76,6 +76,7 @@ public:
     void setAnimationURL(const QString& url) { _animationURL = url; }
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value) { _animationLoop.setFrameIndex(value); }
+    void setAnimationSettings(const QString& value) { _animationSettings = value; }
 
     static const bool DEFAULT_ANIMATION_IS_PLAYING;
     void setAnimationIsPlaying(bool value) { _animationLoop.setRunning(value); }
@@ -90,6 +91,7 @@ public:
     bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
     float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
+    const QString& getAnimationSettings() const { return _animationSettings; }
 
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
@@ -109,6 +111,7 @@ protected:
     quint64 _lastAnimated;
     QString _animationURL;
     AnimationLoop _animationLoop;
+    QString _animationSettings;
     QString _textures;
 
     // used on client side

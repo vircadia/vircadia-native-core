@@ -52,6 +52,8 @@ EntityPropertyDialogBox = (function () {
             index++;
             array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
             index++;
+            array.push({ label: "Animation Settings:", value: properties.animationSettings });
+            index++;
             array.push({ label: "Textures:", value: properties.textures });
             index++;
             array.push({ label: "Original Textures:\n" + properties.originalTextures, type: "header" });
@@ -240,6 +242,7 @@ EntityPropertyDialogBox = (function () {
                 properties.animationIsPlaying = array[index++].value;
                 properties.animationFPS = array[index++].value;
                 properties.animationFrameIndex = array[index++].value;
+                properties.animationSettings = array[index++].value;
                 properties.textures = array[index++].value;
                 index++; // skip textureNames label
             }
