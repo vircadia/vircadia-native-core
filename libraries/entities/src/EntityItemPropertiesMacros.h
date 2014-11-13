@@ -40,6 +40,18 @@
             }                                                   \
         }
 
+#define READ_ENTITY_PROPERTY_SETTER(P,T,M)                      \
+        if (propertyFlags.getHasProperty(P)) {                  \
+            T fromBuffer;                                       \
+            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
+            dataAt += sizeof(fromBuffer);                       \
+            bytesRead += sizeof(fromBuffer);                    \
+            if (overwriteLocalData) {                           \
+                M(fromBuffer);                                  \
+            }                                                   \
+        }
+
+
 #define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
         if (propertyFlags.getHasProperty(P)) {                              \
             glm::quat fromBuffer;                                           \
