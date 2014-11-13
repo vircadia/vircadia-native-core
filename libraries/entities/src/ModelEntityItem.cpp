@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QJsonDocument>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 
@@ -405,3 +407,94 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "    model URL:" << getModelURL();
 }
 
+void ModelEntityItem::setAnimationSettings(const QString& value) { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    if (settingsMap.contains("fps")) {
+        float fps = settingsMap["fps"].toFloat();
+        setAnimationFPS(fps);
+    }
+
+    if (settingsMap.contains("frameIndex")) {
+        float frameIndex = settingsMap["frameIndex"].toFloat();
+        setAnimationFrameIndex(frameIndex);
+    }
+
+    if (settingsMap.contains("running")) {
+        bool running = settingsMap["running"].toBool();
+        setAnimationIsPlaying(running);
+    }
+
+    if (settingsMap.contains("firstFrame")) {
+        float firstFrame = settingsMap["firstFrame"].toFloat();
+        setAnimationFirstFrame(firstFrame);
+    }
+
+    if (settingsMap.contains("lastFrame")) {
+        float lastFrame = settingsMap["lastFrame"].toFloat();
+        setAnimationLastFrame(lastFrame);
+    }
+
+    if (settingsMap.contains("loop")) {
+        bool loop = settingsMap["loop"].toBool();
+        setAnimationLoop(loop);
+    }
+
+    if (settingsMap.contains("hold")) {
+        bool hold = settingsMap["hold"].toBool();
+        setAnimationHold(hold);
+    }
+
+    if (settingsMap.contains("startAutomatically")) {
+        bool startAutomatically = settingsMap["startAutomatically"].toBool();
+        setAnimationStartAutomatically(startAutomatically);
+    }
+
+    _animationSettings = value; 
+}
+
+QString ModelEntityItem::getAnimationSettings() const { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+    QString value = _animationSettings;
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    
+    QVariant fpsValue(getAnimationFPS());
+    settingsMap["fps"] = fpsValue;
+
+    QVariant frameIndexValue(getAnimationFrameIndex());
+    settingsMap["frameIndex"] = frameIndexValue;
+
+    QVariant runningValue(getAnimationIsPlaying());
+    settingsMap["running"] = runningValue;
+
+    QVariant firstFrameValue(getAnimationFirstFrame());
+    settingsMap["firstFrame"] = firstFrameValue;
+
+    QVariant lastFrameValue(getAnimationLastFrame());
+    settingsMap["lastFrame"] = lastFrameValue;
+
+    QVariant loopValue(getAnimationLoop());
+    settingsMap["loop"] = loopValue;
+
+    QVariant holdValue(getAnimationHold());
+    settingsMap["hold"] = holdValue;
+
+    QVariant startAutomaticallyValue(getAnimationStartAutomatically());
+    settingsMap["startAutomatically"] = startAutomaticallyValue;
+    
+    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
+    QJsonDocument newDocument(settingsAsJsonObject);
+    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
+    QString jsonByteString(jsonByteArray);
+    return jsonByteString;
+}
