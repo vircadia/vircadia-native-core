@@ -148,7 +148,6 @@ void EntityItemProperties::setAnimationSettings(const QString& value) {
     _animationSettingsChanged = true; 
 }
 
-/**
 QString EntityItemProperties::getAnimationSettings() const { 
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
@@ -158,26 +157,22 @@ QString EntityItemProperties::getAnimationSettings() const {
     QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
     QJsonObject settingsAsJsonObject = settingsAsJson.object();
     QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
-    if (settingsMap.contains("fps")) {
-        float fps = settingsMap["fps"].toFloat();
-        setAnimationFPS(fps);
-    }
-
-    if (settingsMap.contains("frameIndex")) {
-        float frameIndex = settingsMap["frameIndex"].toFloat();
-        setAnimationFrameIndex(frameIndex);
-    }
-
-    if (settingsMap.contains("running")) {
-        bool running = settingsMap["running"].toBool();
-        setAnimationIsPlaying(running);
-    }
     
-    _animationSettings = value; 
-    _animationSettingsChanged = true; 
-}
-**/
+    QVariant fpsValue(getAnimationFPS());
+    settingsMap["fps"] = fpsValue;
 
+    QVariant frameIndexValue(getAnimationFrameIndex());
+    settingsMap["frameIndex"] = frameIndexValue;
+
+    QVariant runningValue(getAnimationIsPlaying());
+    settingsMap["running"] = runningValue;
+    
+    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
+    QJsonDocument newDocument(settingsAsJsonObject);
+    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
+    QString jsonByteString(jsonByteArray);
+    return jsonByteString;
+}
 
 void EntityItemProperties::debugDump() const {
     qDebug() << "EntityItemProperties...";
@@ -265,7 +260,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationIsPlaying);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFPS);
     COPY_PROPERTY_TO_QSCRIPTVALUE(animationFrameIndex);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(animationSettings);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(animationSettings,getAnimationSettings());
     COPY_PROPERTY_TO_QSCRIPTVALUE(glowLevel);
     COPY_PROPERTY_TO_QSCRIPTVALUE(localRenderAlpha);
     COPY_PROPERTY_TO_QSCRIPTVALUE(ignoreForCollisions);
@@ -340,6 +335,9 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFPS, setAnimationFPS);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(animationFrameIndex, setAnimationFrameIndex);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(animationSettings, setAnimationSettings);
+    
+qDebug() << "_animationSettingsChanged:" << _animationSettingsChanged;
+    
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(glowLevel, setGlowLevel);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(localRenderAlpha, setLocalRenderAlpha);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(ignoreForCollisions, setIgnoreForCollisions);

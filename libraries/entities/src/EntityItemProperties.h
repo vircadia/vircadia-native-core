@@ -179,7 +179,7 @@ public:
     float getAnimationFrameIndex() const { return _animationFrameIndex; }
     bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
     float getAnimationFPS() const { return _animationFPS; }
-    const QString& getAnimationSettings() const { return _animationSettings; }
+    QString getAnimationSettings() const;
 
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
