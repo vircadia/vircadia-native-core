@@ -277,7 +277,9 @@ inline Transform::Mat4& Transform::getMatrix(Transform::Mat4& result) const {
 }
 
 inline Transform::Mat4& Transform::getInverseMatrix(Transform::Mat4& result) const {
-    return evalInverse(Transform()).getMatrix(result);
+    Transform inverse;
+    evalInverse(inverse);
+    return inverse.getMatrix(result);
 }
 
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
