@@ -839,12 +839,14 @@ void Application::controlledBroadcastToNodes(const QByteArray& packet, const Nod
 }
 
 bool Application::event(QEvent* event) {
+
     // handle custom URL
     if (event->type() == QEvent::FileOpen) {
         
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-        if (fileEvent->url().isValid()) {
-            openUrl(fileEvent->url());
+        
+        if (!fileEvent->url().isEmpty()) {
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
         }
         
         return false;
@@ -2899,14 +2901,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         glFrontFace(GL_CCW);
     }
 
-    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
+/*    glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::degrees(glm::angle(eyeOffsetOrient)), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-    viewTransform.postRotate(glm::conjugate(eyeOffsetOrient));
+   // viewTransform.postRotate(glm::conjugate(eyeOffsetOrient));
+    viewTransform.preRotate(eyeOffsetOrient);
     glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
-    viewTransform.postTranslate(-eyeOffsetPos);
-
+    //viewTransform.postTranslate(-eyeOffsetPos);
+    viewTransform.preTranslate(eyeOffsetPos);
+*/
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
     // or could be viewFrustumOffsetCamera if in offset mode
@@ -2914,14 +2918,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::quat rotation = whichCamera.getRotation();
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
-    viewTransform.postRotate(glm::conjugate(rotation));
+  //  viewTransform.postRotate(glm::conjugate(rotation));
+    viewTransform.setRotation(rotation);
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
 
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
-    // the viewTransofmr object is updated with the correct value and saved,
+    // the viewTransofmr object is updatded with the correct value and saved,
     // this is what is used for rendering the ENtities and avatars
+    viewTransform.setTranslation(whichCamera.getPosition());
     setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);

@@ -78,11 +78,16 @@ public:
     void evalFromRawMatrix(const Mat3& rotationScalematrix);
 
     Mat4& getMatrix(Mat4& result) const;
+    Mat4& getInverseMatrix(Mat4& result) const;
 
     Transform& evalInverse(Transform& result) const;
 
     static void evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotationScaleMatrix);
+
     static Transform& mult(Transform& result, const Transform& left, const Transform& right);
+
+    // Left will be inversed before the multiplication
+    static Transform& inverseMult(Transform& result, const Transform& left, const Transform& right);
 
 
 protected:
@@ -271,6 +276,10 @@ inline Transform::Mat4& Transform::getMatrix(Transform::Mat4& result) const {
     return result;
 }
 
+inline Transform::Mat4& Transform::getInverseMatrix(Transform::Mat4& result) const {
+    return evalInverse(Transform()).getMatrix(result);
+}
+
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation
     if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.f)) {
@@ -314,6 +323,34 @@ inline Transform& Transform::mult( Transform& result, const Transform& left, con
     result = left;
     if (right.isTranslating()) {
         result.postTranslate(right.getTranslation());
+    }
+    if (right.isRotating()) {
+        result.postRotate(right.getRotation());
+    }
+    if (right.isScaling()) {
+        result.postScale(right.getScale());
+    }
+
+    // HACK: In case of an issue in the Transform multiplication results, to make sure this code is
+    // working properly uncomment the next 2 lines and compare the results, they should be the same...
+    // Transform::Mat4 mv = left.getMatrix() * right.getMatrix();
+    // Transform::Mat4 mv2 = result.getMatrix();
+
+    return result;
+}
+
+inline Transform& Transform::inverseMult( Transform& result, const Transform& left, const Transform& right) {
+    result.setIdentity();
+
+    if (left.isScaling()) {
+        const Vec3& s = left.getScale();
+        result.setScale(Vec3(1.0f / s.x, 1.0f / s.y, 1.0f / s.z));
+    }
+    if (left.isRotating()) {
+        result.postRotate(glm::conjugate(left.getRotation()));
+    }
+    if (left.isTranslating() || right.isTranslating()) {
+        result.postTranslate(right.getTranslation() - left.getTranslation());
     }
     if (right.isRotating()) {
         result.postRotate(right.getRotation());

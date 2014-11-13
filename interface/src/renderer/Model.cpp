@@ -560,8 +560,8 @@ bool Model::render(float alpha, RenderMode mode, RenderArgs* args) {
         _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
     }
     (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
-    // apply entity translation + camera position offset to the viewTransform  in one go
-    _transforms[0]->postTranslate(Application::getInstance()->getViewMatrixTranslation() + _translation);
+    // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
+    _transforms[0]->preTranslate(-_translation);
 
     batch.setViewTransform(_transforms[0]);
 

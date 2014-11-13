@@ -476,7 +476,7 @@ void GLBackend::updateTransform() {
             Transform::Mat4 modelView;
             if (!_transform._view.isNull()) {
                 Transform mvx;
-                Transform::mult(mvx, (*_transform._view), (*_transform._model));
+                Transform::inverseMult(mvx, (*_transform._view), (*_transform._model));
                 mvx.getMatrix(modelView);
             } else {
                 _transform._model->getMatrix(modelView);
@@ -489,7 +489,7 @@ void GLBackend::updateTransform() {
                     _transform._lastMode = GL_MODELVIEW;
                 }
                 Transform::Mat4 modelView;
-                _transform._view->getMatrix(modelView);
+                _transform._view->getInverseMatrix(modelView);
                 glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
             } else {
                 // TODO: eventually do something about the matrix when neither view nor model is specified?

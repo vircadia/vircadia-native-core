@@ -82,6 +82,11 @@ public:
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
 
     // Transform Stage
+    // Vertex position is transformed by ModelTransform from object space to world space
+    // Then by the inverse of the ViewTransform from world space to eye space
+    // finaly projected into the clip space by the projection transform
+    // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
+    // with the ModelTransformu to create the equivalent of the glModelViewMatrix
     void setModelTransform(const TransformPointer& model);
     void setViewTransform(const TransformPointer& view);
     void setProjectionTransform(const TransformPointer& proj);

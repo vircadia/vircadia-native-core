@@ -27,12 +27,6 @@ void Transform::evalRotationScale(Quat& rotation, Vec3& scale, const Mat3& rotat
         Mat3 currInvTranspose = glm::inverse(glm::transpose(rotationMat));
         
         Mat3 nextRotation = 0.5f * (rotationMat + currInvTranspose);
-        // Go through every component in the matrices and find the next matrix
-     /*   for (int i = 0; i < 3; i++) {
-            for (int j = 0; j <3; j++) {
-                nextRotation[j][i] = 0.5f * (rotationMat[j][i] + currInvTranspose[j][i]);
-            }
-        }*/
 
         norm = 0.0;
         for (int i = 0; i < 3; i++) {
