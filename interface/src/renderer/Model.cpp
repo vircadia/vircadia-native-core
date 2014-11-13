@@ -2003,10 +2003,10 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
         if (whichList) {
             QVector<int>& list = *whichList;
             if (list.size() > 0) {
-                //if (pickProgramsNeeded) {
+                if (pickProgramsNeeded) {
                     pickPrograms(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit);
                     pickProgramsNeeded = false;
-                //}
+                }
                 model->setupBatchTransform(batch);
                 meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit);
                 GLBATCH(glPopMatrix)();
