@@ -33,10 +33,11 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
 { 
     _type = EntityTypes::Model;     
     setProperties(properties, true);
-    _animationFrameIndex = 0.0f;
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _color[0] = _color[1] = _color[2] = 0;
+
+    //_animationFrameIndex = 0.0f;
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
@@ -100,9 +101,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationIsPlaying);
+    READ_ENTITY_PROPERTY_SETTER(PROP_ANIMATION_FPS, float, setAnimationFPS);
+    READ_ENTITY_PROPERTY_SETTER(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+    READ_ENTITY_PROPERTY_SETTER(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
 
     return bytesRead;
@@ -199,19 +200,25 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
             bytesRead += animationURLLength;
 
             // animationIsPlaying
-            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
-            dataAt += sizeof(_animationIsPlaying);
-            bytesRead += sizeof(_animationIsPlaying);
+            bool animationIsPlaying;
+            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
+            dataAt += sizeof(animationIsPlaying);
+            bytesRead += sizeof(animationIsPlaying);
+            setAnimationIsPlaying(animationIsPlaying);
 
             // animationFrameIndex
-            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
-            dataAt += sizeof(_animationFrameIndex);
-            bytesRead += sizeof(_animationFrameIndex);
+            float animationFrameIndex;
+            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
+            dataAt += sizeof(animationFrameIndex);
+            bytesRead += sizeof(animationFrameIndex);
+            setAnimationFrameIndex(animationFrameIndex);
 
             // animationFPS
-            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
-            dataAt += sizeof(_animationFPS);
-            bytesRead += sizeof(_animationFPS);
+            float animationFPS;
+            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
+            dataAt += sizeof(animationFPS);
+            bytesRead += sizeof(animationFPS);
+            setAnimationFPS(animationFPS);
         }
     }
     return bytesRead;
@@ -314,7 +321,7 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
         int frameCount = frames.size();
 
         if (frameCount > 0) {
-            int animationFrameIndex = (int)(glm::floor(_animationFrameIndex)) % frameCount;
+            int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
 
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 animationFrameIndex = 0;
@@ -363,7 +370,7 @@ void ModelEntityItem::update(const quint64& updateTime) {
     if (getAnimationIsPlaying()) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         _lastAnimated = now;
-        _animationFrameIndex += deltaTime * _animationFPS;
+        _animationLoop.simulate(deltaTime);
     } else {
         _lastAnimated = now;
     }
