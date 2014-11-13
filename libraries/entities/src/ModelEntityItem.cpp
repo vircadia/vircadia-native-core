@@ -36,8 +36,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _color[0] = _color[1] = _color[2] = 0;
-
-    //_animationFrameIndex = 0.0f;
 }
 
 EntityItemProperties ModelEntityItem::getProperties() const {
@@ -115,8 +113,6 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     setAnimationIsPlaying(animationIsPlaying);
     setAnimationFPS(animationFPS);
     setAnimationFrameIndex(animationFrameIndex);
-
-qDebug() << "just read PROP_ANIMATION_FRAME_INDEX, getAnimationFrameIndex():" << getAnimationFrameIndex();
 
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
 

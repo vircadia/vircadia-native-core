@@ -73,12 +73,6 @@ void AnimationLoop::simulate(float deltaTime) {
             _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
         }
     }
-
-    /*    
-    qDebug() << "AnimationLoop::simulate()";
-    qDebug() << "     deltaTime:" << deltaTime;
-    qDebug() << "     _frameIndex:" << _frameIndex;
-    */
 }
 
 void AnimationLoop::setStartAutomatically(bool startAutomatically) {
