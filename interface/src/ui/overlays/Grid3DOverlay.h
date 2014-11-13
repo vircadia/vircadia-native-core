@@ -34,7 +34,11 @@ public:
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
 
+    virtual Grid3DOverlay* createClone();
+
 private:
+    virtual void writeToClone(Grid3DOverlay* clone);
+
     float _minorGridWidth;
     int _majorGridEvery;
 

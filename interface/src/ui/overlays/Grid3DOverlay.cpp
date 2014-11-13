@@ -116,3 +116,15 @@ void Grid3DOverlay::setProperties(const QScriptValue& properties) {
         _majorGridEvery = properties.property("majorGridEvery").toVariant().toInt();
     }
 }
+
+Grid3DOverlay* Grid3DOverlay::createClone() {
+    Grid3DOverlay* clone = new Grid3DOverlay();
+    writeToClone(clone);
+    return clone;
+}
+
+void Grid3DOverlay::writeToClone(Grid3DOverlay* clone) {
+    Base3DOverlay::writeToClone(clone);
+    clone->_minorGridWidth = _minorGridWidth;
+    clone->_majorGridEvery = _majorGridEvery;
+}
