@@ -33,7 +33,7 @@ void AnimationHandle::setPriority(float priority) {
     if (_priority == priority) {
         return;
     }
-    if (_running) {
+    if (isRunning()) {
         _model->_runningAnimations.removeOne(_self);
         if (priority < _priority) {
             replaceMatchingPriorities(priority);
@@ -47,7 +47,8 @@ void AnimationHandle::setPriority(float priority) {
 }
 
 void AnimationHandle::setStartAutomatically(bool startAutomatically) {
-    if ((_startAutomatically = startAutomatically) && !_running) {
+    _animationLoop.setStartAutomatically(startAutomatically);
+    if (getStartAutomatically() && !isRunning()) {
         start();
     }
 }
@@ -58,48 +59,59 @@ void AnimationHandle::setMaskedJoints(const QStringList& maskedJoints) {
 }
 
 void AnimationHandle::setRunning(bool running) {
-    if (_running == running) {
+    if (isRunning() == running) {
+        // if we're already running, this is the same as a restart
         if (running) {
             // move back to the beginning
-            _frameIndex = _firstFrame;
+            setFrameIndex(getFirstFrame());
         }
         return;
     }
-    if ((_running = running)) {
+    _animationLoop.setRunning(running);
+    if (isRunning()) {
         if (!_model->_runningAnimations.contains(_self)) {
             insertSorted(_model->_runningAnimations, _self);
         }
-        _frameIndex = _firstFrame;
-          
     } else {
         _model->_runningAnimations.removeOne(_self);
         replaceMatchingPriorities(0.0f);
     }
-    emit runningChanged(_running);
+    emit runningChanged(isRunning());
 }
 
 AnimationHandle::AnimationHandle(Model* model) :
     QObject(model),
     _model(model),
-    _fps(30.0f),
-    _priority(1.0f),
-    _loop(false),
-    _hold(false),
-    _startAutomatically(false),
-    _firstFrame(0.0f),
-    _lastFrame(FLT_MAX),
-    _running(false) {
+    _priority(1.0f) 
+{
 }
 
 AnimationDetails AnimationHandle::getAnimationDetails() const {
-    AnimationDetails details(_role, _url, _fps, _priority, _loop, _hold,
-                        _startAutomatically, _firstFrame, _lastFrame, _running, _frameIndex);
+    AnimationDetails details(_role, _url, getFPS(), _priority, getLoop(), getHold(),
+                        getStartAutomatically(), getFirstFrame(), getLastFrame(), isRunning(), getFrameIndex());
     return details;
+}
+
+void AnimationHandle::setAnimationDetails(const AnimationDetails& details) {
+    setRole(details.role);
+    setURL(details.url);
+    setFPS(details.fps);
+    setPriority(details.priority);
+    setLoop(details.loop);
+    setHold(details.hold);
+    setStartAutomatically(details.startAutomatically);
+    setFirstFrame(details.firstFrame);
+    setLastFrame(details.lastFrame);
+    setRunning(details.running);
+    setFrameIndex(details.frameIndex);
+
+    // NOTE: AnimationDetails doesn't support maskedJoints
+    //setMaskedJoints(const QStringList& maskedJoints);
 }
 
 
 void AnimationHandle::simulate(float deltaTime) {
-    _frameIndex += deltaTime * _fps;
+    _animationLoop.simulate(deltaTime);
     
     // update the joint mappings if necessary/possible
     if (_jointMappings.isEmpty()) {
@@ -125,26 +137,15 @@ void AnimationHandle::simulate(float deltaTime) {
         stop();
         return;
     }
-    float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
-    float startFrameIndex = qMin(_firstFrame, endFrameIndex);
-    if ((!_loop && (_frameIndex < startFrameIndex || _frameIndex > endFrameIndex)) || startFrameIndex == endFrameIndex) {
-        // passed the end; apply the last frame
-        applyFrame(glm::clamp(_frameIndex, startFrameIndex, endFrameIndex));
-        if (!_hold) {
-            stop();
-        }
-        return;
-    }
-    // wrap within the the desired range
-    if (_frameIndex < startFrameIndex) {
-        _frameIndex = endFrameIndex - glm::mod(endFrameIndex - _frameIndex, endFrameIndex - startFrameIndex);
     
-    } else if (_frameIndex > endFrameIndex) {
-        _frameIndex = startFrameIndex + glm::mod(_frameIndex - startFrameIndex, endFrameIndex - startFrameIndex);
-    }
-    
+    // TODO: When moving the loop/frame calculations to AnimationLoop class, we changed this behavior
+    // see AnimationLoop class for more details. Do we need to support clamping the endFrameIndex to
+    // the max number of frames in the geometry???
+    //
+    // float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
+        
     // blend between the closest two frames
-    applyFrame(_frameIndex);
+    applyFrame(getFrameIndex());
 }
 
 void AnimationHandle::applyFrame(float frameIndex) {

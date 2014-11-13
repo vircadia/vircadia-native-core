@@ -94,5 +94,4 @@ Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);
 void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& event);
 
-
 #endif // hifi_AnimationCache_h
