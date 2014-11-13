@@ -24,10 +24,12 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexedInstanced),
 
     (&::gpu::GLBackend::do_setInputFormat),
-
     (&::gpu::GLBackend::do_setInputBuffer),
-
     (&::gpu::GLBackend::do_setIndexBuffer),
+
+    (&::gpu::GLBackend::do_setModelTransform),
+    (&::gpu::GLBackend::do_setViewTransform),
+    (&::gpu::GLBackend::do_setProjectionTransform),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -111,18 +113,16 @@ static const GLenum _elementTypeToGLType[NUM_TYPES]= {
 
 
 GLBackend::GLBackend() :
-
     _needInputFormatUpdate(true),
     _inputFormat(0),
-
     _inputBuffersState(0),
     _inputBuffers(_inputBuffersState.size(), BufferPointer(0)),
     _inputBufferOffsets(_inputBuffersState.size(), 0),
     _inputBufferStrides(_inputBuffersState.size(), 0),
-
     _indexBuffer(0),
     _indexBufferOffset(0),
-    _inputAttributeActivation(0)
+    _inputAttributeActivation(0),
+    _transform()
 {
 
 }
@@ -183,6 +183,7 @@ void GLBackend::checkGLError() {
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
+    updateTransform();
 
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -195,6 +196,7 @@ void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     updateInput();
+    updateTransform();
 
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -423,6 +425,82 @@ void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     CHECK_GL_ERROR();
+}
+
+// Transform Stage
+
+void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
+    TransformPointer modelTransform = batch._transforms.get(batch._params[paramOffset]._uint);
+
+    if (_transform._model.isNull() || (modelTransform != _transform._model)) {
+        _transform._model = modelTransform;
+        _transform._invalidModel = true;
+    }
+}
+
+void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
+    TransformPointer viewTransform = batch._transforms.get(batch._params[paramOffset]._uint);
+
+    if (_transform._view.isNull() || (viewTransform != _transform._view)) {
+        _transform._view = viewTransform;
+        _transform._invalidView = true;
+    }
+}
+
+void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
+    TransformPointer projectionTransform = batch._transforms.get(batch._params[paramOffset]._uint);
+
+    if (_transform._projection.isNull() || (projectionTransform != _transform._projection)) {
+        _transform._projection = projectionTransform;
+        _transform._invalidProj = true;
+    }
+}
+
+void GLBackend::updateTransform() {
+    if (_transform._invalidProj) {
+        // TODO: implement the projection matrix assignment to gl state
+    /*    if (_transform._lastMode != GL_PROJECTION) {
+            glMatrixMode(GL_PROJECTION);
+            _transform._lastMode = GL_PROJECTION;
+        }
+        CHECK_GL_ERROR();*/
+        _transform._invalidProj;
+    }
+
+    if (_transform._invalidModel || _transform._invalidView) {
+        if (!_transform._model.isNull()) {
+            if (_transform._lastMode != GL_MODELVIEW) {
+                glMatrixMode(GL_MODELVIEW);
+                _transform._lastMode = GL_MODELVIEW;
+            }
+            Transform::Mat4 modelView;
+            if (!_transform._view.isNull()) {
+                Transform mvx;
+                Transform::inverseMult(mvx, (*_transform._view), (*_transform._model));
+                mvx.getMatrix(modelView);
+            } else {
+                _transform._model->getMatrix(modelView);
+            }
+            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+        } else {
+            if (!_transform._view.isNull()) {
+                if (_transform._lastMode != GL_MODELVIEW) {
+                    glMatrixMode(GL_MODELVIEW);
+                    _transform._lastMode = GL_MODELVIEW;
+                }
+                Transform::Mat4 modelView;
+                _transform._view->getInverseMatrix(modelView);
+                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+            } else {
+                // TODO: eventually do something about the matrix when neither view nor model is specified?
+                // glLoadIdentity();
+            }
+        }
+        CHECK_GL_ERROR();
+
+        _transform._invalidModel = false;
+        _transform._invalidView = false;
+    }
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface

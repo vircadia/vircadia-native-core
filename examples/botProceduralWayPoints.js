@@ -172,13 +172,11 @@ function playRandomSound() {
 }
 
 function playRandomFootstepSound() {
-
-    var whichSound = Math.floor((Math.random() * footstepSounds.length));
-    var options = new AudioInjectionOptions();
-	options.position = Avatar.position;
-	options.volume = 1.0;
-	Audio.playSound(footstepSounds[whichSound], options);
-
+  var whichSound = Math.floor((Math.random() * footstepSounds.length));  
+	Audio.playSound(footstepSounds[whichSound], {
+	  position: Avatar.position,
+    volume: 1.0
+	});
 }
 
 //  Facial Animation 

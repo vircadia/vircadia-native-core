@@ -15,6 +15,11 @@
 #include <QObject>
 #include <QScriptValue>
 #include <QString>
+#include <QFileDialog>
+#include <QComboBox>
+#include <QLineEdit>
+
+#include "WebWindowClass.h"
 
 class WindowScriptingInterface : public QObject {
     Q_OBJECT
@@ -72,6 +77,8 @@ private slots:
 
     void nonBlockingFormAccepted() { _nonBlockingFormActive = false; _formResult = QDialog::Accepted; emit nonBlockingFormClosed(); }
     void nonBlockingFormRejected() { _nonBlockingFormActive = false; _formResult = QDialog::Rejected; emit nonBlockingFormClosed(); }
+
+    WebWindowClass* doCreateWebWindow(const QString& url, int width, int height);
     
 private:
     WindowScriptingInterface();

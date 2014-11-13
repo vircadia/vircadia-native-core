@@ -81,6 +81,9 @@ void EntityTreeRenderer::init() {
     _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
@@ -250,7 +253,45 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
-    OctreeRenderer::render(renderMode);
+    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+    
+    if (dontRenderAsScene) {
+        OctreeRenderer::render(renderMode);
+    } else {
+        if (_tree) {
+            Model::startScene();
+            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
+                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            _tree->lockForRead();
+            _tree->recurseTreeWithOperation(renderOperation, &args);
+
+            Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
+                                                ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+
+            // we must call endScene while we still have the tree locked so that no one deletes a model
+            // on us while rendering the scene    
+            Model::endScene(modelRenderMode, &args);
+            _tree->unlock();
+        
+            // stats...
+            _meshesConsidered = args._meshesConsidered;
+            _meshesRendered = args._meshesRendered;
+            _meshesOutOfView = args._meshesOutOfView;
+            _meshesTooSmall = args._meshesTooSmall;
+
+            _elementsTouched = args._elementsTouched;
+            _itemsRendered = args._itemsRendered;
+            _itemsOutOfView = args._itemsOutOfView;
+            _itemsTooSmall = args._itemsTooSmall;
+
+            _materialSwitches = args._materialSwitches;
+            _trianglesRendered = args._trianglesRendered;
+            _quadsRendered = args._quadsRendered;
+
+            _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
+            _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+        }
+    }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
@@ -768,5 +809,22 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
     _entityScripts.remove(entityID);
+}
+
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
+    // load the entity script if needed...
+    QScriptValue entityScript = loadEntityScript(entityID);
+    if (entityScript.property("preload").isValid()) {
+        QScriptValueList entityArgs = createEntityArgs(entityID);
+        entityScript.property("preload").call(entityScript, entityArgs);
+    }
+}
+
+void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
+    if (_entityScripts.contains(oldEntityID)) {
+        EntityScriptDetails details = _entityScripts[oldEntityID];
+        _entityScripts.remove(oldEntityID);
+        _entityScripts[newEntityID] = details;
+    }
 }
 

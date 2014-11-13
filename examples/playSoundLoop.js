@@ -20,10 +20,12 @@ var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw"
 //var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Bandcamp.wav");
 
 var soundPlaying = false;
-var options = new AudioInjectionOptions();
-options.position = Vec3.sum(Camera.getPosition(), Quat.getFront(MyAvatar.orientation));
-options.volume = 0.5;
-options.loop = true;
+var options = {
+  position: Vec3.sum(Camera.getPosition(), Quat.getFront(MyAvatar.orientation)),
+  volume: 0.5,
+  loop: true
+}
+
 var playing = false;
 var ball = false;
 
