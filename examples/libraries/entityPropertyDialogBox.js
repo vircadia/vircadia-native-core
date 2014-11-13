@@ -22,6 +22,8 @@ EntityPropertyDialogBox = (function () {
     var dimensionZ;
     var rescalePercentage;
     var editModelID = -1;
+    var previousAnimationFrameIndex;
+    var previousAnimationSettings;
 
     that.cleanup = function () {
     };
@@ -51,8 +53,10 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Animation FPS:", value: properties.animationFPS });
             index++;
             array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
+            previousAnimationFrameIndex = properties.animationFrameIndex;
             index++;
             array.push({ label: "Animation Settings:", value: properties.animationSettings });
+            previousAnimationSettings = properties.animationSettings;
             index++;
             array.push({ label: "Textures:", value: properties.textures });
             index++;
@@ -241,8 +245,21 @@ EntityPropertyDialogBox = (function () {
                 properties.animationURL = array[index++].value;
                 properties.animationIsPlaying = array[index++].value;
                 properties.animationFPS = array[index++].value;
-                properties.animationFrameIndex = array[index++].value;
-                properties.animationSettings = array[index++].value;
+                
+                var newAnimationFrameIndex = array[index++].value;
+                var newAnimationSettings = array[index++].value;
+
+                if (previousAnimationFrameIndex != newAnimationFrameIndex) {
+                    properties.animationFrameIndex = newAnimationFrameIndex;
+                } else {
+                    delete properties.animationFrameIndex;
+                }
+                
+                if (previousAnimationSettings != newAnimationSettings) {
+                    properties.animationSettings = newAnimationSettings;
+                } else {
+                    delete properties.animationSettings;
+                }
                 properties.textures = array[index++].value;
                 index++; // skip textureNames label
             }
