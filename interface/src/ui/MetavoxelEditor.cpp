@@ -763,9 +763,8 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     _form->addRow("Height Scale:", _heightScale = new QDoubleSpinBox());
     const double MAX_OFFSET_SCALE = 100000.0;
     _heightScale->setMaximum(MAX_OFFSET_SCALE);
-    _heightScale->setDecimals(3);
-    _heightScale->setSingleStep(0.001);
-    _heightScale->setValue(0.05);
+    _heightScale->setSingleStep(0.01);
+    _heightScale->setValue(8.0);
     connect(_heightScale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
         &ImportHeightfieldTool::updateSpanner);
         
@@ -796,10 +795,75 @@ void ImportHeightfieldTool::renderPreview() {
         SpannerRenderer::DEFAULT_MODE);
 }
 
-void ImportHeightfieldTool::apply() {
-}
-
 const int HEIGHTFIELD_BLOCK_SIZE = 32;
+
+void ImportHeightfieldTool::apply() {
+    AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
+    if (!(_height->getHeight() && attribute)) {
+        return;
+    }
+    int width = _height->getHeight()->getWidth();
+    const QVector<quint16>& contents = _height->getHeight()->getContents();
+    int height = contents.size() / width;
+    int innerWidth = width - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeight = height - HeightfieldHeight::HEIGHT_EXTENSION;
+    float scale = pow(2.0, _scale->value());
+    
+    for (int i = 0; i < innerHeight; i += HEIGHTFIELD_BLOCK_SIZE) {
+        for (int j = 0; j < innerWidth; j += HEIGHTFIELD_BLOCK_SIZE) {
+            Heightfield* heightfield = new Heightfield();
+            
+            int extendedHeightSize = HEIGHTFIELD_BLOCK_SIZE + HeightfieldHeight::HEIGHT_EXTENSION;
+            QVector<quint16> heightContents(extendedHeightSize * extendedHeightSize);
+            quint16* dest = heightContents.data();
+            const quint16* src = contents.constData() + i * width + j;
+            int copyWidth = qMin(width - j, extendedHeightSize);
+            int copyHeight = qMin(height - i, extendedHeightSize);
+            for (int z = 0; z < copyHeight; z++, src += width, dest += extendedHeightSize) {
+                memcpy(dest, src, copyWidth * sizeof(quint16));
+            }
+            heightfield->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(extendedHeightSize, heightContents)));
+            
+            int materialWidth = HEIGHTFIELD_BLOCK_SIZE + HeightfieldData::SHARED_EDGE;
+            int materialHeight = materialWidth;
+            if (_color->getColor()) {
+                int colorWidth = _color->getColor()->getWidth();
+                const QByteArray& contents = _color->getColor()->getContents();
+                int colorHeight = contents.size() / (colorWidth * DataBlock::COLOR_BYTES);
+                int innerColorWidth = colorWidth - HeightfieldData::SHARED_EDGE;
+                int innerColorHeight = colorHeight - HeightfieldData::SHARED_EDGE;
+                materialWidth = HEIGHTFIELD_BLOCK_SIZE * innerColorWidth / innerWidth + HeightfieldData::SHARED_EDGE;
+                materialHeight = HEIGHTFIELD_BLOCK_SIZE * innerColorHeight / innerHeight + HeightfieldData::SHARED_EDGE;
+                QByteArray colorContents(materialWidth * materialHeight * DataBlock::COLOR_BYTES, 0);
+                int colorI = i * (materialWidth - HeightfieldData::SHARED_EDGE) / HEIGHTFIELD_BLOCK_SIZE;
+                int colorJ = j * (materialHeight - HeightfieldData::SHARED_EDGE) / HEIGHTFIELD_BLOCK_SIZE;
+                char* dest = colorContents.data();
+                const char* src = contents.constData() + (colorI * colorWidth + colorJ) * DataBlock::COLOR_BYTES;
+                int copyWidth = qMin(colorWidth - colorJ, materialWidth);
+                int copyHeight = qMin(colorHeight - colorI, materialHeight);
+                for (int z = 0; z < copyHeight; z++, src += colorWidth * DataBlock::COLOR_BYTES,
+                        dest += materialWidth * DataBlock::COLOR_BYTES) {
+                    memcpy(dest, src, copyWidth * DataBlock::COLOR_BYTES);
+                }
+                heightfield->setColor(HeightfieldColorPointer(new HeightfieldColor(materialWidth, colorContents)));
+                
+            } else {
+                heightfield->setColor(HeightfieldColorPointer(new HeightfieldColor(materialWidth,
+                    QByteArray(materialWidth * materialHeight * DataBlock::COLOR_BYTES, 0xFF))));
+            }
+            heightfield->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
+                QByteArray(materialWidth * materialHeight, 0), QVector<SharedObjectPointer>())));
+            
+            heightfield->setScale(scale);
+            heightfield->setAspectY(_heightScale->value() / scale);
+            heightfield->setTranslation(_translation->getValue() + glm::vec3((j / HEIGHTFIELD_BLOCK_SIZE) * scale,
+                _heightOffset->value(), (i / HEIGHTFIELD_BLOCK_SIZE) * scale));
+            
+            MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, heightfield)) };
+            Application::getInstance()->getMetavoxels()->applyEdit(message);
+        }
+    }
+}
 
 void ImportHeightfieldTool::updateSpanner() {
     Heightfield* heightfield = static_cast<Heightfield*>(_spanner.data());
@@ -807,12 +871,18 @@ void ImportHeightfieldTool::updateSpanner() {
     heightfield->setColor(_color->getColor());
     
     float scale = pow(2.0, _scale->value());
+    float aspectZ = 1.0f;
     if (_height->getHeight()) {
-        int innerSize = _height->getHeight()->getWidth() - HeightfieldHeight::HEIGHT_EXTENSION;
-        scale *= glm::ceil((float)innerSize / HEIGHTFIELD_BLOCK_SIZE);
+        int width = _height->getHeight()->getWidth();
+        int innerWidth = width - HeightfieldHeight::HEIGHT_EXTENSION;
+        int innerHeight = _height->getHeight()->getContents().size() / width - HeightfieldHeight::HEIGHT_EXTENSION;
+        float widthBlocks = glm::ceil((float)innerWidth / HEIGHTFIELD_BLOCK_SIZE);
+        scale *= widthBlocks;
+        aspectZ = glm::ceil((float)innerHeight / HEIGHTFIELD_BLOCK_SIZE) / widthBlocks;
     }
     heightfield->setScale(scale);
-    heightfield->setAspectY(_heightScale->value());
+    heightfield->setAspectY(_heightScale->value() / scale);
+    heightfield->setAspectZ(aspectZ);
     heightfield->setTranslation(_translation->getValue() + glm::vec3(0.0f, _heightOffset->value(), 0.0f));
 }
 
