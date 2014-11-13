@@ -358,7 +358,7 @@ bool Overlays::isLoaded(unsigned int id) {
     return overlay->isLoaded();
 }
 
-const float Overlays::textWidth(unsigned int id, const QString& text) {
+float Overlays::textWidth(unsigned int id, const QString& text) const {
     Overlay* thisOverlay = _overlays2D[id];
     if (thisOverlay) {
         if (typeid(*thisOverlay) == typeid(TextOverlay)) {

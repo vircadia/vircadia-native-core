@@ -67,7 +67,7 @@ public slots:
 
     /// returns the width of the given text in the specified overlay if it is a text overlay: in pixels if it is a 2D text
     /// overlay; in meters if it is a 3D text overlay
-    const float textWidth(unsigned int id, const QString& text);
+    float textWidth(unsigned int id, const QString& text) const;
 
 private:
     QMap<unsigned int, Overlay*> _overlays2D;
