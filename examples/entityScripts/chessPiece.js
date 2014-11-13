@@ -34,7 +34,7 @@
     var i = Math.floor(relative.x / tileSize);
     var j = Math.floor(relative.z / tileSize);
     i = Math.min(Math.max(1, i), 8);
-    j = Math.min(Math.max(0, j), 10);
+    j = Math.min(Math.max(0, j), 9);
     
     relative.x = (i + 0.5) * tileSize;
     relative.z = (j + 0.5) * tileSize;
@@ -59,10 +59,20 @@
 		options.volume = 0.5;
 		Audio.playSound(this.sound, options);
   }
+  this.getMetadata = function() {
+    var metadataObject = JSON.parse(this.properties.animationURL);
+    if (metadataObject.gamePosition) {
+      this.GRID_POSITION = metadataObject.gamePosition;
+    }
+    if (metadataObject.gameSize) {
+      this.GRID_SIZE = metadataObject.gameSize;
+    }
+  }
   
   this.clickDownOnEntity = function(entityID, mouseEvent){
     this.maybeDownloadSound();
     this.updateProperties(entityID);
+    this.getMetadata();
     this.updatePosition(mouseEvent);
   };
   this.holdingClickOnEntity = function(entityID, mouseEvent){
