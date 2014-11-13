@@ -2011,7 +2011,7 @@ void Application::init() {
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::updateMyAvatarTransform);
 
 #ifdef USE_BULLET_PHYSICS
-    _physicsWorld.init();
+    _physicsWorld.initSafe(_entities.getTree());
 #endif // USE_BULLET_PHYSICS
 }
 

@@ -9,11 +9,54 @@
 //
 
 #include <glm/glm.hpp>
+
+#include <EntityTree.h>
 #include <SharedUtil.h>
+#include <ThreadSafeDynamicsWorld.h>
 
 #include "Util.h"
 #include "world.h"
 #include "Physics.h"
+
+// DynamicsImpl is an implementation of ThreadSafeDynamicsWorld that knows how to lock an EntityTree
+class DynamicsImpl : public ThreadSafeDynamicsWorld {
+public:
+    DynamicsImpl(
+        btDispatcher* dispatcher,
+        btBroadphaseInterface* pairCache,
+        btConstraintSolver* constraintSolver,
+        btCollisionConfiguration* collisionConfiguration,
+        EntityTree* entities)
+        :   ThreadSafeDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration), _entities(entities) {
+        assert(entities);
+    }
+
+    bool tryLock() {
+        // wait for lock
+        _entities->lockForRead();
+        return true;
+    }
+
+    void unlock() {
+        _entities->unlock();
+    }
+private:
+    EntityTree* _entities;
+};
+
+ThreadSafePhysicsWorld::ThreadSafePhysicsWorld(const glm::vec3& offset) : PhysicsWorld(offset) {
+}
+
+void ThreadSafePhysicsWorld::initSafe(EntityTree* entities) {
+    assert(!_dynamicsWorld); // only call this once
+    assert(entities);
+    _collisionConfig = new btDefaultCollisionConfiguration();                             
+    _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);                   
+    _broadphaseFilter = new btDbvtBroadphase();                                           
+    _constraintSolver = new btSequentialImpulseConstraintSolver;                          
+    // ThreadSafePhysicsWorld gets a DynamicsImpl, which derives from ThreadSafeDynamicsWorld
+    _dynamicsWorld = new DynamicsImpl(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig, entities);
+}
 
 //
 //  Applies static friction:  maxVelocity is the largest velocity for which there

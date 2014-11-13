@@ -35,7 +35,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <PhysicsWorld.h>
+//#include <PhysicsWorld.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
 #include <ViewFrustum.h>
@@ -53,6 +53,7 @@
 #include "Menu.h"
 #include "MetavoxelSystem.h"
 #include "PacketHeaders.h"
+#include "Physics.h"
 #include "Stars.h"
 #include "avatar/Avatar.h"
 #include "avatar/AvatarManager.h"
@@ -504,7 +505,7 @@ private:
     MetavoxelSystem _metavoxels;
 
 #ifdef USE_BULLET_PHYSICS
-    PhysicsWorld _physicsWorld;
+    ThreadSafePhysicsWorld _physicsWorld;
 #endif // USE_BULLET_PHYSICS
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.

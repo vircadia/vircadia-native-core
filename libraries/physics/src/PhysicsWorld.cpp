@@ -15,12 +15,15 @@
 PhysicsWorld::~PhysicsWorld() {
 }
 
+// virtual
 void PhysicsWorld::init() {
-    _collisionConfig = new btDefaultCollisionConfiguration();
-    _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);
-    _broadphaseFilter = new btDbvtBroadphase();
-    _constraintSolver = new btSequentialImpulseConstraintSolver;
-    _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
+    if (!_dynamicsWorld) {
+        _collisionConfig = new btDefaultCollisionConfiguration();
+        _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);
+        _broadphaseFilter = new btDbvtBroadphase();
+        _constraintSolver = new btSequentialImpulseConstraintSolver;
+        _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
+    }
 }
 
 void PhysicsWorld::stepSimulation() {

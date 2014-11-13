@@ -39,7 +39,7 @@ public:
 
     ~PhysicsWorld();
 
-    void init();
+    virtual void init();
 
     void stepSimulation();
 
