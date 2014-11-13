@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QJsonDocument>
+#include <QtCore/QJsonDocument>
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>

@@ -11,7 +11,7 @@
 
 #include <QDebug>
 #include <QObject>
-#include <QJSonDocument>
+#include <QtCore/QJsonDocument>
 
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
