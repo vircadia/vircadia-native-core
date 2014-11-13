@@ -180,7 +180,7 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
 
 }
 
-float Text3DOverlay::textWidth(const QString& text) {
+float Text3DOverlay::textWidth(const QString& text) const {
     QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
     float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;

@@ -54,7 +54,7 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
 
-    float textWidth(const QString& text);  // Pixels
+    float textWidth(const QString& text) const;  // Pixels
 
 private:
 

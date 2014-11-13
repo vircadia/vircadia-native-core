@@ -125,7 +125,7 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
 }
 
 
-float TextOverlay::textWidth(const QString& text) {
+float TextOverlay::textWidth(const QString& text) const {
     QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
     return fontMetrics.width(qPrintable(text));
