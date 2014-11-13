@@ -17,9 +17,11 @@ var SOUND_TRIGGER_CLEAR = 1000; // milliseconds
 var SOUND_TRIGGER_DELAY = 200; // milliseconds
 var soundExpiry = 0;
 var DateObj = new Date();
-var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 0.5;
-audioOptions.position = { x: 0, y: 0, z: 0 };
+
+var audioOptions = {
+  volume: 0.5,
+  position: { x: 0, y: 0, z: 0 }
+}
 
 var hitSounds = new Array();
 hitSounds[0] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Collisions-hitsandslaps/Hit1.raw");

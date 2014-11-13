@@ -82,7 +82,7 @@ void TextOverlay::render(RenderArgs* args) {
         if (lineOffset == 0) {
             lineOffset = textRenderer->calculateHeight(qPrintable(thisLine));
         }
-        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine));
+        lineOffset += textRenderer->draw(x, y + lineOffset, qPrintable(thisLine), alpha);
 
         const int lineGap = 2;
         lineOffset += lineGap;

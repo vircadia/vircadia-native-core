@@ -112,7 +112,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine));
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine), alpha);
             lineOffset += maxHeight;
         }
 
