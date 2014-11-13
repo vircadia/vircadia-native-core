@@ -49,6 +49,9 @@ private:
     
     /// prepares and sends a mix to one Node
     int prepareMixForListeningNode(Node* node);
+    
+    /// Send Audio Environment packet for a single node
+    void sendAudioEnvironmentPacket(SharedNodePointer node);
 
     // used on a per stream basis to run the filter on before mixing, large enough to handle the historical
     // data from a phase delay as well as an entire network buffer
@@ -59,6 +62,8 @@ private:
     int16_t _mixSamples[NETWORK_BUFFER_LENGTH_SAMPLES_STEREO + (SAMPLE_PHASE_DELAY_AT_90 * 2)];
 
     void perSecondActions();
+    
+    bool shouldMute(float quietestFrame);
 
     QString getReadPendingDatagramsCallsPerSecondsStatsString() const;
     QString getReadPendingDatagramsPacketsPerCallStatsString() const;
@@ -71,6 +76,7 @@ private:
     float _minAudibilityThreshold;
     float _performanceThrottlingRatio;
     float _attenuationPerDoublingInDistance;
+    float _noiseMutingThreshold;
     int _numStatFrames;
     int _sumListeners;
     int _sumMixes;

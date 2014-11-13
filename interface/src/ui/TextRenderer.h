@@ -20,6 +20,8 @@
 #include <QVector>
 
 #include "gpu/Resource.h"
+#include "gpu/Stream.h"
+
 
 #include "InterfaceConfig.h"
 
@@ -61,7 +63,7 @@ public:
     int calculateHeight(const char* str);
 
     // also returns the height of the tallest character
-    int draw(int x, int y, const char* str);
+    int draw(int x, int y, const char* str, float alpha = 1.f);
     
     int computeWidth(char ch);
     int computeWidth(const char* str);
@@ -105,8 +107,10 @@ private:
     QColor _color;
     
     // Graphics Buffer containing the current accumulated glyphs to render
-    gpu::Buffer _glyphsBuffer;
-    gpu::Buffer _glyphsColorBuffer;
+    gpu::BufferPointer _glyphsBuffer;
+    gpu::BufferPointer _glyphsColorBuffer;
+    gpu::Stream::FormatPointer _glyphsStreamFormat;
+    gpu::BufferStreamPointer _glyphsStream;
     int _numGlyphsBatched;
 
     static QHash<Properties, TextRenderer*> _instances;

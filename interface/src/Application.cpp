@@ -81,6 +81,7 @@
 
 #include "renderer/ProgramObject.h"
 #include "gpu/Batch.h"
+#include "gpu/GLBackend.h"
 
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AudioDeviceScriptingInterface.h"
@@ -91,6 +92,7 @@
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
+#include "scripting/WebWindowClass.h"
 
 #include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
@@ -107,7 +109,8 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+
+const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -157,6 +160,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+        _viewTransform(new gpu::Transform()),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -184,7 +188,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _trayIcon(new QSystemTrayIcon(_window)),
         _lastNackTime(usecTimestampNow()),
         _lastSendDownstreamAudioStats(usecTimestampNow()),
-        _isVSyncOn(true)
+        _isVSyncOn(true),
+        _aboutToQuit(false)
 {
 
     // read the ApplicationInfo.ini file for Name/Version/Domain information
@@ -254,6 +259,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(connectedToDomain(const QString&)));
     connect(&domainHandler, SIGNAL(connectedToDomain(const QString&)), SLOT(updateWindowTitle()));
     connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(updateWindowTitle()));
+    connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &Application::domainSettingsReceived);
     connect(&domainHandler, &DomainHandler::hostnameChanged, Menu::getInstance(), &Menu::clearLoginDialogDisplayedFlag);
 
@@ -388,6 +394,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     connect(_runningScriptsWidget, &RunningScriptsWidget::stopScriptName, this, &Application::stopScript);
 
     connect(this, SIGNAL(aboutToQuit()), this, SLOT(saveScripts()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
 
     // check first run...
     QVariant firstRunValue = _settings->value("firstRun",QVariant(true));
@@ -412,6 +419,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     _trayIcon->show();
     
+    // set the local loopback interface for local sounds from audio scripts
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
+    
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
     MIDIManager& midiManagerInstance = MIDIManager::getInstance();
@@ -419,6 +429,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
+}
+
+void Application::aboutToQuit() {
+    _aboutToQuit = true;
 }
 
 Application::~Application() {
@@ -442,19 +456,21 @@ Application::~Application() {
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
+    
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
 
     // stop the audio process
     QMetaObject::invokeMethod(&_audio, "stop");
-
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
-
+    
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _entityEditSender.terminate();
-
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -710,11 +726,11 @@ void Application::paintGL() {
         displaySide(*whichCamera);
         glPopMatrix();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
-
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
+        
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(_mirrorViewRect);       
         }
 
         _glowEffect.render();
@@ -772,7 +788,7 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-        computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
         // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
         // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
@@ -1250,7 +1266,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         showMouse = false;
     }
     
-    _entities.mouseMoveEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseMoveEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
 
@@ -1273,7 +1291,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mousePressEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mousePressEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMousePressEvent(event); // send events to any registered scripts
 
@@ -1314,7 +1334,9 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
 void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
-    _entities.mouseReleaseEvent(event, deviceID);
+    if (!_aboutToQuit) {
+        _entities.mouseReleaseEvent(event, deviceID);
+    }
 
     _controllerScriptingInterface.emitMouseReleaseEvent(event); // send events to any registered scripts
 
@@ -1512,11 +1534,6 @@ void Application::idle() {
             if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
                 _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
                 _idleLoopStdev.reset();
-            }
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-                PerformanceTimer perfTimer("buckyBalls");
-                _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
             }
 
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
@@ -1989,25 +2006,17 @@ void Application::init() {
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);
     }
 }
 
 void Application::restoreMirrorView() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
 
 void Application::shrinkMirrorView() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
@@ -2790,6 +2799,8 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
+        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
+        // setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -2897,6 +2908,19 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
 
+    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+    // the viewTransofmr object is updatded with the correct values and saved,
+    // this is what is used for rendering the Entities and avatars
+    gpu::Transform viewTransform;
+    viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setRotation(rotation);
+    viewTransform.postTranslate(eyeOffsetPos);
+    viewTransform.postRotate(eyeOffsetOrient);
+    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+         viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
+    }
+    setViewTransform(viewTransform);
+
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2975,13 +2999,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _audioReflector.render();
         }
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
-        }
-
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -3021,13 +3038,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
+
+
     bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
-    
+
+
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -3086,7 +3106,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             emit renderingInWorldInterface();
         }
     }
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     }
@@ -3095,6 +3115,10 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
+}
+
+void Application::setViewTransform(const gpu::Transform& view) {
+    (*_viewTransform) = view;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
@@ -3561,9 +3585,8 @@ void Application::changeDomainHostname(const QString &newDomainHostname) {
     }
 }
 
-void Application::domainChanged(const QString& domainHostname) {
-    updateWindowTitle();
-
+void Application::clearDomainOctreeDetails() {
+    qDebug() << "Clearing domain octree details...";
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 
@@ -3572,13 +3595,24 @@ void Application::domainChanged(const QString& domainHostname) {
     _voxelServerJurisdictions.clear();
     _voxelServerJurisdictions.unlock();
 
+    _entityServerJurisdictions.lockForWrite();
+    _entityServerJurisdictions.clear();
+    _entityServerJurisdictions.unlock();
+
+    _octreeSceneStatsLock.lockForWrite();
     _octreeServerSceneStats.clear();
+    _octreeSceneStatsLock.unlock();
 
     // reset the model renderer
     _entities.clear();
 
     // reset the voxels renderer
     _voxels.killLocalVoxels();
+}
+
+void Application::domainChanged(const QString& domainHostname) {
+    updateWindowTitle();
+    clearDomainOctreeDetails();
 }
 
 void Application::connectedToDomain(const QString& hostname) {
@@ -3875,6 +3909,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // register `location` on the global object.
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
+
+    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
@@ -4284,8 +4320,6 @@ bool Application::isVSyncOn() const {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
         return (swapInterval > 0);
-    } else {
-        return true;
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4296,10 +4330,9 @@ bool Application::isVSyncOn() const {
     } else {
         return true;
     }
-    */
-#else
-    return true;
+    */    
 #endif
+    return true;
 }
 
 bool Application::isVSyncEditable() const {
@@ -4314,7 +4347,6 @@ bool Application::isVSyncEditable() const {
         return true;
     }
     */
-#else
 #endif
     return false;
 }

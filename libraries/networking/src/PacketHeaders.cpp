@@ -54,6 +54,8 @@ PacketVersion versionForPacketType(PacketType type) {
             return 4;
         case PacketTypeMixedAudio:
             return 1;
+        case PacketTypeInjectAudio:
+            return 1;
         case PacketTypeAvatarData:
             return 3;
         case PacketTypeAvatarIdentity:
@@ -73,7 +75,7 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_SUPPORT_DIMENSIONS;
+            return VERSION_ENTITIES_MODELS_HAVE_ANIMATION_SETTINGS;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:

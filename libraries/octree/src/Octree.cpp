@@ -23,6 +23,7 @@
 
 #include <GeometryUtil.h>
 #include <OctalCode.h>
+#include <LogHandler.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <Shape.h>
@@ -71,6 +72,10 @@ void Octree::recurseTreeWithPostOperation(RecurseOctreeOperation operation, void
 void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        static QString repeatedMessage
+            = LogHandler::getInstance().addRepeatedMessageRegex(
+                    "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+
         qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
@@ -89,7 +94,11 @@ void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOp
 void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctreeOperation operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        static QString repeatedMessage
+            = LogHandler::getInstance().addRepeatedMessageRegex(
+                    "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+
+        qDebug() << "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
 
@@ -115,6 +124,10 @@ void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, R
                                                        const glm::vec3& point, void* extraData, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        static QString repeatedMessage
+            = LogHandler::getInstance().addRepeatedMessageRegex(
+                    "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+
         qDebug() << "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
     }
@@ -152,7 +165,11 @@ void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
 
 bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOperator* operatorObject, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
-        qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
+        static QString repeatedMessage
+            = LogHandler::getInstance().addRepeatedMessageRegex(
+                    "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+
+        qDebug() << "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return false;
     }
 
@@ -547,11 +564,12 @@ void Octree::deleteOctalCodeFromTreeRecursion(OctreeElement* element, void* extr
 
 void Octree::eraseAllOctreeElements(bool createNewRoot) {
     delete _rootElement; // this will recurse and delete all children
+    _rootElement = NULL;
+    
     if (createNewRoot) {
         _rootElement = createNewElement();
-    } else {
-        _rootElement = NULL;
     }
+    
     _isDirty = true;
 }
 

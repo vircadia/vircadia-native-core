@@ -36,6 +36,7 @@ bool OctreePersistThread::process() {
         {
             PerformanceWarning warn(true, "Loading Octree File", true);
             persistantFileRead = _tree->readFromSVOFile(_filename.toLocal8Bit().constData());
+            _tree->pruneTree();
         }
         _tree->unlock();
 
@@ -80,10 +81,14 @@ bool OctreePersistThread::process() {
             // check the dirty bit and persist here...
             _lastCheck = usecTimestampNow();
             if (_tree->isDirty()) {
-                qDebug() << "saving Octrees to file " << _filename << "...";
+                qDebug() << "pruning Octree before saving...";
+                _tree->pruneTree();
+                qDebug() << "DONE pruning Octree before saving...";
+            
+                qDebug() << "saving Octree to file " << _filename << "...";
                 _tree->writeToSVOFile(_filename.toLocal8Bit().constData());
                 _tree->clearDirtyBit(); // tree is clean after saving
-                qDebug("DONE saving Octrees to file...");
+                qDebug("DONE saving Octree to file...");
             }
         }
     }

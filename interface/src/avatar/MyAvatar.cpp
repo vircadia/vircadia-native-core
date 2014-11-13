@@ -39,6 +39,7 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
+#include "renderer/AnimationHandle.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
@@ -49,7 +50,7 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float MAX_WALKING_SPEED = 4.5f;
+const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
@@ -144,11 +145,6 @@ void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
-        // Faceshift drive is enabled, set the avatar drive based on the head position
-        moveWithLean();
-    }
-    
     //  Get audio loudness data from audio input device
     Audio* audio = Application::getInstance()->getAudio();
     head->setAudioLoudness(audio->getLastInputLoudness());
@@ -373,36 +369,6 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
         -MAX_LEAN, MAX_LEAN));
 }
 
-void MyAvatar::moveWithLean() {
-    //  Move with Lean by applying thrust proportional to leaning
-    Head* head = getHead();
-    glm::quat orientation = head->getCameraOrientation();
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    float leanForward = head->getLeanForward();
-    float leanSideways = head->getLeanSideways();
-
-    //  Degrees of 'dead zone' when leaning, and amount of acceleration to apply to lean angle
-    const float LEAN_FWD_DEAD_ZONE = 15.0f;
-    const float LEAN_SIDEWAYS_DEAD_ZONE = 10.0f;
-    const float LEAN_FWD_THRUST_SCALE = 4.0f;
-    const float LEAN_SIDEWAYS_THRUST_SCALE = 3.0f;
-
-    if (fabs(leanForward) > LEAN_FWD_DEAD_ZONE) {
-        if (leanForward > 0.0f) {
-            addThrust(front * -(leanForward - LEAN_FWD_DEAD_ZONE) * LEAN_FWD_THRUST_SCALE);
-        } else {
-            addThrust(front * -(leanForward + LEAN_FWD_DEAD_ZONE) * LEAN_FWD_THRUST_SCALE);
-        }
-    }
-    if (fabs(leanSideways) > LEAN_SIDEWAYS_DEAD_ZONE) {
-        if (leanSideways > 0.0f) {
-            addThrust(right * -(leanSideways - LEAN_SIDEWAYS_DEAD_ZONE) * LEAN_SIDEWAYS_THRUST_SCALE);
-        } else {
-            addThrust(right * -(leanSideways + LEAN_SIDEWAYS_DEAD_ZONE) * LEAN_SIDEWAYS_THRUST_SCALE);
-        }
-    }
-}
 
 void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 torsoPosition(getPosition());

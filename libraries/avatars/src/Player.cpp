@@ -166,8 +166,8 @@ void Player::pausePlayer() {
 
 void Player::setupAudioThread() {
     _audioThread = new QThread();
-    _options.setPosition(_avatar->getPosition());
-    _options.setOrientation(_avatar->getOrientation());
+    _options.position = _avatar->getPosition();
+    _options.orientation = _avatar->getOrientation();
     _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
     _injector->moveToThread(_audioThread);
     _audioThread->start();
@@ -292,12 +292,12 @@ void Player::play() {
         qDebug() << "WARNING: Player couldn't find head data.";
     }
     
-    _options.setPosition(_avatar->getPosition());
-    _options.setOrientation(_avatar->getOrientation());
+    _options.position = _avatar->getPosition();
+    _options.orientation = _avatar->getOrientation();
     _injector->setOptions(_options);
 }
 
-void Player::setCurrentFrame(unsigned int currentFrame) {
+void Player::setCurrentFrame(int currentFrame) {
     if (_recording && currentFrame >= _recording->getFrameNumber()) {
         stopPlaying();
         return;
@@ -314,7 +314,7 @@ void Player::setCurrentFrame(unsigned int currentFrame) {
     }
 }
 
-void Player::setCurrentTime(unsigned int currentTime) {
+void Player::setCurrentTime(int currentTime) {
     if (currentTime >= _recording->getLength()) {
         stopPlaying();
         return;
@@ -360,7 +360,7 @@ void Player::setCurrentTime(unsigned int currentTime) {
 }
 
 void Player::setVolume(float volume) {
-    _options.setVolume(volume);
+    _options.volume = volume;
     if (_injector) {
         _injector->setOptions(_options);
     }
@@ -393,7 +393,7 @@ bool Player::computeCurrentFrame() {
         _currentFrame = 0;
     }
     
-    quint64 elapsed = glm::clamp(Player::elapsed() - _audioOffset, (qint64)0, (qint64)_recording->getLength());
+    qint64 elapsed = glm::clamp(Player::elapsed() - _audioOffset, (qint64)0, (qint64)_recording->getLength());
     while(_currentFrame >= 0 &&
           _recording->getFrameTimestamp(_currentFrame) > elapsed) {
         --_currentFrame;

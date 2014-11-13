@@ -32,10 +32,10 @@ function updateEntity(deltaTime) {
 
     if (Math.random() < CHANCE_OF_PLAYING_SOUND) {
         // play a sound at the location of the entity
-        var options = new AudioInjectionOptions();
-        options.position = entityPosition;
-        options.volume = 0.75;
-        Audio.playSound(sound, options);
+        Audio.playSound(sound, {
+          position: entityPosition,
+          volume: 0.75
+        });
     }
 
     var audioAverageLoudness = MyAvatar.audioAverageLoudness * FACTOR;

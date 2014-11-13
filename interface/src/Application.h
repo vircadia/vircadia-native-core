@@ -43,7 +43,6 @@
 #include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
-#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -233,6 +232,9 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
+    const gpu::TransformPointer& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const gpu::Transform& view);
+
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
@@ -306,6 +308,7 @@ public:
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;
     bool isVSyncEditable() const;
+    bool isAboutToQuit() const { return _aboutToQuit; }
 
 
     void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
@@ -377,8 +380,10 @@ public slots:
     void resetSensors();
 
 private slots:
+    void clearDomainOctreeDetails();
     void timer();
     void idle();
+    void aboutToQuit();
 
     void connectedToDomain(const QString& hostname);
 
@@ -478,8 +483,6 @@ private:
     bool _justStarted;
     Stars _stars;
 
-    BuckyBalls _buckyBalls;
-
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImportDialog* _voxelImportDialog;
@@ -523,6 +526,7 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
+    gpu::TransformPointer _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
@@ -625,6 +629,8 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    
+    bool _aboutToQuit;
 };
 
 #endif // hifi_Application_h

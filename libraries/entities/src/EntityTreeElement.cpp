@@ -238,7 +238,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params, Oct
 
 OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData* packetData, 
                                                                     EncodeBitstreamParams& params) const {
-                     
+
     OctreeElement::AppendState appendElementState = OctreeElement::COMPLETED; // assume the best...
     
     // first, check the params.extraEncodeData to see if there's any partial re-encode data for this element
@@ -289,7 +289,8 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
         for (uint16_t i = 0; i < _entityItems->size(); i++) {
             EntityItem* entity = (*_entityItems)[i];
             bool includeThisEntity = true;
-            if (!params.forceSendScene && entity->getLastEdited() < params.lastViewFrustumSent) {
+            
+            if (!params.forceSendScene && entity->getLastChangedOnServer() < params.lastViewFrustumSent) {
                 includeThisEntity = false;
             }
         
@@ -324,7 +325,6 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
     if (successAppendEntityCount) {
         foreach (uint16_t i, indexesOfEntitiesToInclude) {
             EntityItem* entity = (*_entityItems)[i];
-
             LevelDetails entityLevel = packetData->startLevel();
             OctreeElement::AppendState appendEntityState = entity->appendEntityData(packetData, 
                                                                         params, entityTreeElementExtraEncodeData);
@@ -726,7 +726,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
                     entityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 }
-                
+
                 // If the item already exists in our tree, we want do the following...
                 // 1) allow the existing item to read from the databuffer
                 // 2) check to see if after reading the item, the containing element is still correct, fix it if needed
@@ -734,10 +734,13 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
+                    QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
                     EntityItem::SimulationState oldState = entityItem->getSimulationState();
+
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
+
                     EntityItem::SimulationState newState = entityItem->getSimulationState();
                     if (oldState != newState) {
                         _myTree->changeEntityState(entityItem, oldState, newState);
@@ -755,6 +758,12 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         }
                     }
+
+                    QString entityScriptAfter = entityItem->getScript();
+                    if (entityScriptBefore != entityScriptAfter) {
+                        _myTree->emitEntityScriptChanging(entityItemID); // the entity script has changed
+                    }
+
                 } else {
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     if (entityItem) {
@@ -762,6 +771,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         addEntityItem(entityItem); // add this new entity to this elements entities
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
+                        _myTree->emitAddingEntity(entityItemID); // we just added an entity
                         EntityItem::SimulationState newState = entityItem->getSimulationState();
                         _myTree->changeEntityState(entityItem, EntityItem::Static, newState);
                     }
@@ -812,11 +822,20 @@ bool EntityTreeElement::pruneChildren() {
 
 void EntityTreeElement::debugDump() {
     qDebug() << "EntityTreeElement...";
-    qDebug() << "entity count:" << _entityItems->size();
-    qDebug() << "cube:" << getAACube();
-    for (uint16_t i = 0; i < _entityItems->size(); i++) {
-        EntityItem* entity = (*_entityItems)[i];
-        entity->debugDump();
+    AACube temp = getAACube();
+    temp.scale((float)TREE_SCALE);
+    qDebug() << "    cube:" << temp;
+    qDebug() << "    has child elements:" << getChildCount();
+    if (_entityItems->size()) {
+        qDebug() << "    has entities:" << _entityItems->size();
+        qDebug() << "--------------------------------------------------";
+        for (uint16_t i = 0; i < _entityItems->size(); i++) {
+            EntityItem* entity = (*_entityItems)[i];
+            entity->debugDump();
+        }
+        qDebug() << "--------------------------------------------------";
+    } else {
+        qDebug() << "    NO entities!";
     }
 }
     

@@ -18,7 +18,7 @@
 #include "SequenceNumberStats.h"
 #include "AudioStreamStats.h"
 #include "PacketHeaders.h"
-#include "StdDev.h"
+#include "StDev.h"
 #include "TimeWeightedAvg.h"
 
 // This adds some number of frames to the desired jitter buffer frames target we use when we're dropping frames.
@@ -113,9 +113,7 @@ public:
     bool lastPopSucceeded() const { return _lastPopSucceeded; };
     const AudioRingBuffer::ConstIterator& getLastPopOutput() const { return _lastPopOutput; }
 
-
     void setToStarved();
-
 
     void setSettings(const Settings& settings);
 
@@ -163,7 +161,7 @@ public:
     float getWetLevel() const { return _wetLevel; }
     void setReverb(float reverbTime, float wetLevel);
     void clearReverb() { _hasReverb = false; }
-
+    
 public slots:
     /// This function should be called every second for all the stats to function properly. If dynamic jitter buffers
     /// is enabled, those stats are used to calculate _desiredJitterBufferFrames.

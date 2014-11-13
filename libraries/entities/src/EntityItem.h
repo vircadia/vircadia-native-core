@@ -70,9 +70,13 @@ public:
 
      /// Last edited time of this entity universal usecs
     quint64 getLastEdited() const { return _lastEdited; }
-    void setLastEdited(quint64 lastEdited) {  _lastEdited = _lastUpdated = lastEdited;  }
+    void setLastEdited(quint64 lastEdited) 
+        { _lastEdited = _lastUpdated = lastEdited; _changedOnServer = glm::max(lastEdited, _changedOnServer); }
     float getEditedAgo() const /// Elapsed seconds since this entity was last edited
         { return (float)(usecTimestampNow() - getLastEdited()) / (float)USECS_PER_SECOND; }
+
+    void markAsChangedOnServer() {  _changedOnServer = usecTimestampNow();  }
+    quint64 getLastChangedOnServer() const { return _changedOnServer; }
 
     // TODO: eventually only include properties changed since the params.lastViewFrustumSent time
     virtual EntityPropertyFlags getEntityProperties(EncodeBitstreamParams& params) const;
@@ -141,14 +145,14 @@ public:
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; ; recalculateCollisionShape(); }
+    void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
     static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; ; recalculateCollisionShape(); }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; recalculateCollisionShape(); }
 
     static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
@@ -165,7 +169,7 @@ public:
     static const glm::vec3 DEFAULT_VELOCITY;
     static const glm::vec3 NO_VELOCITY;
     static const float EPSILON_VELOCITY_LENGTH;
-    const glm::vec3 getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
@@ -268,6 +272,7 @@ protected:
     quint64 _lastEditedFromRemote; // this is the last time we received and edit from the server
     quint64 _lastEditedFromRemoteInRemoteTime; // time in server time space the last time we received and edit from the server
     quint64 _created;
+    quint64 _changedOnServer;
 
     glm::vec3 _position;
     glm::vec3 _dimensions;

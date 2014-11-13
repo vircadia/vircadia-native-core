@@ -65,6 +65,7 @@ public:
     QScriptValue registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                               QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
+    void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
@@ -103,6 +104,7 @@ public slots:
     void include(const QString& includeFile);
     void load(const QString& loadfile);
     void print(const QString& message);
+    QUrl resolvePath(const QString& path) const;
 
     void nodeKilled(SharedNodePointer node);
 
@@ -131,7 +133,6 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
-    QUrl resolveInclude(const QString& include) const;
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
@@ -142,7 +143,6 @@ private:
     static EntityScriptingInterface _entityScriptingInterface;
 
     AbstractControllerScriptingInterface* _controllerScriptingInterface;
-    AudioScriptingInterface _audioScriptingInterface;
     AvatarData* _avatarData;
     QString _scriptName;
     QString _fileNameString;

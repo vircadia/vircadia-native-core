@@ -74,14 +74,6 @@ void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
 }
 
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
-}
-
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
     return engine->newQObject(in);
 }
@@ -234,7 +226,6 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
 Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
@@ -254,6 +245,7 @@ void ScriptEngine::init() {
     registerMenuItemProperties(this);
     registerAnimationTypes(this);
     registerAvatarTypes(this);
+    registerAudioMetaTypes(this);
     Bitstream::registerTypes(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
@@ -275,9 +267,6 @@ void ScriptEngine::init() {
     QScriptValue soundMetaObject = newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
     globalObject().setProperty("Sound", soundMetaObject);
 
-    QScriptValue injectionOptionValue = scriptValueFromQMetaObject<AudioInjectorOptions>();
-    globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
-
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
 
@@ -290,7 +279,7 @@ void ScriptEngine::init() {
     qScriptRegisterMetaType(this, animationDetailsToScriptValue, animationDetailsFromScriptValue);
 
     registerGlobalObject("Script", this);
-    registerGlobalObject("Audio", &_audioScriptingInterface);
+    registerGlobalObject("Audio", &AudioScriptingInterface::getInstance());
     registerGlobalObject("Controller", _controllerScriptingInterface);
     registerGlobalObject("Entities", &_entityScriptingInterface);
     registerGlobalObject("Quat", &_quatLibrary);
@@ -320,6 +309,11 @@ QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* ob
         return value;
     }
     return QScriptValue::NullValue;
+}
+
+void ScriptEngine::registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments) {
+    QScriptValue scriptFun = newFunction(fun, numArguments);
+    globalObject().setProperty(name, scriptFun);
 }
 
 void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
@@ -636,7 +630,7 @@ void ScriptEngine::stopTimer(QTimer *timer) {
     }
 }
 
-QUrl ScriptEngine::resolveInclude(const QString& include) const {
+QUrl ScriptEngine::resolvePath(const QString& include) const {
     // first lets check to see if it's already a full URL
     QUrl url(include);
     if (!url.scheme().isEmpty()) {
@@ -662,7 +656,7 @@ void ScriptEngine::print(const QString& message) {
 }
 
 void ScriptEngine::include(const QString& includeFile) {
-    QUrl url = resolveInclude(includeFile);
+    QUrl url = resolvePath(includeFile);
     QString includeContents;
 
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
@@ -700,7 +694,7 @@ void ScriptEngine::include(const QString& includeFile) {
 }
 
 void ScriptEngine::load(const QString& loadFile) {
-    QUrl url = resolveInclude(loadFile);
+    QUrl url = resolvePath(loadFile);
     emit loadScript(url.toString(), false);
 }
 

@@ -40,12 +40,12 @@
 #include <QByteArray>
 
 #include <AbstractAudioInterface.h>
-#include <StdDev.h>
+#include <StDev.h>
 
 #include "MixedProcessedAudioStream.h"
 #include "AudioEffectOptions.h"
 #include <AudioRingBuffer.h>
-#include <StdDev.h>
+#include <StDev.h>
 
 extern "C" {
     #include <gverb.h>
@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual void handleAudioByteArray(const QByteArray& audioByteArray);
+    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
     void sendDownstreamAudioStatsPacket();
 
@@ -180,10 +180,10 @@ signals:
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
 
+private slots:
+    void cleanupLocalOutputInterface();
 private:
     void outputFormatChanged();
-
-private:
 
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
@@ -213,6 +213,9 @@ private:
     QElapsedTimer _timeSinceLastReceived;
     float _averagedLatency;
     float _lastInputLoudness;
+    int _inputFrameCounter;
+    float _quietestFrame;
+    float _loudestFrame;
     float _timeSinceLastClip;
     float _dcOffset;
     float _noiseGateMeasuredFloor;
@@ -245,15 +248,13 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb *_gverb;
+    ty_gverb* _gverb;
     GLuint _micTextureId;
     GLuint _muteTextureId;
     GLuint _boxTextureId;
     QRect _iconBounds;
-    
-    /// Audio callback in class context.
-    inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-    
+    float _iconColor;
+    qint64 _iconPulseTimeReference;
     
     bool _processSpatialAudio; /// Process received audio by spatial audio hooks
     unsigned int _spatialAudioStart; /// Start of spatial audio interval (in sample rate time base)
@@ -267,8 +268,11 @@ private:
 
     // Adds Reverb
     void initGverb();
+    void updateGverbOptions();
     void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
 
+    void handleLocalEchoAndReverb(QByteArray& inputByteArray);
+    
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
 
@@ -364,6 +368,8 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
+    
+    QHash<QObject*, QAudioOutput*> _injectedOutputInterfaces;
 };
 
 
