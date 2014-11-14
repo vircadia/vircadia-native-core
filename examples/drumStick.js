@@ -28,8 +28,8 @@ function vMinus(a, b) {
 
 //  First, load two percussion sounds to be used on the sticks
 
-var drum1 = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomHi.raw");
-var drum2 = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomLo.raw");
+var drum1 = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomHi.raw");
+var drum2 = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomLo.raw");
 
 //  State Machine:
 //  0 = not triggered 

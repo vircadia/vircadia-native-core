@@ -14,6 +14,7 @@
 
 ModelOverlay::ModelOverlay()
     : _model(),
+      _modelTextures(QVariantMap()),
       _scale(1.0f),
       _updateModel(false)
 {
@@ -114,12 +115,42 @@ void ModelOverlay::setProperties(const QScriptValue &properties) {
             QMetaObject::invokeMethod(&_model, "setTextureWithNameToURL", Qt::AutoConnection,
                                       Q_ARG(const QString&, key),
                                       Q_ARG(const QUrl&, newTextureURL));
+
+            _modelTextures[key] = newTextureURL;  // Keep local track of textures for getProperty()
         }
     }
 
     if (properties.property("position").isValid()) {
         _updateModel = true;
     }
+}
+
+QScriptValue ModelOverlay::getProperty(const QString& property) {
+    if (property == "url") {
+        return _url.toString();
+    }
+    if (property == "scale") {
+        return _scale;
+    }
+    if (property == "rotation") {
+        return quatToScriptValue(_scriptEngine, _rotation);
+    }
+    if (property == "dimensions") {
+        return vec3toScriptValue(_scriptEngine, _model.getScaleToFitDimensions());
+    }
+    if (property == "textures") {
+        if (_modelTextures.size() > 0) {
+            QScriptValue textures = _scriptEngine->newObject();
+            foreach(const QString& key, _modelTextures.keys()) {
+                textures.setProperty(key, _modelTextures[key].toString());
+            }
+            return textures;
+        } else {
+            return QScriptValue();
+        }
+    }
+
+    return Base3DOverlay::getProperty(property);
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,

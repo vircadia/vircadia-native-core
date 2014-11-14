@@ -65,7 +65,28 @@ void Overlay2D::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Overlay2D::getProperty(const QString& property) {
+    if (property == "bounds") {
+        return qRectToScriptValue(_scriptEngine, _bounds);
+    }
+    if (property == "x") {
+        return _bounds.x();
+    }
+    if (property == "y") {
+        return _bounds.y();
+    }
+    if (property == "width") {
+        return _bounds.width();
+    }
+    if (property == "height") {
+        return _bounds.height();
+    }
+
+    return Overlay::getProperty(property);
+}
+
 void Overlay2D::writeToClone(Overlay2D* clone) {
     Overlay::writeToClone(clone);
     clone->setBounds(getBounds());
 }
+

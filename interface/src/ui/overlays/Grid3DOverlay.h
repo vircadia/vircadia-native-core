@@ -33,6 +33,7 @@ public:
 
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
     virtual Grid3DOverlay* createClone();
 

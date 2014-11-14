@@ -151,6 +151,16 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue ImageOverlay::getProperty(const QString& property) {
+    if (property == "subImage") {
+        return qRectToScriptValue(_scriptEngine, _fromImage);
+    }
+    if (property == "imageURL") {
+        return _imageURL.toString();
+    }
+
+    return Overlay2D::getProperty(property);
+}
 ImageOverlay* ImageOverlay::createClone() {
     ImageOverlay* clone = new ImageOverlay();
     writeToClone(clone);
@@ -163,3 +173,4 @@ void ImageOverlay::writeToClone(ImageOverlay* clone) {
     clone->_textureImage = _textureImage;
     clone->_renderImage = _renderImage;
 }
+

@@ -19,6 +19,7 @@
 #include <QScriptValue>
 #include <QString>
 
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // for xColor
 #include <RenderArgs.h>
 
@@ -36,7 +37,7 @@ public:
     
     Overlay();
     ~Overlay();
-    void init(QGLWidget* parent);
+    void init(QGLWidget* parent, QScriptEngine* scriptEngine);
     virtual void update(float deltatime) {}
     virtual void render(RenderArgs* args) = 0;
 
@@ -78,6 +79,7 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
     virtual Overlay* createClone() = 0;
+    virtual QScriptValue getProperty(const QString& property);
 
 protected:
     virtual void writeToClone(Overlay* clone);
@@ -102,6 +104,8 @@ protected:
     xColor _color;
     bool _visible; // should the overlay be drawn at all
     Anchor _anchor;
+
+    QScriptEngine* _scriptEngine;
 };
 
  

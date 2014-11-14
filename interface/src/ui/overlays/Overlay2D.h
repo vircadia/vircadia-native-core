@@ -47,6 +47,7 @@ public:
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
 protected:
     virtual void writeToClone(Overlay2D* clone);

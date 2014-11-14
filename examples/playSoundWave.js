@@ -11,7 +11,7 @@
 
 Script.include("libraries/globals.js");
 
-var soundClip = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail%20Party%20Snippets/Walken1.wav");
+var soundClip = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail%20Party%20Snippets/Walken1.wav");
 
 function playSound() {
     Audio.playSound(soundClip, {

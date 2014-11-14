@@ -80,14 +80,22 @@ void Line3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Line3DOverlay::getProperty(const QString& property) {
+    if (property == "end" || property == "endPoint" || property == "p2") {
+        return vec3toScriptValue(_scriptEngine, _end);
+    }
+
+    return Base3DOverlay::getProperty(property);
+}
+
 Line3DOverlay* Line3DOverlay::createClone() {
     Line3DOverlay* clone = new Line3DOverlay();
     writeToClone(clone);
     return clone;
 }
 
-
 void Line3DOverlay::writeToClone(Line3DOverlay* clone) {
     Base3DOverlay::writeToClone(clone);
     clone->setEnd(getEnd());
 }
+

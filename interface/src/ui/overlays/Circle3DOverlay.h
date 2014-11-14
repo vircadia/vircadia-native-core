@@ -21,6 +21,7 @@ public:
     ~Circle3DOverlay();
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
     float getStartAt() const { return _startAt; }
     float getEndAt() const { return _endAt; }

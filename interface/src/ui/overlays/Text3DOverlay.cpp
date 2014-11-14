@@ -17,6 +17,8 @@
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_MARGIN = 0.1f;
+const int FIXED_FONT_POINT_SIZE = 40;
+const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
@@ -87,11 +89,10 @@ void Text3DOverlay::render(RenderArgs* args) {
             glVertex3f(-halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
         glEnd();
         
-        const int FIXED_FONT_POINT_SIZE = 40;
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
+        // Same font properties as textWidth()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float LINE_SCALE_RATIO = 1.2f;
         float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
@@ -179,10 +180,44 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
 
 }
 
+QScriptValue Text3DOverlay::getProperty(const QString& property) {
+    if (property == "text") {
+        return _text;
+    }
+    if (property == "backgroundColor") {
+        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "lineHeight") {
+        return _lineHeight;
+    }
+    if (property == "leftMargin") {
+        return _leftMargin;
+    }
+    if (property == "topMargin") {
+        return _topMargin;
+    }
+    if (property == "rightMargin") {
+        return _rightMargin;
+    }
+    if (property == "bottomMargin") {
+        return _bottomMargin;
+    }
+    if (property == "isFacingAvatar") {
+        return _isFacingAvatar;
+    }
+    return Planar3DOverlay::getProperty(property);
+}
 Text3DOverlay* Text3DOverlay::createClone() {
     Text3DOverlay* clone = new Text3DOverlay();
     writeToClone(clone);
     return clone;
+}
+
+float Text3DOverlay::textWidth(const QString& text) const {
+    QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
+    QFontMetrics fontMetrics(font);
+    float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
+    return scaleFactor * (float)fontMetrics.width(qPrintable(text));
 }
 
 void Text3DOverlay::writeToClone(Text3DOverlay* clone) {
@@ -196,3 +231,4 @@ void Text3DOverlay::writeToClone(Text3DOverlay* clone) {
     clone->setIsFacingAvatar(getIsFacingAvatar());
     clone->_backgroundColor = getBackgroundColor();
 }
+

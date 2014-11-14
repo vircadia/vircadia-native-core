@@ -28,6 +28,7 @@ public:
     void setEnd(const glm::vec3& end) { _end = end; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
     virtual Line3DOverlay* createClone();
 
