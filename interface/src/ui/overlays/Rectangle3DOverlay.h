@@ -18,12 +18,12 @@ class Rectangle3DOverlay : public Planar3DOverlay {
     
 public:
     Rectangle3DOverlay();
-    Rectangle3DOverlay(Rectangle3DOverlay* rectangle3DOverlay);
+    Rectangle3DOverlay(const Rectangle3DOverlay* rectangle3DOverlay);
     ~Rectangle3DOverlay();
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
 
-    virtual Rectangle3DOverlay* createClone();
+    virtual Rectangle3DOverlay* createClone() const;
 };
 
  

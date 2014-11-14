@@ -18,9 +18,9 @@ LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer) :
     _entityTreeRenderer(entityTreeRenderer) {
 }
 
-LocalModelsOverlay::LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer, LocalModelsOverlay* localModelsOverlay) :
+LocalModelsOverlay::LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay) :
     Volume3DOverlay(localModelsOverlay),
-    _entityTreeRenderer(entityTreeRenderer)
+    _entityTreeRenderer(localModelsOverlay->_entityTreeRenderer)
 {
 
 }
@@ -56,6 +56,6 @@ void LocalModelsOverlay::render(RenderArgs* args) {
     }
 }
 
-LocalModelsOverlay* LocalModelsOverlay::createClone() {
-    return new LocalModelsOverlay(Application::getInstance()->getEntityClipboardRenderer(), this);
+LocalModelsOverlay* LocalModelsOverlay::createClone() const {
+    return new LocalModelsOverlay(this);
 }

@@ -22,7 +22,7 @@
 Cube3DOverlay::Cube3DOverlay() {
 }
 
-Cube3DOverlay::Cube3DOverlay(Cube3DOverlay* cube3DOverlay) :
+Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
     Volume3DOverlay(cube3DOverlay)
 {
 }
@@ -108,6 +108,6 @@ void Cube3DOverlay::render(RenderArgs* args) {
     }
 }
 
-Cube3DOverlay* Cube3DOverlay::createClone() {
+Cube3DOverlay* Cube3DOverlay::createClone() const {
     return new Cube3DOverlay(this);
 }

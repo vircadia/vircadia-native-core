@@ -33,7 +33,7 @@ class ImageOverlay : public Overlay2D {
     
 public:
     ImageOverlay();
-    ImageOverlay(ImageOverlay* imageOverlay);
+    ImageOverlay(const ImageOverlay* imageOverlay);
     ~ImageOverlay();
     virtual void render(RenderArgs* args);
 
@@ -47,7 +47,7 @@ public:
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
-    virtual ImageOverlay* createClone();
+    virtual ImageOverlay* createClone() const;
 
 private slots:
     void replyFinished(); // we actually want to hide this...

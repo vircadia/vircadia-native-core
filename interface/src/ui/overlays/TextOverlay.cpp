@@ -25,7 +25,7 @@ TextOverlay::TextOverlay() :
 {
 }
 
-TextOverlay::TextOverlay(TextOverlay* textOverlay) :
+TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
     Overlay2D(textOverlay),
     _text(textOverlay->_text),
     _backgroundColor(textOverlay->_backgroundColor),
@@ -134,8 +134,8 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
-TextOverlay* TextOverlay::createClone() {
-    return new TextOverlay(this);;
+TextOverlay* TextOverlay::createClone() const {
+    return new TextOverlay(this);
 }
 
 QScriptValue TextOverlay::getProperty(const QString& property) {

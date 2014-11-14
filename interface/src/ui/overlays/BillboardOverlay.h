@@ -22,7 +22,7 @@ class BillboardOverlay : public Base3DOverlay {
     Q_OBJECT
 public:
     BillboardOverlay();
-    BillboardOverlay(BillboardOverlay* billboardOverlay);
+    BillboardOverlay(const BillboardOverlay* billboardOverlay);
 
     virtual void render(RenderArgs* args);
 
@@ -37,7 +37,7 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
     
-    virtual BillboardOverlay* createClone();
+    virtual BillboardOverlay* createClone() const;
 
 private slots:
     void replyFinished();

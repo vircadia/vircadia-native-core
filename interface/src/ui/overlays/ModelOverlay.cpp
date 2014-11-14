@@ -22,7 +22,7 @@ ModelOverlay::ModelOverlay()
     _isLoaded = false;
 }
 
-ModelOverlay::ModelOverlay(ModelOverlay* modelOverlay) :
+ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Base3DOverlay(modelOverlay),
     _model(),
     _modelTextures(QVariantMap()),
@@ -182,6 +182,6 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo);
 }
 
-ModelOverlay* ModelOverlay::createClone() {
+ModelOverlay* ModelOverlay::createClone() const {
     return new ModelOverlay(this);
 }

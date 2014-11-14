@@ -28,7 +28,7 @@ Volume3DOverlay::Volume3DOverlay() :
 {
 }
 
-Volume3DOverlay::Volume3DOverlay(Volume3DOverlay* volume3DOverlay) :
+Volume3DOverlay::Volume3DOverlay(const Volume3DOverlay* volume3DOverlay) :
     Base3DOverlay(volume3DOverlay),
     _dimensions(volume3DOverlay->_dimensions)
 {

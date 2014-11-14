@@ -33,7 +33,7 @@ Circle3DOverlay::Circle3DOverlay() :
     _minorTickMarksColor.red = _minorTickMarksColor.green = _minorTickMarksColor.blue = (unsigned char)0;
 }
 
-Circle3DOverlay::Circle3DOverlay(Circle3DOverlay* circle3DOverlay) :
+Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
     Planar3DOverlay(circle3DOverlay),
     _startAt(circle3DOverlay->_startAt),
     _endAt(circle3DOverlay->_endAt),
@@ -374,6 +374,6 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
     return intersects;
 }
 
-Circle3DOverlay* Circle3DOverlay::createClone() {
+Circle3DOverlay* Circle3DOverlay::createClone() const {
     return new Circle3DOverlay(this);
 }

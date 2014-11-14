@@ -24,7 +24,7 @@ class Text3DOverlay : public Planar3DOverlay {
     
 public:
     Text3DOverlay();
-    Text3DOverlay(Text3DOverlay* text3DOverlay);
+    Text3DOverlay(const Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();
     virtual void render(RenderArgs* args);
 
@@ -52,7 +52,7 @@ public:
 
     float textWidth(const QString& text) const;  // Meters
 
-    virtual Text3DOverlay* createClone();
+    virtual Text3DOverlay* createClone() const;
 
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);

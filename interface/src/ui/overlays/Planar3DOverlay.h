@@ -26,7 +26,7 @@ class Planar3DOverlay : public Base3DOverlay {
     
 public:
     Planar3DOverlay();
-    Planar3DOverlay(Planar3DOverlay* planar3DOverlay);
+    Planar3DOverlay(const Planar3DOverlay* planar3DOverlay);
     ~Planar3DOverlay();
 
     // getters

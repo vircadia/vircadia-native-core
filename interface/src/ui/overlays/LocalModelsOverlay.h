@@ -20,13 +20,13 @@ class LocalModelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer);
-    LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer, LocalModelsOverlay* localModelsOverlay);
+    LocalModelsOverlay(const LocalModelsOverlay* localModelsOverlay);
     ~LocalModelsOverlay();
     
     virtual void update(float deltatime);
     virtual void render(RenderArgs* args);
 
-    virtual LocalModelsOverlay* createClone();
+    virtual LocalModelsOverlay* createClone() const;
 
 private:
     EntityTreeRenderer* _entityTreeRenderer;

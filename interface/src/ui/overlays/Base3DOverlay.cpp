@@ -31,7 +31,7 @@ Base3DOverlay::Base3DOverlay() :
 {
 }
 
-Base3DOverlay::Base3DOverlay(Base3DOverlay* base3DOverlay) :
+Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
     Overlay(base3DOverlay),
     _position(base3DOverlay->_position),
     _lineWidth(base3DOverlay->_lineWidth),

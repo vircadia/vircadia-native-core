@@ -22,7 +22,7 @@
 Overlay2D::Overlay2D() {
 }
 
-Overlay2D::Overlay2D(Overlay2D* overlay2D) :
+Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
     Overlay(overlay2D),
     _bounds(overlay2D->_bounds)
 {

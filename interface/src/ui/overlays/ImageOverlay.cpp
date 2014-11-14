@@ -27,7 +27,7 @@ ImageOverlay::ImageOverlay() :
     _isLoaded = false;
 }
 
-ImageOverlay::ImageOverlay(ImageOverlay* imageOverlay) :
+ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
     Overlay2D(imageOverlay),
     _textureID(0),
     _textureBound(false),
@@ -172,6 +172,6 @@ QScriptValue ImageOverlay::getProperty(const QString& property) {
 
     return Overlay2D::getProperty(property);
 }
-ImageOverlay* ImageOverlay::createClone() {
+ImageOverlay* ImageOverlay::createClone() const {
     return new ImageOverlay(this);
 }

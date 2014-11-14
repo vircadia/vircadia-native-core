@@ -31,7 +31,7 @@ Text3DOverlay::Text3DOverlay() :
 {
 }
 
-Text3DOverlay::Text3DOverlay(Text3DOverlay* text3DOverlay) :
+Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     Planar3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
@@ -220,7 +220,7 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     return Planar3DOverlay::getProperty(property);
 }
 
-Text3DOverlay* Text3DOverlay::createClone() {
+Text3DOverlay* Text3DOverlay::createClone() const {
     return new Text3DOverlay(this);;
 }
 

@@ -28,7 +28,7 @@ LocalVoxelsOverlay::LocalVoxelsOverlay() :
 {
 }
 
-LocalVoxelsOverlay::LocalVoxelsOverlay(LocalVoxelsOverlay* localVoxelsOverlay) :
+LocalVoxelsOverlay::LocalVoxelsOverlay(const LocalVoxelsOverlay* localVoxelsOverlay) :
     Volume3DOverlay(localVoxelsOverlay),
     _voxelCount(localVoxelsOverlay->_voxelCount)
 {
@@ -109,7 +109,7 @@ void LocalVoxelsOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
-LocalVoxelsOverlay* LocalVoxelsOverlay::createClone() {
+LocalVoxelsOverlay* LocalVoxelsOverlay::createClone() const {
     return new LocalVoxelsOverlay(this);
 }
 

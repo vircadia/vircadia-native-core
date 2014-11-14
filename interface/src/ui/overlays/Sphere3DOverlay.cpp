@@ -21,7 +21,7 @@
 Sphere3DOverlay::Sphere3DOverlay() {
 }
 
-Sphere3DOverlay::Sphere3DOverlay(Sphere3DOverlay* Sphere3DOverlay) :
+Sphere3DOverlay::Sphere3DOverlay(const Sphere3DOverlay* Sphere3DOverlay) :
     Volume3DOverlay(Sphere3DOverlay)
 {
 }
@@ -76,6 +76,6 @@ void Sphere3DOverlay::render(RenderArgs* args) {
 
 }
 
-Sphere3DOverlay* Sphere3DOverlay::createClone() {
+Sphere3DOverlay* Sphere3DOverlay::createClone() const {
     return new Sphere3DOverlay(this);
 }

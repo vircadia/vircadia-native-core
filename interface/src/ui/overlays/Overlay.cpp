@@ -39,7 +39,7 @@ Overlay::Overlay() :
 {
 }
 
-Overlay::Overlay(Overlay* overlay) :
+Overlay::Overlay(const Overlay* overlay) :
     _parent(NULL),
     _alpha(overlay->_alpha),
     _lastPulseUpdate(usecTimestampNow()),

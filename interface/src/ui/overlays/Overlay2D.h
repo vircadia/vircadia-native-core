@@ -28,7 +28,7 @@ class Overlay2D : public Overlay {
     
 public:
     Overlay2D();
-    Overlay2D(Overlay2D* overlay2D);
+    Overlay2D(const Overlay2D* overlay2D);
     ~Overlay2D();
     
     virtual bool is3D() const { return false; }
