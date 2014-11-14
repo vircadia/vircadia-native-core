@@ -28,7 +28,8 @@ void ScriptEventBridge::emitScriptEvent(const QString& data) {
     emit scriptEventReceived(data);
 }
 
-WebWindowClass::WebWindowClass(const QString& url, int width, int height)
+
+WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height)
     : QObject(NULL),
       _window(new QWidget(NULL, Qt::Tool)),
       _eventBridge(new ScriptEventBridge(this)) {
@@ -59,8 +60,9 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
     QMetaObject::invokeMethod(WindowScriptingInterface::getInstance(), "doCreateWebWindow", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(WebWindowClass*, retVal),
             Q_ARG(const QString&, file),
-            Q_ARG(int, context->argument(1).toInteger()),
-            Q_ARG(int, context->argument(2).toInteger()));
+            Q_ARG(QString, context->argument(1).toString()),
+            Q_ARG(int, context->argument(2).toInteger()),
+            Q_ARG(int, context->argument(3).toInteger()));
 
     connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
 

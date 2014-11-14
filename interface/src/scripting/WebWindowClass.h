@@ -34,7 +34,7 @@ class WebWindowClass : public QObject {
     Q_OBJECT
     Q_PROPERTY(QObject* eventBridge READ getEventBridge)
 public:
-    WebWindowClass(const QString& url, int width, int height);
+    WebWindowClass(const QString& title, const QString& url, int width, int height);
     ~WebWindowClass();
 
     static QScriptValue constructor(QScriptContext* context, QScriptEngine* engine);
