@@ -15,9 +15,9 @@ Script.include("libraries/globals.js");
 
 //  A few sample files you may want to try: 
 
-var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
-//var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
-//var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Bandcamp.wav");
+var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
+//var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
+//var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Bandcamp.wav");
 
 var soundPlaying = false;
 var options = {

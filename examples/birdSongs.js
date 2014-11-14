@@ -67,7 +67,7 @@ function maybePlaySound(deltaTime) {
 			    lifetime: 10
 			});
 		}
-
+    
 		playing.push({ audioId: Audio.playSound(birds[whichBird].sound, options), entityId: entityId, lightId: lightId, color: birds[whichBird].color });
 	}
 	if (playing.length != numPlaying) {
@@ -159,8 +159,9 @@ function loadBirds() {
   var SOUND_BASE_URL = "http://public.highfidelity.io/sounds/Animals/";
   
   for (var i = 0; i < sound_filenames.length; i++) {
-      birds.push({  sound: new Sound(SOUND_BASE_URL + sound_filenames[i]), 
-      				color: colors[i] 
-      			 } );
+      birds.push({
+        sound: SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]), 
+        color: colors[i] 
+      });
   }
 }
