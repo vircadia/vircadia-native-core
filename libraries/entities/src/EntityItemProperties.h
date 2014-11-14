@@ -47,6 +47,7 @@ enum EntityPropertyList {
     PROP_GRAVITY,
     PROP_DAMPING,
     PROP_LIFETIME,
+    PROP_USER_DATA,
     PROP_SCRIPT,
 
     // these properties are supported by some derived classes
@@ -156,9 +157,13 @@ public:
 
     float getDamping() const { return _damping; }
     void setDamping(float value) { _damping = value; _dampingChanged = true; }
-
+    
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true; } /// set the lifetime in seconds for the entity
+    
+    const QString& getUserData() const { return _userData; }
+    void setUserData(const QString& value) { _userData = value; _userDataChanged = true; }
+    
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     quint64 getCreated() const { return _created; }
     void setCreated(quint64 usecTime) { _created = usecTime; }
@@ -216,6 +221,7 @@ public:
     bool gravityChanged() const { return _gravityChanged; }
     bool dampingChanged() const { return _dampingChanged; }
     bool lifetimeChanged() const { return _lifetimeChanged; }
+    bool userDataChanged() const { return _userDataChanged; }
     bool scriptChanged() const { return _scriptChanged; }
     bool dimensionsChanged() const { return _dimensionsChanged; }
     bool registrationPointChanged() const { return _registrationPointChanged; }
@@ -315,6 +321,7 @@ private:
     glm::vec3 _gravity;
     float _damping;
     float _lifetime;
+    QString _userData;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
@@ -331,6 +338,7 @@ private:
     bool _gravityChanged;
     bool _dampingChanged;
     bool _lifetimeChanged;
+    bool _userDataChanged;
     bool _scriptChanged;
     bool _registrationPointChanged;
     bool _angularVelocityChanged;

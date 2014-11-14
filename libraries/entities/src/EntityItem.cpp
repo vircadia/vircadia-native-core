@@ -28,6 +28,7 @@ const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
 const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
+const QString EntityItem::DEFAULT_USER_DATA = QString("");
 const float EntityItem::DEFAULT_DAMPING = 0.5f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
@@ -71,6 +72,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _gravity = DEFAULT_GRAVITY;
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
+    _userData = DEFAULT_USER_DATA;
     _registrationPoint = DEFAULT_REGISTRATION_POINT;
     _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
     _angularDamping = DEFAULT_ANGULAR_DAMPING;
@@ -115,6 +117,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
+    requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_SCRIPT;
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_VELOCITY;
@@ -231,6 +234,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_GRAVITY, appendValue, getGravity());
         APPEND_ENTITY_PROPERTY(PROP_DAMPING, appendValue, getDamping());
         APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, getLifetime());
+        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
         APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, getScript());
         APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, getRegistrationPoint());
         APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, getAngularVelocity());
@@ -502,6 +506,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
         READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
+        READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, _userData);
 
         if (wantDebug) {
             qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
@@ -758,6 +763,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
 
     properties._defaultSettings = false;
     
@@ -794,6 +800,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed

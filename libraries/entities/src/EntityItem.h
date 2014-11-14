@@ -196,6 +196,11 @@ public:
     static const float DEFAULT_LIFETIME;
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
+    
+    /// User-specified data stored in a variant map
+    static const QString DEFAULT_USER_DATA;
+    const QString& getUserData() const { return _userData; }
+    void setUserData(const QString& value) { _userData = value; }
 
     /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
     bool isImmortal() const { return _lifetime == IMMORTAL; }
@@ -284,6 +289,7 @@ protected:
     glm::vec3 _gravity;
     float _damping;
     float _lifetime;
+    QString _userData;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
