@@ -494,6 +494,10 @@ private:
     VoxelSystem _sharedVoxelSystem;
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
+#ifdef USE_BULLET_PHYSICS
+    ThreadSafePhysicsWorld _physicsWorld;
+#endif // USE_BULLET_PHYSICS
+
     EntityTreeRenderer _entities;
     EntityCollisionSystem _entityCollisionSystem;
     EntityTreeRenderer _entityClipboardRenderer;
@@ -503,10 +507,6 @@ private:
     bool _wantToKillLocalVoxels;
 
     MetavoxelSystem _metavoxels;
-
-#ifdef USE_BULLET_PHYSICS
-    ThreadSafePhysicsWorld _physicsWorld;
-#endif // USE_BULLET_PHYSICS
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)

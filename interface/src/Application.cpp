@@ -152,14 +152,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _voxelImporter(),
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
+#ifdef USE_BULLET_PHYSICS
+        _physicsWorld(glm::vec3(0.0f)),
+#endif // USE_BULLET_PHYSICS
         _entities(true),
         _entityCollisionSystem(),
         _entityClipboardRenderer(false),
         _entityClipboard(),
         _wantToKillLocalVoxels(false),
-#ifdef USE_BULLET_PHYSICS
-        _physicsWorld(glm::vec3(0.0f)),
-#endif // USE_BULLET_PHYSICS
         _viewFrustum(),
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
