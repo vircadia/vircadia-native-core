@@ -1162,7 +1162,7 @@ bool OctreeElement::safeDeepDeleteChildAtIndex(int childIndex, int recursionCoun
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+                    "OctreeElement::safeDeepDeleteChildAtIndex\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
         qDebug() << "OctreeElement::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return deleteApproved;

@@ -74,7 +74,7 @@ void Octree::recurseElementWithOperation(OctreeElement* element, RecurseOctreeOp
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+                    "Octree::recurseElementWithOperation\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
         qDebug() << "Octree::recurseElementWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
@@ -96,7 +96,7 @@ void Octree::recurseElementWithPostOperation(OctreeElement* element, RecurseOctr
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+                    "Octree::recurseElementWithPostOperation\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
         qDebug() << "Octree::recurseElementWithPostOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
@@ -126,7 +126,7 @@ void Octree::recurseElementWithOperationDistanceSorted(OctreeElement* element, R
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+                    "Octree::recurseElementWithOperationDistanceSorted\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
         qDebug() << "Octree::recurseElementWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return;
@@ -167,7 +167,7 @@ bool Octree::recurseElementWithOperator(OctreeElement* element, RecurseOctreeOpe
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
             = LogHandler::getInstance().addRepeatedMessageRegex(
-                    "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!");
+                    "Octree::recurseElementWithOperator\\(\\) reached DANGEROUSLY_DEEP_RECURSION, bailing!");
 
         qDebug() << "Octree::recurseElementWithOperator() reached DANGEROUSLY_DEEP_RECURSION, bailing!";
         return false;
