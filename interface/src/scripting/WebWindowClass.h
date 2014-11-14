@@ -44,7 +44,7 @@ public slots:
     ScriptEventBridge* getEventBridge() const { return _eventBridge; }
 
 private:
-    QDockWidget* _window;
+    QDockWidget* _dockWidget;
     ScriptEventBridge* _eventBridge;
 };
 

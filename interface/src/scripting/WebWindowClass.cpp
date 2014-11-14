@@ -39,22 +39,23 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
 
     QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
 
-    _window = new QDockWidget(title, toolWindow);
-    QWebView* webView = new QWebView(_window);
+    _dockWidget = new QDockWidget(title, toolWindow);
+    _dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
+    QWebView* webView = new QWebView(_dockWidget);
     webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
     webView->setUrl(url);
-    _window->setWidget(webView);
+    _dockWidget->setWidget(webView);
 
-    toolWindow->addDockWidget(Qt::RightDockWidgetArea, _window);
+    toolWindow->addDockWidget(Qt::RightDockWidgetArea, _dockWidget);
 
-    connect(this, &WebWindowClass::destroyed, _window, &QWidget::deleteLater);
+    connect(this, &WebWindowClass::destroyed, _dockWidget, &QWidget::deleteLater);
 }
 
 WebWindowClass::~WebWindowClass() {
 }
 
 void WebWindowClass::setVisible(bool visible) {
-    QMetaObject::invokeMethod(_window, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+    QMetaObject::invokeMethod(_dockWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
 
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
