@@ -157,7 +157,7 @@ bool ModelUploader::zip() {
     
     // mixamo/autodesk defaults
     if (!mapping.contains(SCALE_FIELD)) {
-        mapping.insert(SCALE_FIELD, 15.0);
+        mapping.insert(SCALE_FIELD, 1.0);
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
