@@ -78,7 +78,7 @@ function SoundArray() {
     this.audioOptions = audioOptions
     this.sounds = new Array();
     this.addSound = function (soundURL) {
-        this.sounds[this.sounds.length] = new Sound(soundURL);
+        this.sounds[this.sounds.length] = SoundCache.getSound(soundURL);
     }
     this.play = function (index) {
         if (0 <= index && index < this.sounds.length) {
@@ -319,7 +319,7 @@ function ScaleSelector() {
                                            width: this.SECOND_PART, height: this.height,
                                            topMargin: 13,
                                            text: this.scale.toString(),
-                                           alpha: 0.0,
+                                           alpha: 0.9,
                                            visible: editToolsOn
                                            });
     this.powerOverlay = Overlays.addOverlay("text", {

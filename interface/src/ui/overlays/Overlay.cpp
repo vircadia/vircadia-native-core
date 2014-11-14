@@ -39,8 +39,9 @@ Overlay::Overlay() :
 {
 }
 
-void Overlay::init(QGLWidget* parent) {
+void Overlay::init(QGLWidget* parent, QScriptEngine* scriptEngine) {
     _parent = parent;
+    _scriptEngine = scriptEngine;
 }
 
 
@@ -102,6 +103,44 @@ void Overlay::setProperties(const QScriptValue& properties) {
             setAnchor(MY_AVATAR);
         }
     }
+}
+
+QScriptValue Overlay::getProperty(const QString& property) {
+    if (property == "color") {
+        return xColorToScriptValue(_scriptEngine, _color);
+    }
+    if (property == "alpha") {
+        return _alpha;
+    }
+    if (property == "glowLevel") {
+        return _glowLevel;
+    }
+    if (property == "pulseMax") {
+        return _pulseMax;
+    }
+    if (property == "pulseMin") {
+        return _pulseMin;
+    }
+    if (property == "pulsePeriod") {
+        return _pulsePeriod;
+    }
+    if (property == "glowLevelPulse") {
+        return _glowLevelPulse;
+    }
+    if (property == "alphaPulse") {
+        return _alphaPulse;
+    }
+    if (property == "colorPulse") {
+        return _colorPulse;
+    }
+    if (property == "visible") {
+        return _visible;
+    }
+    if (property == "anchor") {
+        return _anchor == MY_AVATAR ? "MyAvatar" : "";
+    }
+
+    return QScriptValue();
 }
 
 xColor Overlay::getColor() { 

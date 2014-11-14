@@ -167,6 +167,48 @@ var clipboardPreview = Overlays.addOverlay("clipboard", {
                                            visible: true
                                            });
 
+// Demonstrate retrieving overlay properties
+print("Text overlay text property value =\n" + Overlays.getProperty(text, "text"));
+print("Text overlay alpha =\n" + Overlays.getProperty(text, "alpha"));
+print("Text overlay visible =\n" + Overlays.getProperty(text, "visible"));
+print("Text overlay font size =\n" + Overlays.getProperty(text, "font").size);
+print("Text overlay anchor =\n" + Overlays.getProperty(text, "anchor"));
+print("Text overlay unknown property value =\n" + Overlays.getProperty(text, "unknown"));  // value = undefined
+var sliderBounds = Overlays.getProperty(slider, "bounds");
+print("Slider overlay bounds =\n"
+    + "x: " + sliderBounds.x + "\n"
+    + "y: " + sliderBounds.y + "\n"
+    + "width: " + sliderBounds.width + "\n"
+    + "height: " + sliderBounds.height
+    );
+
+var cubePosition = Overlays.getProperty(cube, "position");
+print("Cube overlay position =\n"
+    + "x: " + cubePosition.x + "\n"
+    + "y: " + cubePosition.y + "\n"
+    + "z: " + cubePosition.z
+    );
+var cubeColor = Overlays.getProperty(cube, "color");
+print("Cube overlay color =\n"
+    + "red:   " + cubeColor.red + "\n"
+    + "green: " + cubeColor.green + "\n"
+    + "blue:  " + cubeColor.blue
+    );
+var modelOverlayProperties = {
+    textures: {
+        filename1: "http://url1",
+        filename2: "http://url2"
+    }
+}
+var modelOverlay = Overlays.addOverlay("model", modelOverlayProperties);
+var textures = Overlays.getProperty(modelOverlay, "textures");
+var textureValues = "";
+for (key in textures) {
+    textureValues += "\n" + key + ": " + textures[key];
+}
+print("Model overlay textures =" + textureValues);
+Overlays.deleteOverlay(modelOverlay);
+print("Unknown overlay property =\n" + Overlays.getProperty(1000, "text"));  // value = undefined
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {

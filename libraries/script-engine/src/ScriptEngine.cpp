@@ -27,7 +27,6 @@
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
@@ -46,14 +45,6 @@
 
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
-
-static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
-    QUrl soundURL = QUrl(context->argument(0).toString());
-    bool isStereo = context->argument(1).toBool();
-    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL, isStereo), QScriptEngine::ScriptOwnership);
-
-    return soundScriptValue;
-}
 
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
@@ -262,10 +253,6 @@ void ScriptEngine::init() {
 
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
-
-    QScriptValue soundConstructorValue = newFunction(soundConstructor);
-    QScriptValue soundMetaObject = newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
-    globalObject().setProperty("Sound", soundMetaObject);
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);

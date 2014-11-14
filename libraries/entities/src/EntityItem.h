@@ -256,6 +256,10 @@ public:
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
+    static const QString DEFAULT_USER_DATA;
+    const QString& getUserData() const { return _userData; }
+    void setUserData(const QString& value) { _userData = value; }
+    
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
@@ -302,6 +306,7 @@ protected:
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
+    QString _userData;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams

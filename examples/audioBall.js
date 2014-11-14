@@ -15,7 +15,7 @@
 
 Script.include("libraries/globals.js");
 
-var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/mexicanWhipoorwill.raw");
+var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/mexicanWhipoorwill.raw");
 var CHANCE_OF_PLAYING_SOUND = 0.01;
 
 var FACTOR = 0.05;

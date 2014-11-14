@@ -9,8 +9,10 @@
 //
 
 #include <limits>
+#include <typeinfo>
 #include <Application.h>
 #include <Menu.h>
+#include <QScriptValueIterator>
 
 #include "BillboardOverlay.h"
 #include "Circle3DOverlay.h"
@@ -55,6 +57,7 @@ Overlays::~Overlays() {
 
 void Overlays::init(QGLWidget* parent) {
     _parent = parent;
+    _scriptEngine = new QScriptEngine();
 }
 
 void Overlays::update(float deltatime) {
@@ -179,7 +182,7 @@ unsigned int Overlays::addOverlay(const QString& type, const QScriptValue& prope
 }
 
 unsigned int Overlays::addOverlay(Overlay* overlay) {
-    overlay->init(_parent);
+    overlay->init(_parent, _scriptEngine);
 
     QWriteLocker lock(&_lock);
     unsigned int thisID = _nextOverlayID;
@@ -239,6 +242,51 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         }
     }
     return 0; // not found
+}
+
+OverlayPropertyResult Overlays::getProperty(unsigned int id, const QString& property) {
+    OverlayPropertyResult result;
+    Overlay* thisOverlay = NULL;
+    QReadLocker lock(&_lock);
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    }
+    if (thisOverlay) {
+        result.value = thisOverlay->getProperty(property);
+    }
+    return result;
+}
+
+OverlayPropertyResult::OverlayPropertyResult() :
+    value(QScriptValue())
+{
+}
+
+QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& result)
+{
+    if (!result.value.isValid()) {
+        return QScriptValue::UndefinedValue;
+    }
+
+    QScriptValue object = engine->newObject();
+    if (result.value.isObject()) {
+        QScriptValueIterator it(result.value);
+        while (it.hasNext()) {
+            it.next();
+            object.setProperty(it.name(), QScriptValue(it.value().toString()));
+        }
+
+    } else {
+        object = result.value;
+    }
+    return object;
+}
+
+void OverlayPropertyResultFromScriptValue(const QScriptValue& value, OverlayPropertyResult& result)
+{
+    result.value = value;
 }
 
 RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
@@ -360,3 +408,19 @@ bool Overlays::isLoaded(unsigned int id) {
     return overlay->isLoaded();
 }
 
+float Overlays::textWidth(unsigned int id, const QString& text) const {
+    Overlay* thisOverlay = _overlays2D[id];
+    if (thisOverlay) {
+        if (typeid(*thisOverlay) == typeid(TextOverlay)) {
+            return static_cast<TextOverlay*>(thisOverlay)->textWidth(text);
+        }
+    } else {
+        thisOverlay = _overlays3D[id];
+        if (thisOverlay) {
+            if (typeid(*thisOverlay) == typeid(Text3DOverlay)) {
+                return static_cast<Text3DOverlay*>(thisOverlay)->textWidth(text);
+            }
+        }
+    }
+    return 0.0f;
+}

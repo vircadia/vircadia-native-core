@@ -47,6 +47,9 @@ public:
     void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
+
+    float textWidth(const QString& text) const;  // Meters
 
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);

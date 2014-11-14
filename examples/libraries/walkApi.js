@@ -335,12 +335,12 @@ walkAssets = (function () {
 
     // read in the sounds
     var _footsteps = [];
-    _footsteps.push(new Sound(_pathToSounds+"FootstepW2Left-12db.wav"));
-    _footsteps.push(new Sound(_pathToSounds+"FootstepW2Right-12db.wav"));
-    _footsteps.push(new Sound(_pathToSounds+"FootstepW3Left-12db.wav"));
-    _footsteps.push(new Sound(_pathToSounds+"FootstepW3Right-12db.wav"));
-    _footsteps.push(new Sound(_pathToSounds+"FootstepW5Left-12db.wav"));
-    _footsteps.push(new Sound(_pathToSounds+"FootstepW5Right-12db.wav"));
+    _footsteps.push(SoundCache.getSound(_pathToSounds+"FootstepW2Left-12db.wav"));
+    _footsteps.push(SoundCache.getSound(_pathToSounds+"FootstepW2Right-12db.wav"));
+    _footsteps.push(SoundCache.getSound(_pathToSounds+"FootstepW3Left-12db.wav"));
+    _footsteps.push(SoundCache.getSound(_pathToSounds+"FootstepW3Right-12db.wav"));
+    _footsteps.push(SoundCache.getSound(_pathToSounds+"FootstepW5Left-12db.wav"));
+    _footsteps.push(SoundCache.getSound(_pathToSounds+"FootstepW5Right-12db.wav"));
 
     // load the animation datafiles
     Script.include(pathToAssets+"animations/dd-female-standard-walk-animation.js");
