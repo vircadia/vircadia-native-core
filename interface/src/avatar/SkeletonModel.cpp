@@ -36,8 +36,6 @@ SkeletonModel::~SkeletonModel() {
     _ragdoll = NULL;
 }
 
-const float MODEL_SCALE = 0.0006f;
-
 void SkeletonModel::setJointStates(QVector<JointState> states) {
     Model::setJointStates(states);
 
@@ -57,7 +55,7 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
         _defaultEyeModelPosition.z = -_defaultEyeModelPosition.z;
 
         // Skeleton may have already been scaled so unscale it
-        _defaultEyeModelPosition = MODEL_SCALE * _defaultEyeModelPosition / _scale;
+        _defaultEyeModelPosition = _defaultEyeModelPosition / _scale;
     }
 
     // the SkeletonModel override of updateJointState() will clear the translation part
@@ -80,7 +78,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
     setTranslation(_owningAvatar->getSkeletonPosition());
     static const glm::quat refOrientation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
     setRotation(_owningAvatar->getOrientation() * refOrientation);
-    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
+    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale());
     setBlendshapeCoefficients(_owningAvatar->getHead()->getBlendshapeCoefficients());
     
     Model::simulate(deltaTime, fullUpdate);
