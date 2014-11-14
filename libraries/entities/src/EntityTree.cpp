@@ -37,7 +37,7 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     // this would be a good place to clean up our entities...
     foreach (EntityTreeElement* element, _entityToElementMap) {
-        element->cleanupEntities();
+        element->cleanupEntities(_physicsWorld);
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
@@ -91,6 +91,7 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     recurseTreeWithOperator(&theOperator);
 
     // check to see if we need to simulate this entity..
+    // BOOKMARK -- add entity to physics engine here
     changeEntityState(entityItem, EntityItem::Static, entityItem->getSimulationState());
 
     _isDirty = true;
@@ -133,7 +134,9 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         _isDirty = true;
 
         EntityItem::SimulationState newState = existingEntity->getSimulationState();
-        changeEntityState(existingEntity, oldState, newState);
+        if (newState != oldState) {
+            changeEntityState(existingEntity, oldState, newState);
+        }
 
         QString entityScriptAfter = existingEntity->getScript();
         if (entityScriptBefore != entityScriptAfter) {
