@@ -245,7 +245,7 @@ ChessGame.update = function() {
   if (ChessGame.pieces.length > 0) {
     var unknown = 0;
     ChessGame.board.userDataObject.pieces = new Array();
-    for(var i = 1; i < ChessGame.pieces.length; i++) {
+    for(var i = 0; i < ChessGame.pieces.length; i++) {
       ChessGame.pieces[i].entity = Entities.identifyEntity(ChessGame.pieces[i].entity);
       if (ChessGame.pieces[i].entity.isKnownID) {
         ChessGame.board.userDataObject.pieces.push(ChessGame.pieces[i].entity)
