@@ -14,10 +14,10 @@
 #include <assert.h>
 #include "InterfaceConfig.h"
 
+#include "Transform.h"
+
 #include <vector>
 
-#include "gpu/Format.h"
-#include "gpu/Resource.h"
 #include "gpu/Stream.h"
 
 #if defined(NSIGHT_FOUND)
@@ -60,17 +60,32 @@ public:
 
     void clear();
 
+    // Drawcalls
     void draw(Primitive primitiveType, uint32 numVertices, uint32 startVertex = 0);
     void drawIndexed(Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0);
     void drawInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbVertices, uint32 startVertex = 0, uint32 startInstance = 0);
     void drawIndexedInstanced(uint32 nbInstances, Primitive primitiveType, uint32 nbIndices, uint32 startIndex = 0, uint32 startInstance = 0);
 
+    // Input Stage
+    // InputFormat
+    // InputBuffers
+    // IndexBuffer
     void setInputFormat(const Stream::FormatPointer& format);
 
     void setInputStream(Slot startChannel, const BufferStream& stream); // not a command, just unroll into a loop of setInputBuffer
     void setInputBuffer(Slot channel, const BufferPointer& buffer, Offset offset, Offset stride);
 
     void setIndexBuffer(Type type, const BufferPointer& buffer, Offset offset);
+
+    // Transform Stage
+    // Vertex position is transformed by ModelTransform from object space to world space
+    // Then by the inverse of the ViewTransform from world space to eye space
+    // finaly projected into the clip space by the projection transform
+    // WARNING: ViewTransform transform from eye space to world space, its inverse is composed
+    // with the ModelTransformu to create the equivalent of the glModelViewMatrix
+    void setModelTransform(const Transform& model);
+    void setViewTransform(const Transform& view);
+    void setProjectionTransform(const Transform& proj);
 
 
     // TODO: As long as we have gl calls explicitely issued from interface
@@ -138,10 +153,12 @@ public:
         COMMAND_drawIndexedInstanced,
 
         COMMAND_setInputFormat,
-
         COMMAND_setInputBuffer,
-
         COMMAND_setIndexBuffer,
+
+        COMMAND_setModelTransform,
+        COMMAND_setViewTransform,
+        COMMAND_setProjectionTransform,
 
         // TODO: As long as we have gl calls explicitely issued from interface
         // code, we need to be able to record and batch these calls. THe long 
@@ -237,35 +254,36 @@ public:
     template <typename T>
     class Cache {
     public:
-        typedef QSharedPointer<T> Pointer;
-        Pointer _pointer;
-        Cache<T>(const Pointer& pointer) : _pointer(pointer) {}
+        typedef T Data;
+        Data _data;
+        Cache<T>(const Data& data) : _data(data) {}
 
         class Vector {
         public:
-            std::vector< Cache<T> > _pointers;
+            std::vector< Cache<T> > _items;
 
-            uint32 cache(const Pointer& pointer) {
-                uint32 offset = _pointers.size();
-                _pointers.push_back(Cache<T>(pointer));
+            uint32 cache(const Data& data) {
+                uint32 offset = _items.size();
+                _items.push_back(Cache<T>(data));
                 return offset;
             }
 
-            Pointer get(uint32 offset) {
-                if (offset >= _pointers.size()) {
-                    return Pointer();
+            Data get(uint32 offset) {
+                if (offset >= _items.size()) {
+                    return Data();
                 }
-                return (_pointers.data() + offset)->_pointer;
+                return (_items.data() + offset)->_data;
             }
 
             void clear() {
-                _pointers.clear();
+                _items.clear();
             }
         };
     };
-    
-    typedef Cache<Buffer>::Vector BufferCaches;
-    typedef Cache<Stream::Format>::Vector StreamFormatCaches;
+
+    typedef Cache<BufferPointer>::Vector BufferCaches;
+    typedef Cache<Stream::FormatPointer>::Vector StreamFormatCaches;
+    typedef Cache<Transform>::Vector TransformCaches;
 
     typedef unsigned char Byte;
     typedef std::vector<Byte> Bytes;
@@ -299,11 +317,12 @@ public:
     CommandOffsets _commandOffsets;
     Params _params;
     Resources _resources;
+    Bytes _data;
 
     BufferCaches _buffers;
     StreamFormatCaches _streamFormats;
+    TransformCaches _transforms;
 
-    Bytes _data;
 protected:
 };
 

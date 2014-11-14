@@ -43,13 +43,6 @@ void RecordingFrame::setBlendshapeCoefficients(QVector<float> blendshapeCoeffici
     _blendshapeCoefficients = blendshapeCoefficients;
 }
 
-Recording::Recording() : _audio(NULL) {
-}
-
-Recording::~Recording() {
-    delete _audio;
-}
-
 int Recording::getLength() const {
     if (_timestamps.isEmpty()) {
         return 0;
@@ -77,19 +70,10 @@ void Recording::addFrame(int timestamp, RecordingFrame &frame) {
     _frames << frame;
 }
 
-void Recording::addAudioPacket(const QByteArray& byteArray) {
-    if (!_audio) {
-        _audio = new Sound(byteArray);
-        return;
-    }
-    _audio->append(byteArray);
-}
-
 void Recording::clear() {
     _timestamps.clear();
     _frames.clear();
-    delete _audio;
-    _audio = NULL;
+    _audioData.clear();
 }
 
 void writeVec3(QDataStream& stream, const glm::vec3& value) {
@@ -324,7 +308,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
         fileStream << buffer;
     }
     
-    fileStream << recording->_audio->getByteArray();
+    fileStream << recording->getAudioData();
     
     qint64 writingTime = timer.restart();
     // Write data length and CRC-16
@@ -367,7 +351,7 @@ void writeRecordingToFile(RecordingPointer recording, const QString& filename) {
         
         qDebug() << "Recording:";
         qDebug() << "Total frames:" << recording->getFrameNumber();
-        qDebug() << "Audio array:" << recording->getAudio()->getByteArray().size();
+        qDebug() << "Audio array:" << recording->getAudioData().size();
     }
     
     qint64 checksumTime = timer.elapsed();
@@ -642,7 +626,7 @@ RecordingPointer readRecordingFromFile(RecordingPointer recording, const QString
         
         qDebug() << "Recording:";
         qDebug() << "Total frames:" << recording->getFrameNumber();
-        qDebug() << "Audio array:" << recording->getAudio()->getByteArray().size();
+        qDebug() << "Audio array:" << recording->getAudioData().size();
         
     }
     

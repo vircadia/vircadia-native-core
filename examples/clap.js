@@ -28,16 +28,16 @@ var lastClapFrame = 0;
 var lastAnimFrame = 0;
 
 var claps = [];
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap1Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap2Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap3Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap4Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap5Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap6Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap7Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap8Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap9Rvb.wav"));
-claps.push(new Sound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap10Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap1Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap2Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap3Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap4Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap5Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap6Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap7Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap8Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap9Rvb.wav"));
+claps.push(SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/claps/BClap10Rvb.wav"));
 var numberOfSounds = claps.length;
 
 var clappingNow = false;
@@ -89,11 +89,11 @@ function maybePlaySound(deltaTime) {
 }
 
 function playClap(volume, position) {
-	var options = new AudioInjectionOptions();
-	options.position = position;
-	options.volume = 1.0;
 	var clip = Math.floor(Math.random() * numberOfSounds);
-	Audio.playSound(claps[clip], options);
+	Audio.playSound(claps[clip], {
+	  position: position,
+    volume: volume
+	});
 }
 
 var FASTEST_CLAP_INTERVAL = 150.0;

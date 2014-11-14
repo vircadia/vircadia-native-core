@@ -43,7 +43,6 @@
 #include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
-#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -232,6 +231,9 @@ public:
     float getBytesPerSecond() const { return _bytesPerSecond; }
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
+
+    const Transform& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const Transform& view);
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -485,8 +487,6 @@ private:
     bool _justStarted;
     Stars _stars;
 
-    BuckyBalls _buckyBalls;
-
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImportDialog* _voxelImportDialog;
@@ -530,6 +530,7 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
+    Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;

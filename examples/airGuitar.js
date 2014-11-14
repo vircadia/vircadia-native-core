@@ -34,22 +34,22 @@ var guitarModel = HIFI_PUBLIC_BUCKET + "models/attachments/guitar.fst";
 
 var chords = new Array();
 // Nylon string guitar
-chords[1] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
-chords[2] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+B.raw");
-chords[3] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+E.raw");
-chords[4] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+G.raw");
+chords[1] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+A.raw");
+chords[2] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+B.raw");
+chords[3] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+E.raw");
+chords[4] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Nylon+G.raw");
 
 // Electric guitar
-chords[5] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+A+short.raw");
-chords[6] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+B+short.raw");
-chords[7] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+E+short.raw");
-chords[8] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+G+short.raw");
+chords[5] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+A+short.raw");
+chords[6] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+B+short.raw");
+chords[7] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+E+short.raw");
+chords[8] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Metal+G+short.raw");
 
 //  Steel Guitar 
-chords[9] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+A.raw");
-chords[10] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+B.raw");
-chords[11] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+E.raw");
-chords[12] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+G.raw");
+chords[9] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+A.raw");
+chords[10] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+B.raw");
+chords[11] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+E.raw");
+chords[12] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guitars/Guitar+-+Steel+G.raw");
 
 var NUM_CHORDS = 4;
 var NUM_GUITARS = 3;
@@ -132,15 +132,16 @@ function checkHands(deltaTime) {
 }
 
 function playChord(position, volume) {
-	var options = new AudioInjectionOptions();
-	options.position = position;
-	options.volume = volume;
 	if (Audio.isInjectorPlaying(soundPlaying)) {
 		print("stopped sound");
 		Audio.stopInjector(soundPlaying);
 	}
+  
 	print("Played sound: " + whichChord + " at volume " + options.volume);
-	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], options);	
+	soundPlaying = Audio.playSound(chords[guitarSelector + whichChord], {
+	  position: position,
+    volume: volume
+	});	
 }
 
 function keyPressEvent(event) {

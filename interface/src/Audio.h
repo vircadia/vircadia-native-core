@@ -155,7 +155,7 @@ public slots:
     void selectAudioFilterBassCut();
     void selectAudioFilterSmiley();
 
-    virtual void handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& options);
+    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
     void sendDownstreamAudioStatsPacket();
 
@@ -180,10 +180,10 @@ signals:
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
 
+private slots:
+    void cleanupLocalOutputInterface();
 private:
     void outputFormatChanged();
-
-private:
 
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
@@ -256,10 +256,6 @@ private:
     float _iconColor;
     qint64 _iconPulseTimeReference;
     
-    /// Audio callback in class context.
-    inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-    
-    
     bool _processSpatialAudio; /// Process received audio by spatial audio hooks
     unsigned int _spatialAudioStart; /// Start of spatial audio interval (in sample rate time base)
     unsigned int _spatialAudioFinish; /// End of spatial audio interval (in sample rate time base)
@@ -272,8 +268,11 @@ private:
 
     // Adds Reverb
     void initGverb();
+    void updateGverbOptions();
     void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
 
+    void handleLocalEchoAndReverb(QByteArray& inputByteArray);
+    
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
 
@@ -369,6 +368,8 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
+    
+    QHash<QObject*, QAudioOutput*> _injectedOutputInterfaces;
 };
 
 

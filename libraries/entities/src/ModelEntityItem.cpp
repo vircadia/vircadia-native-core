@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QJsonDocument>
+
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 
@@ -33,7 +35,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID, const EntityI
 { 
     _type = EntityTypes::Model;     
     setProperties(properties, true);
-    _animationFrameIndex = 0.0f;
     _lastAnimated = usecTimestampNow();
     _jointMappingCompleted = false;
     _color[0] = _color[1] = _color[2] = 0;
@@ -50,6 +51,7 @@ EntityItemProperties ModelEntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationFPS, getAnimationFPS);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(glowLevel, getGlowLevel);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(animationSettings, getAnimationSettings);
     return properties;
 }
 
@@ -64,6 +66,7 @@ bool ModelEntityItem::setProperties(const EntityItemProperties& properties, bool
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFrameIndex, setAnimationFrameIndex);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationFPS, setAnimationFPS);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(animationSettings, setAnimationSettings);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -100,10 +103,29 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY_COLOR(PROP_COLOR, _color);
     READ_ENTITY_PROPERTY_STRING(PROP_MODEL_URL, setModelURL);
     READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_URL, setAnimationURL);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, _animationFPS);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, _animationFrameIndex);
-    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, _animationIsPlaying);
+
+    // Because we're using AnimationLoop which will reset the frame index if you change it's running state
+    // we want to read these values in the order they appear in the buffer, but call our setters in an
+    // order that allows AnimationLoop to preserve the correct frame rate.
+    float animationFPS = getAnimationFPS();
+    float animationFrameIndex = getAnimationFrameIndex();
+    bool animationIsPlaying = getAnimationIsPlaying();
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FPS, float, animationFPS);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, float, animationFrameIndex);
+    READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
+    
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
+        setAnimationIsPlaying(animationIsPlaying);
+    }
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
+        setAnimationFPS(animationFPS);
+    }
+    if (propertyFlags.getHasProperty(PROP_ANIMATION_FRAME_INDEX)) {
+        setAnimationFrameIndex(animationFrameIndex);
+    }
+
     READ_ENTITY_PROPERTY_STRING(PROP_TEXTURES, setTextures);
+    READ_ENTITY_PROPERTY_STRING(PROP_ANIMATION_SETTINGS, setAnimationSettings);
 
     return bytesRead;
 }
@@ -199,19 +221,25 @@ int ModelEntityItem::oldVersionReadEntityDataFromBuffer(const unsigned char* dat
             bytesRead += animationURLLength;
 
             // animationIsPlaying
-            memcpy(&_animationIsPlaying, dataAt, sizeof(_animationIsPlaying));
-            dataAt += sizeof(_animationIsPlaying);
-            bytesRead += sizeof(_animationIsPlaying);
+            bool animationIsPlaying;
+            memcpy(&animationIsPlaying, dataAt, sizeof(animationIsPlaying));
+            dataAt += sizeof(animationIsPlaying);
+            bytesRead += sizeof(animationIsPlaying);
+            setAnimationIsPlaying(animationIsPlaying);
 
             // animationFrameIndex
-            memcpy(&_animationFrameIndex, dataAt, sizeof(_animationFrameIndex));
-            dataAt += sizeof(_animationFrameIndex);
-            bytesRead += sizeof(_animationFrameIndex);
+            float animationFrameIndex;
+            memcpy(&animationFrameIndex, dataAt, sizeof(animationFrameIndex));
+            dataAt += sizeof(animationFrameIndex);
+            bytesRead += sizeof(animationFrameIndex);
+            setAnimationFrameIndex(animationFrameIndex);
 
             // animationFPS
-            memcpy(&_animationFPS, dataAt, sizeof(_animationFPS));
-            dataAt += sizeof(_animationFPS);
-            bytesRead += sizeof(_animationFPS);
+            float animationFPS;
+            memcpy(&animationFPS, dataAt, sizeof(animationFPS));
+            dataAt += sizeof(animationFPS);
+            bytesRead += sizeof(animationFPS);
+            setAnimationFPS(animationFPS);
         }
     }
     return bytesRead;
@@ -227,6 +255,7 @@ EntityPropertyFlags ModelEntityItem::getEntityProperties(EncodeBitstreamParams& 
     requestedProperties += PROP_ANIMATION_FPS;
     requestedProperties += PROP_ANIMATION_FRAME_INDEX;
     requestedProperties += PROP_ANIMATION_PLAYING;
+    requestedProperties += PROP_ANIMATION_SETTINGS;
     requestedProperties += PROP_TEXTURES;
     
     return requestedProperties;
@@ -249,6 +278,7 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, getAnimationFrameIndex());
     APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, getAnimationIsPlaying());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, getTextures());
+    APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, getAnimationSettings());
 }
 
 
@@ -314,7 +344,7 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
         int frameCount = frames.size();
 
         if (frameCount > 0) {
-            int animationFrameIndex = (int)(glm::floor(_animationFrameIndex)) % frameCount;
+            int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
 
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 animationFrameIndex = 0;
@@ -363,7 +393,7 @@ void ModelEntityItem::update(const quint64& updateTime) {
     if (getAnimationIsPlaying()) {
         float deltaTime = (float)(now - _lastAnimated) / (float)USECS_PER_SECOND;
         _lastAnimated = now;
-        _animationFrameIndex += deltaTime * _animationFPS;
+        _animationLoop.simulate(deltaTime);
     } else {
         _lastAnimated = now;
     }
@@ -377,3 +407,94 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "    model URL:" << getModelURL();
 }
 
+void ModelEntityItem::setAnimationSettings(const QString& value) { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    if (settingsMap.contains("fps")) {
+        float fps = settingsMap["fps"].toFloat();
+        setAnimationFPS(fps);
+    }
+
+    if (settingsMap.contains("frameIndex")) {
+        float frameIndex = settingsMap["frameIndex"].toFloat();
+        setAnimationFrameIndex(frameIndex);
+    }
+
+    if (settingsMap.contains("running")) {
+        bool running = settingsMap["running"].toBool();
+        setAnimationIsPlaying(running);
+    }
+
+    if (settingsMap.contains("firstFrame")) {
+        float firstFrame = settingsMap["firstFrame"].toFloat();
+        setAnimationFirstFrame(firstFrame);
+    }
+
+    if (settingsMap.contains("lastFrame")) {
+        float lastFrame = settingsMap["lastFrame"].toFloat();
+        setAnimationLastFrame(lastFrame);
+    }
+
+    if (settingsMap.contains("loop")) {
+        bool loop = settingsMap["loop"].toBool();
+        setAnimationLoop(loop);
+    }
+
+    if (settingsMap.contains("hold")) {
+        bool hold = settingsMap["hold"].toBool();
+        setAnimationHold(hold);
+    }
+
+    if (settingsMap.contains("startAutomatically")) {
+        bool startAutomatically = settingsMap["startAutomatically"].toBool();
+        setAnimationStartAutomatically(startAutomatically);
+    }
+
+    _animationSettings = value; 
+}
+
+QString ModelEntityItem::getAnimationSettings() const { 
+    // the animations setting is a JSON string that may contain various animation settings.
+    // if it includes fps, frameIndex, or running, those values will be parsed out and
+    // will over ride the regular animation settings
+    QString value = _animationSettings;
+
+    QJsonDocument settingsAsJson = QJsonDocument::fromJson(value.toUtf8());
+    QJsonObject settingsAsJsonObject = settingsAsJson.object();
+    QVariantMap settingsMap = settingsAsJsonObject.toVariantMap();
+    
+    QVariant fpsValue(getAnimationFPS());
+    settingsMap["fps"] = fpsValue;
+
+    QVariant frameIndexValue(getAnimationFrameIndex());
+    settingsMap["frameIndex"] = frameIndexValue;
+
+    QVariant runningValue(getAnimationIsPlaying());
+    settingsMap["running"] = runningValue;
+
+    QVariant firstFrameValue(getAnimationFirstFrame());
+    settingsMap["firstFrame"] = firstFrameValue;
+
+    QVariant lastFrameValue(getAnimationLastFrame());
+    settingsMap["lastFrame"] = lastFrameValue;
+
+    QVariant loopValue(getAnimationLoop());
+    settingsMap["loop"] = loopValue;
+
+    QVariant holdValue(getAnimationHold());
+    settingsMap["hold"] = holdValue;
+
+    QVariant startAutomaticallyValue(getAnimationStartAutomatically());
+    settingsMap["startAutomatically"] = startAutomaticallyValue;
+    
+    settingsAsJsonObject = QJsonObject::fromVariantMap(settingsMap);
+    QJsonDocument newDocument(settingsAsJsonObject);
+    QByteArray jsonByteArray = newDocument.toJson(QJsonDocument::Compact);
+    QString jsonByteString(jsonByteArray);
+    return jsonByteString;
+}

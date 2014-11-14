@@ -29,86 +29,26 @@
 #include "AudioEditBuffer.h"
 #include "Sound.h"
 
-// procedural audio version of Sound
-Sound::Sound(float volume, float frequency, float duration, float decay, QObject* parent) :
-    QObject(parent),
-    _isStereo(false)
-{
-    static char monoAudioData[MAX_PACKET_SIZE];
-    static int16_t* monoAudioSamples = (int16_t*)(monoAudioData);
-
-    float t;
-    const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
-    const float MAX_VOLUME = 32000.f;
-    const float MAX_DURATION = 2.f;
-    const float MIN_AUDIBLE_VOLUME = 0.001f;
-    const float NOISE_MAGNITUDE = 0.02f;
-    const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
-    const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
-    int numSamples = NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL; // we add sounds in chunks of this many samples
-    
-    int chunkStartingSample = 0;
-    float waveFrequency = (frequency / SAMPLE_RATE) * TWO_PI;
-    while (volume > 0.f) {
-        for (int i = 0; i < numSamples; i++) {
-            t = (float)chunkStartingSample + (float)i;
-            float sample = sinf(t * waveFrequency);
-            sample += ((randFloat() - 0.5f) * NOISE_MAGNITUDE);
-            sample *= volume * MAX_VOLUME;
-
-            monoAudioSamples[i] = glm::clamp((int)sample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            volume *= (1.f - decay);
-        }
-        // add the monoAudioSamples to our actual output Byte Array
-        _byteArray.append(monoAudioData, numSamples * sizeof(int16_t));
-        chunkStartingSample += numSamples;
-        duration = glm::clamp(duration - (AUDIO_CALLBACK_MSECS / 1000.f), 0.f, MAX_DURATION);
-        //qDebug() << "decaying... _duration=" << _duration;
-        if (duration == 0.f || (volume < MIN_AUDIBLE_VOLUME)) {
-            volume = 0.f;
-        }
-    }
+QScriptValue soundToScriptValue(QScriptEngine* engine, SharedSoundPointer const& in) {
+    return engine->newQObject(in.data());
 }
 
-Sound::Sound(const QUrl& sampleURL, bool isStereo, QObject* parent) :
-    QObject(parent),
+void soundFromScriptValue(const QScriptValue &object, SharedSoundPointer &out) {
+    out = SharedSoundPointer(qobject_cast<Sound*>(object.toQObject()));
+    qDebug() << "Sound from script value" << out.data();
+}
+
+Sound::Sound(const QUrl& url, bool isStereo) :
+    Resource(url),
     _isStereo(isStereo),
-    _hasDownloaded(false)
+    _isReady(false)
 {
-    // assume we have a QApplication or QCoreApplication instance and use the
-    // QNetworkAccess manager to grab the raw audio file at the given URL
-
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-
-    qDebug() << "Requesting audio file" << sampleURL.toDisplayString();
     
-    QNetworkReply* soundDownload = networkAccessManager.get(QNetworkRequest(sampleURL));
-    connect(soundDownload, &QNetworkReply::finished, this, &Sound::replyFinished);
-    connect(soundDownload, SIGNAL(error(QNetworkReply::NetworkError)),
-            this, SLOT(replyError(QNetworkReply::NetworkError)));
 }
 
-Sound::Sound(const QByteArray byteArray, QObject* parent) :
-    QObject(parent),
-    _byteArray(byteArray),
-    _isStereo(false),
-    _hasDownloaded(true)
-{
-}
-
-void Sound::append(const QByteArray byteArray) {
-    _byteArray.append(byteArray);
-}
-
-void Sound::replyFinished() {
-
-    QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());
-    
+void Sound::downloadFinished(QNetworkReply* reply) {
     // replace our byte array with the downloaded data
     QByteArray rawAudioByteArray = reply->readAll();
-
-    // foreach(QByteArray b, reply->rawHeaderList())
-    //     qDebug() << b.constData() << ": " << reply->rawHeader(b).constData();
 
     if (reply->hasRawHeader("Content-Type")) {
 
@@ -132,12 +72,7 @@ void Sound::replyFinished() {
         qDebug() << "Network reply without 'Content-Type'.";
     }
     
-    _hasDownloaded = true;
-}
-
-void Sound::replyError(QNetworkReply::NetworkError code) {
-    QNetworkReply* reply = reinterpret_cast<QNetworkReply*>(sender());
-    qDebug() << "Error downloading sound file at" << reply->url().toString() << "-" << reply->errorString();
+    _isReady = true;
 }
 
 void Sound::downSample(const QByteArray& rawAudioByteArray) {

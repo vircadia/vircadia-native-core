@@ -35,16 +35,17 @@ var RELOAD_INTERVAL = 5;
 var showScore = false;
 
 // Load some sound to use for loading and firing 
-var fireSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
-var loadSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guns/Gun_Reload_Weapon22.raw");
-var impactSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Guns/BulletImpact2.raw");
-var targetHitSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
-var targetLaunchSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
+var fireSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/GUN-SHOT2.raw");
+var loadSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/Gun_Reload_Weapon22.raw");
+var impactSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Guns/BulletImpact2.raw");
+var targetHitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
+var targetLaunchSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 
 var gunModel = "http://public.highfidelity.io/models/attachments/HaloGun.fst";
 
-var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 0.9;
+var audioOptions = {
+  volume: 0.9
+}
 
 var shotsFired = 0;
 

@@ -11,16 +11,15 @@
 Script.include("libraries/globals.js");
 
 //  First, load a sample sound from a URL
-var bird = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
+var bird = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
 
 function maybePlaySound(deltaTime) {
 	if (Math.random() < 0.01) {
-		//  Set the location and other info for the sound to play
-		var options = new AudioInjectionOptions();
-		var position = MyAvatar.position; 
-		options.position = position;
-		options.volume = 0.5;
-		Audio.playSound(bird, options);
+		//  Set the location and other info for the sound to play 
+		Audio.playSound(bird, {
+		  position: MyAvatar.position,
+      volume: 0.5
+		});
 	}
 }
 

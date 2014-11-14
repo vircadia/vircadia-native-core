@@ -27,7 +27,6 @@
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
@@ -47,14 +46,6 @@
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
-static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
-    QUrl soundURL = QUrl(context->argument(0).toString());
-    bool isStereo = context->argument(1).toBool();
-    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL, isStereo), QScriptEngine::ScriptOwnership);
-
-    return soundScriptValue;
-}
-
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
     QString message = context->argument(0).toString()
@@ -72,14 +63,6 @@ QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &i
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
-}
-
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
 }
 
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
@@ -234,7 +217,6 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
 Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
@@ -254,6 +236,7 @@ void ScriptEngine::init() {
     registerMenuItemProperties(this);
     registerAnimationTypes(this);
     registerAvatarTypes(this);
+    registerAudioMetaTypes(this);
     Bitstream::registerTypes(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
@@ -270,13 +253,6 @@ void ScriptEngine::init() {
 
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
-
-    QScriptValue soundConstructorValue = newFunction(soundConstructor);
-    QScriptValue soundMetaObject = newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
-    globalObject().setProperty("Sound", soundMetaObject);
-
-    QScriptValue injectionOptionValue = scriptValueFromQMetaObject<AudioInjectorOptions>();
-    globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
