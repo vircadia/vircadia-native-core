@@ -262,7 +262,6 @@ public:
 
     QImage renderAvatarBillboard();
 
-  //  void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
