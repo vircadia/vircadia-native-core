@@ -260,6 +260,26 @@
             }                                           \
         }                                               \
     }
+    
+#define CONSTRUCT_PROPERTY(n, V)        \
+    _##n(V),                            \
+    _##n##Changed(false)
+
+#define DEFINE_PROPERTY(P, N, n, T)        \
+    public: \
+    T get##N() const { return _##n; } \
+    void set##N(T value) { _##n = value; _##n##Changed = true; } \
+    private: \
+    T _##n; \
+    bool _##n##Changed;
+
+#define DEFINE_PROPERTY_REF(P, N, n, T)        \
+    public: \
+    const T& get##N() const { return _##n; } \
+    void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
+    private: \
+    T _##n; \
+    bool _##n##Changed;
 
 
 

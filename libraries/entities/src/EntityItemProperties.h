@@ -83,7 +83,14 @@ enum EntityPropertyList {
     PROP_ANIMATION_SETTINGS,
     PROP_USER_DATA,
 
-    PROP_LAST_ITEM = PROP_USER_DATA
+    PROP_LAST_ITEM = PROP_USER_DATA,
+
+    // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
+    // since the derived class knows how to interpret it's own properties and knows the types it expects
+    PROP_TEXT_COLOR = PROP_COLOR,
+    PROP_TEXT = PROP_MODEL_URL,
+    PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
+    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -102,6 +109,7 @@ class EntityItemProperties {
     friend class BoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -393,6 +401,12 @@ private:
     bool _lockedChanged;
     bool _texturesChanged;
 
+    DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
+    DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
+    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
+    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
+
+private:
     bool _defaultSettings;
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
