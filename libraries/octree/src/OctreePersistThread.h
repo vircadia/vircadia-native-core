@@ -27,7 +27,7 @@ public:
     static const QString DEFAULT_BACKUP_EXTENSION_FORMAT;
 
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
-                                bool wantBackup = true, int backupInterval = DEFAULT_BACKUP_INTERVAL,
+                                bool wantBackup = false, int backupInterval = DEFAULT_BACKUP_INTERVAL,
                                 const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
