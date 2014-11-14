@@ -210,5 +210,5 @@ void BillboardOverlay::writeToClone(BillboardOverlay* clone) {
     clone->setIsFacingAvatar(_isFacingAvatar);
     clone->setClipFromSource(_fromImage);
     clone->_url = _url;
-    clone->_billboard = QByteArray::QByteArray(_billboard);
+    clone->_billboard = _billboard;
 }

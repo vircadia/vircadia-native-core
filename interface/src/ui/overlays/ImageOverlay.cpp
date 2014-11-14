@@ -160,6 +160,6 @@ ImageOverlay* ImageOverlay::createClone() {
 void ImageOverlay::writeToClone(ImageOverlay* clone) {
     Overlay2D::writeToClone(clone);
     clone->_imageURL = _imageURL;
-    clone->_textureImage = QImage::QImage(_textureImage);
+    clone->_textureImage = _textureImage;
     clone->_renderImage = _renderImage;
 }
