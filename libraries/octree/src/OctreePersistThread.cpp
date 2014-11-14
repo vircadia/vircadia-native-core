@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <time.h>
+
 #include <QDebug>
 #include <PerfStat.h>
 #include <SharedUtil.h>
