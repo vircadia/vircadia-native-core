@@ -36,6 +36,7 @@ public:
     };
     
     Overlay();
+    Overlay(Overlay* overlay);
     ~Overlay();
     void init(QGLWidget* parent, QScriptEngine* scriptEngine);
     virtual void update(float deltatime) {}
@@ -82,7 +83,6 @@ public:
     virtual QScriptValue getProperty(const QString& property);
 
 protected:
-    virtual void writeToClone(Overlay* clone);
     float updatePulse();
 
     QGLWidget* _parent;

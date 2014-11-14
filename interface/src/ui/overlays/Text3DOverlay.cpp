@@ -31,6 +31,19 @@ Text3DOverlay::Text3DOverlay() :
 {
 }
 
+Text3DOverlay::Text3DOverlay(Text3DOverlay* text3DOverlay) :
+    Planar3DOverlay(text3DOverlay),
+    _text(text3DOverlay->_text),
+    _backgroundColor(text3DOverlay->_backgroundColor),
+    _lineHeight(text3DOverlay->_lineHeight),
+    _leftMargin(text3DOverlay->_leftMargin),
+    _topMargin(text3DOverlay->_topMargin),
+    _rightMargin(text3DOverlay->_rightMargin),
+    _bottomMargin(text3DOverlay->_bottomMargin),
+    _isFacingAvatar(text3DOverlay->_isFacingAvatar)
+{
+}
+
 Text3DOverlay::~Text3DOverlay() {
 }
 
@@ -172,7 +185,6 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
         setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
     }
 
-
     QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
@@ -207,10 +219,9 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     }
     return Planar3DOverlay::getProperty(property);
 }
+
 Text3DOverlay* Text3DOverlay::createClone() {
-    Text3DOverlay* clone = new Text3DOverlay();
-    writeToClone(clone);
-    return clone;
+    return new Text3DOverlay(this);;
 }
 
 float Text3DOverlay::textWidth(const QString& text) const {
@@ -220,15 +231,4 @@ float Text3DOverlay::textWidth(const QString& text) const {
     return scaleFactor * (float)fontMetrics.width(qPrintable(text));
 }
 
-void Text3DOverlay::writeToClone(Text3DOverlay* clone) {
-    Planar3DOverlay::writeToClone(clone);
-    clone->setText(getText());
-    clone->setLineHeight(getLineHeight());
-    clone->setLeftMargin(getLeftMargin());
-    clone->setTopMargin(getTopMargin());
-    clone->setRightMargin(getRightMargin());
-    clone->setBottomMargin(getBottomMargin());
-    clone->setIsFacingAvatar(getIsFacingAvatar());
-    clone->_backgroundColor = getBackgroundColor();
-}
 

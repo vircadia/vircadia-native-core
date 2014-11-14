@@ -20,7 +20,8 @@ class ModelOverlay : public Base3DOverlay {
     Q_OBJECT
 public:
     ModelOverlay();
-    
+    ModelOverlay(ModelOverlay* modelOverlay);
+
     virtual void update(float deltatime);
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
@@ -32,7 +33,6 @@ public:
     virtual ModelOverlay* createClone();
 
 private:
-    virtual void writeToClone(ModelOverlay* clone);
 
     Model _model;
     QVariantMap _modelTextures;

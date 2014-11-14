@@ -20,6 +20,7 @@ class LocalModelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer);
+    LocalModelsOverlay(EntityTreeRenderer* entityTreeRenderer, LocalModelsOverlay* localModelsOverlay);
     ~LocalModelsOverlay();
     
     virtual void update(float deltatime);

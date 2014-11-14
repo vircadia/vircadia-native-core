@@ -28,6 +28,12 @@ Volume3DOverlay::Volume3DOverlay() :
 {
 }
 
+Volume3DOverlay::Volume3DOverlay(Volume3DOverlay* volume3DOverlay) :
+    Base3DOverlay(volume3DOverlay),
+    _dimensions(volume3DOverlay->_dimensions)
+{
+}
+
 Volume3DOverlay::~Volume3DOverlay() {
 }
 
@@ -115,8 +121,4 @@ bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::ve
         return true;
     }
     return false;
-}
-
-void Volume3DOverlay::writeToClone(Volume3DOverlay* clone) {
-    Base3DOverlay::writeToClone(clone);
 }

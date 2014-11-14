@@ -26,6 +26,7 @@ class Volume3DOverlay : public Base3DOverlay {
     
 public:
     Volume3DOverlay();
+    Volume3DOverlay(Volume3DOverlay* volume3DOverlay);
     ~Volume3DOverlay();
 
     // getters
@@ -43,7 +44,6 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
 
 protected:
-    virtual void writeToClone(Volume3DOverlay* clone);
     glm::vec3 _dimensions;
 };
 

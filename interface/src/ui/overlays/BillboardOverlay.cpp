@@ -24,6 +24,17 @@ BillboardOverlay::BillboardOverlay() :
       _isLoaded = false;
 }
 
+BillboardOverlay::BillboardOverlay(BillboardOverlay* billboardOverlay) :
+    Base3DOverlay(billboardOverlay),
+    _newTextureNeeded(true),
+    _scale(billboardOverlay->_scale),
+    _isFacingAvatar(billboardOverlay->_isFacingAvatar),
+    _fromImage(billboardOverlay->_fromImage),
+    _url(billboardOverlay->_url),
+    _billboard(billboardOverlay->_billboard)
+{
+}
+
 void BillboardOverlay::render(RenderArgs* args) {
     if (!_visible || !_isLoaded) {
         return;
@@ -216,16 +227,5 @@ bool BillboardOverlay::findRayIntersection(const glm::vec3& origin, const glm::v
 }
 
 BillboardOverlay* BillboardOverlay::createClone() {
-    BillboardOverlay* clone = new BillboardOverlay();
-    writeToClone(clone);
-    return clone;
-}
-
-void BillboardOverlay::writeToClone(BillboardOverlay* clone) {
-    Base3DOverlay::writeToClone(clone);
-    clone->setScale(_scale);
-    clone->setIsFacingAvatar(_isFacingAvatar);
-    clone->setClipFromSource(_fromImage);
-    clone->_url = _url;
-    clone->_billboard = _billboard;
+    return new BillboardOverlay(this);
 }

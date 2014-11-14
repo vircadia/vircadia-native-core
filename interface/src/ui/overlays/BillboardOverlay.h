@@ -22,7 +22,8 @@ class BillboardOverlay : public Base3DOverlay {
     Q_OBJECT
 public:
     BillboardOverlay();
-    
+    BillboardOverlay(BillboardOverlay* billboardOverlay);
+
     virtual void render(RenderArgs* args);
 
     // setters
@@ -42,8 +43,6 @@ private slots:
     void replyFinished();
 
 private:
-    virtual void writeToClone(BillboardOverlay* clone);
-
     void setBillboardURL(const QString& url);
     
     QString _url;

@@ -24,6 +24,7 @@ class Text3DOverlay : public Planar3DOverlay {
     
 public:
     Text3DOverlay();
+    Text3DOverlay(Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();
     virtual void render(RenderArgs* args);
 
@@ -54,7 +55,6 @@ public:
     virtual Text3DOverlay* createClone();
 
 private:
-    virtual void writeToClone(Text3DOverlay* clone);
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);
 
     QString _text;

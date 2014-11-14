@@ -20,6 +20,13 @@ Grid3DOverlay::Grid3DOverlay() : Base3DOverlay(),
     _majorGridEvery(5) {
 }
 
+Grid3DOverlay::Grid3DOverlay(Grid3DOverlay* grid3DOverlay) :
+    Base3DOverlay(grid3DOverlay),
+    _minorGridWidth(grid3DOverlay->_minorGridWidth),
+    _majorGridEvery(grid3DOverlay->_majorGridEvery)
+{
+}
+
 Grid3DOverlay::~Grid3DOverlay() {
 }
 
@@ -129,13 +136,5 @@ QScriptValue Grid3DOverlay::getProperty(const QString& property) {
 }
 
 Grid3DOverlay* Grid3DOverlay::createClone() {
-    Grid3DOverlay* clone = new Grid3DOverlay();
-    writeToClone(clone);
-    return clone;
-}
-
-void Grid3DOverlay::writeToClone(Grid3DOverlay* clone) {
-    Base3DOverlay::writeToClone(clone);
-    clone->_minorGridWidth = _minorGridWidth;
-    clone->_majorGridEvery = _majorGridEvery;
+    return new Grid3DOverlay(this);
 }

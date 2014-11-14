@@ -29,6 +29,7 @@ class Grid3DOverlay : public Base3DOverlay {
 
 public:
     Grid3DOverlay();
+    Grid3DOverlay(Grid3DOverlay* grid3DOverlay);
     ~Grid3DOverlay();
 
     virtual void render(RenderArgs* args);
@@ -38,8 +39,6 @@ public:
     virtual Grid3DOverlay* createClone();
 
 private:
-    virtual void writeToClone(Grid3DOverlay* clone);
-
     float _minorGridWidth;
     int _majorGridEvery;
 

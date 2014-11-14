@@ -23,6 +23,7 @@ class Base3DOverlay : public Overlay {
     
 public:
     Base3DOverlay();
+    Base3DOverlay(Base3DOverlay* base3DOverlay);
     ~Base3DOverlay();
 
     // getters
@@ -55,7 +56,6 @@ public:
     }
 
 protected:
-    virtual void writeToClone(Base3DOverlay* clone);
     void drawDashedLine(const glm::vec3& start, const glm::vec3& end);
 
     glm::vec3 _position;
@@ -65,6 +65,5 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
 };
-
  
 #endif // hifi_Base3DOverlay_h

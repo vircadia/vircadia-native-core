@@ -18,6 +18,7 @@ class Line3DOverlay : public Base3DOverlay {
     
 public:
     Line3DOverlay();
+    Line3DOverlay(Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();
     virtual void render(RenderArgs* args);
 
@@ -33,8 +34,6 @@ public:
     virtual Line3DOverlay* createClone();
 
 protected:
-    virtual void writeToClone(Line3DOverlay* clone);
-
     glm::vec3 _end;
 };
 

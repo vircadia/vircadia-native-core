@@ -20,6 +20,11 @@
 Rectangle3DOverlay::Rectangle3DOverlay() {
 }
 
+Rectangle3DOverlay::Rectangle3DOverlay(Rectangle3DOverlay* rectangle3DOverlay) :
+    Planar3DOverlay(rectangle3DOverlay)
+{
+}
+
 Rectangle3DOverlay::~Rectangle3DOverlay() {
 }
 
@@ -107,7 +112,5 @@ void Rectangle3DOverlay::setProperties(const QScriptValue &properties) {
 }
 
 Rectangle3DOverlay* Rectangle3DOverlay::createClone() {
-    Rectangle3DOverlay* clone = new Rectangle3DOverlay();
-    writeToClone(clone);
-    return clone;
+    return new Rectangle3DOverlay(this);
 }

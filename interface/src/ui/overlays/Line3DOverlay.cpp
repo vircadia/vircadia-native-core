@@ -18,6 +18,12 @@
 Line3DOverlay::Line3DOverlay() {
 }
 
+Line3DOverlay::Line3DOverlay(Line3DOverlay* line3DOverlay) :
+    Base3DOverlay(line3DOverlay),
+    _end(line3DOverlay->_end)
+{
+}
+
 Line3DOverlay::~Line3DOverlay() {
 }
 
@@ -89,13 +95,5 @@ QScriptValue Line3DOverlay::getProperty(const QString& property) {
 }
 
 Line3DOverlay* Line3DOverlay::createClone() {
-    Line3DOverlay* clone = new Line3DOverlay();
-    writeToClone(clone);
-    return clone;
+    return new Line3DOverlay(this);
 }
-
-void Line3DOverlay::writeToClone(Line3DOverlay* clone) {
-    Base3DOverlay::writeToClone(clone);
-    clone->setEnd(getEnd());
-}
-

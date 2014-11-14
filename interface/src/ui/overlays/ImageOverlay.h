@@ -33,6 +33,7 @@ class ImageOverlay : public Overlay2D {
     
 public:
     ImageOverlay();
+    ImageOverlay(ImageOverlay* imageOverlay);
     ~ImageOverlay();
     virtual void render(RenderArgs* args);
 
@@ -52,7 +53,6 @@ private slots:
     void replyFinished(); // we actually want to hide this...
 
 private:
-    virtual void writeToClone(ImageOverlay* clone);
 
     QUrl _imageURL;
     QImage _textureImage;

@@ -32,6 +32,7 @@ class LocalVoxelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     LocalVoxelsOverlay();
+    LocalVoxelsOverlay(LocalVoxelsOverlay* localVoxelsOverlay);
     ~LocalVoxelsOverlay();
     
     virtual void update(float deltatime);

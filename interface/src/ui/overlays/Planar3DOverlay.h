@@ -26,6 +26,7 @@ class Planar3DOverlay : public Base3DOverlay {
     
 public:
     Planar3DOverlay();
+    Planar3DOverlay(Planar3DOverlay* planar3DOverlay);
     ~Planar3DOverlay();
 
     // getters
@@ -41,7 +42,6 @@ public:
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
 
 protected:
-    virtual void writeToClone(Planar3DOverlay* clone);
     glm::vec2 _dimensions;
 };
 

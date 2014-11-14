@@ -18,6 +18,7 @@ class Circle3DOverlay : public Planar3DOverlay {
     
 public:
     Circle3DOverlay();
+    Circle3DOverlay(Circle3DOverlay* circle3DOverlay);
     ~Circle3DOverlay();
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
@@ -52,8 +53,6 @@ public:
     virtual Circle3DOverlay* createClone();
     
 protected:
-    virtual void writeToClone(Circle3DOverlay* clone);
-
     float _startAt;
     float _endAt;
     float _outerRadius;

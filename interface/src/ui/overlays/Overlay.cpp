@@ -39,11 +39,29 @@ Overlay::Overlay() :
 {
 }
 
+Overlay::Overlay(Overlay* overlay) :
+    _parent(NULL),
+    _alpha(overlay->_alpha),
+    _lastPulseUpdate(usecTimestampNow()),
+    _alphaPulse(overlay->_alphaPulse),
+    _anchor(overlay->_anchor),
+    _color(overlay->_color),
+    _colorPulse(overlay->_colorPulse),
+    _glowLevel(overlay->_glowLevel),
+    _glowLevelPulse(overlay->_glowLevelPulse),
+    _pulseDirection(overlay->_pulseDirection),
+    _pulseMax(overlay->_pulseMax),
+    _pulseMin(overlay->_pulseMin),
+    _pulsePeriod(overlay->_pulsePeriod),
+    _visible(overlay->_visible),
+    _isLoaded(overlay->_isLoaded)
+{
+}
+
 void Overlay::init(QGLWidget* parent, QScriptEngine* scriptEngine) {
     _parent = parent;
     _scriptEngine = scriptEngine;
 }
-
 
 Overlay::~Overlay() {
 }
@@ -211,20 +229,4 @@ float Overlay::updatePulse() {
     _pulse += glowDelta;
     
     return _pulse;
-}
-
-void Overlay::writeToClone(Overlay* clone) {
-    clone->setAlpha(getAlpha());
-    clone->setAlphaPulse(getAlphaPulse());
-    clone->setAnchor(getAnchor());
-    clone->setColor(getColor());
-    clone->setColorPulse(getColorPulse());
-    clone->setGlowLevel(getGlowLevel());
-    clone->setGlowLevelPulse(getGlowLevelPulse());
-    clone->setPulseDirection(getPulseDirection());
-    clone->setPulseMax(getPulseMax());
-    clone->setPulseMin(getPulseMin());
-    clone->setPulsePeriod(getPulsePeriod());
-    clone->setVisible(getVisible());
-    clone->_isLoaded = _isLoaded;
 }

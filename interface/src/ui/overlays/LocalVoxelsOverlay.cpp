@@ -28,6 +28,12 @@ LocalVoxelsOverlay::LocalVoxelsOverlay() :
 {
 }
 
+LocalVoxelsOverlay::LocalVoxelsOverlay(LocalVoxelsOverlay* localVoxelsOverlay) :
+    Volume3DOverlay(localVoxelsOverlay),
+    _voxelCount(localVoxelsOverlay->_voxelCount)
+{
+}
+
 LocalVoxelsOverlay::~LocalVoxelsOverlay() {
     _voxelSystem->changeTree(new VoxelTree());
     _voxelSystem.clear();
@@ -104,9 +110,7 @@ void LocalVoxelsOverlay::setProperties(const QScriptValue &properties) {
 }
 
 LocalVoxelsOverlay* LocalVoxelsOverlay::createClone() {
-    LocalVoxelsOverlay* clone = new LocalVoxelsOverlay();
-    writeToClone(clone);
-    return clone;
+    return new LocalVoxelsOverlay(this);
 }
 
 QScriptValue LocalVoxelsOverlay::getProperty(const QString& property) {

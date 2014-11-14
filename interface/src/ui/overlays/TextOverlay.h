@@ -37,6 +37,7 @@ class TextOverlay : public Overlay2D {
     
 public:
     TextOverlay();
+    TextOverlay(TextOverlay* textOverlay);
     ~TextOverlay();
     virtual void render(RenderArgs* args);
 
@@ -59,8 +60,6 @@ public:
     float textWidth(const QString& text) const;  // Pixels
 
 private:
-    virtual void writeToClone(TextOverlay* clone);
-
     QString _text;
     xColor _backgroundColor;
     int _leftMargin;

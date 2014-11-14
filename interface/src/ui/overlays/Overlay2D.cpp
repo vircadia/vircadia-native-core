@@ -22,6 +22,12 @@
 Overlay2D::Overlay2D() {
 }
 
+Overlay2D::Overlay2D(Overlay2D* overlay2D) :
+    Overlay(overlay2D),
+    _bounds(overlay2D->_bounds)
+{
+}
+
 Overlay2D::~Overlay2D() {
 }
 
@@ -84,9 +90,3 @@ QScriptValue Overlay2D::getProperty(const QString& property) {
 
     return Overlay::getProperty(property);
 }
-
-void Overlay2D::writeToClone(Overlay2D* clone) {
-    Overlay::writeToClone(clone);
-    clone->setBounds(getBounds());
-}
-
