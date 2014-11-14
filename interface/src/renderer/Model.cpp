@@ -567,11 +567,11 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
-        _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
+        _transforms.push_back(Transform());
     }
-    (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
+    _transforms[0] = Application::getInstance()->getViewTransform();
     // apply entity translation offset to the viewTransform  in one go (it's a preTranslate because viewTransform goes from world to eye space)
-    _transforms[0]->preTranslate(-_translation);
+    _transforms[0].preTranslate(-_translation);
 
     batch.setViewTransform(_transforms[0]);
 
@@ -1493,10 +1493,10 @@ void Model::setupBatchTransform(gpu::Batch& batch) {
     
     // Capture the view matrix once for the rendering of this model
     if (_transforms.empty()) {
-        _transforms.push_back(gpu::TransformPointer(new gpu::Transform()));
+        _transforms.push_back(Transform());
     }
-    (*_transforms[0]) = gpu::Transform((*Application::getInstance()->getViewTransform()));
-    _transforms[0]->preTranslate(-_translation);
+    _transforms[0] = Application::getInstance()->getViewTransform();
+    _transforms[0].preTranslate(-_translation);
     batch.setViewTransform(_transforms[0]);
 }
 
@@ -1553,46 +1553,14 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     int opaqueMeshPartsRendered = 0;
 
     // now, for each model in the scene, render the mesh portions
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        opaqueMeshPartsRendered += model->renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-        GLBATCH(glPopMatrix)();
-    }
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, args);
     
     // render translucent meshes afterwards
     //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
@@ -1606,46 +1574,14 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
     int translucentParts = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
-        GLBATCH(glPopMatrix)();
-    }
-    foreach(Model* model, _modelsInScene) {
-        model->setupBatchTransform(batch);
-        translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-        GLBATCH(glPopMatrix)();
-    }
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
+    translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, true, args);
     
     GLBATCH(glDisable)(GL_ALPHA_TEST);
     GLBATCH(glEnable)(GL_BLEND);
@@ -1662,46 +1598,14 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
-            GLBATCH(glPopMatrix)();
-        }
-        foreach(Model* model, _modelsInScene) {
-            model->setupBatchTransform(batch);
-            translucentParts += model->renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
-            GLBATCH(glPopMatrix)();
-        }
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, true, args);
     }
 
     GLBATCH(glDepthMask)(true);
@@ -1981,19 +1885,8 @@ void Model::segregateMeshGroups() {
     _meshGroupsKnown = true;
 }
 
-int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
-
+QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned) {
     PROFILE_RANGE(__FUNCTION__);
-    bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
-    bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
-    bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
-                            
-    QString lastMaterialID;
-    int meshPartsRendered = 0;
-    updateVisibleJointStates();
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
     // depending on which parameters we were called with, pick the correct mesh group to render
     QVector<int>* whichList = NULL;
@@ -2032,23 +1925,18 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     } else {
         qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
     }
-    
-    if (!whichList) {
-        qDebug() << "unexpected!!! we don't know which list of meshes to render...";
-        return 0;
-    }
-    QVector<int>& list = *whichList;
+    return whichList;
+}
 
-    // If this list has nothing to render, then don't bother proceeding. This saves us on binding to programs    
-    if (list.size() == 0) {
-        return 0;
-    }
-
+void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            SkinLocations*& skinLocations, GLenum& specularTextureUnit) {
+                            
     ProgramObject* program = &_program;
     Locations* locations = &_locations;
     ProgramObject* skinProgram = &_skinProgram;
-    SkinLocations* skinLocations = &_skinLocations;
-    GLenum specularTextureUnit = 0;
+    skinLocations = &_skinLocations;
+    specularTextureUnit = 0;
     if (mode == SHADOW_RENDER_MODE) {
         program = &_shadowProgram;
         skinProgram = &_skinShadowProgram;
@@ -2091,8 +1979,84 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
     if (!activeProgram->isLinked()) {
         activeProgram->link();
     }
+    
     GLBATCH(glUseProgram)(activeProgram->programId());
     GLBATCH(glUniform1f)(activeLocations->alphaThreshold, alphaThreshold);
+}
+
+int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+
+    PROFILE_RANGE(__FUNCTION__);
+    int meshPartsRendered = 0;
+
+    bool pickProgramsNeeded = true;
+    SkinLocations* skinLocations;
+    GLenum specularTextureUnit;
+    
+    foreach(Model* model, _modelsInScene) {
+        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned);
+        if (whichList) {
+            QVector<int>& list = *whichList;
+            if (list.size() > 0) {
+                if (pickProgramsNeeded) {
+                    pickPrograms(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit);
+                    pickProgramsNeeded = false;
+                }
+                model->setupBatchTransform(batch);
+                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit);
+                GLBATCH(glPopMatrix)();
+            }
+        }
+    }
+    // if we selected a program, then unselect it
+    if (!pickProgramsNeeded) {
+        GLBATCH(glUseProgram)(0);
+    }
+    return meshPartsRendered;
+}
+
+int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+
+    PROFILE_RANGE(__FUNCTION__);
+    int meshPartsRendered = 0;
+
+    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned);
+    
+    if (!whichList) {
+        qDebug() << "unexpected!!! we don't know which list of meshes to render...";
+        return 0;
+    }
+    QVector<int>& list = *whichList;
+
+    // If this list has nothing to render, then don't bother proceeding. This saves us on binding to programs    
+    if (list.size() == 0) {
+        return 0;
+    }
+
+    SkinLocations* skinLocations;
+    GLenum specularTextureUnit;
+    pickPrograms(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit);
+    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit);
+    GLBATCH(glUseProgram)(0);
+
+    return meshPartsRendered;
+}
+
+
+int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
+                                        SkinLocations* skinLocations, GLenum specularTextureUnit) {
+    PROFILE_RANGE(__FUNCTION__);
+    bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
+    bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
+    bool dontReduceMaterialSwitches = Menu::getInstance()->isOptionChecked(MenuOption::DontReduceMaterialSwitches);
+                            
+    QString lastMaterialID;
+    int meshPartsRendered = 0;
+    updateVisibleJointStates();
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
     // i is the "index" from the original networkMeshes QVector...
     foreach (int i, list) {
@@ -2149,10 +2113,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         if (state.clusterMatrices.size() > 1) {
             GLBATCH(glUniformMatrix4fv)(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                 (const float*)state.clusterMatrices.constData());
-            batch.setModelTransform(gpu::TransformPointer());
+            batch.setModelTransform(Transform());
         } else {
-            gpu::TransformPointer modelTransform(new gpu::Transform(state.clusterMatrices[0]));
-            batch.setModelTransform(modelTransform);
+            batch.setModelTransform(Transform(state.clusterMatrices[0]));
         }
 
         if (mesh.blendshapes.isEmpty()) {
@@ -2267,8 +2230,6 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         GLBATCH(glPopMatrix)();
 
     }
-
-    GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
 }

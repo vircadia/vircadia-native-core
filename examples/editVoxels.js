@@ -78,7 +78,7 @@ function SoundArray() {
     this.audioOptions = audioOptions
     this.sounds = new Array();
     this.addSound = function (soundURL) {
-        this.sounds[this.sounds.length] = new Sound(soundURL);
+        this.sounds[this.sounds.length] = SoundCache.getSound(soundURL);
     }
     this.play = function (index) {
         if (0 <= index && index < this.sounds.length) {

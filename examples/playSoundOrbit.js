@@ -11,7 +11,7 @@
 
 Script.include("libraries/globals.js");
 
-var soundClip = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Voxels/voxel create 3.raw");
+var soundClip = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Voxels/voxel create 3.raw");
 
 var currentTime = 1.570079; // pi/2
 var deltaTime = 0.05;

@@ -13,7 +13,7 @@
 
 Script.include("libraries/globals.js");
 
-var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
+var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
 
 var soundPlaying = false;
 
