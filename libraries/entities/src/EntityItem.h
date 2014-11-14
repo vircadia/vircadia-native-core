@@ -196,11 +196,6 @@ public:
     static const float DEFAULT_LIFETIME;
     float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
     void setLifetime(float value) { _lifetime = value; } /// set the lifetime in seconds for the entity
-    
-    /// User-specified data stored in a variant map
-    static const QString DEFAULT_USER_DATA;
-    const QString& getUserData() const { return _userData; }
-    void setUserData(const QString& value) { _userData = value; }
 
     /// is this entity immortal, in that it has no lifetime set, and will exist until manually deleted
     bool isImmortal() const { return _lifetime == IMMORTAL; }
@@ -257,6 +252,10 @@ public:
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
+    static const QString DEFAULT_USER_DATA;
+    const QString& getUserData() const { return _userData; }
+    void setUserData(const QString& value) { _userData = value; }
+    
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
@@ -289,7 +288,6 @@ protected:
     glm::vec3 _gravity;
     float _damping;
     float _lifetime;
-    QString _userData;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
@@ -298,6 +296,7 @@ protected:
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
+    QString _userData;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams

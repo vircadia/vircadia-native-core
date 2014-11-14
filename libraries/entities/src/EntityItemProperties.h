@@ -47,7 +47,6 @@ enum EntityPropertyList {
     PROP_GRAVITY,
     PROP_DAMPING,
     PROP_LIFETIME,
-    PROP_USER_DATA,
     PROP_SCRIPT,
 
     // these properties are supported by some derived classes
@@ -82,8 +81,9 @@ enum EntityPropertyList {
     // used by Model entities
     PROP_TEXTURES,
     PROP_ANIMATION_SETTINGS,
+    PROP_USER_DATA,
 
-    PROP_LAST_ITEM = PROP_ANIMATION_SETTINGS
+    PROP_LAST_ITEM = PROP_USER_DATA
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
