@@ -634,9 +634,7 @@ void PlaceSpannerTool::simulate(float deltaTime) {
 
 void PlaceSpannerTool::renderPreview() {
     Spanner* spanner = static_cast<Spanner*>(getSpanner().data());
-    QColor color = getColor();
-    spanner->getRenderer()->render(glm::vec4(color.redF(), color.greenF(), color.blueF(), 1.0f),
-        SpannerRenderer::DEFAULT_MODE);
+    spanner->getRenderer()->render();
 }
 
 bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
@@ -791,8 +789,7 @@ void ImportHeightfieldTool::simulate(float deltaTime) {
 }
 
 void ImportHeightfieldTool::renderPreview() {
-    static_cast<Heightfield*>(_spanner.data())->getRenderer()->render(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-        SpannerRenderer::DEFAULT_MODE);
+    static_cast<Heightfield*>(_spanner.data())->getRenderer()->render();
 }
 
 const int HEIGHTFIELD_BLOCK_SIZE = 32;

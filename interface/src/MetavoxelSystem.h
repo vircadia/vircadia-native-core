@@ -407,7 +407,7 @@ public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
 };
 
 /// Renders cuboids.
@@ -418,7 +418,7 @@ public:
     
     Q_INVOKABLE CuboidRenderer();
     
-    virtual void render(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
 };
 
 /// Renders static models.
@@ -431,7 +431,7 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
@@ -456,7 +456,7 @@ public:
     virtual ~HeightfieldRenderer();
     
     virtual void init(Spanner* spanner);
-    virtual void render(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
 
 private slots:
 

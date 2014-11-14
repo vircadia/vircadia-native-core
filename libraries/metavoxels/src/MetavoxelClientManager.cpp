@@ -82,7 +82,7 @@ RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::
 }
 
 bool RayHeightfieldIntersectionVisitor::visitSpanner(Spanner* spanner, float distance) {
-    if (qobject_cast<Heightfield*>(spanner)) {
+    if (spanner->isHeightfield()) {
         intersectionDistance = distance;
         return false;
     }

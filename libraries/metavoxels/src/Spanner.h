@@ -55,6 +55,9 @@ public:
     /// Returns a pointer to the renderer, creating it if necessary.
     SpannerRenderer* getRenderer();
 
+    /// Checks whether this is a heightfield.
+    virtual bool isHeightfield() const;
+
     /// Finds the height at the specified location, or returns -FLT_MAX for none.
     virtual float getHeight(const glm::vec3& location) const;
     
@@ -112,13 +115,11 @@ class SpannerRenderer : public QObject {
     
 public:
     
-    enum Mode { DEFAULT_MODE, DIFFUSE_MODE, NORMAL_MODE };
-    
     Q_INVOKABLE SpannerRenderer();
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 protected:
@@ -504,6 +505,8 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
 
+    virtual bool isHeightfield() const;
+    
     virtual float getHeight(const glm::vec3& location) const;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;

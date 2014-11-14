@@ -96,6 +96,10 @@ SpannerRenderer* Spanner::getRenderer() {
     return _renderer;
 }
 
+bool Spanner::isHeightfield() const {
+    return false;
+}
+
 float Spanner::getHeight(const glm::vec3& location) const {
     return -FLT_MAX;
 }
@@ -150,7 +154,7 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(const glm::vec4& color, Mode mode) {
+void SpannerRenderer::render(bool cursor) {
     // nothing by default
 }
 
@@ -1392,6 +1396,10 @@ void Heightfield::setMaterial(const HeightfieldMaterialPointer& material) {
     if (_material != material) {
         emit materialChanged(_material = material);
     }
+}
+
+bool Heightfield::isHeightfield() const {
+    return true;
 }
 
 float Heightfield::getHeight(const glm::vec3& location) const {
