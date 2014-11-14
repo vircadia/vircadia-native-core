@@ -373,6 +373,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
+    _toolWindow = new ToolWindow();
+    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowTitle("Tools");
+
     // initialization continues in initializeGL when OpenGL context is ready
 
     // Tell our voxel edit sender about our known jurisdictions
