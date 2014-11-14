@@ -82,7 +82,7 @@ QScriptValue Planar3DOverlay::getProperty(const QString& property) {
         return vec2toScriptValue(_scriptEngine, _dimensions);
     }
 
-    Base3DOverlay::getProperty(property);
+    return Base3DOverlay::getProperty(property);
 }
 
 bool Planar3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
