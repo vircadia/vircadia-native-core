@@ -613,7 +613,31 @@ static QByteArray encodeHeightfieldHeight(int offsetX, int offsetY, int width, i
     *header++ = offsetY;
     *header++ = width;
     *header++ = height;
-    inflated.append((const char*)contents.constData(), contents.size() * sizeof(quint16));
+    if (!contents.isEmpty()) {
+        // encode with Paeth filter (see http://en.wikipedia.org/wiki/Portable_Network_Graphics#Filtering)
+        QVector<quint16> filteredContents(contents.size());
+        const quint16* src = contents.constData();
+        quint16* dest = filteredContents.data();
+        *dest++ = *src++;
+        for (quint16* end = dest + width - 1; dest != end; dest++, src++) {
+            *dest = *src - src[-1];
+        }
+        for (int y = 1; y < height; y++) {
+            *dest++ = *src - src[-width];
+            src++;
+            for (quint16* end = dest + width - 1; dest != end; dest++, src++) {
+                int a = src[-1];
+                int b = src[-width];
+                int c = src[-width - 1];
+                int p = a + b - c;
+                int ad = abs(a - p);
+                int bd = abs(b - p);
+                int cd = abs(c - p);
+                *dest = *src - (ad < bd ? (ad < cd ? a : c) : (bd < cd ? b : c));
+            }
+        }  
+        inflated.append((const char*)filteredContents.constData(), filteredContents.size() * sizeof(quint16));
+    }
     return qCompress(inflated);
 }
 
@@ -626,9 +650,30 @@ static QVector<quint16> decodeHeightfieldHeight(const QByteArray& encoded, int& 
     width = *header++;
     height = *header++;
     int payloadSize = inflated.size() - HEIGHTFIELD_DATA_HEADER_SIZE;
-    QVector<quint16> decoded(payloadSize / sizeof(quint16));
-    memcpy(decoded.data(), inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE, payloadSize);
-    return decoded;
+    QVector<quint16> unfiltered(payloadSize / sizeof(quint16));
+    if (!unfiltered.isEmpty()) {
+        quint16* dest = unfiltered.data();
+        const quint16* src = (const quint16*)(inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE);
+        *dest++ = *src++;
+        for (quint16* end = dest + width - 1; dest != end; dest++, src++) {
+            *dest = *src + dest[-1];
+        }
+        for (int y = 1; y < height; y++) {
+            *dest = (*src++) + dest[-width];
+            dest++;
+            for (quint16* end = dest + width - 1; dest != end; dest++, src++) {
+                int a = dest[-1];
+                int b = dest[-width];
+                int c = dest[-width - 1];
+                int p = a + b - c;
+                int ad = abs(a - p);
+                int bd = abs(b - p);
+                int cd = abs(c - p);
+                *dest = *src + (ad < bd ? (ad < cd ? a : c) : (bd < cd ? b : c));
+            }
+        }
+    }
+    return unfiltered;
 }
 
 HeightfieldHeight::HeightfieldHeight(int width, const QVector<quint16>& contents) :
@@ -861,13 +906,42 @@ void HeightfieldHeightEditor::clear() {
 }
 
 static QByteArray encodeHeightfieldColor(int offsetX, int offsetY, int width, int height, const QByteArray& contents) {
-    QByteArray inflated(HEIGHTFIELD_DATA_HEADER_SIZE, 0);
+    QByteArray inflated(HEIGHTFIELD_DATA_HEADER_SIZE + contents.size(), 0);
     qint32* header = (qint32*)inflated.data();
     *header++ = offsetX;
     *header++ = offsetY;
     *header++ = width;
     *header++ = height;
-    inflated.append(contents);
+    if (!contents.isEmpty()) {
+        // encode with Paeth filter (see http://en.wikipedia.org/wiki/Portable_Network_Graphics#Filtering)
+        const uchar* src = (const uchar*)contents.constData();
+        uchar* dest = (uchar*)inflated.data() + HEIGHTFIELD_DATA_HEADER_SIZE;
+        *dest++ = *src++;
+        *dest++ = *src++;
+        *dest++ = *src++;
+        int stride = width * DataBlock::COLOR_BYTES;
+        for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
+            *dest = *src - src[-DataBlock::COLOR_BYTES];
+        }
+        for (int y = 1; y < height; y++) {
+            *dest++ = *src - src[-stride];
+            src++;
+            *dest++ = *src - src[-stride];
+            src++;
+            *dest++ = *src - src[-stride];
+            src++;
+            for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
+                int a = src[-DataBlock::COLOR_BYTES];
+                int b = src[-stride];
+                int c = src[-stride - DataBlock::COLOR_BYTES];
+                int p = a + b - c;
+                int ad = abs(a - p);
+                int bd = abs(b - p);
+                int cd = abs(c - p);
+                *dest = *src - (ad < bd ? (ad < cd ? a : c) : (bd < cd ? b : c));
+            }
+        }
+    }
     return qCompress(inflated);
 }
 
@@ -878,7 +952,37 @@ static QByteArray decodeHeightfieldColor(const QByteArray& encoded, int& offsetX
     offsetY = *header++;
     width = *header++;
     height = *header++;
-    return inflated.mid(HEIGHTFIELD_DATA_HEADER_SIZE);
+    QByteArray contents(inflated.size() - HEIGHTFIELD_DATA_HEADER_SIZE, 0);
+    if (!contents.isEmpty()) {
+        const uchar* src = (const uchar*)inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE;
+        uchar* dest = (uchar*)contents.data();
+        *dest++ = *src++;
+        *dest++ = *src++;
+        *dest++ = *src++;
+        int stride = width * DataBlock::COLOR_BYTES;
+        for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
+            *dest = *src + dest[-DataBlock::COLOR_BYTES];
+        }
+        for (int y = 1; y < height; y++) {
+            *dest = (*src++) + dest[-stride];
+            dest++;
+            *dest = (*src++) + dest[-stride];
+            dest++;
+            *dest = (*src++) + dest[-stride];
+            dest++;
+            for (uchar* end = dest + stride - DataBlock::COLOR_BYTES; dest != end; dest++, src++) {
+                int a = dest[-DataBlock::COLOR_BYTES];
+                int b = dest[-stride];
+                int c = dest[-stride - DataBlock::COLOR_BYTES];
+                int p = a + b - c;
+                int ad = abs(a - p);
+                int bd = abs(b - p);
+                int cd = abs(c - p);
+                *dest = *src + (ad < bd ? (ad < cd ? a : c) : (bd < cd ? b : c));
+            }
+        }
+    }
+    return contents;
 }
 
 HeightfieldColor::HeightfieldColor(int width, const QByteArray& contents) :

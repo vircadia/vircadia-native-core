@@ -35,14 +35,16 @@ void MetavoxelServer::applyEdit(const MetavoxelEditMessage& edit) {
     setData(data);
 }
 
-void MetavoxelServer::setData(const MetavoxelData& data) {
+void MetavoxelServer::setData(const MetavoxelData& data, bool loaded) {
     if (_data == data) {
         return;
     }    
     emit dataChanged(_data = data);
     
-    if (!_savedDataInitialized) {
+    if (loaded) {
         _savedData = data;
+    
+    } else if (!_savedDataInitialized) {        
         _savedDataInitialized = true;
         
         // start the save timer
@@ -340,7 +342,7 @@ void MetavoxelPersister::load() {
             debug << "failed, " << e.getDescription();
             return;
         }
-        QMetaObject::invokeMethod(_server, "setData", Q_ARG(const MetavoxelData&, data));
+        QMetaObject::invokeMethod(_server, "setData", Q_ARG(const MetavoxelData&, data), Q_ARG(bool, true));
         debug << "done.";
     }
     data.dumpStats();

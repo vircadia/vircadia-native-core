@@ -36,7 +36,7 @@ public:
 
     const MetavoxelData& getData() const { return _data; }
     
-    Q_INVOKABLE void setData(const MetavoxelData& data);
+    Q_INVOKABLE void setData(const MetavoxelData& data, bool loaded = false);
 
     virtual void run();
     
