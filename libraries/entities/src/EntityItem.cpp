@@ -506,7 +506,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
         READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
-        READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, _userData);
+        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
 
         if (wantDebug) {
             qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
