@@ -373,7 +373,7 @@ protected:
     static bool countOctreeElementsOperation(OctreeElement* element, void* extraData);
 
     OctreeElement* nodeForOctalCode(OctreeElement* ancestorElement, const unsigned char* needleCode, OctreeElement** parentOfFoundElement) const;
-    OctreeElement* createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach);
+    OctreeElement* createMissingElement(OctreeElement* lastParentElement, const unsigned char* codeToReach, int recursionCount = 0);
     int readElementData(OctreeElement *destinationElement, const unsigned char* nodeData,
                 int bufferSizeBytes, ReadBitstreamToTreeParams& args);
 
