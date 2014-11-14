@@ -224,6 +224,7 @@ private slots:
     void showScriptEditor();
     void showChat();
     void toggleConsole();
+    void toggleToolWindow();
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
@@ -491,6 +492,7 @@ namespace MenuOption {
     const QString StringHair = "String Hair";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
+    const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UploadAttachment = "Upload Attachment Model";

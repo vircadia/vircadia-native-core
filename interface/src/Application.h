@@ -244,6 +244,8 @@ public:
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
 
+    QMainWindow* getToolWindow() { return _toolWindow ; }
+
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
@@ -456,6 +458,8 @@ private:
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
+
+    QMainWindow* _toolWindow;
 
     BandwidthMeter _bandwidthMeter;
 

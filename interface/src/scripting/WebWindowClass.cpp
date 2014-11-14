@@ -11,9 +11,13 @@
 
 #include <QVBoxLayout>
 #include <QApplication>
+#include <QMainWindow>
+#include <QDockWidget>
 #include <QWebFrame>
 #include <QWebView>
+#include <QListWidget>
 
+#include "Application.h"
 #include "WindowScriptingInterface.h"
 #include "WebWindowClass.h"
 
@@ -31,18 +35,17 @@ void ScriptEventBridge::emitScriptEvent(const QString& data) {
 
 WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height)
     : QObject(NULL),
-      _window(new QWidget(NULL, Qt::Tool)),
       _eventBridge(new ScriptEventBridge(this)) {
 
+    QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
+
+    _window = new QDockWidget(title, toolWindow);
     QWebView* webView = new QWebView(_window);
     webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
     webView->setUrl(url);
-    QVBoxLayout* layout = new QVBoxLayout(_window);
-    _window->setLayout(layout);
-    layout->addWidget(webView);
-    layout->setSpacing(0);
-    layout->setContentsMargins(0, 0, 0, 0);
-    _window->setGeometry(0, 0, width, height);
+    _window->setWidget(webView);
+
+    toolWindow->addDockWidget(Qt::RightDockWidgetArea, _window);
 
     connect(this, &WebWindowClass::destroyed, _window, &QWidget::deleteLater);
 }

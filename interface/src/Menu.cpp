@@ -248,6 +248,12 @@ Menu::Menu() :
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ToolWindow,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_T,
+                                  this,
+                                  SLOT(toggleToolWindow()));
+
+    addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::Console,
                                   Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   this,
@@ -1459,6 +1465,11 @@ void Menu::toggleConsole() {
         _jsConsole = dialog;
     }
     _jsConsole->setVisible(!_jsConsole->isVisible());
+}
+
+void Menu::toggleToolWindow() {
+    QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
+    toolWindow->setVisible(!toolWindow->isVisible());
 }
 
 void Menu::audioMuteToggled() {
