@@ -168,7 +168,7 @@ void Player::setupAudioThread() {
     _audioThread = new QThread();
     _options.position = _avatar->getPosition();
     _options.orientation = _avatar->getOrientation();
-    _injector.reset(new AudioInjector(_recording->getAudio(), _options), &QObject::deleteLater);
+    _injector.reset(new AudioInjector(_recording->getAudioData(), _options), &QObject::deleteLater);
     _injector->moveToThread(_audioThread);
     _audioThread->start();
     QMetaObject::invokeMethod(_injector.data(), "injectAudio", Qt::QueuedConnection);

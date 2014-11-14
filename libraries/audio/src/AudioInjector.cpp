@@ -31,7 +31,6 @@ void injectorFromScriptValue(const QScriptValue& object, AudioInjector*& out) {
 
 AudioInjector::AudioInjector(QObject* parent) :
     QObject(parent),
-    _sound(NULL),
     _options(),
     _shouldStop(false),
     _loudness(0.0f),
@@ -42,7 +41,7 @@ AudioInjector::AudioInjector(QObject* parent) :
 }
 
 AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions) :
-    _sound(sound),
+    _audioData(sound->getByteArray()),
     _options(injectorOptions),
     _shouldStop(false),
     _loudness(0.0f),
@@ -50,6 +49,18 @@ AudioInjector::AudioInjector(Sound* sound, const AudioInjectorOptions& injectorO
     _currentSendPosition(0),
     _localBuffer(NULL)
 {
+}
+
+AudioInjector::AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions) :
+    _audioData(audioData),
+    _options(injectorOptions),
+    _shouldStop(false),
+    _loudness(0.0f),
+    _isFinished(false),
+    _currentSendPosition(0),
+    _localBuffer(NULL)
+{
+    
 }
 
 AudioInjector::~AudioInjector() {
@@ -76,11 +87,9 @@ void AudioInjector::injectAudio() {
 
 void AudioInjector::injectLocally() {
     bool success = false;
-    if (_localAudioInterface) {        
-        const QByteArray& soundByteArray = _sound->getByteArray();
-        
-        if (soundByteArray.size() > 0) {
-            _localBuffer = new AudioInjectorLocalBuffer(_sound->getByteArray(), this);
+    if (_localAudioInterface) {
+        if (_audioData.size() > 0) {
+            _localBuffer = new AudioInjectorLocalBuffer(_audioData, this);
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
             
@@ -114,15 +123,13 @@ void AudioInjector::injectLocally() {
 const uchar MAX_INJECTOR_VOLUME = 0xFF;
 
 void AudioInjector::injectToMixer() {
-    QByteArray soundByteArray = _sound->getByteArray();
-    
     if (_currentSendPosition < 0 ||
-        _currentSendPosition >= soundByteArray.size()) {
+        _currentSendPosition >= _audioData.size()) {
         _currentSendPosition = 0;
     }
     
     // make sure we actually have samples downloaded to inject
-    if (soundByteArray.size()) {
+    if (_audioData.size()) {
         
         // setup the packet for injected audio
         QByteArray injectAudioPacket = byteArrayWithPopulatedHeader(PacketTypeInjectAudio);
@@ -172,15 +179,15 @@ void AudioInjector::injectToMixer() {
         
         // loop to send off our audio in NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL byte chunks
         quint16 outgoingInjectedAudioSequenceNumber = 0;
-        while (_currentSendPosition < soundByteArray.size() && !_shouldStop) {
+        while (_currentSendPosition < _audioData.size() && !_shouldStop) {
             
             int bytesToCopy = std::min(((_options.stereo) ? 2 : 1) * NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL,
-                                       soundByteArray.size() - _currentSendPosition);
+                                       _audioData.size() - _currentSendPosition);
             
             //  Measure the loudness of this frame
             _loudness = 0.0f;
             for (int i = 0; i < bytesToCopy; i += sizeof(int16_t)) {
-                _loudness += abs(*reinterpret_cast<int16_t*>(soundByteArray.data() + _currentSendPosition + i)) /
+                _loudness += abs(*reinterpret_cast<int16_t*>(_audioData.data() + _currentSendPosition + i)) /
                 (MAX_SAMPLE_VALUE / 2.0f);
             }
             _loudness /= (float)(bytesToCopy / sizeof(int16_t));
@@ -203,7 +210,7 @@ void AudioInjector::injectToMixer() {
             
             // copy the next NETWORK_BUFFER_LENGTH_BYTES_PER_CHANNEL bytes to the packet
             memcpy(injectAudioPacket.data() + numPreAudioDataBytes,
-                   soundByteArray.data() + _currentSendPosition, bytesToCopy);
+                   _audioData.data() + _currentSendPosition, bytesToCopy);
             
             // grab our audio mixer from the NodeList, if it exists
             NodeList* nodeList = NodeList::getInstance();
@@ -217,7 +224,7 @@ void AudioInjector::injectToMixer() {
             
             // send two packets before the first sleep so the mixer can start playback right away
             
-            if (_currentSendPosition != bytesToCopy && _currentSendPosition < soundByteArray.size()) {
+            if (_currentSendPosition != bytesToCopy && _currentSendPosition < _audioData.size()) {
                 // not the first packet and not done
                 // sleep for the appropriate time
                 int usecToSleep = (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - timer.nsecsElapsed() / 1000;
@@ -227,7 +234,7 @@ void AudioInjector::injectToMixer() {
                 } 
             }
 
-            if (shouldLoop && _currentSendPosition >= soundByteArray.size()) {
+            if (shouldLoop && _currentSendPosition >= _audioData.size()) {
                 _currentSendPosition = 0;
             }
         }

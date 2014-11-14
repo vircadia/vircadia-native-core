@@ -65,6 +65,7 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -123,7 +124,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
     if (!logMessage.isEmpty()) {
-        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
@@ -160,7 +161,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
-        _viewTransform(new gpu::Transform()),
+        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -371,6 +372,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
+
+    _toolWindow = new ToolWindow();
+    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowTitle("Tools");
 
     // initialization continues in initializeGL when OpenGL context is ready
 
@@ -2911,13 +2916,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
     // the viewTransofmr object is updatded with the correct values and saved,
     // this is what is used for rendering the Entities and avatars
-    gpu::Transform viewTransform;
+    Transform viewTransform;
     viewTransform.setTranslation(whichCamera.getPosition());
     viewTransform.setRotation(rotation);
     viewTransform.postTranslate(eyeOffsetPos);
     viewTransform.postRotate(eyeOffsetOrient);
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
-         viewTransform.setScale(gpu::Transform::Vec3(-1.0f, 1.0f, 1.0f));
+         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
     setViewTransform(viewTransform);
 
@@ -3117,8 +3122,8 @@ void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTransl
     _viewMatrixTranslation = viewMatrixTranslation;
 }
 
-void Application::setViewTransform(const gpu::Transform& view) {
-    (*_viewTransform) = view;
+void Application::setViewTransform(const Transform& view) {
+    _viewTransform = view;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
@@ -3901,7 +3906,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, RayToOverlayIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
+                            RayToOverlayIntersectionResultFromScriptValue);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -3916,6 +3923,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);

@@ -23,7 +23,7 @@ var audioOptions = {
 
 var injector = null;
 
-var sound = new Sound(soundURL, audioOptions.isStereo);
+var sound = SoundCache.getSound(soundURL, audioOptions.isStereo);
 
 var entity = null;
 var properties = null;

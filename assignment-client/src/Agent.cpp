@@ -23,6 +23,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 
@@ -217,6 +218,8 @@ void Agent::run() {
     _scriptEngine.registerGlobalObject("Agent", this);
 
     _scriptEngine.init(); // must be done before we set up the viewers
+    
+    _scriptEngine.registerGlobalObject("SoundCache", &SoundCache::getInstance());
 
     _scriptEngine.registerGlobalObject("VoxelViewer", &_voxelViewer);
     // connect the VoxelViewer and the VoxelScriptingInterface to each other

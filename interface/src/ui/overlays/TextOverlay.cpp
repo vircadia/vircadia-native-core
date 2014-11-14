@@ -66,9 +66,8 @@ void TextOverlay::render(RenderArgs* args) {
         glVertex2f(_bounds.left(), _bounds.bottom());
     glEnd();
 
-    //TextRenderer(const char* family, int pointSize = -1, int weight = -1, bool italic = false,
-    //             EffectType effect = NO_EFFECT, int effectThickness = 1);
-    TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, 50);
+    // Same font properties as textWidth()
+    TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
     const int topAdjust = -2; // required to make text render relative to top edge of bounds
@@ -125,4 +124,31 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue TextOverlay::getProperty(const QString& property) {
+    if (property == "font") {
+        QScriptValue font = _scriptEngine->newObject();
+        font.setProperty("size", _fontSize);
+        return font;
+    }
+    if (property == "text") {
+        return _text;
+    }
+    if (property == "backgroundColor") {
+        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "leftMargin") {
+        return _leftMargin;
+    }
+    if (property == "topMargin") {
+        return _topMargin;
+    }
 
+    return Overlay2D::getProperty(property);
+}
+
+
+float TextOverlay::textWidth(const QString& text) const {
+    QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
+    QFontMetrics fontMetrics(font);
+    return fontMetrics.width(qPrintable(text));
+}

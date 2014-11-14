@@ -42,6 +42,9 @@ void vec2FromScriptValue(const QScriptValue &object, glm::vec2 &vec2);
 QScriptValue quatToScriptValue(QScriptEngine* engine, const glm::quat& quat);
 void quatFromScriptValue(const QScriptValue &object, glm::quat& quat);
 
+QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect);
+void qRectFromScriptValue(const QScriptValue& object, QRect& rect);
+
 QScriptValue xColorToScriptValue(QScriptEngine* engine, const xColor& color);
 void xColorFromScriptValue(const QScriptValue &object, xColor& color);
 

@@ -29,6 +29,7 @@ class AudioInjector : public QObject {
 public:
     AudioInjector(QObject* parent);
     AudioInjector(Sound* sound, const AudioInjectorOptions& injectorOptions);
+    AudioInjector(const QByteArray& audioData, const AudioInjectorOptions& injectorOptions);
     ~AudioInjector();
     
     bool isFinished() const { return _isFinished; }
@@ -51,7 +52,7 @@ private:
     void injectToMixer();
     void injectLocally();
     
-    Sound* _sound;
+    QByteArray _audioData;
     AudioInjectorOptions _options;
     bool _shouldStop;
     float _loudness;

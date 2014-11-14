@@ -82,6 +82,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/ToolWindow.h"
 #include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
@@ -232,8 +233,8 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
-    const gpu::TransformPointer& getViewTransform() const { return _viewTransform; }
-    void setViewTransform(const gpu::Transform& view);
+    const Transform& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const Transform& view);
 
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
@@ -245,6 +246,8 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
+
+    ToolWindow* getToolWindow() { return _toolWindow ; }
 
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
@@ -459,6 +462,8 @@ private:
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
+    ToolWindow* _toolWindow;
+
     BandwidthMeter _bandwidthMeter;
 
     QThread* _nodeThread;
@@ -526,7 +531,7 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
-    gpu::TransformPointer _viewTransform;
+    Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
