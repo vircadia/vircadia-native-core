@@ -124,7 +124,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
     if (!logMessage.isEmpty()) {
-        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
