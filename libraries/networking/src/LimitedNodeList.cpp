@@ -133,28 +133,19 @@ QUdpSocket& LimitedNodeList::getDTLSSocket() {
 }
 
 void LimitedNodeList::changeSocketBufferSizes(int numBytes) {
-    // change the socket send buffer size to be 1MB
-    int oldBufferSize = 0;
-    
-#ifdef Q_OS_WIN
-    int sizeOfInt = sizeof(oldBufferSize);
-#else
-    unsigned int sizeOfInt = sizeof(oldBufferSize);
-#endif
+    // change socket buffer sizes
     
     for (int i = 0; i < 2; i++) {
-        int bufferOpt = (i == 0) ? SO_SNDBUF : SO_RCVBUF;
+        QAbstractSocket::SocketOption bufferOpt = (i == 0)
+            ? QAbstractSocket::SendBufferSizeSocketOption : QAbstractSocket::ReceiveBufferSizeSocketOption;
         
-        getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&oldBufferSize), &sizeOfInt);
-        
-        setsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<const char*>(&numBytes),
-                   sizeof(numBytes));
+        int oldBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
         
         QString bufferTypeString = (i == 0) ? "send" : "receive";
         
         if (oldBufferSize < numBytes) {
-            int newBufferSize = 0;
-            getsockopt(_nodeSocket.socketDescriptor(), SOL_SOCKET, bufferOpt, reinterpret_cast<char*>(&newBufferSize), &sizeOfInt);
+            _nodeSocket.setSocketOption(bufferOpt, QVariant(numBytes));
+            int newBufferSize = _nodeSocket.socketOption(bufferOpt).toInt();
             
             qDebug() << "Changed socket" << bufferTypeString << "buffer size from" << oldBufferSize << "to"
                 << newBufferSize << "bytes";
