@@ -15,6 +15,7 @@
 #ifdef USE_BULLET_PHYSICS
 
 #include <btBulletDynamicsCommon.h>
+#include <glm/glm.hpp>
 
 #include "ShapeInfo.h"
 
@@ -33,6 +34,8 @@ public:
     //virtual void getWorldTransform (btTransform &worldTrans) const;
     //virtual void setWorldTransform (const btTransform &worldTrans);
 
+    virtual void applyVelocities() const = 0;
+
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
 
     MotionType getMotionType() const { return _motionType; }
@@ -43,6 +46,12 @@ public:
     void setVolume(float volume);
 
     float getMass() const { return _volume * _density; }
+
+    void setVelocity(const glm::vec3& velocity) const;
+    void setAngularVelocity(const glm::vec3& velocity) const;
+
+    void getVelocity(glm::vec3& velocityOut) const;
+    void getAngularVelocity(glm::vec3& angularVelocityOut) const;
 
     friend class PhysicsWorld;
 protected:

@@ -44,12 +44,14 @@ EntityMotionState::~EntityMotionState() {
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
     btVector3 pos;
-    glmToBullet(_entity->getPosition() - _cachedWorldOffset, pos);
+    glmToBullet(_entity->getPositionInMeters() - _cachedWorldOffset, pos);
     worldTrans.setOrigin(pos);
 
     btQuaternion rot;
     glmToBullet(_entity->getRotation(), rot);
     worldTrans.setRotation(rot);
+
+    applyVelocities();
 }
 
 // This callback is invoked by the physics simulation at the end of each simulation frame...
@@ -62,6 +64,19 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     glm::quat rot;
     bulletToGLM(worldTrans.getRotation(), rot);
     _entity->setRotation(rot);
+
+    glm::vec3 v;
+    getVelocity(v);
+    _entity->setVelocityInMeters(v);
+    getAngularVelocity(v);
+    _entity->setAngularVelocity(v);
+}
+
+void EntityMotionState::applyVelocities() const {
+    if (_body) {
+        setVelocity(_entity->getVelocityInMeters());
+        setAngularVelocity(_entity->getAngularVelocity());
+    }
 }
 
 void EntityMotionState::computeShapeInfo(ShapeInfo& info) {

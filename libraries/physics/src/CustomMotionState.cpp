@@ -13,6 +13,7 @@
 
 #include <math.h>
 
+#include "BulletUtil.h"
 #include "CustomMotionState.h"
 
 const float MIN_DENSITY = 200.0f;
@@ -56,6 +57,26 @@ void CustomMotionState::setRestitution(float restitution) {
 
 void CustomMotionState::setVolume(float volume) {
     _volume = btMax(btMin(fabsf(volume), MAX_VOLUME), MIN_VOLUME);
+}
+
+void CustomMotionState::setVelocity(const glm::vec3& velocity) const {
+    btVector3 v;
+    glmToBullet(velocity, v);
+    _body->setLinearVelocity(v);
+}
+
+void CustomMotionState::setAngularVelocity(const glm::vec3& velocity) const {
+    btVector3 v;
+    glmToBullet(velocity, v);
+    _body->setAngularVelocity(v);
+}
+
+void CustomMotionState::getVelocity(glm::vec3& velocityOut) const {
+    bulletToGLM(_body->getLinearVelocity(), velocityOut);
+}
+
+void CustomMotionState::getAngularVelocity(glm::vec3& angularVelocityOut) const {
+    bulletToGLM(_body->getAngularVelocity(), angularVelocityOut);
 }
 
 #endif // USE_BULLET_PHYSICS

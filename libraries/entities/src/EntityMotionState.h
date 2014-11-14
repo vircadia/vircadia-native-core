@@ -14,7 +14,10 @@
 
 #ifdef USE_BULLET_PHYSICS
 
+#include <AACube.h>
 #include <CustomMotionState.h>
+
+class EntityItem;
 
 class EntityMotionState : public CustomMotionState {
 public:
@@ -24,10 +27,11 @@ public:
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
-    virtual void getWorldTransform (btTransform &worldTrans) const;
-    virtual void setWorldTransform (const btTransform &worldTrans);
+    void getWorldTransform (btTransform &worldTrans) const;
+    void setWorldTransform (const btTransform &worldTrans);
+    void applyVelocities() const;
 
-    virtual void computeShapeInfo(ShapeInfo& info);
+    void computeShapeInfo(ShapeInfo& info);
 
     void getBoundingCubes(AACube& oldCube, AACube& newCube);
 

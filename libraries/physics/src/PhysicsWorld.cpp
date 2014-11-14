@@ -104,8 +104,10 @@ bool PhysicsWorld::addEntity(CustomMotionState* motionState) {
         shape->calculateLocalInertia(mass, inertia);
         btRigidBody* body = new btRigidBody(mass, motionState, shape, inertia);
         motionState->_body = body;
+        motionState->applyVelocities();
         // TODO: set dynamic/kinematic/static property from data stored in motionState
         _dynamicsWorld->addRigidBody(body);
+        return true;
     }
     return false;
 }
@@ -121,6 +123,7 @@ bool PhysicsWorld::removeEntity(CustomMotionState* motionState) {
         _shapeManager.releaseShape(info);
         delete body;
         motionState->_body = NULL;
+        return true;
     }
     return false;
 }
