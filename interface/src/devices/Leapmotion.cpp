@@ -70,8 +70,8 @@ Leapmotion::Leapmotion() :
 
     std::vector< Semantic > rootBones;
     rootBones.push_back("elbow");
-    rootBones.push_back("hand");
     rootBones.push_back("wrist");
+    rootBones.push_back("hand");
 
     std::vector< Semantic > fingers;
     fingers.push_back("thumb");

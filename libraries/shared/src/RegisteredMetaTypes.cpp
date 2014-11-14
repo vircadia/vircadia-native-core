@@ -12,6 +12,7 @@
 #include <QColor>
 #include <QUrl>
 #include <QUuid>
+#include <QRect>
 
 #include <glm/gtc/quaternion.hpp>
 
@@ -30,6 +31,7 @@ void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, vec3toScriptValue, vec3FromScriptValue);
     qScriptRegisterMetaType(engine, vec2toScriptValue, vec2FromScriptValue);
     qScriptRegisterMetaType(engine, quatToScriptValue, quatFromScriptValue);
+    qScriptRegisterMetaType(engine, qRectToScriptValue, qRectFromScriptValue);
     qScriptRegisterMetaType(engine, xColorToScriptValue, xColorFromScriptValue);
     qScriptRegisterMetaType(engine, qColorToScriptValue, qColorFromScriptValue);
     qScriptRegisterMetaType(engine, qURLToScriptValue, qURLFromScriptValue);
@@ -94,6 +96,22 @@ void quatFromScriptValue(const QScriptValue &object, glm::quat& quat) {
     quat.y = object.property("y").toVariant().toFloat();
     quat.z = object.property("z").toVariant().toFloat();
     quat.w = object.property("w").toVariant().toFloat();
+}
+
+QScriptValue qRectToScriptValue(QScriptEngine* engine, const QRect& rect) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", rect.x());
+    obj.setProperty("y", rect.y());
+    obj.setProperty("width", rect.width());
+    obj.setProperty("height", rect.height());
+    return obj;
+}
+
+void qRectFromScriptValue(const QScriptValue &object, QRect& rect) {
+    rect.setX(object.property("x").toVariant().toInt());
+    rect.setY(object.property("y").toVariant().toInt());
+    rect.setWidth(object.property("width").toVariant().toInt());
+    rect.setHeight(object.property("height").toVariant().toInt());
 }
 
 QScriptValue xColorToScriptValue(QScriptEngine *engine, const xColor& color) {

@@ -124,6 +124,28 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue TextOverlay::getProperty(const QString& property) {
+    if (property == "font") {
+        QScriptValue font = _scriptEngine->newObject();
+        font.setProperty("size", _fontSize);
+        return font;
+    }
+    if (property == "text") {
+        return _text;
+    }
+    if (property == "backgroundColor") {
+        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "leftMargin") {
+        return _leftMargin;
+    }
+    if (property == "topMargin") {
+        return _topMargin;
+    }
+
+    return Overlay2D::getProperty(property);
+}
+
 
 float TextOverlay::textWidth(const QString& text) const {
     QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
