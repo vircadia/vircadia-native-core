@@ -39,7 +39,7 @@ Script.include("libraries/gridTool.js");
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
 
-selectionManager.setEventListener(selectionDisplay.updateHandles);
+selectionManager.addEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -908,3 +908,36 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
+
+PropertiesTool = function(opts) {
+    var that = {};
+
+    var url = Script.resolvePath('html/entityProperties.html');
+    var webView = new WebWindow('Entity Properties', url, 200, 280);
+
+    webView.setVisible(true);
+
+    selectionManager.addEventListener(function() {
+        data = {
+            type: 'update',
+        };
+        if (selectionManager.hasSelection()) {
+            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+        }
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    });
+
+    webView.eventBridge.webEventReceived.connect(function(data) {
+        print(data);
+        data = JSON.parse(data);
+        if (data.type == "update") {
+            Entities.editEntity(selectionManager.selections[0], data.properties);
+            selectionManager._update();
+        }
+    });
+
+    return that;
+};
+
+propertiesTool = PropertiesTool();
+

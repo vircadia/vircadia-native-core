@@ -23,11 +23,12 @@ SelectionManager = (function() {
 
     that.savedProperties = {};
 
-    that.eventListener = null;
     that.selections = [];
     // These are selections that don't have a known ID yet
     that.pendingSelections = [];
     var pendingSelectionTimer = null;
+
+    var listeners = [];
 
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.localPosition = { x: 0, y: 0, z: 0 };
@@ -46,8 +47,8 @@ SelectionManager = (function() {
         }
     };
 
-    that.setEventListener = function(func) {
-        that.eventListener = func;
+    that.addEventListener = function(func) {
+        listeners.push(func);
     };
 
     that.hasSelection = function() {
@@ -187,8 +188,12 @@ SelectionManager = (function() {
             SelectionDisplay.setSpaceMode(SPACE_WORLD);
         }
 
-        if (that.eventListener) {
-            that.eventListener();
+        for (var i = 0; i < listeners.length; i++) {
+            try {
+                listeners[i]();
+            } catch (e) {
+                print("got exception");
+            }
         }
     };
 
