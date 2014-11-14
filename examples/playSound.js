@@ -11,7 +11,7 @@
 Script.include("libraries/globals.js");
 
 //  First, load a sample sound from a URL
-var bird = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
+var bird = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
 
 function maybePlaySound(deltaTime) {
 	if (Math.random() < 0.01) {

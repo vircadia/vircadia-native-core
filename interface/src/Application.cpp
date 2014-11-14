@@ -65,6 +65,7 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -3905,7 +3906,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, RayToOverlayIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
+                            RayToOverlayIntersectionResultFromScriptValue);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -3920,6 +3923,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);

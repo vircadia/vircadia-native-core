@@ -151,4 +151,13 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue ImageOverlay::getProperty(const QString& property) {
+    if (property == "subImage") {
+        return qRectToScriptValue(_scriptEngine, _fromImage);
+    }
+    if (property == "imageURL") {
+        return _imageURL.toString();
+    }
 
+    return Overlay2D::getProperty(property);
+}

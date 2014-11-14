@@ -180,9 +180,38 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
 
 }
 
+QScriptValue Text3DOverlay::getProperty(const QString& property) {
+    if (property == "text") {
+        return _text;
+    }
+    if (property == "backgroundColor") {
+        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "lineHeight") {
+        return _lineHeight;
+    }
+    if (property == "leftMargin") {
+        return _leftMargin;
+    }
+    if (property == "topMargin") {
+        return _topMargin;
+    }
+    if (property == "rightMargin") {
+        return _rightMargin;
+    }
+    if (property == "bottomMargin") {
+        return _bottomMargin;
+    }
+    if (property == "isFacingAvatar") {
+        return _isFacingAvatar;
+    }
+    return Planar3DOverlay::getProperty(property);
+}
+
 float Text3DOverlay::textWidth(const QString& text) const {
     QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
     float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
     return scaleFactor * (float)fontMetrics.width(qPrintable(text));
 }
+

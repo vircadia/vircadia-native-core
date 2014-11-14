@@ -103,3 +103,14 @@ void LocalVoxelsOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+QScriptValue LocalVoxelsOverlay::getProperty(const QString& property) {
+    if (property == "scale") {
+        return vec3toScriptValue(_scriptEngine, getDimensions());
+    }
+    if (property == "name") {
+        return _treeName;
+    }
+
+    return Volume3DOverlay::getProperty(property);
+}
+
