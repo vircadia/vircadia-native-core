@@ -136,19 +136,34 @@
     Entities.editEntity(this.entityID, { position: finalPos });
   }
   this.moveDeadPiece = function() {
-    return;
      var myPos = this.getIndexPosition(this.properties.position);
-     for (var i = 0; i < this.pieces.length; i++) {
-       if (this.pieces[i].id != this.entityID.id) {
-         var piecePos = this.getIndexPosition(Entities.getEntityProperties(this.pieces[i]).position);
+     
+     for (var i = 0; i < this.boardUserData.pieces.length; i++) {
+       var piece = this.boardUserData.pieces[i];
+  
+       if (piece.id != this.entityID.id) {
+         var properties = Entities.getEntityProperties(piece);
+         
+         var isWhite = properties.modelURL.search("White") !== -1;
+         var type = (properties.modelURL.search("King") !== -1) ?  4 :
+                    (properties.modelURL.search("Queen") !== -1) ?  3 :
+                    (properties.modelURL.search("Rook") !== -1) ?  2 :
+                    (properties.modelURL.search("Knight") !== -1) ?  1 :
+                    (properties.modelURL.search("Bishop") !== -1) ?  0 :
+                    (properties.modelURL.search("Pawn") !== -1) ?  -1 : -2;
+        
+         var piecePos = this.getIndexPosition(properties.position);
          if (myPos.i === piecePos.i && myPos.j === piecePos.j) {
-           Entities.editEntity(this.pieces[i], { position: this.getAbsolutePosition({ i: 0, j: 0 })});
+           var position = this.getAbsolutePosition((isWhite) ? { i: type, j: -1 } : { i: 7 - type, j: 8 },
+                                                    properties.dimensions.y / 2.0);
+           Entities.editEntity(piece, {
+             position: position
+           });
            break;
          }
        }
      }
   }
-
   
   this.grab = function(mouseEvent) {
     if (this.active) {
@@ -165,7 +180,7 @@
     if (this.active) {
       this.updatePosition(mouseEvent);
       this.snapToGrid();
-      //this.moveDeadPiece(); TODO
+      this.moveDeadPiece();
       this.playSound();
     }
   }
