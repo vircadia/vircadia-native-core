@@ -123,15 +123,17 @@ void EntityServer::pruneDeletedEntities() {
     if (tree->hasAnyDeletedEntities()) {
 
         quint64 earliestLastDeletedEntitiesSent = usecTimestampNow() + 1; // in the future
-        foreach (const SharedNodePointer& otherNode, NodeList::getInstance()->getNodeHash()) {
-            if (otherNode->getLinkedData()) {
-                EntityNodeData* nodeData = static_cast<EntityNodeData*>(otherNode->getLinkedData());
+        
+        NodeList::getInstance()->eachNode([&earliestLastDeletedEntitiesSent](const SharedNodePointer& node) {
+            if (node->getLinkedData()) {
+                EntityNodeData* nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
                 quint64 nodeLastDeletedEntitiesSentAt = nodeData->getLastDeletedEntitiesSentAt();
                 if (nodeLastDeletedEntitiesSentAt < earliestLastDeletedEntitiesSent) {
                     earliestLastDeletedEntitiesSent = nodeLastDeletedEntitiesSentAt;
                 }
             }
-        }
+        });
+        
         tree->forgetEntitiesDeletedBefore(earliestLastDeletedEntitiesSent);
     }
 }

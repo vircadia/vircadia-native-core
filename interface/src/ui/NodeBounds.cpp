@@ -53,62 +53,61 @@ void NodeBounds::draw() {
     float selectedScale = 0;
 
     NodeList* nodeList = NodeList::getInstance();
-
-    foreach (const SharedNodePointer& node, nodeList->getNodeHash()) {
+    nodeList->eachNode([&](const SharedNodePointer& node){
         NodeType_t nodeType = node->getType();
-
+        
         if (nodeType == NodeType::VoxelServer && _showVoxelNodes) {
             serverJurisdictions = &voxelServerJurisdictions;
         } else if (nodeType == NodeType::EntityServer && _showEntityNodes) {
             serverJurisdictions = &entityServerJurisdictions;
         } else {
-            continue;
+            return;
         }
-
+        
         QUuid nodeUUID = node->getUUID();
         serverJurisdictions->lockForRead();
         if (serverJurisdictions->find(nodeUUID) != serverJurisdictions->end()) {
             const JurisdictionMap& map = (*serverJurisdictions)[nodeUUID];
-
+            
             unsigned char* rootCode = map.getRootOctalCode();
-
+            
             if (rootCode) {
                 VoxelPositionSize rootDetails;
                 voxelDetailsForCode(rootCode, rootDetails);
                 serverJurisdictions->unlock();
                 glm::vec3 location(rootDetails.x, rootDetails.y, rootDetails.z);
                 location *= (float)TREE_SCALE;
-
+                
                 AACube serverBounds(location, rootDetails.s * TREE_SCALE);
-
+                
                 glm::vec3 center = serverBounds.getVertex(BOTTOM_RIGHT_NEAR)
-                    + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
-
+                + ((serverBounds.getVertex(TOP_LEFT_FAR) - serverBounds.getVertex(BOTTOM_RIGHT_NEAR)) / 2.0f);
+                
                 const float VOXEL_NODE_SCALE = 1.00f;
                 const float ENTITY_NODE_SCALE = 0.99f;
-
+                
                 float scaleFactor = rootDetails.s * TREE_SCALE;
-
+                
                 // Scale by 0.92 - 1.00 depending on the scale of the node.  This allows smaller nodes to scale in
                 // a bit and not overlap larger nodes.
                 scaleFactor *= 0.92 + (rootDetails.s * 0.08);
-
+                
                 // Scale different node types slightly differently because it's common for them to overlap.
                 if (nodeType == NodeType::VoxelServer) {
                     scaleFactor *= VOXEL_NODE_SCALE;
                 } else if (nodeType == NodeType::EntityServer) {
                     scaleFactor *= ENTITY_NODE_SCALE;
                 }
-
+                
                 float red, green, blue;
                 getColorForNodeType(nodeType, red, green, blue);
                 drawNodeBorder(center, scaleFactor, red, green, blue);
-
+                
                 float distance;
                 BoxFace face;
                 bool inside = serverBounds.contains(mouseRayOrigin);
                 bool colliding = serverBounds.findRayIntersection(mouseRayOrigin, mouseRayDirection, distance, face);
-
+                
                 // If the camera is inside a node it will be "selected" if you don't have your cursor over another node
                 // that you aren't inside.
                 if (colliding && (!selectedNode || (!inside && (distance < selectedDistance || selectedIsInside)))) {
@@ -124,7 +123,7 @@ void NodeBounds::draw() {
         } else {
             serverJurisdictions->unlock();
         }
-    }
+    });
 
     if (selectedNode) {
         glPushMatrix();

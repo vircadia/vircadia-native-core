@@ -42,21 +42,23 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
         const glm::vec3& direction, const AttributePointer& attribute, float& distance) {
     SharedObjectPointer closestSpanner;
     float closestDistance = FLT_MAX;
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    
+    NodeList::getInstance()->eachNode([&](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
             if (client) {
                 float clientDistance;
                 SharedObjectPointer clientSpanner = client->getDataCopy().findFirstRaySpannerIntersection(
-                    origin, direction, attribute, clientDistance);
+                                                                                                          origin, direction, attribute, clientDistance);
                 if (clientSpanner && clientDistance < closestDistance) {
                     closestSpanner = clientSpanner;
                     closestDistance = clientDistance;
                 }
             }
         }
-    }
+    });
+    
     if (closestSpanner) {
         distance = closestDistance;
     }
@@ -115,7 +117,7 @@ MetavoxelClient* MetavoxelClientManager::createClient(const SharedNodePointer& n
 }
 
 void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
-    foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
+    NodeList::getInstance()->eachNode([&visitor](const SharedNodePointer& node){
         if (node->getType() == NodeType::MetavoxelServer) {
             QMutexLocker locker(&node->getMutex());
             MetavoxelClient* client = static_cast<MetavoxelClient*>(node->getLinkedData());
@@ -123,7 +125,7 @@ void MetavoxelClientManager::guide(MetavoxelVisitor& visitor) {
                 client->getDataCopy().guide(visitor);
             }
         }
-    }
+    });
 }
 
 MetavoxelUpdater::MetavoxelUpdater(MetavoxelClientManager* clientManager) :

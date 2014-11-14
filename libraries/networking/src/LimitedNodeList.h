@@ -20,16 +20,18 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <QtCore/QElapsedTimer>
-#include <QtCore/QMutex>
-#include <QtCore/QSet>
-#include <QtCore/QSettings>
-#include <QtCore/QSharedPointer>
-#include <QtNetwork/QHostAddress>
-#include <QtNetwork/QUdpSocket>
+#include <qelapsedtimer.h>
+#include <qreadwritelock.h>
+#include <qset.h>
+#include <qsharedpointer.h>
+#include <QtNetwork/qudpsocket.h>
+#include <QtNetwork/qhostaddress.h>
+
+#include <tbb/concurrent_unordered_map.h>
 
 #include "DomainHandler.h"
 #include "Node.h"
+#include "UUIDHasher.h"
 
 const int MAX_PACKET_SIZE = 1500;
 
@@ -49,8 +51,11 @@ class HifiSockAddr;
 typedef QSet<NodeType_t> NodeSet;
 
 typedef QSharedPointer<Node> SharedNodePointer;
-typedef QHash<QUuid, SharedNodePointer> NodeHash;
 Q_DECLARE_METATYPE(SharedNodePointer)
+
+using namespace tbb;
+typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
+typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -68,7 +73,6 @@ public:
 
     const QUuid& getSessionUUID() const { return _sessionUUID; }
     void setSessionUUID(const QUuid& sessionUUID);
-    
     
     void rebindNodeSocket();
     QUdpSocket& getNodeSocket() { return _nodeSocket; }
@@ -90,17 +94,14 @@ public:
                          const HifiSockAddr& overridenSockAddr = HifiSockAddr());
 
     void(*linkedDataCreateCallback)(Node *);
-
-    NodeHash getNodeHash();
+    
     int size() const { return _nodeHash.size(); }
 
-    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID, bool blockingLock = true);
+    SharedNodePointer nodeWithUUID(const QUuid& nodeUUID);
     SharedNodePointer sendingNodeForPacket(const QByteArray& packet);
     
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
-    SharedNodePointer updateSocketsForNode(const QUuid& uuid,
-                                           const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
 
@@ -125,6 +126,40 @@ public:
     
     void sendHeartbeatToIceServer(const HifiSockAddr& iceServerSockAddr,
                                   QUuid headerID = QUuid(), const QUuid& connectRequestID = QUuid());
+    
+    template<typename NodeLambda>
+    void eachNode(NodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+        
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            functor(it->second);
+        }
+    }
+    
+    template<typename BreakableNodeLambda>
+    void eachNodeBreakable(BreakableNodeLambda functor) {
+        QReadLocker readLock(&_nodeMutex);
+        
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            if (!functor(it->second)) {
+                break;
+            }
+        }
+    }
+    
+    template<typename PredLambda>
+    SharedNodePointer nodeMatchingPredicate(const PredLambda predicate) {
+        QReadLocker readLock(&_nodeMutex);
+        
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            if (predicate(it->second)) {
+                return it->second;
+            }
+        }
+        
+        return SharedNodePointer();
+    }
+    
 public slots:
     void reset();
     void eraseAllNodes();
@@ -150,15 +185,14 @@ protected:
     
     qint64 writeDatagram(const QByteArray& datagram, const HifiSockAddr& destinationSockAddr,
                          const QUuid& connectionSecret);
-
-    NodeHash::iterator killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill);
-
     
     void changeSocketBufferSizes(int numBytes);
+    
+    void handleNodeKill(const SharedNodePointer& node);
 
     QUuid _sessionUUID;
     NodeHash _nodeHash;
-    QMutex _nodeHashMutex;
+    QReadWriteLock _nodeMutex;
     QUdpSocket _nodeSocket;
     QUdpSocket* _dtlsSocket;
     HifiSockAddr _localSockAddr;
@@ -167,6 +201,17 @@ protected:
     int _numCollectedPackets;
     int _numCollectedBytes;
     QElapsedTimer _packetStatTimer;
+    
+    template<typename IteratorLambda>
+    void eachNodeHashIterator(IteratorLambda functor) {
+        QWriteLocker writeLock(&_nodeMutex);
+        NodeHash::iterator it = _nodeHash.begin();
+        
+        while (it != _nodeHash.end()) {
+            functor(it);
+        }
+    }
+    
 };
 
 #endif // hifi_LimitedNodeList_h

@@ -17,9 +17,17 @@ macro(LINK_SHARED_DEPENDENCIES)
     target_link_libraries(${TARGET_NAME} ${${TARGET_NAME}_LIBRARIES_TO_LINK})
   endif ()
   
+  if (${TARGET_NAME}_DEPENDENCY_INCLUDES)
+    list(REMOVE_DUPLICATES ${TARGET_NAME}_DEPENDENCY_INCLUDES)
+    
+    # include those in our own target
+    include_directories(SYSTEM ${${TARGET_NAME}_DEPENDENCY_INCLUDES})
+  endif ()
+  
   # we've already linked our Qt modules, but we need to bubble them up to parents
   list(APPEND ${TARGET_NAME}_LIBRARIES_TO_LINK "${${TARGET}_QT_MODULES_TO_LINK}")
   
   # set the property on this target so it can be retreived by targets linking to us
-  set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${${TARGET}_LIBRARIES_TO_LINK}")
+  set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_LIBRARIES "${${TARGET_NAME}_LIBRARIES_TO_LINK}")
+  set_target_properties(${TARGET_NAME} PROPERTIES DEPENDENCY_INCLUDES "${${TARGET_NAME}_DEPENDENCY_INCLUDES}")
 endmacro(LINK_SHARED_DEPENDENCIES)

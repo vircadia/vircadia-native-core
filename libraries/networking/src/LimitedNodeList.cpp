@@ -21,6 +21,8 @@
 
 #include <LogHandler.h>
 
+#include <tbb/parallel_for.h>
+
 #include "AccountManager.h"
 #include "Assignment.h"
 #include "HifiSockAddr.h"
@@ -68,7 +70,6 @@ LimitedNodeList* LimitedNodeList::getInstance() {
 LimitedNodeList::LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort) :
     _sessionUUID(),
     _nodeHash(),
-    _nodeHashMutex(QMutex::Recursive),
     _nodeSocket(this),
     _dtlsSocket(NULL),
     _localSockAddr(),
@@ -328,19 +329,9 @@ int LimitedNodeList::findNodeAndUpdateWithDataFromPacket(const QByteArray& packe
     return 0;
 }
 
-SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID, bool blockingLock) {
-    const int WAIT_TIME = 10; // wait up to 10ms in the try lock case
-    SharedNodePointer node;
-    // if caller wants us to block and guarantee the correct answer, then honor that request
-    if (blockingLock) {
-        // this will block till we can get access
-        QMutexLocker locker(&_nodeHashMutex);
-        node = _nodeHash.value(nodeUUID);
-    } else if (_nodeHashMutex.tryLock(WAIT_TIME)) { // some callers are willing to get wrong answers but not block
-        node = _nodeHash.value(nodeUUID);
-        _nodeHashMutex.unlock();
-    }
-    return node;
+SharedNodePointer LimitedNodeList::nodeWithUUID(const QUuid& nodeUUID) {
+    NodeHash::const_iterator it = _nodeHash.find(nodeUUID);
+    return it == _nodeHash.cend() ? SharedNodePointer() : it->second;
  }
 
 SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet) {
@@ -350,21 +341,21 @@ SharedNodePointer LimitedNodeList::sendingNodeForPacket(const QByteArray& packet
     return nodeWithUUID(nodeUUID);
 }
 
-NodeHash LimitedNodeList::getNodeHash() {
-    QMutexLocker locker(&_nodeHashMutex);
-    return NodeHash(_nodeHash);
-}
-
 void LimitedNodeList::eraseAllNodes() {
     qDebug() << "Clearing the NodeList. Deleting all nodes in list.";
     
-    QMutexLocker locker(&_nodeHashMutex);
-
-    NodeHash::iterator nodeItem = _nodeHash.begin();
-
-    // iterate the nodes in the list
-    while (nodeItem != _nodeHash.end()) {
-        nodeItem = killNodeAtHashIterator(nodeItem);
+    QSet<SharedNodePointer> killedNodes;
+    eachNode([&killedNodes](const SharedNodePointer& node){
+        killedNodes.insert(node);
+    });
+    
+    // iterate the current nodes, emit that they are dying and remove them from the hash
+    _nodeMutex.lockForWrite();
+    _nodeHash.clear();
+    _nodeMutex.unlock();
+    
+    foreach(const SharedNodePointer& killedNode, killedNodes) {
+        handleNodeKill(killedNode);
     }
 }
 
@@ -373,18 +364,15 @@ void LimitedNodeList::reset() {
 }
 
 void LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
-    QMutexLocker locker(&_nodeHashMutex);
-    
-    NodeHash::iterator nodeItemToKill = _nodeHash.find(nodeUUID);
-    if (nodeItemToKill != _nodeHash.end()) {
-        killNodeAtHashIterator(nodeItemToKill);
+    NodeHash::iterator it = _nodeHash.find(nodeUUID);
+    if (it != _nodeHash.end()) {
+        SharedNodePointer matchingNode = it->second;
+        
+        QWriteLocker writeLocker(&_nodeMutex);
+        _nodeHash.unsafe_erase(it);
+        
+        handleNodeKill(matchingNode);
     }
-}
-
-NodeHash::iterator LimitedNodeList::killNodeAtHashIterator(NodeHash::iterator& nodeItemToKill) {
-    qDebug() << "Killed" << *nodeItemToKill.value();
-    emit nodeKilled(nodeItemToKill.value());
-    return _nodeHash.erase(nodeItemToKill);
 }
 
 void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
@@ -395,66 +383,44 @@ void LimitedNodeList::processKillNode(const QByteArray& dataByteArray) {
     killNodeWithUUID(nodeUUID);
 }
 
+void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
+    qDebug() << "Killed" << *node;
+    emit nodeKilled(node);
+}
+
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
-                                            const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
-    _nodeHashMutex.lock();
-    
-    if (!_nodeHash.contains(uuid)) {
+                                                   const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
+    try {
+        SharedNodePointer matchingNode = _nodeHash.at(uuid);
         
+        matchingNode->setPublicSocket(publicSocket);
+        matchingNode->setLocalSocket(localSocket);
+        
+        return matchingNode;
+    } catch (std::out_of_range) {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         SharedNodePointer newNodeSharedPointer(newNode, &QObject::deleteLater);
         
-        _nodeHash.insert(newNode->getUUID(), newNodeSharedPointer);
-        
-        _nodeHashMutex.unlock();
+        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodeSharedPointer));
         
         qDebug() << "Added" << *newNode;
-
+        
         emit nodeAdded(newNodeSharedPointer);
-
+        
         return newNodeSharedPointer;
-    } else {
-        _nodeHashMutex.unlock();
-        
-        return updateSocketsForNode(uuid, publicSocket, localSocket);
     }
-}
-
-SharedNodePointer LimitedNodeList::updateSocketsForNode(const QUuid& uuid,
-                                                 const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket) {
-
-    SharedNodePointer matchingNode = nodeWithUUID(uuid);
-    
-    if (matchingNode) {
-        // perform appropriate updates to this node
-        QMutexLocker locker(&matchingNode->getMutex());
-        
-        // check if we need to change this node's public or local sockets
-        if (publicSocket != matchingNode->getPublicSocket()) {
-            matchingNode->setPublicSocket(publicSocket);
-            qDebug() << "Public socket change for node" << *matchingNode;
-        }
-        
-        if (localSocket != matchingNode->getLocalSocket()) {
-            matchingNode->setLocalSocket(localSocket);
-            qDebug() << "Local socket change for node" << *matchingNode;
-        }
-    }
-    
-    return matchingNode;
 }
 
 unsigned LimitedNodeList::broadcastToNodes(const QByteArray& packet, const NodeSet& destinationNodeTypes) {
     unsigned n = 0;
-
-    foreach (const SharedNodePointer& node, getNodeHash()) {
-        // only send to the NodeTypes we are asked to send to.
+    
+    eachNode([&](const SharedNodePointer& node){
         if (destinationNodeTypes.contains(node->getType())) {
             writeDatagram(packet, node);
             ++n;
         }
-    }
+    });
 
     return n;
 }
@@ -493,15 +459,9 @@ QByteArray LimitedNodeList::constructPingReplyPacket(const QByteArray& pingPacke
 }
 
 SharedNodePointer LimitedNodeList::soloNodeOfType(char nodeType) {
-
-    if (memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
-        foreach (const SharedNodePointer& node, getNodeHash()) {
-            if (node->getType() == nodeType) {
-                return node;
-            }
-        }
-    }
-    return SharedNodePointer();
+    return nodeMatchingPredicate([&](const SharedNodePointer& node){
+        return node->getType() == nodeType;
+    });
 }
 
 void LimitedNodeList::getPacketStats(float& packetsPerSecond, float& bytesPerSecond) {
@@ -516,28 +476,28 @@ void LimitedNodeList::resetPacketStats() {
 }
 
 void LimitedNodeList::removeSilentNodes() {
-
-    _nodeHashMutex.lock();
+    QSet<SharedNodePointer> killedNodes;
     
-    NodeHash::iterator nodeItem = _nodeHash.begin();
-
-    while (nodeItem != _nodeHash.end()) {
-        SharedNodePointer node = nodeItem.value();
-
+    eachNodeHashIterator([&](NodeHash::iterator& it){
+        SharedNodePointer node = it->second;
         node->getMutex().lock();
-
+        
         if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * 1000)) {
-            // call our private method to kill this node (removes it and emits the right signal)
-            nodeItem = killNodeAtHashIterator(nodeItem);
+            // call the NodeHash erase to get rid of this node
+            it = _nodeHash.unsafe_erase(it);
+            
+            killedNodes.insert(node);
         } else {
-            // we didn't kill this node, push the iterator forwards
-            ++nodeItem;
+            // we didn't erase this node, push the iterator forwards
+            ++it;
         }
         
         node->getMutex().unlock();
-    }
+    });
     
-    _nodeHashMutex.unlock();
+    foreach(const SharedNodePointer& killedNode, killedNodes) {
+        handleNodeKill(killedNode);
+    }
 }
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
