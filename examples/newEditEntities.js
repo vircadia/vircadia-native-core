@@ -272,11 +272,13 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 gridTool.setVisible(false);
+                grid.setEnabled(false);
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
                 gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
+                grid.setEnabled(true);
             }
             return true;
         }

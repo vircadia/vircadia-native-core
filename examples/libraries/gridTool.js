@@ -31,12 +31,18 @@ Grid = function(opts) {
     that.getMajorIncrement = function() { return minorGridSpacing * majorGridEvery; };
 
     that.visible = false;
+    that.enabled = false;
 
     that.getOrigin = function() {
         return origin;
     }
 
     that.getSnapToGrid = function() { return snapToGrid; };
+
+    that.setEnabled = function(enabled) {
+        that.enabled = enabled;
+        updateGrid();
+    }
 
     that.setVisible = function(visible, noUpdate) {
         that.visible = visible;
@@ -127,7 +133,7 @@ Grid = function(opts) {
     function updateGrid() {
         Overlays.editOverlay(gridOverlay, {
             position: { x: origin.y, y: origin.y, z: -origin.y },
-            visible: that.visible,
+            visible: that.visible && that.enabled,
             minorGridWidth: minorGridSpacing,
             majorGridEvery: majorGridEvery,
                 color: gridColor,
