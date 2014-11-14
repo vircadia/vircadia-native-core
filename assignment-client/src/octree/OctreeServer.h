@@ -167,6 +167,11 @@ protected:
     JurisdictionSender* _jurisdictionSender;
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
+    
+    int _persistInterval;
+    bool _wantBackup;
+    QString _backupExtensionFormat;
+    int _backupInterval;
 
     static OctreeServer* _instance;
 

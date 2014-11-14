@@ -15,12 +15,23 @@
 
 #include "OctreePersistThread.h"
 
-OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval) :
+const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+const int OctreePersistThread::DEFAULT_BACKUP_INTERVAL = 1000 * 60 * 1; // every 1 minutes
+const QString OctreePersistThread::DEFAULT_BACKUP_EXTENSION_FORMAT(".backup.%Y-%m-%d.%H:%M:%S.%z");
+
+
+OctreePersistThread::OctreePersistThread(Octree* tree, const QString& filename, int persistInterval, 
+                                                bool wantBackup, int backupInterval, const QString& backupExtensionFormat) :
     _tree(tree),
     _filename(filename),
+    _backupExtensionFormat(backupExtensionFormat),
     _persistInterval(persistInterval),
+    _backupInterval(backupInterval),
     _initialLoadComplete(false),
-    _loadTimeUSecs(0) 
+    _loadTimeUSecs(0),
+    _lastCheck(0),
+    _lastBackup(0),
+    _wantBackup(wantBackup)
 {
 }
 
@@ -51,16 +62,22 @@ bool OctreePersistThread::process() {
         unsigned long leafNodeCount = OctreeElement::getLeafNodeCount();
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves", nodeCount, internalNodeCount, leafNodeCount);
 
-        double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() / (double)OctreeElement::getGetChildAtIndexCalls();
-        qDebug() << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
-                << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
+        bool wantDebug = false;
+        if (wantDebug) {
+            double usecPerGet = (double)OctreeElement::getGetChildAtIndexTime() 
+                                    / (double)OctreeElement::getGetChildAtIndexCalls();
+            qDebug() << "getChildAtIndexCalls=" << OctreeElement::getGetChildAtIndexCalls()
+                    << " getChildAtIndexTime=" << OctreeElement::getGetChildAtIndexTime() << " perGet=" << usecPerGet;
 
-        double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() / (double)OctreeElement::getSetChildAtIndexCalls();
-        qDebug() << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
-                << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perset=" << usecPerSet;
+            double usecPerSet = (double)OctreeElement::getSetChildAtIndexTime() 
+                                    / (double)OctreeElement::getSetChildAtIndexCalls();
+            qDebug() << "setChildAtIndexCalls=" << OctreeElement::getSetChildAtIndexCalls()
+                    << " setChildAtIndexTime=" << OctreeElement::getSetChildAtIndexTime() << " perSet=" << usecPerSet;
+        }
 
         _initialLoadComplete = true;
-        _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
+        _lastBackup = _lastCheck = usecTimestampNow(); // we just loaded, no need to save again
+        time(&_lastPersistTime);
 
         emit loadCompleted();
     }
@@ -79,7 +96,7 @@ bool OctreePersistThread::process() {
 
         if (sinceLastSave > intervalToCheck) {
             _lastCheck = now;
-            persistOperation();
+            persist();
         }
     }
     return isStillRunning();  // keep running till they terminate us
@@ -88,11 +105,11 @@ bool OctreePersistThread::process() {
 
 void OctreePersistThread::aboutToFinish() {
     qDebug() << "Persist thread about to finish...";
-    persistOperation();
+    persist();
     qDebug() << "Persist thread done with about to finish...";
 }
 
-void OctreePersistThread::persistOperation() {
+void OctreePersistThread::persist() {
     if (_tree->isDirty()) {
         _tree->lockForWrite();
         {
@@ -102,9 +119,38 @@ void OctreePersistThread::persistOperation() {
         }
         _tree->unlock();
 
+        backup(); // handle backup if requested        
+
         qDebug() << "saving Octree to file " << _filename << "...";
-        _tree->writeToSVOFile(_filename.toLocal8Bit().constData());
+        _tree->writeToSVOFile(qPrintable(_filename));
+        time(&_lastPersistTime);
         _tree->clearDirtyBit(); // tree is clean after saving
-        qDebug("DONE saving Octree to file...");
+        qDebug() << "DONE saving Octree to file...";
+    }
+}
+
+void OctreePersistThread::backup() {
+    if (_wantBackup) {
+        quint64 now = usecTimestampNow();
+        quint64 sinceLastBackup = now - _lastBackup;
+        quint64 MSECS_TO_USECS = 1000;
+        quint64 intervalToBackup = _backupInterval * MSECS_TO_USECS;
+        
+        if (sinceLastBackup > intervalToBackup) {
+            struct tm* localTime = localtime(&_lastPersistTime);
+
+            char backupExtension[256];
+            strftime(backupExtension, sizeof(backupExtension), qPrintable(_backupExtensionFormat), localTime);
+
+            QString backupFileName = _filename + backupExtension;
+
+            qDebug() << "backing up persist file " << _filename << "to" << backupFileName << "...";
+            int result = rename(qPrintable(_filename), qPrintable(backupFileName));
+            if (result == 0) {
+                qDebug() << "DONE backing up persist file...";
+            } else {
+                qDebug() << "ERROR in backing up persist file...";
+            }
+        }
     }
 }
