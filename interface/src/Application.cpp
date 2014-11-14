@@ -3902,7 +3902,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, RayToOverlayIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
+                            RayToOverlayIntersectionResultFromScriptValue);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,

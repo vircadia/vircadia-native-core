@@ -115,7 +115,9 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
     READ_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, bool, animationIsPlaying);
     
     if (propertyFlags.getHasProperty(PROP_ANIMATION_PLAYING)) {
-        setAnimationIsPlaying(animationIsPlaying);
+        if (animationIsPlaying != getAnimationIsPlaying()) {
+            setAnimationIsPlaying(animationIsPlaying);
+        }
     }
     if (propertyFlags.getHasProperty(PROP_ANIMATION_FPS)) {
         setAnimationFPS(animationFPS);
@@ -345,7 +347,6 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
 
         if (frameCount > 0) {
             int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
-
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
                 animationFrameIndex = 0;
             }
@@ -427,7 +428,9 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
 
     if (settingsMap.contains("running")) {
         bool running = settingsMap["running"].toBool();
-        setAnimationIsPlaying(running);
+        if (running != getAnimationIsPlaying()) {
+            setAnimationIsPlaying(running);
+        }
     }
 
     if (settingsMap.contains("firstFrame")) {
