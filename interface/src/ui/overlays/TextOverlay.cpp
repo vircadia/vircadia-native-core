@@ -133,7 +133,7 @@ TextOverlay* TextOverlay::createClone() {
 
 void TextOverlay::writeToClone(TextOverlay* clone) {
     Overlay2D::writeToClone(clone);
-    clone->_text = QString::QString(_text);
+    clone->_text = _text;
     clone->_backgroundColor = _backgroundColor;
     clone->_leftMargin = _leftMargin;
     clone->_topMargin = _topMargin;
