@@ -200,7 +200,6 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_GRAVITY, gravity);
     CHECK_PROPERTY_CHANGE(PROP_DAMPING, damping);
     CHECK_PROPERTY_CHANGE(PROP_LIFETIME, lifetime);
-    CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
     CHECK_PROPERTY_CHANGE(PROP_SCRIPT, script);
     CHECK_PROPERTY_CHANGE(PROP_COLOR, color);
     CHECK_PROPERTY_CHANGE(PROP_MODEL_URL, modelURL);
@@ -226,6 +225,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
+    CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
 
     return changedProperties;
 }
@@ -250,7 +250,6 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(damping);
     COPY_PROPERTY_TO_QSCRIPTVALUE(mass);
     COPY_PROPERTY_TO_QSCRIPTVALUE(lifetime);
-    COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(age, getAge()); // gettable, but not settable
     COPY_PROPERTY_TO_QSCRIPTVALUE_GETTER(ageAsText, formatSecondsElapsed(getAge())); // gettable, but not settable
     COPY_PROPERTY_TO_QSCRIPTVALUE(script);
@@ -280,6 +279,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();

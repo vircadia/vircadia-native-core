@@ -117,7 +117,6 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_GRAVITY;
     requestedProperties += PROP_DAMPING;
     requestedProperties += PROP_LIFETIME;
-    requestedProperties += PROP_USER_DATA;
     requestedProperties += PROP_SCRIPT;
     requestedProperties += PROP_REGISTRATION_POINT;
     requestedProperties += PROP_ANGULAR_VELOCITY;
@@ -126,6 +125,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     requestedProperties += PROP_LOCKED;
+    requestedProperties += PROP_USER_DATA;
     
     return requestedProperties;
 }
