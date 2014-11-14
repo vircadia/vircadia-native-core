@@ -78,19 +78,33 @@ bool OctreePersistThread::process() {
         quint64 intervalToCheck = _persistInterval * MSECS_TO_USECS;
 
         if (sinceLastSave > intervalToCheck) {
-            // check the dirty bit and persist here...
-            _lastCheck = usecTimestampNow();
-            if (_tree->isDirty()) {
-                qDebug() << "pruning Octree before saving...";
-                _tree->pruneTree();
-                qDebug() << "DONE pruning Octree before saving...";
-            
-                qDebug() << "saving Octree to file " << _filename << "...";
-                _tree->writeToSVOFile(_filename.toLocal8Bit().constData());
-                _tree->clearDirtyBit(); // tree is clean after saving
-                qDebug("DONE saving Octree to file...");
-            }
+            _lastCheck = now;
+            persistOperation();
         }
     }
     return isStillRunning();  // keep running till they terminate us
+}
+
+
+void OctreePersistThread::aboutToFinish() {
+    qDebug() << "Persist thread about to finish...";
+    persistOperation();
+    qDebug() << "Persist thread done with about to finish...";
+}
+
+void OctreePersistThread::persistOperation() {
+    if (_tree->isDirty()) {
+        _tree->lockForWrite();
+        {
+            qDebug() << "pruning Octree before saving...";
+            _tree->pruneTree();
+            qDebug() << "DONE pruning Octree before saving...";
+        }
+        _tree->unlock();
+
+        qDebug() << "saving Octree to file " << _filename << "...";
+        _tree->writeToSVOFile(_filename.toLocal8Bit().constData());
+        _tree->clearDirtyBit(); // tree is clean after saving
+        qDebug("DONE saving Octree to file...");
+    }
 }

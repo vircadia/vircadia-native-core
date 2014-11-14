@@ -29,12 +29,16 @@ public:
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
 
+    void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
+
 signals:
     void loadCompleted();
 
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
+    
+    void persistOperation();
 private:
     Octree* _tree;
     QString _filename;

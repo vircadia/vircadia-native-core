@@ -1197,6 +1197,9 @@ void OctreeServer::aboutToFinish() {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
     }
+    if (_persistThread) {
+        _persistThread->aboutToFinish();
+    }
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }
 
