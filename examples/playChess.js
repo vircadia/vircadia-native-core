@@ -199,7 +199,7 @@ ChessGame.scriptStarting = function() {
 
 ChessGame.update = function() {
   ChessGame.board.entity = Entities.identifyEntity(ChessGame.board.entity);
-  print(JSON.stringify(ChessGame.board.entity));
+  
   if (ChessGame.board.entity.isKnownID && ChessGame.pieces.length == 0) {
     // Setup white pieces
     var isWhite = true;
@@ -240,8 +240,25 @@ ChessGame.update = function() {
     for(var j = 1; j <= 8; j++) {
       ChessGame.makePiece(ChessGame.PAWN, row - 1, j, isWhite);
     }
-
-    Script.update.disconnect(ChessGame.update);
+  }
+  
+  if (ChessGame.pieces.length > 0) {
+    var unknown = 0;
+    ChessGame.board.userDataObject.pieces = new Array();
+    for(var i = 1; i < ChessGame.pieces.length; i++) {
+      ChessGame.pieces[i].entity = Entities.identifyEntity(ChessGame.pieces[i].entity);
+      if (ChessGame.pieces[i].entity.isKnownID) {
+        ChessGame.board.userDataObject.pieces.push(ChessGame.pieces[i].entity)
+      } else {
+        unknown++;
+      }
+    }
+    ChessGame.board.updateUserData();
+    
+    if (unknown === 0) {
+      print("Board complete");
+      Script.update.disconnect(ChessGame.update);      
+    }
   }
 }
 
