@@ -69,16 +69,34 @@ ChessGame.getPieceInfo = function(type, isWhite) {
 
 
 // Board class
-ChessGame.Board = (function(position, size) {
+ChessGame.Board = (function(position, scale) {
   this.dimensions = Vec3.multiply(1.0 / ChessGame.BOARD.dimensions.x, ChessGame.BOARD.dimensions); // 1 by 1
-  this.dimensions = Vec3.multiply(size, this.dimensions); // size by size
-  this.position = Vec3.sum(position, Vec3.multiply(0.5, this.dimensions));
-  this.tileSize = size / ChessGame.BOARD.numTiles;
-
+  this.dimensions = Vec3.multiply(scale, this.dimensions); // scale by scale
+  this.position = position
+  this.tileSize = scale / ChessGame.BOARD.numTiles;
+  
+  this.userDataObject = {
+    firstTile: this.tilePosition(1, 1),
+    tileSize: this.tileSize,
+    whitesDeadPieces: this.tilePosition(0,0),
+    blacksDeadPieces: this.tilePosition(9,9),
+    pieces: new Array()
+  }
+  this.entityProperties = {
+    type: "Model",
+    modelURL: ChessGame.BOARD.modelURL,
+    position: this.position,
+    dimensions: this.dimensions,
+    userData: this.buildUserDataString()
+  }
   this.entity = null;
 });
 // Returns the top center point of tile i,j
 ChessGame.Board.prototype.tilePosition = function(i, j) {
+  if (!(this.position || this.dimensions || this.tileSize || ChessGame.BOARD.numTiles)) {
+    print("ChessGame.Board.prototype.tilePosition(): Called before proper initialisation, bailing.");
+    return null;
+  }
   return {
     x: this.position.x + (i - ChessGame.BOARD.numTiles / 2.0 + 0.5) * this.tileSize,
     y: this.position.y + this.dimensions.y / 2.0,
@@ -89,19 +107,22 @@ ChessGame.Board.prototype.tilePosition = function(i, j) {
 ChessGame.Board.prototype.isWhite = function(i, j) {
   return (i + j) % 2 != 0;
 }
+// Build the user data string
+ChessGame.Board.prototype.buildUserDataString = function() {
+  return JSON.stringify(this.userDataObject);
+}
+// Updates the user data stored by the board
+ChessGame.Board.prototype.updateUserData = function() {
+  var userDataString = this.buildUserDataString();
+  this.entityProperties.userData = userDataString;
+  Entities.editEntity(this.entity, { userData: userDataString });
+}
 // Spawns the board using entities
 ChessGame.Board.prototype.spawn = function() {
   if (extraDebug) {
     print("Spawning board...");
   }
-  
-  this.entity = Entities.addEntity({
-    type: "Model",
-    modelURL: ChessGame.BOARD.modelURL,
-    position: this.position,
-    dimensions: this.dimensions
-  });
-  
+  this.entity = Entities.addEntity(this.entityProperties);
   print("Board spawned");
 }
 // Cleans up the entities of the board
@@ -118,25 +139,34 @@ ChessGame.Piece = (function(position, dimensions, url, rotation) {
   this.dimensions = dimensions;
   this.position = position;
   this.position.y += this.dimensions.y / 2.0;
+  
   this.entityProperties = {
     type: "Model",
     position: this.position,
     rotation: rotation,
     dimensions: this.dimensions,
     modelURL: url,
-    //script: "https://s3.amazonaws.com/hifi-public/scripts/entityScripts/chessPiece.js"
-    //script: "https://s3-us-west-1.amazonaws.com/highfidelity-dev/scripts/chessPiece.js"
-    script: "file:/Users/clement/hifi/examples/entityScripts/chessPiece.js"
+    //script: "https://s3.amazonaws.com/hifi-public/scripts/entityScripts/chessPiece.js",
+    //script: "https://s3-us-west-1.amazonaws.com/highfidelity-dev/scripts/chessPiece.js",
+    script: "file:/Users/clement/hifi/examples/entityScripts/chessPiece.js",
+    userData: this.buildUserDataString()
   }
   this.entity = null;
 });
+// Build the user data string
+ChessGame.Piece.prototype.buildUserDataString = function() {
+  if (!(ChessGame.board !== null || ChessGame.board.entity.isKnownID)) {
+    print("ChessGame.Piece.prototype.buildUserDataString(): Called before proper initialization, bailing.");
+    return null;
+  }
+  var userDataObject = {
+    boardID: ChessGame.board.entity,
+  };
+  return JSON.stringify(userDataObject);
+}
 // Spawns the piece
 ChessGame.Piece.prototype.spawn = function() {
   this.entity = Entities.addEntity(this.entityProperties);
-}
-// Updates the metadata stored by the piece
-ChessGame.Piece.prototype.updateMetadata = function(metadataString) {
-  Entities.editEntity(this.entity, { animationURL: metadataString });
 }
 // Cleans up the piece
 ChessGame.Piece.prototype.cleanup = function() {
@@ -157,91 +187,76 @@ ChessGame.makePiece = function(piece, i, j, isWhite) {
   return piece;
 }
 
-ChessGame.buildMetadataString = function() {
-  var metadataObject = {
-    gamePosition: gamePosition,
-    gameSize: gameSize,
-    pieces: new Array()
-  };
-  for (i in ChessGame.pieces) {
-    metadataObject.pieces.push(ChessGame.pieces[i].entity);
-  }
-  return JSON.stringify(metadataObject);
-}
-
-ChessGame.buildBoard = function() {
-  // Setup board
-  ChessGame.board = new ChessGame.Board(gamePosition, gameSize);
-  ChessGame.board.spawn();
-  
-  // Setup white pieces
-  var isWhite = true;
-  var row = 1;
-  // King
-  var piece =ChessGame.makePiece(ChessGame.KING, row, 5, isWhite);
-  // Queen
-  piece = ChessGame.makePiece(ChessGame.QUEEN, row, 4, isWhite);
-  // Bishop
-  piece = ChessGame.makePiece(ChessGame.BISHOP, row, 3, isWhite);
-  piece = ChessGame.makePiece(ChessGame.BISHOP, row, 6, isWhite);
-  // Knight
-  piece = ChessGame.makePiece(ChessGame.KNIGHT, row, 2, isWhite);
-  piece = ChessGame.makePiece(ChessGame.KNIGHT, row, 7, isWhite);
-  // Rook
-  piece = ChessGame.makePiece(ChessGame.ROOK, row, 1, isWhite);
-  piece = ChessGame.makePiece(ChessGame.ROOK, row, 8, isWhite);
-  for(var j = 1; j <= 8; j++) {
-    piece = ChessGame.makePiece(ChessGame.PAWN, row + 1, j, isWhite);
-  }
-  
-  // Setup black pieces
-  isWhite = false;
-  row = 8;
-  // King
-  piece = ChessGame.makePiece(ChessGame.KING, row, 5, isWhite);
-  // Queen
-  piece = ChessGame.makePiece(ChessGame.QUEEN, row, 4, isWhite);
-  // Bishop
-  piece = ChessGame.makePiece(ChessGame.BISHOP, row, 3, isWhite);
-  piece = ChessGame.makePiece(ChessGame.BISHOP, row, 6, isWhite);
-  // Knight
-  piece = ChessGame.makePiece(ChessGame.KNIGHT, row, 2, isWhite);
-  piece = ChessGame.makePiece(ChessGame.KNIGHT, row, 7, isWhite);
-  // Rook
-  piece = ChessGame.makePiece(ChessGame.ROOK, row, 1, isWhite);
-  piece = ChessGame.makePiece(ChessGame.ROOK, row, 8, isWhite);
-  for(var j = 1; j <= 8; j++) {
-    piece = ChessGame.makePiece(ChessGame.PAWN, row - 1, j, isWhite);
-  }
-  
-  var metadataString = ChessGame.buildMetadataString();
-  for (i in ChessGame.pieces) {
-    ChessGame.pieces[i].updateMetadata(metadataString);
-  }
-}
-
-
 ChessGame.scriptStarting = function() {
   print("playChess.js started");
   gamePosition = Vec3.sum(MyAvatar.position,
                           Vec3.multiplyQbyV(MyAvatar.orientation,
                                             { x: 0, y: 0, z: -1 }));
-  ChessGame.buildBoard();
+  // Setup board
+  ChessGame.board = new ChessGame.Board(gamePosition, gameSize);
+  ChessGame.board.spawn();
+}
+
+ChessGame.update = function() {
+  ChessGame.board.entity = Entities.identifyEntity(ChessGame.board.entity);
+  print(JSON.stringify(ChessGame.board.entity));
+  if (ChessGame.board.entity.isKnownID && ChessGame.pieces.length == 0) {
+    // Setup white pieces
+    var isWhite = true;
+    var row = 1;
+    // King
+    ChessGame.makePiece(ChessGame.KING, row, 5, isWhite);
+    // Queen
+    ChessGame.makePiece(ChessGame.QUEEN, row, 4, isWhite);
+    // Bishop
+    ChessGame.makePiece(ChessGame.BISHOP, row, 3, isWhite);
+    ChessGame.makePiece(ChessGame.BISHOP, row, 6, isWhite);
+    // Knight
+    ChessGame.makePiece(ChessGame.KNIGHT, row, 2, isWhite);
+    ChessGame.makePiece(ChessGame.KNIGHT, row, 7, isWhite);
+    // Rook
+    ChessGame.makePiece(ChessGame.ROOK, row, 1, isWhite);
+    ChessGame.makePiece(ChessGame.ROOK, row, 8, isWhite);
+    for(var j = 1; j <= 8; j++) {
+      ChessGame.makePiece(ChessGame.PAWN, row + 1, j, isWhite);
+    }
+  
+    // Setup black pieces
+    isWhite = false;
+    row = 8;
+    // King
+    ChessGame.makePiece(ChessGame.KING, row, 5, isWhite);
+    // Queen
+    ChessGame.makePiece(ChessGame.QUEEN, row, 4, isWhite);
+    // Bishop
+    ChessGame.makePiece(ChessGame.BISHOP, row, 3, isWhite);
+    ChessGame.makePiece(ChessGame.BISHOP, row, 6, isWhite);
+    // Knight
+    ChessGame.makePiece(ChessGame.KNIGHT, row, 2, isWhite);
+    ChessGame.makePiece(ChessGame.KNIGHT, row, 7, isWhite);
+    // Rook
+    ChessGame.makePiece(ChessGame.ROOK, row, 1, isWhite);
+    ChessGame.makePiece(ChessGame.ROOK, row, 8, isWhite);
+    for(var j = 1; j <= 8; j++) {
+      ChessGame.makePiece(ChessGame.PAWN, row - 1, j, isWhite);
+    }
+
+    Script.update.disconnect(ChessGame.update);
+  }
 }
 
 ChessGame.scriptEnding = function() {
   // Cleaning up board
   ChessGame.board.cleanup();
-  delete ChessGame.board;
   
   // Cleaning up pieces
   for(var i in ChessGame.pieces) {
     ChessGame.pieces[i].cleanup();
   }
-  delete ChessGame.pieces;
   
   print("playChess.js finished");
 }
 
 Script.scriptEnding.connect(ChessGame.scriptEnding);
+Script.update.connect(ChessGame.update);
 ChessGame.scriptStarting();
