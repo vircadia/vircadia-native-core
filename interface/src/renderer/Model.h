@@ -283,7 +283,7 @@ private:
     QUrl _url;
 
     gpu::Buffers _blendedVertexBuffers;
-    gpu::Transforms _transforms;
+    std::vector<Transform> _transforms;
     gpu::Batch _renderBatch;
 
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
@@ -409,6 +409,18 @@ private:
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
                         bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
     void setupBatchTransform(gpu::Batch& batch);
+    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned);
+
+    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                                        RenderArgs* args, SkinLocations* skinLocations, GLenum specularTextureUnit);
+
+    static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            SkinLocations*& skinLocations, GLenum& specularTextureUnit);
+
+    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
+
 
 };
 
