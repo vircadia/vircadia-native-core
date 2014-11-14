@@ -126,7 +126,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        Application::getInstance()->displaySide(Application::RenderContext(whichCamera, false, RenderArgs::STEREO_LEFT));
+        Application::getInstance()->displaySide(whichCamera, false, RenderArgs::STEREO_LEFT);
 
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);
@@ -156,7 +156,7 @@ void TV3DManager::display(Camera& whichCamera) {
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        Application::getInstance()->displaySide(Application::RenderContext(whichCamera, false, RenderArgs::STEREO_RIGHT));
+        Application::getInstance()->displaySide(whichCamera, false, RenderArgs::STEREO_RIGHT);
 
         if (displayOverlays) {
             applicationOverlay.displayOverlayTexture3DTV(whichCamera, _aspect, fov);

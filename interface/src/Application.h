@@ -262,19 +262,8 @@ public:
 
     QImage renderAvatarBillboard();
 
-    struct RenderContext {
-        Camera& _whichCamera;
-        bool _selfAvatarOnly;
-        RenderArgs::RenderSide _renderSide;
-
-        RenderContext(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO) :
-            _whichCamera(whichCamera),
-            _selfAvatarOnly(selfAvatarOnly),
-            _renderSide(renderSide) {
-        }
-    };
   //  void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
-    void displaySide(RenderContext& renderContext);
+    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.

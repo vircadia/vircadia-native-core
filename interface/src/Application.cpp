@@ -724,7 +724,7 @@ void Application::paintGL() {
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
-        displaySide(RenderContext(*whichCamera));
+        displaySide(*whichCamera);
         glPopMatrix();
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
@@ -2874,15 +2874,11 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
-//void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
-void Application::displaySide(RenderContext& renderContext) {
+void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
-
-    Camera& whichCamera = renderContext._whichCamera;
-    bool selfAvatarOnly = renderContext._selfAvatarOnly;
 
     // load the view frustum
     loadViewFrustum(whichCamera, _displayViewFrustum);
@@ -3025,7 +3021,7 @@ void Application::displaySide(RenderContext& renderContext) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderContext._renderSide);
+            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
         }
 
         // render JS/scriptable overlays
@@ -3270,7 +3266,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             _shadowMatrices[i] = glm::transpose(glm::transpose(_shadowMatrices[i]) * glm::translate(-delta));
         }
 
-        displaySide(RenderContext(_mirrorCamera, true));
+        displaySide(_mirrorCamera, true);
 
         // restore absolute translations
         _myAvatar->getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
@@ -3284,7 +3280,7 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             _shadowMatrices[i] = savedShadowMatrices[i];
         }
     } else {
-        displaySide(RenderContext(_mirrorCamera, true));
+        displaySide(_mirrorCamera, true);
     }
     glPopMatrix();
 
