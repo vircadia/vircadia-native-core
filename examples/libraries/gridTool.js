@@ -174,6 +174,15 @@ GridTool = function(opts) {
             for (var i = 0; i < listeners.length; i++) {
                 listeners[i](data);
             }
+        } else if (data.type == "action") {
+            var action = data.action;
+            if (action == "moveToAvatar") {
+                grid.setPosition(MyAvatar.position);
+            } else if (action == "moveToSelection") {
+                var newPosition = selectionManager.worldPosition;
+                newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+                grid.setPosition(newPosition);
+            }
         }
     });
 
