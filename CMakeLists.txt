@@ -80,12 +80,12 @@ endforeach()
 
 # add subdirectories for all targets
 add_subdirectory(assignment-client)
+add_subdirectory(tools)
 
 if (NOT ANDROID)
 add_subdirectory(domain-server)
 add_subdirectory(ice-server)
 add_subdirectory(interface)
 add_subdirectory(tests)
-add_subdirectory(tools)
 add_subdirectory(voxel-edit)
 endif ()
