@@ -59,11 +59,15 @@ public:
     /// \return true if Voxel removed
     bool removeVoxel(const glm::vec3& position, float scale);
 
-    /// \param info information about collision shapes to create
+    /// \param motionState pointer to Entity's MotionState
     /// \return true if Entity added
     bool addEntity(CustomMotionState* motionState);
 
-    /// \param id UUID of the entity
+    /// \param motionState pointer to Entity's MotionState
+    /// \return true if entity updated
+    bool updateEntityMotionType(CustomMotionState* motionState);
+
+    /// \param motionState pointer to Entity's MotionState
     /// \return true if Entity removed
     bool removeEntity(CustomMotionState* motionState);
 

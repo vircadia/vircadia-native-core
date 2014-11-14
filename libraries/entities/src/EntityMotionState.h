@@ -27,6 +27,8 @@ public:
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
+    MotionType getMotionType() const;
+
     void getWorldTransform (btTransform &worldTrans) const;
     void setWorldTransform (const btTransform &worldTrans);
     void applyVelocities() const;

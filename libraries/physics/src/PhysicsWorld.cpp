@@ -23,6 +23,26 @@ void PhysicsWorld::init() {
         _broadphaseFilter = new btDbvtBroadphase();
         _constraintSolver = new btSequentialImpulseConstraintSolver;
         _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
+
+        // TODO: once the initial physics system is working we will set gravity of the world to be zero
+        // and each object will have to specify its own local gravity, or we'll set up gravity zones.
+        //_dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+        //
+        // GROUND HACK: In the meantime we add a big planar floor to catch falling objects
+        // NOTE: we don't care about memory leaking groundShape and groundObject --> 
+        // they'll exist until the executable exits.
+        const float halfSide = 200.0f;
+        const float halfHeight = 10.0f;
+
+        btCollisionShape* groundShape = new btBoxShape(btVector3(halfSide, halfHeight, halfSide));
+        btTransform groundTransform;
+        groundTransform.setIdentity();
+        groundTransform.setOrigin(btVector3(halfSide, -halfHeight, halfSide));
+
+        btCollisionObject* groundObject = new btCollisionObject();
+        groundObject->setCollisionShape(groundShape);
+        groundObject->setWorldTransform(groundTransform);
+        _dynamicsWorld->addCollisionObject(groundObject);
     }
 }
 
@@ -93,19 +113,103 @@ bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
     return false;
 }
 
+// Bullet collision flags are as follows:
+// CF_STATIC_OBJECT= 1,
+// CF_KINEMATIC_OBJECT= 2,
+// CF_NO_CONTACT_RESPONSE = 4,
+// CF_CUSTOM_MATERIAL_CALLBACK = 8,//this allows per-triangle material (friction/restitution)
+// CF_CHARACTER_OBJECT = 16,
+// CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
+// CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
+
 bool PhysicsWorld::addEntity(CustomMotionState* motionState) {
     assert(motionState);
     ShapeInfo info;
     motionState->computeShapeInfo(info);
     btCollisionShape* shape = _shapeManager.getShape(info);
     if (shape) {
-        btVector3 inertia;
-        float mass = motionState->getMass();
-        shape->calculateLocalInertia(mass, inertia);
-        btRigidBody* body = new btRigidBody(mass, motionState, shape, inertia);
-        motionState->_body = body;
-        motionState->applyVelocities();
-        // TODO: set dynamic/kinematic/static property from data stored in motionState
+        btVector3 inertia(0.0f, 0.0f, 0.0f);
+        float mass = 0.0f;
+        btRigidBody* body = NULL;
+        switch(motionState->_motionType) {
+            case MOTION_TYPE_KINEMATIC: {
+                body = new btRigidBody(mass, motionState, shape, inertia);
+                body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+                body->setActivationState(DISABLE_DEACTIVATION);
+                body->updateInertiaTensor();
+                motionState->_body = body;
+                break;
+            }
+            case MOTION_TYPE_DYNAMIC: {
+                mass = motionState->getMass();
+                shape->calculateLocalInertia(mass, inertia);
+                body = new btRigidBody(mass, motionState, shape, inertia);
+                body->updateInertiaTensor();
+                motionState->_body = body;
+                motionState->applyVelocities();
+                break;
+            }
+            default: {
+                // MOTION_TYPE_STATIC
+                body = new btRigidBody(mass, motionState, shape, inertia);
+                body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+                body->updateInertiaTensor();
+                motionState->_body = body;
+                break;
+            }
+        }
+        body->setRestitution(motionState->_restitution);
+        body->setFriction(motionState->_friction);
+        _dynamicsWorld->addRigidBody(body);
+        return true;
+    }
+    return false;
+}
+
+bool PhysicsWorld::updateEntityMotionType(CustomMotionState* motionState) {
+    btRigidBody* body = motionState->_body;
+    if (!body) {
+        return false;
+    }
+   
+    MotionType oldType = MOTION_TYPE_DYNAMIC;
+    if (body->isStaticObject()) {
+        oldType = MOTION_TYPE_STATIC;
+    } else if (body->isKinematicObject()) {
+        oldType = MOTION_TYPE_KINEMATIC;
+    }
+    MotionType newType = motionState->getMotionType();
+    if (oldType != newType) {
+        // pull body out of physics engine
+        _dynamicsWorld->removeRigidBody(body);
+
+        // update various properties and flags
+        switch (newType) {
+            case MOTION_TYPE_KINEMATIC: {
+                body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
+                body->setActivationState(DISABLE_DEACTIVATION);
+                body->updateInertiaTensor();
+                break;
+            }
+            case MOTION_TYPE_DYNAMIC: {
+                btVector3 inertia(0.0f, 0.0f, 0.0f);
+                float mass = motionState->getMass();
+                body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+                body->updateInertiaTensor();
+                motionState->applyVelocities();
+                break;
+            }
+            default: {
+                // MOTION_TYPE_STATIC
+                body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+                body->updateInertiaTensor();
+                break;
+            }
+        }
+
+        // reinsert body into physics engine
+        body->setRestitution(motionState->_restitution);
+        body->setFriction(motionState->_friction);
         _dynamicsWorld->addRigidBody(body);
         return true;
     }

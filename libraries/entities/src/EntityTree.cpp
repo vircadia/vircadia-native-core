@@ -77,9 +77,9 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 }
 
 /// Adds a new entity item to the tree
-void EntityTree::addEntityItem(EntityItem* entityItem) {
+void EntityTree::addEntityItem(EntityItem* entity) {
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
-    EntityItemID entityID = entityItem->getEntityItemID();
+    EntityItemID entityID = entity->getEntityItemID();
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
         qDebug() << "UNEXPECTED!!!! don't call addEntityItem() on existing entity items. entityID=" << entityID;
@@ -87,12 +87,15 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     }
 
     // Recurse the tree and store the entity in the correct tree element
-    AddEntityOperator theOperator(this, entityItem);
+    AddEntityOperator theOperator(this, entity);
     recurseTreeWithOperator(&theOperator);
 
     // check to see if we need to simulate this entity..
-    // BOOKMARK -- add entity to physics engine here
-    changeEntityState(entityItem, EntityItem::Static, entityItem->getSimulationState());
+    changeEntityState(entity, EntityItem::Static, entity->getSimulationState());
+
+    if (_physicsWorld && !entity->getMotionState()) {
+        addEntityToPhysicsWorld(entity);
+    }
 
     _isDirty = true;
 }
@@ -530,7 +533,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     // search for the entity by EntityItemID
                     EntityItem* existingEntity = findEntityByEntityItemID(entityItemID);
                     
-                    // if the entityItem exists, then update it
+                    // if the EntityItem exists, then update it
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
                         existingEntity->markAsChangedOnServer();
@@ -621,9 +624,6 @@ void EntityTree::changeEntityState(EntityItem* const entity,
 
         case EntityItem::Moving:
             _movingEntities.push_back(entity);
-            if (_physicsWorld && !entity->getMotionState()) {
-                addEntityToPhysicsWorld(entity);
-            }
             break;
 
         case EntityItem::Mortal:
@@ -683,7 +683,11 @@ void EntityTree::updateChangingEntities(quint64 now, QSet<EntityItemID>& entitie
     // TODO: switch these to iterators so we can remove items that get deleted
     for (int i = 0; i < _changingEntities.size(); i++) {
         EntityItem* thisEntity = _changingEntities[i];
-        thisEntity->update(now);
+        EntityMotionState* motionState = thisEntity->getMotionState();
+        if (!motionState) {
+            thisEntity->update(now);
+        }
+
         // always check to see if the lifetime has expired, for immortal entities this is always false
         if (thisEntity->lifetimeHasExpired()) {
             qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();

@@ -38,7 +38,7 @@ public:
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
 
-    MotionType getMotionType() const { return _motionType; }
+    virtual MotionType getMotionType() const { return _motionType; }
 
     void setDensity(float density);
     void setFriction(float friction);
@@ -54,15 +54,16 @@ public:
     void getAngularVelocity(glm::vec3& angularVelocityOut) const;
 
     friend class PhysicsWorld;
-protected:
 
+protected:
     float _density;
     float _volume;
     float _friction;
     float _restitution;
-
-    // The data members below have NO setters.  They are only changed by a PhysicsWorld instance.
+    bool _wasInWorld;
     MotionType _motionType;
+
+    // _body has NO setters -- it is only changed by PhysicsWorld
     btRigidBody* _body;
 };
 

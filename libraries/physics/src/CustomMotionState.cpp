@@ -34,7 +34,8 @@ CustomMotionState::CustomMotionState() :
         _volume(DEFAULT_VOLUME), 
         _friction(DEFAULT_FRICTION), 
         _restitution(DEFAULT_RESTITUTION), 
-        _motionType(MOTION_TYPE_STATIC), 
+        _wasInWorld(false),
+        _motionType(MOTION_TYPE_STATIC),
         _body(NULL) {
 }
 

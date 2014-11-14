@@ -37,6 +37,13 @@ EntityMotionState::EntityMotionState(EntityItem* entity) : _entity(entity) {
 EntityMotionState::~EntityMotionState() {
 }
 
+MotionType EntityMotionState::getMotionType() const {
+    // HACK: According to EntityTree the meaning of "static" is "not moving" whereas
+    // to Bullet it means "can't move".  For demo purposes we temporarily interpret
+    // Entity::weightless to mean Bullet::static.
+    return _entity->hasGravity() ? MOTION_TYPE_DYNAMIC : MOTION_TYPE_STATIC;
+}
+
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
