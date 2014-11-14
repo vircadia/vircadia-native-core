@@ -63,6 +63,43 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     return closestSpanner;
 }
 
+class RayHeightfieldIntersectionVisitor : public RaySpannerIntersectionVisitor {
+public:
+    
+    float intersectionDistance;
+    
+    RayHeightfieldIntersectionVisitor(const glm::vec3& origin, const glm::vec3& direction, const MetavoxelLOD& lod);
+    
+    virtual bool visitSpanner(Spanner* spanner, float distance);
+};
+
+RayHeightfieldIntersectionVisitor::RayHeightfieldIntersectionVisitor(const glm::vec3& origin,
+        const glm::vec3& direction, const MetavoxelLOD& lod) :
+    RaySpannerIntersectionVisitor(origin, direction, QVector<AttributePointer>() <<
+        AttributeRegistry::getInstance()->getSpannersAttribute(),
+            QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+    intersectionDistance(FLT_MAX) {
+}
+
+bool RayHeightfieldIntersectionVisitor::visitSpanner(Spanner* spanner, float distance) {
+    if (qobject_cast<Heightfield*>(spanner)) {
+        intersectionDistance = distance;
+        return false;
+    }
+    return true;
+}
+
+bool MetavoxelClientManager::findFirstRayHeightfieldIntersection(const glm::vec3& origin,
+        const glm::vec3& direction, float& distance) {
+    RayHeightfieldIntersectionVisitor visitor(origin, direction, getLOD());
+    guide(visitor);
+    if (visitor.intersectionDistance == FLT_MAX) {
+        return false;
+    }
+    distance = visitor.intersectionDistance;
+    return true;
+}
+
 class HeightfieldHeightVisitor : public SpannerVisitor {
 public:
     

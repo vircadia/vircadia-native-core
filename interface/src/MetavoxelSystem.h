@@ -64,8 +64,6 @@ public:
 
     void renderVoxelCursor(const glm::vec3& position, float radius);
 
-    bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
-
     bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
     Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);

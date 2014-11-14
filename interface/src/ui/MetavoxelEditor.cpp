@@ -900,7 +900,7 @@ HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QStrin
 }
 
 bool HeightfieldBrushTool::appliesTo(const AttributePointer& attribute) const {
-    return attribute->inherits("HeightfieldAttribute");
+    return attribute->inherits("SpannerSetAttribute");
 }
 
 void HeightfieldBrushTool::render() {
