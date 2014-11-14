@@ -84,14 +84,14 @@ void Overlays::render2D() {
 
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
         Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
-        RenderArgs::DEFAULT_RENDER_MODE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlays2D) {
         thisOverlay->render(&args);
     }
 }
 
-void Overlays::render3D(RenderArgs::RenderMode renderMode) {
+void Overlays::render3D(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     QReadLocker lock(&_lock);
     if (_overlays3D.size() == 0) {
         return;
@@ -106,7 +106,7 @@ void Overlays::render3D(RenderArgs::RenderMode renderMode) {
     
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
                         Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
-                        renderMode, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        renderMode, renderSide, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 
     foreach(Overlay* thisOverlay, _overlays3D) {
