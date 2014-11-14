@@ -33,11 +33,11 @@ SharedSoundPointer SoundCache::getSound(const QUrl& url) {
                                   Q_RETURN_ARG(SharedSoundPointer, result), Q_ARG(const QUrl&, url));
         return result;
     }
-    qDebug() << "Requesting sound at" << url.toString() << "from SoundCache";
     return getResource(url).staticCast<Sound>();
 }
 
 QSharedPointer<Resource> SoundCache::createResource(const QUrl& url, const QSharedPointer<Resource>& fallback,
-                                                    	bool delayLoad, const void* extra) {
+                                                    bool delayLoad, const void* extra) {
+    qDebug() << "Requesting sound at" << url.toString();
     return QSharedPointer<Resource>(new Sound(url), &Resource::allReferencesCleared);
 }
