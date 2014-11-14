@@ -37,7 +37,7 @@ WebWindowClass::WebWindowClass(const QString& title, const QString& url, int wid
     : QObject(NULL),
       _eventBridge(new ScriptEventBridge(this)) {
 
-    QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
+    ToolWindow* toolWindow = Application::getInstance()->getToolWindow();
 
     _dockWidget = new QDockWidget(title, toolWindow);
     _dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
@@ -55,6 +55,10 @@ WebWindowClass::~WebWindowClass() {
 }
 
 void WebWindowClass::setVisible(bool visible) {
+    if (visible) {
+        QMetaObject::invokeMethod(
+            Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+    }
     QMetaObject::invokeMethod(_dockWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
 

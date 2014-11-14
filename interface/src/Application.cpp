@@ -373,7 +373,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
-    _toolWindow = new QMainWindow();
+    _toolWindow = new ToolWindow();
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
     _toolWindow->setWindowTitle("Tools");
 
