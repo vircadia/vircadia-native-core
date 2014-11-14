@@ -68,8 +68,6 @@ public:
 
     bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
 
-    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
-
     Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);
 
     Q_INVOKABLE void paintHeightfieldMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material);

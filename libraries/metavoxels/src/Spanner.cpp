@@ -96,6 +96,10 @@ SpannerRenderer* Spanner::getRenderer() {
     return _renderer;
 }
 
+float Spanner::getHeight(const glm::vec3& location) const {
+    return -FLT_MAX;
+}
+
 bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
     return _bounds.findRayIntersection(origin, direction, distance);
 }
@@ -600,6 +604,8 @@ bool TempHeightfield::intersects(const glm::vec3& start, const glm::vec3& end, f
     return false;
 }
 
+const int HeightfieldData::SHARED_EDGE = 1;
+
 HeightfieldData::HeightfieldData(int width) :
     _width(width) {
 }
@@ -675,6 +681,9 @@ static QVector<quint16> decodeHeightfieldHeight(const QByteArray& encoded, int& 
     }
     return unfiltered;
 }
+
+const int HeightfieldHeight::HEIGHT_BORDER = 1;
+const int HeightfieldHeight::HEIGHT_EXTENSION = SHARED_EDGE + 2 * HEIGHT_BORDER;
 
 HeightfieldHeight::HeightfieldHeight(int width, const QVector<quint16>& contents) :
     HeightfieldData(width),
@@ -1383,6 +1392,78 @@ void Heightfield::setMaterial(const HeightfieldMaterialPointer& material) {
     if (_material != material) {
         emit materialChanged(_material = material);
     }
+}
+
+float Heightfield::getHeight(const glm::vec3& location) const {
+    if (!_height) {
+        return -FLT_MAX;
+    }
+    int width = _height->getWidth();
+    const QVector<quint16>& contents = _height->getContents();
+    const quint16* src = contents.constData();
+    int height = contents.size() / width;
+    int innerWidth = width - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeight = height - HeightfieldHeight::HEIGHT_EXTENSION;
+    int highestX = innerWidth + HeightfieldHeight::HEIGHT_BORDER;
+    int highestZ = innerHeight + HeightfieldHeight::HEIGHT_BORDER;
+    
+    glm::vec3 relative = glm::inverse(getRotation()) * (location - getTranslation()) * glm::vec3(1.0f / getScale(),
+        1.0f, 1.0f / (getScale() * _aspectZ));
+    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > 1.0f || relative.z > 1.0f) {
+        return -FLT_MAX;
+    }
+    relative.x = relative.x * innerWidth + HeightfieldHeight::HEIGHT_BORDER;
+    relative.z = relative.z * innerHeight + HeightfieldHeight::HEIGHT_BORDER;
+    
+    // find the bounds of the cell containing the point and the shared vertex heights
+    glm::vec3 floors = glm::floor(relative);
+    glm::vec3 ceils = glm::ceil(relative);
+    glm::vec3 fracts = glm::fract(relative);
+    int floorX = qMin(qMax((int)floors.x, HeightfieldHeight::HEIGHT_BORDER), highestX);
+    int floorZ = qMin(qMax((int)floors.z, HeightfieldHeight::HEIGHT_BORDER), highestZ);
+    int ceilX = qMin(qMax((int)ceils.x, HeightfieldHeight::HEIGHT_BORDER), highestX);
+    int ceilZ = qMin(qMax((int)ceils.z, HeightfieldHeight::HEIGHT_BORDER), highestZ);
+    float upperLeft = src[floorZ * width + floorX];
+    float lowerRight = src[ceilZ * width + ceilX];
+    float interpolatedHeight = glm::mix(upperLeft, lowerRight, fracts.z);
+    
+    // the final vertex (and thus which triangle we check) depends on which half we're on
+    if (fracts.x >= fracts.z) {
+        float upperRight = src[floorZ * width + ceilX];
+        interpolatedHeight = glm::mix(interpolatedHeight, glm::mix(upperRight, lowerRight, fracts.z),
+            (fracts.x - fracts.z) / (1.0f - fracts.z));
+        
+    } else {
+        float lowerLeft = src[ceilZ * width + floorX];
+        interpolatedHeight = glm::mix(glm::mix(upperLeft, lowerLeft, fracts.z), interpolatedHeight, fracts.x / fracts.z);
+    }
+    if (interpolatedHeight == 0.0f) {
+        return -FLT_MAX; // ignore zero values
+    }
+    
+    // convert the interpolated height into world space
+    return getTranslation().y + interpolatedHeight * getScale() * _aspectY / numeric_limits<quint16>::max();
+}
+
+bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    if (!_height) {
+        return false;
+    }
+    float boundsDistance;
+    if (!getBounds().findRayIntersection(origin, direction, boundsDistance)) {
+        return false;
+    }
+    int width = _height->getWidth();
+    const QVector<quint16>& contents = _height->getContents();
+    int height = contents.size() / width;
+    
+    glm::quat inverseRotation = glm::inverse(getRotation());
+    glm::vec3 inverseScale(1.0f / getScale(), 1.0f / (getScale() * _aspectY), 1.0f / (getScale() * _aspectZ));
+    glm::vec3 dir = inverseRotation * direction * inverseScale;
+    glm::vec3 entry = inverseRotation * (origin + direction * boundsDistance - getTranslation()) * inverseScale;
+    
+    return false;
+    
 }
 
 QByteArray Heightfield::getRendererClassName() const {

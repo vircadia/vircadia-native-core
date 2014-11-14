@@ -55,6 +55,9 @@ public:
     /// Returns a pointer to the renderer, creating it if necessary.
     SpannerRenderer* getRenderer();
 
+    /// Finds the height at the specified location, or returns -FLT_MAX for none.
+    virtual float getHeight(const glm::vec3& location) const;
+    
     /// Finds the intersection between the described ray and this spanner.
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
@@ -303,7 +306,7 @@ private:
 class HeightfieldData : public DataBlock {
 public:
     
-    static const int SHARED_EDGE = 1;
+    static const int SHARED_EDGE;
     
     HeightfieldData(int width = 0);
     
@@ -320,8 +323,8 @@ typedef QExplicitlySharedDataPointer<HeightfieldHeight> HeightfieldHeightPointer
 class HeightfieldHeight : public HeightfieldData {
 public:
 
-    static const int HEIGHT_BORDER = 1;
-    static const int HEIGHT_EXTENSION = SHARED_EDGE + 2 * HEIGHT_BORDER;
+    static const int HEIGHT_BORDER;
+    static const int HEIGHT_EXTENSION;
     
     HeightfieldHeight(int width, const QVector<quint16>& contents);
     HeightfieldHeight(Bitstream& in, int bytes);
@@ -500,6 +503,10 @@ public:
     
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
+
+    virtual float getHeight(const glm::vec3& location) const;
+
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 signals:
 

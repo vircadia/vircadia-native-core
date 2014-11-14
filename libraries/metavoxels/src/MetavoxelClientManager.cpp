@@ -63,6 +63,50 @@ SharedObjectPointer MetavoxelClientManager::findFirstRaySpannerIntersection(cons
     return closestSpanner;
 }
 
+class HeightfieldHeightVisitor : public SpannerVisitor {
+public:
+    
+    float height;
+    
+    HeightfieldHeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location);
+    
+    virtual bool visit(Spanner* spanner);
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    glm::vec3 _location;
+};
+
+HeightfieldHeightVisitor::HeightfieldHeightVisitor(const MetavoxelLOD& lod, const glm::vec3& location) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod),
+    height(-FLT_MAX),
+    _location(location) {
+}
+
+bool HeightfieldHeightVisitor::visit(Spanner* spanner) {
+    height = qMax(height, spanner->getHeight(_location));
+    return true;
+}
+
+static const int REVERSE_ORDER = MetavoxelVisitor::encodeOrder(7, 6, 5, 4, 3, 2, 1, 0);
+
+int HeightfieldHeightVisitor::visit(MetavoxelInfo& info) {
+    if (_location.x < info.minimum.x || _location.z < info.minimum.z || _location.x > info.minimum.x + info.size ||
+            _location.z > info.minimum.z + info.size) {
+        return STOP_RECURSION;
+    } 
+    SpannerVisitor::visit(info);
+    return (height == -FLT_MAX) ? (info.isLeaf ? STOP_RECURSION : REVERSE_ORDER) : SHORT_CIRCUIT;
+}
+
+float MetavoxelClientManager::getHeightfieldHeight(const glm::vec3& location) {
+    HeightfieldHeightVisitor visitor(getLOD(), location);
+    guide(visitor);
+    return visitor.height;
+}
+
 void MetavoxelClientManager::paintHeightfieldHeight(const glm::vec3& position, float radius, float height) {
     MetavoxelEditMessage edit = { QVariant::fromValue(PaintHeightfieldHeightEdit(position, radius, height)) };
     applyEdit(edit, true);

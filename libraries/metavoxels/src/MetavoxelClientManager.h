@@ -37,6 +37,8 @@ public:
     SharedObjectPointer findFirstRaySpannerIntersection(const glm::vec3& origin, const glm::vec3& direction,
         const AttributePointer& attribute, float& distance);
 
+    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
+
     Q_INVOKABLE void paintHeightfieldHeight(const glm::vec3& position, float radius, float height);
 
     Q_INVOKABLE void applyEdit(const MetavoxelEditMessage& edit, bool reliable = false);
