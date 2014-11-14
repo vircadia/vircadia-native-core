@@ -39,7 +39,7 @@ Script.include("libraries/gridTool.js");
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
 
-selectionManager.setEventListener(selectionDisplay.updateHandles);
+selectionManager.addEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -55,13 +55,11 @@ var wantEntityGlow = false;
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
 
-var MENU_GRID_TOOL_ENABLED = 'Grid Tool';
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
-var SETTING_GRID_TOOL_ENABLED = 'GridToolEnabled';
 
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
@@ -272,11 +270,15 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 gridTool.setVisible(false);
+                grid.setEnabled(false);
+                propertiesTool.setVisible(false);
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
-                gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
+                gridTool.setVisible(true);
+                grid.setEnabled(true);
+                propertiesTool.setVisible(true);
             }
             return true;
         }
@@ -608,10 +610,6 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_GRID_TOOL_ENABLED, afterItem: "Edit Entities Help...", isCheckable: true,
-                       isChecked: Settings.getValue(SETTING_GRID_TOOL_ENABLED) == 'true'});
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: MENU_GRID_TOOL_ENABLED,
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 }
@@ -636,8 +634,6 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Models");
     Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 
-    Settings.setValue(SETTING_GRID_TOOL_ENABLED, Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
-    Menu.removeMenuItem("View", MENU_GRID_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
 }
@@ -749,10 +745,6 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
-    } else if (menuItem == MENU_GRID_TOOL_ENABLED) {
-        if (isActive) {
-            gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
-        }
     }
     tooltip.show(false);
 }
@@ -911,3 +903,43 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
+
+PropertiesTool = function(opts) {
+    var that = {};
+
+    var url = Script.resolvePath('html/entityProperties.html');
+    var webView = new WebWindow('Entity Properties', url, 200, 280);
+
+    var visible = false;
+
+    webView.setVisible(visible);
+
+    that.setVisible = function(newVisible) {
+        visible = newVisible;
+        webView.setVisible(visible);
+    };
+
+    selectionManager.addEventListener(function() {
+        data = {
+            type: 'update',
+        };
+        if (selectionManager.hasSelection()) {
+            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+        }
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    });
+
+    webView.eventBridge.webEventReceived.connect(function(data) {
+        print(data);
+        data = JSON.parse(data);
+        if (data.type == "update") {
+            Entities.editEntity(selectionManager.selections[0], data.properties);
+            selectionManager._update();
+        }
+    });
+
+    return that;
+};
+
+propertiesTool = PropertiesTool();
+

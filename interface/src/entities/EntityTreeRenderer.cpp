@@ -254,15 +254,15 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
     }
 }
 
-void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
+void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
     
     if (dontRenderAsScene) {
-        OctreeRenderer::render(renderMode);
+        OctreeRenderer::render(renderMode, renderSide);
     } else {
         if (_tree) {
-            Model::startScene();
-            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
+            Model::startScene(renderSide);
+            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             _tree->lockForRead();
             _tree->recurseTreeWithOperation(renderOperation, &args);
