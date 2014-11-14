@@ -151,11 +151,11 @@ function loadSounds() {
     var FOOTSTEP_BASE_URL = HIFI_PUBLIC_BUCKET + "sounds/Footsteps/";
 
     for (var i = 0; i < sound_filenames.length; i++) {
-        sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));
+        sounds.push(SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]));
     }
 
     for (var i = 0; i < footstep_filenames.length; i++) {
-        footstepSounds.push(new Sound(FOOTSTEP_BASE_URL + footstep_filenames[i]));
+        footstepSounds.push(SoundCache.getSound(FOOTSTEP_BASE_URL + footstep_filenames[i]));
     }
 }
 

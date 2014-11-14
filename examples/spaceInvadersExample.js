@@ -84,13 +84,13 @@ var missileFired = false;
 var myMissile;
 
 // sounds
-var hitSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
-var shootSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
+var hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
+var shootSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 var moveSounds = new Array();
-moveSounds[0] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo1.raw");
-moveSounds[1] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo2.raw");
-moveSounds[2] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo3.raw");
-moveSounds[3] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo4.raw");
+moveSounds[0] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo1.raw");
+moveSounds[1] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo2.raw");
+moveSounds[2] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo3.raw");
+moveSounds[3] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo4.raw");
 var currentMoveSound = 0;
 var numberOfSounds = 4;
 var stepsPerSound = invaderStepsPerCycle / numberOfSounds;

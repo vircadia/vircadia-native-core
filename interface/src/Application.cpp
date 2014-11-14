@@ -65,6 +65,7 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -3916,6 +3917,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
