@@ -82,6 +82,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/ToolWindow.h"
 #include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
@@ -245,6 +246,8 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
+
+    ToolWindow* getToolWindow() { return _toolWindow ; }
 
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
@@ -458,6 +461,8 @@ private:
 
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
+
+    ToolWindow* _toolWindow;
 
     BandwidthMeter _bandwidthMeter;
 

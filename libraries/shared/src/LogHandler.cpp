@@ -119,6 +119,8 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     char dateString[100];
     strftime(dateString, sizeof(dateString), DATE_STRING_FORMAT, localTime);
     
+    prefixString.append(QString(" [%1]").arg(dateString));
+    
     if (_shouldOutputPID) {
         prefixString.append(QString(" [%1").arg(getpid()));
         
