@@ -11,9 +11,13 @@
 
 #include <QVBoxLayout>
 #include <QApplication>
+#include <QMainWindow>
+#include <QDockWidget>
 #include <QWebFrame>
 #include <QWebView>
+#include <QListWidget>
 
+#include "Application.h"
 #include "WindowScriptingInterface.h"
 #include "WebWindowClass.h"
 
@@ -28,29 +32,34 @@ void ScriptEventBridge::emitScriptEvent(const QString& data) {
     emit scriptEventReceived(data);
 }
 
-WebWindowClass::WebWindowClass(const QString& url, int width, int height)
+
+WebWindowClass::WebWindowClass(const QString& title, const QString& url, int width, int height)
     : QObject(NULL),
-      _window(new QWidget(NULL, Qt::Tool)),
       _eventBridge(new ScriptEventBridge(this)) {
 
-    QWebView* webView = new QWebView(_window);
+    ToolWindow* toolWindow = Application::getInstance()->getToolWindow();
+
+    _dockWidget = new QDockWidget(title, toolWindow);
+    _dockWidget->setFeatures(QDockWidget::DockWidgetMovable);
+    QWebView* webView = new QWebView(_dockWidget);
     webView->page()->mainFrame()->addToJavaScriptWindowObject("EventBridge", _eventBridge);
     webView->setUrl(url);
-    QVBoxLayout* layout = new QVBoxLayout(_window);
-    _window->setLayout(layout);
-    layout->addWidget(webView);
-    layout->setSpacing(0);
-    layout->setContentsMargins(0, 0, 0, 0);
-    _window->setGeometry(0, 0, width, height);
+    _dockWidget->setWidget(webView);
 
-    connect(this, &WebWindowClass::destroyed, _window, &QWidget::deleteLater);
+    toolWindow->addDockWidget(Qt::RightDockWidgetArea, _dockWidget);
+
+    connect(this, &WebWindowClass::destroyed, _dockWidget, &QWidget::deleteLater);
 }
 
 WebWindowClass::~WebWindowClass() {
 }
 
 void WebWindowClass::setVisible(bool visible) {
-    QMetaObject::invokeMethod(_window, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+    if (visible) {
+        QMetaObject::invokeMethod(
+            Application::getInstance()->getToolWindow(), "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
+    }
+    QMetaObject::invokeMethod(_dockWidget, "setVisible", Qt::BlockingQueuedConnection, Q_ARG(bool, visible));
 }
 
 QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine* engine) {
@@ -59,8 +68,9 @@ QScriptValue WebWindowClass::constructor(QScriptContext* context, QScriptEngine*
     QMetaObject::invokeMethod(WindowScriptingInterface::getInstance(), "doCreateWebWindow", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(WebWindowClass*, retVal),
             Q_ARG(const QString&, file),
-            Q_ARG(int, context->argument(1).toInteger()),
-            Q_ARG(int, context->argument(2).toInteger()));
+            Q_ARG(QString, context->argument(1).toString()),
+            Q_ARG(int, context->argument(2).toInteger()),
+            Q_ARG(int, context->argument(3).toInteger()));
 
     connect(engine, &QScriptEngine::destroyed, retVal, &WebWindowClass::deleteLater);
 

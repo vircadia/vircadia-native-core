@@ -34,8 +34,8 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
 }
 
-WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& url, int width, int height) {
-    return new WebWindowClass(url, width, height);
+WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
+    return new WebWindowClass(title, url, width, height);
 }
 
 QScriptValue WindowScriptingInterface::hasFocus() {
