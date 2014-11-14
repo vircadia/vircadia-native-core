@@ -47,6 +47,7 @@ public:
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
 
 protected:
     QRect _bounds; // where on the screen to draw

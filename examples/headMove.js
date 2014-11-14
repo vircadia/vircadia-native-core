@@ -70,7 +70,7 @@ function activateWarp() {
 
 var WATCH_AVATAR_DISTANCE = 2.5;
 
-var sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
+var sound = SoundCache.getSound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
 function playSound() {
     Audio.playSound(sound, {
       position: MyAvatar.position

@@ -37,6 +37,7 @@ EntityItemProperties::EntityItemProperties() :
     _gravity(EntityItem::DEFAULT_GRAVITY),
     _damping(EntityItem::DEFAULT_DAMPING),
     _lifetime(EntityItem::DEFAULT_LIFETIME),
+    _userData(EntityItem::DEFAULT_USER_DATA),
     _script(EntityItem::DEFAULT_SCRIPT),
     _registrationPoint(EntityItem::DEFAULT_REGISTRATION_POINT),
     _angularVelocity(EntityItem::DEFAULT_ANGULAR_VELOCITY),
@@ -53,6 +54,7 @@ EntityItemProperties::EntityItemProperties() :
     _gravityChanged(false),
     _dampingChanged(false),
     _lifetimeChanged(false),
+    _userDataChanged(false),
     _scriptChanged(false),
     _registrationPointChanged(false),
     _angularVelocityChanged(false),
@@ -223,6 +225,7 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_CUTOFF, cutoff);
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
+    CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
 
     return changedProperties;
 }
@@ -276,6 +279,7 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(cutoff);
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -350,6 +354,7 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(cutoff, setCutoff);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(userData, setUserData);
 
     _lastEdited = usecTimestampNow();
 }
@@ -512,6 +517,7 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, properties.getLocked());
             APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
             APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, properties.getAnimationSettings());
+            APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, properties.getUserData());
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -722,6 +728,7 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXTURES, setTextures);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, setAnimationSettings);
+    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_USER_DATA, setUserData);
     
     return valid;
 }
@@ -764,6 +771,7 @@ void EntityItemProperties::markAllChanged() {
     _gravityChanged = true;
     _dampingChanged = true;
     _lifetimeChanged = true;
+    _userDataChanged = true;
     _scriptChanged = true;
     _registrationPointChanged = true;
     _angularVelocityChanged = true;

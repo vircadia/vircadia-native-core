@@ -79,3 +79,11 @@ void Line3DOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 }
+
+QScriptValue Line3DOverlay::getProperty(const QString& property) {
+    if (property == "end" || property == "endPoint" || property == "p2") {
+        return vec3toScriptValue(_scriptEngine, _end);
+    }
+
+    return Base3DOverlay::getProperty(property);
+}

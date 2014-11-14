@@ -22,7 +22,9 @@
 
 ResourceCache::ResourceCache(QObject* parent) :
     QObject(parent),
-    _lastLRUKey(0) {
+    _lastLRUKey(0)
+{
+    
 }
 
 ResourceCache::~ResourceCache() {
@@ -291,7 +293,7 @@ void Resource::makeRequest() {
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
     connect(_reply, SIGNAL(finished()), SLOT(handleReplyFinished()));
-    
+
     _replyTimer = new QTimer(this);
     connect(_replyTimer, SIGNAL(timeout()), SLOT(handleReplyTimeout()));
     _replyTimer->setSingleShot(true);
