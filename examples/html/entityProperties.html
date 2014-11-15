@@ -134,6 +134,7 @@
             var elModelAnimationURL = document.getElementById("property-model-animation-url");
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
+            var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
 
             var elTextSection = document.getElementById("text-section");
             var elTextText = document.getElementById("property-text-text");
@@ -344,7 +345,7 @@
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
-
+            
             elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
             elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
 
@@ -528,6 +529,12 @@
                 <label>Animation FPS</label>
                 <span>
                     <input class="coord" type='number' id="property-model-animation-fps"></input>
+                </span>
+            </div>
+            <div class="property-section">
+                <label>Animation Frame</label>
+                <span>
+                    <input class="coord" type='number' id="property-model-animation-frame"></input>
                 </span>
             </div>
         </div>
