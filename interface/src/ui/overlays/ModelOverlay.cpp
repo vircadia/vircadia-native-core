@@ -22,6 +22,22 @@ ModelOverlay::ModelOverlay()
     _isLoaded = false;
 }
 
+ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
+    Base3DOverlay(modelOverlay),
+    _model(),
+    _modelTextures(QVariantMap()),
+    _scale(modelOverlay->_scale),
+    _updateModel(false),
+    _url(modelOverlay->_url),
+    _rotation(modelOverlay->_rotation)
+{
+    _model.init();
+    if (_url.isValid()) {
+        _updateModel = true;
+        _isLoaded = false;
+    }
+}
+
 void ModelOverlay::update(float deltatime) {
     if (_updateModel) {
         _updateModel = false;
@@ -166,4 +182,6 @@ bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const g
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo);
 }
 
-
+ModelOverlay* ModelOverlay::createClone() const {
+    return new ModelOverlay(this);
+}

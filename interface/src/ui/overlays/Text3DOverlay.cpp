@@ -31,6 +31,19 @@ Text3DOverlay::Text3DOverlay() :
 {
 }
 
+Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
+    Planar3DOverlay(text3DOverlay),
+    _text(text3DOverlay->_text),
+    _backgroundColor(text3DOverlay->_backgroundColor),
+    _lineHeight(text3DOverlay->_lineHeight),
+    _leftMargin(text3DOverlay->_leftMargin),
+    _topMargin(text3DOverlay->_topMargin),
+    _rightMargin(text3DOverlay->_rightMargin),
+    _bottomMargin(text3DOverlay->_bottomMargin),
+    _isFacingAvatar(text3DOverlay->_isFacingAvatar)
+{
+}
+
 Text3DOverlay::~Text3DOverlay() {
 }
 
@@ -172,7 +185,6 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
         setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
     }
 
-
     QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
@@ -208,10 +220,15 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     return Planar3DOverlay::getProperty(property);
 }
 
+Text3DOverlay* Text3DOverlay::createClone() const {
+    return new Text3DOverlay(this);;
+}
+
 float Text3DOverlay::textWidth(const QString& text) const {
     QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
     float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
     return scaleFactor * (float)fontMetrics.width(qPrintable(text));
 }
+
 

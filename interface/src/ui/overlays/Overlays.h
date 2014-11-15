@@ -61,6 +61,9 @@ public slots:
     /// adds an overlay that's already been created
     unsigned int addOverlay(Overlay* overlay);
 
+    /// clones an existing overlay
+    unsigned int cloneOverlay(unsigned int id);
+
     /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
     /// successful edit, if the input id is for an unknown overlay this function will have no effect
     bool editOverlay(unsigned int id, const QScriptValue& properties);
