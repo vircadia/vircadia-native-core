@@ -78,8 +78,6 @@ public:
         
     Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
         
-    Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
-
 signals:
 
     void rendering();
@@ -184,92 +182,6 @@ public:
 };
 
 typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
-
-/// Contains the information necessary to render a heightfield block.
-class HeightfieldBuffer : public BufferData {
-public:
-    
-    static const int HEIGHT_BORDER;
-    static const int SHARED_EDGE;
-    static const int HEIGHT_EXTENSION;
-    
-    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height,
-        const QByteArray& color, const QByteArray& material = QByteArray(),
-        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
-    ~HeightfieldBuffer();
-    
-    const glm::vec3& getTranslation() const { return _translation; }
-    float getScale() const { return _scale; }
-    
-    const Box& getHeightBounds() const { return _heightBounds; }
-    const Box& getColorBounds() const { return _colorBounds; }
-    const Box& getMaterialBounds() const { return _materialBounds; }
-    
-    QByteArray& getHeight() { return _height; }
-    const QByteArray& getHeight() const { return _height; }
-    
-    QByteArray& getColor() { return _color; }
-    const QByteArray& getColor() const { return _color; }
-    
-    QByteArray& getMaterial() { return _material; }
-    const QByteArray& getMaterial() const { return _material; }
-    
-    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
-    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
-    
-    QByteArray getUnextendedHeight() const;
-    QByteArray getUnextendedColor(int x = 0, int y = 0) const;
-    
-    int getHeightSize() const { return _heightSize; }
-    float getHeightIncrement() const { return _heightIncrement; }
-    
-    int getColorSize() const { return _colorSize; }
-    float getColorIncrement() const { return _colorIncrement; }
-    
-    int getMaterialSize() const { return _materialSize; }
-    float getMaterialIncrement() const { return _materialIncrement; }
-    
-    virtual void render(bool cursor = false);
-
-private:
-    
-    glm::vec3 _translation;
-    float _scale;
-    Box _heightBounds;
-    Box _colorBounds;
-    Box _materialBounds;
-    QByteArray _height;
-    QByteArray _color;
-    QByteArray _material;
-    QVector<SharedObjectPointer> _materials;
-    GLuint _heightTextureID;
-    GLuint _colorTextureID;
-    GLuint _materialTextureID;
-    QVector<NetworkTexturePointer> _networkTextures;
-    int _heightSize;
-    float _heightIncrement;
-    int _colorSize;
-    float _colorIncrement;
-    int _materialSize;
-    float _materialIncrement;
-    
-    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
-    static QHash<int, BufferPair> _bufferPairs;
-};
-
-/// Convenience class for rendering a preview of a heightfield.
-class HeightfieldPreview {
-public:
-    
-    void setBuffers(const QVector<BufferDataPointer>& buffers) { _buffers = buffers; }
-    const QVector<BufferDataPointer>& getBuffers() const { return _buffers; }
-    
-    void render(const glm::vec3& translation, float scale) const;
-    
-private:
-    
-    QVector<BufferDataPointer> _buffers;
-};
 
 /// Describes contents of a vertex in a voxel buffer.
 class VoxelPoint {
