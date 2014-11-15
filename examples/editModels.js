@@ -1213,18 +1213,15 @@ var toolBar = (function () {
             visible: true
         });
         
-        print(toolIconUrl + "add-text.svg");
-
         newTextButton = toolBar.addTool({
-            imageURL: toolIconUrl + "add-text.svg",
+            //imageURL: toolIconUrl + "add-text.svg",
+            imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/add-text.svg", // temporarily
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
             alpha: 0.9,
             visible: true
         });
-
-
     }
 
     function toggleNewModelButton(active) {
@@ -1396,7 +1393,7 @@ var toolBar = (function () {
                                 type: "Text",
                                 position: position,
                                 dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
-                                backgroundColor: { red: 255, green: 0, blue: 0 },
+                                backgroundColor: { red: 0, green: 0, blue: 0 },
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
                                 lineHight: "0.1"
