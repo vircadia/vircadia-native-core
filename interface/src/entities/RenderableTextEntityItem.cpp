@@ -20,8 +20,6 @@
 #include "EntityTreeRenderer.h"
 #include "RenderableTextEntityItem.h"
 
-const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
-const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
 const float LINE_SCALE_RATIO = 1.2f;
 
@@ -33,7 +31,6 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableTextEntityItem::render");
     assert(getType() == EntityTypes::Text);
     glm::vec3 position = getPositionInMeters();
-    glm::vec3 center = getCenter() * (float)TREE_SCALE;
     glm::vec3 dimensions = getDimensions() * (float)TREE_SCALE;
     glm::vec3 halfDimensions = dimensions / 2.0f;
     glm::quat rotation = getRotation();
