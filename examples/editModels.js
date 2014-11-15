@@ -48,6 +48,9 @@ var RIGHT = 1;
 
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
+var DEFAULT_TEXT_DIMENSION_X = 1.0;
+var DEFAULT_TEXT_DIMENSION_Y = 1.0;
+var DEFAULT_TEXT_DIMENSION_Z = 0.01;
 
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
@@ -1122,6 +1125,7 @@ var toolBar = (function () {
         newModelButton,
         newCubeButton,
         newSphereButton,
+        newTextButton,
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
@@ -1208,6 +1212,18 @@ var toolBar = (function () {
             alpha: 0.9,
             visible: true
         });
+        
+        print(toolIconUrl + "add-text.svg");
+
+        newTextButton = toolBar.addTool({
+            imageURL: toolIconUrl + "add-text.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true
+        });
+
 
     }
 
@@ -1371,6 +1387,25 @@ var toolBar = (function () {
             return true;
         }
 
+
+        if (newTextButton === toolBar.clicked(clickedOverlay)) {
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                Entities.addEntity({ 
+                                type: "Text",
+                                position: position,
+                                dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
+                                backgroundColor: { red: 255, green: 0, blue: 0 },
+                                textColor: { red: 255, green: 255, blue: 255 },
+                                text: "some text",
+                                lineHight: "0.1"
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
 
         return false;
     };

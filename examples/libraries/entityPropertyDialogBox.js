@@ -65,6 +65,30 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Original Textures:\n" + properties.originalTextures, type: "header" });
             index++;
         }
+
+        if (properties.type == "Text") {
+            array.push({ label: "Text:", value: properties.text });
+            index++;
+            array.push({ label: "Line Height:", value: properties.lineHeight });
+            index++;
+            array.push({ label: "Text Color:", type: "header" });
+            index++;
+            array.push({ label: "Red:", value: properties.textColor.red });
+            index++;
+            array.push({ label: "Green:", value: properties.textColor.green });
+            index++;
+            array.push({ label: "Blue:", value: properties.textColor.blue });
+            index++;
+            array.push({ label: "Background Color:", type: "header" });
+            index++;
+            array.push({ label: "Red:", value: properties.backgroundColor.red });
+            index++;
+            array.push({ label: "Green:", value: properties.backgroundColor.green });
+            index++;
+            array.push({ label: "Blue:", value: properties.backgroundColor.blue });
+            index++;
+        }
+
         array.push({ label: "Position:", type: "header" });
         index++;
         array.push({ label: "X:", value: properties.position.x.toFixed(decimals) });
@@ -271,6 +295,22 @@ EntityPropertyDialogBox = (function () {
                 properties.textures = array[index++].value;
                 index++; // skip textureNames label
             }
+
+            if (properties.type == "Text") {
+                properties.text = array[index++].value;
+                properties.lineHeight = array[index++].value;
+
+                index++; // skip header
+                properties.textColor.red = array[index++].value;
+                properties.textColor.green = array[index++].value;
+                properties.textColor.blue = array[index++].value;
+
+                index++; // skip header
+                properties.backgroundColor.red = array[index++].value;
+                properties.backgroundColor.green = array[index++].value;
+                properties.backgroundColor.blue = array[index++].value;
+            }
+
             index++; // skip header
             properties.position.x = array[index++].value;
             properties.position.y = array[index++].value;
