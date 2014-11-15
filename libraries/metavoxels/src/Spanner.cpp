@@ -108,7 +108,12 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
-Spanner* Spanner::paint(const glm::vec3& position, float radius, const SharedObjectPointer& material, const QColor& color) {
+Spanner* Spanner::paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
+        const QColor& color) {
+    return this;
+}
+
+Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float height) {
     return this;
 }
 
@@ -1608,7 +1613,7 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     return false;
 }
 
-Spanner* Heightfield::paint(const glm::vec3& position, float radius,
+Spanner* Heightfield::paintMaterial(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& color) {
     if (!_height) {
         return this;
@@ -1709,6 +1714,60 @@ Spanner* Heightfield::paint(const glm::vec3& position, float radius,
         clearUnusedMaterials(materials, materialContents);
         newHeightfield->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
             materialContents, materials)));
+    }
+    
+    return newHeightfield;
+}
+
+Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height) {
+    if (!_height) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    QVector<quint16> contents = _height->getContents();
+    int innerWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    int highestX = heightWidth - 1;
+    int highestZ = heightHeight - 1;
+    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+    
+    glm::vec3 inverseScale(innerWidth / getScale(), 1.0f, innerHeight / (getScale() * _aspectZ));
+    glm::vec3 center = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
+    center.x += 1.0f;
+    center.z += 1.0f;
+    
+    glm::vec3 extents = glm::vec3(radius, radius, radius) * inverseScale;
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // paint all points within the radius
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    quint16* lineDest = contents.data() + (int)z * heightWidth + (int)startX;
+    float squaredRadius = extents.x * extents.x;
+    float squaredRadiusReciprocal = 1.0f / squaredRadius;
+    float scaledHeight = height * numeric_limits<quint16>::max() / (getScale() * _aspectY);
+    float multiplierZ = inverseScale.x / inverseScale.z;
+    bool changed = false;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        quint16* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            float distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared <= squaredRadius) {
+                // height falls off towards edges
+                int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                if (value != *dest) {
+                    *dest = qMin(qMax(value, 0), (int)numeric_limits<quint16>::max());
+                    changed = true;
+                }
+            }
+        }
+        lineDest += heightWidth;
+    }
+    if (changed) {
+        newHeightfield->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, contents)));
     }
     
     return newHeightfield;

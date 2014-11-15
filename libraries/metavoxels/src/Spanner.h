@@ -66,7 +66,12 @@ public:
 
     /// Attempts to paint on the spanner.
     /// \return the modified spanner, or this if no modification was performed
-    virtual Spanner* paint(const glm::vec3& position, float radius, const SharedObjectPointer& material, const QColor& color);
+    virtual Spanner* paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
+        const QColor& color);
+
+    /// Attempts to modify the spanner's height.
+    /// \return the modified spanner, or this if no modification was performed
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
 
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
@@ -515,8 +520,11 @@ public:
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
-    virtual Spanner* paint(const glm::vec3& position, float radius, const SharedObjectPointer& material, const QColor& color);
+    virtual Spanner* paintMaterial(const glm::vec3& position, float radius, const SharedObjectPointer& material,
+        const QColor& color);
 
+    virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    
 signals:
 
     void aspectYChanged(float aspectY);

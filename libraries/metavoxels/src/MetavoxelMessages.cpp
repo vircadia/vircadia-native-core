@@ -154,87 +154,18 @@ PaintHeightfieldHeightEdit::PaintHeightfieldHeightEdit(const glm::vec3& position
     height(height) {
 }
 
-class PaintHeightfieldHeightEditVisitor : public MetavoxelVisitor {
-public:
-    
-    PaintHeightfieldHeightEditVisitor(const PaintHeightfieldHeightEdit& edit);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    PaintHeightfieldHeightEdit _edit;
-    Box _bounds;
-};
-
-PaintHeightfieldHeightEditVisitor::PaintHeightfieldHeightEditVisitor(const PaintHeightfieldHeightEdit& edit) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute()),
-    _edit(edit) {
-    
-    glm::vec3 extents(_edit.radius, _edit.radius, _edit.radius);
-    _bounds = Box(_edit.position - extents, _edit.position + extents);
-}
-
-const int EIGHT_BIT_MAXIMUM = 255;
-
-int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    HeightfieldHeightDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
-    if (!pointer) {
-        return STOP_RECURSION;
-    }
-    QByteArray contents(pointer->getContents());
-    int size = glm::sqrt((float)contents.size());
-    int highest = size - 1;
-    float heightScale = size / info.size;
-    
-    glm::vec3 center = (_edit.position - info.minimum) * heightScale;
-    float scaledRadius = _edit.radius * heightScale;
-    glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
-    
-    glm::vec3 start = glm::floor(center - extents);
-    glm::vec3 end = glm::ceil(center + extents);
-    
-    // raise/lower all points within the radius
-    float z = qMax(start.z, 0.0f);
-    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-    uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
-    float squaredRadius = scaledRadius * scaledRadius;
-    float squaredRadiusReciprocal = 1.0f / squaredRadius; 
-    float scaledHeight = _edit.height * EIGHT_BIT_MAXIMUM / info.size;
-    bool changed = false;
-    for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
-        uchar* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest++) {
-            float dx = x - center.x, dz = z - center.z;
-            float distanceSquared = dx * dx + dz * dz;
-            if (distanceSquared <= squaredRadius) {
-                // height falls off towards edges
-                int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
-                if (value != *dest) {
-                    *dest = qMin(qMax(value, 0), EIGHT_BIT_MAXIMUM);
-                    changed = true;
-                }
-            }
-        }
-        lineDest += size;
-    }
-    if (changed) {
-        HeightfieldHeightDataPointer newPointer(new HeightfieldHeightData(contents));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newPointer));
-    }
-    return STOP_RECURSION;
-}
-
 void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintHeightfieldHeightEditVisitor visitor(*this);
-    data.guide(visitor);
+    glm::vec3 extents(radius, radius, radius);
+    QVector<SharedObjectPointer> results;
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
+        Box(position - extents, position + extents), results);
+    
+    foreach (const SharedObjectPointer& spanner, results) {
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintHeight(position, radius, height);
+        if (newSpanner != spanner) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
+        }
+    }
 }
 
 MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& averageColor) :
@@ -256,7 +187,7 @@ void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedOb
         Box(position - extents, position + extents), results);
     
     foreach (const SharedObjectPointer& spanner, results) {
-        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paint(position, radius, material, averageColor);
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintMaterial(position, radius, material, averageColor);
         if (newSpanner != spanner) {
             data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
         }
@@ -419,7 +350,8 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     if (minZ > 0) {
         hermiteMinZ--;
         hermiteSizeZ++;
-    }
+    }    
+    const int EIGHT_BIT_MAXIMUM = 255;
     QRgb* hermiteDestZ = hermiteContents.data() + hermiteMinZ * hermiteArea + hermiteMinY * hermiteSamples +
         hermiteMinX * VoxelHermiteData::EDGE_COUNT;
     for (int z = hermiteMinZ, hermiteMaxZ = z + hermiteSizeZ - 1; z <= hermiteMaxZ; z++, hermiteDestZ += hermiteArea) {
