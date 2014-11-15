@@ -135,6 +135,16 @@
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
 
+            var elTextSection = document.getElementById("text-section");
+            var elTextText = document.getElementById("property-text-text");
+            var elTextLineHeight = document.getElementById("property-text-line-height");
+            var elTextTextColorRed = document.getElementById("property-text-text-color-red");
+            var elTextTextColorGreen = document.getElementById("property-text-text-color-green");
+            var elTextTextColorBlue = document.getElementById("property-text-text-color-blue");
+            var elTextBackgroundColorRed = document.getElementById("property-text-background-color-red");
+            var elTextBackgroundColorGreen = document.getElementById("property-text-background-color-green");
+            var elTextBackgroundColorBlue = document.getElementById("property-text-background-color-blue");
+
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
                     data = JSON.parse(data);
@@ -201,11 +211,25 @@
                                     elModelSection.style.display = 'none';
                                 } else {
                                     elModelSection.style.display = 'block';
-
                                     elModelURL.value = properties.modelURL; 
                                     elModelAnimationURL.value = properties.animationURL;
                                     elModelAnimationPlaying.checked = properties.animationPlaying;
                                     elModelAnimationFPS.value = properties.animationFPS;
+                                }
+
+                                if (properties.type != "Text") {
+                                    elTextSection.style.display = 'none';
+                                } else {
+                                    elTextSection.style.display = 'block';
+
+                                    elTextText.value = properties.text; 
+                                    elTextLineHeight.value = properties.lineHeight;
+                                    elTextTextColorRed.value = properties.textColor.red;
+                                    elTextTextColorGreen.value = properties.textColor.green;
+                                    elTextTextColorBlue.value = properties.textColor.blue;
+                                    elTextBackgroundColorRed.value = properties.backgroundColor.red;
+                                    elTextBackgroundColorGreen.value = properties.backgroundColor.green;
+                                    elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
                                 }
 
                                 if (properties.type != "Light") {
@@ -320,6 +344,22 @@
             elModelAnimationPlaying.addEventListener('change', createEmitCheckedPropertyUpdateFunction('animationIsPlaying'));
             elModelAnimationFPS.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFPS'));
             elModelAnimationFrame.addEventListener('change', createEmitNumberPropertyUpdateFunction('animationFrameIndex'));
+
+            elTextText.addEventListener('change', createEmitTextPropertyUpdateFunction('text'));
+            elTextLineHeight.addEventListener('change', createEmitNumberPropertyUpdateFunction('lineHeight'));
+
+            var textTextColorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'textColor', elTextTextColorRed, elTextTextColorGreen, elTextTextColorBlue);
+            elTextTextColorRed.addEventListener('change', textTextColorChangeFunction);
+            elTextTextColorGreen.addEventListener('change', textTextColorChangeFunction);
+            elTextTextColorBlue.addEventListener('change', textTextColorChangeFunction);
+
+            var textBackgroundColorChangeFunction = createEmitColorPropertyUpdateFunction(
+                'backgroundColor', elTextBackgroundColorRed, elTextBackgroundColorGreen, elTextBackgroundColorBlue);
+            elTextBackgroundColorRed.addEventListener('change', textBackgroundColorChangeFunction);
+            elTextBackgroundColorGreen.addEventListener('change', textBackgroundColorChangeFunction);
+            elTextBackgroundColorBlue.addEventListener('change', textBackgroundColorChangeFunction);
+
         }
     </script>
 </head>
@@ -488,6 +528,37 @@
                 <label>Animation FPS</label>
                 <span>
                     <input class="coord" type='number' id="property-model-animation-fps"></input>
+                </span>
+            </div>
+        </div>
+
+        <div id="text-section" class="multi-property-section">
+            <div class="property-section">
+                <label>Text</label>
+                <span>
+                    <input type="text" id="property-text-text"></input>
+                </span>
+            </div>
+            <div class="property-section">
+                <label>Line Height</label>
+                <span>
+                    <input class="coord" type='number' id="property-text-line-height"></input>
+                </span>
+            </div>
+            <div class="property-section">
+                <label>Text Color</label>
+                <span>
+                    Red <input class="coord" type='number' id="property-text-text-color-red"></input>
+                    Green <input class="coord" type='number' id="property-text-text-color-green"></input>
+                    Blue <input class="coord" type='number' id="property-text-text-color-blue"></input>
+                </span>
+            </div>
+            <div class="property-section">
+                <label>Background Color</label>
+                <span>
+                    Red <input class="coord" type='number' id="property-text-background-color-red"></input>
+                    Green <input class="coord" type='number' id="property-text-background-color-green"></input>
+                    Blue <input class="coord" type='number' id="property-text-background-color-blue"></input>
                 </span>
             </div>
         </div>
