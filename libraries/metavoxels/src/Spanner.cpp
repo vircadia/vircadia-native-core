@@ -108,6 +108,10 @@ bool Spanner::findRayIntersection(const glm::vec3& origin, const glm::vec3& dire
     return _bounds.findRayIntersection(origin, direction, distance);
 }
 
+Spanner* Spanner::paint(const glm::vec3& position, float radius, const SharedObjectPointer& material, const QColor& color) {
+    return this;
+}
+
 bool Spanner::hasOwnColors() const {
     return false;
 }
@@ -1602,6 +1606,112 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     }
     
     return false;
+}
+
+Spanner* Heightfield::paint(const glm::vec3& position, float radius,
+        const SharedObjectPointer& material, const QColor& color) {
+    if (!_height) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int baseWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
+    int baseHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
+    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+    
+    int colorWidth = baseWidth, colorHeight = baseHeight;
+    QByteArray colorContents;
+    if (_color) {
+        colorWidth = _color->getWidth();
+        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+        colorContents = _color->getContents();
+        
+    } else {
+        colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFF); 
+    }
+    
+    int materialWidth = baseWidth, materialHeight = baseHeight;
+    QByteArray materialContents;
+    QVector<SharedObjectPointer> materials;
+    if (_material) {
+        materialWidth = _material->getWidth();
+        materialHeight = _material->getContents().size() / materialWidth;
+        materialContents = _material->getContents();
+        materials = _material->getMaterials();
+        
+    } else {
+        materialContents = QByteArray(baseWidth * baseHeight, 0);
+    }
+    
+    int highestX = colorWidth - 1;
+    int highestZ = colorHeight - 1;
+    glm::vec3 inverseScale(highestX / getScale(), 1.0f, highestZ / (getScale() * _aspectZ));
+    glm::vec3 center = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
+    
+    glm::vec3 extents = glm::vec3(radius, radius, radius) * inverseScale;
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // paint all points within the radius
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    int stride = colorWidth * DataBlock::COLOR_BYTES;
+    uchar* lineDest = (uchar*)colorContents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
+    float squaredRadius = extents.x * extents.x;
+    float multiplierZ = inverseScale.x / inverseScale.z;
+    char red = color.red(), green = color.green(), blue = color.blue();
+    bool changed = false;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        uchar* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            if (dx * dx + dz * dz <= squaredRadius) {
+                dest[0] = red;
+                dest[1] = green;
+                dest[2] = blue;
+                changed = true;
+            }
+        }
+        lineDest += stride;
+    }
+    if (changed) {
+        newHeightfield->setColor(HeightfieldColorPointer(new HeightfieldColor(colorWidth, colorContents)));
+    }
+    
+    highestX = materialWidth - 1;
+    highestZ = materialHeight - 1;
+    inverseScale = glm::vec3(highestX / getScale(), 1.0f, highestZ / (getScale() * _aspectZ));
+    center = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
+    
+    extents = glm::vec3(radius, radius, radius) * inverseScale;
+    start = glm::floor(center - extents);
+    end = glm::ceil(center + extents);
+     
+    // paint all points within the radius
+    z = qMax(start.z, 0.0f);
+    startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    lineDest = (uchar*)materialContents.data() + (int)z * materialWidth + (int)startX;
+    squaredRadius = extents.x * extents.x; 
+    uchar materialIndex = getMaterialIndex(material, materials, materialContents);
+    changed = false;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        uchar* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            if (dx * dx + dz * dz <= squaredRadius) {
+                *dest = materialIndex;
+                changed = true;
+            }
+        }
+        lineDest += materialWidth;
+    }
+    if (changed) {
+        clearUnusedMaterials(materials, materialContents);
+        newHeightfield->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
+            materialContents, materials)));
+    }
+    
+    return newHeightfield;
 }
 
 QByteArray Heightfield::getRendererClassName() const {

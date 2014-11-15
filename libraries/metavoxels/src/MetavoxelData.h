@@ -102,6 +102,9 @@ public:
     void replace(const AttributePointer& attribute, const Box& bounds, float granularity, const SharedObjectPointer& oldObject,
         const SharedObjectPointer& newObject);
     
+    /// Retrieves all spanners that intersect the specified bounds.
+    void getIntersecting(const AttributePointer& attribute, const Box& bounds, QVector<SharedObjectPointer>& results);
+    
     /// Clears all data in the specified attribute layer.
     void clear(const AttributePointer& attribute);
 

@@ -354,6 +354,45 @@ void MetavoxelData::replace(const AttributePointer& attribute, const Box& bounds
     guide(visitor);
 }
 
+class SpannerFetchVisitor : public SpannerVisitor {
+public:
+    
+    SpannerFetchVisitor(const AttributePointer& attribute, const Box& bounds, QVector<SharedObjectPointer>& results);
+    
+    virtual bool visit(Spanner* spanner);
+    
+    virtual int visit(MetavoxelInfo& info);
+
+private:
+    
+    const Box& _bounds;
+    QVector<SharedObjectPointer>& _results;
+};
+
+SpannerFetchVisitor::SpannerFetchVisitor(const AttributePointer& attribute, const Box& bounds,
+        QVector<SharedObjectPointer>& results) :
+    SpannerVisitor(QVector<AttributePointer>() << attribute),
+    _bounds(bounds),
+    _results(results) {
+}
+
+bool SpannerFetchVisitor::visit(Spanner* spanner) {
+    if (spanner->getBounds().intersects(_bounds)) {
+        _results.append(spanner);
+    }
+    return true;
+}
+
+int SpannerFetchVisitor::visit(MetavoxelInfo& info) {
+    return info.getBounds().intersects(_bounds) ? SpannerVisitor::visit(info) : STOP_RECURSION;
+}
+
+void MetavoxelData::getIntersecting(const AttributePointer& attribute, const Box& bounds,
+        QVector<SharedObjectPointer>& results) {
+    SpannerFetchVisitor visitor(attribute, bounds, results);
+    guide(visitor);
+}
+
 void MetavoxelData::clear(const AttributePointer& attribute) {
     MetavoxelNode* node = _roots.take(attribute);
     if (node) {

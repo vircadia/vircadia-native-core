@@ -2869,8 +2869,7 @@ void HeightfieldRenderer::render(bool cursor) {
         glDrawRangeElements(GL_TRIANGLES, 0, vertexCount - 1, indexCount, GL_UNSIGNED_INT, 0);
         
         glBindTexture(GL_TEXTURE_2D, 0);
-        glActiveTexture(GL_TEXTURE0); 
-        
+         
         Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().release();
@@ -2946,14 +2945,14 @@ void HeightfieldRenderer::render(bool cursor) {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, 0);
             
-            glActiveTexture(GL_TEXTURE0);
-            
             DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().release();
             
             glDisable(GL_POLYGON_OFFSET_FILL);
             glDepthMask(true);
             glDepthFunc(GL_LESS);
         }
+        glActiveTexture(GL_TEXTURE0);
+        
         glDisable(GL_CULL_FACE);
         
         glDisableClientState(GL_TEXTURE_COORD_ARRAY);    

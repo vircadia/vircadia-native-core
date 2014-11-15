@@ -64,6 +64,10 @@ public:
     /// Finds the intersection between the described ray and this spanner.
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
+    /// Attempts to paint on the spanner.
+    /// \return the modified spanner, or this if no modification was performed
+    virtual Spanner* paint(const glm::vec3& position, float radius, const SharedObjectPointer& material, const QColor& color);
+
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
 
@@ -510,6 +514,8 @@ public:
     virtual float getHeight(const glm::vec3& location) const;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
+    virtual Spanner* paint(const glm::vec3& position, float radius, const SharedObjectPointer& material, const QColor& color);
 
 signals:
 

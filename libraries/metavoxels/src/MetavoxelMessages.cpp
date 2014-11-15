@@ -242,130 +242,6 @@ MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& av
     averageColor(averageColor) {
 }
 
-class PaintHeightfieldMaterialEditVisitor : public MetavoxelVisitor {
-public:
-    
-    PaintHeightfieldMaterialEditVisitor(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    glm::vec3 _position;
-    float _radius;
-    SharedObjectPointer _material;
-    QColor _color;
-    Box _bounds;
-};
-
-PaintHeightfieldMaterialEditVisitor::PaintHeightfieldMaterialEditVisitor(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute()),
-    _position(position),
-    _radius(radius),
-    _material(material),
-    _color(color) {
-    
-    const float LARGE_EXTENT = 100000.0f;
-    glm::vec3 extents(_radius, LARGE_EXTENT, _radius);
-    _bounds = Box(_position - extents, _position + extents);
-}
-
-int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    HeightfieldColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<HeightfieldColorDataPointer>();
-    if (colorPointer) {
-        QByteArray contents(colorPointer->getContents());
-        int size = glm::sqrt((float)contents.size() / DataBlock::COLOR_BYTES);
-        int highest = size - 1;
-        float heightScale = size / info.size;
-        
-        glm::vec3 center = (_position - info.minimum) * heightScale;
-        float scaledRadius = _radius * heightScale;
-        glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
-        
-        glm::vec3 start = glm::floor(center - extents);
-        glm::vec3 end = glm::ceil(center + extents);
-        
-        // paint all points within the radius
-        float z = qMax(start.z, 0.0f);
-        float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-        int stride = size * DataBlock::COLOR_BYTES;
-        char* lineDest = contents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
-        float squaredRadius = scaledRadius * scaledRadius; 
-        char red = _color.red(), green = _color.green(), blue = _color.blue();
-        bool changed = false;
-        for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
-            char* dest = lineDest;
-            for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
-                float dx = x - center.x, dz = z - center.z;
-                if (dx * dx + dz * dz <= squaredRadius) {
-                    dest[0] = red;
-                    dest[1] = green;
-                    dest[2] = blue;
-                    changed = true;
-                }
-            }
-            lineDest += stride;
-        }
-        if (changed) {
-            HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
-            info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
-                encodeInline<HeightfieldColorDataPointer>(newPointer));
-        }
-    }
-    
-    HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(1).getInlineValue<HeightfieldMaterialDataPointer>();
-    if (materialPointer) {
-        QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
-        QByteArray contents(materialPointer->getContents());
-        uchar materialIndex = getMaterialIndex(_material, materials, contents);
-        int size = glm::sqrt((float)contents.size());
-        int highest = size - 1;
-        float heightScale = highest / info.size;
-        
-        glm::vec3 center = (_position - info.minimum) * heightScale;
-        float scaledRadius = _radius * heightScale;
-        glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
-        
-        glm::vec3 start = glm::floor(center - extents);
-        glm::vec3 end = glm::ceil(center + extents);
-        
-        // paint all points within the radius
-        float z = qMax(start.z, 0.0f);
-        float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-        uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
-        float squaredRadius = scaledRadius * scaledRadius; 
-        bool changed = false;
-        for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
-            uchar* dest = lineDest;
-            for (float x = startX; x <= endX; x += 1.0f, dest++) {
-                float dx = x - center.x, dz = z - center.z;
-                if (dx * dx + dz * dz <= squaredRadius) {
-                    *dest = materialIndex;
-                    changed = true;
-                }
-            }
-            lineDest += size;
-        }
-        if (changed) {
-            clearUnusedMaterials(materials, contents);
-            HeightfieldMaterialDataPointer newPointer(new HeightfieldMaterialData(contents, materials));
-            info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldMaterialDataPointer>(newPointer));
-        }
-    }
-    return STOP_RECURSION;
-}
-
 PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& averageColor) :
     MaterialEdit(material, averageColor),
@@ -374,8 +250,17 @@ PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& posi
 }
 
 void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintHeightfieldMaterialEditVisitor visitor(position, radius, material, averageColor);
-    data.guide(visitor);
+    glm::vec3 extents(radius, radius, radius);
+    QVector<SharedObjectPointer> results;
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
+        Box(position - extents, position + extents), results);
+    
+    foreach (const SharedObjectPointer& spanner, results) {
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paint(position, radius, material, averageColor);
+        if (newSpanner != spanner) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
+        }
+    }
 }
 
 const int VOXEL_BLOCK_SIZE = 16;
