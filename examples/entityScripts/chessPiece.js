@@ -1,8 +1,6 @@
 (function(){
     this.FIRST_TILE = null; // Global position of the first tile (1a)
     this.TILE_SIZE = null; // Size of one tile
-    this.whitesDeadPieces = null;
-    this.blacksDeadPieces = null;
   
     this.wantDebug = false;
     this.active = false;
@@ -59,16 +57,11 @@
       
             if (!(this.boardUserData &&
                 this.boardUserData.firstTile &&
-                this.boardUserData.tileSize &&
-                this.boardUserData.whitesDeadPieces &&
-                this.boardUserData.blacksDeadPieces &&
-                this.boardUserData.pieces)) {
+                this.boardUserData.tileSize)) {
                 print("Incomplete boardUserData " + this.boardID.id);
             } else {
                 this.FIRST_TILE = this.boardUserData.firstTile;
                 this.TILE_SIZE = this.boardUserData.tileSize;
-                this.whitesDeadPieces = this.boardUserData.whitesDeadPieces;
-                this.blacksDeadPieces = this.boardUserData.blacksDeadPieces;
         
                 this.active = true;
             }
@@ -139,9 +132,10 @@
     }
     this.moveDeadPiece = function() {
         var myPos = this.getIndexPosition(this.properties.position);
-     
-        for (var i = 0; i < this.boardUserData.pieces.length; i++) {
-            var piece = this.boardUserData.pieces[i];
+        var others = Entities.findEntities(this.properties.position, this.properties.dimensions.y);
+        
+        for (var i = 0; i < others.length; i++) {
+            var piece = others[i];
   
             if (piece.id != this.entityID.id) {
                 var properties = Entities.getEntityProperties(piece);

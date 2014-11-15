@@ -79,8 +79,7 @@ ChessGame.Board = (function(position, scale) {
         firstTile: this.tilePosition(1, 1),
         tileSize: this.tileSize,
         whitesDeadPieces: this.tilePosition(0,0),
-        blacksDeadPieces: this.tilePosition(9,9),
-        pieces: new Array()
+        blacksDeadPieces: this.tilePosition(9,9)
     }
     this.entityProperties = {
         type: "Model",
@@ -242,25 +241,7 @@ ChessGame.update = function() {
         for(var j = 1; j <= 8; j++) {
             ChessGame.makePiece(ChessGame.PAWN, row - 1, j, isWhite);
         }
-    }
-  
-    if (ChessGame.pieces.length > 0) {
-        var unknown = 0;
-        ChessGame.board.userDataObject.pieces = new Array();
-        for(var i = 0; i < ChessGame.pieces.length; i++) {
-            ChessGame.pieces[i].entity = Entities.identifyEntity(ChessGame.pieces[i].entity);
-            if (ChessGame.pieces[i].entity.isKnownID) {
-                ChessGame.board.userDataObject.pieces.push(ChessGame.pieces[i].entity)
-            } else {
-                unknown++;
-            }
-        }
-        ChessGame.board.updateUserData();
-    
-        if (unknown === 0) {
-            print("Board complete");
-            Script.update.disconnect(ChessGame.update);      
-        }
+        Script.update.disconnect(ChessGame.update);
     }
 }
 
