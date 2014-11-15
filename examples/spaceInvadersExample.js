@@ -84,13 +84,13 @@ var missileFired = false;
 var myMissile;
 
 // sounds
-var hitSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
-var shootSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
+var hitSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/hit.raw");
+var shootSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/shoot.raw");
 var moveSounds = new Array();
-moveSounds[0] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo1.raw");
-moveSounds[1] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo2.raw");
-moveSounds[2] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo3.raw");
-moveSounds[3] = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo4.raw");
+moveSounds[0] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo1.raw");
+moveSounds[1] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo2.raw");
+moveSounds[2] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo3.raw");
+moveSounds[3] = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Space%20Invaders/Lo4.raw");
 var currentMoveSound = 0;
 var numberOfSounds = 4;
 var stepsPerSound = invaderStepsPerCycle / numberOfSounds;
@@ -217,7 +217,8 @@ function update(deltaTime) {
 
         if (invaderStepOfCycle % stepsPerSound == 0) {
             // play the move sound
-            var options = new AudioInjectionOptions();
+            var options = {};
+            
             if (soundInMyHead) {
                 options.position = { x: MyAvatar.position.x + 0.0, 
                                      y: MyAvatar.position.y + 0.1, 
@@ -225,7 +226,7 @@ function update(deltaTime) {
             } else {
                 options.position = getInvaderPosition(invadersPerRow / 2, numberOfRows / 2);
             }
-            options.volume = 1.0;
+            
             Audio.playSound(moveSounds[currentMoveSound], options);
             
             // get ready for next move sound
@@ -330,7 +331,7 @@ function fireMissile() {
                             lifetime: 5
                         });
 
-        var options = new AudioInjectionOptions();
+        var options = {}
         if (soundInMyHead) {
             options.position = { x: MyAvatar.position.x + 0.0, 
                                  y: MyAvatar.position.y + 0.1, 
@@ -338,7 +339,7 @@ function fireMissile() {
         } else {
             options.position = missilePosition;
         }
-        options.volume = 1.0;
+        
         Audio.playSound(shootSound, options);
 
         missileFired = true;
@@ -380,7 +381,7 @@ function deleteIfInvader(possibleInvaderEntity) {
                     Entities.deleteEntity(myMissile);
 
                     // play the hit sound
-                    var options = new AudioInjectionOptions();
+                    var options = {};
                     if (soundInMyHead) {
                         options.position = { x: MyAvatar.position.x + 0.0, 
                                              y: MyAvatar.position.y + 0.1, 
@@ -388,7 +389,7 @@ function deleteIfInvader(possibleInvaderEntity) {
                     } else {
                         options.position = getInvaderPosition(row, column);
                     }
-                    options.volume = 1.0;
+                    
                     Audio.playSound(hitSound, options);
                 }
             }

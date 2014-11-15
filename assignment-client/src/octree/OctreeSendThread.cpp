@@ -452,11 +452,10 @@ int OctreeSendThread::packetDistributor(OctreeQueryNode* nodeData, bool viewFrus
                 _myServer->getOctree()->lockForRead();
                 quint64 lockWaitEnd = usecTimestampNow();
                 lockWaitElapsedUsec = (float)(lockWaitEnd - lockWaitStart);
-
                 quint64 encodeStart = usecTimestampNow();
 
                 bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
-                
+
                 quint64 encodeEnd = usecTimestampNow();
                 encodeElapsedUsec = (float)(encodeEnd - encodeStart);
                 

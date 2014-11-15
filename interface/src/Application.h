@@ -43,7 +43,6 @@
 #include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
-#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -83,6 +82,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/ToolWindow.h"
 #include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
@@ -233,6 +233,9 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
+    const Transform& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const Transform& view);
+
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
@@ -243,6 +246,8 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
+
+    ToolWindow* getToolWindow() { return _toolWindow ; }
 
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
@@ -260,7 +265,7 @@ public:
 
     QImage renderAvatarBillboard();
 
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
+    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
@@ -306,6 +311,7 @@ public:
     unsigned int getRenderTargetFramerate() const;
     bool isVSyncOn() const;
     bool isVSyncEditable() const;
+    bool isAboutToQuit() const { return _aboutToQuit; }
 
 
     void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
@@ -377,8 +383,10 @@ public slots:
     void resetSensors();
 
 private slots:
+    void clearDomainOctreeDetails();
     void timer();
     void idle();
+    void aboutToQuit();
 
     void connectedToDomain(const QString& hostname);
 
@@ -454,6 +462,8 @@ private:
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
+    ToolWindow* _toolWindow;
+
     BandwidthMeter _bandwidthMeter;
 
     QThread* _nodeThread;
@@ -477,8 +487,6 @@ private:
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
     Stars _stars;
-
-    BuckyBalls _buckyBalls;
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
@@ -523,6 +531,7 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
+    Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;
@@ -625,6 +634,8 @@ private:
     quint64 _lastSendDownstreamAudioStats;
 
     bool _isVSyncOn;
+    
+    bool _aboutToQuit;
 };
 
 #endif // hifi_Application_h

@@ -35,7 +35,11 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 Script.include("libraries/entityCameraTool.js");
 var cameraManager = new CameraManager();
 
-selectionManager.setEventListener(selectionDisplay.updateHandles);
+Script.include("libraries/gridTool.js");
+var grid = Grid();
+gridTool = GridTool({ horizontalGrid: grid });
+
+selectionManager.addEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -83,12 +87,12 @@ var toolBar = (function () {
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
-        menuItemWidth = 125,
+        menuItemWidth,
         menuItemOffset,
         menuItemHeight,
         menuItemMargin = 5,
         menuTextColor = { red: 255, green: 255, blue: 255 },
-        menuBackgoundColor = { red: 18, green: 66, blue: 66 };
+        menuBackgroundColor = { red: 18, green: 66, blue: 66 };
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
@@ -125,9 +129,8 @@ var toolBar = (function () {
         loadURLMenuItem = Overlays.addOverlay("text", {
             x: newModelButton.x - menuItemWidth,
             y: newModelButton.y + menuItemOffset,
-            width: menuItemWidth,
             height: menuItemHeight,
-            backgroundColor: menuBackgoundColor,
+            backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
@@ -137,14 +140,18 @@ var toolBar = (function () {
         loadFileMenuItem = Overlays.addOverlay("text", {
             x: newModelButton.x - menuItemWidth,
             y: newModelButton.y + menuItemOffset + menuItemHeight,
-            width: menuItemWidth,
             height: menuItemHeight,
-            backgroundColor: menuBackgoundColor,
+            backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
             visible: false
         });
+
+        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
+            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
+        Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",
@@ -262,10 +269,16 @@ var toolBar = (function () {
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
             if (!isActive) {
+                gridTool.setVisible(false);
+                grid.setEnabled(false);
+                propertiesTool.setVisible(false);
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
+                gridTool.setVisible(true);
+                grid.setEnabled(true);
+                propertiesTool.setVisible(true);
             }
             return true;
         }
@@ -597,8 +610,6 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: "Edit Entities Help...",
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 }
@@ -759,25 +770,32 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
+    } else if (event.text == 'g') {
+        if (isActive && selectionManager.hasSelection()) {
+            var newPosition = selectionManager.worldPosition;
+            newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+            grid.setPosition(newPosition);
+        }
     } else if (isActive) {
         var delta = null;
+        var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
 
         if (event.text == 'UP') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: 1, z: 0 };
+                delta = { x: 0, y: increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: -1 };
+                delta = { x: 0, y: 0, z: -increment };
             }
         } else if (event.text == 'DOWN') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: -1, z: 0 };
+                delta = { x: 0, y: -increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: 1 };
+                delta = { x: 0, y: 0, z: increment };
             }
         } else if (event.text == 'LEFT') {
-            delta = { x: -1, y: 0, z: 0 };
+            delta = { x: -increment, y: 0, z: 0 };
         } else if (event.text == 'RIGHT') {
-            delta = { x: 1, y: 0, z: 0 };
+            delta = { x: increment, y: 0, z: 0 };
         }
 
         if (delta != null) {
@@ -885,3 +903,43 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
+
+PropertiesTool = function(opts) {
+    var that = {};
+
+    var url = Script.resolvePath('html/entityProperties.html');
+    var webView = new WebWindow('Entity Properties', url, 200, 280);
+
+    var visible = false;
+
+    webView.setVisible(visible);
+
+    that.setVisible = function(newVisible) {
+        visible = newVisible;
+        webView.setVisible(visible);
+    };
+
+    selectionManager.addEventListener(function() {
+        data = {
+            type: 'update',
+        };
+        if (selectionManager.hasSelection()) {
+            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+        }
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    });
+
+    webView.eventBridge.webEventReceived.connect(function(data) {
+        print(data);
+        data = JSON.parse(data);
+        if (data.type == "update") {
+            Entities.editEntity(selectionManager.selections[0], data.properties);
+            selectionManager._update();
+        }
+    });
+
+    return that;
+};
+
+propertiesTool = PropertiesTool();
+

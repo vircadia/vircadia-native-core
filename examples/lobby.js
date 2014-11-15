@@ -37,7 +37,14 @@ var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
 var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
-var HELMET_ATTACHMENT_URL = "https://hifi-public.s3.amazonaws.com/models/attachments/IronManMaskOnly.fbx"
+var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
+
+var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.raw")
+var currentDrone = null;
+
+var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.raw")
+var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.raw")
+var currentMusak = null;
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
@@ -87,6 +94,12 @@ function drawLobby() {
     
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
+    
+    // start the drone sound
+    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true });
+    
+    // start one of our musak sounds
+    playRandomMusak();
   }
 }
 
@@ -112,10 +125,34 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
+function playRandomMusak() {
+  chosenSound = null;
+  
+  if (latinSound.downloaded && elevatorSound.downloaded) {
+    chosenSound = Math.random < 0.5 ? latinSound : elevatorSound;
+  } else if (latinSound.downloaded) {
+    chosenSound = latinSound;
+  } else if (elevatorSound.downloaded) {
+    chosenSound = elevatorSound;
+  }
+  
+  if (chosenSound) {
+    currentMusak = Audio.playSound(chosenSound, { stereo: true, localOnly: true })
+  } else {
+    currentMusak = null;
+  }
+}
+
 function cleanupLobby() {
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
+  
+  Audio.stopInjector(currentDrone);
+  currentDrone = null;
+  
+  Audio.stopInjector(currentMusak);
+  currentMusak = null;
   
   panelWall = false;
   orbShell = false;

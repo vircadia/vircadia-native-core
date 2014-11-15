@@ -61,11 +61,13 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 
 void EntityTreeRenderer::clear() {
     OctreeRenderer::clear();
+    _entityScripts.clear();
 }
 
 void EntityTreeRenderer::init() {
     OctreeRenderer::init();
-    static_cast<EntityTree*>(_tree)->setFBXService(this);
+    EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+    entityTree->setFBXService(this);
 
     if (_wantScripts) {
         _entitiesScriptEngine = new ScriptEngine(NO_SCRIPT, "Entities", 
@@ -77,6 +79,11 @@ void EntityTreeRenderer::init() {
     // first chance, we'll check for enter/leave entity events.    
     glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
     _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
+    
+    connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
+    connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
 QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItemID) {
@@ -156,10 +163,12 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     
     QString scriptContents = loadScriptContents(entity->getScript());
     
-    if (QScriptEngine::checkSyntax(scriptContents).state() != QScriptSyntaxCheckResult::Valid) {
+    QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
-        qDebug() << "    INVALID SYNTAX";
-        qDebug() << "    SCRIPT:" << scriptContents;
+        qDebug() << "   " << syntaxCheck.errorMessage() << ":"
+                          << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
+        qDebug() << "    SCRIPT:" << entity->getScript();
         return QScriptValue(); // invalid script
     }
     
@@ -168,7 +177,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (!entityScriptConstructor.isFunction()) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
-        qDebug() << "    SCRIPT:" << scriptContents;
+        qDebug() << "    SCRIPT:" << entity->getScript();
         return QScriptValue(); // invalid script
     }
 
@@ -196,6 +205,7 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
+        _tree->lockForRead();
         glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
@@ -240,11 +250,50 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
             _currentEntitiesInside = entitiesContainingAvatar;
             _lastAvatarPosition = avatarPosition;
         }
+        _tree->unlock();
     }
 }
 
-void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
-    OctreeRenderer::render(renderMode);
+void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
+    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+    
+    if (dontRenderAsScene) {
+        OctreeRenderer::render(renderMode, renderSide);
+    } else {
+        if (_tree) {
+            Model::startScene(renderSide);
+            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
+                                                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            _tree->lockForRead();
+            _tree->recurseTreeWithOperation(renderOperation, &args);
+
+            Model::RenderMode modelRenderMode = renderMode == RenderArgs::SHADOW_RENDER_MODE
+                                                ? Model::SHADOW_RENDER_MODE : Model::DEFAULT_RENDER_MODE;
+
+            // we must call endScene while we still have the tree locked so that no one deletes a model
+            // on us while rendering the scene    
+            Model::endScene(modelRenderMode, &args);
+            _tree->unlock();
+        
+            // stats...
+            _meshesConsidered = args._meshesConsidered;
+            _meshesRendered = args._meshesRendered;
+            _meshesOutOfView = args._meshesOutOfView;
+            _meshesTooSmall = args._meshesTooSmall;
+
+            _elementsTouched = args._elementsTouched;
+            _itemsRendered = args._itemsRendered;
+            _itemsOutOfView = args._itemsOutOfView;
+            _itemsTooSmall = args._itemsTooSmall;
+
+            _materialSwitches = args._materialSwitches;
+            _trianglesRendered = args._trianglesRendered;
+            _quadsRendered = args._quadsRendered;
+
+            _translucentMeshPartsRendered = args._translucentMeshPartsRendered;
+            _opaqueMeshPartsRendered = args._opaqueMeshPartsRendered;
+        }
+    }
     deleteReleasedModels(); // seems like as good as any other place to do some memory cleanup
 }
 
@@ -760,4 +809,24 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     }
 }
 
+void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
+    _entityScripts.remove(entityID);
+}
+
+void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
+    // load the entity script if needed...
+    QScriptValue entityScript = loadEntityScript(entityID);
+    if (entityScript.property("preload").isValid()) {
+        QScriptValueList entityArgs = createEntityArgs(entityID);
+        entityScript.property("preload").call(entityScript, entityArgs);
+    }
+}
+
+void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
+    if (_entityScripts.contains(oldEntityID)) {
+        EntityScriptDetails details = _entityScripts[oldEntityID];
+        _entityScripts.remove(oldEntityID);
+        _entityScripts[newEntityID] = details;
+    }
+}
 

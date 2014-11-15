@@ -68,7 +68,8 @@ var text = Overlays.addOverlay("text", {
                     color: { red: 255, green: 0, blue: 0},
                     topMargin: 4,
                     leftMargin: 4,
-                    text: "Here is some text.\nAnd a second line."
+                    text: "Here is some text.\nAnd a second line.",
+                    alpha: 0.7
                 });
 
 // This will create an image overlay, which starts out as invisible
@@ -166,6 +167,51 @@ var clipboardPreview = Overlays.addOverlay("clipboard", {
                                            visible: true
                                            });
 
+// Demonstrate retrieving overlay properties
+print("Text overlay text property value =\n" + Overlays.getProperty(text, "text"));
+print("Text overlay alpha =\n" + Overlays.getProperty(text, "alpha"));
+print("Text overlay visible =\n" + Overlays.getProperty(text, "visible"));
+print("Text overlay font size =\n" + Overlays.getProperty(text, "font").size);
+print("Text overlay anchor =\n" + Overlays.getProperty(text, "anchor"));
+print("Text overlay unknown property value =\n" + Overlays.getProperty(text, "unknown"));  // value = undefined
+var sliderBounds = Overlays.getProperty(slider, "bounds");
+print("Slider overlay bounds =\n"
+    + "x: " + sliderBounds.x + "\n"
+    + "y: " + sliderBounds.y + "\n"
+    + "width: " + sliderBounds.width + "\n"
+    + "height: " + sliderBounds.height
+    );
+
+var cubePosition = Overlays.getProperty(cube, "position");
+print("Cube overlay position =\n"
+    + "x: " + cubePosition.x + "\n"
+    + "y: " + cubePosition.y + "\n"
+    + "z: " + cubePosition.z
+    );
+var cubeColor = Overlays.getProperty(cube, "color");
+print("Cube overlay color =\n"
+    + "red:   " + cubeColor.red + "\n"
+    + "green: " + cubeColor.green + "\n"
+    + "blue:  " + cubeColor.blue
+    );
+
+// This model overlay example causes intermittent crashes in NetworkGeometry::setTextureWithNameToURL()
+//var modelOverlayProperties = {
+//    textures: {
+//        filename1: HIFI_PUBLIC_BUCKET + "images/testing-swatches.svg",
+//        filename2: HIFI_PUBLIC_BUCKET + "images/hifi-interface-tools.svg"
+//    }
+//}
+//var modelOverlay = Overlays.addOverlay("model", modelOverlayProperties);
+//var textures = Overlays.getProperty(modelOverlay, "textures");
+//var textureValues = "";
+//for (key in textures) {
+//    textureValues += "\n" + key + ": " + textures[key];
+//}
+//print("Model overlay textures =" + textureValues);
+//Overlays.deleteOverlay(modelOverlay);
+
+print("Unknown overlay property =\n" + Overlays.getProperty(1000, "text"));  // value = undefined
 
 // When our script shuts down, we should clean up all of our overlays
 function scriptEnding() {

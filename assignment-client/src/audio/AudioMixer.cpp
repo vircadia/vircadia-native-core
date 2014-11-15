@@ -48,7 +48,7 @@
 #include <OctreeConstants.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include <StdDev.h>
+#include <StDev.h>
 #include <UUID.h>
 
 #include "AudioRingBuffer.h"
@@ -61,7 +61,7 @@
 
 const float LOUDNESS_TO_DISTANCE_RATIO = 0.00001f;
 const float DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE = 0.18;
-
+const float DEFAULT_NOISE_MUTING_THRESHOLD = 0.003f;
 const QString AUDIO_MIXER_LOGGING_TARGET_NAME = "audio-mixer";
 const QString AUDIO_ENV_GROUP_KEY = "audio_env";
 const QString AUDIO_BUFFER_GROUP_KEY = "audio_buffer";
@@ -78,12 +78,17 @@ bool AudioMixer::_printStreamStats = false;
 
 bool AudioMixer::_enableFilter = true;
 
+bool AudioMixer::shouldMute(float quietestFrame) {
+    return (quietestFrame > _noiseMutingThreshold);
+}
+
 AudioMixer::AudioMixer(const QByteArray& packet) :
     ThreadedAssignment(packet),
     _trailingSleepRatio(1.0f),
     _minAudibilityThreshold(LOUDNESS_TO_DISTANCE_RATIO / 2.0f),
     _performanceThrottlingRatio(0.0f),
     _attenuationPerDoublingInDistance(DEFAULT_ATTENUATION_PER_DOUBLING_IN_DISTANCE),
+    _noiseMutingThreshold(DEFAULT_NOISE_MUTING_THRESHOLD),
     _numStatFrames(0),
     _sumListeners(0),
     _sumMixes(0),
@@ -460,6 +465,63 @@ int AudioMixer::prepareMixForListeningNode(Node* node) {
     return streamsMixed;
 }
 
+void AudioMixer::sendAudioEnvironmentPacket(SharedNodePointer node) {
+    static char clientEnvBuffer[MAX_PACKET_SIZE];
+    
+    // Send stream properties
+    bool hasReverb = false;
+    float reverbTime, wetLevel;
+    // find reverb properties
+    for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
+        AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
+        glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
+        if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
+            hasReverb = true;
+            reverbTime = _zoneReverbSettings[i].reverbTime;
+            wetLevel = _zoneReverbSettings[i].wetLevel;
+            break;
+        }
+    }
+    AudioMixerClientData* nodeData = static_cast<AudioMixerClientData*>(node->getLinkedData());
+    AvatarAudioStream* stream = nodeData->getAvatarAudioStream();
+    bool dataChanged = (stream->hasReverb() != hasReverb) ||
+    (stream->hasReverb() && (stream->getRevebTime() != reverbTime ||
+                             stream->getWetLevel() != wetLevel));
+    if (dataChanged) {
+        // Update stream
+        if (hasReverb) {
+            stream->setReverb(reverbTime, wetLevel);
+        } else {
+            stream->clearReverb();
+        }
+    }
+    
+    // Send at change or every so often
+    float CHANCE_OF_SEND = 0.01f;
+    bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
+    
+    if (sendData) {
+        int numBytesEnvPacketHeader = populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
+        char* envDataAt = clientEnvBuffer + numBytesEnvPacketHeader;
+        
+        unsigned char bitset = 0;
+        if (hasReverb) {
+            setAtBit(bitset, HAS_REVERB_BIT);
+        }
+        
+        memcpy(envDataAt, &bitset, sizeof(unsigned char));
+        envDataAt += sizeof(unsigned char);
+        
+        if (hasReverb) {
+            memcpy(envDataAt, &reverbTime, sizeof(float));
+            envDataAt += sizeof(float);
+            memcpy(envDataAt, &wetLevel, sizeof(float));
+            envDataAt += sizeof(float);
+        }
+        NodeList::getInstance()->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
+    }
+}
+
 void AudioMixer::readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr) {
     NodeList* nodeList = NodeList::getInstance();
     
@@ -637,7 +699,6 @@ void AudioMixer::run() {
     timer.start();
 
     char clientMixBuffer[MAX_PACKET_SIZE];
-    char clientEnvBuffer[MAX_PACKET_SIZE];
     
     int usecToSleep = BUFFER_SEND_INTERVAL_USECS;
     
@@ -712,6 +773,30 @@ void AudioMixer::run() {
                 // That's how the popped audio data will be read for mixing (but only if the pop was successful)
                 nodeData->checkBuffersBeforeFrameSend();
             
+                // if the stream should be muted, send mute packet
+                if (nodeData->getAvatarAudioStream()
+                    && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
+                    static const int TIME_BETWEEN_MUTES = 5; // in secs
+                    if (usecTimestampNow() - nodeData->getAvatarAudioStream()->getLastMuted() >
+                        TIME_BETWEEN_MUTES * USECS_PER_SECOND) {
+                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+                        int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
+                        
+                        // Fake data to force mute
+                        glm::vec3 position = nodeData->getAvatarAudioStream()->getPosition();
+                        float radius = 1.0f;
+                        
+                        char* packet = (char*)malloc(packetSize);
+                        populatePacketHeader(packet, PacketTypeMuteEnvironment);
+                        memcpy(packet + headerSize, &position, sizeof(glm::vec3));
+                        memcpy(packet + headerSize + sizeof(glm::vec3), &radius, sizeof(float));
+                        
+                        nodeList->writeDatagram(packet, packetSize, node);
+                        nodeData->getAvatarAudioStream()->setLastMutedNow();
+                        free(packet);
+                    }
+                }
+                
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
                     && nodeData->getAvatarAudioStream()) {
 
@@ -731,58 +816,6 @@ void AudioMixer::run() {
                         // pack mixed audio samples
                         memcpy(mixDataAt, _mixSamples, NETWORK_BUFFER_LENGTH_BYTES_STEREO);
                         mixDataAt += NETWORK_BUFFER_LENGTH_BYTES_STEREO;
-
-                        // Send stream properties
-                        bool hasReverb = false;
-                        float reverbTime, wetLevel;
-                        // find reverb properties
-                        for (int i = 0; i < _zoneReverbSettings.size(); ++i) {
-                            AudioMixerClientData* data = static_cast<AudioMixerClientData*>(node->getLinkedData());
-                            glm::vec3 streamPosition = data->getAvatarAudioStream()->getPosition();
-                            if (_audioZones[_zoneReverbSettings[i].zone].contains(streamPosition)) {
-                                hasReverb = true;
-                                reverbTime = _zoneReverbSettings[i].reverbTime;
-                                wetLevel = _zoneReverbSettings[i].wetLevel;
-                                break;
-                            }
-                        }
-                        AvatarAudioStream* stream = nodeData->getAvatarAudioStream();
-                        bool dataChanged = (stream->hasReverb() != hasReverb) ||
-                                            (stream->hasReverb() && (stream->getRevebTime() != reverbTime ||
-                                                                     stream->getWetLevel() != wetLevel));
-                        if (dataChanged) {                            
-                            // Update stream
-                            if (hasReverb) {
-                                stream->setReverb(reverbTime, wetLevel);
-                            } else {
-                                stream->clearReverb();
-                            }
-                        }
-                        
-                        // Send at change or every so often
-                        float CHANCE_OF_SEND = 0.01f;
-                        bool sendData = dataChanged || (randFloat() < CHANCE_OF_SEND);
-                        
-                        if (sendData) {
-                            int numBytesEnvPacketHeader = populatePacketHeader(clientEnvBuffer, PacketTypeAudioEnvironment);
-                            char* envDataAt = clientEnvBuffer + numBytesEnvPacketHeader;
-                            
-                            unsigned char bitset = 0;
-                            if (hasReverb) {
-                                setAtBit(bitset, HAS_REVERB_BIT);
-                            }
-                            
-                            memcpy(envDataAt, &bitset, sizeof(unsigned char));
-                            envDataAt += sizeof(unsigned char);
-                            
-                            if (hasReverb) {
-                                memcpy(envDataAt, &reverbTime, sizeof(float));
-                                envDataAt += sizeof(float);
-                                memcpy(envDataAt, &wetLevel, sizeof(float));
-                                envDataAt += sizeof(float);
-                            }
-                            nodeList->writeDatagram(clientEnvBuffer, envDataAt - clientEnvBuffer, node);
-                        }
                     } else {
                         // pack header
                         int numBytesPacketHeader = populatePacketHeader(clientMixBuffer, PacketTypeSilentAudioFrame);
@@ -798,6 +831,9 @@ void AudioMixer::run() {
                         memcpy(mixDataAt, &numSilentSamples, sizeof(quint16));
                         mixDataAt += sizeof(quint16);
                     }
+                    
+                    // Send audio environment
+                    sendAudioEnvironmentPacket(node);
 
                     // send mixed audio packet
                     nodeList->writeDatagram(clientMixBuffer, mixDataAt - clientMixBuffer, node);
@@ -1000,7 +1036,17 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
                 qDebug() << "Attenuation per doubling in distance changed to" << _attenuationPerDoublingInDistance;
             }
         }
-        
+  
+        const QString NOISE_MUTING_THRESHOLD = "noise_muting_threshold";
+        if (audioEnvGroupObject[NOISE_MUTING_THRESHOLD].isString()) {
+            bool ok = false;
+            float noiseMutingThreshold = audioEnvGroupObject[NOISE_MUTING_THRESHOLD].toString().toFloat(&ok);
+            if (ok) {
+                _noiseMutingThreshold = noiseMutingThreshold;
+                qDebug() << "Noise muting threshold changed to" << _noiseMutingThreshold;
+            }
+        }
+
         const QString FILTER_KEY = "enable_filter";
         if (audioEnvGroupObject[FILTER_KEY].isBool()) {
             _enableFilter = audioEnvGroupObject[FILTER_KEY].toBool();

@@ -28,6 +28,7 @@ const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
 const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
+const QString EntityItem::DEFAULT_USER_DATA = QString("");
 const float EntityItem::DEFAULT_DAMPING = 0.5f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
@@ -59,6 +60,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
+    _changedOnServer = 0;
 
     _position = glm::vec3(0,0,0);
     _rotation = DEFAULT_ROTATION;
@@ -70,6 +72,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _gravity = DEFAULT_GRAVITY;
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
+    _userData = DEFAULT_USER_DATA;
     _registrationPoint = DEFAULT_REGISTRATION_POINT;
     _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
     _angularDamping = DEFAULT_ANGULAR_DAMPING;
@@ -87,6 +90,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
+    _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
 }
 
@@ -97,6 +101,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
+    _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
 }
@@ -120,6 +125,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     requestedProperties += PROP_LOCKED;
+    requestedProperties += PROP_USER_DATA;
     
     return requestedProperties;
 }
@@ -236,6 +242,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, getIgnoreForCollisions());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
+        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -499,6 +506,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
         READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
+        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
 
         if (wantDebug) {
             qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
@@ -755,6 +763,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
 
     properties._defaultSettings = false;
     
@@ -791,6 +800,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed

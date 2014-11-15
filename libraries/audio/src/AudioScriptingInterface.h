@@ -14,10 +14,9 @@
 
 #include <qpointer.h>
 
+#include "AbstractAudioInterface.h"
 #include "AudioInjector.h"
 #include "Sound.h"
-
-const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
 
 class AudioScriptingInterface : public QObject {
     Q_OBJECT
@@ -25,16 +24,25 @@ public:
     static AudioScriptingInterface& getInstance();
     
     void stopAllInjectors();
+    
+    void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
 public slots:
-    AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+
+    static float getLoudness(AudioInjector* injector);
+
+    AudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
+    
     void stopInjector(AudioInjector* injector);
     bool isInjectorPlaying(AudioInjector* injector);
     
     void injectorStopped();
     
 private:
-    AudioScriptingInterface() {};
+    AudioScriptingInterface();
     QList< QPointer<AudioInjector> > _activeInjectors;
-
+    AbstractAudioInterface* _localAudioInterface;
 };
+
+void registerAudioMetaTypes(QScriptEngine* engine);
+
 #endif // hifi_AudioScriptingInterface_h

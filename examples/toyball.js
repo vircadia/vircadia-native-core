@@ -39,9 +39,9 @@ var rightBallAlreadyInHand = false;
 var leftHandEntity;
 var rightHandEntity;
 
-var newSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
-var catchSound = new Sound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
-var throwSound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
+var newSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/throw.raw");
+var catchSound = SoundCache.getSound("https://dl.dropboxusercontent.com/u/1864924/hifi-sounds/catch.raw");
+var throwSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Switches%20and%20sliders/slider%20-%20whoosh1.raw");
 var targetRadius = 1.0;
 
 
@@ -113,10 +113,7 @@ function checkControllerSide(whichSide) {
                                 inHand: true };
             Entities.editEntity(closestEntity, properties);
             
-    		var options = new AudioInjectionOptions();
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(catchSound, options);
+			      Audio.playSound(catchSound, { position: ballPosition });
             
             return; // exit early
         }
@@ -156,10 +153,7 @@ function checkControllerSide(whichSide) {
         }
 
         // Play a new ball sound
-        var options = new AudioInjectionOptions();
-        options.position = ballPosition;
-        options.volume = 1.0;
-        Audio.playSound(newSound, options);
+        Audio.playSound(newSound, { position: ballPosition});
         
         return; // exit early
     }
@@ -207,10 +201,7 @@ function checkControllerSide(whichSide) {
                 rightHandEntity = false;
             }
 
-    		var options = new AudioInjectionOptions();
-			options.position = ballPosition;
-			options.volume = 1.0;
-			Audio.playSound(throwSound, options);
+            Audio.playSound(throwSound, { position: ballPosition });
         }
     }
 }

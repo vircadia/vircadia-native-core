@@ -224,6 +224,7 @@ private slots:
     void showScriptEditor();
     void showChat();
     void toggleConsole();
+    void toggleToolWindow();
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
@@ -364,7 +365,6 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
-    const QString BuckyBalls = "Bucky Balls";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
@@ -430,7 +430,6 @@ namespace MenuOption {
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
-    const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";
@@ -449,6 +448,7 @@ namespace MenuOption {
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
+    const QString RenderEntitiesAsScene = "Render Entities as Scene";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderHeightfields = "Render Heightfields";
@@ -491,6 +491,7 @@ namespace MenuOption {
     const QString StringHair = "String Hair";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
+    const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UploadAttachment = "Upload Attachment Model";

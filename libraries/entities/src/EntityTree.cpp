@@ -124,6 +124,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
     } else {
         // check to see if we need to simulate this entity...
         EntityItem::SimulationState oldState = existingEntity->getSimulationState();
+        QString entityScriptBefore = existingEntity->getScript();
     
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
@@ -131,6 +132,12 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
 
         EntityItem::SimulationState newState = existingEntity->getSimulationState();
         changeEntityState(existingEntity, oldState, newState);
+
+        QString entityScriptAfter = existingEntity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entityID); // the entity script has changed
+        }
+
     }
     
     containingElement = getContainingElement(entityID);
@@ -168,6 +175,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     if (result) {
         // this does the actual adding of the entity
         addEntityItem(result);
+        emitAddingEntity(entityID);
     }
     return result;
 }
@@ -184,7 +192,17 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
     }
 }
 
+void EntityTree::emitAddingEntity(const EntityItemID& entityItemID) {
+    emit addingEntity(entityItemID);
+}
+
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
+    emit entityScriptChanging(entityItemID);
+}
+
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
+    emit deletingEntity(entityID);
+
     // NOTE: callers must lock the tree before using this method
     DeleteEntityOperator theOperator(this, entityID);
     recurseTreeWithOperator(&theOperator);
@@ -197,6 +215,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     foreach(const EntityItemID& entityID, entityIDs) {
         // tell our delete operator about this entityID
         theOperator.addEntityIDToDeleteList(entityID);
+        emit deletingEntity(entityID);
     }
 
     recurseTreeWithOperator(&theOperator);
@@ -287,6 +306,7 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
 
+
     // First look for and find the "viewed version" of this entity... it's possible we got
     // the known ID version sent to us between us creating our local version, and getting this
     // remapping message. If this happened, we actually want to find and delete that version of
@@ -307,6 +327,10 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
             creatorTokenContainingElement->updateEntityItemID(creatorTokenVersion, knownIDVersion);
             setContainingElement(creatorTokenVersion, NULL);
             setContainingElement(knownIDVersion, creatorTokenContainingElement);
+            
+            // because the ID of the entity is switching, we need to emit these signals for any 
+            // listeners who care about the changing of IDs
+            emit changingEntityID(creatorTokenVersion, knownIDVersion);
         }
     }
     unlock();
@@ -497,6 +521,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     // if the entityItem exists, then update it
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
+                        existingEntity->markAsChangedOnServer();
                     } else {
                         qDebug() << "User attempted to edit an unknown entity. ID:" << entityItemID;
                     }
@@ -505,6 +530,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     entityItemID = assignEntityID(entityItemID);
                     EntityItem* newEntity = addEntity(entityItemID, properties);
                     if (newEntity) {
+                        newEntity->markAsChangedOnServer();
                         notifyNewlyCreatedEntity(*newEntity, senderNode);
                     }
                 }
@@ -976,7 +1002,6 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
     return processedBytes;
 }
 
-
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     if (_entityToElementMap.contains(entityItemID)) {
@@ -1064,7 +1089,6 @@ bool DebugOperator::preRecursion(OctreeElement* element) {
 }
 
 void EntityTree::dumpTree() {
-    // First, look for the existing entity in the tree..
     DebugOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }
@@ -1082,7 +1106,6 @@ bool PruneOperator::postRecursion(OctreeElement* element) {
 }
 
 void EntityTree::pruneTree() {
-    // First, look for the existing entity in the tree..
     PruneOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }

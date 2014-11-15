@@ -9,36 +9,60 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <RegisteredMetaTypes.h>
+
 #include "AudioInjectorOptions.h"
 
-AudioInjectorOptions::AudioInjectorOptions(QObject* parent) :
-    QObject(parent),
-    _position(0.0f, 0.0f, 0.0f),
-    _volume(1.0f),
-    _loop(false),
-    _orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
-    _isStereo(false),
-    _ignorePenumbra(false),
-    _loopbackAudioInterface(NULL)
+AudioInjectorOptions::AudioInjectorOptions() :
+    position(0.0f, 0.0f, 0.0f),
+    volume(1.0f),
+    loop(false),
+    orientation(glm::vec3(0.0f, 0.0f, 0.0f)),
+    stereo(false),
+    ignorePenumbra(false),
+    localOnly(false)
 {
+
 }
 
-AudioInjectorOptions::AudioInjectorOptions(const AudioInjectorOptions& other) {
-    _position = other._position;
-    _volume = other._volume;
-    _loop = other._loop;
-    _orientation = other._orientation;
-    _isStereo = other._isStereo;
-    _ignorePenumbra = other._ignorePenumbra;
-    _loopbackAudioInterface = other._loopbackAudioInterface;
+QScriptValue injectorOptionsToScriptValue(QScriptEngine* engine, const AudioInjectorOptions& injectorOptions) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("position", vec3toScriptValue(engine, injectorOptions.position));
+    obj.setProperty("volume", injectorOptions.volume);
+    obj.setProperty("loop", injectorOptions.loop);
+    obj.setProperty("orientation", quatToScriptValue(engine, injectorOptions.orientation));
+    obj.setProperty("stereo", injectorOptions.stereo);
+    obj.setProperty("ignorePenumbra", injectorOptions.ignorePenumbra);
+    obj.setProperty("localOnly", injectorOptions.localOnly);
+    return obj;
 }
 
-void AudioInjectorOptions::operator=(const AudioInjectorOptions& other) {
-    _position = other._position;
-    _volume = other._volume;
-    _loop = other._loop;
-    _orientation = other._orientation;
-    _isStereo = other._isStereo;
-    _ignorePenumbra = other._ignorePenumbra;
-    _loopbackAudioInterface = other._loopbackAudioInterface;
-}
+void injectorOptionsFromScriptValue(const QScriptValue& object, AudioInjectorOptions& injectorOptions) {
+    if (object.property("position").isValid()) {
+        vec3FromScriptValue(object.property("position"), injectorOptions.position);
+    }
+    
+    if (object.property("volume").isValid()) {
+        injectorOptions.volume = object.property("volume").toNumber();
+    }
+    
+    if (object.property("loop").isValid()) {
+        injectorOptions.loop = object.property("loop").toBool();
+    }
+    
+    if (object.property("orientation").isValid()) {
+        quatFromScriptValue(object.property("orientation"), injectorOptions.orientation);
+    }
+    
+    if (object.property("stereo").isValid()) {
+        injectorOptions.stereo = object.property("stereo").toBool();
+    }
+    
+    if (object.property("ignorePenumbra").isValid()) {
+        injectorOptions.ignorePenumbra = object.property("ignorePenumbra").toBool();
+    }
+    
+    if (object.property("localOnly").isValid()) {
+        injectorOptions.localOnly = object.property("localOnly").toBool();
+    }
+ }

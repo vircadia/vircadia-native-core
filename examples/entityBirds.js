@@ -70,23 +70,23 @@ function addBird()
     var size;
     var which = Math.random();
     if (which < 0.2) {
-        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
+        tweet = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/bushtit_1.raw");
         color = { red: 100, green: 50, blue: 120 };
         size = 0.08;
     } else if (which < 0.4) {
-        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/rosyfacedlovebird.raw");
+        tweet = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/rosyfacedlovebird.raw");
         color = { red: 100, green: 150, blue: 75 };
         size = 0.09;
     } else if (which < 0.6) {
-        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/saysphoebe.raw");
+        tweet = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/saysphoebe.raw");
         color = { red: 84, green: 121, blue: 36 };
         size = 0.05;
     } else  if (which < 0.8) {
-        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/mexicanWhipoorwill.raw");
+        tweet = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/mexicanWhipoorwill.raw");
         color = { red: 23, green: 197, blue: 230 };
         size = 0.12;
     } else {
-        tweet = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Animals/westernscreechowl.raw");
+        tweet = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Animals/westernscreechowl.raw");
         color = { red: 50, green: 67, blue: 144 };
         size = 0.15;
     } 
@@ -135,10 +135,10 @@ function updateBirds(deltaTime) {
             // Tweeting behavior
             if (birds[i].tweeting == 0) {
                 if (Math.random() < CHANCE_OF_TWEETING) {
-                    var options = new AudioInjectionOptions();
-                    options.position = properties.position;
-                    options.volume = 0.75;
-                    Audio.playSound(birds[i].tweetSound, options);
+                    Audio.playSound(birds[i].tweetSound, {
+                      position: properties.position,
+                      volume: 0.75
+                    });
                     birds[i].tweeting = 10;
                 }
             } else {

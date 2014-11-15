@@ -299,6 +299,45 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+QScriptValue Circle3DOverlay::getProperty(const QString& property) {
+    if (property == "startAt") {
+        return _startAt;
+    }
+    if (property == "endAt") {
+        return _endAt;
+    }
+    if (property == "outerRadius") {
+        return _outerRadius;
+    }
+    if (property == "innerRadius") {
+        return _innerRadius;
+    }
+    if (property == "hasTickMarks") {
+        return _hasTickMarks;
+    }
+    if (property == "majorTickMarksAngle") {
+        return _majorTickMarksAngle;
+    }
+    if (property == "minorTickMarksAngle") {
+        return _minorTickMarksAngle;
+    }
+    if (property == "majorTickMarksLength") {
+        return _majorTickMarksLength;
+    }
+    if (property == "minorTickMarksLength") {
+        return _minorTickMarksLength;
+    }
+    if (property == "majorTickMarksColor") {
+        return xColorToScriptValue(_scriptEngine, _majorTickMarksColor);
+    }
+    if (property == "minorTickMarksColor") {
+        return xColorToScriptValue(_scriptEngine, _minorTickMarksColor);
+    }
+
+    return Planar3DOverlay::getProperty(property);
+}
+
+
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, 
                                 const glm::vec3& direction, float& distance, BoxFace& face) const {
 

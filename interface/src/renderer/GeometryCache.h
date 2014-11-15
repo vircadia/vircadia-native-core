@@ -24,6 +24,8 @@
 
 #include <AnimationCache.h>
 
+#include "gpu/Stream.h"
+
 class Model;
 class NetworkGeometry;
 class NetworkMesh;
@@ -110,7 +112,8 @@ public:
     virtual void clearLoadPriority(const QPointer<QObject>& owner);
     
     void setTextureWithNameToURL(const QString& name, const QUrl& url);
-    
+    QStringList getTextureNames() const;
+        
 protected:
 
     virtual void init();
@@ -119,6 +122,8 @@ protected:
     
     Q_INVOKABLE void setGeometry(const FBXGeometry& geometry);
     
+private slots:
+    void replaceTexturesWithPendingChanges();
 private:
     
     friend class GeometryCache;
@@ -136,6 +141,8 @@ private:
     QWeakPointer<NetworkGeometry> _lodParent;
     
     QHash<QWeakPointer<Animation>, QVector<int> > _jointMappings;
+    
+    QHash<QString, QUrl> _pendingTextureChanges;
 };
 
 /// The state associated with a single mesh part.
@@ -155,9 +162,12 @@ public:
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
-    
-    QOpenGLBuffer indexBuffer;
-    QOpenGLBuffer vertexBuffer;
+    gpu::BufferPointer _indexBuffer;
+    gpu::BufferPointer _vertexBuffer;
+
+    gpu::BufferStreamPointer _vertexStream;
+
+    gpu::Stream::FormatPointer _vertexFormat;
     
     QVector<NetworkMeshPart> parts;
     

@@ -18,6 +18,19 @@ using namespace gpu;
 
 GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] = 
 {
+    (&::gpu::GLBackend::do_draw),
+    (&::gpu::GLBackend::do_drawIndexed),
+    (&::gpu::GLBackend::do_drawInstanced),
+    (&::gpu::GLBackend::do_drawIndexedInstanced),
+
+    (&::gpu::GLBackend::do_setInputFormat),
+    (&::gpu::GLBackend::do_setInputBuffer),
+    (&::gpu::GLBackend::do_setIndexBuffer),
+
+    (&::gpu::GLBackend::do_setModelTransform),
+    (&::gpu::GLBackend::do_setViewTransform),
+    (&::gpu::GLBackend::do_setProjectionTransform),
+
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
 
@@ -70,8 +83,39 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_glMaterialfv),
 };
 
+static const GLenum _primitiveToGLmode[NUM_PRIMITIVES] = {
+    GL_POINTS,
+    GL_LINES,
+    GL_LINE_STRIP,
+    GL_TRIANGLES,
+    GL_TRIANGLE_STRIP,
+    GL_QUADS,
+};
 
-GLBackend::GLBackend() {
+static const GLenum _elementTypeToGLType[NUM_TYPES]= {
+    GL_FLOAT,
+    GL_INT,
+    GL_UNSIGNED_INT,
+    GL_HALF_FLOAT,
+    GL_SHORT,
+    GL_UNSIGNED_SHORT,
+    GL_BYTE,
+    GL_UNSIGNED_BYTE,
+    GL_FLOAT,
+    GL_INT,
+    GL_UNSIGNED_INT,
+    GL_HALF_FLOAT,
+    GL_SHORT,
+    GL_UNSIGNED_SHORT,
+    GL_BYTE,
+    GL_UNSIGNED_BYTE
+};
+
+
+GLBackend::GLBackend() :
+    _input(),
+    _transform()
+{
 
 }
 
@@ -86,8 +130,8 @@ void GLBackend::renderBatch(Batch& batch) {
 
     GLBackend backend;
 
-    for (int i = 0; i < numCommands; i++) {
-        CommandCall call = _commandCalls[((*command) - Batch::COMMAND_glEnable)];
+    for (unsigned int i = 0; i < numCommands; i++) {
+        CommandCall call = _commandCalls[(*command)];
         (backend.*(call))(batch, *offset);
         command++;
         offset++;
@@ -126,24 +170,331 @@ void GLBackend::checkGLError() {
     }
 }
 
+//#define CHECK_GL_ERROR() ::gpu::GLBackend::checkGLError()
+#define CHECK_GL_ERROR()
+
+void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
+    updateInput();
+    updateTransform();
+
+    Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
+    GLenum mode = _primitiveToGLmode[primitiveType];
+    uint32 numVertices = batch._params[paramOffset + 1]._uint;
+    uint32 startVertex = batch._params[paramOffset + 0]._uint;
+
+    glDrawArrays(mode, startVertex, numVertices);
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
+    updateInput();
+    updateTransform();
+
+    Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
+    GLenum mode = _primitiveToGLmode[primitiveType];
+    uint32 numIndices = batch._params[paramOffset + 1]._uint;
+    uint32 startIndex = batch._params[paramOffset + 0]._uint;
+
+    GLenum glType = _elementTypeToGLType[_input._indexBufferType];
+
+    glDrawElements(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset));
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_drawInstanced(Batch& batch, uint32 paramOffset) {
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
+    CHECK_GL_ERROR();
+}
+
+void GLBackend::do_setInputFormat(Batch& batch, uint32 paramOffset) {
+    Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
+
+    if (format != _input._format) {
+        _input._format = format;
+        _input._invalidFormat = true;
+    }
+}
+
+void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
+    Offset stride = batch._params[paramOffset + 0]._uint;
+    Offset offset = batch._params[paramOffset + 1]._uint;
+    BufferPointer buffer = batch._buffers.get(batch._params[paramOffset + 2]._uint);
+    uint32 channel = batch._params[paramOffset + 3]._uint;
+
+    if (channel < getNumInputBuffers()) {
+        _input._buffers[channel] = buffer;
+        _input._bufferOffsets[channel] = offset;
+        _input._bufferStrides[channel] = stride;
+        _input._buffersState.set(channel);
+    }
+}
+
+#define SUPPORT_LEGACY_OPENGL
+#if defined(SUPPORT_LEGACY_OPENGL)
+static const int NUM_CLASSIC_ATTRIBS = Stream::TANGENT;
+static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
+    GL_VERTEX_ARRAY,
+    GL_NORMAL_ARRAY,
+    GL_COLOR_ARRAY,
+    GL_TEXTURE_COORD_ARRAY
+};
+#endif
+
+void GLBackend::updateInput() {
+    if (_input._invalidFormat || _input._buffersState.any()) {
+
+        if (_input._invalidFormat) {
+            InputStageState::ActivationCache newActivation;
+
+            // Check expected activation
+            if (_input._format) {
+                const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
+                for (Stream::Format::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
+                    const Stream::Attribute& attrib = (*it).second;
+                    newActivation.set(attrib._slot);
+                }
+            }
+
+            // Manage Activation what was and what is expected now
+            for (unsigned int i = 0; i < newActivation.size(); i++) {
+                bool newState = newActivation[i];
+                if (newState != _input._attributeActivation[i]) {
+#if defined(SUPPORT_LEGACY_OPENGL)
+                    if (i < NUM_CLASSIC_ATTRIBS) {
+                        if (newState) {
+                            glEnableClientState(attributeSlotToClassicAttribName[i]);
+                        }
+                        else {
+                            glDisableClientState(attributeSlotToClassicAttribName[i]);
+                        }
+                    } else {
+#else 
+                    {
+#endif
+                        if (newState) {
+                            glEnableVertexAttribArray(i);
+                        } else {
+                            glDisableVertexAttribArray(i);
+                        }
+                    }
+                    CHECK_GL_ERROR();
+
+                    _input._attributeActivation.flip(i);
+                }
+            }
+        }
+
+        // now we need to bind the buffers and assign the attrib pointers
+        if (_input._format) {
+            const Buffers& buffers = _input._buffers;
+            const Offsets& offsets = _input._bufferOffsets;
+            const Offsets& strides = _input._bufferStrides;
+
+            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
+
+            for (Stream::Format::ChannelMap::const_iterator channelIt = _input._format->getChannels().begin();
+                    channelIt != _input._format->getChannels().end();
+                    channelIt++) {
+                const Stream::Format::ChannelMap::value_type::second_type& channel = (*channelIt).second;
+                if ((*channelIt).first < buffers.size()) {
+                    int bufferNum = (*channelIt).first;
+
+                    if (_input._buffersState.test(bufferNum) || _input._invalidFormat) {
+                        GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
+                        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                        CHECK_GL_ERROR();
+                        _input._buffersState[bufferNum] = false;
+
+                        for (unsigned int i = 0; i < channel._slots.size(); i++) {
+                            const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
+                            GLuint slot = attrib._slot;
+                            GLuint count = attrib._element.getDimensionCount();
+                            GLenum type = _elementTypeToGLType[attrib._element.getType()];
+                            GLuint stride = strides[bufferNum];
+                            GLuint pointer = attrib._offset + offsets[bufferNum];
+                            #if defined(SUPPORT_LEGACY_OPENGL)
+                            if (slot < NUM_CLASSIC_ATTRIBS) {
+                                switch (slot) {
+                                case Stream::POSITION:
+                                    glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                    break;
+                                case Stream::NORMAL:
+                                    glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                    break;
+                                case Stream::COLOR:
+                                    glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
+                                    break;
+                                case Stream::TEXCOORD:
+                                    glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer)); 
+                                    break;
+                                };
+                            } else {
+                            #else 
+                            {
+                            #endif
+                                GLboolean isNormalized = attrib._element.isNormalized();
+                                glVertexAttribPointer(slot, count, type, isNormalized, stride,
+                                    reinterpret_cast<GLvoid*>(pointer));
+                            }
+                            CHECK_GL_ERROR();
+                        }
+                    }
+                }
+            }
+        }
+        // everything format related should be in sync now
+        _input._invalidFormat = false;
+    }
+
+/* TODO: Fancy version GL4.4
+    if (_needInputFormatUpdate) {
+
+        InputActivationCache newActivation;
+
+        // Assign the vertex format required
+        if (_inputFormat) {
+            const StreamFormat::AttributeMap& attributes = _inputFormat->getAttributes();
+            for (StreamFormat::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
+                const StreamFormat::Attribute& attrib = (*it).second;
+                newActivation.set(attrib._slot);
+                glVertexAttribFormat(
+                    attrib._slot,
+                    attrib._element.getDimensionCount(),
+                    _elementTypeToGLType[attrib._element.getType()],
+                    attrib._element.isNormalized(),
+                    attrib._stride);
+            }
+            CHECK_GL_ERROR();
+        }
+
+        // Manage Activation what was and what is expected now
+        for (int i = 0; i < newActivation.size(); i++) {
+            bool newState = newActivation[i];
+            if (newState != _inputAttributeActivation[i]) {
+                if (newState) {
+                    glEnableVertexAttribArray(i);
+                } else {
+                    glDisableVertexAttribArray(i);
+                }
+                _inputAttributeActivation.flip(i);
+            }
+        }
+        CHECK_GL_ERROR();
+
+        _needInputFormatUpdate = false;
+    }
+
+    if (_needInputStreamUpdate) {
+        if (_inputStream) {
+            const Stream::Buffers& buffers = _inputStream->getBuffers();
+            const Stream::Offsets& offsets = _inputStream->getOffsets();
+            const Stream::Strides& strides = _inputStream->getStrides();
+
+            for (int i = 0; i < buffers.size(); i++) {
+                GLuint vbo = gpu::GLBackend::getBufferID((*buffers[i]));
+                glBindVertexBuffer(i, vbo, offsets[i], strides[i]);
+            }
+
+            CHECK_GL_ERROR();
+        }
+        _needInputStreamUpdate = false;
+    }
+*/
+}
+
+
+void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
+    _input._indexBufferType = (Type) batch._params[paramOffset + 2]._uint;
+    BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
+    _input._indexBufferOffset = batch._params[paramOffset + 0]._uint;
+    _input._indexBuffer = indexBuffer;
+    if (indexBuffer) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
+    } else {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
+    CHECK_GL_ERROR();
+}
+
+// Transform Stage
+
+void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
+    _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidModel = true;
+}
+
+void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
+    _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidView = true;
+}
+
+void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
+    _transform._projection = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidProj = true;
+}
+
+void GLBackend::updateTransform() {
+    if (_transform._invalidProj) {
+        // TODO: implement the projection matrix assignment to gl state
+    /*    if (_transform._lastMode != GL_PROJECTION) {
+            glMatrixMode(GL_PROJECTION);
+            _transform._lastMode = GL_PROJECTION;
+        }
+        CHECK_GL_ERROR();*/
+        _transform._invalidProj;
+    }
+
+    if (_transform._invalidModel || _transform._invalidView) {
+        if (!_transform._model.isIdentity()) {
+            if (_transform._lastMode != GL_MODELVIEW) {
+                glMatrixMode(GL_MODELVIEW);
+                _transform._lastMode = GL_MODELVIEW;
+            }
+            Transform::Mat4 modelView;
+            if (!_transform._view.isIdentity()) {
+                Transform mvx;
+                Transform::inverseMult(mvx, _transform._view, _transform._model);
+                mvx.getMatrix(modelView);
+            } else {
+                _transform._model.getMatrix(modelView);
+            }
+            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+        } else {
+            if (!_transform._view.isIdentity()) {
+                if (_transform._lastMode != GL_MODELVIEW) {
+                    glMatrixMode(GL_MODELVIEW);
+                    _transform._lastMode = GL_MODELVIEW;
+                }
+                Transform::Mat4 modelView;
+                _transform._view.getInverseMatrix(modelView);
+                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+            } else {
+                // TODO: eventually do something about the matrix when neither view nor model is specified?
+                // glLoadIdentity();
+            }
+        }
+        CHECK_GL_ERROR();
+
+        _transform._invalidModel = false;
+        _transform._invalidView = false;
+    }
+}
 
 // TODO: As long as we have gl calls explicitely issued from interface
 // code, we need to be able to record and batch these calls. THe long 
 // term strategy is to get rid of any GL calls in favor of the HIFI GPU API
 
-//#define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandCalls.push_back(&gpu::Batch::do_##call); _commandOffsets.push_back(_params.size());
-#define ADD_COMMAND(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
-//#define ADD_COMMAND_GL(call) _commands.push_back(COMMAND_##call); _commandCalls.push_back(&gpu::GLBackend::do_##call); _commandOffsets.push_back(_params.size());
 #define ADD_COMMAND_GL(call) _commands.push_back(COMMAND_##call); _commandOffsets.push_back(_params.size());
 
 //#define DO_IT_NOW(call, offset) runLastCommand();
 #define DO_IT_NOW(call, offset) 
 
-//#define CHECK_GL_ERROR() ::gpu::backend::checkGLError()
-#define CHECK_GL_ERROR()
 
 void Batch::_glEnable(GLenum cap) {
-    ADD_COMMAND(glEnable);
+    ADD_COMMAND_GL(glEnable);
 
     _params.push_back(cap);
 
@@ -155,7 +506,7 @@ void GLBackend::do_glEnable(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDisable(GLenum cap) {
-    ADD_COMMAND(glDisable);
+    ADD_COMMAND_GL(glDisable);
 
     _params.push_back(cap);
 
@@ -167,7 +518,7 @@ void GLBackend::do_glDisable(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glEnableClientState(GLenum array) {
-    ADD_COMMAND(glEnableClientState);
+    ADD_COMMAND_GL(glEnableClientState);
 
     _params.push_back(array);
 
@@ -179,7 +530,7 @@ void GLBackend::do_glEnableClientState(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDisableClientState(GLenum array) {
-    ADD_COMMAND(glDisableClientState);
+    ADD_COMMAND_GL(glDisableClientState);
 
     _params.push_back(array);
 
@@ -191,7 +542,7 @@ void GLBackend::do_glDisableClientState(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glCullFace(GLenum mode) {
-    ADD_COMMAND(glCullFace);
+    ADD_COMMAND_GL(glCullFace);
 
     _params.push_back(mode);
 
@@ -203,7 +554,7 @@ void GLBackend::do_glCullFace(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glAlphaFunc(GLenum func, GLclampf ref) {
-    ADD_COMMAND(glAlphaFunc);
+    ADD_COMMAND_GL(glAlphaFunc);
 
     _params.push_back(ref);
     _params.push_back(func);
@@ -218,7 +569,7 @@ void GLBackend::do_glAlphaFunc(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDepthFunc(GLenum func) {
-    ADD_COMMAND(glDepthFunc);
+    ADD_COMMAND_GL(glDepthFunc);
 
     _params.push_back(func);
 
@@ -230,7 +581,7 @@ void GLBackend::do_glDepthFunc(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDepthMask(GLboolean flag) {
-    ADD_COMMAND(glDepthMask);
+    ADD_COMMAND_GL(glDepthMask);
 
     _params.push_back(flag);
 
@@ -242,7 +593,7 @@ void GLBackend::do_glDepthMask(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDepthRange(GLclampd zNear, GLclampd zFar) {
-    ADD_COMMAND(glDepthRange);
+    ADD_COMMAND_GL(glDepthRange);
 
     _params.push_back(zFar);
     _params.push_back(zNear);
@@ -257,7 +608,7 @@ void GLBackend::do_glDepthRange(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glBindBuffer(GLenum target, GLuint buffer) {
-    ADD_COMMAND(glBindBuffer);
+    ADD_COMMAND_GL(glBindBuffer);
 
     _params.push_back(buffer);
     _params.push_back(target);
@@ -272,7 +623,7 @@ void GLBackend::do_glBindBuffer(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glBindTexture(GLenum target, GLuint texture) {
-    ADD_COMMAND(glBindTexture);
+    ADD_COMMAND_GL(glBindTexture);
 
     _params.push_back(texture);
     _params.push_back(target);
@@ -287,7 +638,7 @@ void GLBackend::do_glBindTexture(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glActiveTexture(GLenum texture) {
-    ADD_COMMAND(glActiveTexture);
+    ADD_COMMAND_GL(glActiveTexture);
 
     _params.push_back(texture);
 
@@ -299,7 +650,7 @@ void GLBackend::do_glActiveTexture(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDrawBuffers(GLsizei n, const GLenum* bufs) {
-    ADD_COMMAND(glDrawBuffers);
+    ADD_COMMAND_GL(glDrawBuffers);
 
     _params.push_back(cacheData(n * sizeof(GLenum), bufs));
     _params.push_back(n);
@@ -314,7 +665,7 @@ void GLBackend::do_glDrawBuffers(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glUseProgram(GLuint program) {
-    ADD_COMMAND(glUseProgram);
+    ADD_COMMAND_GL(glUseProgram);
 
     _params.push_back(program);
 
@@ -326,7 +677,7 @@ void GLBackend::do_glUseProgram(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glUniform1f(GLint location, GLfloat v0) {
-    ADD_COMMAND(glUniform1f);
+    ADD_COMMAND_GL(glUniform1f);
 
     _params.push_back(v0);
     _params.push_back(location);
@@ -341,7 +692,7 @@ void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value) {
-    ADD_COMMAND(glUniformMatrix4fv);
+    ADD_COMMAND_GL(glUniformMatrix4fv);
 
     const int MATRIX4_SIZE = 16 * sizeof(float);
     _params.push_back(cacheData(count * MATRIX4_SIZE, value));
@@ -361,7 +712,7 @@ void GLBackend::do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glMatrixMode(GLenum mode) {
-    ADD_COMMAND(glMatrixMode);
+    ADD_COMMAND_GL(glMatrixMode);
 
     _params.push_back(mode);
 
@@ -373,7 +724,7 @@ void GLBackend::do_glMatrixMode(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glPushMatrix() {
-    ADD_COMMAND(glPushMatrix);
+    ADD_COMMAND_GL(glPushMatrix);
 
     DO_IT_NOW(_glPushMatrix, 0);
 }
@@ -383,7 +734,7 @@ void GLBackend::do_glPushMatrix(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glPopMatrix() {
-    ADD_COMMAND(glPopMatrix);
+    ADD_COMMAND_GL(glPopMatrix);
 
     DO_IT_NOW(_glPopMatrix, 0);
 }
@@ -393,7 +744,7 @@ void GLBackend::do_glPopMatrix(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glMultMatrixf(const GLfloat *m) {
-    ADD_COMMAND(glMultMatrixf);
+    ADD_COMMAND_GL(glMultMatrixf);
 
     const int MATRIX4_SIZE = 16 * sizeof(float);
     _params.push_back(cacheData(MATRIX4_SIZE, m));
@@ -406,7 +757,7 @@ void GLBackend::do_glMultMatrixf(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glLoadMatrixf(const GLfloat *m) {
-    ADD_COMMAND(glLoadMatrixf);
+    ADD_COMMAND_GL(glLoadMatrixf);
 
     const int MATRIX4_SIZE = 16 * sizeof(float);
     _params.push_back(cacheData(MATRIX4_SIZE, m));
@@ -419,7 +770,7 @@ void GLBackend::do_glLoadMatrixf(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glLoadIdentity(void) {
-    ADD_COMMAND(glLoadIdentity);
+    ADD_COMMAND_GL(glLoadIdentity);
 
     DO_IT_NOW(_glLoadIdentity, 0);
 }
@@ -429,7 +780,7 @@ void GLBackend::do_glLoadIdentity(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z) {
-    ADD_COMMAND(glRotatef);
+    ADD_COMMAND_GL(glRotatef);
 
     _params.push_back(z);
     _params.push_back(y);
@@ -448,7 +799,7 @@ void GLBackend::do_glRotatef(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glScalef(GLfloat x, GLfloat y, GLfloat z) {
-    ADD_COMMAND(glScalef);
+    ADD_COMMAND_GL(glScalef);
 
     _params.push_back(z);
     _params.push_back(y);
@@ -465,7 +816,7 @@ void GLBackend::do_glScalef(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glTranslatef(GLfloat x, GLfloat y, GLfloat z) {
-    ADD_COMMAND(glTranslatef);
+    ADD_COMMAND_GL(glTranslatef);
 
     _params.push_back(z);
     _params.push_back(y);
@@ -482,7 +833,7 @@ void GLBackend::do_glTranslatef(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDrawArrays(GLenum mode, GLint first, GLsizei count) {
-    ADD_COMMAND(glDrawArrays);
+    ADD_COMMAND_GL(glDrawArrays);
 
     _params.push_back(count);
     _params.push_back(first);
@@ -499,7 +850,7 @@ void GLBackend::do_glDrawArrays(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) {
-    ADD_COMMAND(glDrawRangeElements);
+    ADD_COMMAND_GL(glDrawRangeElements);
 
     _params.push_back(cacheResource(indices));
     _params.push_back(type);
@@ -522,7 +873,7 @@ void GLBackend::do_glDrawRangeElements(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glColorPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND(glColorPointer);
+    ADD_COMMAND_GL(glColorPointer);
 
     _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
@@ -541,7 +892,7 @@ void GLBackend::do_glColorPointer(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glNormalPointer(GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND(glNormalPointer);
+    ADD_COMMAND_GL(glNormalPointer);
 
     _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
@@ -558,7 +909,7 @@ void GLBackend::do_glNormalPointer(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glTexCoordPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND(glTexCoordPointer);
+    ADD_COMMAND_GL(glTexCoordPointer);
 
     _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
@@ -577,7 +928,7 @@ void GLBackend::do_glTexCoordPointer(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glVertexPointer(GLint size, GLenum type, GLsizei stride, const void *pointer) {
-    ADD_COMMAND(glVertexPointer);
+    ADD_COMMAND_GL(glVertexPointer);
 
     _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
@@ -597,7 +948,7 @@ void GLBackend::do_glVertexPointer(Batch& batch, uint32 paramOffset) {
 
 
 void Batch::_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer) {
-    ADD_COMMAND(glVertexAttribPointer);
+    ADD_COMMAND_GL(glVertexAttribPointer);
 
     _params.push_back(cacheResource(pointer));
     _params.push_back(stride);
@@ -620,7 +971,7 @@ void GLBackend::do_glVertexAttribPointer(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glEnableVertexAttribArray(GLint location) {
-    ADD_COMMAND(glEnableVertexAttribArray);
+    ADD_COMMAND_GL(glEnableVertexAttribArray);
 
     _params.push_back(location);
 
@@ -632,7 +983,7 @@ void GLBackend::do_glEnableVertexAttribArray(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glDisableVertexAttribArray(GLint location) {
-    ADD_COMMAND(glDisableVertexAttribArray);
+    ADD_COMMAND_GL(glDisableVertexAttribArray);
 
     _params.push_back(location);
 
@@ -644,7 +995,7 @@ void GLBackend::do_glDisableVertexAttribArray(Batch& batch, uint32 paramOffset) 
 }
 
 void Batch::_glColor4f(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-    ADD_COMMAND(glColor4f);
+    ADD_COMMAND_GL(glColor4f);
 
     _params.push_back(alpha);
     _params.push_back(blue);
@@ -663,7 +1014,7 @@ void GLBackend::do_glColor4f(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glMaterialf(GLenum face, GLenum pname, GLfloat param) {
-    ADD_COMMAND(glMaterialf);
+    ADD_COMMAND_GL(glMaterialf);
 
     _params.push_back(param);
     _params.push_back(pname);
@@ -680,7 +1031,7 @@ void GLBackend::do_glMaterialf(Batch& batch, uint32 paramOffset) {
 }
 
 void Batch::_glMaterialfv(GLenum face, GLenum pname, const GLfloat *params) {
-    ADD_COMMAND(glMaterialfv);
+    ADD_COMMAND_GL(glMaterialfv);
 
     _params.push_back(cacheData(4 * sizeof(float), params));
     _params.push_back(pname);
@@ -719,6 +1070,7 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
     if (!object) {
         object = new GLBuffer();
         glGenBuffers(1, &object->_buffer);
+        CHECK_GL_ERROR();
         Backend::setGPUObject(buffer, object);
     }
 
@@ -731,6 +1083,7 @@ void GLBackend::syncGPUObject(const Buffer& buffer) {
     object->_stamp = buffer.getSysmem().getStamp();
     object->_size = buffer.getSysmem().getSize();
     //}
+    CHECK_GL_ERROR();
 }
 
 

@@ -248,6 +248,12 @@ Menu::Menu() :
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ToolWindow,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_T,
+                                  this,
+                                  SLOT(toggleToolWindow()));
+
+    addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::Console,
                                   Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   this,
@@ -348,7 +354,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
 
 
@@ -386,7 +391,7 @@ Menu::Menu() :
 
 #if defined(Q_OS_MAC)
 #else
-        QAction* vsyncAction = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
 #endif
     }
 
@@ -438,10 +443,15 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::RenderEntitiesAsScene, 0, false);
+
     QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
+
+    
+    
     
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
@@ -717,7 +727,6 @@ Menu::Menu() :
     connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
-    addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
@@ -1459,6 +1468,11 @@ void Menu::toggleConsole() {
         _jsConsole = dialog;
     }
     _jsConsole->setVisible(!_jsConsole->isVisible());
+}
+
+void Menu::toggleToolWindow() {
+    QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
+    toolWindow->setVisible(!toolWindow->isVisible());
 }
 
 void Menu::audioMuteToggled() {

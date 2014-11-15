@@ -22,6 +22,9 @@ EntityPropertyDialogBox = (function () {
     var dimensionZ;
     var rescalePercentage;
     var editModelID = -1;
+    var previousAnimationIsPlaying;
+    var previousAnimationFrameIndex;
+    var previousAnimationSettings;
 
     that.cleanup = function () {
     };
@@ -47,12 +50,19 @@ EntityPropertyDialogBox = (function () {
             array.push({ label: "Animation URL:", value: properties.animationURL });
             index++;
             array.push({ label: "Animation is playing:", type: "checkbox", value: properties.animationIsPlaying });
+            previousAnimationIsPlaying = properties.animationIsPlaying;
             index++;
             array.push({ label: "Animation FPS:", value: properties.animationFPS });
             index++;
             array.push({ label: "Animation Frame:", value: properties.animationFrameIndex });
+            previousAnimationFrameIndex = properties.animationFrameIndex;
+            index++;
+            array.push({ label: "Animation Settings:", value: properties.animationSettings });
+            previousAnimationSettings = properties.animationSettings;
             index++;
             array.push({ label: "Textures:", value: properties.textures });
+            index++;
+            array.push({ label: "Original Textures:\n" + properties.originalTextures, type: "header" });
             index++;
         }
         array.push({ label: "Position:", type: "header" });
@@ -235,10 +245,31 @@ EntityPropertyDialogBox = (function () {
             if (properties.type == "Model") {
                 properties.modelURL = array[index++].value;
                 properties.animationURL = array[index++].value;
-                properties.animationIsPlaying = array[index++].value;
+
+                var newAnimationIsPlaying = array[index++].value;
+                if (previousAnimationIsPlaying != newAnimationIsPlaying) {
+                    properties.animationIsPlaying = newAnimationIsPlaying;
+                } else {
+                    delete properties.animationIsPlaying;
+                }
+
                 properties.animationFPS = array[index++].value;
-                properties.animationFrameIndex = array[index++].value;
+                
+                var newAnimationFrameIndex = array[index++].value;
+                if (previousAnimationFrameIndex != newAnimationFrameIndex) {
+                    properties.animationFrameIndex = newAnimationFrameIndex;
+                } else {
+                    delete properties.animationFrameIndex;
+                }
+                
+                var newAnimationSettings = array[index++].value;
+                if (previousAnimationSettings != newAnimationSettings) {
+                    properties.animationSettings = newAnimationSettings;
+                } else {
+                    delete properties.animationSettings;
+                }
                 properties.textures = array[index++].value;
+                index++; // skip textureNames label
             }
             index++; // skip header
             properties.position.x = array[index++].value;

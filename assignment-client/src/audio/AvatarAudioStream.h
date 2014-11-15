@@ -19,13 +19,18 @@
 class AvatarAudioStream : public PositionalAudioStream {
 public:
     AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings);
-
+    
+    qint64 getLastMuted() const { return _lastMuted; }
+    void setLastMutedNow() { _lastMuted = usecTimestampNow(); }
+    
 private:
     // disallow copying of AvatarAudioStream objects
     AvatarAudioStream(const AvatarAudioStream&);
     AvatarAudioStream& operator= (const AvatarAudioStream&);
 
     int parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples);
+    
+    qint64 _lastMuted;
 };
 
 #endif // hifi_AvatarAudioStream_h

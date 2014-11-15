@@ -52,12 +52,10 @@ Hair::Hair(int strands,
     glm::vec3 thisVertex;
     for (int strand = 0; strand < _strands; strand++) {
         float strandAngle = randFloat() * PI;
-        float azimuth;
-        float elevation = - (randFloat() * PI);
-        azimuth = PI_OVER_TWO;
-        if (randFloat() < 0.5f) {
-            azimuth *= -1.0f;
-        }
+
+        float azimuth = (float)strand / (float)_strands * PI * 2.0f;
+        float elevation = 0.0f;
+        
         glm::vec3 thisStrand(sinf(azimuth) * cosf(elevation), sinf(elevation), -cosf(azimuth) * cosf(elevation));
         thisStrand *= _radius;
         
@@ -92,6 +90,17 @@ Hair::Hair(int strands,
     }
 }
 
+Hair::~Hair() {
+    delete[] _hairPosition;
+    delete[] _hairOriginalPosition;
+    delete[] _hairLastPosition;
+    delete[] _hairQuadDelta;
+    delete[] _hairNormals;
+    delete[] _hairColors;
+    delete[] _hairIsMoveable;
+    delete[] _hairConstraints;
+}
+
 const float SOUND_THRESHOLD = 40.0f;
 
 void Hair::simulate(float deltaTime) {
@@ -115,11 +124,22 @@ void Hair::simulate(float deltaTime) {
                 glm::vec3 diff = thisPosition - _hairLastPosition[vertexIndex];
                 _hairPosition[vertexIndex] += diff * HAIR_DAMPING;
                 
+                /*
                 //  Resolve collisions with sphere
                 if (glm::length(_hairPosition[vertexIndex]) < _radius) {
                     _hairPosition[vertexIndex] += glm::normalize(_hairPosition[vertexIndex]) *
                     (_radius - glm::length(_hairPosition[vertexIndex]));
+                } */
+                
+                //  Collide with a conical body descending from the root of the hair
+                glm::vec3 thisVertex = _hairPosition[vertexIndex];
+                float depth = -thisVertex.y;
+                thisVertex.y = 0.0f;
+                const float BODY_CONE_ANGLE = 0.30;
+                if (glm::length(thisVertex) < depth * BODY_CONE_ANGLE) {
+                    _hairPosition[vertexIndex] += glm::normalize(thisVertex) * (depth * BODY_CONE_ANGLE - glm::length(thisVertex));
                 }
+                
                 //  Add random thing driven by loudness
                 float loudnessFactor = (_loudness > SOUND_THRESHOLD) ? logf(_loudness - SOUND_THRESHOLD) / 2000.0f : 0.0f;
 

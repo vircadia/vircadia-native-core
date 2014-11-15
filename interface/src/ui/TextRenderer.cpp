@@ -25,6 +25,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "gpu/GLBackend.h"
+#include "gpu/Stream.h"
 
 
 // the width/height of the cached glyph textures
@@ -68,14 +69,16 @@ int TextRenderer::calculateHeight(const char* str) {
     return maxHeight;
 }
 
-int TextRenderer::draw(int x, int y, const char* str) {
+int TextRenderer::draw(int x, int y, const char* str, float alpha) {
     // Grab the current color
     float currentColor[4];
     glGetFloatv(GL_CURRENT_COLOR, currentColor);
-    int compactColor =  ((int( currentColor[0] * 255.f) & 0xFF)) |
-                        ((int( currentColor[1] * 255.f) & 0xFF) << 8) |
-                        ((int( currentColor[2] * 255.f) & 0xFF) << 16) |
-                        ((int( currentColor[3] * 255.f) & 0xFF) << 24);
+    alpha = std::max(0.f, std::min(alpha, 1.f));
+    currentColor[3] *= alpha;
+    int compactColor = ((int(currentColor[0] * 255.f) & 0xFF)) |
+                       ((int(currentColor[1] * 255.f) & 0xFF) << 8) |
+                       ((int(currentColor[2] * 255.f) & 0xFF) << 16) |
+                       ((int(currentColor[3] * 255.f) & 0xFF) << 24);
 
 // TODO: Remove that code once we test for performance improvments
     //glEnable(GL_TEXTURE_2D);
@@ -128,16 +131,16 @@ int TextRenderer::draw(int x, int y, const char* str) {
                                                         leftBottom.x, rightTop.y, ls, tt, };
 
         const int NUM_COLOR_SCALARS_PER_GLYPH = 4;
-        unsigned int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
+        int colorBuffer[NUM_COLOR_SCALARS_PER_GLYPH] = { compactColor, compactColor, compactColor, compactColor };
 
         gpu::Buffer::Size offset = sizeof(vertexBuffer) * _numGlyphsBatched;
         gpu::Buffer::Size colorOffset = sizeof(colorBuffer) * _numGlyphsBatched;
-        if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer.getSize()) {
-            _glyphsBuffer.append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-            _glyphsColorBuffer.append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
+        if ((offset + sizeof(vertexBuffer)) > _glyphsBuffer->getSize()) {
+            _glyphsBuffer->append(sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer->append(sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
         } else {
-            _glyphsBuffer.setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
-            _glyphsColorBuffer.setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
+            _glyphsBuffer->setSubData(offset, sizeof(vertexBuffer), (gpu::Buffer::Byte*) vertexBuffer);
+            _glyphsColorBuffer->setSubData(colorOffset, sizeof(colorBuffer), (gpu::Buffer::Byte*) colorBuffer);
         }
         _numGlyphsBatched++;
 
@@ -178,9 +181,22 @@ TextRenderer::TextRenderer(const Properties& properties) :
     _y(IMAGE_SIZE),
     _rowHeight(0),
     _color(properties.color),
-    _glyphsBuffer(),
+    _glyphsBuffer(new gpu::Buffer()),
+    _glyphsColorBuffer(new gpu::Buffer()),
+    _glyphsStreamFormat(new gpu::Stream::Format()),
+    _glyphsStream(new gpu::BufferStream()),
     _numGlyphsBatched(0)
 {
+    _glyphsStreamFormat->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::POS_XYZ), 0);
+    const int NUM_POS_COORDS = 2;
+    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
+    _glyphsStreamFormat->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), VERTEX_TEXCOORD_OFFSET);
+
+    _glyphsStreamFormat->setAttribute(gpu::Stream::COLOR, 1, gpu::Element(gpu::VEC4, gpu::UINT8, gpu::RGBA));
+
+    _glyphsStream->addBuffer(_glyphsBuffer, 0, _glyphsStreamFormat->getChannels().at(0)._stride);
+    _glyphsStream->addBuffer(_glyphsColorBuffer, 0, _glyphsStreamFormat->getChannels().at(1)._stride);
+
     _font.setKerning(false);
 }
 
@@ -295,30 +311,17 @@ void TextRenderer::drawBatch() {
     glLoadIdentity();
     */
 
+    gpu::Batch batch;
+
     glEnable(GL_TEXTURE_2D);
     // TODO: Apply the correct font atlas texture, for now only one texture per TextRenderer so it should be good
     glBindTexture(GL_TEXTURE_2D, _currentTextureID);
 
-    GLuint vbo = gpu::GLBackend::getBufferID(_glyphsBuffer);
-    GLuint colorvbo = gpu::GLBackend::getBufferID(_glyphsColorBuffer);
+    batch.setInputFormat(_glyphsStreamFormat);
+    batch.setInputStream(0, *_glyphsStream);
+    batch.draw(gpu::QUADS, _numGlyphsBatched * 4, 0);
 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    const int NUM_POS_COORDS = 2;
-    const int NUM_TEX_COORDS = 2;
-    const int VERTEX_STRIDE = (NUM_POS_COORDS + NUM_TEX_COORDS) * sizeof(float);
-    const int VERTEX_TEXCOORD_OFFSET = NUM_POS_COORDS * sizeof(float);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glVertexPointer(2, GL_FLOAT, VERTEX_STRIDE, 0);
-    glTexCoordPointer(2, GL_FLOAT, VERTEX_STRIDE, (GLvoid*) VERTEX_TEXCOORD_OFFSET );
-
-    glBindBuffer(GL_ARRAY_BUFFER, colorvbo);
-    glColorPointer(4, GL_UNSIGNED_BYTE, 0, (GLvoid*) 0 );
-
-    glDrawArrays(GL_QUADS, 0, _numGlyphsBatched * 4);
+    gpu::GLBackend::renderBatch(batch);
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);

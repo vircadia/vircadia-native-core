@@ -68,15 +68,17 @@ var numColors = 9;
 var whichColor = 0;            //  Starting color is 'Copy' mode
 
 //  Create sounds for for every script actions that require one
-var audioOptions = new AudioInjectionOptions();
-audioOptions.volume = 1.0;
-audioOptions.position = Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ); // start with audio slightly above the avatar
+// start with audio slightly above the avatar
+var audioOptions = {
+  position: Vec3.sum(MyAvatar.position, { x: 0, y: 1, z: 0 }  ),
+  volume: 1.0
+};
 
 function SoundArray() {
     this.audioOptions = audioOptions
     this.sounds = new Array();
     this.addSound = function (soundURL) {
-        this.sounds[this.sounds.length] = new Sound(soundURL);
+        this.sounds[this.sounds.length] = SoundCache.getSound(soundURL);
     }
     this.play = function (index) {
         if (0 <= index && index < this.sounds.length) {
@@ -317,7 +319,7 @@ function ScaleSelector() {
                                            width: this.SECOND_PART, height: this.height,
                                            topMargin: 13,
                                            text: this.scale.toString(),
-                                           alpha: 0.0,
+                                           alpha: 0.9,
                                            visible: editToolsOn
                                            });
     this.powerOverlay = Overlays.addOverlay("text", {

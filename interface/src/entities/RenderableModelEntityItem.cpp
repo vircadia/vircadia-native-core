@@ -62,10 +62,21 @@ void RenderableModelEntityItem::remapTextures() {
         return; // nothing to do if we don't have a model
     }
     
+    if (!_model->isLoadedWithTextures()) {
+        return; // nothing to do if the model has not yet loaded it's default textures
+    }
+    
+    if (!_originalTexturesRead && _model->isLoadedWithTextures()) {
+        const QSharedPointer<NetworkGeometry>& networkGeometry = _model->getGeometry();
+        if (networkGeometry) {
+            _originalTextures = networkGeometry->getTextureNames();
+            _originalTexturesRead = true;
+        }
+    }
+    
     if (_currentTextures == _textures) {
         return; // nothing to do if our recently mapped textures match our desired textures
     }
-    qDebug() << "void RenderableModelEntityItem::remapTextures()....";
     
     // since we're changing here, we need to run through our current texture map
     // and any textures in the recently mapped texture, that is not in our desired
@@ -161,7 +172,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     // TODO: this is the majority of model render time. And rendering of a cube model vs the basic Box render
                     // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
                     PerformanceTimer perfTimer("model->render");
-                    _model->render(alpha, modelRenderMode, args);
+                    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+                    if (dontRenderAsScene) {
+                        _model->render(alpha, modelRenderMode, args);
+                    } else {
+                        _model->renderInScene(alpha, args);
+                    }
                 } else {
                     // if we couldn't get a model, then just draw a cube
                     glColor3ub(getColor()[RED_INDEX],getColor()[GREEN_INDEX],getColor()[BLUE_INDEX]);
@@ -232,6 +248,14 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 bool RenderableModelEntityItem::needsSimulation() const {
     SimulationState simulationState = getSimulationState();
     return _needsInitialSimulation || simulationState == Moving || simulationState == Changing;
+}
+
+EntityItemProperties RenderableModelEntityItem::getProperties() const {
+    EntityItemProperties properties = ModelEntityItem::getProperties(); // get the properties from our base class
+    if (_originalTexturesRead) {
+        properties.setTextureNames(_originalTextures);
+    }
+    return properties;
 }
 
 
