@@ -51,7 +51,7 @@ void RenderableTextEntityItem::render(RenderArgs* args) {
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
         const float MAX_COLOR = 255.0f;
-        xColor backgroundColor = { 255, 0, 0 }; //getBackgroundColorX();
+        xColor backgroundColor = getBackgroundColorX();
         float alpha = 1.0f; //getBackgroundAlpha();
         glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
        
