@@ -147,9 +147,9 @@
                 (properties.modelURL.search("Knight") !== -1) ?  1 :
                 (properties.modelURL.search("Bishop") !== -1) ?  0 :
                 (properties.modelURL.search("Pawn") !== -1) ?  -1 : -2;
-        
+                
                 var piecePos = this.getIndexPosition(properties.position);
-                if (myPos.i === piecePos.i && myPos.j === piecePos.j) {
+                if (myPos.i === piecePos.i && myPos.j === piecePos.j && type !== -2) {
                     var position = this.getAbsolutePosition((isWhite) ? { i: type, j: -1 } : { i: 7 - type, j: 8 },
                     properties.dimensions.y / 2.0);
                     Entities.editEntity(piece, {
