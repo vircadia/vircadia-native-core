@@ -31,7 +31,7 @@
 class QScriptEngine;
 
 class Shape;
-class RenderArgs;
+#include "RenderArgs.h"
 class ViewFrustum;
 
 
@@ -91,7 +91,7 @@ public:
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
     
     // Scene rendering support
-    static void startScene();
+    static void startScene(RenderArgs::RenderSide renderSide);
     bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
     static void endScene(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 

@@ -277,6 +277,52 @@
     "assignment-types": [6],
     "settings": [
       {
+        "name": "persistFilename",
+        "label": "Persistant Filename",
+        "help": "the filename for your entities",
+        "placeholder": "resources/models.svo",
+        "default": "resources/models.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistInterval",
+        "label": "Persist Interval",
+        "help": "Interval between persist checks in msecs.",
+        "placeholder": "30000",
+        "default": "30000",
+        "advanced": true
+      },
+      {
+        "name": "NoPersist",
+        "type": "checkbox",
+        "help": "Don't persist your entities to a file.",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "backupExtensionFormat",
+        "label": "Backup File Extension Format:",
+        "help": "Format used to create the extension for the backup of your persisted entities.",
+        "placeholder": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "default": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "advanced": true
+      },
+      {
+        "name": "backupInterval",
+        "label": "Backup Interval",
+        "help": "Interval between backup checks in msecs.",
+        "placeholder": "1800000",
+        "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "NoBackup",
+        "type": "checkbox",
+        "help": "Don't regularly backup your persisted entities to a backup file.",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "statusHost",
         "label": "Status Hostname",
         "help": "host name or IP address of the server for accessing the status page",
@@ -330,7 +376,52 @@
     "label": "Voxel Server Settings",
     "assignment-types": [3],
     "settings": [
-
+      {
+        "name": "persistFilename",
+        "label": "Persistant Filename",
+        "help": "the filename for your voxels",
+        "placeholder": "resources/voxels.svo",
+        "default": "resources/voxels.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistInterval",
+        "label": "Persist Interval",
+        "help": "Interval between persist checks in msecs.",
+        "placeholder": "30000",
+        "default": "30000",
+        "advanced": true
+      },
+      {
+        "name": "NoPersist",
+        "type": "checkbox",
+        "help": "Don't persist your voxels to a file.",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "backupExtensionFormat",
+        "label": "Backup File Extension Format:",
+        "help": "Format used to create the extension for the backup of your persisted voxels.",
+        "placeholder": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "default": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "advanced": true
+      },
+      {
+        "name": "backupInterval",
+        "label": "Backup Interval",
+        "help": "Interval between backup checks in msecs.",
+        "placeholder": "1800000",
+        "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "NoBackup",
+        "type": "checkbox",
+        "help": "Don't regularly backup your persisted voxels to a backup file.",
+        "default": false,
+        "advanced": true
+      },
       {
         "name": "statusHost",
         "label": "Status Hostname",

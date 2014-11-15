@@ -163,10 +163,12 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     
     QString scriptContents = loadScriptContents(entity->getScript());
     
-    if (QScriptEngine::checkSyntax(scriptContents).state() != QScriptSyntaxCheckResult::Valid) {
+    QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
-        qDebug() << "    INVALID SYNTAX";
-        qDebug() << "    SCRIPT:" << scriptContents;
+        qDebug() << "   " << syntaxCheck.errorMessage() << ":"
+                          << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
+        qDebug() << "    SCRIPT:" << entity->getScript();
         return QScriptValue(); // invalid script
     }
     
@@ -175,7 +177,7 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (!entityScriptConstructor.isFunction()) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
-        qDebug() << "    SCRIPT:" << scriptContents;
+        qDebug() << "    SCRIPT:" << entity->getScript();
         return QScriptValue(); // invalid script
     }
 
@@ -252,15 +254,15 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
     }
 }
 
-void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode) {
+void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
     
     if (dontRenderAsScene) {
-        OctreeRenderer::render(renderMode);
+        OctreeRenderer::render(renderMode, renderSide);
     } else {
         if (_tree) {
-            Model::startScene();
-            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, 
+            Model::startScene(renderSide);
+            RenderArgs args = { this, _viewFrustum, getSizeScale(), getBoundaryLevelAdjust(), renderMode, renderSide,
                                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             _tree->lockForRead();
             _tree->recurseTreeWithOperation(renderOperation, &args);
