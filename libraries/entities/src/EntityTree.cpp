@@ -1089,7 +1089,6 @@ bool DebugOperator::preRecursion(OctreeElement* element) {
 }
 
 void EntityTree::dumpTree() {
-    // First, look for the existing entity in the tree..
     DebugOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }
@@ -1107,7 +1106,6 @@ bool PruneOperator::postRecursion(OctreeElement* element) {
 }
 
 void EntityTree::pruneTree() {
-    // First, look for the existing entity in the tree..
     PruneOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }
