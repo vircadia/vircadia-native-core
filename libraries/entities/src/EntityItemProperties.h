@@ -110,6 +110,15 @@ class EntityItemProperties {
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
+private:
+    QUuid _id;
+    bool _idSet;
+    quint64 _lastEdited;
+    quint64 _created;
+    EntityTypes::EntityType _type;
+    void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
+
+
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
@@ -218,13 +227,6 @@ public:
 
 
 private:
-    QUuid _id;
-    bool _idSet;
-    quint64 _lastEdited;
-    quint64 _created;
-    EntityTypes::EntityType _type;
-    void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
-
     float _glowLevel;
     float _localRenderAlpha;
     bool _glowLevelChanged;
