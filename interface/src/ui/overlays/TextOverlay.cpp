@@ -25,6 +25,16 @@ TextOverlay::TextOverlay() :
 {
 }
 
+TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
+    Overlay2D(textOverlay),
+    _text(textOverlay->_text),
+    _backgroundColor(textOverlay->_backgroundColor),
+    _leftMargin(textOverlay->_leftMargin),
+    _topMargin(textOverlay->_topMargin),
+    _fontSize(textOverlay->_fontSize)
+{
+}
+
 TextOverlay::~TextOverlay() {
 }
 
@@ -124,6 +134,10 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+TextOverlay* TextOverlay::createClone() const {
+    return new TextOverlay(this);
+}
+
 QScriptValue TextOverlay::getProperty(const QString& property) {
     if (property == "font") {
         QScriptValue font = _scriptEngine->newObject();
@@ -145,7 +159,6 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
 
     return Overlay2D::getProperty(property);
 }
-
 
 float TextOverlay::textWidth(const QString& text) const {
     QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()

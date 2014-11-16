@@ -22,12 +22,18 @@
 class OctreePersistThread : public GenericThread {
     Q_OBJECT
 public:
-    static const int DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+    static const int DEFAULT_PERSIST_INTERVAL;
+    static const int DEFAULT_BACKUP_INTERVAL;
+    static const QString DEFAULT_BACKUP_EXTENSION_FORMAT;
 
-    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
+    OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
+                                bool wantBackup = false, int backupInterval = DEFAULT_BACKUP_INTERVAL,
+                                const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
+
+    void aboutToFinish(); /// call this to inform the persist thread that the owner is about to finish to support final persist
 
 signals:
     void loadCompleted();
@@ -35,14 +41,22 @@ signals:
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
+    
+    void persist();
+    void backup();
 private:
     Octree* _tree;
     QString _filename;
+    QString _backupExtensionFormat;
     int _persistInterval;
+    int _backupInterval;
     bool _initialLoadComplete;
 
     quint64 _loadTimeUSecs;
     quint64 _lastCheck;
+    quint64 _lastBackup;
+    bool _wantBackup;
+    time_t _lastPersistTime;
 };
 
 #endif // hifi_OctreePersistThread_h
