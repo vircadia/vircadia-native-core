@@ -90,6 +90,7 @@ private:
     bool _nonBlockingFormActive;
     int _formResult;
     QVector<QComboBox*> _combos;
+    QVector<QCheckBox*> _checks;
     QVector<QLineEdit*> _edits;
     QVector<QPushButton*> _directories;
 };
