@@ -357,7 +357,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Light",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -710,7 +710,7 @@ function handeMenuEvent(menuItem) {
             var selectedModel = form[0].value;
             if (form[1].value == "Properties") {
                 editModelID = selectedModel;
-                showPropertiesForm(editModelID);
+                entityPropertyDialogBox.openDialog(editModelID);
             } else if (form[1].value == "Delete") {
                 Entities.deleteEntity(selectedModel);
             } else if (form[1].value == "Teleport") {
