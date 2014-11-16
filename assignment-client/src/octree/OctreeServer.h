@@ -172,6 +172,7 @@ protected:
     bool _wantBackup;
     QString _backupExtensionFormat;
     int _backupInterval;
+    int _maxBackupVersions;
 
     static OctreeServer* _instance;
 

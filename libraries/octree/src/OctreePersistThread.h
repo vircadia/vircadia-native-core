@@ -25,10 +25,12 @@ public:
     static const int DEFAULT_PERSIST_INTERVAL;
     static const int DEFAULT_BACKUP_INTERVAL;
     static const QString DEFAULT_BACKUP_EXTENSION_FORMAT;
+    static const int DEFAULT_MAX_BACKUP_VERSIONS;
 
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
                                 bool wantBackup = false, int backupInterval = DEFAULT_BACKUP_INTERVAL,
-                                const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT);
+                                const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT,
+                                int maxBackupVersions = DEFAULT_MAX_BACKUP_VERSIONS);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
@@ -44,10 +46,12 @@ protected:
     
     void persist();
     void backup();
+    void rollOldBackupVersions();
 private:
     Octree* _tree;
     QString _filename;
     QString _backupExtensionFormat;
+    int _maxBackupVersions;
     int _persistInterval;
     int _backupInterval;
     bool _initialLoadComplete;
