@@ -26,10 +26,10 @@ ModelOverlay::ModelOverlay(const ModelOverlay* modelOverlay) :
     Base3DOverlay(modelOverlay),
     _model(),
     _modelTextures(QVariantMap()),
-    _scale(modelOverlay->_scale),
-    _updateModel(false),
     _url(modelOverlay->_url),
-    _rotation(modelOverlay->_rotation)
+    _rotation(modelOverlay->_rotation),
+    _scale(modelOverlay->_scale),
+    _updateModel(false)
 {
     _model.init();
     if (_url.isValid()) {
