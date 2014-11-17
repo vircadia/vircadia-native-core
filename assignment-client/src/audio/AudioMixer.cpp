@@ -776,13 +776,9 @@ void AudioMixer::run() {
                 // if the stream should be muted, send mute packet
                 if (nodeData->getAvatarAudioStream()
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
-                    static const int TIME_BETWEEN_MUTES = 5; // in secs
-                    if (usecTimestampNow() - nodeData->getAvatarAudioStream()->getLastMuted() >
-                        TIME_BETWEEN_MUTES * USECS_PER_SECOND) {
-                        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
-                        nodeList->writeDatagram(packet, node);
-                        nodeData->getAvatarAudioStream()->setLastMutedNow();
-                    }
+                    QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
+                    nodeList->writeDatagram(packet, node);
+                    nodeData->getAvatarAudioStream()->setLastMutedNow();
                 }
                 
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
