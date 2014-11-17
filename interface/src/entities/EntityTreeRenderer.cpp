@@ -34,6 +34,7 @@
 #include "RenderableLightEntityItem.h"
 #include "RenderableModelEntityItem.h"
 #include "RenderableSphereEntityItem.h"
+#include "RenderableTextEntityItem.h"
 
 
 QThread* EntityTreeRenderer::getMainThread() {
@@ -50,6 +51,7 @@ EntityTreeRenderer::EntityTreeRenderer(bool wantScripts) :
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Light, RenderableLightEntityItem::factory)
+    REGISTER_ENTITY_TYPE_WITH_FACTORY(Text, RenderableTextEntityItem::factory)
     
     _currentHoverOverEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID(); // makes it the unknown ID
