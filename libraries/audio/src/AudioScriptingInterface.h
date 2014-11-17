@@ -39,6 +39,7 @@ public slots:
     
 signals:
     void mutedByMixer();
+    void environmentMuted();
     
 private:
     AudioScriptingInterface();

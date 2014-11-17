@@ -779,21 +779,9 @@ void AudioMixer::run() {
                     static const int TIME_BETWEEN_MUTES = 5; // in secs
                     if (usecTimestampNow() - nodeData->getAvatarAudioStream()->getLastMuted() >
                         TIME_BETWEEN_MUTES * USECS_PER_SECOND) {
-                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
-                        int packetSize = headerSize + sizeof(glm::vec3) + sizeof(float);
-                        
-                        // Fake data to force mute
-                        glm::vec3 position = nodeData->getAvatarAudioStream()->getPosition();
-                        float radius = 1.0f;
-                        
-                        char* packet = (char*)malloc(packetSize);
-                        populatePacketHeader(packet, PacketTypeMuteEnvironment);
-                        memcpy(packet + headerSize, &position, sizeof(glm::vec3));
-                        memcpy(packet + headerSize + sizeof(glm::vec3), &radius, sizeof(float));
-                        
-                        nodeList->writeDatagram(packet, packetSize, node);
+                        QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
+                        nodeList->writeDatagram(packet, node);
                         nodeData->getAvatarAudioStream()->setLastMutedNow();
-                        free(packet);
                     }
                 }
                 

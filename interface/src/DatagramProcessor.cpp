@@ -141,18 +141,29 @@ void DatagramProcessor::processDatagrams() {
                     AccountManager::getInstance().checkAndSignalForAccessToken();
                     break;
                 }
+                case PacketTypeNoisyMute:
                 case PacketTypeMuteEnvironment: {
-                    glm::vec3 position;
-                    float radius;
+                    bool mute = !Application::getInstance()->getAudio()->getMuted();
                     
-                    int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
-                    memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
-                    memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
+                    if (incomingType == PacketTypeMuteEnvironment) {
+                        glm::vec3 position;
+                        float radius, distance;
+                        
+                        int headerSize = numBytesForPacketHeaderGivenPacketType(PacketTypeMuteEnvironment);
+                        memcpy(&position, incomingPacket.constData() + headerSize, sizeof(glm::vec3));
+                        memcpy(&radius, incomingPacket.constData() + headerSize + sizeof(glm::vec3), sizeof(float));
+                        distance = glm::distance(Application::getInstance()->getAvatar()->getPosition(), position);
+                        
+                        mute = mute && (distance < radius);
+                    }
                     
-                    if (glm::distance(Application::getInstance()->getAvatar()->getPosition(), position) < radius
-                        && !Application::getInstance()->getAudio()->getMuted()) {
+                    if (mute) {
                         Application::getInstance()->getAudio()->toggleMute();
-                        AudioScriptingInterface::getInstance().mutedByMixer();
+                        if (incomingType == PacketTypeMuteEnvironment) {
+                            AudioScriptingInterface::getInstance().environmentMuted();
+                        } else {
+                            AudioScriptingInterface::getInstance().mutedByMixer();
+                        }
                     }
                     break;
                 }
