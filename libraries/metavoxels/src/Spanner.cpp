@@ -1770,7 +1770,17 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     
     // renormalize if necessary
     if (minimumValue < 1 || maximumValue > numeric_limits<quint16>::max()) {
-        
+        float scale = (numeric_limits<quint16>::max() - 1.0f) / (maximumValue - minimumValue);
+        float offset = 1.0f - minimumValue;
+        newHeightfield->setAspectY(_aspectY / scale);
+        newHeightfield->setTranslation(getTranslation() - getRotation() *
+            glm::vec3(0.0f, offset * _aspectY * getScale() / (numeric_limits<quint16>::max() - 1), 0.0f));
+        for (quint16* dest = contents.data(), *end = contents.data() + contents.size(); dest != end; dest++) {
+            int value = *dest;
+            if (value != 0) {
+                *dest = (value + offset) * scale;
+            }
+        }
     }
     
     // now apply the actual change
