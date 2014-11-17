@@ -269,7 +269,7 @@ private:
     // Adds Reverb
     void initGverb();
     void updateGverbOptions();
-    void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
+    void addReverb(int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
     
