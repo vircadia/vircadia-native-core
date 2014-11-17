@@ -167,7 +167,7 @@
         "name": "reverb",
         "type": "table",
         "label": "Reverb Settings",
-        "help": "In this table you can set custom reverb values for each audio zones",
+        "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet level of -10 db. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet level of -5 db.",
         "numbered": true,
         "columns": [
           {
@@ -302,9 +302,9 @@
       {
         "name": "backupExtensionFormat",
         "label": "Backup File Extension Format:",
-        "help": "Format used to create the extension for the backup of your persisted entities.",
-        "placeholder": ".backup.%Y-%m-%d.%H:%M:%S.%z",
-        "default": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
+        "placeholder": ".backup.%N",
+        "default": ".backup.%N",
         "advanced": true
       },
       {
@@ -313,6 +313,14 @@
         "help": "Interval between backup checks in msecs.",
         "placeholder": "1800000",
         "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "maxBackupVersions",
+        "label": "Max Rolled Backup Versions",
+        "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
+        "placeholder": "5",
+        "default": "5",
         "advanced": true
       },
       {
@@ -356,6 +364,13 @@
         "name": "debugSending",
         "type": "checkbox",
         "help": "extra debugging on sending",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "debugTimestampNow",
+        "type": "checkbox",
+        "help": "extra debugging for usecTimestampNow() function",
         "default": false,
         "advanced": true
       },

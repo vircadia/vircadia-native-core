@@ -29,12 +29,13 @@ ImageOverlay::ImageOverlay() :
 
 ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
     Overlay2D(imageOverlay),
-    _textureID(0),
-    _textureBound(false),
-    _wantClipFromImage(false),
-    _renderImage(imageOverlay->_renderImage),
     _imageURL(imageOverlay->_imageURL),
-    _textureImage(imageOverlay->_textureImage)
+    _textureImage(imageOverlay->_textureImage),
+    _textureID(0),
+    _fromImage(),
+    _renderImage(imageOverlay->_renderImage),
+    _textureBound(false),
+    _wantClipFromImage(false)
 {
 }
 
