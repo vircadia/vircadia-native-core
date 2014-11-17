@@ -208,15 +208,7 @@
 #
 # ------------------------------------------------------------------------------
 
-# Modified by Lasse Oorni and Yao Wei Tjong for Urho3D
-
 cmake_minimum_required( VERSION 2.6.3 )
-
-# Urho3D: on Windows Cygwin-based NDK tools may fail in the linking phase with too long command line. Turn on response files to avoid this
-if( CMAKE_HOST_WIN32 )
- set( CMAKE_C_USE_RESPONSE_FILE_FOR_OBJECTS 1 )
- set( CMAKE_CXX_USE_RESPONSE_FILE_FOR_OBJECTS 1 )
-endif()
 
 if( DEFINED CMAKE_CROSSCOMPILING )
  # subsequent toolchain loading is not really needed
@@ -271,12 +263,11 @@ set( ANDROID_SUPPORTED_ABIS_mips "mips" )
 set( ANDROID_SUPPORTED_ABIS_mips64 "mips64" )
 
 # API level defaults
-# Urho3D: default to API 12
-set( ANDROID_DEFAULT_NDK_API_LEVEL 12 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL 8 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_arm64 21 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_x86 12)
+set( ANDROID_DEFAULT_NDK_API_LEVEL_x86 9 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_x86_64 21 )
-set( ANDROID_DEFAULT_NDK_API_LEVEL_mips 12 )
+set( ANDROID_DEFAULT_NDK_API_LEVEL_mips 9 )
 set( ANDROID_DEFAULT_NDK_API_LEVEL_mips64 21 )
 
 
@@ -1430,9 +1421,8 @@ endif()
 # cache flags
 set( CMAKE_CXX_FLAGS           ""                        CACHE STRING "c++ flags" )
 set( CMAKE_C_FLAGS             ""                        CACHE STRING "c flags" )
-# Urho3D: optimise for size
-set( CMAKE_CXX_FLAGS_RELEASE   "-Os -DNDEBUG"            CACHE STRING "c++ Release flags" )
-set( CMAKE_C_FLAGS_RELEASE     "-Os -DNDEBUG"            CACHE STRING "c Release flags" )
+set( CMAKE_CXX_FLAGS_RELEASE   "-O3 -DNDEBUG"            CACHE STRING "c++ Release flags" )
+set( CMAKE_C_FLAGS_RELEASE     "-O3 -DNDEBUG"            CACHE STRING "c Release flags" )
 set( CMAKE_CXX_FLAGS_DEBUG     "-O0 -g -DDEBUG -D_DEBUG" CACHE STRING "c++ Debug flags" )
 set( CMAKE_C_FLAGS_DEBUG       "-O0 -g -DDEBUG -D_DEBUG" CACHE STRING "c Debug flags" )
 set( CMAKE_SHARED_LINKER_FLAGS ""                        CACHE STRING "shared linker flags" )
@@ -1534,8 +1524,7 @@ if(NOT _CMAKE_IN_TRY_COMPILE)
  else()
   set( EXECUTABLE_OUTPUT_PATH "${LIBRARY_OUTPUT_PATH_ROOT}/bin" CACHE PATH "Output directory for applications" )
  endif()
- # Urho3D: All libraries are first generated in CMake default binary directory and only the main target library is later copied to below output path by Urho3D own build script
- set( ANDROID_LIBRARY_OUTPUT_PATH "${LIBRARY_OUTPUT_PATH_ROOT}/libs/${ANDROID_NDK_ABI_NAME}" CACHE PATH "path for android libs" FORCE )
+ set( LIBRARY_OUTPUT_PATH "${LIBRARY_OUTPUT_PATH_ROOT}/libs/${ANDROID_NDK_ABI_NAME}" CACHE PATH "path for android libs" )
 endif()
 
 # copy shaed stl library to build directory

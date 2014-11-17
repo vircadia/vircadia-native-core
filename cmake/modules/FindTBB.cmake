@@ -115,6 +115,14 @@ if (UNIX)
     endif (APPLE)
 endif (UNIX)
 
+if (ANDROID)
+  set(_TBB_DEFAULT_INSTALL_DIR "/tbb")
+  set(_TBB_LIB_NAME "tbb")
+  set(_TBB_LIB_MALLOC_NAME "${_TBB_LIB_NAME}malloc")
+  set(_TBB_LIB_DEBUG_NAME "${_TBB_LIB_NAME}_debug")
+  set(_TBB_LIB_MALLOC_DEBUG_NAME "${_TBB_LIB_MALLOC_NAME}_debug")
+endif ()
+
 if (CMAKE_SYSTEM MATCHES "SunOS.*")
 # SUN
 # not yet supported
@@ -188,7 +196,6 @@ find_path(TBB_INCLUDE_DIR
     PATHS ${TBB_INC_SEARCH_DIR} ENV CPATH
 )
 mark_as_advanced(TBB_INCLUDE_DIR)
-
 
 #-- Look for libraries
 # GvdB: $ENV{TBB_ARCH_PLATFORM} is set by the build script tbbvars[.bat|.sh|.csh]
