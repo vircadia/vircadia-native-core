@@ -38,19 +38,19 @@ const char SOLO_NODE_TYPES[2] = {
 
 const QUrl DEFAULT_NODE_AUTH_URL = QUrl("https://data.highfidelity.io");
 
-std::auto_ptr<LimitedNodeList> LimitedNodeList::_sharedInstance;
+std::unique_ptr<LimitedNodeList> LimitedNodeList::_sharedInstance;
 
 LimitedNodeList* LimitedNodeList::createInstance(unsigned short socketListenPort, unsigned short dtlsPort) {
     NodeType::init();
     
     if (_sharedInstance.get()) {
         qDebug() << "LimitedNodeList called with existing instance." <<
-            "Releasing auto_ptr, deleting existing instance and creating a new one.";
+            "Releasing unique_ptr, deleting existing instance and creating a new one.";
         
         delete _sharedInstance.release();
     }
     
-    _sharedInstance = std::auto_ptr<LimitedNodeList>(new LimitedNodeList(socketListenPort, dtlsPort));
+    _sharedInstance = std::move(std::unique_ptr<LimitedNodeList>(new LimitedNodeList(socketListenPort, dtlsPort)));
     
     // register the SharedNodePointer meta-type for signals/slots
     qRegisterMetaType<SharedNodePointer>();

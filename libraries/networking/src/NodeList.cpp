@@ -31,12 +31,12 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short socketListenPo
     
     if (_sharedInstance.get()) {
         qDebug() << "NodeList called with existing instance." <<
-        "Releasing auto_ptr, deleting existing instance and creating a new one.";
+        "Releasing unique_ptr, deleting existing instance and creating a new one.";
         
         delete _sharedInstance.release();
     }
     
-    _sharedInstance = std::auto_ptr<LimitedNodeList>(new NodeList(ownerType, socketListenPort, dtlsPort));
+    _sharedInstance = std::move(std::unique_ptr<LimitedNodeList>(new NodeList(ownerType, socketListenPort, dtlsPort)));
     
     // register the SharedNodePointer meta-type for signals/slots
     qRegisterMetaType<SharedNodePointer>();

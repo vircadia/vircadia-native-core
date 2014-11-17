@@ -177,7 +177,7 @@ signals:
     void localSockAddrChanged(const HifiSockAddr& localSockAddr);
     void publicSockAddrChanged(const HifiSockAddr& publicSockAddr);
 protected:
-    static std::auto_ptr<LimitedNodeList> _sharedInstance;
+    static std::unique_ptr<LimitedNodeList> _sharedInstance;
 
     LimitedNodeList(unsigned short socketListenPort, unsigned short dtlsListenPort);
     LimitedNodeList(LimitedNodeList const&); // Don't implement, needed to avoid copies of singleton

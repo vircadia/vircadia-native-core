@@ -30,7 +30,7 @@
 const bool VERBOSE_HTTP_REQUEST_DEBUGGING = false;
 
 AccountManager& AccountManager::getInstance(bool forceReset) {
-    static std::auto_ptr<AccountManager> sharedInstance(new AccountManager());
+    static std::unique_ptr<AccountManager> sharedInstance(new AccountManager());
     
     if (forceReset) {
         sharedInstance.reset(new AccountManager());
