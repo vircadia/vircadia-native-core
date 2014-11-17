@@ -1741,7 +1741,7 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     glm::vec3 start = glm::floor(center - extents);
     glm::vec3 end = glm::ceil(center + extents);
     
-    // paint all points within the radius
+    // first see if we're going to exceed the range limits
     float z = qMax(start.z, 0.0f);
     float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
     quint16* lineDest = contents.data() + (int)z * heightWidth + (int)startX;
@@ -1749,6 +1749,34 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     float squaredRadiusReciprocal = 1.0f / squaredRadius;
     float scaledHeight = height * numeric_limits<quint16>::max() / (getScale() * _aspectY);
     float multiplierZ = inverseScale.x / inverseScale.z;
+    int minimumValue = 1, maximumValue = numeric_limits<quint16>::max();
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        quint16* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            float distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared <= squaredRadius) {
+                // height falls off towards edges
+                int value = *dest;
+                if (value != 0) {
+                    value += scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                    minimumValue = qMin(minimumValue, value);
+                    maximumValue = qMax(maximumValue, value);
+                }
+            }
+        }
+        lineDest += heightWidth;
+    }
+    
+    // renormalize if necessary
+    if (minimumValue < 1 || maximumValue > numeric_limits<quint16>::max()) {
+        
+    }
+    
+    // now apply the actual change
+    z = qMax(start.z, 0.0f);
+    lineDest = contents.data() + (int)z * heightWidth + (int)startX;
+    scaledHeight = height * numeric_limits<quint16>::max() / (getScale() * newHeightfield->getAspectY());
     bool changed = false;
     for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
         quint16* dest = lineDest;
@@ -1757,9 +1785,9 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
             float distanceSquared = dx * dx + dz * dz;
             if (distanceSquared <= squaredRadius) {
                 // height falls off towards edges
-                int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
-                if (value != *dest) {
-                    *dest = qMin(qMax(value, 0), (int)numeric_limits<quint16>::max());
+                int value = *dest;
+                if (value != 0) {
+                    *dest = value + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
                     changed = true;
                 }
             }
