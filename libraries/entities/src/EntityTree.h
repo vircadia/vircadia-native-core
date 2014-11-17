@@ -12,6 +12,8 @@
 #ifndef hifi_EntityTree_h
 #define hifi_EntityTree_h
 
+#include <QSet>
+
 #include <Octree.h>
 #include "EntityTreeElement.h"
 
@@ -139,6 +141,7 @@ public:
     void changeEntityState(EntityItem* const entity, 
                 EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
 
+    void entityChanged(EntityItem* entity);
     void addEntityToPhysicsWorld(EntityItem* entity);
     void removeEntityFromPhysicsWorld(EntityItem* entity);
 
@@ -159,7 +162,7 @@ signals:
 
 private:
 
-    void updateChangingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
+    void updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
     void updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
     void updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
 
@@ -179,9 +182,10 @@ private:
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
-    QList<EntityItem*> _movingEntities; // entities that are moving as part of update
-    QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
-    QList<EntityItem*> _mortalEntities; // entities that are mortal (have lifetime), but not moving or changing
+    QList<EntityItem*> _movingEntities; // entities that need to be updated
+    QList<EntityItem*> _mortalEntities; // entities that need to be checked for expiry
+
+    QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
 
     PhysicsWorld* _physicsWorld;
 };

@@ -745,14 +745,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
-                    EntityItem::SimulationState oldState = entityItem->getSimulationState();
 
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-
-                    EntityItem::SimulationState newState = entityItem->getSimulationState();
-                    if (oldState != newState) {
-                        _myTree->changeEntityState(entityItem, oldState, newState);
-                    }
+                    // TODO: Andrew to only set changed if something has actually changed
+                    _myTree->entityChanged(entityItem);
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
                     if (bestFitBefore != bestFitAfter) {
@@ -780,7 +776,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
                         _myTree->emitAddingEntity(entityItemID); // we just added an entity
-                        EntityItem::SimulationState newState = entityItem->getSimulationState();
+                        EntityItem::SimulationState newState = entityItem->computeSimulationState();
                         _myTree->changeEntityState(entityItem, EntityItem::Static, newState);
                     }
                 }
