@@ -123,7 +123,7 @@ public:
         Moving
     } SimulationState;
     
-    virtual SimulationState getSimulationState() const;
+    virtual SimulationState computeSimulationState() const;
     virtual void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate

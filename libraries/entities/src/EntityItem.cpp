@@ -395,6 +395,8 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         quint64 lastEditedFromBuffer = 0;
         quint64 lastEditedFromBufferAdjusted = 0;
 
+        // BOOKMARK: TODO: figure out if we can catch remote updates to EntityItems and build a list in the Tree 
+        // that is then relayed to the physics engine (and other data structures that cache EntityItem data)
         // TODO: we could make this encoded as a delta from _created
         // _lastEdited
         memcpy(&lastEditedFromBuffer, dataAt, sizeof(lastEditedFromBuffer));
@@ -419,7 +421,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "      fromSameServerEdit=" << fromSameServerEdit;
         }
 
-        bool ignoreServerPacket = false; // assume we're use this server packet
+        bool ignoreServerPacket = false; // assume we'll use this server packet
         
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
@@ -732,7 +734,7 @@ void EntityItem::update(const quint64& updateTime) {
     }
 }
 
-EntityItem::SimulationState EntityItem::getSimulationState() const {
+EntityItem::SimulationState EntityItem::computeSimulationState() const {
     if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
         return EntityItem::Moving;
     }
