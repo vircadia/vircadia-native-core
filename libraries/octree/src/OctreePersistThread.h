@@ -28,7 +28,8 @@ public:
 
     OctreePersistThread(Octree* tree, const QString& filename, int persistInterval = DEFAULT_PERSIST_INTERVAL, 
                                 bool wantBackup = false, int backupInterval = DEFAULT_BACKUP_INTERVAL,
-                                const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT);
+                                const QString& backupExtensionFormat = DEFAULT_BACKUP_EXTENSION_FORMAT,
+                                bool debugTimestampNow = false);
 
     bool isInitialLoadComplete() const { return _initialLoadComplete; }
     quint64 getLoadElapsedTime() const { return _loadTimeUSecs; }
@@ -57,6 +58,9 @@ private:
     quint64 _lastBackup;
     bool _wantBackup;
     time_t _lastPersistTime;
+    
+    bool _debugTimestampNow;
+    quint64 _lastTimeDebug;
 };
 
 #endif // hifi_OctreePersistThread_h

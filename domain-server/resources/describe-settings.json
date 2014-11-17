@@ -360,6 +360,13 @@
         "advanced": true
       },
       {
+        "name": "debugTimestampNow",
+        "type": "checkbox",
+        "help": "extra debugging for usecTimestampNow() function",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "clockSkew",
         "label": "Clock Skew",
         "help": "Number of msecs to skew the server clock by to test clock skew",

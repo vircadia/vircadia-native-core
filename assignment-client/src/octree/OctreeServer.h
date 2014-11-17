@@ -162,6 +162,7 @@ protected:
     bool _wantPersist;
     bool _debugSending;
     bool _debugReceiving;
+    bool _debugTimestampNow;
     bool _verboseDebug;
     JurisdictionMap* _jurisdiction;
     JurisdictionSender* _jurisdictionSender;
