@@ -97,6 +97,13 @@ foreach(CUSTOM_MACRO ${HIFI_CUSTOM_MACROS})
   include(${CUSTOM_MACRO})
 endforeach()
 
+if (ANDROID)
+  file(GLOB ANDROID_CUSTOM_MACROS "cmake/android/*.cmake")
+  foreach(CUSTOM_MACRO ${ANDROID_CUSTOM_MACROS})
+    include(${CUSTOM_MACRO})
+  endforeach()
+endif ()
+
 # add subdirectories for all targets
 if (NOT ANDROID)
   add_subdirectory(assignment-client)
