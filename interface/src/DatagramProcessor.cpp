@@ -152,6 +152,7 @@ void DatagramProcessor::processDatagrams() {
                     if (glm::distance(Application::getInstance()->getAvatar()->getPosition(), position) < radius
                         && !Application::getInstance()->getAudio()->getMuted()) {
                         Application::getInstance()->getAudio()->toggleMute();
+                        AudioScriptingInterface::getInstance().mutedByMixer();
                     }
                     break;
                 }
