@@ -28,6 +28,7 @@ class Overlay2D : public Overlay {
     
 public:
     Overlay2D();
+    Overlay2D(const Overlay2D* overlay2D);
     ~Overlay2D();
     
     virtual bool is3D() const { return false; }
@@ -43,7 +44,7 @@ public:
     void setX(int x) { _bounds.setX(x); }
     void setY(int y) { _bounds.setY(y);  }
     void setWidth(int width) { _bounds.setWidth(width); }
-    void setHeight(int height) {  _bounds.setHeight(height); }
+    void setHeight(int height) { _bounds.setHeight(height); }
     void setBounds(const QRect& bounds) { _bounds = bounds; }
 
     virtual void setProperties(const QScriptValue& properties);

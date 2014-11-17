@@ -23,6 +23,7 @@ class Base3DOverlay : public Overlay {
     
 public:
     Base3DOverlay();
+    Base3DOverlay(const Base3DOverlay* base3DOverlay);
     ~Base3DOverlay();
 
     // getters
@@ -64,6 +65,5 @@ protected:
     bool _isDashedLine;
     bool _ignoreRayIntersection;
 };
-
  
 #endif // hifi_Base3DOverlay_h
