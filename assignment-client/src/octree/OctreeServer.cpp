@@ -1017,6 +1017,9 @@ void OctreeServer::readConfiguration() {
     readOptionBool(QString("debugReceiving"), settingsSectionObject, _debugReceiving);
     qDebug("debugReceiving=%s", debug::valueOf(_debugReceiving));
 
+    readOptionBool(QString("debugTimestampNow"), settingsSectionObject, _debugTimestampNow);
+    qDebug() << "debugTimestampNow=" << _debugTimestampNow;
+
     bool noPersist;
     readOptionBool(QString("NoPersist"), settingsSectionObject, noPersist);
     _wantPersist = !noPersist;
@@ -1137,7 +1140,8 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                    _wantBackup, _backupInterval, _backupExtensionFormat, _maxBackupVersions);
+                                    _wantBackup, _backupInterval, _backupExtensionFormat, 
+                                    _maxBackupVersions, _debugTimestampNow);
         if (_persistThread) {
             _persistThread->initialize(true);
         }
