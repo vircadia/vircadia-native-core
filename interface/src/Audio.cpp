@@ -566,8 +566,8 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
 }
 
 void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
-    float dryFraction = DB_CO(_reverbOptions->getDryLevel());
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
+    float dryFraction = 1.0f - wetFraction;
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
