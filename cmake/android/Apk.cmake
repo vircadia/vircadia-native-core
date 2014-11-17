@@ -68,7 +68,7 @@ set(ANDROID_THIS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})	# Directory this CMake fil
 ##   - "jarsigner" (part of the JDK)
 ##   - "zipalign" (part of the Android SDK)
 ##################################################
-macro(android_create_apk name apk_directory shared_libraries assets data_directory)
+macro(android_create_apk name apk_directory shared_libraries jar_libraries assets data_directory)
 	if(ANDROID_APK_CREATE)
 		# Construct the current package name and theme
 		set(ANDROID_APK_PACKAGE "${ANDROID_APK_TOP_LEVEL_DOMAIN}.${ANDROID_APK_DOMAIN}.${ANDROID_APK_SUBDOMAIN}")
@@ -127,6 +127,15 @@ macro(android_create_apk name apk_directory shared_libraries assets data_directo
 				COMMAND ${CMAKE_COMMAND} -E copy ${value} "${apk_directory}/libs/${ARM_TARGET}"
 			)
 		endforeach()
+    
+    # Copy any required external jars to the libs folder
+		foreach(value ${jar_libraries})
+      add_custom_command(TARGET ${ANDROID_NAME}
+  			POST_BUILD
+  			COMMAND ${CMAKE_COMMAND} -E copy ${value} "${apk_directory}/libs/"
+  		)
+    endforeach()
+    
 
 		# Create "build.xml", "default.properties", "local.properties" and "proguard.cfg" files
 		add_custom_command(TARGET ${ANDROID_NAME}
