@@ -98,8 +98,6 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
 }
 
 #ifdef USE_BULLET_PHYSICS
-// BOOKMARK: move EntityMotionState implementation to Entities
-// also define interface for it (dunno what to call it)
 EntityMotionState* BoxEntityItem::createMotionState() {
     if (!_motionState) {
         _motionState = new EntityMotionState(this);
