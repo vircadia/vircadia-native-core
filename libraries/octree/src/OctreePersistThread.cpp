@@ -20,7 +20,7 @@
 #include "OctreePersistThread.h"
 
 const int OctreePersistThread::DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
-const int OctreePersistThread::DEFAULT_BACKUP_INTERVAL = 1000 * 60 * 1; // 30; // every 30 minutes
+const int OctreePersistThread::DEFAULT_BACKUP_INTERVAL = 1000 * 60 * 30; // every 30 minutes
 const QString OctreePersistThread::DEFAULT_BACKUP_EXTENSION_FORMAT(".backup.%N");
 const int OctreePersistThread::DEFAULT_MAX_BACKUP_VERSIONS = 5;
 
