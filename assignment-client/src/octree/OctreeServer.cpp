@@ -1050,6 +1050,10 @@ void OctreeServer::readConfiguration() {
             _backupInterval = OctreePersistThread::DEFAULT_BACKUP_INTERVAL;
             readOptionInt(QString("backupInterval"), settingsSectionObject, _backupInterval);
             qDebug() << "backupInterval=" << _backupInterval;
+
+            _maxBackupVersions = OctreePersistThread::DEFAULT_MAX_BACKUP_VERSIONS;
+            readOptionInt(QString("maxBackupVersions"), settingsSectionObject, _maxBackupVersions);
+            qDebug() << "maxBackupVersions=" << _maxBackupVersions;
         }
 
     } else {
@@ -1136,7 +1140,8 @@ void OctreeServer::run() {
 
         // now set up PersistThread
         _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
-                                    _wantBackup, _backupInterval, _backupExtensionFormat, _debugTimestampNow);
+                                    _wantBackup, _backupInterval, _backupExtensionFormat, 
+                                    _maxBackupVersions, _debugTimestampNow);
         if (_persistThread) {
             _persistThread->initialize(true);
         }

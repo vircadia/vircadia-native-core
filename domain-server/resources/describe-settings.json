@@ -302,9 +302,9 @@
       {
         "name": "backupExtensionFormat",
         "label": "Backup File Extension Format:",
-        "help": "Format used to create the extension for the backup of your persisted entities.",
-        "placeholder": ".backup.%Y-%m-%d.%H:%M:%S.%z",
-        "default": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
+        "placeholder": ".backup.%N",
+        "default": ".backup.%N",
         "advanced": true
       },
       {
@@ -313,6 +313,14 @@
         "help": "Interval between backup checks in msecs.",
         "placeholder": "1800000",
         "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "maxBackupVersions",
+        "label": "Max Rolled Backup Versions",
+        "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
+        "placeholder": "5",
+        "default": "5",
         "advanced": true
       },
       {
