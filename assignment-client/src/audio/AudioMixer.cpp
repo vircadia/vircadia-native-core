@@ -778,7 +778,6 @@ void AudioMixer::run() {
                     && shouldMute(nodeData->getAvatarAudioStream()->getQuietestFrameLoudness())) {
                     QByteArray packet = byteArrayWithPopulatedHeader(PacketTypeNoisyMute);
                     nodeList->writeDatagram(packet, node);
-                    nodeData->getAvatarAudioStream()->setLastMutedNow();
                 }
                 
                 if (node->getType() == NodeType::Agent && node->getActiveSocket()
