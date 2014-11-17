@@ -567,7 +567,7 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
 
 void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = 1.0f - wetFraction;
+    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -579,14 +579,12 @@ void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioF
         for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
-                int lResult = glm::clamp((int)(samplesData[j] * ((noEcho) ? 0.0f : dryFraction) +
-                                               lValue * wetFraction),
+                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)lResult;
             } else if (j == (sample + 1)) {
                 // right channel
-                int rResult = glm::clamp((int)(samplesData[j] * ((noEcho) ? 0.0f : dryFraction) +
-                                               rValue * wetFraction),
+                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
                                          MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)rResult;
             } else {
