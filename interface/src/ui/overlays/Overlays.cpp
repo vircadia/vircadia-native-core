@@ -196,6 +196,16 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
     return thisID;
 }
 
+unsigned int Overlays::cloneOverlay(unsigned int id) {
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    }
+    return addOverlay(thisOverlay->createClone());
+}
+
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
     Overlay* thisOverlay = NULL;
     QWriteLocker lock(&_lock);
@@ -397,15 +407,15 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay* overlay = _overlays2D.value(id);
-    if (!overlay) {
-        _overlays3D.value(id);
-    }
-    if (!overlay) {
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    } else {
         return false; // not found
     }
-
-    return overlay->isLoaded();
+    return thisOverlay->isLoaded();
 }
 
 float Overlays::textWidth(unsigned int id, const QString& text) const {

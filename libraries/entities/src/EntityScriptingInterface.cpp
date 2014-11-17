@@ -93,7 +93,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(EntityItemID 
 
 EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const EntityItemProperties& properties) {
     EntityItemID actualID = entityID;
-    
     // if the entity is unknown, attempt to look it up
     if (!entityID.isKnownID) {
         actualID = EntityItemID::getIDfromCreatorTokenID(entityID.creatorTokenID);
@@ -113,6 +112,18 @@ EntityItemID EntityScriptingInterface::editEntity(EntityItemID entityID, const E
 
     // if at this point, we know the id, send the update to the entity server
     if (entityID.isKnownID) {
+        // make sure the properties has a type, so that the encode can know which properties to include
+        if (properties.getType() == EntityTypes::Unknown) {
+            EntityItem* entity = _entityTree->findEntityByEntityItemID(entityID);
+            if (entity) {
+                EntityItemProperties tempProperties = properties;
+                tempProperties.setType(entity->getType());
+                queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, tempProperties);
+                return entityID;
+            }
+        }
+        
+        // if the properties already includes the type, then use it as is
         queueEntityMessage(PacketTypeEntityAddOrEdit, entityID, properties);
     }
     

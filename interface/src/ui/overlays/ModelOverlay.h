@@ -20,7 +20,8 @@ class ModelOverlay : public Base3DOverlay {
     Q_OBJECT
 public:
     ModelOverlay();
-    
+    ModelOverlay(const ModelOverlay* modelOverlay);
+
     virtual void update(float deltatime);
     virtual void render(RenderArgs* args);
     virtual void setProperties(const QScriptValue& properties);
@@ -29,8 +30,10 @@ public:
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction, 
                                                     float& distance, BoxFace& face, QString& extraInfo) const;
 
+    virtual ModelOverlay* createClone() const;
+
 private:
-    
+
     Model _model;
     QVariantMap _modelTextures;
     

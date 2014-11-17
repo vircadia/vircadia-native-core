@@ -1017,10 +1017,13 @@ void OctreeServer::readConfiguration() {
     readOptionBool(QString("debugReceiving"), settingsSectionObject, _debugReceiving);
     qDebug("debugReceiving=%s", debug::valueOf(_debugReceiving));
 
+    readOptionBool(QString("debugTimestampNow"), settingsSectionObject, _debugTimestampNow);
+    qDebug() << "debugTimestampNow=" << _debugTimestampNow;
+
     bool noPersist;
     readOptionBool(QString("NoPersist"), settingsSectionObject, noPersist);
     _wantPersist = !noPersist;
-    qDebug("wantPersist=%s", debug::valueOf(_wantPersist));
+    qDebug() << "wantPersist=" << _wantPersist;
 
     if (_wantPersist) {
         QString persistFilename;
@@ -1029,6 +1032,30 @@ void OctreeServer::readConfiguration() {
         }
         strcpy(_persistFilename, qPrintable(persistFilename));
         qDebug("persistFilename=%s", _persistFilename);
+
+        _persistInterval = OctreePersistThread::DEFAULT_PERSIST_INTERVAL;
+        readOptionInt(QString("persistInterval"), settingsSectionObject, _persistInterval);
+        qDebug() << "persistInterval=" << _persistInterval;
+
+        bool noBackup;
+        readOptionBool(QString("NoBackup"), settingsSectionObject, noBackup);
+        _wantBackup = !noBackup;
+        qDebug() << "wantBackup=" << _wantBackup;
+
+        if (_wantBackup) {
+            _backupExtensionFormat = OctreePersistThread::DEFAULT_BACKUP_EXTENSION_FORMAT;
+            readOptionString(QString("backupExtensionFormat"), settingsSectionObject, _backupExtensionFormat);
+            qDebug() << "backupExtensionFormat=" << _backupExtensionFormat;
+
+            _backupInterval = OctreePersistThread::DEFAULT_BACKUP_INTERVAL;
+            readOptionInt(QString("backupInterval"), settingsSectionObject, _backupInterval);
+            qDebug() << "backupInterval=" << _backupInterval;
+
+            _maxBackupVersions = OctreePersistThread::DEFAULT_MAX_BACKUP_VERSIONS;
+            readOptionInt(QString("maxBackupVersions"), settingsSectionObject, _maxBackupVersions);
+            qDebug() << "maxBackupVersions=" << _maxBackupVersions;
+        }
+
     } else {
         qDebug("persistFilename= DISABLED");
     }
@@ -1112,7 +1139,9 @@ void OctreeServer::run() {
     if (_wantPersist) {
 
         // now set up PersistThread
-        _persistThread = new OctreePersistThread(_tree, _persistFilename);
+        _persistThread = new OctreePersistThread(_tree, _persistFilename, _persistInterval,
+                                    _wantBackup, _backupInterval, _backupExtensionFormat, 
+                                    _maxBackupVersions, _debugTimestampNow);
         if (_persistThread) {
             _persistThread->initialize(true);
         }
@@ -1196,6 +1225,9 @@ void OctreeServer::aboutToFinish() {
     foreach (const SharedNodePointer& node, NodeList::getInstance()->getNodeHash()) {
         qDebug() << qPrintable(_safeServerName) << "server about to finish while node still connected node:" << *node;
         forceNodeShutdown(node);
+    }
+    if (_persistThread) {
+        _persistThread->aboutToFinish();
     }
     qDebug() << qPrintable(_safeServerName) << "server ENDING about to finish...";
 }

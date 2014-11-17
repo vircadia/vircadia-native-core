@@ -33,7 +33,8 @@ public:
     virtual void renderElement(OctreeElement* element, RenderArgs* args) { /* swallow these */ }
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE) { /* swallow these */ }
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+                            RenderArgs::RenderSide renderSide = RenderArgs::MONO) { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
 

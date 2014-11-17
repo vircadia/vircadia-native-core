@@ -39,11 +39,31 @@ Overlay::Overlay() :
 {
 }
 
+Overlay::Overlay(const Overlay* overlay) :
+    _parent(NULL),
+    _isLoaded(overlay->_isLoaded),
+    _alpha(overlay->_alpha),
+    _glowLevel(overlay->_glowLevel),
+    _pulse(overlay->_pulse),
+    _pulseMax(overlay->_pulseMax),
+    _pulseMin(overlay->_pulseMin),
+    _pulsePeriod(overlay->_pulsePeriod),
+    _pulseDirection(overlay->_pulseDirection),
+    _lastPulseUpdate(usecTimestampNow()),
+    _glowLevelPulse(overlay->_glowLevelPulse),
+    _alphaPulse(overlay->_alphaPulse),
+    _colorPulse(overlay->_colorPulse),
+    _color(overlay->_color),
+    _visible(overlay->_visible),
+    _anchor(overlay->_anchor),
+    _scriptEngine(NULL)
+{
+}
+
 void Overlay::init(QGLWidget* parent, QScriptEngine* scriptEngine) {
     _parent = parent;
     _scriptEngine = scriptEngine;
 }
-
 
 Overlay::~Overlay() {
 }
