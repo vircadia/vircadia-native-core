@@ -9,14 +9,18 @@
 
 macro(SETUP_HIFI_LIBRARY)
   
-  project(${TARGET_NAME})
+  project(${TARGET_NAME})  
 
   # grab the implemenation and header files
   file(GLOB_RECURSE LIB_SRCS "src/*.h" "src/*.cpp")
   list(APPEND ${TARGET_NAME}_SRCS ${LIB_SRCS})
 
   # create a library and set the property so it can be referenced later
-  add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS} ${AUTOMTC_SRC})
+  if (${${TARGET_NAME}_SHARED})
+    add_library(${TARGET_NAME} SHARED ${${TARGET_NAME}_SRCS} ${AUTOMTC_SRC})
+  else ()
+    add_library(${TARGET_NAME} ${${TARGET_NAME}_SRCS} ${AUTOMTC_SRC})
+  endif ()
   
   set(QT_MODULES_TO_LINK ${ARGN})
   list(APPEND QT_MODULES_TO_LINK Core)

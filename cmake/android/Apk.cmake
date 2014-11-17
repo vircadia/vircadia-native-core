@@ -68,7 +68,7 @@ set(ANDROID_THIS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})	# Directory this CMake fil
 ##   - "jarsigner" (part of the JDK)
 ##   - "zipalign" (part of the Android SDK)
 ##################################################
-macro(android_create_apk name apk_directory shared_libraries jar_libraries assets data_directory)
+macro(android_create_apk name apk_directory shared_libraries static_libraries jar_libraries assets data_directory)
 	if(ANDROID_APK_CREATE)
 		# Construct the current package name and theme
 		set(ANDROID_APK_PACKAGE "${ANDROID_APK_TOP_LEVEL_DOMAIN}.${ANDROID_APK_DOMAIN}.${ANDROID_APK_SUBDOMAIN}")
@@ -99,9 +99,9 @@ macro(android_create_apk name apk_directory shared_libraries jar_libraries asset
 			get_filename_component(shared_library_filename ${value} NAME_WE)
 
 			# "shared_library_filename" is e.g. "libPLCore", but we need "PLCore"
-			string(LENGTH ${shared_library_filename} shared_library_filename_length)
-			math(EXPR shared_library_filename_length ${shared_library_filename_length}-3)
-			string(SUBSTRING ${shared_library_filename} 3 ${shared_library_filename_length} shared_library_filename)
+      string(LENGTH ${shared_library_filename} shared_library_filename_length)
+      math(EXPR shared_library_filename_length ${shared_library_filename_length}-3)
+      string(SUBSTRING ${shared_library_filename} 3 ${shared_library_filename_length} shared_library_filename)
 
 			# "shared_library_filename" is now e.g. "PLCore", this is what we want -> Add it to the list
 			set(ANDROID_SHARED_LIBRARIES_TO_LOAD ${ANDROID_SHARED_LIBRARIES_TO_LOAD} ${shared_library_filename})
@@ -128,6 +128,14 @@ macro(android_create_apk name apk_directory shared_libraries jar_libraries asset
 			)
 		endforeach()
     
+		# Copy the used shared libraries
+		foreach(value ${static_libraries})
+			add_custom_command(TARGET ${ANDROID_NAME}
+				POST_BUILD
+				COMMAND ${CMAKE_COMMAND} -E copy ${value} "${apk_directory}/libs/${ARM_TARGET}"
+			)
+		endforeach()
+    
     # Copy any required external jars to the libs folder
 		foreach(value ${jar_libraries})
       add_custom_command(TARGET ${ANDROID_NAME}
@@ -135,7 +143,6 @@ macro(android_create_apk name apk_directory shared_libraries jar_libraries asset
   			COMMAND ${CMAKE_COMMAND} -E copy ${value} "${apk_directory}/libs/"
   		)
     endforeach()
-    
 
 		# Create "build.xml", "default.properties", "local.properties" and "proguard.cfg" files
 		add_custom_command(TARGET ${ANDROID_NAME}

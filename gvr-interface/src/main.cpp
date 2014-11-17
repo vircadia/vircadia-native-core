@@ -12,8 +12,6 @@
 #include <android_native_app_glue.h>
 #include <android/log.h>
 
-#include <NodeList.h>
-
 // usage of log
 #define APP_NAME "Interface"
 
@@ -37,8 +35,6 @@ void android_main(struct android_app* state) {
     
     // set up so when commands happen we call our custom handler
     state->onAppCmd = custom_handle_cmd; 
-    
-    NodeList* nodeList = NodeList::createInstance(NodeType::Agent);
         
     while (1) {
         struct android_poll_source* source;
