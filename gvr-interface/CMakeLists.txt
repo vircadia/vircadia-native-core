@@ -10,9 +10,9 @@ setup_hifi_library()
 
 include_directories(${ANDROID_NDK}/sources/android/native_app_glue)
 
-# include_glm()
-#
-# link_hifi_libraries(shared networking)
+include_glm()
+
+link_hifi_libraries(shared networking)
 link_shared_dependencies()
 
 target_link_libraries(${TARGET_NAME} log android)

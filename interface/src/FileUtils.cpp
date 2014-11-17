@@ -1,6 +1,6 @@
 //
 //  FileUtils.cpp
-//  libraries/shared/src
+//  interface/src
 //
 //  Created by Stojce Slavkovski on 12/23/13.
 //  Copyright 2013 High Fidelity, Inc.
@@ -9,9 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <qdir.h>
+#include <qfileinfo.h>
+#include <qdesktopservices.h>
+#include <qprocess.h>
+#include <qurl.h>
+
 #include "FileUtils.h"
-#include <QtCore>
-#include <QDesktopServices>
+
 
 void FileUtils::locateFile(QString filePath) {
 

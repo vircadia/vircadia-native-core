@@ -1,6 +1,6 @@
 //
 //  FileUtils.h
-//  libraries/shared/src
+//  interface/src
 //
 //  Created by Stojce Slavkovski on 12/23/13.
 //  Copyright 2013 High Fidelity, Inc.
