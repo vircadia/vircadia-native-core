@@ -26,6 +26,12 @@ Planar3DOverlay::Planar3DOverlay() :
 {
 }
 
+Planar3DOverlay::Planar3DOverlay(const Planar3DOverlay* planar3DOverlay) :
+    Base3DOverlay(planar3DOverlay),
+    _dimensions(planar3DOverlay->_dimensions)
+{
+}
+
 Planar3DOverlay::~Planar3DOverlay() {
 }
 

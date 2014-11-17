@@ -34,7 +34,8 @@ public:
         Box,
         Sphere,
         Light,
-        LAST = Light
+        Text,
+        LAST = Text
     } EntityType;
 
     static const QString& getEntityTypeName(EntityType entityType);

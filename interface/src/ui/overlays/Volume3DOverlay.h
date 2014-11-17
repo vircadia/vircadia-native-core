@@ -26,6 +26,7 @@ class Volume3DOverlay : public Base3DOverlay {
     
 public:
     Volume3DOverlay();
+    Volume3DOverlay(const Volume3DOverlay* volume3DOverlay);
     ~Volume3DOverlay();
 
     // getters
