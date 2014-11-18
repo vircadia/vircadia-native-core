@@ -69,9 +69,10 @@ void Grid3DOverlay::render(RenderArgs* args) {
     xColor color = getColor();
     glm::vec3 position = getPosition();
 
-    const int GRID_DIVISIONS = 300;
+    const int MINOR_GRID_DIVISIONS = 100;
+    const int MAJOR_GRID_DIVISIONS = 50;
     const float MAX_COLOR = 255.0f;
-    float scale = GRID_DIVISIONS * spacing;
+
 
     glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
 
@@ -80,12 +81,13 @@ void Grid3DOverlay::render(RenderArgs* args) {
     // Minor grid
     glPushMatrix();
     {
-        glTranslatef(_minorGridWidth * (floorf(rotated.x / spacing) - GRID_DIVISIONS / 2),
-            spacing * (floorf(rotated.y / spacing) - GRID_DIVISIONS / 2), position.z);
+        glTranslatef(_minorGridWidth * (floorf(rotated.x / spacing) - MINOR_GRID_DIVISIONS / 2),
+            spacing * (floorf(rotated.y / spacing) - MINOR_GRID_DIVISIONS / 2), position.z);
 
+        float scale = MINOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+        Application::getInstance()->getGeometryCache()->renderGrid(MINOR_GRID_DIVISIONS, MINOR_GRID_DIVISIONS);
     }
     glPopMatrix();
 
@@ -94,13 +96,13 @@ void Grid3DOverlay::render(RenderArgs* args) {
     {
         glLineWidth(4.0f);
         spacing *= _majorGridEvery;
-        glTranslatef(spacing * (floorf(rotated.x / spacing) - GRID_DIVISIONS / 2),
-            spacing * (floorf(rotated.y / spacing) - GRID_DIVISIONS / 2), position.z);
+        glTranslatef(spacing * (floorf(rotated.x / spacing) - MAJOR_GRID_DIVISIONS / 2),
+            spacing * (floorf(rotated.y / spacing) - MAJOR_GRID_DIVISIONS / 2), position.z);
 
-        scale *= _majorGridEvery;
+        float scale = MAJOR_GRID_DIVISIONS * spacing;
         glScalef(scale, scale, scale);
 
-        Application::getInstance()->getGeometryCache()->renderGrid(GRID_DIVISIONS, GRID_DIVISIONS);
+        Application::getInstance()->getGeometryCache()->renderGrid(MAJOR_GRID_DIVISIONS, MAJOR_GRID_DIVISIONS);
     }
     glPopMatrix();
 
