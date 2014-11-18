@@ -16,7 +16,7 @@ link_hifi_libraries(${REQUIRED_HIFI_LIBRARIES})
 link_shared_dependencies()
 
 set(ANDROID_SDK_ROOT $ENV{ANDROID_SDK})
-set(ANDROID_APP_NAME Interface)
+set(ANDROID_APP_DISPLAY_NAME Interface)
 set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
 set(ANDROID_APK_FULLSCREEN true)

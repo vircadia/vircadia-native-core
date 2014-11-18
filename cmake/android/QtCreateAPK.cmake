@@ -37,6 +37,9 @@ macro(qt_create_apk)
 	# Create "AndroidManifest.xml"
 	configure_file("${ANDROID_THIS_DIRECTORY}/AndroidManifest.xml.in" "${ANDROID_APK_BUILD_DIR}/AndroidManifest.xml")
   
+  # create "strings.xml"
+  configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_BUILD_DIR}/res/values/strings.xml")
+  
   # copy the res folder from the target to the apk build dir
   add_custom_command(
     TARGET ${TARGET_NAME}
