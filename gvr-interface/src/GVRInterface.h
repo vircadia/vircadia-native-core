@@ -18,6 +18,8 @@ class GVRInterface : public QGuiApplication {
     Q_OBJECT
 public:
     GVRInterface(int argc, char* argv[]);
+private slots:
+    void processDatagrams();
 };
 
 #endif // hifi_GVRInterface_h
