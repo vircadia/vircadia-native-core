@@ -89,7 +89,7 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     recurseTreeWithOperator(&theOperator);
 
     // check to see if we need to simulate this entity..
-    changeEntityState(entityItem);
+    updateEntityState(entityItem);
 
     _isDirty = true;
 }
@@ -129,7 +129,7 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
 
-        changeEntityState(existingEntity);
+        updateEntityState(existingEntity);
 
         QString entityScriptAfter = existingEntity->getScript();
         if (entityScriptBefore != entityScriptAfter) {
@@ -575,7 +575,7 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
     extraEncodeData->clear();
 }
 
-void EntityTree::changeEntityState(EntityItem* entity) {
+void EntityTree::updateEntityState(EntityItem* entity) {
     EntityItem::SimulationState oldState = entity->getSimulationState();
     EntityItem::SimulationState newState = entity->computeSimulationState();
     if (newState != oldState) {
@@ -661,7 +661,7 @@ void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entities
             entitiesToDelete << thisEntity->getEntityItemID();
             clearEntityState(thisEntity);
         } else {
-            changeEntityState(thisEntity);
+            updateEntityState(thisEntity);
         }
     }
     _changedEntities.clear();
@@ -696,7 +696,7 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                         clearEntityState(thisEntity);
                     } else {
                         moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
-                        changeEntityState(thisEntity);
+                        updateEntityState(thisEntity);
                     }
                 }
             }
@@ -720,7 +720,7 @@ void EntityTree::updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesT
             clearEntityState(thisEntity);
         } else {
             // check to see if this entity is no longer moving
-            changeEntityState(thisEntity);
+            updateEntityState(thisEntity);
         }
     }
 }

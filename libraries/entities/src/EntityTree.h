@@ -137,7 +137,7 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void changeEntityState(EntityItem* entity);
+    void updateEntityState(EntityItem* entity);
     void clearEntityState(EntityItem* entity);
 
     void entityChanged(EntityItem* entity);
