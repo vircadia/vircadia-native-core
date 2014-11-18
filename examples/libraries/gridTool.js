@@ -69,6 +69,24 @@ Grid = function(opts) {
         return Vec3.sum(position, origin);
     }
 
+    that.snapToSpacing = function(delta, majorOnly) {
+        print('snaptogrid? ' + snapToGrid);
+        if (!snapToGrid) {
+            return delta;
+        }
+
+        var spacing = majorOnly ? (minorGridSpacing * majorGridEvery) : minorGridSpacing;
+
+        var snappedDelta = {
+            x: Math.round(delta.x / spacing) * spacing,
+            y: Math.round(delta.y / spacing) * spacing,
+            z: Math.round(delta.z / spacing) * spacing,
+        };
+
+        return snappedDelta;
+    }
+
+
     that.setPosition = function(newPosition, noUpdate) {
         origin = Vec3.subtract(newPosition, { x: 0, y: yOffset, z: 0 });
         origin.x = 0;
