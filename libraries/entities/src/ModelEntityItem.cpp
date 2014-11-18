@@ -371,15 +371,15 @@ bool ModelEntityItem::isAnimatingSomething() const {
             !getAnimationURL().isEmpty();
 }
 
-EntityItem::SimulationState ModelEntityItem::getSimulationState() const {
-    EntityItem::SimulationState baseClassState = EntityItem::getSimulationState();
+EntityItem::SimulationState ModelEntityItem::computeSimulationState() const {
+    EntityItem::SimulationState baseClassState = EntityItem::computeSimulationState();
     
     // if the base class is static, then consider our animation state, and upgrade to changing if
     // we are animating. If the base class has a higher simulation state than static, then
     // use the base class state.
     if (baseClassState == EntityItem::Static) {
         if (isAnimatingSomething()) {
-            return EntityItem::Changing;
+            return EntityItem::Moving;
         }
     }
     return baseClassState;
