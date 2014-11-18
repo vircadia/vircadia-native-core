@@ -269,7 +269,7 @@ public:
     SimulationState getSimulationState() const { return _simulationState; }
     
 protected:
-    friend EntityTree;
+    friend class EntityTree;
     void setSimulationState(SimulationState state) { _simulationState = state; }
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
