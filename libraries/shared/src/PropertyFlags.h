@@ -92,7 +92,7 @@ public:
     PropertyFlags operator<<(Enum flag) const;
 
     // NOTE: due to the nature of the compact storage of these property flags, and the fact that the upper bound of the
-    // enum is not know, these operators will only perform their bitwise operations on the set of properties that have
+    // enum is not known, these operators will only perform their bitwise operations on the set of properties that have
     // been previously set
     PropertyFlags& operator^=(const PropertyFlags& other);
     PropertyFlags& operator^=(Enum flag);
@@ -106,7 +106,7 @@ public:
 
 
 private:
-    void shinkIfNeeded();
+    void shrinkIfNeeded();
 
     QBitArray _flags;
     int _maxFlag;
@@ -142,7 +142,7 @@ template<typename Enum> inline void PropertyFlags<Enum>::setHasProperty(Enum fla
     _flags.setBit(flag, value);
     
     if (flag == _maxFlag && !value) {
-        shinkIfNeeded();
+        shrinkIfNeeded();
     }
 }
 
@@ -274,27 +274,27 @@ template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operato
 
 template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator&=(const PropertyFlags& other) {
     _flags &= other._flags; 
-    shinkIfNeeded(); 
+    shrinkIfNeeded(); 
     return *this; 
 }
 
 template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator&=(Enum flag) {
     PropertyFlags other(flag); 
     _flags &= other._flags; 
-    shinkIfNeeded(); 
+    shrinkIfNeeded(); 
     return *this; 
 }
 
 template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator^=(const PropertyFlags& other) {
     _flags ^= other._flags; 
-    shinkIfNeeded(); 
+    shrinkIfNeeded(); 
     return *this; 
 }
 
 template<typename Enum> inline PropertyFlags<Enum>& PropertyFlags<Enum>::operator^=(Enum flag) {
     PropertyFlags other(flag); 
     _flags ^= other._flags; 
-    shinkIfNeeded(); 
+    shrinkIfNeeded(); 
     return *this; 
 }
 
@@ -422,7 +422,7 @@ template<typename Enum> inline PropertyFlags<Enum> PropertyFlags<Enum>::operator
     return result; 
 }
 
-template<typename Enum> inline void PropertyFlags<Enum>::shinkIfNeeded() {
+template<typename Enum> inline void PropertyFlags<Enum>::shrinkIfNeeded() {
     int maxFlagWas = _maxFlag;
     while (_maxFlag >= 0) {
         if (_flags.testBit(_maxFlag)) {

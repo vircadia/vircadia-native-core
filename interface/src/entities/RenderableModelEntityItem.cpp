@@ -246,8 +246,7 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
 }
 
 bool RenderableModelEntityItem::needsSimulation() const {
-    SimulationState simulationState = getSimulationState();
-    return _needsInitialSimulation || simulationState == Moving || simulationState == Changing;
+    return _needsInitialSimulation || getSimulationState() == EntityItem::Moving;
 }
 
 EntityItemProperties RenderableModelEntityItem::getProperties() const {
