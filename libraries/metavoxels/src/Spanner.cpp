@@ -2002,6 +2002,9 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
         }
     }
     
+    glm::vec3 normalScale(1.0f / (inverseScale.y * inverseScale.z), 1.0f / (inverseScale.x * inverseScale.z),
+        1.0f / (inverseScale.x * inverseScale.y));
+    
     bool withinBounds = true;
     float accumulatedDistance = boundsDistance;
     while (withinBounds && accumulatedDistance <= 1.0f) {
@@ -2081,7 +2084,7 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
             if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
                     intersection.z >= intersection.x) {
                 distance = accumulatedDistance + planeDistance;
-                normal = glm::normalize(getRotation() * (lowerNormal / inverseScale));
+                normal = glm::normalize(getRotation() * (lowerNormal * normalScale));
                 return true;
             }
         }
@@ -2095,7 +2098,7 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
             if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
                     intersection.x >= intersection.z) {
                 distance = accumulatedDistance + planeDistance;
-                normal = glm::normalize(getRotation() * (upperNormal / inverseScale));
+                normal = glm::normalize(getRotation() * (upperNormal * normalScale));
                 return true;
             }
         }
