@@ -268,7 +268,6 @@ bool NodeList::processSTUNResponse(const QByteArray& packet) {
 }
 
 void NodeList::sendDomainServerCheckIn() {
-    qDebug() << "SEND DOMAIN SERVER CHECK IN";
     if (_publicSockAddr.isNull() && !_hasCompletedInitialSTUNFailure) {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
@@ -276,8 +275,6 @@ void NodeList::sendDomainServerCheckIn() {
     } else if (_domainHandler.getIP().isNull() && _domainHandler.requiresICE()) {
         handleICEConnectionToDomainServer();
     } else if (!_domainHandler.getIP().isNull()) {
-        
-        qDebug() << "SENDING A CHECK IN TO" << _domainHandler.getIP().toString();
         
         bool isUsingDTLS = false;
         
