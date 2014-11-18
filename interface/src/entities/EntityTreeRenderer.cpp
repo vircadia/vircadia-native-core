@@ -46,7 +46,9 @@ QThread* EntityTreeRenderer::getMainThread() {
 EntityTreeRenderer::EntityTreeRenderer(bool wantScripts) :
     OctreeRenderer(),
     _wantScripts(wantScripts),
-    _entitiesScriptEngine(NULL) {
+    _entitiesScriptEngine(NULL),
+    _lastMouseEventValid(false)
+{
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Model, RenderableModelEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Box, RenderableBoxEntityItem::factory)
     REGISTER_ENTITY_TYPE_WITH_FACTORY(Sphere, RenderableSphereEntityItem::factory)
@@ -202,6 +204,19 @@ void EntityTreeRenderer::update() {
         
         // check to see if the avatar has moved and if we need to handle enter/leave entity logic
         checkEnterLeaveEntities();
+
+        // Even if we're not moving the mouse, if we started clicking on an entity and we have
+        // not yet released the hold then this is still considered a holdingClickOnEntity event
+        // and we want to simulate this message here as well as in mouse move
+        if (_lastMouseEventValid && !_currentClickingOnEntityID.isInvalidID()) {
+            emit holdingClickOnEntity(_currentClickingOnEntityID, _lastMouseEvent);
+            QScriptValueList currentClickingEntityArgs = createMouseEventArgs(_currentClickingOnEntityID, _lastMouseEvent);
+            QScriptValue currentClickingEntity = loadEntityScript(_currentClickingOnEntityID);
+            if (currentClickingEntity.property("holdingClickOnEntity").isValid()) {
+                currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
+            }
+        }
+
     }
 }
 
@@ -667,6 +682,14 @@ QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& en
     return args;
 }
 
+QScriptValueList EntityTreeRenderer::createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent) {
+    QScriptValueList args;
+    args << entityID.toScriptValue(_entitiesScriptEngine);
+    args << mouseEvent.toScriptValue(_entitiesScriptEngine);
+    return args;
+}
+
+
 QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entityID) {
     QScriptValueList args;
     args << entityID.toScriptValue(_entitiesScriptEngine);
@@ -693,6 +716,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
             entityScript.property("clickDownOnEntity").call(entityScript, entityScriptArgs);
         }
     }
+    _lastMouseEvent = MouseEvent(*event, deviceID);
+    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -724,10 +749,13 @@ void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int devi
     
     // makes it the unknown ID, we just released so we can't be clicking on anything
     _currentClickingOnEntityID = EntityItemID::createInvalidEntityID();
+    _lastMouseEvent = MouseEvent(*event, deviceID);
+    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
+
     PickRay ray = computePickRay(event->x(), event->y());
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock);
     if (rayPickResult.intersects) {
@@ -809,6 +837,8 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
             currentClickingEntity.property("holdingClickOnEntity").call(currentClickingEntity, currentClickingEntityArgs);
         }
     }
+    _lastMouseEvent = MouseEvent(*event, deviceID);
+    _lastMouseEventValid = true;
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {

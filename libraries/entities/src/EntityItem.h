@@ -28,6 +28,7 @@
 #include "EntityItemProperties.h" 
 #include "EntityTypes.h"
 
+class EntityTree;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
@@ -59,10 +60,10 @@ public:
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
     
-    /// returns true is something changed
+    /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
-    /// override this in your derived class if you'd like to be informed when something about the state of the entity
+    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
@@ -115,11 +116,13 @@ public:
     typedef enum SimulationState_t {
         Static,
         Mortal,
-        Changing,
         Moving
     } SimulationState;
     
-    virtual SimulationState getSimulationState() const;
+    // computes the SimulationState that the entity SHOULD be in.  
+    // Use getSimulationState() to find the state under which it is currently categorized.
+    virtual SimulationState computeSimulationState() const; 
+
     virtual void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
@@ -262,8 +265,13 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+
+    SimulationState getSimulationState() const { return _simulationState; }
     
 protected:
+    friend class EntityTree;
+    void setSimulationState(SimulationState state) { _simulationState = state; }
+
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();
 
@@ -305,6 +313,7 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+    SimulationState _simulationState;   // only set by EntityTree
 };
 
 
