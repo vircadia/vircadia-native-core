@@ -42,7 +42,7 @@
                     }
 
                     if (data.elSnapToGrid !== undefined) {
-                        elSnapToGrid.checked = data.elSnapToGrid == true;
+                        elSnapToGrid.checked = data.snapToGrid == true;
                     }
 
                     if (data.visible !== undefined) {
@@ -59,7 +59,7 @@
                         minorGridSpacing: elMinorSpacing.value,
                         majorGridEvery: elMajorSpacing.value,
                         gridColor: gridColor,
-                        elSnapToGrid: elSnapToGrid.checked,
+                        snapToGrid: elSnapToGrid.checked,
                         visible: elHorizontalGridVisible.checked,
                     }));
                 }
