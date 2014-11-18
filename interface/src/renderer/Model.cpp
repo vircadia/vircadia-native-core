@@ -1506,7 +1506,9 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     PROFILE_RANGE(__FUNCTION__);
 
     RenderArgs::RenderSide renderSide = RenderArgs::MONO;
-    if (args) renderSide = args->_renderSide;
+    if (args) {
+        renderSide = args->_renderSide;
+    }
 
     // Do the rendering batch creation for mono or left eye, not for right eye
     if (renderSide != RenderArgs::STEREO_RIGHT) {

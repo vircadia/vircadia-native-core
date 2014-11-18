@@ -31,12 +31,18 @@ Grid = function(opts) {
     that.getMajorIncrement = function() { return minorGridSpacing * majorGridEvery; };
 
     that.visible = false;
+    that.enabled = false;
 
     that.getOrigin = function() {
         return origin;
     }
 
     that.getSnapToGrid = function() { return snapToGrid; };
+
+    that.setEnabled = function(enabled) {
+        that.enabled = enabled;
+        updateGrid();
+    }
 
     that.setVisible = function(visible, noUpdate) {
         that.visible = visible;
@@ -127,7 +133,7 @@ Grid = function(opts) {
     function updateGrid() {
         Overlays.editOverlay(gridOverlay, {
             position: { x: origin.y, y: origin.y, z: -origin.y },
-            visible: that.visible,
+            visible: that.visible && that.enabled,
             minorGridWidth: minorGridSpacing,
             majorGridEvery: majorGridEvery,
                 color: gridColor,
@@ -159,7 +165,7 @@ GridTool = function(opts) {
     var listeners = [];
 
     var url = Script.resolvePath('html/gridControls.html');
-    var webView = new WebWindow(url, 200, 280);
+    var webView = new WebWindow('Grid', url, 200, 280);
 
     horizontalGrid.addListener(function(data) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
@@ -173,6 +179,15 @@ GridTool = function(opts) {
             horizontalGrid.update(data);
             for (var i = 0; i < listeners.length; i++) {
                 listeners[i](data);
+            }
+        } else if (data.type == "action") {
+            var action = data.action;
+            if (action == "moveToAvatar") {
+                grid.setPosition(MyAvatar.position);
+            } else if (action == "moveToSelection") {
+                var newPosition = selectionManager.worldPosition;
+                newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+                grid.setPosition(newPosition);
             }
         }
     });
