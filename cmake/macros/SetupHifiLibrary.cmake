@@ -32,6 +32,5 @@ macro(SETUP_HIFI_LIBRARY)
     
     # add the actual path to the Qt module to our LIBRARIES_TO_LINK variable
     target_link_libraries(${TARGET_NAME} Qt5::${QT_MODULE})
-    list(APPEND ${TARGET_NAME}_QT_MODULES_TO_LINK ${QT_LIBRARY_LOCATION})
   endforeach()
 endmacro(SETUP_HIFI_LIBRARY)

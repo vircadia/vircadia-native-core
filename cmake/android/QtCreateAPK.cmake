@@ -13,10 +13,11 @@
 # These options will modify how QtCreateAPK behaves. May be useful if somebody wants to fork.
 # For High Fidelity purposes these should not need to be changed.
 # 
-set(ANDROID_APK_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/apk")
-
-
 set(ANDROID_THIS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})	# Directory this CMake file is in
+
+if (POLICY CMP0026)
+  cmake_policy(SET CMP0026 OLD)
+endif () 
 
 macro(qt_create_apk)
 	if(ANDROID_APK_FULLSCREEN)
@@ -34,13 +35,13 @@ macro(qt_create_apk)
 	endif ()
   
 	# Create "AndroidManifest.xml"
-	configure_file("${ANDROID_THIS_DIRECTORY}/AndroidManifest.xml.in" "${ANDROID_APK_DIRECTORY}/AndroidManifest.xml")
+	configure_file("${ANDROID_THIS_DIRECTORY}/AndroidManifest.xml.in" "${ANDROID_APK_DIR}/AndroidManifest.xml")
 
 	# Create "res/values/strings.xml"
-	configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_DIRECTORY}/res/values/strings.xml")
+	configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_DIR}/res/values/strings.xml")
 
   # figure out where the qt dir is
-  get_filename_component(_QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../../" ABSOLUTE)
+  get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../../" ABSOLUTE)
   
   # find androiddeployqt
   find_program(ANDROID_DEPLOY_QT androiddeployqt HINTS "${_QT_DIR}/bin")
@@ -50,15 +51,18 @@ macro(qt_create_apk)
   
   # add our dependencies to the deployment file
   get_property(_DEPENDENCIES TARGET ${TARGET_NAME} PROPERTY INTERFACE_LINK_LIBRARIES)
-  set(_DEPS_LIST)
-  message(${_DEPENDENCIES})
   foreach(_DEP IN LISTS _DEPENDENCIES)
+    if (NOT TARGET ${_DEP})
+      list(APPEND _DEPS_LIST ${_DEP})
+    else ()
       if(NOT _DEP MATCHES "Qt5::.*")
-          get_property(_DEP_LOCATION TARGET ${_DEP} PROPERTY "LOCATION_${CMAKE_BUILD_TYPE}")
-          list(APPEND _DEPS_LIST ${_DEP_LOCATION})
+        get_property(_DEP_LOCATION TARGET ${_DEP} PROPERTY "LOCATION_${CMAKE_BUILD_TYPE}")
+        list(APPEND _DEPS_LIST ${_DEP_LOCATION})
       endif()
+    endif ()
   endforeach()
   string(REPLACE ";" "," _DEPS "${_DEPS_LIST}")
+  
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
   
   # Uninstall previous version from the device/emulator (else we may get e.g. signature conflicts)
