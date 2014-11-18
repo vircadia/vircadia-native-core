@@ -9,9 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QtGui/qguiapplication.h>
+#include "GVRInterface.h"
 
 int main(int argc, char* argv[]) {
-    QGuiApplication app(argc, argv);
+    GVRInterface app(argc, argv);
     return app.exec();
 }

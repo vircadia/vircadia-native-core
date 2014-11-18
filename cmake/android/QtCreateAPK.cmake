@@ -67,7 +67,7 @@ macro(qt_create_apk)
         TARGET ${TARGET_NAME}
 	      COMMAND ${CMAKE_COMMAND} -E copy ${_LOCATED_DEP} "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}"
 		  )
-      list(REMOVE_ITEM _DEPS_LIST _LOCATED_DEP)
+      list(REMOVE_ITEM _DEPS_LIST ${_LOCATED_DEP})
     endif ()
   endforeach()
   
