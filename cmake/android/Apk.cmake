@@ -72,11 +72,7 @@ macro(android_create_apk name apk_directory shared_libraries static_libraries ja
 	if(ANDROID_APK_CREATE)
 		# Construct the current package name and theme
 		set(ANDROID_APK_PACKAGE "${ANDROID_APK_TOP_LEVEL_DOMAIN}.${ANDROID_APK_DOMAIN}.${ANDROID_APK_SUBDOMAIN}")
-		if(ANDROID_APK_FULLSCREEN)
-			set(ANDROID_APK_THEME "android:theme=\"@android:style/Theme.NoTitleBar.Fullscreen\"")
-		else()
-			set(ANDROID_APK_THEME "")
-		endif()
+		
 		set(ANDROID_NAME ${name})
 		if(CMAKE_BUILD_TYPE MATCHES Debug)
 			set(ANDROID_APK_DEBUGGABLE "true")
