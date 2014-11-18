@@ -28,11 +28,15 @@ public:
     virtual void addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget, Qt::Orientation orientation);
     virtual void removeDockWidget(QDockWidget* dockWidget);
 
+    virtual bool eventFilter(QObject* sender, QEvent* event);
+
 public slots:
     void onChildVisibilityUpdated(bool visible);
 
 
 private:
+    // Indicates whether this window was hidden by itself (because the main window lost focus).
+    bool _selfHidden;
     bool _hasShown;
     QRect _lastGeometry;
 };
