@@ -465,7 +465,7 @@ public:
     HeightfieldMaterial(Bitstream& in, int bytes, const HeightfieldMaterialPointer& reference);
     
     const QByteArray& getContents() const { return _contents; }
-    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
+    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
     
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const HeightfieldMaterialPointer& reference);
@@ -524,6 +524,15 @@ public:
         const QColor& color);
 
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    
+    virtual bool hasOwnColors() const;
+    virtual bool hasOwnMaterials() const;
+    virtual QRgb getColorAt(const glm::vec3& point);
+    virtual int getMaterialAt(const glm::vec3& point);
+    virtual QVector<SharedObjectPointer>& getMaterials();
+    
+    virtual bool contains(const glm::vec3& point);
+    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
     
 signals:
 
