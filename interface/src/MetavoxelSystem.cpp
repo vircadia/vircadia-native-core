@@ -2036,12 +2036,9 @@ void HeightfieldRenderer::render(bool cursor) {
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
-        float sDistance = 2.0f / (innerWidth - 1);
-        float tDistance = 2.0f / (innerHeight - 1);
-        float distanceProduct = -sDistance * tDistance;
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
             DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), 1.0f / width, 1.0f / height,
-            sDistance / distanceProduct, tDistance / distanceProduct);
+            (innerWidth - 1) / -2.0f, (innerHeight - 1) / -2.0f);
         DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniformValue(
             DefaultMetavoxelRendererImplementation::getBaseColorScaleLocation(), (float)width / innerWidth,
                 (float)height / innerHeight);
