@@ -32,9 +32,15 @@
     ];
     
     this.turnSoundURLS = [
-        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn1.wav",
-        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn2.wav",
-        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn3.wav"
+
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove1.wav",
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove2.wav",
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove3.wav"
+    
+        // TODO: determine if these or other turn sounds work better than move sounds.
+        //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn1.wav",
+        //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn2.wav",
+        //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn3.wav"
     ];
 
 
