@@ -565,9 +565,9 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
+void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
-    float dryFraction = 1.0f - wetFraction;
+    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
@@ -579,11 +579,13 @@ void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioF
         for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
-                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction), MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
+                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)lResult;
             } else if (j == (sample + 1)) {
                 // right channel
-                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction), MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
+                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)rResult;
             } else {
                 // ignore channels above 2
@@ -622,23 +624,10 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     }
     
     if (hasLocalReverb) {
-        QByteArray loopbackCopy;
-        if (!hasEcho) {
-            loopbackCopy = loopBackByteArray;
-        }
-        
         int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
         int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
         updateGverbOptions();
-        addReverb(loopbackSamples, numLoopbackSamples, _outputFormat);
-        
-        if (!hasEcho) {
-            int16_t* loopbackCopySamples = reinterpret_cast<int16_t*>(loopbackCopy.data());
-            for (int i = 0; i < numLoopbackSamples; ++i) {
-                loopbackSamples[i] = glm::clamp((int)loopbackSamples[i] - loopbackCopySamples[i],
-                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            }
-        }
+        addReverb(loopbackSamples, numLoopbackSamples, _outputFormat, !hasEcho);
     }
     
     if (_loopbackOutputDevice) {
