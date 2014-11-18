@@ -51,7 +51,8 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+    void render3D(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
     void render2D();
 
 public slots:
@@ -60,6 +61,9 @@ public slots:
 
     /// adds an overlay that's already been created
     unsigned int addOverlay(Overlay* overlay);
+
+    /// clones an existing overlay
+    unsigned int cloneOverlay(unsigned int id);
 
     /// edits an overlay updating only the included properties, will return the identified OverlayID in case of
     /// successful edit, if the input id is for an unknown overlay this function will have no effect

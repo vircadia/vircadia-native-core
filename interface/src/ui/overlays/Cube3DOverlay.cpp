@@ -22,6 +22,11 @@
 Cube3DOverlay::Cube3DOverlay() {
 }
 
+Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
+    Volume3DOverlay(cube3DOverlay)
+{
+}
+
 Cube3DOverlay::~Cube3DOverlay() {
 }
 
@@ -101,4 +106,8 @@ void Cube3DOverlay::render(RenderArgs* args) {
     if (glower) {
         delete glower;
     }
+}
+
+Cube3DOverlay* Cube3DOverlay::createClone() const {
+    return new Cube3DOverlay(this);
 }

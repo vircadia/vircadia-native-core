@@ -20,93 +20,60 @@
 #include "EntityItem.h"
 #include "EntityItemProperties.h"
 #include "ModelEntityItem.h"
+#include "TextEntityItem.h"
 
 EntityItemProperties::EntityItemProperties() :
 
+    CONSTRUCT_PROPERTY(visible, EntityItem::DEFAULT_VISIBLE),
+    CONSTRUCT_PROPERTY(position, 0),
+    CONSTRUCT_PROPERTY(dimensions, EntityItem::DEFAULT_DIMENSIONS),
+    CONSTRUCT_PROPERTY(rotation, EntityItem::DEFAULT_ROTATION),
+    CONSTRUCT_PROPERTY(mass, EntityItem::DEFAULT_MASS),
+    CONSTRUCT_PROPERTY(velocity, EntityItem::DEFAULT_VELOCITY),
+    CONSTRUCT_PROPERTY(gravity, EntityItem::DEFAULT_GRAVITY),
+    CONSTRUCT_PROPERTY(damping, EntityItem::DEFAULT_DAMPING),
+    CONSTRUCT_PROPERTY(lifetime, EntityItem::DEFAULT_LIFETIME),
+    CONSTRUCT_PROPERTY(script, EntityItem::DEFAULT_SCRIPT),
+    CONSTRUCT_PROPERTY(color, ),
+    CONSTRUCT_PROPERTY(modelURL, ""),
+    CONSTRUCT_PROPERTY(animationURL, ""),
+    CONSTRUCT_PROPERTY(animationFPS, ModelEntityItem::DEFAULT_ANIMATION_FPS),
+    CONSTRUCT_PROPERTY(animationFrameIndex, ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
+    CONSTRUCT_PROPERTY(animationIsPlaying, ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
+    CONSTRUCT_PROPERTY(registrationPoint, EntityItem::DEFAULT_REGISTRATION_POINT),
+    CONSTRUCT_PROPERTY(angularVelocity, EntityItem::DEFAULT_ANGULAR_VELOCITY),
+    CONSTRUCT_PROPERTY(angularDamping, EntityItem::DEFAULT_ANGULAR_DAMPING),
+    CONSTRUCT_PROPERTY(ignoreForCollisions, EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS),
+    CONSTRUCT_PROPERTY(collisionsWillMove, EntityItem::DEFAULT_COLLISIONS_WILL_MOVE),
+    CONSTRUCT_PROPERTY(isSpotlight, false),
+    CONSTRUCT_PROPERTY(diffuseColor, ),
+    CONSTRUCT_PROPERTY(ambientColor, ),
+    CONSTRUCT_PROPERTY(specularColor, ),
+    CONSTRUCT_PROPERTY(constantAttenuation, 1.0f),
+    CONSTRUCT_PROPERTY(linearAttenuation, 0.0f),
+    CONSTRUCT_PROPERTY(quadraticAttenuation, 0.0f),
+    CONSTRUCT_PROPERTY(exponent, 0.0f),
+    CONSTRUCT_PROPERTY(cutoff, PI),
+    CONSTRUCT_PROPERTY(locked, false),
+    CONSTRUCT_PROPERTY(textures, ""),
+    CONSTRUCT_PROPERTY(animationSettings, ""),
+    CONSTRUCT_PROPERTY(userData, EntityItem::DEFAULT_USER_DATA),
+    CONSTRUCT_PROPERTY(text, TextEntityItem::DEFAULT_TEXT),
+    CONSTRUCT_PROPERTY(lineHeight, TextEntityItem::DEFAULT_LINE_HEIGHT),
+    CONSTRUCT_PROPERTY(textColor, TextEntityItem::DEFAULT_TEXT_COLOR),
+    CONSTRUCT_PROPERTY(backgroundColor, TextEntityItem::DEFAULT_BACKGROUND_COLOR),
+
     _id(UNKNOWN_ENTITY_ID),
     _idSet(false),
-    _lastEdited(0), // ????
+    _lastEdited(0),
     _created(UNKNOWN_CREATED_TIME),
     _type(EntityTypes::Unknown),
 
-    _position(0),
-    _dimensions(EntityItem::DEFAULT_DIMENSIONS),
-    _rotation(EntityItem::DEFAULT_ROTATION),
-    _mass(EntityItem::DEFAULT_MASS),
-    _velocity(EntityItem::DEFAULT_VELOCITY),
-    _gravity(EntityItem::DEFAULT_GRAVITY),
-    _damping(EntityItem::DEFAULT_DAMPING),
-    _lifetime(EntityItem::DEFAULT_LIFETIME),
-    _userData(EntityItem::DEFAULT_USER_DATA),
-    _script(EntityItem::DEFAULT_SCRIPT),
-    _registrationPoint(EntityItem::DEFAULT_REGISTRATION_POINT),
-    _angularVelocity(EntityItem::DEFAULT_ANGULAR_VELOCITY),
-    _angularDamping(EntityItem::DEFAULT_ANGULAR_DAMPING),
-    _visible(EntityItem::DEFAULT_VISIBLE),
-    _ignoreForCollisions(EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS),
-    _collisionsWillMove(EntityItem::DEFAULT_COLLISIONS_WILL_MOVE),
-
-    _positionChanged(false),
-    _dimensionsChanged(false),
-    _rotationChanged(false),
-    _massChanged(false),
-    _velocityChanged(false),
-    _gravityChanged(false),
-    _dampingChanged(false),
-    _lifetimeChanged(false),
-    _userDataChanged(false),
-    _scriptChanged(false),
-    _registrationPointChanged(false),
-    _angularVelocityChanged(false),
-    _angularDampingChanged(false),
-    _visibleChanged(false),
-    _ignoreForCollisionsChanged(false),
-    _collisionsWillMoveChanged(false),
-
-    _color(),
-    _modelURL(""),
-    _animationURL(""),
-    _animationIsPlaying(ModelEntityItem::DEFAULT_ANIMATION_IS_PLAYING),
-    _animationFrameIndex(ModelEntityItem::DEFAULT_ANIMATION_FRAME_INDEX),
-    _animationFPS(ModelEntityItem::DEFAULT_ANIMATION_FPS),
-    _animationSettings(""),
     _glowLevel(0.0f),
     _localRenderAlpha(1.0f),
-    _isSpotlight(false),
-
-    _colorChanged(false),
-    _modelURLChanged(false),
-    _animationURLChanged(false),
-    _animationIsPlayingChanged(false),
-    _animationFrameIndexChanged(false),
-    _animationFPSChanged(false),
-    _animationSettingsChanged(false),
 
     _glowLevelChanged(false),
     _localRenderAlphaChanged(false),
-    _isSpotlightChanged(false),
-
-    _diffuseColor(),
-    _ambientColor(),
-    _specularColor(),
-    _constantAttenuation(1.0f),
-    _linearAttenuation(0.0f), 
-    _quadraticAttenuation(0.0f),
-    _exponent(0.0f),
-    _cutoff(PI),
-    _locked(false),
-    _textures(""),
-
-    _diffuseColorChanged(false),
-    _ambientColorChanged(false),
-    _specularColorChanged(false),
-    _constantAttenuationChanged(false),
-    _linearAttenuationChanged(false),
-    _quadraticAttenuationChanged(false),
-    _exponentChanged(false),
-    _cutoffChanged(false),
-    _lockedChanged(false),
-    _texturesChanged(false),
 
     _defaultSettings(true),
     _naturalDimensions(1.0f, 1.0f, 1.0f)
@@ -226,6 +193,10 @@ EntityPropertyFlags EntityItemProperties::getChangedProperties() const {
     CHECK_PROPERTY_CHANGE(PROP_LOCKED, locked);
     CHECK_PROPERTY_CHANGE(PROP_TEXTURES, textures);
     CHECK_PROPERTY_CHANGE(PROP_USER_DATA, userData);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT, text);
+    CHECK_PROPERTY_CHANGE(PROP_LINE_HEIGHT, lineHeight);
+    CHECK_PROPERTY_CHANGE(PROP_TEXT_COLOR, textColor);
+    CHECK_PROPERTY_CHANGE(PROP_BACKGROUND_COLOR, backgroundColor);
 
     return changedProperties;
 }
@@ -280,6 +251,10 @@ QScriptValue EntityItemProperties::copyToScriptValue(QScriptEngine* engine) cons
     COPY_PROPERTY_TO_QSCRIPTVALUE(locked);
     COPY_PROPERTY_TO_QSCRIPTVALUE(textures);
     COPY_PROPERTY_TO_QSCRIPTVALUE(userData);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(text);
+    COPY_PROPERTY_TO_QSCRIPTVALUE(lineHeight);
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(textColor, getTextColor());
+    COPY_PROPERTY_TO_QSCRIPTVALUE_COLOR_GETTER(backgroundColor, getBackgroundColor());
 
     // Sitting properties support
     QScriptValue sittingPoints = engine->newObject();
@@ -355,6 +330,10 @@ void EntityItemProperties::copyFromScriptValue(const QScriptValue& object) {
     COPY_PROPERTY_FROM_QSCRIPTVALUE_BOOL(locked, setLocked);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(textures, setTextures);
     COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(userData, setUserData);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_STRING(text, setText);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_FLOAT(lineHeight, setLineHeight);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(textColor, setTextColor);
+    COPY_PROPERTY_FROM_QSCRIPTVALUE_COLOR(backgroundColor, setBackgroundColor);
 
     _lastEdited = usecTimestampNow();
 }
@@ -494,30 +473,43 @@ bool EntityItemProperties::encodeEntityEditPacket(PacketType command, EntityItem
             APPEND_ENTITY_PROPERTY(PROP_LIFETIME, appendValue, properties.getLifetime());
             APPEND_ENTITY_PROPERTY(PROP_SCRIPT, appendValue, properties.getScript());
             APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, properties.getColor());
-            APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
-            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
-            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
-            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
-            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
             APPEND_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, appendValue, properties.getRegistrationPoint());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, appendValue, properties.getAngularVelocity());
             APPEND_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, appendValue, properties.getAngularDamping());
             APPEND_ENTITY_PROPERTY(PROP_VISIBLE, appendValue, properties.getVisible());
             APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, properties.getIgnoreForCollisions());
             APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, properties.getCollisionsWillMove());
-            APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
-            APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
-            APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
-            APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
-            APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
-            APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, properties.getLinearAttenuation());
-            APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
-            APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
-            APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
             APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, properties.getLocked());
-            APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
-            APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, properties.getAnimationSettings());
             APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, properties.getUserData());
+            
+            if (properties.getType() == EntityTypes::Text) {
+                APPEND_ENTITY_PROPERTY(PROP_TEXT, appendValue, properties.getText());
+                APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, appendValue, properties.getLineHeight());
+                APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, appendColor, properties.getTextColor());
+                APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, appendColor, properties.getBackgroundColor());
+            }
+            
+            if (properties.getType() == EntityTypes::Model) {
+                APPEND_ENTITY_PROPERTY(PROP_MODEL_URL, appendValue, properties.getModelURL());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_URL, appendValue, properties.getAnimationURL());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FPS, appendValue, properties.getAnimationFPS());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_FRAME_INDEX, appendValue, properties.getAnimationFrameIndex());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_PLAYING, appendValue, properties.getAnimationIsPlaying());
+                APPEND_ENTITY_PROPERTY(PROP_TEXTURES, appendValue, properties.getTextures());
+                APPEND_ENTITY_PROPERTY(PROP_ANIMATION_SETTINGS, appendValue, properties.getAnimationSettings());
+            }
+
+            if (properties.getType() == EntityTypes::Light) {
+                APPEND_ENTITY_PROPERTY(PROP_IS_SPOTLIGHT, appendValue, properties.getIsSpotlight());
+                APPEND_ENTITY_PROPERTY(PROP_DIFFUSE_COLOR, appendColor, properties.getDiffuseColor());
+                APPEND_ENTITY_PROPERTY(PROP_AMBIENT_COLOR, appendColor, properties.getAmbientColor());
+                APPEND_ENTITY_PROPERTY(PROP_SPECULAR_COLOR, appendColor, properties.getSpecularColor());
+                APPEND_ENTITY_PROPERTY(PROP_CONSTANT_ATTENUATION, appendValue, properties.getConstantAttenuation());
+                APPEND_ENTITY_PROPERTY(PROP_LINEAR_ATTENUATION, appendValue, properties.getLinearAttenuation());
+                APPEND_ENTITY_PROPERTY(PROP_QUADRATIC_ATTENUATION, appendValue, properties.getQuadraticAttenuation());
+                APPEND_ENTITY_PROPERTY(PROP_EXPONENT, appendValue, properties.getExponent());
+                APPEND_ENTITY_PROPERTY(PROP_CUTOFF, appendValue, properties.getCutoff());
+            }
         }
         if (propertyCount > 0) {
             int endOfEntityItemData = packetData->getUncompressedByteOffset();
@@ -705,30 +697,43 @@ bool EntityItemProperties::decodeEntityEditPacket(const unsigned char* data, int
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LIFETIME, float, setLifetime);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_SCRIPT,setScript);
     READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_COLOR, setColor);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_REGISTRATION_POINT, glm::vec3, setRegistrationPoint);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_VELOCITY, glm::vec3, setAngularVelocity);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANGULAR_DAMPING, float, setAngularDamping);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_VISIBLE, bool, setVisible);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IGNORE_FOR_COLLISIONS, bool, setIgnoreForCollisions);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
-    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
-    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
-    READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINEAR_ATTENUATION, float, setLinearAttenuation);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
-    READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
     READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LOCKED, bool, setLocked);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXTURES, setTextures);
-    READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, setAnimationSettings);
     READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_USER_DATA, setUserData);
+
+    if (properties.getType() == EntityTypes::Text) {
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXT, setText);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINE_HEIGHT, float, setLineHeight);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_TEXT_COLOR, setTextColor);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_BACKGROUND_COLOR, setBackgroundColor);
+    }
+    
+    if (properties.getType() == EntityTypes::Model) {
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_MODEL_URL, setModelURL);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_URL, setAnimationURL);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FPS, float, setAnimationFPS);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_FRAME_INDEX, float, setAnimationFrameIndex);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_ANIMATION_PLAYING, bool, setAnimationIsPlaying);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_TEXTURES, setTextures);
+        READ_ENTITY_PROPERTY_STRING_TO_PROPERTIES(PROP_ANIMATION_SETTINGS, setAnimationSettings);
+    }
+    
+    if (properties.getType() == EntityTypes::Light) {
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_IS_SPOTLIGHT, bool, setIsSpotlight);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_DIFFUSE_COLOR, setDiffuseColor);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_AMBIENT_COLOR, setAmbientColor);
+        READ_ENTITY_PROPERTY_COLOR_TO_PROPERTIES(PROP_SPECULAR_COLOR, setSpecularColor);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CONSTANT_ATTENUATION, float, setConstantAttenuation);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_LINEAR_ATTENUATION, float, setLinearAttenuation);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_QUADRATIC_ATTENUATION, float, setQuadraticAttenuation);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_EXPONENT, float, setExponent);
+        READ_ENTITY_PROPERTY_TO_PROPERTIES(PROP_CUTOFF, float, setCutoff);
+    }
     
     return valid;
 }
@@ -800,6 +805,11 @@ void EntityItemProperties::markAllChanged() {
     _cutoffChanged = true;
     _lockedChanged = true;
     _texturesChanged = true;
+    
+    _textChanged = true;
+    _lineHeightChanged = true;
+    _textColorChanged = true;
+    _backgroundColorChanged = true;
 }
 
 AACube EntityItemProperties::getMaximumAACubeInTreeUnits() const {

@@ -67,7 +67,7 @@ static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE  = 8;
 
-quint64 usecTimestampNow();
+quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(int clockSkew);
 
 float randFloat();

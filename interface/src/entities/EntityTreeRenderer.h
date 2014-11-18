@@ -56,7 +56,8 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
+                                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
@@ -128,8 +129,12 @@ private:
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
     QString loadScriptContents(const QString& scriptMaybeURLorText);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
+    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+
+    bool _lastMouseEventValid;
+    MouseEvent _lastMouseEvent;
 };
 
 #endif // hifi_EntityTreeRenderer_h

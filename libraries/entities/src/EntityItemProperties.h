@@ -83,7 +83,14 @@ enum EntityPropertyList {
     PROP_ANIMATION_SETTINGS,
     PROP_USER_DATA,
 
-    PROP_LAST_ITEM = PROP_USER_DATA
+    PROP_LAST_ITEM = PROP_USER_DATA,
+
+    // These properties of TextEntity piggy back off of properties of ModelEntities, the type doesn't matter
+    // since the derived class knows how to interpret it's own properties and knows the types it expects
+    PROP_TEXT_COLOR = PROP_COLOR,
+    PROP_TEXT = PROP_MODEL_URL,
+    PROP_LINE_HEIGHT = PROP_ANIMATION_URL,
+    PROP_BACKGROUND_COLOR = PROP_ANIMATION_FPS,
 };
 
 typedef PropertyFlags<EntityPropertyList> EntityPropertyFlags;
@@ -102,9 +109,13 @@ class EntityItemProperties {
     friend class BoxEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class SphereEntityItem; // TODO: consider removing this friend relationship and use public methods
     friend class LightEntityItem; // TODO: consider removing this friend relationship and use public methods
+    friend class TextEntityItem; // TODO: consider removing this friend relationship and use public methods
 public:
     EntityItemProperties();
     virtual ~EntityItemProperties();
+
+    EntityTypes::EntityType getType() const { return _type; }
+    void setType(EntityTypes::EntityType type) { _type = type; }
 
     virtual QScriptValue copyToScriptValue(QScriptEngine* engine) const;
     virtual void copyFromScriptValue(const QScriptValue& object);
@@ -123,86 +134,63 @@ public:
     AABox getAABoxInMeters() const;
 
     void debugDump() const;
+    void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
+    DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool);
+    DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_ROTATION, Rotation, rotation, glm::quat);
+    DEFINE_PROPERTY(PROP_MASS, Mass, mass, float);
+    DEFINE_PROPERTY_REF(PROP_VELOCITY, Velocity, velocity, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_GRAVITY, Gravity, gravity, glm::vec3);
+    DEFINE_PROPERTY(PROP_DAMPING, Damping, damping, float);
+    DEFINE_PROPERTY(PROP_LIFETIME, Lifetime, lifetime, float);
+    DEFINE_PROPERTY_REF(PROP_SCRIPT, Script, script, QString);
+    DEFINE_PROPERTY_REF(PROP_COLOR, Color, color, xColor);
+    DEFINE_PROPERTY_REF(PROP_MODEL_URL, ModelURL, modelURL, QString);
+    DEFINE_PROPERTY_REF(PROP_ANIMATION_URL, AnimationURL, animationURL, QString);
+    DEFINE_PROPERTY(PROP_ANIMATION_FPS, AnimationFPS, animationFPS, float);
+    DEFINE_PROPERTY(PROP_ANIMATION_FRAME_INDEX, AnimationFrameIndex, animationFrameIndex, float);
+    DEFINE_PROPERTY(PROP_ANIMATION_PLAYING, AnimationIsPlaying, animationIsPlaying, bool);
+    DEFINE_PROPERTY_REF(PROP_REGISTRATION_POINT, RegistrationPoint, registrationPoint, glm::vec3);
+    DEFINE_PROPERTY_REF(PROP_ANGULAR_VELOCITY, AngularVelocity, angularVelocity, glm::vec3);
+    DEFINE_PROPERTY(PROP_ANGULAR_DAMPING, AngularDamping, angularDamping, float);
+    DEFINE_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, IgnoreForCollisions, ignoreForCollisions, bool);
+    DEFINE_PROPERTY(PROP_COLLISIONS_WILL_MOVE, CollisionsWillMove, collisionsWillMove, bool);
+    DEFINE_PROPERTY(PROP_IS_SPOTLIGHT, IsSpotlight, isSpotlight, bool);
+    DEFINE_PROPERTY_REF(PROP_DIFFUSE_COLOR, DiffuseColor, diffuseColor, xColor);
+    DEFINE_PROPERTY_REF(PROP_AMBIENT_COLOR, AmbientColor, ambientColor, xColor);
+    DEFINE_PROPERTY_REF(PROP_SPECULAR_COLOR, SpecularColor, specularColor, xColor);
+    DEFINE_PROPERTY(PROP_CONSTANT_ATTENUATION, ConstantAttenuation, constantAttenuation, float);
+    DEFINE_PROPERTY(PROP_LINEAR_ATTENUATION, LinearAttenuation, linearAttenuation, float);
+    DEFINE_PROPERTY(PROP_QUADRATIC_ATTENUATION, QuadraticAttenuation, quadraticAttenuation, float);
+    DEFINE_PROPERTY(PROP_EXPONENT, Exponent, exponent, float);
+    DEFINE_PROPERTY(PROP_CUTOFF, Cutoff, cutoff, float);
+    DEFINE_PROPERTY(PROP_LOCKED, Locked, locked, bool);
+    DEFINE_PROPERTY_REF(PROP_TEXTURES, Textures, textures, QString);
+    DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(PROP_ANIMATION_SETTINGS, AnimationSettings, animationSettings, QString);
+    DEFINE_PROPERTY_REF(PROP_USER_DATA, UserData, userData, QString);
+    DEFINE_PROPERTY_REF(PROP_TEXT, Text, text, QString);
+    DEFINE_PROPERTY(PROP_LINE_HEIGHT, LineHeight, lineHeight, float);
+    DEFINE_PROPERTY_REF(PROP_TEXT_COLOR, TextColor, textColor, xColor);
+    DEFINE_PROPERTY_REF(PROP_BACKGROUND_COLOR, BackgroundColor, backgroundColor, xColor);
 
-    // properties of all entities
-    EntityTypes::EntityType getType() const { return _type; }
-
-    void setType(EntityTypes::EntityType type) { _type = type; }
-
-    const glm::vec3& getPosition() const { return _position; }
-    /// set position in meter units, will be clamped to domain bounds
-    void setPosition(const glm::vec3& value) { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
-
-
-    const glm::vec3& getDimensions() const { return _dimensions; }
-    void setDimensions(const glm::vec3& value) { _dimensions = value; _dimensionsChanged = true; }
+public:
     float getMaxDimension() const { return glm::max(_dimensions.x, _dimensions.y, _dimensions.z); }
 
-    const glm::quat& getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; _rotationChanged = true; }
-
-    float getMass() const { return _mass; }
-    void setMass(float value) { _mass = value; _massChanged = true; }
-
-    /// velocity in meters (0.0-1.0) per second
-    const glm::vec3& getVelocity() const { return _velocity; }
-    /// velocity in meters (0.0-1.0) per second
-    void setVelocity(const glm::vec3& value) { _velocity = value; _velocityChanged = true; }
-
-    /// gravity in meters (0.0-TREE_SCALE) per second squared
-    const glm::vec3& getGravity() const { return _gravity; }
-    /// gravity in meters (0.0-TREE_SCALE) per second squared
-    void setGravity(const glm::vec3& value) { _gravity = value; _gravityChanged = true; }
-
-    float getDamping() const { return _damping; }
-    void setDamping(float value) { _damping = value; _dampingChanged = true; }
-    
-    float getLifetime() const { return _lifetime; } /// get the lifetime in seconds for the entity
-    void setLifetime(float value) { _lifetime = value; _lifetimeChanged = true; } /// set the lifetime in seconds for the entity
-    
-    const QString& getUserData() const { return _userData; }
-    void setUserData(const QString& value) { _userData = value; _userDataChanged = true; }
-    
     float getAge() const { return (float)(usecTimestampNow() - _created) / (float)USECS_PER_SECOND; }
     quint64 getCreated() const { return _created; }
     void setCreated(quint64 usecTime) { _created = usecTime; }
     bool hasCreatedTime() const { return (_created != UNKNOWN_CREATED_TIME); }
 
-    
-    // NOTE: how do we handle _defaultSettings???
     bool containsBoundsProperties() const { return (_positionChanged || _dimensionsChanged); }
     bool containsPositionChange() const { return _positionChanged; }
     bool containsDimensionsChange() const { return _dimensionsChanged; }
 
-    // TODO: this need to be more generic. for now, we're going to have the properties class support these as
-    // named getter/setters, but we want to move them to generic types...
-    // properties we want to move to just models and particles
-    xColor getColor() const { return _color; }
-    const QString& getModelURL() const { return _modelURL; }
-    const QString& getAnimationURL() const { return _animationURL; }
-    float getAnimationFrameIndex() const { return _animationFrameIndex; }
-    bool getAnimationIsPlaying() const { return _animationIsPlaying;  }
-    float getAnimationFPS() const { return _animationFPS; }
-    QString getAnimationSettings() const;
-
     float getGlowLevel() const { return _glowLevel; }
     float getLocalRenderAlpha() const { return _localRenderAlpha; }
-    const QString& getScript() const { return _script; }
-
-    // model related properties
-    void setColor(const xColor& value) { _color = value; _colorChanged = true; }
-    void setModelURL(const QString& url) { _modelURL = url; _modelURLChanged = true; }
-    void setAnimationURL(const QString& url) { _animationURL = url; _animationURLChanged = true; }
-    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; _animationFrameIndexChanged = true; }
-    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; _animationIsPlayingChanged = true;  }
-    void setAnimationFPS(float value) { _animationFPS = value; _animationFPSChanged = true; }
-    void setAnimationSettings(const QString& value);
-
     void setGlowLevel(float value) { _glowLevel = value; _glowLevelChanged = true; }
     void setLocalRenderAlpha(float value) { _localRenderAlpha = value; _localRenderAlphaChanged = true; }
-    void setScript(const QString& value) { _script = value; _scriptChanged = true; }
-
 
     static bool encodeEntityEditPacket(PacketType command, EntityItemID id, const EntityItemProperties& properties,
         unsigned char* bufferOut, int sizeIn, int& sizeOut);
@@ -214,23 +202,6 @@ public:
     static bool decodeEntityEditPacket(const unsigned char* data, int bytesToRead, int& processedBytes,
                         EntityItemID& entityID, EntityItemProperties& properties);
 
-    bool positionChanged() const { return _positionChanged; }
-    bool rotationChanged() const { return _rotationChanged; }
-    bool massChanged() const { return _massChanged; }
-    bool velocityChanged() const { return _velocityChanged; }
-    bool gravityChanged() const { return _gravityChanged; }
-    bool dampingChanged() const { return _dampingChanged; }
-    bool lifetimeChanged() const { return _lifetimeChanged; }
-    bool userDataChanged() const { return _userDataChanged; }
-    bool scriptChanged() const { return _scriptChanged; }
-    bool dimensionsChanged() const { return _dimensionsChanged; }
-    bool registrationPointChanged() const { return _registrationPointChanged; }
-    bool colorChanged() const { return _colorChanged; }
-    bool modelURLChanged() const { return _modelURLChanged; }
-    bool animationURLChanged() const { return _animationURLChanged; }
-    bool animationIsPlayingChanged() const { return _animationIsPlayingChanged; }
-    bool animationFrameIndexChanged() const { return _animationFrameIndexChanged; }
-    bool animationFPSChanged() const { return _animationFPSChanged; }
     bool glowLevelChanged() const { return _glowLevelChanged; }
     bool localRenderAlphaChanged() const { return _localRenderAlphaChanged; }
 
@@ -238,161 +209,26 @@ public:
     void markAllChanged();
 
     void setSittingPoints(const QVector<SittingPoint>& sittingPoints);
-    
+
     const glm::vec3& getNaturalDimensions() const { return _naturalDimensions; }
     void setNaturalDimensions(const glm::vec3& value) { _naturalDimensions = value; }
 
-    const glm::vec3& getRegistrationPoint() const { return _registrationPoint; }
-    void setRegistrationPoint(const glm::vec3& value) { _registrationPoint = value; _registrationPointChanged = true; }
-
-    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
-    void setAngularVelocity(const glm::vec3& value) { _angularVelocity = value; _angularVelocityChanged = true; }
-
-    float getAngularDamping() const { return _angularDamping; }
-    void setAngularDamping(float value) { _angularDamping = value; _angularDampingChanged = true; }
-
-    bool getVisible() const { return _visible; }
-    void setVisible(bool value) { _visible = value; _visibleChanged = true; }
-
-    bool getIgnoreForCollisions() const { return _ignoreForCollisions; }
-    void setIgnoreForCollisions(bool value) { _ignoreForCollisions = value; _ignoreForCollisionsChanged = true; }
-
-    bool getCollisionsWillMove() const { return _collisionsWillMove; }
-    void setCollisionsWillMove(bool value) { _collisionsWillMove = value; _collisionsWillMoveChanged = true; }
-
-    bool getIsSpotlight() const { return _isSpotlight; }
-    void setIsSpotlight(bool value) { _isSpotlight = value; _isSpotlightChanged = true; }
-
-    xColor getDiffuseColor() const { return _diffuseColor; }
-    xColor getAmbientColor() const { return _ambientColor; }
-    xColor getSpecularColor() const { return _specularColor; }
-
-    void setDiffuseColor(const xColor& value) { _diffuseColor = value; _diffuseColorChanged = true; }
-    void setAmbientColor(const xColor& value) { _ambientColor = value; _ambientColorChanged = true; }
-    void setSpecularColor(const xColor& value) { _specularColor = value; _specularColorChanged = true; }
-
-    bool diffuseColorChanged() const { return _colorChanged; }
-    bool ambientColorChanged() const { return _ambientColorChanged; }
-    bool specularColorChanged() const { return _specularColorChanged; }
-
-    float getConstantAttenuation() const { return _constantAttenuation; }
-    void setConstantAttenuation(float value) { _constantAttenuation = value; _constantAttenuationChanged = true; }
-
-    float getLinearAttenuation() const { return _linearAttenuation; }
-    void setLinearAttenuation(float value) { _linearAttenuation = value; _linearAttenuationChanged = true; }
-
-    float getQuadraticAttenuation() const { return _quadraticAttenuation; }
-    void setQuadraticAttenuation(float value) { _quadraticAttenuation = value; _quadraticAttenuationChanged = true; }
-
-    float getExponent() const { return _exponent; }
-    void setExponent(float value) { _exponent = value; _exponentChanged = true; }
-
-    float getCutoff() const { return _cutoff; }
-    void setCutoff(float value) { _cutoff = value; _cutoffChanged = true; }
-
-    bool getLocked() const { return _locked; }
-    void setLocked(bool value) { _locked = value; _lockedChanged = true; }
-    bool lockedChanged() const { return _lockedChanged; }
-
-    const QString& getTextures() const { return _textures; }
-    void setTextures(const QString& value) { _textures = value; _texturesChanged = true; }
-
     const QStringList& getTextureNames() const { return _textureNames; }
     void setTextureNames(const QStringList& value) { _textureNames = value; }
-    
-    void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
+
 
 private:
-
     QUuid _id;
     bool _idSet;
     quint64 _lastEdited;
     quint64 _created;
-
     EntityTypes::EntityType _type;
- 
     void setType(const QString& typeName) { _type = EntityTypes::getEntityTypeFromName(typeName); }
-    
-    glm::vec3 _position;
-    glm::vec3 _dimensions;
-    glm::quat _rotation;
-    float _mass;
-    glm::vec3 _velocity;
-    glm::vec3 _gravity;
-    float _damping;
-    float _lifetime;
-    QString _userData;
-    QString _script;
-    glm::vec3 _registrationPoint;
-    glm::vec3 _angularVelocity;
-    float _angularDamping;
-    bool _visible;
-    bool _ignoreForCollisions;
-    bool _collisionsWillMove;
 
-    bool _positionChanged;
-    bool _dimensionsChanged;
-    bool _rotationChanged;
-    bool _massChanged;
-    bool _velocityChanged;
-    bool _gravityChanged;
-    bool _dampingChanged;
-    bool _lifetimeChanged;
-    bool _userDataChanged;
-    bool _scriptChanged;
-    bool _registrationPointChanged;
-    bool _angularVelocityChanged;
-    bool _angularDampingChanged;
-    bool _visibleChanged;
-    bool _ignoreForCollisionsChanged;
-    bool _collisionsWillMoveChanged;
-    
-    // TODO: this need to be more generic. for now, we're going to have the properties class support these as
-    // named getter/setters, but we want to move them to generic types...
-    xColor _color;
-    QString _modelURL;
-    QString _animationURL;
-    bool _animationIsPlaying;
-    float _animationFrameIndex;
-    float _animationFPS;
-    QString _animationSettings;
     float _glowLevel;
     float _localRenderAlpha;
-    bool _isSpotlight;
-
-    bool _colorChanged;
-    bool _modelURLChanged;
-    bool _animationURLChanged;
-    bool _animationIsPlayingChanged;
-    bool _animationFrameIndexChanged;
-    bool _animationFPSChanged;
-    bool _animationSettingsChanged;
     bool _glowLevelChanged;
     bool _localRenderAlphaChanged;
-    bool _isSpotlightChanged;
-
-    xColor _diffuseColor;
-    xColor _ambientColor;
-    xColor _specularColor;
-    float _constantAttenuation;
-    float _linearAttenuation; 
-    float _quadraticAttenuation;
-    float _exponent;
-    float _cutoff;
-    bool _locked;
-    QString _textures;
-
-    bool _diffuseColorChanged;
-    bool _ambientColorChanged;
-    bool _specularColorChanged;
-    bool _constantAttenuationChanged;
-    bool _linearAttenuationChanged; 
-    bool _quadraticAttenuationChanged;
-    bool _exponentChanged;
-    bool _cutoffChanged;
-    bool _lockedChanged;
-    bool _texturesChanged;
-
     bool _defaultSettings;
 
     // NOTE: The following are pseudo client only properties. They are only used in clients which can access
@@ -404,6 +240,11 @@ private:
 Q_DECLARE_METATYPE(EntityItemProperties);
 QScriptValue EntityItemPropertiesToScriptValue(QScriptEngine* engine, const EntityItemProperties& properties);
 void EntityItemPropertiesFromScriptValue(const QScriptValue &object, EntityItemProperties& properties);
+
+
+// define these inline here so the macros work
+inline void EntityItemProperties::setPosition(const glm::vec3& value) 
+                    { _position = glm::clamp(value, 0.0f, (float)TREE_SCALE); _positionChanged = true; }
 
 
 inline QDebug operator<<(QDebug debug, const EntityItemProperties& properties) {

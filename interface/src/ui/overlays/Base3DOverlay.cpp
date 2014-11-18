@@ -31,6 +31,17 @@ Base3DOverlay::Base3DOverlay() :
 {
 }
 
+Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
+    Overlay(base3DOverlay),
+    _position(base3DOverlay->_position),
+    _lineWidth(base3DOverlay->_lineWidth),
+    _rotation(base3DOverlay->_rotation),
+    _isSolid(base3DOverlay->_isSolid),
+    _isDashedLine(base3DOverlay->_isDashedLine),
+    _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection)
+{
+}
+
 Base3DOverlay::~Base3DOverlay() {
 }
 
@@ -178,8 +189,4 @@ void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end)
     glVertex3f(end.x, end.y, end.z);
 
     glEnd();
-
 }
-
-
-
