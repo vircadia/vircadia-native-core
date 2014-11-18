@@ -15,7 +15,7 @@ Grid = function(opts) {
     var minorGridWidth = 0.5;
     var majorGridWidth = 1.5;
 
-    var snapToGrid = true;
+    var snapToGrid = false;
 
     var gridOverlay = Overlays.addOverlay("grid", {
         position: { x: 0 , y: 0, z: 0 },
