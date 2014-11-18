@@ -2479,7 +2479,7 @@ function Tooltip() {
         margin: this.margin,
         text: "",
         color: { red: 228, green: 228, blue: 228 },
-        alpha: 0.5,
+        alpha: 0.8,
         visible: false
     });
     this.show = function (doShow) {
