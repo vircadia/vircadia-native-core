@@ -125,7 +125,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
     if (!logMessage.isEmpty()) {
-        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
@@ -376,6 +376,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
+
+    _toolWindow = new ToolWindow();
+    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowTitle("Tools");
 
     // initialization continues in initializeGL when OpenGL context is ready
 
@@ -1555,6 +1559,8 @@ void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
+        Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
+        Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
         glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
             <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
             && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
@@ -2890,7 +2896,7 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
-void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
+void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -3037,7 +3043,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            _entities.render();
+            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
         }
 
         // render JS/scriptable overlays

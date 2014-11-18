@@ -39,7 +39,7 @@ Script.include("libraries/gridTool.js");
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
 
-selectionManager.setEventListener(selectionDisplay.updateHandles);
+selectionManager.addEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -54,14 +54,15 @@ var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
+var DEFAULT_TEXT_DIMENSION_X = 1.0;
+var DEFAULT_TEXT_DIMENSION_Y = 1.0;
+var DEFAULT_TEXT_DIMENSION_Z = 0.01;
 
-var MENU_GRID_TOOL_ENABLED = 'Grid Tool';
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
 var SETTING_INSPECT_TOOL_ENABLED = "inspectToolEnabled";
 var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
-var SETTING_GRID_TOOL_ENABLED = 'GridToolEnabled';
 
 var modelURLs = [
         HIFI_PUBLIC_BUCKET + "models/entities/2-Terrain:%20Alder.fbx",
@@ -86,6 +87,7 @@ var toolBar = (function () {
         newCubeButton,
         newSphereButton,
         newLightButton,
+        newTextButton,
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
@@ -175,6 +177,16 @@ var toolBar = (function () {
 
         newLightButton = toolBar.addTool({
             imageURL: toolIconUrl + "light.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true
+        });
+
+        newTextButton = toolBar.addTool({
+            //imageURL: toolIconUrl + "add-text.svg",
+            imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/add-text.svg", // temporarily
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -272,11 +284,15 @@ var toolBar = (function () {
             isActive = !isActive;
             if (!isActive) {
                 gridTool.setVisible(false);
+                grid.setEnabled(false);
+                propertiesTool.setVisible(false);
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
-                gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
+                gridTool.setVisible(true);
+                grid.setEnabled(true);
+                propertiesTool.setVisible(true);
             }
             return true;
         }
@@ -355,7 +371,7 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Light",
                                 position: position,
                                 dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
@@ -376,6 +392,24 @@ var toolBar = (function () {
             return true;
         }
 
+        if (newTextButton === toolBar.clicked(clickedOverlay)) {
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                Entities.addEntity({ 
+                                type: "Text",
+                                position: position,
+                                dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
+                                backgroundColor: { red: 0, green: 0, blue: 0 },
+                                textColor: { red: 255, green: 255, blue: 255 },
+                                text: "some text",
+                                lineHight: "0.1"
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
 
 
         return false;
@@ -608,10 +642,6 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_GRID_TOOL_ENABLED, afterItem: "Edit Entities Help...", isCheckable: true,
-                       isChecked: Settings.getValue(SETTING_GRID_TOOL_ENABLED) == 'true'});
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: MENU_GRID_TOOL_ENABLED,
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 }
@@ -636,8 +666,6 @@ function cleanupModelMenus() {
     Menu.removeMenuItem("File", "Import Models");
     Menu.removeMenuItem("Developer", "Debug Ryans Rotation Problems");
 
-    Settings.setValue(SETTING_GRID_TOOL_ENABLED, Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
-    Menu.removeMenuItem("View", MENU_GRID_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_INSPECT_TOOL_ENABLED);
     Menu.removeMenuItem("View", MENU_EASE_ON_FOCUS);
 }
@@ -714,7 +742,7 @@ function handeMenuEvent(menuItem) {
             var selectedModel = form[0].value;
             if (form[1].value == "Properties") {
                 editModelID = selectedModel;
-                showPropertiesForm(editModelID);
+                entityPropertyDialogBox.openDialog(editModelID);
             } else if (form[1].value == "Delete") {
                 Entities.deleteEntity(selectedModel);
             } else if (form[1].value == "Teleport") {
@@ -749,10 +777,6 @@ function handeMenuEvent(menuItem) {
         }
     } else if (menuItem == "Import Models") {
         modelImporter.doImport();
-    } else if (menuItem == MENU_GRID_TOOL_ENABLED) {
-        if (isActive) {
-            gridTool.setVisible(Menu.isOptionChecked(MENU_GRID_TOOL_ENABLED));
-        }
     }
     tooltip.show(false);
 }
@@ -911,3 +935,43 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
+
+PropertiesTool = function(opts) {
+    var that = {};
+
+    var url = Script.resolvePath('html/entityProperties.html');
+    var webView = new WebWindow('Entity Properties', url, 200, 280);
+
+    var visible = false;
+
+    webView.setVisible(visible);
+
+    that.setVisible = function(newVisible) {
+        visible = newVisible;
+        webView.setVisible(visible);
+    };
+
+    selectionManager.addEventListener(function() {
+        data = {
+            type: 'update',
+        };
+        if (selectionManager.hasSelection()) {
+            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+        }
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    });
+
+    webView.eventBridge.webEventReceived.connect(function(data) {
+        print(data);
+        data = JSON.parse(data);
+        if (data.type == "update") {
+            Entities.editEntity(selectionManager.selections[0], data.properties);
+            selectionManager._update();
+        }
+    });
+
+    return that;
+};
+
+propertiesTool = PropertiesTool();
+

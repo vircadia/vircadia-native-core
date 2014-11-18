@@ -86,14 +86,14 @@ void Overlays::render2D() {
 
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
         Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(),
-        RenderArgs::DEFAULT_RENDER_MODE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        RenderArgs::DEFAULT_RENDER_MODE, RenderArgs::MONO, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     foreach(Overlay* thisOverlay, _overlays2D) {
         thisOverlay->render(&args);
     }
 }
 
-void Overlays::render3D(RenderArgs::RenderMode renderMode) {
+void Overlays::render3D(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     QReadLocker lock(&_lock);
     if (_overlays3D.size() == 0) {
         return;
@@ -108,7 +108,7 @@ void Overlays::render3D(RenderArgs::RenderMode renderMode) {
     
     RenderArgs args = { NULL, Application::getInstance()->getViewFrustum(),
                         Menu::getInstance()->getVoxelSizeScale(), Menu::getInstance()->getBoundaryLevelAdjust(), 
-                        renderMode, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        renderMode, renderSide, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     
 
     foreach(Overlay* thisOverlay, _overlays3D) {
@@ -194,6 +194,16 @@ unsigned int Overlays::addOverlay(Overlay* overlay) {
     }
     
     return thisID;
+}
+
+unsigned int Overlays::cloneOverlay(unsigned int id) {
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    }
+    return addOverlay(thisOverlay->createClone());
 }
 
 bool Overlays::editOverlay(unsigned int id, const QScriptValue& properties) {
@@ -397,15 +407,15 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
 
 bool Overlays::isLoaded(unsigned int id) {
     QReadLocker lock(&_lock);
-    Overlay* overlay = _overlays2D.value(id);
-    if (!overlay) {
-        _overlays3D.value(id);
-    }
-    if (!overlay) {
+    Overlay* thisOverlay = NULL;
+    if (_overlays2D.contains(id)) {
+        thisOverlay = _overlays2D[id];
+    } else if (_overlays3D.contains(id)) {
+        thisOverlay = _overlays3D[id];
+    } else {
         return false; // not found
     }
-
-    return overlay->isLoaded();
+    return thisOverlay->isLoaded();
 }
 
 float Overlays::textWidth(unsigned int id, const QString& text) const {

@@ -54,7 +54,7 @@ enum PacketType {
     UNUSED_2,
     UNUSED_3,
     UNUSED_4,
-    UNUSED_5,
+    PacketTypeNoisyMute,
     PacketTypeMetavoxelData,
     PacketTypeAvatarIdentity,
     PacketTypeAvatarBillboard,

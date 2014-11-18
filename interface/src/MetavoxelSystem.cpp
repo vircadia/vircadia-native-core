@@ -3164,8 +3164,7 @@ void StaticModelRenderer::applyRotation(const glm::quat& rotation) {
 }
 
 void StaticModelRenderer::applyScale(float scale) {
-    const float SCALE_MULTIPLIER = 0.0006f;
-    _model->setScale(glm::vec3(scale, scale, scale) * SCALE_MULTIPLIER);
+    _model->setScale(glm::vec3(scale, scale, scale));
 }
 
 void StaticModelRenderer::applyURL(const QUrl& url) {

@@ -27,6 +27,18 @@ ImageOverlay::ImageOverlay() :
     _isLoaded = false;
 }
 
+ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
+    Overlay2D(imageOverlay),
+    _imageURL(imageOverlay->_imageURL),
+    _textureImage(imageOverlay->_textureImage),
+    _textureID(0),
+    _fromImage(),
+    _renderImage(imageOverlay->_renderImage),
+    _textureBound(false),
+    _wantClipFromImage(false)
+{
+}
+
 ImageOverlay::~ImageOverlay() {
     if (_parent && _textureID) {
         // do we need to call this?
@@ -160,4 +172,7 @@ QScriptValue ImageOverlay::getProperty(const QString& property) {
     }
 
     return Overlay2D::getProperty(property);
+}
+ImageOverlay* ImageOverlay::createClone() const {
+    return new ImageOverlay(this);
 }

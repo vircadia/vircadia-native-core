@@ -138,8 +138,8 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void changeEntityState(EntityItem* const entity, 
-                EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
+    void updateEntityState(EntityItem* entity);
+    void clearEntityState(EntityItem* entity);
 
     void entityChanged(EntityItem* entity);
     void addEntityToPhysicsEngine(EntityItem* entity);

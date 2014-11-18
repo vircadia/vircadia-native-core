@@ -32,6 +32,7 @@ class LocalVoxelsOverlay : public Volume3DOverlay {
     Q_OBJECT
 public:
     LocalVoxelsOverlay();
+    LocalVoxelsOverlay(const LocalVoxelsOverlay* localVoxelsOverlay);
     ~LocalVoxelsOverlay();
     
     virtual void update(float deltatime);
@@ -40,6 +41,7 @@ public:
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
+    virtual LocalVoxelsOverlay* createClone() const;
 private:
     static QMap<QString, WeakVoxelSystemPointer> _voxelSystemMap; // treeName/voxelSystem
     

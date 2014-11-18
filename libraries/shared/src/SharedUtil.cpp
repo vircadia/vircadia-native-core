@@ -37,7 +37,7 @@ void usecTimestampNowForceClockSkew(int clockSkew) {
     ::usecTimestampNowAdjust = clockSkew;
 }
 
-quint64 usecTimestampNow() {
+quint64 usecTimestampNow(bool wantDebug) {
     static bool usecTimestampNowIsInitialized = false;
     static qint64 TIME_REFERENCE = 0; // in usec
     static QElapsedTimer timestampTimer;
@@ -57,7 +57,6 @@ quint64 usecTimestampNow() {
             quint64 msecsElapsed = timestampTimer.restart();
             quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
             TIME_REFERENCE += usecsElapsed;
-            const bool wantDebug = false;
             if (wantDebug) {
                 qDebug() << "usecTimestampNow() - resetting QElapsedTimer. ";
                 qDebug() << "    RESET_AFTER_ELAPSED_NSECS:" << RESET_AFTER_ELAPSED_NSECS;
@@ -68,8 +67,34 @@ quint64 usecTimestampNow() {
         }
     }
     
-    //          usec                       nsec to usec                   usec
-    return TIME_REFERENCE + timestampTimer.nsecsElapsed() / 1000 + ::usecTimestampNowAdjust;
+    quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
+    quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
+    quint64 now = TIME_REFERENCE + usecsElapsed + ::usecTimestampNowAdjust;
+    
+    if (wantDebug) {
+        QDateTime currentLocalTime = QDateTime::currentDateTime();
+
+        quint64 msecsNow = now / 1000; // usecs to msecs
+        QDateTime nowAsString;
+        nowAsString.setMSecsSinceEpoch(msecsNow);
+
+        quint64 msecsTimeReference = TIME_REFERENCE / 1000; // usecs to msecs
+        QDateTime timeReferenceAsString;
+        timeReferenceAsString.setMSecsSinceEpoch(msecsTimeReference);
+
+        qDebug() << "usecTimestampNow() - details... ";
+        qDebug() << "           TIME_REFERENCE:" << TIME_REFERENCE;
+        qDebug() << "    timeReferenceAsString:" << timeReferenceAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qDebug() << "   usecTimestampNowAdjust:" << usecTimestampNowAdjust;
+        qDebug() << "             nsecsElapsed:" << nsecsElapsed;
+        qDebug() << "             usecsElapsed:" << usecsElapsed;
+        qDebug() << "                      now:" << now;
+        qDebug() << "                 msecsNow:" << msecsNow;
+        qDebug() << "              nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        qDebug() << "         currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
+    }
+    
+    return now;
 }
 
 float randFloat() {

@@ -1,5 +1,6 @@
 <html>
 <head>
+    <link rel="stylesheet" type="text/css" href="style.css">
     <script>
         function loaded() {
             var gridColor = { red: 0, green: 0, blue: 0 };
@@ -17,13 +18,14 @@
             gridOn = document.getElementById("grid-on");
             snapToGrid = document.getElementById("snap-to-grid");
             hGridVisible = document.getElementById("horiz-grid-visible");
-
+            bMoveToSelection = document.getElementById("move-to-selection");
+            bMoveToAvatar = document.getElementById("move-to-avatar");
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
                     data = JSON.parse(data);
-                    if (data.origin) {
 
+                    if (data.origin) {
                         var origin = data.origin;
                         posY.value = origin.y;
                     }
@@ -69,6 +71,19 @@
             hGridVisible.addEventListener("change", emitUpdate);
             snapToGrid.addEventListener("change", emitUpdate);
 
+            bMoveToAvatar.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "moveToAvatar",
+                }));
+            });
+            bMoveToSelection.addEventListener("click", function() {
+                EventBridge.emitWebEvent(JSON.stringify({
+                    type: "action",
+                    action: "moveToSelection",
+                }));
+            });
+
             var gridColorBox = document.getElementById('grid-color');
 
             for (var i = 0; i < gridColors.length; i++) {
@@ -88,105 +103,63 @@
             EventBridge.emitWebEvent(JSON.stringify({ type: 'init' }));
         }
     </script>
-    <style>
-        * {
-        }
-
-        body {
-            margin: 0;
-            padding: 0;
-
-            background: #DDD;
-            font-family: Sans-Serif;
-            font-size: 12px;
-
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
-
-        input {
-            line-height: 2;
-        }
-
-        .input-left {
-            display: inline-block;
-            width: 20px;
-        }
-
-        .color-box {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 1px solid black;
-            background: blue;
-            margin: 2px;
-        }
-
-        .color-box.highlight {
-            width: 18px;
-            height: 18px;
-            border: 2px solid black;
-        }
-
-        .section-header {
-            background: #AAA;
-            border-bottom: 1px solid #CCC;
-        }
-
-        .section-header label {
-            font-weight: bold;
-        }
-
-        .grid-section {
-            border-top: 1px solid #DDD;
-            padding: 4px 0px 4px 20px;
-            background: #DDD;
-        }
-    </style>
 </head>
 <body onload='loaded();'>
     <div class="section-header">
-        <input type='checkbox' id="horiz-grid-visible">
         <label>Horizontal Grid</label>
     </div>
+
     <div class="grid-section">
 
-        <label>Snap to grid</label>
-        <div>
-            <div class="input-left">
-            </div>
-            <input type='checkbox' id="snap-to-grid">
+        <div class="property-section">
+            <label>Visible</label>
+            <span>
+                <input type='checkbox' id="horiz-grid-visible">
+            </span>
         </div>
 
-        <label>Position (Y Axis)</label>
-        <div id="horizontal-position">
-            <div class="input-left">
-            </div>
-            <input type='number' id="horiz-y" class="number" value="0.0" step="0.1"></input>
+        <div class="property-section">
+            <label>Snap to grid</label>
+            <span>
+                <input type='checkbox' id="snap-to-grid">
+            </span>
         </div>
 
-        <label>Minor Grid Size</label>
-        <div>
-            <div class="input-left">
-            </div>
-            <input type='number' id="minor-spacing" min="0" step="0.01", ></input>
+        <div id="horizontal-position" class="property-section">
+            <label>Position (Y Axis)</label>
+            <span>
+                <input type='number' id="horiz-y" class="number" value="0.0" step="0.1"></input>
+            </span>
         </div>
 
-        <label>Major Grid Every</label>
-        <div>
-            <div class="input-left">
-            </div>
-            <input type='number' id="major-spacing" min="2" step="1", ></input>
+        <div class="property-section">
+            <label>Minor Grid Size</label>
+            <span>
+                <input type='number' id="minor-spacing" min="0" step="0.01", ></input>
+            </span>
         </div>
 
-        <label>Grid Color</label>
-        <div id="grid-colors">
-            <div class="input-left">
-            </div>
+        <div class="property-section">
+            <label>Major Grid Every</label>
+            <span>
+                <input type='number' id="major-spacing" min="2" step="1", ></input>
+            </span>
+        </div>
+
+        <div class="property-section">
+            <label>Grid Color</label>
+            <span id="grid-colors"></span>
+        </div>
+
+        <div class="property-section">
+            <span>
+                <input type="button" id="move-to-selection" value="Move to Selection">
+            </span>
+        </div>
+        <div class="property-section">
+            <span>
+                <input type="button" id="move-to-avatar" value="Move to Avatar">
+            </span>
         </div>
     </div>
 </body>

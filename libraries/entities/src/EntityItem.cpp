@@ -96,6 +96,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
 #endif // USE_BULLET_PHYSICS
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
+    _simulationState = EntityItem::Static;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -111,6 +112,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
+    _simulationState = EntityItem::Static;
 }
 
 EntityItem::~EntityItem() {
@@ -735,11 +737,8 @@ void EntityItem::update(const quint64& updateTime) {
 }
 
 EntityItem::SimulationState EntityItem::computeSimulationState() const {
-    if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
+    if (hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity()) {
         return EntityItem::Moving;
-    }
-    if (hasAngularVelocity()) {
-        return EntityItem::Changing;
     }
     if (isMortal()) {
         return EntityItem::Mortal;

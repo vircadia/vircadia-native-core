@@ -89,6 +89,9 @@ private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
 };
 
-
+#else // USE_BULLET_PHYSICS
+// PhysicsEngine stubbery until Bullet is required
+class PhysicsEngine {
+};
 #endif // USE_BULLET_PHYSICS
 #endif // hifi_PhysicsEngine_h

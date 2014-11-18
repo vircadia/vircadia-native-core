@@ -28,6 +28,7 @@
 #include "EntityItemProperties.h" 
 #include "EntityTypes.h"
 
+class EntityTree;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
@@ -119,11 +120,13 @@ public:
     typedef enum SimulationState_t {
         Static,
         Mortal,
-        Changing,
         Moving
     } SimulationState;
     
-    virtual SimulationState computeSimulationState() const;
+    // computes the SimulationState that the entity SHOULD be in.  
+    // Use getSimulationState() to find the state under which it is currently categorized.
+    virtual SimulationState computeSimulationState() const; 
+
     virtual void debugDump() const;
 
     // similar to assignment/copy, but it handles keeping lifetime accurate
@@ -272,8 +275,12 @@ public:
     virtual EntityMotionState* createMotionState() { return NULL; }
     void destroyMotionState();
 #endif // USE_BULLET_PHYSICS
+    SimulationState getSimulationState() const { return _simulationState; }
     
 protected:
+    friend class EntityTree;
+    void setSimulationState(SimulationState state) { _simulationState = state; }
+
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();
 
@@ -318,6 +325,7 @@ protected:
 #ifdef USE_BULLET_PHYSICS
     EntityMotionState* _motionState;
 #endif // USE_BULLET_PHYSICS
+    SimulationState _simulationState;   // only set by EntityTree
 };
 
 
