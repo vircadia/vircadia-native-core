@@ -48,6 +48,7 @@ macro(qt_create_apk)
   
   # add our dependencies to the deployment file
   get_property(_DEPENDENCIES TARGET ${TARGET_NAME} PROPERTY INTERFACE_LINK_LIBRARIES)
+  
   foreach(_DEP IN LISTS _DEPENDENCIES)
     if (NOT TARGET ${_DEP})
       list(APPEND _DEPS_LIST ${_DEP})
@@ -58,6 +59,18 @@ macro(qt_create_apk)
       endif()
     endif ()
   endforeach()
+  
+  # just copy static libs to apk libs folder - don't add to deps list
+  foreach(_LOCATED_DEP IN LISTS _DEPS_LIST)
+    if (_LOCATED_DEP MATCHES "\\.a$")
+      add_custom_command(
+        TARGET ${TARGET_NAME}
+	      COMMAND ${CMAKE_COMMAND} -E copy ${_LOCATED_DEP} "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}"
+		  )
+      list(REMOVE_ITEM _DEPS_LIST _LOCATED_DEP)
+    endif ()
+  endforeach()
+  
   string(REPLACE ";" "," _DEPS "${_DEPS_LIST}")
   
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
