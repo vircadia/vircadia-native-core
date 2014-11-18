@@ -99,6 +99,7 @@ Audio::Audio(QObject* parent) :
     _muted(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
+    _gverbLocal(NULL),
     _gverb(NULL),
     _iconColor(1.0f),
     _iconPulseTimeReference(usecTimestampNow()),
@@ -504,12 +505,23 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void Audio::initGverb() {
     // Initialize a new gverb instance
+    _gverbLocal = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
+                            _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
+                            _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
+                            _reverbOptions->getTailLevel());
     _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
                        _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
                        _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
                        _reverbOptions->getTailLevel());
-
+    
     // Configure the instance (these functions are not super well named - they actually set several internal variables)
+    gverb_set_roomsize(_gverbLocal, _reverbOptions->getRoomSize());
+    gverb_set_revtime(_gverbLocal, _reverbOptions->getReverbTime());
+    gverb_set_damping(_gverbLocal, _reverbOptions->getDamping());
+    gverb_set_inputbandwidth(_gverbLocal, _reverbOptions->getInputBandwidth());
+    gverb_set_earlylevel(_gverbLocal, DB_CO(_reverbOptions->getEarlyLevel()));
+    gverb_set_taillevel(_gverbLocal, DB_CO(_reverbOptions->getTailLevel()));
+    
     gverb_set_roomsize(_gverb, _reverbOptions->getRoomSize());
     gverb_set_revtime(_gverb, _reverbOptions->getReverbTime());
     gverb_set_damping(_gverb, _reverbOptions->getDamping());
@@ -565,25 +577,27 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
-    float dryFraction = DB_CO(_reverbOptions->getDryLevel());
+void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
+    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
         // Run GVerb
         float value = (float)samplesData[sample];
-        gverb_do(_gverb, value, &lValue, &rValue);
+        gverb_do(gverb, value, &lValue, &rValue);
 
         // Mix, accounting for clipping, the left and right channels. Ignore the rest.
         for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
-                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction), MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
+                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)lResult;
             } else if (j == (sample + 1)) {
                 // right channel
-                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction), MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
+                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
+                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)rResult;
             } else {
                 // ignore channels above 2
@@ -622,23 +636,10 @@ void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
     }
     
     if (hasLocalReverb) {
-        QByteArray loopbackCopy;
-        if (!hasEcho) {
-            loopbackCopy = loopBackByteArray;
-        }
-        
         int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
         int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
         updateGverbOptions();
-        addReverb(loopbackSamples, numLoopbackSamples, _outputFormat);
-        
-        if (!hasEcho) {
-            int16_t* loopbackCopySamples = reinterpret_cast<int16_t*>(loopbackCopy.data());
-            for (int i = 0; i < numLoopbackSamples; ++i) {
-                loopbackSamples[i] = glm::clamp((int)loopbackSamples[i] - loopbackCopySamples[i],
-                                                MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
-            }
-        }
+        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat, !hasEcho);
     }
     
     if (_loopbackOutputDevice) {
@@ -1029,7 +1030,7 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
     
     if(_reverb || _receivedAudioStream.hasReverb()) {
         updateGverbOptions();
-        addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
+        addReverb(_gverb, (int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
     }
 }
 

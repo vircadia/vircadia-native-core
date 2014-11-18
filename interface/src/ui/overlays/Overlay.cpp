@@ -41,20 +41,22 @@ Overlay::Overlay() :
 
 Overlay::Overlay(const Overlay* overlay) :
     _parent(NULL),
+    _isLoaded(overlay->_isLoaded),
     _alpha(overlay->_alpha),
-    _lastPulseUpdate(usecTimestampNow()),
-    _alphaPulse(overlay->_alphaPulse),
-    _anchor(overlay->_anchor),
-    _color(overlay->_color),
-    _colorPulse(overlay->_colorPulse),
     _glowLevel(overlay->_glowLevel),
-    _glowLevelPulse(overlay->_glowLevelPulse),
-    _pulseDirection(overlay->_pulseDirection),
+    _pulse(overlay->_pulse),
     _pulseMax(overlay->_pulseMax),
     _pulseMin(overlay->_pulseMin),
     _pulsePeriod(overlay->_pulsePeriod),
+    _pulseDirection(overlay->_pulseDirection),
+    _lastPulseUpdate(usecTimestampNow()),
+    _glowLevelPulse(overlay->_glowLevelPulse),
+    _alphaPulse(overlay->_alphaPulse),
+    _colorPulse(overlay->_colorPulse),
+    _color(overlay->_color),
     _visible(overlay->_visible),
-    _isLoaded(overlay->_isLoaded)
+    _anchor(overlay->_anchor),
+    _scriptEngine(NULL)
 {
 }
 

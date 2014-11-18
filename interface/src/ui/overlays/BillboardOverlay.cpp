@@ -26,12 +26,14 @@ BillboardOverlay::BillboardOverlay() :
 
 BillboardOverlay::BillboardOverlay(const BillboardOverlay* billboardOverlay) :
     Base3DOverlay(billboardOverlay),
-    _newTextureNeeded(true),
-    _scale(billboardOverlay->_scale),
-    _isFacingAvatar(billboardOverlay->_isFacingAvatar),
-    _fromImage(billboardOverlay->_fromImage),
     _url(billboardOverlay->_url),
-    _billboard(billboardOverlay->_billboard)
+    _billboard(billboardOverlay->_billboard),
+    _size(),
+    _billboardTexture(),
+    _newTextureNeeded(true),
+    _fromImage(billboardOverlay->_fromImage),
+    _scale(billboardOverlay->_scale),
+    _isFacingAvatar(billboardOverlay->_isFacingAvatar)
 {
 }
 

@@ -115,15 +115,15 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.0f;       // meters
+static const float BILLBOARD_DISTANCE = 5.56f;       // meters
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
 static const int MIRROR_VIEW_WIDTH = 265;
 static const int MIRROR_VIEW_HEIGHT = 215;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
+static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
