@@ -65,6 +65,7 @@ macro(qt_create_apk)
     if (_LOCATED_DEP MATCHES "\\.a$")
       add_custom_command(
         TARGET ${TARGET_NAME}
+        POST_BUILD
 	      COMMAND ${CMAKE_COMMAND} -E copy ${_LOCATED_DEP} "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}"
 		  )
       list(REMOVE_ITEM _DEPS_LIST ${_LOCATED_DEP})
