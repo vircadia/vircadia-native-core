@@ -92,6 +92,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _created = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
+    _simulationState = EntityItem::Static;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -104,6 +105,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
+    _simulationState = EntityItem::Static;
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -404,7 +406,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "      fromSameServerEdit=" << fromSameServerEdit;
         }
 
-        bool ignoreServerPacket = false; // assume we're use this server packet
+        bool ignoreServerPacket = false; // assume we'll use this server packet
         
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
@@ -715,12 +717,9 @@ void EntityItem::update(const quint64& updateTime) {
     }
 }
 
-EntityItem::SimulationState EntityItem::getSimulationState() const {
-    if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
+EntityItem::SimulationState EntityItem::computeSimulationState() const {
+    if (hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity()) {
         return EntityItem::Moving;
-    }
-    if (hasAngularVelocity()) {
-        return EntityItem::Changing;
     }
     if (isMortal()) {
         return EntityItem::Mortal;
