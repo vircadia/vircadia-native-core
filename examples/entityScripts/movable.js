@@ -23,6 +23,8 @@
     this.rotateOverlayCurrent = null;
     this.rotateMode = false;
     this.originalRotation = null;
+    this.sound = null;
+    this.injector = null;
     
     var rotateOverlayTargetSize = 10000; // really big target
     var innerSnapAngle = 22.5; // the angle which we snap to on the inner rotation tool
@@ -34,7 +36,28 @@
     var yawNormal;
     
     var debug = true;
+    
+    // Download sound if needed
+    this.maybeDownloadSound = function() {
+        if (this.sound === null) {
+            this.sound = SoundCache.getSound("http://public.highfidelity.io/sounds/Collisions-otherorganic/whoosh2.raw");
+        }
+    }
+    // Play drag sound
+    this.playSound = function() {
+        this.stopSound();
+        if (this.sound && this.sound.downloaded) {
+            this.injector = Audio.playSound(this.sound, { position: this.properties.position, loop: true, volume: 0.1 });
+        }
+    }
 
+    // stop drag sound
+    this.stopSound = function() {
+        if (this.injector) {
+            Audio.stopInjector(this.injector);
+            this.injector = null;
+        }
+    }
 
     // Pr, Vr are respectively the Ray's Point of origin and Vector director
     // Pp, Np are respectively the Plane's Point of origin and Normal vector
@@ -66,6 +89,9 @@
     
     this.move = function(mouseEvent) {
         this.updatePosition(mouseEvent);
+        if (this.injector === null) {
+            this.playSound();
+        }
     };
     
     this.release = function(mouseEvent) {
@@ -234,6 +260,7 @@
     
     this.preload = function(entityID) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
+        this.maybeDownloadSound();
     };
     
     this.clickDownOnEntity = function(entityID, mouseEvent) {
@@ -289,6 +316,7 @@
         }
 
         this.firstHolding = false;
+        this.stopSound();
     };
 
 })
