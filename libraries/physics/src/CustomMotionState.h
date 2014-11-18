@@ -53,7 +53,7 @@ public:
     void getVelocity(glm::vec3& velocityOut) const;
     void getAngularVelocity(glm::vec3& angularVelocityOut) const;
 
-    friend class PhysicsWorld;
+    friend class PhysicsEngine;
 
 protected:
     float _density;
@@ -63,7 +63,7 @@ protected:
     bool _wasInWorld;
     MotionType _motionType;
 
-    // _body has NO setters -- it is only changed by PhysicsWorld
+    // _body has NO setters -- it is only changed by PhysicsEngine
     btRigidBody* _body;
 };
 

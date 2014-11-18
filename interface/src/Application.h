@@ -35,7 +35,6 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-//#include <PhysicsWorld.h>
 #include <ScriptEngine.h>
 #include <OctreeQuery.h>
 #include <ViewFrustum.h>
@@ -495,7 +494,7 @@ private:
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
 #ifdef USE_BULLET_PHYSICS
-    ThreadSafePhysicsWorld _physicsWorld;
+    ThreadSafePhysicsEngine _physicsEngine;
 #endif // USE_BULLET_PHYSICS
 
     EntityTreeRenderer _entities;

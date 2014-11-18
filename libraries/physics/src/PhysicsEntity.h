@@ -19,7 +19,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #ifdef USE_BULLET_PHYSICS
-#include "PhysicsWorld.h"
+#include "PhysicsEngine.h"
 #endif // USE_BULLET_PHYSICS
 
 #include "CollisionInfo.h"

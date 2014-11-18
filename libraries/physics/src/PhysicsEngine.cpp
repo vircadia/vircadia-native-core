@@ -1,5 +1,5 @@
 //
-//  PhysicsWorld.cpp
+//  PhysicsEngine.cpp
 //  libraries/physcis/src
 //
 //  Created by Andrew Meadows 2014.10.29
@@ -9,14 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "PhysicsWorld.h"
+#include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
 
-PhysicsWorld::~PhysicsWorld() {
+PhysicsEngine::~PhysicsEngine() {
 }
 
 // virtual
-void PhysicsWorld::init() {
+void PhysicsEngine::init() {
     if (!_dynamicsWorld) {
         _collisionConfig = new btDefaultCollisionConfiguration();
         _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);
@@ -46,7 +46,7 @@ void PhysicsWorld::init() {
     }
 }
 
-void PhysicsWorld::stepSimulation() {
+void PhysicsEngine::stepSimulation() {
     const float MAX_TIMESTEP = 1.0f / 30.0f;
     const int MAX_NUM_SUBSTEPS = 2;
     const float FIXED_SUBSTEP = 1.0f / 60.0f;
@@ -57,7 +57,7 @@ void PhysicsWorld::stepSimulation() {
     _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
 }
 
-bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
+bool PhysicsEngine::addVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
     glm::vec3 trueCenter = position + halfExtents;
     PositionHashKey key(trueCenter);
@@ -89,7 +89,7 @@ bool PhysicsWorld::addVoxel(const glm::vec3& position, float scale) {
     return false;
 }
 
-bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
+bool PhysicsEngine::removeVoxel(const glm::vec3& position, float scale) {
     glm::vec3 halfExtents = glm::vec3(0.5f * scale);
     glm::vec3 trueCenter = position + halfExtents;
     PositionHashKey key(trueCenter);
@@ -122,7 +122,7 @@ bool PhysicsWorld::removeVoxel(const glm::vec3& position, float scale) {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-bool PhysicsWorld::addEntity(CustomMotionState* motionState) {
+bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
     assert(motionState);
     ShapeInfo info;
     motionState->computeShapeInfo(info);
@@ -166,7 +166,7 @@ bool PhysicsWorld::addEntity(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsWorld::updateEntityMotionType(CustomMotionState* motionState) {
+bool PhysicsEngine::updateEntityMotionType(CustomMotionState* motionState) {
     btRigidBody* body = motionState->_body;
     if (!body) {
         return false;
@@ -216,7 +216,7 @@ bool PhysicsWorld::updateEntityMotionType(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsWorld::removeEntity(CustomMotionState* motionState) {
+bool PhysicsEngine::removeEntity(CustomMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->_body;
     if (body) {
@@ -232,13 +232,13 @@ bool PhysicsWorld::removeEntity(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsWorld::updateEntityMotionType(CustomMotionState* motionState, MotionType type) {
+bool PhysicsEngine::updateEntityMotionType(CustomMotionState* motionState, MotionType type) {
     // TODO: implement this
     assert(motionState);
     return false;
 }
 
-bool PhysicsWorld::updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues) {
+bool PhysicsEngine::updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues) {
     // TODO: implement this
     assert(motionState);
     return false;

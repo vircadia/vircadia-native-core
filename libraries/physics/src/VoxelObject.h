@@ -17,7 +17,7 @@
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 
-// VoxelObject is a simple wrapper for tracking a Voxel in a PhysicsWorld
+// VoxelObject is a simple wrapper for tracking a Voxel in a PhysicsEngine
 class VoxelObject {
 public:
     VoxelObject(const glm::vec3& center, btCollisionObject* object) : _object(object), _center(center) {

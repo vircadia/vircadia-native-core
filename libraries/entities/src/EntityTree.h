@@ -19,7 +19,7 @@
 
 
 class Model;
-class PhysicsWorld;
+class PhysicsEngine;
 
 class NewlyCreatedEntityHook {
 public:
@@ -142,8 +142,8 @@ public:
                 EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
 
     void entityChanged(EntityItem* entity);
-    void addEntityToPhysicsWorld(EntityItem* entity);
-    void removeEntityFromPhysicsWorld(EntityItem* entity);
+    void addEntityToPhysicsEngine(EntityItem* entity);
+    void removeEntityFromPhysicsEngine(EntityItem* entity);
 
     void trackDeletedEntity(const EntityItemID& entityID);
 
@@ -152,7 +152,7 @@ public:
 
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
 
-    void setPhysicsWorld(PhysicsWorld* world);
+    void setPhysicsEngine(PhysicsEngine* engine);
     
 signals:
     void deletingEntity(const EntityItemID& entityID);
@@ -187,7 +187,7 @@ private:
 
     QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
 
-    PhysicsWorld* _physicsWorld;
+    PhysicsEngine* _physicsEngine;
 };
 
 #endif // hifi_EntityTree_h

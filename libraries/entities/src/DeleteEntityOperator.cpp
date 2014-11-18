@@ -102,7 +102,7 @@ bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
                 EntityItem* theEntity = entityTreeElement->getEntityWithEntityItemID(entityItemID); // find the actual entity
                 entityTreeElement->removeEntityItem(theEntity); // remove it from the element
                 _tree->setContainingElement(entityItemID, NULL); // update or id to element lookup
-                _tree->removeEntityFromPhysicsWorld(theEntity);
+                _tree->removeEntityFromPhysicsEngine(theEntity);
                 delete theEntity; // now actually delete the entity!
                 _foundCount++;
             }

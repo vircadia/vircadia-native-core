@@ -44,17 +44,17 @@ private:
     EntityTree* _entities;
 };
 
-ThreadSafePhysicsWorld::ThreadSafePhysicsWorld(const glm::vec3& offset) : PhysicsWorld(offset) {
+ThreadSafePhysicsEngine::ThreadSafePhysicsEngine(const glm::vec3& offset) : PhysicsEngine(offset) {
 }
 
-void ThreadSafePhysicsWorld::initSafe(EntityTree* entities) {
+void ThreadSafePhysicsEngine::initSafe(EntityTree* entities) {
     assert(!_dynamicsWorld); // only call this once
     assert(entities);
     _collisionConfig = new btDefaultCollisionConfiguration();                             
     _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);                   
     _broadphaseFilter = new btDbvtBroadphase();                                           
     _constraintSolver = new btSequentialImpulseConstraintSolver;                          
-    // ThreadSafePhysicsWorld gets a DynamicsImpl, which derives from ThreadSafeDynamicsWorld
+    // ThreadSafePhysicsEngine gets a DynamicsImpl, which derives from ThreadSafeDynamicsWorld
     _dynamicsWorld = new DynamicsImpl(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig, entities);
 }
 

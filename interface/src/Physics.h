@@ -12,15 +12,15 @@
 #ifndef hifi_Physics_h
 #define hifi_Physics_h
 
-#include <PhysicsWorld.h>
+#include <PhysicsEngine.h>
 
 class EntityTree;
 
-class ThreadSafePhysicsWorld : public PhysicsWorld {
+class ThreadSafePhysicsEngine : public PhysicsEngine {
 public:
-    ThreadSafePhysicsWorld(const glm::vec3& offset);
+    ThreadSafePhysicsEngine(const glm::vec3& offset);
 
-    // virtual override from PhysicsWorld
+    // virtual override from PhysicsEngine
     void init() { assert(false); } // call initSafe() instead
 
     void initSafe(EntityTree* entities);

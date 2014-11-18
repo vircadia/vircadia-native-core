@@ -64,7 +64,7 @@
 #include <OctreeSceneStats.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
-#include <PhysicsWorld.h>
+#include <PhysicsEngine.h>
 #include <ResourceCache.h>
 #include <SoundCache.h>
 #include <UserActivityLogger.h>
@@ -154,7 +154,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _importSucceded(false),
         _sharedVoxelSystem(TREE_SCALE, DEFAULT_MAX_VOXELS_PER_SYSTEM, &_clipboard),
 #ifdef USE_BULLET_PHYSICS
-        _physicsWorld(glm::vec3(0.0f)),
+        _physicsEngine(glm::vec3(0.0f)),
 #endif // USE_BULLET_PHYSICS
         _entities(true),
         _entityCollisionSystem(),
@@ -2009,8 +2009,8 @@ void Application::init() {
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::updateMyAvatarTransform);
 
 #ifdef USE_BULLET_PHYSICS
-    _physicsWorld.initSafe(_entities.getTree());
-    _entities.getTree()->setPhysicsWorld(&_physicsWorld);
+    _physicsEngine.initSafe(_entities.getTree());
+    _entities.getTree()->setPhysicsEngine(&_physicsEngine);
 #endif // USE_BULLET_PHYSICS
 }
 
@@ -2320,7 +2320,7 @@ void Application::update(float deltaTime) {
 #ifdef USE_BULLET_PHYSICS
     {
         PerformanceTimer perfTimer("physics");
-        _physicsWorld.stepSimulation();
+        _physicsEngine.stepSimulation();
     }
 #endif // USE_BULLET_PHYSICS
 
@@ -4117,7 +4117,7 @@ void Application::updateMyAvatarTransform() {
 #ifdef USE_BULLET_PHYSICS
     const float SIMULATION_OFFSET_QUANTIZATION = 16.0f; // meters
     glm::vec3 avatarPosition = _myAvatar->getPosition();
-    glm::vec3 physicsWorldOffset = _physicsWorld.getOriginOffset();
+    glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
     if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
         //_entityCollisionSystem.forgetAllPhysics();
         glm::vec3 newOriginOffset = avatarPosition;
@@ -4126,7 +4126,7 @@ void Application::updateMyAvatarTransform() {
             newOriginOffset[i] = (float)(glm::max(halfExtent, 
                     ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
         }
-        _physicsWorld.setOriginOffset(newOriginOffset);
+        _physicsEngine.setOriginOffset(newOriginOffset);
         //_entityCollisionSystem.rememberAllPhysics();
     }
 #endif // USE_BULLET_PHYSICS

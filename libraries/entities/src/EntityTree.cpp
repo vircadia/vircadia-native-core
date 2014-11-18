@@ -10,7 +10,7 @@
 //
 
 #include <PerfStat.h>
-#include <PhysicsWorld.h>
+#include <PhysicsEngine.h>
 
 #include "EntityTree.h"
 
@@ -20,7 +20,7 @@
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
-EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _physicsWorld(NULL) {
+EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _physicsEngine(NULL) {
     _rootElement = createNewElement();
 }
 
@@ -37,7 +37,7 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     // this would be a good place to clean up our entities...
     foreach (EntityTreeElement* element, _entityToElementMap) {
-        element->cleanupEntities(_physicsWorld);
+        element->cleanupEntities(_physicsEngine);
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
@@ -93,8 +93,8 @@ void EntityTree::addEntityItem(EntityItem* entity) {
     // check to see if we need to simulate this entity..
     changeEntityState(entity, EntityItem::Static, entity->computeSimulationState());
 
-    if (_physicsWorld && !entity->getMotionState()) {
-        addEntityToPhysicsWorld(entity);
+    if (_physicsEngine && !entity->getMotionState()) {
+        addEntityToPhysicsEngine(entity);
     }
 
     _isDirty = true;
@@ -200,11 +200,11 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
     }
 }
 
-void EntityTree::setPhysicsWorld(PhysicsWorld* world) {
-    if (_physicsWorld) {
-        // TODO: remove all entities before we clear the world
+void EntityTree::setPhysicsEngine(PhysicsEngine* engine) {
+    if (_physicsEngine) {
+        // TODO: remove all entities before we clear the engine
     }
-    _physicsWorld = world;
+    _physicsEngine = engine;
 }
 
 void EntityTree::emitAddingEntity(const EntityItemID& entityItemID) {
@@ -628,19 +628,19 @@ void EntityTree::entityChanged(EntityItem* entity) {
     _changedEntities.insert(entity);
 }
 
-void EntityTree::addEntityToPhysicsWorld(EntityItem* entity) {
+void EntityTree::addEntityToPhysicsEngine(EntityItem* entity) {
     EntityMotionState* motionState = entity->createMotionState();
-    if (!_physicsWorld->addEntity(static_cast<CustomMotionState*>(motionState))) {
-        // failed to add to world: probably because of bad shape,
+    if (!_physicsEngine->addEntity(static_cast<CustomMotionState*>(motionState))) {
+        // failed to add to engine: probably because of bad shape,
         // probably because entity is too big or too small
         entity->destroyMotionState();
     }
 }
 
-void EntityTree::removeEntityFromPhysicsWorld(EntityItem* entity) {
+void EntityTree::removeEntityFromPhysicsEngine(EntityItem* entity) {
     EntityMotionState* motionState = entity->getMotionState();
     if (motionState) {
-        _physicsWorld->removeEntity(static_cast<CustomMotionState*>(motionState));
+        _physicsEngine->removeEntity(static_cast<CustomMotionState*>(motionState));
         entity->destroyMotionState();
     }
 }
