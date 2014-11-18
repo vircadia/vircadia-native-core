@@ -1,3 +1,16 @@
+//
+//  virtualKeyboard.js
+//  examples
+//
+//  Created by Thijs Wenker on 11/18/14.
+//  Copyright 2014 High Fidelity, Inc.
+//
+//  Control a virtual keyboard using your favorite HMD.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 const KBD_UPPERCASE_DEFAULT = 0;
 const KBD_LOWERCASE_DEFAULT = 1;
 const KBD_UPPERCASE_HOVER   = 2;
@@ -5,9 +18,15 @@ const KBD_LOWERCASE_HOVER   = 3;
 const KBD_BACKGROUND        = 4;
 
 const KEYBOARD_URL = "http://test.thoys.nl/hifi/images/virtualKeyboard/keyboard.svg";
+const CURSOR_URL = "http://test.thoys.nl/hifi/images/virtualKeyboard/cursor.svg";
 
-const KEYBOARD_HEIGHT = 434.1;
 const KEYBOARD_WIDTH  = 1174.7;
+const KEYBOARD_HEIGHT = 434.1;
+
+const CURSOR_WIDTH = 33.9;
+const CURSOR_HEIGHT = 33.9;
+
+const VIEW_ANGLE = 60.0;
 
 const BOUND_X = 0;
 const BOUND_Y = 1;
@@ -216,20 +235,42 @@ keyboard.onKeyPress = function() {
     print("Key press event test");
 };
 
+function Cursor() {
+    var tthis = this;
+    var dimensions = Controller.getViewportDimensions();
+    this.overlay = Overlays.addOverlay("image", {
+        x: dimensions.x / 2,
+        y: dimensions.y / 2,
+        width: CURSOR_WIDTH,
+        height: CURSOR_HEIGHT,
+        imageURL: CURSOR_URL,
+        alpha: 1
+    });
+    this.remove = function() {
+        Overlays.deleteOverlay(this.overlay);
+    };
+    this.update = function() {
+        var screen_angle = 60;
+        var dimensions = Controller.getViewportDimensions();
+        var editobject = {};//{x: dimensions.x / 2, y: dimensions.y / 2};
+        if (MyAvatar.getHeadFinalYaw() <= (VIEW_ANGLE / 2) && MyAvatar.getHeadFinalYaw() >= -1 * (VIEW_ANGLE / 2)) {
+             angle = ((-1 * MyAvatar.getHeadFinalYaw()) + (VIEW_ANGLE / 2)) / VIEW_ANGLE;
+             editobject.x = angle * dimensions.x;
+        }
+        if (MyAvatar.getHeadFinalPitch() <= (VIEW_ANGLE / 2) && MyAvatar.getHeadFinalPitch() >= -1 * (VIEW_ANGLE / 2)) {
+             angle = ((-1 * MyAvatar.getHeadFinalPitch()) + (VIEW_ANGLE / 2)) / VIEW_ANGLE;
+           //  print(angle * dimensions.y);
+             editobject.y = angle * dimensions.y;
+        }
+        Overlays.editOverlay(tthis.overlay, editobject); 
+    };
+    Script.update.connect(this.update);
+}
+var cursor = new Cursor();
 function scriptEnding() {
     keyboard.remove();
-}
-function mousePressEvent(event) {
-    //var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-	//if (clickedOverlay != 0) {
-	//	Overlays.deleteOverlay(clickedOverlay);
-	//}
+    cursor.remove();
+    Overlays.deleteOverlay(cursor);
 }
 
-function onUpdate() {
-    MyAvatar.getHeadFinalYaw();
-    MyAvatar.getHeadFinalPitch();
-}
-
-Script.update.connect(onUpdate);
 Script.scriptEnding.connect(scriptEnding);
