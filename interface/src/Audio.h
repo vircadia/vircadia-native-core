@@ -248,6 +248,7 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
+    ty_gverb* _gverbLocal;
     ty_gverb* _gverb;
     GLuint _micTextureId;
     GLuint _muteTextureId;
@@ -269,7 +270,7 @@ private:
     // Adds Reverb
     void initGverb();
     void updateGverbOptions();
-    void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
+    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
 
     void handleLocalEchoAndReverb(QByteArray& inputByteArray);
     

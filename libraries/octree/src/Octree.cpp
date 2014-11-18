@@ -289,35 +289,25 @@ int Octree::readElementData(OctreeElement* destinationElement, const unsigned ch
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         // check the colors mask to see if we have a child to color in
         if (oneAtBit(colorInPacketMask, i)) {
-            // create the child if it doesn't exist
-            if (!destinationElement->getChildAtIndex(i)) {
-                destinationElement->addChildAtIndex(i);
-                if (destinationElement->isDirty()) {
-                    _isDirty = true;
-                }
-            }
+            // addChildAtIndex() should actually be called getOrAddChildAtIndex().  
+            // When it adds the child it automatically sets the detinationElement dirty.
+            OctreeElement* childElementAt = destinationElement->addChildAtIndex(i);
 
-            OctreeElement* childElementAt = destinationElement->getChildAtIndex(i);
-            bool nodeIsDirty = false;
-            if (childElementAt) {
+            int childElementDataRead = childElementAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
+            childElementAt->setSourceUUID(args.sourceUUID);
+ 
+            bytesRead += childElementDataRead;
+            bytesLeftToRead -= childElementDataRead;
 
-                int childElementDataRead = childElementAt->readElementDataFromBuffer(nodeData + bytesRead, bytesLeftToRead, args);
-                childElementAt->setSourceUUID(args.sourceUUID);
-
-                bytesRead += childElementDataRead;
-                bytesLeftToRead -= childElementDataRead;
-
-                // if we had a local version of the element already, it's possible that we have it already but
-                // with the same color data, so this won't count as a change. To address this we check the following
-                if (!childElementAt->isDirty() && childElementAt->getShouldRender() && !childElementAt->isRendered()) {
-                    childElementAt->setDirtyBit(); // force dirty!
-                }
-
-                nodeIsDirty = childElementAt->isDirty();
-            }
-            if (nodeIsDirty) {
+            // It's possible that we already had this version of element data, in which case the unpacking of the data
+            // wouldn't flag childElementAt as dirty, so we manually flag it here... if the element is to be rendered.
+            if (childElementAt->getShouldRender() && !childElementAt->isRendered()) {
+                childElementAt->setDirtyBit(); // force dirty!
                 _isDirty = true;
             }
+        }
+        if (destinationElement->isDirty()) {
+            _isDirty = true;
         }
     }
 

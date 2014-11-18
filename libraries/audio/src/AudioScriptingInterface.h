@@ -37,6 +37,10 @@ public slots:
     
     void injectorStopped();
     
+signals:
+    void mutedByMixer();
+    void environmentMuted();
+    
 private:
     AudioScriptingInterface();
     QList< QPointer<AudioInjector> > _activeInjectors;
