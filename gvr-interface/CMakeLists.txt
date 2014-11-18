@@ -1,6 +1,11 @@
 set(TARGET_NAME gvr-interface)
 
-set(${TARGET_NAME}_SHARED true)
+set(ANDROID_APK_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk-build")
+set(ANDROID_APK_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}")
+set(BUILD_SHARED_LIBS ON)
+
 setup_hifi_library()
 
 include_glm()
@@ -15,6 +20,5 @@ set(ANDROID_APP_NAME Interface)
 set(ANDROID_API_LEVEL 19)
 set(ANDROID_APK_PACKAGE io.highfidelity.gvrinterface)
 set(ANDROID_APK_FULLSCREEN true)
-set(ANDROID_APK_DIR "${CMAKE_CURRENT_BINARY_DIR}/apk")
 
 qt_create_apk()

@@ -35,19 +35,16 @@ macro(qt_create_apk)
 	endif ()
   
 	# Create "AndroidManifest.xml"
-	configure_file("${ANDROID_THIS_DIRECTORY}/AndroidManifest.xml.in" "${ANDROID_APK_DIR}/AndroidManifest.xml")
-
-	# Create "res/values/strings.xml"
-	configure_file("${ANDROID_THIS_DIRECTORY}/strings.xml.in" "${ANDROID_APK_DIR}/res/values/strings.xml")
+	configure_file("${ANDROID_THIS_DIRECTORY}/AndroidManifest.xml.in" "${ANDROID_APK_BUILD_DIR}/AndroidManifest.xml")
 
   # figure out where the qt dir is
-  get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../../" ABSOLUTE)
+  get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)
   
   # find androiddeployqt
-  find_program(ANDROID_DEPLOY_QT androiddeployqt HINTS "${_QT_DIR}/bin")
+  find_program(ANDROID_DEPLOY_QT androiddeployqt HINTS "${QT_DIR}/bin")
   
   # set the path to our app shared library
-  set(EXECUTABLE_DESTINATION_PATH "${CMAKE_BINARY_DIR}/libs/${ANDROID_ABI}/lib${TARGET_NAME}.so")
+  set(EXECUTABLE_DESTINATION_PATH "${ANDROID_APK_OUTPUT_DIR}/libs/${ANDROID_ABI}/lib${TARGET_NAME}.so")
   
   # add our dependencies to the deployment file
   get_property(_DEPENDENCIES TARGET ${TARGET_NAME} PROPERTY INTERFACE_LINK_LIBRARIES)
@@ -65,8 +62,13 @@ macro(qt_create_apk)
   
   configure_file("${ANDROID_THIS_DIRECTORY}/deployment-file.json.in" "${TARGET_NAME}-deployment.json")
   
+  # use androiddeployqt to create the apk
+  add_custom_command(TARGET ${TARGET_NAME}
+    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --deployment bundled "\\$(ARGS)"
+  )
+  
   # Uninstall previous version from the device/emulator (else we may get e.g. signature conflicts)
   add_custom_command(TARGET ${TARGET_NAME}
   	COMMAND adb uninstall ${ANDROID_APK_PACKAGE}
-  )  
+  )
 endmacro()
