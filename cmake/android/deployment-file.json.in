@@ -8,6 +8,10 @@
    "ndk-host": "@ANDROID_NDK_HOST_SYSTEM_NAME@",
    "target-architecture": "@ANDROID_ABI@",
    "application-binary": "@EXECUTABLE_DESTINATION_PATH@",
+   "android-app-name": "@ANDROID_APP_NAME@",
+   "android-package": "@ANDROID_APK_PACKAGE@",
+   "android-minimum-version": "@ANDROID_API_LEVEL@",
+   "android-target-version": "@ANDROID_API_LEVEL@",
    "android-extra-libs": "@_DEPS@",
    "android-extra-plugins": "",
    "android-package-source-directory": "@ANDROID_APK_DIR@"

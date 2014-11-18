@@ -12,7 +12,7 @@
 # OPTIONS
 # These options will modify how QtCreateAPK behaves. May be useful if somebody wants to fork.
 # For High Fidelity purposes these should not need to be changed.
-# 
+#
 set(ANDROID_THIS_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})	# Directory this CMake file is in
 
 if (POLICY CMP0026)
@@ -64,11 +64,6 @@ macro(qt_create_apk)
   
   # use androiddeployqt to create the apk
   add_custom_command(TARGET ${TARGET_NAME}
-    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --deployment bundled "\\$(ARGS)"
-  )
-  
-  # Uninstall previous version from the device/emulator (else we may get e.g. signature conflicts)
-  add_custom_command(TARGET ${TARGET_NAME}
-  	COMMAND adb uninstall ${ANDROID_APK_PACKAGE}
+    COMMAND ${ANDROID_DEPLOY_QT} --input "${TARGET_NAME}-deployment.json" --output "${ANDROID_APK_OUTPUT_DIR}" --android-platform android-${ANDROID_API_LEVEL} --install --deployment bundled "\\$(ARGS)"
   )
 endmacro()
