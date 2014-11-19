@@ -297,6 +297,8 @@ Menu::Menu() :
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::StandOnNearbyFloors, 0, true,
             avatar, SLOT(updateMotionBehavior()));
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
+            avatar, SLOT(updateMotionBehavior()));
 
     QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 

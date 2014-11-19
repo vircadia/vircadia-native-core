@@ -1950,6 +1950,7 @@ void MyAvatar::updateMotionBehavior() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
+    _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
 void MyAvatar::onToggleRagdoll() {
