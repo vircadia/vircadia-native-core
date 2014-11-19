@@ -2926,6 +2926,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
          viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
     }
+    if (renderSide != RenderArgs::MONO) {
+        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
+        
+        viewTransform.evalFromRawMatrix(invView);
+        viewTransform.preTranslate(_viewMatrixTranslation);
+    }
+    
     setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
