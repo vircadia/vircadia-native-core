@@ -45,7 +45,17 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
 }
 
 EntityItemID EntityScriptingInterface::getEntityItemID(const QString& uuid) {
-    return EntityItemID(QUuid(uuid));
+    EntityItemID entityID = EntityItemID(QUuid(uuid), UNKNOWN_ENTITY_TOKEN, false);
+
+    _entityTree->lockForRead();
+    EntityItem* entity = const_cast<EntityItem*>(_entityTree->findEntityByEntityItemID(entityID));
+    _entityTree->unlock();
+
+    if (entity) {
+        return entity->getEntityItemID();
+    }
+
+    return entityID;
 }
 
 EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
