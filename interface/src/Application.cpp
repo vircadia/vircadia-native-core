@@ -1926,11 +1926,14 @@ void Application::init() {
         // check if we have a URL in settings to load to jump back to
         // we load this separate from the other settings so we don't double lookup a URL
         QSettings* interfaceSettings = lockSettings();
-        QUrl addressURL = interfaceSettings->value(SETTINGS_ADDRESS_KEY).toUrl();
+        QVariant addressVariant = interfaceSettings->value(SETTINGS_ADDRESS_KEY);
         
-        AddressManager::getInstance().handleLookupString(addressURL.toString());
+        QString addressString = addressVariant.isNull()
+            ? DEFAULT_HIFI_ADDRESS : addressVariant.toUrl().toString();
         
         unlockSettings();
+        
+        AddressManager::getInstance().handleLookupString(addressString);
     }
     
     qDebug() << "Loaded settings";
