@@ -94,6 +94,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
 #ifdef USE_BULLET_PHYSICS
     _motionState = NULL;
 #endif // USE_BULLET_PHYSICS
+    _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     _simulationState = EntityItem::Static;
@@ -109,6 +110,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 #ifdef USE_BULLET_PHYSICS
     _motionState = NULL;
 #endif // USE_BULLET_PHYSICS
+    _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
@@ -523,7 +525,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
         READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
-        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
+        READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, setCollisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
 
@@ -750,11 +752,6 @@ bool EntityItem::lifetimeHasExpired() const {
     return isMortal() && (getAge() > getLifetime()); 
 }
 
-
-void EntityItem::copyChangedProperties(const EntityItem& other) {
-    *this = other;
-}
-
 EntityItemProperties EntityItem::getProperties() const {
     EntityItemProperties properties;
     properties._id = getID();
@@ -965,6 +962,106 @@ void EntityItem::recalculateCollisionShape() {
     _collisionShape.setTranslation(entityAACube.calcCenter());
     _collisionShape.setScale(entityAACube.getScale());
     // TODO: use motionState to update physics object
+}
+
+void EntityItem::updatePosition(const glm::vec3& value) { 
+    if (_position != value) {
+        _position = value; 
+        recalculateCollisionShape();
+        _updateFlags |= UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
+    glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
+    if (_position != position) {
+        _position = position;
+        recalculateCollisionShape();
+        _updateFlags |= UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updateDimensions(const glm::vec3& value) { 
+    if (_dimensions != value) {
+        _dimensions = value; 
+        recalculateCollisionShape();
+        _updateFlags |= UPDATE_SHAPE;
+    }
+}
+
+void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
+    glm::vec3 dimensions = value / (float) TREE_SCALE;
+    if (_dimensions != dimensions) {
+        _dimensions = dimensions; 
+        recalculateCollisionShape();
+        _updateFlags |= UPDATE_SHAPE;
+    }
+}
+
+void EntityItem::updateRotation(const glm::quat& rotation) { 
+    if (_rotation != rotation) {
+        _rotation = rotation; 
+        recalculateCollisionShape();
+        _updateFlags |= UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updateMass(float value) {
+    if (_mass != value) {
+        _mass = value;
+        _updateFlags |= UPDATE_MASS;
+    }
+}
+
+void EntityItem::updateVelocity(const glm::vec3& value) { 
+    if (_velocity != value) {
+        _velocity = value;
+        _updateFlags |= UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
+    glm::vec3 velocity = value / (float) TREE_SCALE; 
+    if (_velocity != velocity) {
+        _velocity = velocity;
+        _updateFlags |= UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateGravity(const glm::vec3& value) { 
+    if (_gravity != value) {
+        _gravity = value; 
+        _updateFlags |= UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateGravityInMeters(const glm::vec3& value) { 
+    glm::vec3 gravity = value / (float) TREE_SCALE;
+    if (_gravity != gravity) {
+        _gravity = gravity;
+        _updateFlags |= UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
+    if (_angularVelocity != value) {
+        _angularVelocity = value; 
+        _updateFlags |= UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateIgnoreForCollisions(bool value) { 
+    if (_ignoreForCollisions != value) {
+        _ignoreForCollisions = value; 
+        _updateFlags |= UPDATE_COLLISION;
+    }
+}
+
+void EntityItem::updateCollisionsWillMove(bool value) { 
+    if (_collisionsWillMove != value) {
+        _collisionsWillMove = value; 
+        _updateFlags |= UPDATE_COLLISION;
+    }
 }
 
 #ifdef USE_BULLET_PHYSICS
