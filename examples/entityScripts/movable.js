@@ -15,17 +15,43 @@
     this.graboffset = null;
     this.clickedAt = null;
     this.firstHolding = true;
-    this.clickedX = -1;
-    this.clickedY = -1;
+    this.clicked = { x: -1, y: -1};
+    this.lastMovedPosition = { x: -1, y: -1};
+    this.lastMovedTime = 0;
     this.rotateOverlayTarget = null;
     this.rotateOverlayInner = null;
     this.rotateOverlayOuter = null;
     this.rotateOverlayCurrent = null;
     this.rotateMode = false;
     this.originalRotation = null;
-    this.sound = null;
+
+    this.moveSoundURLS = [
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove1.wav",
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove2.wav",
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove3.wav"
+    ];
+    
+    this.turnSoundURLS = [
+
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove1.wav",
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove2.wav",
+        "http://public.highfidelity.io/sounds/MovingFurniture/FurnitureMove3.wav"
+    
+        // TODO: determine if these or other turn sounds work better than move sounds.
+        //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn1.wav",
+        //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn2.wav",
+        //"http://public.highfidelity.io/sounds/MovingFurniture/FurnitureTurn3.wav"
+    ];
+
+
+    this.moveSounds = new Array();
+    this.turnSounds = new Array();
+    this.moveSound = null;
+    this.turnSound = null;
     this.injector = null;
     
+    var debug = false;
+    var displayRotateTargets = true; // change to false if you don't want the rotate targets
     var rotateOverlayTargetSize = 10000; // really big target
     var innerSnapAngle = 22.5; // the angle which we snap to on the inner rotation tool
     var innerRadius;
@@ -34,25 +60,62 @@
     var yawZero;
     var rotationNormal;
     var yawNormal;
+    var stopSoundDelay = 100; // number of msecs of not moving to have sound stop    
     
-    var debug = true;
+    this.getRandomInt = function(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }    
     
-    // Download sound if needed
-    this.maybeDownloadSound = function() {
-        if (this.sound === null) {
-            this.sound = SoundCache.getSound("http://public.highfidelity.io/sounds/Collisions-otherorganic/whoosh2.raw");
+    this.downloadSounds = function() {
+        for (var i = 0; i < this.moveSoundURLS.length; i++) {
+            this.moveSounds[i] = SoundCache.getSound(this.moveSoundURLS[i]);
         }
-    }
-    // Play drag sound
-    this.playSound = function() {
-        this.stopSound();
-        if (this.sound && this.sound.downloaded) {
-            this.injector = Audio.playSound(this.sound, { position: this.properties.position, loop: true, volume: 0.1 });
+        for (var i = 0; i < this.turnSoundURLS.length; i++) {
+            this.turnSounds[i] = SoundCache.getSound(this.turnSoundURLS[i]);
         }
     }
 
-    // stop drag sound
+    this.pickRandomSounds = function() {
+        var moveIndex = this.getRandomInt(0, this.moveSounds.length - 1);
+        var turnIndex = this.getRandomInt(0, this.turnSounds.length - 1);
+        if (debug) {
+            print("Random sounds -- turn:" + turnIndex + " move:" + moveIndex);
+        }
+        this.moveSound = this.moveSounds[moveIndex];
+        this.turnSound = this.turnSounds[turnIndex];
+    }
+
+    // Play move sound
+    this.playMoveSound = function() {
+        if (debug) {
+            print("playMoveSound()");
+        }
+        if (this.moveSound && this.moveSound.downloaded) {
+            if (debug) {
+                print("playMoveSound() --- calling this.injector = Audio.playSound(this.moveSound...)");
+            }
+            this.injector = Audio.playSound(this.moveSound, { position: this.properties.position, loop: true, volume: 0.1 });
+        }
+    }
+
+    // Play turn sound
+    this.playTurnSound = function() {
+        if (debug) {
+            print("playTurnSound()");
+        }
+        if (this.turnSound && this.turnSound.downloaded) {
+            if (debug) {
+                print("playTurnSound() --- calling this.injector = Audio.playSound(this.turnSound...)");
+            }
+            this.injector = Audio.playSound(this.turnSound, { position: this.properties.position, loop: true, volume: 0.1 });
+        }
+    }
+
+    // stop sound
     this.stopSound = function() {
+        if (debug) {
+            print("stopSound()");
+        }
         if (this.injector) {
             Audio.stopInjector(this.injector);
             this.injector = null;
@@ -86,11 +149,33 @@
                                                      this.properties.position, upVector);                                 
         this.graboffset = Vec3.subtract(this.properties.position, intersection);
     };
-    
+
+    this.stopSoundIfNotMoving = function(mouseEvent) {
+        var nowDate = new Date();
+        var nowMSecs = nowDate.getTime();
+        if(mouseEvent.x == this.lastMovedPosition.x && mouseEvent.y == this.lastMovedPosition.y) {
+            var elapsedSinceLastMove = nowMSecs - this.lastMovedMSecs;
+            if (debug) {
+                print("elapsedSinceLastMove:" + elapsedSinceLastMove);
+            }
+            if (elapsedSinceLastMove > stopSoundDelay) {
+                if (debug) {
+                    print("calling stopSound()...");
+                }
+                this.stopSound();
+            }
+        } else {
+            // if we've moved, then track our last move position and time...
+            this.lastMovedMSecs = nowMSecs;
+            this.lastMovedPosition.x = mouseEvent.x;
+            this.lastMovedPosition.y = mouseEvent.y;
+        }
+    }
+        
     this.move = function(mouseEvent) {
         this.updatePosition(mouseEvent);
         if (this.injector === null) {
-            this.playSound();
+            this.playMoveSound();
         }
     };
     
@@ -146,7 +231,11 @@
                                                                 majorTickMarksAngle: 45.0, minorTickMarksAngle: 5,
                                                                 majorTickMarksLength: 0.25, minorTickMarksLength: 0.1, });
             }
-        }    
+        }
+
+        if (this.injector === null) {
+            this.playTurnSound();
+        }
     };
       // All callbacks start by updating the properties
     this.updateProperties = function(entityID) {
@@ -185,7 +274,7 @@
 
         this.rotateOverlayTarget = Overlays.addOverlay("circle3d", {
                         position: this.properties.position,
-                        size: 10000,
+                        size: rotateOverlayTargetSize,
                         color: { red: 0, green: 0, blue: 0 },
                         alpha: 0.0,
                         solid: true,
@@ -201,7 +290,7 @@
                     alpha: innerAlpha,
                     color: { red: 51, green: 152, blue: 203 },
                     solid: true,
-                    visible: true,
+                    visible: displayRotateTargets,
                     rotation: yawOverlayRotation,
                     hasTickMarks: true,
                     majorTickMarksAngle: innerSnapAngle,
@@ -222,7 +311,7 @@
                     alpha: outerAlpha,
                     color: { red: 51, green: 152, blue: 203 },
                     solid: true,
-                    visible: true,
+                    visible: displayRotateTargets,
                     rotation: yawOverlayRotation,
 
                     hasTickMarks: true,
@@ -244,7 +333,7 @@
                     color: { red: 224, green: 67, blue: 36},
                     alpha: 0.8,
                     solid: true,
-                    visible: true,
+                    visible: displayRotateTargets,
                     rotation: yawOverlayRotation,
                     ignoreRayIntersection: true, // always ignore this
                     hasTickMarks: true,
@@ -260,19 +349,25 @@
     
     this.preload = function(entityID) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
-        this.maybeDownloadSound();
+        this.downloadSounds();
     };
     
     this.clickDownOnEntity = function(entityID, mouseEvent) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
         this.grab(mouseEvent);
 
-        var d = new Date();
-        this.clickedAt = d.getTime();
+        var nowDate = new Date();
+        var nowMSecs = nowDate.getTime();
+        this.clickedAt = nowMSecs;
         this.firstHolding = true;
         
-        this.clickedX = mouseEvent.x;
-        this.clickedY = mouseEvent.y;
+        this.clicked.x = mouseEvent.x;
+        this.clicked.y = mouseEvent.y;
+        this.lastMovedPosition.x = mouseEvent.x;
+        this.lastMovedPosition.y = mouseEvent.y;
+        this.lastMovedMSecs = nowMSecs;
+        
+        this.pickRandomSounds();
     };
 
     this.holdingClickOnEntity = function(entityID, mouseEvent) {
@@ -281,7 +376,7 @@
 
         if (this.firstHolding) {
             // if we haven't moved yet...
-            if (this.clickedX == mouseEvent.x && this.clickedY == mouseEvent.y) {
+            if (this.clicked.x == mouseEvent.x && this.clicked.y == mouseEvent.y) {
                 var d = new Date();
                 var now = d.getTime();
         
@@ -295,12 +390,14 @@
                 this.firstHolding = false;
             }
         }
-
+        
         if (this.rotateMode) {
             this.rotate(mouseEvent);
         } else {
             this.move(mouseEvent);
         }
+        
+        this.stopSoundIfNotMoving(mouseEvent);
     };
     this.clickReleaseOnEntity = function(entityID, mouseEvent) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
