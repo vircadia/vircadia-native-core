@@ -111,7 +111,7 @@ QString LogHandler::printMessage(LogMsgType type, const QMessageLogContext& cont
     }
     
     // log prefix is in the following format
-    // [DEBUG] [TIMESTAMP] [PID:PARENT_PID] [TARGET] logged string
+    // [DEBUG] [TIMESTAMP] [PID] [TARGET] logged string
     
     QString prefixString = QString("[%1]").arg(stringForLogType(type));
     
