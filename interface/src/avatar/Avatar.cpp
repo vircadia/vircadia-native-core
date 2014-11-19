@@ -666,14 +666,17 @@ void Avatar::renderDisplayName() {
     // we need "always facing camera": we must remove the camera rotation from the stack
     glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
     
-    glm::vec3 frontAxis(0.f, 0.f, 1.f);
+    glm::vec3 frontAxis(1.f, 0.f, 0.f);
     frontAxis = glm::rotate(rotation, frontAxis);
     frontAxis = glm::normalize(glm::vec3(frontAxis.x, 0.f, frontAxis.z));
-    glm::vec3 euler = glm::eulerAngles(rotation);
-    float angle = acos(frontAxis.z) * ((frontAxis.y < 0) ? 1.f : -1.f);
-    //glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(-euler.y), 0.0f, 1.0f, 0.0f);
-    //angleglRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    
+    // TODO : test this secodn solution  which should be better wfor occulus
+    //glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
+    //glm::vec3 frontAxis = camPosition - textPosition;
+    //frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.f, -frontAxis.x));
+    
+    float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.f : -1.f);
+    glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project a unit vector and check the difference in screen coordinates, to check which is the 
