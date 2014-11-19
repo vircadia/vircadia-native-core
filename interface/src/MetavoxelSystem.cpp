@@ -1723,8 +1723,10 @@ int BufferRenderVisitor::visit(MetavoxelInfo& info) {
 }
 
 void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod) {
-    SpannerRenderVisitor spannerRenderVisitor(lod);
-    data.guide(spannerRenderVisitor);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::RenderSpanners)) {
+        SpannerRenderVisitor spannerRenderVisitor(lod);
+        data.guide(spannerRenderVisitor);
+    }
     
     Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
     
@@ -1953,7 +1955,7 @@ public:
 void HeightfieldRenderer::render(bool cursor) {
     // create the buffer objects lazily
     Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
-    if (!heightfield->getHeight() || !Menu::getInstance()->isOptionChecked(MenuOption::RenderHeightfields)) {
+    if (!heightfield->getHeight()) {
         return;
     }
     int width = heightfield->getHeight()->getWidth();
