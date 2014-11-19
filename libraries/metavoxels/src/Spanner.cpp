@@ -117,6 +117,10 @@ Spanner* Spanner::paintHeight(const glm::vec3& position, float radius, float hei
     return this;
 }
 
+Spanner* Spanner::clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield) {
+    return this;
+}
+
 bool Spanner::hasOwnColors() const {
     return false;
 }
@@ -1814,6 +1818,159 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
     return newHeightfield;
 }
 
+Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield) {
+    if (!_height) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;    
+    float heightIncrementX = getScale() / innerHeightWidth;
+    float heightIncrementZ = (getScale() * _aspectZ) / innerHeightHeight;
+    
+    int colorWidth = heightWidth;
+    int colorHeight = heightHeight;
+    if (_color) {
+        colorWidth = _color->getWidth();
+        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+    }
+    int innerColorWidth = colorWidth - HeightfieldData::SHARED_EDGE;
+    int innerColorHeight = colorHeight - HeightfieldData::SHARED_EDGE;
+    float colorIncrementX = getScale() / innerColorWidth;
+    float colorIncrementZ = (getScale() * _aspectZ) / innerColorHeight;
+    
+    int materialWidth = colorWidth;
+    int materialHeight = colorHeight;
+    if (_material) {
+        materialWidth = _material->getWidth();
+        materialHeight = _material->getContents().size() / materialWidth;
+    }
+    int innerMaterialWidth = materialWidth - HeightfieldData::SHARED_EDGE;
+    int innerMaterialHeight = materialHeight - HeightfieldData::SHARED_EDGE;
+    float materialIncrementX = getScale() / innerMaterialWidth;
+    float materialIncrementZ = (getScale() * _aspectZ) / innerMaterialHeight;
+    
+    float largestIncrementX = qMax(heightIncrementX, qMax(colorIncrementX, materialIncrementX));
+    float largestIncrementZ = qMax(heightIncrementZ, qMax(colorIncrementZ, materialIncrementZ));
+
+    glm::vec3 minimum(glm::floor(bounds.minimum.x / largestIncrementX) * largestIncrementX, getBounds().minimum.y,
+        glm::floor(bounds.minimum.z / largestIncrementZ) * largestIncrementZ);
+    glm::vec3 maximum(glm::ceil(bounds.maximum.x / largestIncrementX) * largestIncrementX, getBounds().maximum.y,
+        glm::ceil(bounds.maximum.z / largestIncrementZ) * largestIncrementZ);
+    Box largestBounds(minimum, maximum);
+    
+    glm::mat4 baseTransform = glm::mat4_cast(glm::inverse(getRotation())) * glm::translate(-getTranslation());
+    glm::vec3 inverseScale(innerHeightWidth / getScale(), 1.0f, innerHeightHeight / (getScale() * _aspectZ));
+    glm::mat4 transform = glm::scale(inverseScale) * baseTransform;
+    Box transformedBounds = transform * largestBounds;
+    
+    // make sure there are values to clear
+    int startX = glm::clamp((int)glm::ceil(transformedBounds.minimum.x) + HeightfieldHeight::HEIGHT_BORDER,
+        0, heightWidth - 1);
+    int startZ = glm::clamp((int)glm::ceil(transformedBounds.minimum.z) + HeightfieldHeight::HEIGHT_BORDER,
+        0, heightHeight - 1);
+    int endX = glm::clamp((int)glm::floor(transformedBounds.maximum.x) + HeightfieldHeight::HEIGHT_BORDER, 0, heightWidth - 1);
+    int endZ = glm::clamp((int)glm::floor(transformedBounds.maximum.z) + HeightfieldHeight::HEIGHT_BORDER,
+        0, heightHeight - 1);
+    const quint16* src = _height->getContents().constData() + startZ * heightWidth + startX;
+    for (int z = startZ; z <= endZ; z++, src += heightWidth) {
+        const quint16* lineSrc = src;
+        for (int x = startX; x <= endX; x++) {
+            if (*lineSrc++ != 0) {
+                goto clearableBreak;
+            }
+        }
+    }
+    return this;
+    clearableBreak:
+    
+    // create heightfield if necessary
+    Heightfield* spanner = static_cast<Heightfield*>(heightfield.data());
+    if (!spanner) {
+        int spannerHeightWidth = (int)((maximum.x - minimum.x) / heightIncrementX) + HeightfieldHeight::HEIGHT_EXTENSION;
+        int spannerHeightHeight = (int)((maximum.z - minimum.z) / heightIncrementZ) + HeightfieldHeight::HEIGHT_EXTENSION;   
+        int spannerColorWidth = (int)((maximum.x - bounds.minimum.x) / colorIncrementX) + HeightfieldData::SHARED_EDGE;
+        int spannerColorHeight = (int)((maximum.z - minimum.z) / colorIncrementZ) + HeightfieldData::SHARED_EDGE;
+        int spannerMaterialWidth = (int)((maximum.x - minimum.x) / materialIncrementX) + HeightfieldData::SHARED_EDGE;
+        int spannerMaterialHeight = (int)((maximum.z - minimum.z) / materialIncrementZ) + HeightfieldData::SHARED_EDGE;
+            
+        heightfield = spanner = new Heightfield();
+        spanner->setTranslation(minimum);
+        spanner->setScale(maximum.x - minimum.x);
+        spanner->setAspectY((maximum.y - minimum.y) / spanner->getScale());
+        spanner->setAspectZ((maximum.z - minimum.z) / spanner->getScale());
+        spanner->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(spannerHeightWidth,
+            QVector<quint16>(spannerHeightWidth * spannerHeightHeight))));
+        spanner->setColor(HeightfieldColorPointer(new HeightfieldColor(spannerColorWidth,
+            QByteArray(spannerColorWidth * spannerColorHeight * DataBlock::COLOR_BYTES, 0xFF))));
+        spanner->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(spannerMaterialWidth,
+            QByteArray(spannerMaterialWidth * spannerMaterialHeight, 0), QVector<SharedObjectPointer>())));
+    }
+    
+    // clear the height
+    QVector<quint16> newHeightContents = _height->getContents();
+    quint16* dest = newHeightContents.data() + startZ * heightWidth + startX;
+    for (int z = startZ; z <= endZ; z++, dest += heightWidth) {
+        memset(dest, 0, (endX - startX + 1) * sizeof(quint16));
+    }
+    
+    // if we've cleared all the inner height, we can remove the spanner entirely
+    src = newHeightContents.constData() + heightWidth + HeightfieldHeight::HEIGHT_BORDER;
+    for (int z = 0; z < innerHeightHeight; z++, src += heightWidth) {
+        const quint16* lineSrc = src;
+        for (int x = 0; x < innerHeightWidth; x++) {
+            if (*lineSrc++ != 0) {
+                goto nonEmptyBreak;
+            }
+        }
+    }
+    return NULL;
+    nonEmptyBreak:
+    
+    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+    newHeightfield->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, newHeightContents)));
+    
+    // and the color
+    if (_color) {
+        inverseScale = glm::vec3(innerColorWidth / getScale(), 1.0f, innerColorHeight / (getScale() * _aspectZ));
+        transform = glm::scale(inverseScale) * baseTransform;
+        transformedBounds = transform * largestBounds;
+        startX = glm::clamp((int)glm::ceil(transformedBounds.minimum.x), 0, colorWidth - 1);
+        startZ = glm::clamp((int)glm::ceil(transformedBounds.minimum.z), 0, colorHeight - 1);
+        endX = glm::clamp((int)glm::floor(transformedBounds.maximum.x), 0, colorWidth - 1);
+        endZ = glm::clamp((int)glm::floor(transformedBounds.maximum.z), 0, colorHeight - 1);
+        QByteArray newColorContents = _color->getContents();
+        char* dest = newColorContents.data() + (startZ * colorWidth + startX) * DataBlock::COLOR_BYTES;
+        for (int z = startZ; z <= endZ; z++, dest += colorWidth * DataBlock::COLOR_BYTES) {
+            memset(dest, 0, (endX - startX + 1) * DataBlock::COLOR_BYTES);
+        }
+        newHeightfield->setColor(HeightfieldColorPointer(new HeightfieldColor(colorWidth, newColorContents)));
+    }
+    
+    // and the material
+    if (_material) {
+        inverseScale = glm::vec3(innerMaterialWidth / getScale(), 1.0f, innerMaterialHeight / (getScale() * _aspectZ));
+        transform = glm::scale(inverseScale) * baseTransform;
+        transformedBounds = transform * largestBounds;
+        startX = glm::clamp((int)glm::ceil(transformedBounds.minimum.x), 0, materialWidth - 1);
+        startZ = glm::clamp((int)glm::ceil(transformedBounds.minimum.z), 0, materialHeight - 1);
+        endX = glm::clamp((int)glm::floor(transformedBounds.maximum.x), 0, materialWidth - 1);
+        endZ = glm::clamp((int)glm::floor(transformedBounds.maximum.z), 0, materialHeight - 1);
+        QByteArray newMaterialContents = _material->getContents();
+        QVector<SharedObjectPointer> newMaterials = _material->getMaterials();
+        char* dest = newMaterialContents.data() + startZ * materialWidth + startX;
+        for (int z = startZ; z <= endZ; z++, dest += materialWidth) {
+            memset(dest, 0, endX - startX + 1);
+        }
+        clearUnusedMaterials(newMaterials, newMaterialContents);
+        newHeightfield->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(
+            materialWidth, newMaterialContents, newMaterials)));
+    }
+    
+    return newHeightfield;
+}
+
 bool Heightfield::hasOwnColors() const {
     return _color;
 }
@@ -1953,32 +2110,32 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
     
     const float DISTANCE_THRESHOLD = 0.001f;
     if (glm::abs(entry.x - 0.0f) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(-1.0f, 0.0f, 0.0f);
+        normal = getRotation() * glm::vec3(-1.0f, 0.0f, 0.0f);
         distance = boundsDistance;
         return true;
         
     } else if (glm::abs(entry.x - innerWidth) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(1.0f, 0.0f, 0.0f);
+        normal = getRotation() * glm::vec3(1.0f, 0.0f, 0.0f);
         distance = boundsDistance;
         return true;
         
     } else if (glm::abs(entry.y - 0.0f) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, -1.0f, 0.0f);
+        normal = getRotation() * glm::vec3(0.0f, -1.0f, 0.0f);
         distance = boundsDistance;
         return true;
         
     } else if (glm::abs(entry.y - numeric_limits<quint16>::max()) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, 1.0f, 0.0f);
+        normal = getRotation() * glm::vec3(0.0f, 1.0f, 0.0f);
         distance = boundsDistance;
         return true;
         
     } else if (glm::abs(entry.z - 0.0f) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, 0.0f, -1.0f);
+        normal = getRotation() * glm::vec3(0.0f, 0.0f, -1.0f);
         distance = boundsDistance;
         return true;
         
     } else if (glm::abs(entry.z - innerHeight) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, 0.0f, 1.0f);
+        normal = getRotation() * glm::vec3(0.0f, 0.0f, 1.0f);
         distance = boundsDistance;
         return true;
     }

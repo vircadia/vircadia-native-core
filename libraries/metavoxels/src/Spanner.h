@@ -73,6 +73,11 @@ public:
     /// \return the modified spanner, or this if no modification was performed
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
 
+    /// Attempts to clear and fetch part of the spanner's height.
+    /// \param heightfield the heightfield to populate
+    /// \return the modified spanner, or this if no modification was performed
+    virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
+
     /// Checks whether this spanner has its own colors.
     virtual bool hasOwnColors() const;
 
@@ -524,6 +529,8 @@ public:
         const QColor& color);
 
     virtual Spanner* paintHeight(const glm::vec3& position, float radius, float height);
+    
+    virtual Spanner* clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield);
     
     virtual bool hasOwnColors() const;
     virtual bool hasOwnMaterials() const;

@@ -344,6 +344,10 @@ int SpannerReplaceVisitor::visit(MetavoxelInfo& info) {
 void MetavoxelData::replace(const AttributePointer& attribute, const Box& bounds, float granularity,
         const SharedObjectPointer& oldObject, const SharedObjectPointer& newObject) {
     Spanner* newSpanner = static_cast<Spanner*>(newObject.data());
+    if (!newSpanner) {
+        remove(attribute, bounds, granularity, oldObject);
+        return;
+    }
     if (bounds != newSpanner->getBounds() || granularity != newSpanner->getPlacementGranularity()) {
         // if the bounds have changed, we must remove and reinsert
         remove(attribute, bounds, granularity, oldObject);

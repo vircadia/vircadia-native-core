@@ -363,6 +363,17 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     
     DefaultMetavoxelRendererImplementation::getVoxelCursorProgram().release();
     
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().bind();
+    
+    SpannerCursorRenderVisitor spannerVisitor(bounds);
+    guide(spannerVisitor);
+    
+    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
+    
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    
     glDisableClientState(GL_VERTEX_ARRAY);
     
     glDisable(GL_POLYGON_OFFSET_FILL);
