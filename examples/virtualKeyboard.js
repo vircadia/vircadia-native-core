@@ -27,6 +27,7 @@ const CURSOR_WIDTH = 33.9;
 const CURSOR_HEIGHT = 33.9;
 
 const VIEW_ANGLE = 60.0;
+const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
 
 const BOUND_X = 0;
 const BOUND_Y = 1;
@@ -36,13 +37,31 @@ const BOUND_H = 3;
 const KEY_STATE_LOWER = 0;
 const KEY_STATE_UPPER = 1;
 
+var cursor = null;
+var keyboard = new Keyboard();
+
+keyboard.onKeyPress = function() {
+    print("Key press event test");
+};
+
+keyboard.onFullyLoaded = function() {
+    print("Virtual-keyboard fully loaded.");
+    // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
+    cursor = new Cursor();
+    cursor.onUpdate = function(position) {
+        keyboard.setFocusPosition(position.x, position.y);
+    };
+};
+
 function KeyboardKey(keyboard, key_properties) {
+    var tthis = this;
+    this._focus = false;
     this.event = key_properties.event != undefined ?
         key_properties.event : 'keypress';
     this.bounds = key_properties.bounds;
     this.states = key_properties.states;
     this.keyboard = keyboard;
-    this.key_state = key_properties.key_state != undefined ? key_properties.key_state : KBD_LOWERCASE_HOVER;
+    this.key_state = key_properties.key_state != undefined ? key_properties.key_state : KBD_LOWERCASE_DEFAULT;
     // one overlay per bound vector [this.bounds]
     this.overlays = [];
     this.updatePosition = function() {
@@ -59,6 +78,33 @@ function KeyboardKey(keyboard, key_properties) {
         }
         return false;
     };
+    this.updateState = function() {
+        tthis.setState(eval('KBD_' + (tthis.keyboard.shift ? 'UPPERCASE' : 'LOWERCASE') + '_' + (tthis._focus ? 'HOVER' : 'DEFAULT')));
+    };
+    this.blur = function() {
+        tthis._focus = false;
+        tthis.updateState();
+    };
+    this.focus = function() {
+        tthis._focus = true;
+        tthis.updateState();
+    };
+    this.setState = function(state) {
+        tthis.key_state = state;
+        for (var i = 0; i < tthis.bounds.length; i++) {
+             Overlays.editOverlay(tthis.overlays[i], {
+                 subImage: {width: tthis.bounds[i][BOUND_W], height: tthis.bounds[i][BOUND_H], x: tthis.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * tthis.key_state) + tthis.bounds[i][BOUND_Y]}
+             });
+        }
+    };
+    this.updatePosition = function() {
+        for (var i = 0; i < tthis.bounds.length; i++) {
+             Overlays.editOverlay(tthis.overlays[i], {
+                 x: tthis.keyboard.x + tthis.bounds[i][BOUND_X],
+                 y: tthis.keyboard.y + tthis.bounds[i][BOUND_Y],
+             });
+        }
+    };
     this.remove = function() {
         for (var i = 0; i < this.overlays.length; i++) {
              Overlays.deleteOverlay(this.overlays[i]);
@@ -67,7 +113,7 @@ function KeyboardKey(keyboard, key_properties) {
     this.isLoaded = function() {
         for (var i = 0; i < this.overlays.length; i++) {
              if (!Overlays.isLoaded(this.overlays[i])) {
-                return false;
+                 return false;
              }
         }
         return true;
@@ -75,8 +121,8 @@ function KeyboardKey(keyboard, key_properties) {
     for (var i = 0; i < this.bounds.length; i++) {
         var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
         Overlays.editOverlay(newOverlay, {
-            x: 50 + this.bounds[i][BOUND_X],
-            y: 50 + this.bounds[i][BOUND_Y],
+            x: this.keyboard.x + this.bounds[i][BOUND_X],
+            y: this.keyboard.y + this.bounds[i][BOUND_Y],
             width: this.bounds[i][BOUND_W],
             height: this.bounds[i][BOUND_H],
             subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.key_state) + this.bounds[i][BOUND_Y]},
@@ -87,21 +133,66 @@ function KeyboardKey(keyboard, key_properties) {
 }
 
 function Keyboard() {
+    var tthis = this;
+    var dimensions = Controller.getViewportDimensions();
+    this.focussed_key = -1;
+    this.shift = false;
+    this.x = (dimensions.x / 2) - (KEYBOARD_WIDTH / 2);
+    this.y = dimensions.y - KEYBOARD_HEIGHT;
     this.background = Overlays.addOverlay("image", {
-        x: 50,
-        y: 50,
+        x: this.x,
+        y: this.y,
         width: KEYBOARD_WIDTH,
         height: KEYBOARD_HEIGHT,
         subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
         imageURL: KEYBOARD_URL,
         alpha: 1
     });
+
+    this.setFocusPosition = function(x, y) {
+        var localx = x - tthis.x;
+        var localy = y - tthis.y;
+        var new_focus_key = -1;
+        if (localx >= 0 && localy >= 0 && localx <= KEYBOARD_WIDTH && localy <= KEYBOARD_HEIGHT) {
+            for (var i = 0; i < tthis.keys.length; i++) {
+                if (tthis.keys[i].containsCoord(localx, localy)) {
+                    //print(tthis.keys[i].states[0].char);
+                    new_focus_key = i;
+                    break;
+                }
+            }
+        }
+        if (new_focus_key != tthis.focussed_key) {
+            print(new_focus_key);
+            if (tthis.focussed_key != -1) {
+                tthis.keys[tthis.focussed_key].blur();
+            }
+            tthis.focussed_key = new_focus_key;
+            if (tthis.focussed_key != -1) {
+                tthis.keys[tthis.focussed_key].focus();
+            }
+        }
+        return tthis;
+    };
+
+    this.pressFocussedKey = function() {
+        if (tthis.focussed_key != -1) {
+            this.onKeyPress(tthis.keys[tthis.focussed_key]);
+        }
+        return tthis;
+    };
+ 
     this.updatePosition = function() {
         
     };
+
     this.getFocussedKey = function() {
-        
+        if (tthis.focussed_key == -1) {
+            return null;
+        }
+        return tthis.keys[tthis.focussed_key];
     };
+
     this.remove = function() {
         Overlays.deleteOverlay(this.background);
         for (var i = 0; i < this.keys.length; i++) {
@@ -113,6 +204,7 @@ function Keyboard() {
     this.onKeyDown = null;
     this.onKeyUp = null;
     this.onSubmit = null;
+    this.onFullyLoaded = null;
 
     this.keys = [];
     //
@@ -145,7 +237,7 @@ function Keyboard() {
         {bounds: [[300, 71, 65, 63]], states: [{charCode: 192, char: '4'}]},
         {bounds: [[372, 71, 65, 63]], states: [{charCode: 192, char: '5'}]},
         {bounds: [[445, 71, 65, 63]], states: [{charCode: 192, char: '6'}]},
-        {bounds: [[517, 71, 65, 63]], states: [{charCode: 192, char: '7'}], key_state: KBD_UPPERCASE_DEFAULT},
+        {bounds: [[517, 71, 65, 63]], states: [{charCode: 192, char: '7'}]},
         {bounds: [[589, 71, 65, 63]], states: [{charCode: 192, char: '8'}]},
         {bounds: [[661, 71, 65, 63]], states: [{charCode: 192, char: '9'}]},
         {bounds: [[733, 71, 65, 63]], states: [{charCode: 192, char: '0'}]},
@@ -199,48 +291,37 @@ function Keyboard() {
         {bounds: [[682, 283, 64, 63]], states: [{charCode: 192, char: ','}]},
         {bounds: [[754, 283, 65, 63]], states: [{charCode: 192, char: '.'}]},
         {bounds: [[826, 283, 65, 63]], states: [{charCode: 192, char: '/'}]},
-        {bounds: [[899, 283, 64, 63]], states: [{charCode: 192, char: '?'}], key_state: KBD_UPPERCASE_DEFAULT},
+        {bounds: [[899, 283, 64, 63]], states: [{charCode: 192, char: '?'}]},
 
         {bounds: [[972, 283, 190, 63]], event: 'shift'},
 
         {bounds: [[249, 355, 573, 67]], states: [{charCode: 192, char: ' '}]},
 
         {bounds: [[899, 355, 263, 67]], event: 'submit'}
-
-        
-
     ];
 
-    this.keys_in_waitingline = [];
-    this.keys_being_downloaded = [];
-
-    for (var i = 0; i < keyProperties.length; i++) {
-        //this.keys_in_waitingline.push(keyProperties[i]);
-         //this.keys.push(new KeyboardKey(this, keyProperties[i]));
-    }
-    var tthis = this;
     this.keyboardtextureloaded = function() {
         if (Overlays.isLoaded(tthis.background)) {
             Script.clearInterval(tthis.keyboardtextureloaded_timer);
             for (var i = 0; i < keyProperties.length; i++) {
                 tthis.keys.push(new KeyboardKey(tthis, keyProperties[i]));
             }
+            if (keyboard.onFullyLoaded != null) {
+                tthis.onFullyLoaded();
+            }
         }
     };
     this.keyboardtextureloaded_timer = Script.setInterval(this.keyboardtextureloaded, 250);
 }
 
-var keyboard = new Keyboard();
-keyboard.onKeyPress = function() {
-    print("Key press event test");
-};
-
 function Cursor() {
     var tthis = this;
     var dimensions = Controller.getViewportDimensions();
+    this.x = dimensions.x / 2;
+    this.y = dimensions.y / 2;
     this.overlay = Overlays.addOverlay("image", {
-        x: dimensions.x / 2,
-        y: dimensions.y / 2,
+        x: this.x,
+        y: this.y,
         width: CURSOR_WIDTH,
         height: CURSOR_HEIGHT,
         imageURL: CURSOR_URL,
@@ -249,28 +330,56 @@ function Cursor() {
     this.remove = function() {
         Overlays.deleteOverlay(this.overlay);
     };
+    this.getPosition = function() {
+        return {x: tthis.getX(), y: tthis.getY()};
+    };
+    this.getX = function() {
+        return tthis.x;
+    };
+    this.getY = function() {
+        return tthis.y;
+    };
+    this.onUpdate = null;
     this.update = function() {
-        var screen_angle = 60;
         var dimensions = Controller.getViewportDimensions();
-        var editobject = {};//{x: dimensions.x / 2, y: dimensions.y / 2};
-        if (MyAvatar.getHeadFinalYaw() <= (VIEW_ANGLE / 2) && MyAvatar.getHeadFinalYaw() >= -1 * (VIEW_ANGLE / 2)) {
-             angle = ((-1 * MyAvatar.getHeadFinalYaw()) + (VIEW_ANGLE / 2)) / VIEW_ANGLE;
-             editobject.x = angle * dimensions.x;
+        var editobject = {};
+        if (MyAvatar.getHeadFinalYaw() <= VIEW_ANGLE_BY_TWO && MyAvatar.getHeadFinalYaw() >= -1 * VIEW_ANGLE_BY_TWO) {
+             angle = ((-1 * MyAvatar.getHeadFinalYaw()) + VIEW_ANGLE_BY_TWO) / VIEW_ANGLE;
+             tthis.x = angle * dimensions.x;
+             editobject.x = tthis.x - (CURSOR_WIDTH / 2);
         }
-        if (MyAvatar.getHeadFinalPitch() <= (VIEW_ANGLE / 2) && MyAvatar.getHeadFinalPitch() >= -1 * (VIEW_ANGLE / 2)) {
-             angle = ((-1 * MyAvatar.getHeadFinalPitch()) + (VIEW_ANGLE / 2)) / VIEW_ANGLE;
-           //  print(angle * dimensions.y);
-             editobject.y = angle * dimensions.y;
+        if (MyAvatar.getHeadFinalPitch() <= VIEW_ANGLE_BY_TWO && MyAvatar.getHeadFinalPitch() >= -1 * VIEW_ANGLE_BY_TWO) {
+             angle = ((-1 * MyAvatar.getHeadFinalPitch()) + VIEW_ANGLE_BY_TWO) / VIEW_ANGLE;
+             tthis.y = angle * dimensions.y;
+             editobject.y = tthis.y - (CURSOR_HEIGHT / 2);
         }
-        Overlays.editOverlay(tthis.overlay, editobject); 
+        if (Object.keys(editobject).length > 0) {
+            Overlays.editOverlay(tthis.overlay, editobject);
+            if (tthis.onUpdate != null) {
+                tthis.onUpdate(tthis.getPosition());
+            } 
+        }
     };
     Script.update.connect(this.update);
 }
-var cursor = new Cursor();
+
+function keyPressEvent(key) {
+    if (key.text === "SPACE") {
+        print("pressed space");
+
+        for (var i = 0; i < keyboard.keys.length; i++) {
+             print(i + " = " + keyboard.keys[i].key_state);
+        }
+    }
+}
+
 function scriptEnding() {
     keyboard.remove();
     cursor.remove();
     Overlays.deleteOverlay(cursor);
+    Controller.releaseKeyEvents({text: "SPACE"});
 }
 
+Controller.captureKeyEvents({text: "SPACE"});
+Controller.keyPressEvent.connect(keyPressEvent);
 Script.scriptEnding.connect(scriptEnding);
