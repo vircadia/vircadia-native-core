@@ -12,14 +12,13 @@
                 { red: 0, green: 0, blue: 255 },
             ];
 
-            posY = document.getElementById("horiz-y");
-            minorSpacing = document.getElementById("minor-spacing");
-            majorSpacing = document.getElementById("major-spacing");
-            gridOn = document.getElementById("grid-on");
-            snapToGrid = document.getElementById("snap-to-grid");
-            hGridVisible = document.getElementById("horiz-grid-visible");
-            bMoveToSelection = document.getElementById("move-to-selection");
-            bMoveToAvatar = document.getElementById("move-to-avatar");
+            elPosY = document.getElementById("horiz-y");
+            elMinorSpacing = document.getElementById("minor-spacing");
+            elMajorSpacing = document.getElementById("major-spacing");
+            elSnapToGrid = document.getElementById("snap-to-grid");
+            elHorizontalGridVisible = document.getElementById("horiz-grid-visible");
+            elMoveToSelection = document.getElementById("move-to-selection");
+            elMoveToAvatar = document.getElementById("move-to-avatar");
 
             if (window.EventBridge !== undefined) {
                 EventBridge.scriptEventReceived.connect(function(data) {
@@ -27,27 +26,27 @@
 
                     if (data.origin) {
                         var origin = data.origin;
-                        posY.value = origin.y;
+                        elPosY.value = origin.y.toFixed(2);
                     }
 
                     if (data.minorGridSpacing) {
-                        minorSpacing.value = data.minorGridSpacing;
+                        elMinorSpacing.value = data.minorGridSpacing;
                     }
 
                     if (data.majorGridEvery) {
-                        majorSpacing.value = data.majorGridEvery;
+                        elMajorSpacing.value = data.majorGridEvery;
                     }
 
                     if (data.gridColor) {
                         gridColor = data.gridColor;
                     }
 
-                    if (data.snapToGrid !== undefined) {
-                        snapToGrid.checked = data.snapToGrid == true;
+                    if (data.elSnapToGrid !== undefined) {
+                        elSnapToGrid.checked = data.snapToGrid == true;
                     }
 
                     if (data.visible !== undefined) {
-                        hGridVisible.checked = data.visible == true;
+                        elHorizontalGridVisible.checked = data.visible == true;
                     }
                 });
 
@@ -55,29 +54,31 @@
                     EventBridge.emitWebEvent(JSON.stringify({
                         type: "update",
                         origin: {
-                            y: posY.value,
+                            y: elPosY.value,
                         },
-                        minorGridSpacing: minorSpacing.value,
-                        majorGridEvery: majorSpacing.value,
+                        minorGridSpacing: elMinorSpacing.value,
+                        majorGridEvery: elMajorSpacing.value,
                         gridColor: gridColor,
-                        snapToGrid: snapToGrid.checked,
-                        visible: hGridVisible.checked,
+                        snapToGrid: elSnapToGrid.checked,
+                        visible: elHorizontalGridVisible.checked,
                     }));
                 }
 
             }
 
-            document.addEventListener("input", emitUpdate);
-            hGridVisible.addEventListener("change", emitUpdate);
-            snapToGrid.addEventListener("change", emitUpdate);
+            elPosY.addEventListener("change", emitUpdate);
+            elMinorSpacing.addEventListener("change", emitUpdate);
+            elMajorSpacing.addEventListener("change", emitUpdate);
+            elSnapToGrid.addEventListener("change", emitUpdate);
+            elHorizontalGridVisible.addEventListener("change", emitUpdate);
 
-            bMoveToAvatar.addEventListener("click", function() {
+            elMoveToAvatar.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "action",
                     action: "moveToAvatar",
                 }));
             });
-            bMoveToSelection.addEventListener("click", function() {
+            elMoveToSelection.addEventListener("click", function() {
                 EventBridge.emitWebEvent(JSON.stringify({
                     type: "action",
                     action: "moveToSelection",

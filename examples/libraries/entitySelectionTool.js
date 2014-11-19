@@ -1403,6 +1403,8 @@ SelectionDisplay = (function () {
 
             vector = vec3Mult(mask, vector);
 
+            vector = grid.snapToSpacing(vector);
+
             var changeInDimensions = Vec3.multiply(-1, vec3Mult(signs, vector));
             var newDimensions;
             if (proportional) {
