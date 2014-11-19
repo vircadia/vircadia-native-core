@@ -4,11 +4,16 @@
 
 <manifest package="${ANDROID_APK_PACKAGE}" xmlns:android="http://schemas.android.com/apk/res/android" android:versionName="1.0" android:versionCode="1" android:installLocation="auto">
   <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="@string/AppDisplayName" android:icon="@drawable/icon">
+    
+    <!-- VR MODE -->
+    <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_both"/>
+    
     <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
               android:name="org.qtproject.qt5.android.bindings.QtActivity"
               android:label="@string/AppDisplayName"
               android:screenOrientation="unspecified"
-              android:launchMode="singleTop">
+              android:launchMode="singleTop"
+              ${ANDROID_APK_THEME}>
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
@@ -41,6 +46,14 @@
       -->
       <!-- Splash screen -->
     </activity>
+    
+    <activity android:name="com.oculusvr.vrlib.PlatformActivity" 
+              android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+              android:launchMode="singleTask"
+              android:screenOrientation="landscape"
+              android:configChanges="screenSize|orientation|keyboardHidden|keyboard">
+    </activity>
+    
   </application>
   <uses-sdk android:minSdkVersion="${ANDROID_API_LEVEL}" android:targetSdkVersion="${ANDROID_API_LEVEL}"/>
 
@@ -48,7 +61,12 @@
     Remove the comment if you do not require these default permissions. -->
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-
+  
+  <!-- Tell the system this app requires OpenGL ES 3.0. -->
+  <uses-­feature android:glEsVersion="0x00030000" android:required="true" />
+  
+  <!-- camera permission required for GEAR VR passthrough camera -->
+  <uses-­permission android:name="android.permission.CAMERA" />
 
   <!-- The following comment will be replaced upon deployment with default features based on the dependencies of the application.
     Remove the comment if you do not require these default features. -->
