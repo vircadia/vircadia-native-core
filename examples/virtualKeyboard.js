@@ -39,6 +39,7 @@ const KEY_STATE_UPPER = 1;
 
 var cursor = null;
 var keyboard = new Keyboard();
+var text = null;
 
 keyboard.onKeyPress = function() {
     print("Key press event test");
@@ -46,6 +47,20 @@ keyboard.onKeyPress = function() {
 
 keyboard.onFullyLoaded = function() {
     print("Virtual-keyboard fully loaded.");
+    var dimensions = Controller.getViewportDimensions();
+    text = Overlays.addOverlay("text", {
+         x: 0,//(dimensions.x / 2) - (KEYBOARD_WIDTH / 2),
+         y: dimensions.y - keyboard.height() - 60,
+         width: dimensions.x,
+         height: 50,
+         backgroundColor: { red: 255, green: 255, blue: 255},
+         color: { red: 0, green: 0, blue: 0},
+         topMargin: 10,
+         leftMargin: 8,
+         font: {size: 28},
+         text: "",
+         alpha: 0.8
+    });
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
     cursor = new Cursor();
     cursor.onUpdate = function(position) {
@@ -56,6 +71,7 @@ keyboard.onFullyLoaded = function() {
 function KeyboardKey(keyboard, key_properties) {
     var tthis = this;
     this._focus = false;
+    this._beingpressed = false;
     this.event = key_properties.event != undefined ?
         key_properties.event : 'keypress';
     this.bounds = key_properties.bounds;
@@ -80,6 +96,22 @@ function KeyboardKey(keyboard, key_properties) {
     };
     this.updateState = function() {
         tthis.setState(eval('KBD_' + (tthis.keyboard.shift ? 'UPPERCASE' : 'LOWERCASE') + '_' + (tthis._focus ? 'HOVER' : 'DEFAULT')));
+    };
+    this.updateColor = function() {
+        var colorIntensity = _beingpressed ? 128 : 255;
+        for (var i = 0; i < tthis.bounds.length; i++) {
+             Overlays.editOverlay(tthis.overlays[i], 
+                 {color: {red: colorIntensity, green: colorIntensity, blue: colorIntensity}}
+             );
+        }
+    };
+    this.press = function() {
+        tthis._beingpressed = true;
+        tthis.updateColor();
+    };
+    this.release = function() {
+        tthis._beingpressed = false;
+        tthis.updateColor();
     };
     this.blur = function() {
         tthis._focus = false;
@@ -121,10 +153,10 @@ function KeyboardKey(keyboard, key_properties) {
     for (var i = 0; i < this.bounds.length; i++) {
         var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
         Overlays.editOverlay(newOverlay, {
-            x: this.keyboard.x + this.bounds[i][BOUND_X],
-            y: this.keyboard.y + this.bounds[i][BOUND_Y],
-            width: this.bounds[i][BOUND_W],
-            height: this.bounds[i][BOUND_H],
+            x: this.keyboard.x + this.bounds[i][BOUND_X] * keyboard.scale,
+            y: this.keyboard.y + this.bounds[i][BOUND_Y] * keyboard.scale,
+            width: this.bounds[i][BOUND_W] * keyboard.scale,
+            height: this.bounds[i][BOUND_H] * keyboard.scale,
             subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.key_state) + this.bounds[i][BOUND_Y]},
             alpha: 1
         });
@@ -136,22 +168,30 @@ function Keyboard() {
     var tthis = this;
     var dimensions = Controller.getViewportDimensions();
     this.focussed_key = -1;
+    this.scale = dimensions.x / KEYBOARD_WIDTH;
     this.shift = false;
-    this.x = (dimensions.x / 2) - (KEYBOARD_WIDTH / 2);
-    this.y = dimensions.y - KEYBOARD_HEIGHT;
+    this.width = function() {
+        return KEYBOARD_WIDTH * tthis.scale;
+    };
+    this.height = function() {
+        return KEYBOARD_HEIGHT * tthis.scale;
+    };
+    this.x = (dimensions.x / 2) - (this.width() / 2);
+    this.y = dimensions.y - this.height();
     this.background = Overlays.addOverlay("image", {
         x: this.x,
         y: this.y,
-        width: KEYBOARD_WIDTH,
-        height: KEYBOARD_HEIGHT,
+        width: this.width(),
+        height: this.height(),
         subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
         imageURL: KEYBOARD_URL,
         alpha: 1
     });
 
     this.setFocusPosition = function(x, y) {
-        var localx = x - tthis.x;
-        var localy = y - tthis.y;
+        // set to local unscaled position
+        var localx = (x - tthis.x) / tthis.scale;
+        var localy = (y - tthis.y) / tthis.scale;
         var new_focus_key = -1;
         if (localx >= 0 && localy >= 0 && localx <= KEYBOARD_WIDTH && localy <= KEYBOARD_HEIGHT) {
             for (var i = 0; i < tthis.keys.length; i++) {
@@ -163,7 +203,7 @@ function Keyboard() {
             }
         }
         if (new_focus_key != tthis.focussed_key) {
-            print(new_focus_key);
+            //print(new_focus_key);
             if (tthis.focussed_key != -1) {
                 tthis.keys[tthis.focussed_key].blur();
             }
@@ -179,6 +219,7 @@ function Keyboard() {
         if (tthis.focussed_key != -1) {
             this.onKeyPress(tthis.keys[tthis.focussed_key]);
         }
+
         return tthis;
     };
  
@@ -366,20 +407,22 @@ function Cursor() {
 function keyPressEvent(key) {
     if (key.text === "SPACE") {
         print("pressed space");
+    }
+}
 
-        for (var i = 0; i < keyboard.keys.length; i++) {
-             print(i + " = " + keyboard.keys[i].key_state);
-        }
+function keyReleaseEvent(key) {
+    if (key.text === "SPACE") {
+        print("released space");
     }
 }
 
 function scriptEnding() {
     keyboard.remove();
     cursor.remove();
-    Overlays.deleteOverlay(cursor);
-    Controller.releaseKeyEvents({text: "SPACE"});
+    Overlays.deleteOverlay(text);
+    Controller.releaseKeyEvents({key: 32});
 }
-
-Controller.captureKeyEvents({text: "SPACE"});
+Controller.captureKeyEvents({key: 32});
 Controller.keyPressEvent.connect(keyPressEvent);
+Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.scriptEnding.connect(scriptEnding);
