@@ -6,7 +6,7 @@
   <application android:hardwareAccelerated="true" android:name="org.qtproject.qt5.android.bindings.QtApplication" android:label="@string/AppDisplayName" android:icon="@drawable/icon">
     
     <!-- VR MODE -->
-    <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_both"/>
+    <meta-data android:name="com.samsung.android.vr.application.mode" android:value="vr_dual"/>
     
     <activity android:configChanges="orientation|uiMode|screenLayout|screenSize|smallestScreenSize|locale|fontScale|keyboard|keyboardHidden|navigation"
               android:name="org.qtproject.qt5.android.bindings.QtActivity"
