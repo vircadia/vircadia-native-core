@@ -41,6 +41,7 @@ enum EntityUpdateFlags {
     UPDATE_MASS = 0x0004,
     UPDATE_COLLISION = 0x0008,
     UPDATE_SHAPE = 0x0010,
+    UPDATE_LIFETIME = 0x0020
     //UPDATE_APPEARANCE = 0x8000,
 };
 
@@ -285,9 +286,10 @@ public:
     void updateAngularVelocity(const glm::vec3& value);
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
+    void updateLifetime(float value);
 
-    void setUpdateFlags(uint32_t mask) { _updateFlags |= mask; }
-    void clearUpdateFlags(uint32_t mask) { _updateFlags &= ~mask; }
+    uint32_t getUpdateFlags() const { return _updateFlags; }
+    void clearUpdateFlags() { _updateFlags = 0; }
 
 #ifdef USE_BULLET_PHYSICS
     EntityMotionState* getMotionState() const { return _motionState; }
