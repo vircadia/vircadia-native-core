@@ -93,3 +93,42 @@ input.coord {
     width: 6em;
     height: 2em;
 }
+
+table#entity-table {
+    border-collapse: collapse;
+    font-family: Sans-Serif;
+    font-size: 12px;
+    width: 100%;
+    table-layout: fixed;
+}
+
+#entity-table tr {
+    cursor: pointer;
+}
+
+tr.selected {
+    background-color: #AAA;
+}
+
+#entity-table th {
+    background-color: #333;
+    color: #fff;
+    border: 0px black solid;
+    text-align: left;
+    word-wrap: nowrap;
+    white-space: nowrap;
+}
+
+#entity-table td {
+    border: 0px black solid;
+    word-wrap: nowrap;
+    white-space: nowrap;
+}
+
+th#entity-type {
+    width: 10%;
+}
+
+th#entity-url {
+    width: 90%;
+}

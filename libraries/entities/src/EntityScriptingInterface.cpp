@@ -44,6 +44,10 @@ EntityItemID EntityScriptingInterface::addEntity(const EntityItemProperties& pro
     return id;
 }
 
+EntityItemID EntityScriptingInterface::getEntityItemID(const QString& uuid) {
+    return EntityItemID(QUuid(uuid));
+}
+
 EntityItemID EntityScriptingInterface::identifyEntity(EntityItemID entityID) {
     EntityItemID actualID = entityID;
 
