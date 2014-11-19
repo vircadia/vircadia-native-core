@@ -21,7 +21,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
-
+#include <SoundCache.h>
 
 #include "AssignmentFactory.h"
 #include "AssignmentThread.h"
@@ -122,7 +122,9 @@ AssignmentClient::AssignmentClient(int &argc, char **argv) :
     connect(&AccountManager::getInstance(), &AccountManager::authRequired,
             this, &AssignmentClient::handleAuthenticationRequest);
     
+    // Create Singleton objects on main thread
     NetworkAccessManager::getInstance();
+    SoundCache::getInstance();
 }
 
 void AssignmentClient::sendAssignmentRequest() {
