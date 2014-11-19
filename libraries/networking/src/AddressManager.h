@@ -19,7 +19,8 @@
 
 #include "AccountManager.h"
 
-static const QString HIFI_URL_SCHEME = "hifi";
+const QString HIFI_URL_SCHEME = "hifi";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://sandbox";
 
 typedef const glm::vec3& (*PositionGetter)();
 typedef glm::quat (*OrientationGetter)();
