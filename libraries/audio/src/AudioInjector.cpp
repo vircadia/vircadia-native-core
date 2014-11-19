@@ -86,8 +86,6 @@ void AudioInjector::injectAudio() {
         int byteOffset = (int) floorf(SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
         byteOffset *= sizeof(int16_t);
         
-        qDebug() << "Changing current send position to" << byteOffset;
-        
         _currentSendPosition = byteOffset;
     }
     
@@ -117,7 +115,8 @@ void AudioInjector::injectLocally() {
                                       Q_ARG(qreal, _options.volume),
                                       Q_ARG(AudioInjector*, this));
             
-            
+            // if we're not looping and the buffer tells us it is empty then emit finished
+            connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);
             
             if (!success) {
                 qDebug() << "AudioInjector::injectLocally could not output locally via _localAudioInterface";

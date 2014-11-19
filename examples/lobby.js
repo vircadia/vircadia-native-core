@@ -44,7 +44,8 @@ var currentDrone = null;
 
 var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
 var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
-var currentMusak = null;
+var currentMusakInjector = null;
+var currentSound = null;
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
@@ -125,23 +126,42 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
+var MUSAK_VOLUME = 0.5;
+
+function playNextMusak() {
+  if (panelWall) {
+    print("PLAYING THE NEXT MUSAK!");
+    if (currentSound == latinSound) {
+      if (elevatorSound.downloaded) {
+        currentSound = elevatorSound;
+      }
+    } else if (currentSound == elevatorSound) {
+      if (latinSound.downloaded) {
+        currentSound = latinSound;
+      }
+    }
+  
+    currentMusakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUSAK_VOLUME });
+  }
+}
+
 function playRandomMusak() {
-  chosenSound = null;
+  currentSound = null;
   
   if (latinSound.downloaded && elevatorSound.downloaded) {
-    chosenSound = Math.random < 0.5 ? latinSound : elevatorSound;
+    currentSound = Math.random() < 0.5 ? latinSound : elevatorSound;
   } else if (latinSound.downloaded) {
-    chosenSound = latinSound;
+    currentSound = latinSound;
   } else if (elevatorSound.downloaded) {
-    chosenSound = elevatorSound;
+    currentSound = elevatorSound;
   }
   
-  if (chosenSound) {    
-    // pick a random number of seconds from 0-10 to offset the muzak
+  if (currentSound) {    
+    // pick a random number of seconds from 0-10 to offset the musak
     var secondOffset = Math.random() * 10;
-    currentMusak = Audio.playSound(chosenSound, { localOnly: true, secondOffset: secondOffset, volume: 0.5  })
+    currentMusakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUSAK_VOLUME });
   } else {
-    currentMusak = null;
+    currentMusakInjector = null;
   }
 }
 
@@ -150,15 +170,15 @@ function cleanupLobby() {
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(reticle);
   
-  Audio.stopInjector(currentDrone);
-  currentDrone = null;
-  
-  Audio.stopInjector(currentMusak);
-  currentMusak = null;
-  
   panelWall = false;
   orbShell = false;
   reticle = false;
+  
+  Audio.stopInjector(currentDrone);
+  currentDrone = null;
+  
+  Audio.stopInjector(currentMusakInjector);
+  currentMusakInjector = null;
   
   locations = {};
   toggleEnvironmentRendering(true);
@@ -224,6 +244,11 @@ function update(deltaTime) {
     Overlays.editOverlay(reticle, {
       position: reticlePosition()
     });
+    
+    // if the reticle is up then we may need to play the next musak
+    if (!Audio.isInjectorPlaying(currentMusakInjector)) {
+      playNextMusak();
+    }
   }
 }
 
