@@ -775,7 +775,10 @@ void Avatar::setSkeletonOffset(const glm::vec3& offset) {
 }
 
 glm::vec3 Avatar::getSkeletonPosition() const { 
-    return _position + _skeletonOffset; 
+    // The avatar is rotated PI about the yAxis, so we have to correct for it 
+    // to get the skeleton offset contribution in the world-frame.
+    const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+    return _position + getOrientation() * FLIP * _skeletonOffset; 
 }
 
 QVector<glm::quat> Avatar::getJointRotations() const {
