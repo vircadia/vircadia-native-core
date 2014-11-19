@@ -35,6 +35,14 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
+enum EntityUpdateFlags {
+    UPDATE_POSITION = 0x0001,
+    UPDATE_VELOCITY = 0x0002,
+    UPDATE_MASS = 0x0004,
+    UPDATE_COLLISION = 0x0008,
+    UPDATE_SHAPE = 0x0010,
+    //UPDATE_APPEARANCE = 0x8000,
+};
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -124,9 +132,6 @@ public:
     virtual SimulationState computeSimulationState() const; 
 
     virtual void debugDump() const;
-
-    // similar to assignment/copy, but it handles keeping lifetime accurate
-    void copyChangedProperties(const EntityItem& other);
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
@@ -266,6 +271,29 @@ public:
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
 
+    // updateFoo() methods to be used when changes need to be accumulated in the _updateFlags
+    void updatePosition(const glm::vec3& value);
+    void updatePositionInMeters(const glm::vec3& value);
+    void updateDimensions(const glm::vec3& value);
+    void updateDimensionsInMeters(const glm::vec3& value);
+    void updateRotation(const glm::quat& rotation);
+    void updateMass(float value);
+    void updateVelocity(const glm::vec3& value);
+    void updateVelocityInMeters(const glm::vec3& value);
+    void updateGravity(const glm::vec3& value);
+    void updateGravityInMeters(const glm::vec3& value);
+    void updateAngularVelocity(const glm::vec3& value);
+    void updateIgnoreForCollisions(bool value);
+    void updateCollisionsWillMove(bool value);
+
+    void setUpdateFlags(uint32_t mask) { _updateFlags |= mask; }
+    void clearUpdateFlags(uint32_t mask) { _updateFlags &= ~mask; }
+
+#ifdef USE_BULLET_PHYSICS
+    EntityMotionState* getMotionState() const { return _motionState; }
+    virtual EntityMotionState* createMotionState() { return NULL; }
+    void destroyMotionState();
+#endif // USE_BULLET_PHYSICS
     SimulationState getSimulationState() const { return _simulationState; }
     
 protected:
@@ -314,6 +342,10 @@ protected:
 
     AACubeShape _collisionShape;
     SimulationState _simulationState;   // only set by EntityTree
+
+    // UpdateFlags are set whenever a property changes that requires the change to be communicated to other
+    // data structures.  It is the responsibility of the EntityTree to relay changes entity and clear flags.
+    uint32_t _updateFlags;
 };
 
 
