@@ -46,8 +46,6 @@ var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.st
 var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
 var currentMusak = null;
 
-var firstMusakPlay = true;
-
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
   return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
@@ -138,15 +136,9 @@ function playRandomMusak() {
     chosenSound = elevatorSound;
   }
   
-  if (chosenSound) {
-    if (firstMusakPlay) {
-      // pick a random number of seconds from 0-10 to offset the muzak
-      var secondOffset = Math.random() * 10;
-      firstMusakPlay = false;
-    } else {
-      var secondOffset = 0.0;
-    }
-    
+  if (chosenSound) {    
+    // pick a random number of seconds from 0-10 to offset the muzak
+    var secondOffset = Math.random() * 10;
     currentMusak = Audio.playSound(chosenSound, { localOnly: true, secondOffset: secondOffset, volume: 0.5  })
   } else {
     currentMusak = null;

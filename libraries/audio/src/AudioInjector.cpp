@@ -78,6 +78,19 @@ float AudioInjector::getLoudness() {
 }
 
 void AudioInjector::injectAudio() {
+    
+    // check if we need to offset the sound by some number of seconds
+    if (_options.secondOffset > 0.0f) {
+        
+        // convert the offset into a number of bytes
+        int byteOffset = (int) floorf(SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        byteOffset *= sizeof(int16_t);
+        
+        qDebug() << "Changing current send position to" << byteOffset;
+        
+        _currentSendPosition = byteOffset;
+    }
+    
     if (_options.localOnly) {
         injectLocally();
     } else {
@@ -94,19 +107,8 @@ void AudioInjector::injectLocally() {
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
             
-            // check if we need to offset the sound by some number of seconds
-            if (_options.secondOffset > 0.0f) {
-                
-                qDebug() << "injector wants a sound offset of" << _options.secondOffset;
-                // convert the offset into a number of bytes
-                int byteOffset = (int) floorf(SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
-                byteOffset *= sizeof(int16_t);
-                
-                qDebug() << "that gives us" << byteOffset << "bytes";
-                
-                // give that byte offset to our local buffer
-                _localBuffer->setCurrentOffset(byteOffset);
-            }
+            // give our current send position to the local buffer
+            _localBuffer->setCurrentOffset(_currentSendPosition);
             
             QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
                                       Qt::BlockingQueuedConnection,
