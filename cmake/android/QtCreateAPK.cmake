@@ -46,6 +46,13 @@ macro(qt_create_apk)
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/res" "${ANDROID_APK_BUILD_DIR}/res"
   )
+  
+  # copy the assets folder from the target to the apk build dir
+  add_custom_command(
+    TARGET ${TARGET_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/assets" "${ANDROID_APK_BUILD_DIR}/assets"
+  )
 
   # figure out where the qt dir is
   get_filename_component(QT_DIR "${QT_CMAKE_PREFIX_PATH}/../../" ABSOLUTE)

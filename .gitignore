@@ -34,3 +34,5 @@ interface/external/*/*
 
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/
+
+gvr-interface/assets/oculussig*
