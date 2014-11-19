@@ -1067,6 +1067,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
+    QString jointLeftToeID;
+    QString jointRightToeID;
     
     QVector<QString> humanIKJointNames;
     for (int i = 0;; i++) {
@@ -1166,11 +1168,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     } else if (name == jointHeadName) {
                         jointHeadID = getID(object.properties);
 
-                    } else if (name == jointLeftHandName) {
+                    } else if (name == jointLeftHandName || name == "LeftHand" || name == "joint_L_hand") {
                         jointLeftHandID = getID(object.properties);
 
-                    } else if (name == jointRightHandName) {
+                    } else if (name == jointRightHandName || name == "RightHand" || name == "joint_R_hand") {
                         jointRightHandID = getID(object.properties);
+
+                    } else if (name == "LeftToe" || name == "joint_L_toe" || name == "LeftToe_End") {
+                        jointLeftToeID = getID(object.properties);
+
+                    } else if (name == "RightToe" || name == "joint_R_toe" || name == "RightToe_End") {
+                        jointRightToeID = getID(object.properties);
                     }
                     int humanIKJointIndex = humanIKJointNames.indexOf(name);
                     if (humanIKJointIndex != -1) {
@@ -1595,6 +1603,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
     geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
+    geometry.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
+    geometry.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
     
     foreach (const QString& id, humanIKJointIDs) {
         geometry.humanIKJointIndices.append(modelIDs.indexOf(id));
