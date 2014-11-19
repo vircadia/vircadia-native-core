@@ -20,6 +20,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &GVRInterface::processDatagrams);
     
+    nodeList->addNodeTypeToInterestSet(NodeType::AudioMixer);
     nodeList->getDomainHandler().setHostname("10.0.0.190");
     
     QTimer* domainServerTimer = new QTimer(this);
@@ -42,7 +43,6 @@ void GVRInterface::processDatagrams() {
         nodeList->getNodeSocket().readDatagram(incomingPacket.data(), incomingPacket.size(),
             senderSockAddr.getAddressPointer(), senderSockAddr.getPortPointer());
         
-        qDebug() << "Processing a packet!";
         nodeList->processNodeData(senderSockAddr, incomingPacket);
     }
 }

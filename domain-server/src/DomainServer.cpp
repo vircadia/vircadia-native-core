@@ -864,10 +864,10 @@ void DomainServer::sendDomainListToNode(const SharedNodePointer& node, const Hif
                 }
             });
         }
-
-        // always write the last broadcastPacket
-        nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
     }
+    
+    // always write the last broadcastPacket
+    nodeList->writeDatagram(broadcastPacket, node, senderSockAddr);
 }
 
 void DomainServer::readAvailableDatagrams() {
