@@ -99,7 +99,6 @@ table#entity-table {
     font-family: Sans-Serif;
     font-size: 12px;
     width: 100%;
-    table-layout: fixed;
 }
 
 #entity-table tr {
@@ -126,9 +125,8 @@ tr.selected {
 }
 
 th#entity-type {
-    width: 10%;
+    width: 60px;
 }
 
 th#entity-url {
-    width: 90%;
 }
