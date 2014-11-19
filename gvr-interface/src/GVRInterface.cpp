@@ -20,7 +20,7 @@ GVRInterface::GVRInterface(int argc, char* argv[]) :
     
     connect(&nodeList->getNodeSocket(), &QUdpSocket::readyRead, this, &GVRInterface::processDatagrams);
     
-    nodeList->getDomainHandler().setHostname(DEFAULT_DOMAIN_HOSTNAME);
+    nodeList->getDomainHandler().setHostname("10.0.0.190");
     
     QTimer* domainServerTimer = new QTimer(this);
     connect(domainServerTimer, &QTimer::timeout, nodeList, &NodeList::sendDomainServerCheckIn);
