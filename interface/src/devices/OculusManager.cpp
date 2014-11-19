@@ -524,13 +524,15 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
                    _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
 
-        // Apply the offset for the left or right eye on the projection matrix
-        glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
       
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
+      
+        // HACK: instead of passing the stereo eye offset directly in the matrix, pass it in the camera offset
+        //glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
         
-        Application::getInstance()->displaySide(*_camera, false, renderSide);
+        _camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].ViewAdjust.x, -_eyeRenderDesc[eye].ViewAdjust.y, -_eyeRenderDesc[eye].ViewAdjust.z));
+        Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);
         _activeEyeIndex = -1;
