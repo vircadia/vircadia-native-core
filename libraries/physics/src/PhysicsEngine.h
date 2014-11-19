@@ -64,14 +64,12 @@ public:
     bool addEntity(CustomMotionState* motionState);
 
     /// \param motionState pointer to Entity's MotionState
-    /// \return true if entity updated
-    bool updateEntityMotionType(CustomMotionState* motionState);
-
-    /// \param motionState pointer to Entity's MotionState
     /// \return true if Entity removed
     bool removeEntity(CustomMotionState* motionState);
 
-    bool updateEntityMotionType(CustomMotionState* motionState, MotionType type);
+    /// \param motionState pointer to Entity's MotionState
+    /// \return true if entity updated
+    bool updateEntityMotionType(CustomMotionState* motionState);
 
     bool updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues);
 

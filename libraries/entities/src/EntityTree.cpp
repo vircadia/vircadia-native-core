@@ -669,8 +669,7 @@ void EntityTree::update() {
     //   1) stationary things that are not changing - most models
     //   2) mortal things - these are stationary but have a lifetime - then need to be checked, 
     //      can be touched linearly, and won't change the tree
-    //   2) changing things - like things animating they can be touched linearly and they don't change the tree
-    //   3) moving things - these need to scan the tree and update accordingly
+    //   2) moving/changing things - like things animating they can be touched linearly and they don't change the tree
     // finally - all things that need to be deleted, can be handled on a single delete pass.
     //
     // TODO: theoretically we could combine the move and delete tree passes... 

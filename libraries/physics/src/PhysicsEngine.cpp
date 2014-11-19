@@ -149,8 +149,8 @@ bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
                 motionState->applyVelocities();
                 break;
             }
+            case MOTION_TYPE_STATIC:
             default: {
-                // MOTION_TYPE_STATIC
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
                 body->updateInertiaTensor();
@@ -161,6 +161,22 @@ bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
         body->setRestitution(motionState->_restitution);
         body->setFriction(motionState->_friction);
         _dynamicsWorld->addRigidBody(body);
+        return true;
+    }
+    return false;
+}
+
+bool PhysicsEngine::removeEntity(CustomMotionState* motionState) {
+    assert(motionState);
+    btRigidBody* body = motionState->_body;
+    if (body) {
+        const btCollisionShape* shape = body->getCollisionShape();
+        ShapeInfo info;
+        info.collectInfo(shape);
+        _dynamicsWorld->removeRigidBody(body);
+        _shapeManager.releaseShape(info);
+        delete body;
+        motionState->_body = NULL;
         return true;
     }
     return false;
@@ -213,28 +229,6 @@ bool PhysicsEngine::updateEntityMotionType(CustomMotionState* motionState) {
         _dynamicsWorld->addRigidBody(body);
         return true;
     }
-    return false;
-}
-
-bool PhysicsEngine::removeEntity(CustomMotionState* motionState) {
-    assert(motionState);
-    btRigidBody* body = motionState->_body;
-    if (body) {
-        const btCollisionShape* shape = body->getCollisionShape();
-        ShapeInfo info;
-        info.collectInfo(shape);
-        _dynamicsWorld->removeRigidBody(body);
-        _shapeManager.releaseShape(info);
-        delete body;
-        motionState->_body = NULL;
-        return true;
-    }
-    return false;
-}
-
-bool PhysicsEngine::updateEntityMotionType(CustomMotionState* motionState, MotionType type) {
-    // TODO: implement this
-    assert(motionState);
     return false;
 }
 
