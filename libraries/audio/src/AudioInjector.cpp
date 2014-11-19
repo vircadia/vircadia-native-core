@@ -89,9 +89,11 @@ void AudioInjector::injectLocally() {
     bool success = false;
     if (_localAudioInterface) {
         if (_audioData.size() > 0) {
+            
             _localBuffer = new AudioInjectorLocalBuffer(_audioData, this);
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
+            
             
             QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
                                       Qt::BlockingQueuedConnection,
