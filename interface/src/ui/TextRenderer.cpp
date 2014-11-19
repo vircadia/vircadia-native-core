@@ -95,7 +95,7 @@ int TextRenderer::draw(int x, int y, const char* str, float alpha) {
             maxHeight = glyph.bounds().height();
         }
         //glBindTexture(GL_TEXTURE_2D, glyph.textureID());
-    
+
         int left = x + glyph.bounds().x();
         int right = x + glyph.bounds().x() + glyph.bounds().width();
         int bottom = y + glyph.bounds().y();
