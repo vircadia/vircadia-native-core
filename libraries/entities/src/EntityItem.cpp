@@ -968,7 +968,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     if (_position != value) {
         _position = value; 
         recalculateCollisionShape();
-        _updateFlags |= UPDATE_POSITION;
+        _updateFlags |= EntityItem::UPDATE_POSITION;
     }
 }
 
@@ -977,7 +977,7 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
     if (_position != position) {
         _position = position;
         recalculateCollisionShape();
-        _updateFlags |= UPDATE_POSITION;
+        _updateFlags |= EntityItem::UPDATE_POSITION;
     }
 }
 
@@ -985,7 +985,7 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
     if (_dimensions != value) {
         _dimensions = value; 
         recalculateCollisionShape();
-        _updateFlags |= UPDATE_SHAPE;
+        _updateFlags |= EntityItem::UPDATE_SHAPE;
     }
 }
 
@@ -994,7 +994,7 @@ void EntityItem::updateDimensionsInMeters(const glm::vec3& value) {
     if (_dimensions != dimensions) {
         _dimensions = dimensions; 
         recalculateCollisionShape();
-        _updateFlags |= UPDATE_SHAPE;
+        _updateFlags |= EntityItem::UPDATE_SHAPE;
     }
 }
 
@@ -1002,21 +1002,21 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     if (_rotation != rotation) {
         _rotation = rotation; 
         recalculateCollisionShape();
-        _updateFlags |= UPDATE_POSITION;
+        _updateFlags |= EntityItem::UPDATE_POSITION;
     }
 }
 
 void EntityItem::updateMass(float value) {
     if (_mass != value) {
         _mass = value;
-        _updateFlags |= UPDATE_MASS;
+        _updateFlags |= EntityItem::UPDATE_MASS;
     }
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) { 
     if (_velocity != value) {
         _velocity = value;
-        _updateFlags |= UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
     }
 }
 
@@ -1024,14 +1024,14 @@ void EntityItem::updateVelocityInMeters(const glm::vec3& value) {
     glm::vec3 velocity = value / (float) TREE_SCALE; 
     if (_velocity != velocity) {
         _velocity = velocity;
-        _updateFlags |= UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
     }
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if (_gravity != value) {
         _gravity = value; 
-        _updateFlags |= UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
     }
 }
 
@@ -1039,35 +1039,35 @@ void EntityItem::updateGravityInMeters(const glm::vec3& value) {
     glm::vec3 gravity = value / (float) TREE_SCALE;
     if (_gravity != gravity) {
         _gravity = gravity;
-        _updateFlags |= UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
     if (_angularVelocity != value) {
         _angularVelocity = value; 
-        _updateFlags |= UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
     }
 }
 
 void EntityItem::updateIgnoreForCollisions(bool value) { 
     if (_ignoreForCollisions != value) {
         _ignoreForCollisions = value; 
-        _updateFlags |= UPDATE_COLLISION;
+        _updateFlags |= EntityItem::UPDATE_COLLISION_GROUP;
     }
 }
 
 void EntityItem::updateCollisionsWillMove(bool value) { 
     if (_collisionsWillMove != value) {
         _collisionsWillMove = value; 
-        _updateFlags |= UPDATE_COLLISION;
+        _updateFlags |= EntityItem::UPDATE_MOTION_TYPE;
     }
 }
 
 void EntityItem::updateLifetime(float value) {
     if (_lifetime != value) {
         _lifetime = value;
-        _updateFlags |= UPDATE_LIFETIME;
+        _updateFlags |= EntityItem::UPDATE_LIFETIME;
     }
 }
 

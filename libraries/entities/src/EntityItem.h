@@ -39,22 +39,23 @@ class EntityTreeElementExtraEncodeData;
 class EntityMotionState;
 #endif // USE_BULLET_PHYSICS
 
-enum EntityUpdateFlags {
-    UPDATE_POSITION = 0x0001,
-    UPDATE_VELOCITY = 0x0002,
-    UPDATE_MASS = 0x0004,
-    UPDATE_COLLISION = 0x0008,
-    UPDATE_SHAPE = 0x0010,
-    UPDATE_LIFETIME = 0x0020
-    //UPDATE_APPEARANCE = 0x8000,
-};
-
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
 class EntityItem  {
 
 public:
+    enum EntityUpdateFlags {
+        UPDATE_POSITION = 0x0001,
+        UPDATE_VELOCITY = 0x0002,
+        UPDATE_MASS = 0x0004,
+        UPDATE_COLLISION_GROUP = 0x0008,
+        UPDATE_MOTION_TYPE = 0x0010,
+        UPDATE_SHAPE = 0x0020,
+        UPDATE_LIFETIME = 0x0040
+        //UPDATE_APPEARANCE = 0x8000,
+    };
+
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);
