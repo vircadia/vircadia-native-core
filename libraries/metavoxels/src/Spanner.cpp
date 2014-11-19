@@ -359,268 +359,6 @@ QByteArray StaticModel::getRendererClassName() const {
     return "StaticModelRenderer";
 }
 
-const float EIGHT_BIT_MAXIMUM = 255.0f;
-
-TempHeightfield::TempHeightfield(const Box& bounds, float increment, const QByteArray& height, const QByteArray& color,
-        const QByteArray& material, const QVector<SharedObjectPointer>& materials) :
-    _increment(increment),
-    _width((int)glm::round((bounds.maximum.x - bounds.minimum.x) / increment) + 1),
-    _heightScale((bounds.maximum.y - bounds.minimum.y) / EIGHT_BIT_MAXIMUM),
-    _height(height),
-    _color(color),
-    _material(material),
-    _materials(materials) {
-    
-    setBounds(bounds);
-}
-
-bool TempHeightfield::hasOwnColors() const {
-    return true;
-}
-
-bool TempHeightfield::hasOwnMaterials() const {
-    return true;
-}
-
-QRgb TempHeightfield::getColorAt(const glm::vec3& point) {
-    glm::vec3 relative = (point - getBounds().minimum) / _increment;
-    glm::vec3 floors = glm::floor(relative);
-    glm::vec3 ceils = glm::ceil(relative);
-    glm::vec3 fracts = glm::fract(relative);
-    int floorX = (int)floors.x;
-    int floorZ = (int)floors.z;
-    int ceilX = (int)ceils.x;
-    int ceilZ = (int)ceils.z;
-    const uchar* src = (const uchar*)_color.constData();
-    const uchar* upperLeft = src + (floorZ * _width + floorX) * DataBlock::COLOR_BYTES;
-    const uchar* lowerRight = src + (ceilZ * _width + ceilX) * DataBlock::COLOR_BYTES;
-    glm::vec3 interpolatedColor = glm::mix(glm::vec3(upperLeft[0], upperLeft[1], upperLeft[2]),
-        glm::vec3(lowerRight[0], lowerRight[1], lowerRight[2]), fracts.z);
-    
-    // the final vertex (and thus which triangle we check) depends on which half we're on
-    if (fracts.x >= fracts.z) {
-        const uchar* upperRight = src + (floorZ * _width + ceilX) * DataBlock::COLOR_BYTES;
-        interpolatedColor = glm::mix(interpolatedColor, glm::mix(glm::vec3(upperRight[0], upperRight[1], upperRight[2]),
-            glm::vec3(lowerRight[0], lowerRight[1], lowerRight[2]), fracts.z), (fracts.x - fracts.z) / (1.0f - fracts.z));
-        
-    } else {
-        const uchar* lowerLeft = src + (ceilZ * _width + floorX) * DataBlock::COLOR_BYTES;
-        interpolatedColor = glm::mix(glm::mix(glm::vec3(upperLeft[0], upperLeft[1], upperLeft[2]),
-            glm::vec3(lowerLeft[0], lowerLeft[1], lowerLeft[2]), fracts.z), interpolatedColor, fracts.x / fracts.z);
-    }
-    return qRgb(interpolatedColor.r, interpolatedColor.g, interpolatedColor.b);
-}
-
-int TempHeightfield::getMaterialAt(const glm::vec3& point) {
-    glm::vec3 relative = (point - getBounds().minimum) / _increment;
-    const uchar* src = (const uchar*)_material.constData();
-    return src[(int)glm::round(relative.z) * _width + (int)glm::round(relative.x)];
-}
-
-QVector<SharedObjectPointer>& TempHeightfield::getMaterials() {
-    return _materials;
-}
-
-bool TempHeightfield::contains(const glm::vec3& point) {
-    if (!getBounds().contains(point)) {
-        return false;
-    }
-    glm::vec3 relative = (point - getBounds().minimum) / _increment;
-    glm::vec3 floors = glm::floor(relative);
-    glm::vec3 ceils = glm::ceil(relative);
-    glm::vec3 fracts = glm::fract(relative);
-    int floorX = (int)floors.x;
-    int floorZ = (int)floors.z;
-    int ceilX = (int)ceils.x;
-    int ceilZ = (int)ceils.z;
-    const uchar* src = (const uchar*)_height.constData();
-    float upperLeft = src[floorZ * _width + floorX];
-    float lowerRight = src[ceilZ * _width + ceilX];
-    float interpolatedHeight = glm::mix(upperLeft, lowerRight, fracts.z);
-    
-    // the final vertex (and thus which triangle we check) depends on which half we're on
-    if (fracts.x >= fracts.z) {
-        float upperRight = src[floorZ * _width + ceilX];
-        interpolatedHeight = glm::mix(interpolatedHeight, glm::mix(upperRight, lowerRight, fracts.z),
-            (fracts.x - fracts.z) / (1.0f - fracts.z));
-        
-    } else {
-        float lowerLeft = src[ceilZ * _width + floorX];
-        interpolatedHeight = glm::mix(glm::mix(upperLeft, lowerLeft, fracts.z), interpolatedHeight, fracts.x / fracts.z);
-    }
-    return interpolatedHeight != 0.0f && point.y <= interpolatedHeight * _heightScale + getBounds().minimum.y;
-}
-
-bool TempHeightfield::intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal) {
-    // find the initial location in heightfield coordinates
-    float rayDistance;
-    glm::vec3 direction = end - start;
-    if (!getBounds().findRayIntersection(start, direction, rayDistance) || rayDistance > 1.0f) {
-        return false;
-    }
-    glm::vec3 entry = start + direction * rayDistance;
-    const float DISTANCE_THRESHOLD = 0.001f;
-    if (glm::abs(entry.x - getBounds().minimum.x) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(-1.0f, 0.0f, 0.0f);
-        distance = rayDistance;
-        return true;
-        
-    } else if (glm::abs(entry.x - getBounds().maximum.x) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(1.0f, 0.0f, 0.0f);
-        distance = rayDistance;
-        return true;
-        
-    } else if (glm::abs(entry.y - getBounds().minimum.y) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, -1.0f, 0.0f);
-        distance = rayDistance;
-        return true;
-        
-    } else if (glm::abs(entry.y - getBounds().maximum.y) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, 1.0f, 0.0f);
-        distance = rayDistance;
-        return true;
-        
-    } else if (glm::abs(entry.z - getBounds().minimum.z) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, 0.0f, -1.0f);
-        distance = rayDistance;
-        return true;
-        
-    } else if (glm::abs(entry.z - getBounds().maximum.z) < DISTANCE_THRESHOLD) {
-        normal = glm::vec3(0.0f, 0.0f, 1.0f);
-        distance = rayDistance;
-        return true;
-    }
-    entry = (entry - getBounds().minimum) / _increment;
-    glm::vec3 floors = glm::floor(entry);
-    glm::vec3 ceils = glm::ceil(entry);
-    if (floors.x == ceils.x) {
-        if (direction.x > 0.0f) {
-            ceils.x += 1.0f;
-        } else {
-            floors.x -= 1.0f;
-        } 
-    }
-    if (floors.z == ceils.z) {
-        if (direction.z > 0.0f) {
-            ceils.z += 1.0f;
-        } else {
-            floors.z -= 1.0f;
-        }
-    }
-    
-    bool withinBounds = true;
-    float accumulatedDistance = 0.0f;
-    const uchar* src = (const uchar*)_height.constData();
-    int highestX = _width - 1;
-    float highestY = (getBounds().maximum.y - getBounds().minimum.y) / _increment;
-    int highestZ = (int)glm::round((getBounds().maximum.z - getBounds().minimum.z) / _increment);
-    float heightScale = _heightScale / _increment;
-    while (withinBounds && accumulatedDistance <= 1.0f) {
-        // find the heights at the corners of the current cell
-        int floorX = qMin(qMax((int)floors.x, 0), highestX);
-        int floorZ = qMin(qMax((int)floors.z, 0), highestZ);
-        int ceilX = qMin(qMax((int)ceils.x, 0), highestX);
-        int ceilZ = qMin(qMax((int)ceils.z, 0), highestZ);
-        float upperLeft = src[floorZ * _width + floorX] * heightScale;
-        float upperRight = src[floorZ * _width + ceilX] * heightScale;
-        float lowerLeft = src[ceilZ * _width + floorX] * heightScale;
-        float lowerRight = src[ceilZ * _width + ceilX] * heightScale;
-        
-        // find the distance to the next x coordinate
-        float xDistance = FLT_MAX;
-        if (direction.x > 0.0f) {
-            xDistance = (ceils.x - entry.x) / direction.x;
-        } else if (direction.x < 0.0f) {
-            xDistance = (floors.x - entry.x) / direction.x;
-        }
-        
-        // and the distance to the next z coordinate
-        float zDistance = FLT_MAX;
-        if (direction.z > 0.0f) {
-            zDistance = (ceils.z - entry.z) / direction.z;
-        } else if (direction.z < 0.0f) {
-            zDistance = (floors.z - entry.z) / direction.z;
-        }
-        
-        // the exit distance is the lower of those two
-        float exitDistance = qMin(xDistance, zDistance);
-        glm::vec3 exit, nextFloors = floors, nextCeils = ceils;
-        if (exitDistance == FLT_MAX) {
-            withinBounds = false; // line points upwards/downwards; check this cell only
-            
-        } else {
-            // find the exit point and the next cell, and determine whether it's still within the bounds
-            exit = entry + exitDistance * direction;
-            withinBounds = (exit.y >= 0.0f && exit.y <= highestY);
-            if (exitDistance == xDistance) {
-                if (direction.x > 0.0f) {
-                    nextFloors.x += 1.0f;
-                    withinBounds &= (nextCeils.x += 1.0f) <= highestX;
-                } else {
-                    withinBounds &= (nextFloors.x -= 1.0f) >= 0.0f;
-                    nextCeils.x -= 1.0f;
-                }
-            }
-            if (exitDistance == zDistance) {
-                if (direction.z > 0.0f) {
-                    nextFloors.z += 1.0f;
-                    withinBounds &= (nextCeils.z += 1.0f) <= highestZ;
-                } else {
-                    withinBounds &= (nextFloors.z -= 1.0f) >= 0.0f;
-                    nextCeils.z -= 1.0f;
-                }
-            }
-            // check the vertical range of the ray against the ranges of the cell heights
-            if (qMin(entry.y, exit.y) > qMax(qMax(upperLeft, upperRight), qMax(lowerLeft, lowerRight)) ||
-                    qMax(entry.y, exit.y) < qMin(qMin(upperLeft, upperRight), qMin(lowerLeft, lowerRight))) {
-                entry = exit;
-                floors = nextFloors;
-                ceils = nextCeils;
-                accumulatedDistance += exitDistance;
-                continue;
-            } 
-        }
-        // having passed the bounds check, we must check against the planes
-        glm::vec3 relativeEntry = entry - glm::vec3(floors.x, upperLeft, floors.z);
-        
-        // first check the triangle including the Z+ segment
-        glm::vec3 lowerNormal(lowerLeft - lowerRight, 1.0f, upperLeft - lowerLeft);
-        float lowerProduct = glm::dot(lowerNormal, direction);
-        if (lowerProduct != 0.0f) {
-            float planeDistance = -glm::dot(lowerNormal, relativeEntry) / lowerProduct;
-            glm::vec3 intersection = relativeEntry + planeDistance * direction;
-            if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
-                    intersection.z >= intersection.x) {
-                distance = rayDistance + (accumulatedDistance + planeDistance) * _increment;
-                normal = glm::normalize(lowerNormal);
-                return true;
-            }
-        }
-        
-        // then the one with the X+ segment
-        glm::vec3 upperNormal(upperLeft - upperRight, 1.0f, upperRight - lowerRight);
-        float upperProduct = glm::dot(upperNormal, direction);
-        if (upperProduct != 0.0f) {
-            float planeDistance = -glm::dot(upperNormal, relativeEntry) / upperProduct;
-            glm::vec3 intersection = relativeEntry + planeDistance * direction;
-            if (intersection.x >= 0.0f && intersection.x <= 1.0f && intersection.z >= 0.0f && intersection.z <= 1.0f &&
-                    intersection.x >= intersection.z) {
-                distance = rayDistance + (accumulatedDistance + planeDistance) * _increment;
-                normal = glm::normalize(upperNormal);
-                return true;
-            }
-        }
-        
-        // no joy; continue on our way
-        entry = exit;
-        floors = nextFloors;
-        ceils = nextCeils;
-        accumulatedDistance += exitDistance;
-    }
-    
-    return false;
-}
-
 const int HeightfieldData::SHARED_EDGE = 1;
 
 HeightfieldData::HeightfieldData(int width) :
@@ -914,7 +652,7 @@ void HeightfieldHeightEditor::select() {
     int height = getHeightfieldSize(image.height()) + 2 * HeightfieldHeight::HEIGHT_BORDER;
     QVector<quint16> contents(width * height);
     quint16* dest = contents.data() + (width + 1) * HeightfieldHeight::HEIGHT_BORDER;
-    const float CONVERSION_SCALE = 65534.0f / EIGHT_BIT_MAXIMUM;
+    const float CONVERSION_SCALE = 65534.0f / numeric_limits<quint8>::max();
     for (int i = 0; i < image.height(); i++, dest += width) {
         const uchar* src = image.constScanLine(i);
         for (quint16* lineDest = dest, *end = dest + image.width(); lineDest != end; lineDest++,
@@ -1425,25 +1163,23 @@ float Heightfield::getHeight(const glm::vec3& location) const {
     int height = contents.size() / width;
     int innerWidth = width - HeightfieldHeight::HEIGHT_EXTENSION;
     int innerHeight = height - HeightfieldHeight::HEIGHT_EXTENSION;
-    int highestX = innerWidth + HeightfieldHeight::HEIGHT_BORDER;
-    int highestZ = innerHeight + HeightfieldHeight::HEIGHT_BORDER;
     
     glm::vec3 relative = glm::inverse(getRotation()) * (location - getTranslation()) * glm::vec3(1.0f / getScale(),
         1.0f, 1.0f / (getScale() * _aspectZ));
-    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > 1.0f || relative.z > 1.0f) {
-        return -FLT_MAX;
-    }
     relative.x = relative.x * innerWidth + HeightfieldHeight::HEIGHT_BORDER;
     relative.z = relative.z * innerHeight + HeightfieldHeight::HEIGHT_BORDER;
+    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > width - 1 || relative.z > height - 1) {
+        return -FLT_MAX;
+    }
     
     // find the bounds of the cell containing the point and the shared vertex heights
     glm::vec3 floors = glm::floor(relative);
     glm::vec3 ceils = glm::ceil(relative);
     glm::vec3 fracts = glm::fract(relative);
-    int floorX = qMin(qMax((int)floors.x, HeightfieldHeight::HEIGHT_BORDER), highestX);
-    int floorZ = qMin(qMax((int)floors.z, HeightfieldHeight::HEIGHT_BORDER), highestZ);
-    int ceilX = qMin(qMax((int)ceils.x, HeightfieldHeight::HEIGHT_BORDER), highestX);
-    int ceilZ = qMin(qMax((int)ceils.z, HeightfieldHeight::HEIGHT_BORDER), highestZ);
+    int floorX = (int)floors.x;
+    int floorZ = (int)floors.z;
+    int ceilX = (int)ceils.x;
+    int ceilZ = (int)ceils.z;
     float upperLeft = src[floorZ * width + floorX];
     float lowerRight = src[ceilZ * width + ceilX];
     float interpolatedHeight = glm::mix(upperLeft, lowerRight, fracts.z);
@@ -1860,6 +1596,12 @@ Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer
         glm::ceil(bounds.maximum.z / largestIncrementZ) * largestIncrementZ);
     Box largestBounds(minimum, maximum);
     
+    // enlarge the area to fetch
+    minimum.x -= largestIncrementX;
+    maximum.x += largestIncrementX;
+    minimum.z -= largestIncrementZ;
+    maximum.z += largestIncrementX;
+    
     glm::mat4 baseTransform = glm::mat4_cast(glm::inverse(getRotation())) * glm::translate(-getTranslation());
     glm::vec3 inverseScale(innerHeightWidth / getScale(), 1.0f, innerHeightHeight / (getScale() * _aspectZ));
     glm::mat4 transform = glm::scale(inverseScale) * baseTransform;
@@ -1885,16 +1627,16 @@ Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer
     return this;
     clearableBreak:
     
+    int spannerHeightWidth = (int)((maximum.x - minimum.x) / heightIncrementX) + HeightfieldHeight::HEIGHT_EXTENSION;
+    int spannerHeightHeight = (int)((maximum.z - minimum.z) / heightIncrementZ) + HeightfieldHeight::HEIGHT_EXTENSION;   
+    int spannerColorWidth = (int)((maximum.x - minimum.x) / colorIncrementX) + HeightfieldData::SHARED_EDGE;
+    int spannerColorHeight = (int)((maximum.z - minimum.z) / colorIncrementZ) + HeightfieldData::SHARED_EDGE;
+    int spannerMaterialWidth = (int)((maximum.x - minimum.x) / materialIncrementX) + HeightfieldData::SHARED_EDGE;
+    int spannerMaterialHeight = (int)((maximum.z - minimum.z) / materialIncrementZ) + HeightfieldData::SHARED_EDGE;
+        
     // create heightfield if necessary
     Heightfield* spanner = static_cast<Heightfield*>(heightfield.data());
     if (!spanner) {
-        int spannerHeightWidth = (int)((maximum.x - minimum.x) / heightIncrementX) + HeightfieldHeight::HEIGHT_EXTENSION;
-        int spannerHeightHeight = (int)((maximum.z - minimum.z) / heightIncrementZ) + HeightfieldHeight::HEIGHT_EXTENSION;   
-        int spannerColorWidth = (int)((maximum.x - bounds.minimum.x) / colorIncrementX) + HeightfieldData::SHARED_EDGE;
-        int spannerColorHeight = (int)((maximum.z - minimum.z) / colorIncrementZ) + HeightfieldData::SHARED_EDGE;
-        int spannerMaterialWidth = (int)((maximum.x - minimum.x) / materialIncrementX) + HeightfieldData::SHARED_EDGE;
-        int spannerMaterialHeight = (int)((maximum.z - minimum.z) / materialIncrementZ) + HeightfieldData::SHARED_EDGE;
-            
         heightfield = spanner = new Heightfield();
         spanner->setTranslation(minimum);
         spanner->setScale(maximum.x - minimum.x);
@@ -1908,9 +1650,106 @@ Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer
             QByteArray(spannerMaterialWidth * spannerMaterialHeight, 0), QVector<SharedObjectPointer>())));
     }
     
+    // fetch the height
+    glm::vec3 spannerInverseScale((spannerHeightWidth - HeightfieldHeight::HEIGHT_EXTENSION) / spanner->getScale(), 1.0f,
+        (spannerHeightHeight - HeightfieldHeight::HEIGHT_EXTENSION) / (spanner->getScale() * spanner->getAspectZ()));
+    glm::mat4 spannerBaseTransform = glm::translate(-spanner->getTranslation());
+    glm::mat4 spannerTransform = glm::scale(spannerInverseScale) * spannerBaseTransform;
+    Box spannerTransformedBounds = spannerTransform * getBounds();
+    int spannerStartX = glm::clamp((int)glm::floor(spannerTransformedBounds.minimum.x) + HeightfieldHeight::HEIGHT_BORDER,
+        0, spannerHeightWidth - 1);
+    int spannerStartZ = glm::clamp((int)glm::floor(spannerTransformedBounds.minimum.z) + HeightfieldHeight::HEIGHT_BORDER,
+        0, spannerHeightHeight - 1);
+    int spannerEndX = glm::clamp((int)glm::ceil(spannerTransformedBounds.maximum.x) + HeightfieldHeight::HEIGHT_BORDER,
+        0, spannerHeightWidth - 1);
+    int spannerEndZ = glm::clamp((int)glm::ceil(spannerTransformedBounds.maximum.z) + HeightfieldHeight::HEIGHT_BORDER,
+        0, spannerHeightHeight - 1);
+    quint16* dest = spanner->getHeight()->getContents().data() + spannerStartZ * spannerHeightWidth + spannerStartX;
+    glm::vec3 step = 1.0f / spannerInverseScale;
+    glm::vec3 initialPosition = glm::vec3(spannerStartX - HeightfieldHeight::HEIGHT_BORDER, 0,
+        spannerStartZ - HeightfieldHeight::HEIGHT_BORDER) * step + spanner->getTranslation();
+    glm::vec3 position = initialPosition;
+    float heightScale = numeric_limits<quint16>::max() / (getScale() * _aspectY);
+    for (int z = spannerStartZ; z <= spannerEndZ; z++, dest += spannerHeightWidth, position.z += step.z) {
+        quint16* lineDest = dest;
+        position.x = initialPosition.x;
+        for (int x = spannerStartX; x <= spannerEndX; x++, lineDest++, position.x += step.x) {
+            float height = (getHeight(position) - getTranslation().y) * heightScale;
+            if (height > *lineDest) {
+                *lineDest = height;
+            }
+        }
+    }
+    
+    // and the color
+    if (_color) {
+        spannerInverseScale = glm::vec3((spannerColorWidth - HeightfieldData::SHARED_EDGE) / spanner->getScale(), 1.0f,
+            (spannerColorHeight - HeightfieldData::SHARED_EDGE) / (spanner->getScale() * spanner->getAspectZ()));
+        spannerTransform = glm::scale(spannerInverseScale) * spannerBaseTransform;
+        spannerTransformedBounds = spannerTransform * getBounds();
+        spannerStartX = glm::clamp((int)glm::floor(spannerTransformedBounds.minimum.x), 0, spannerColorWidth - 1);
+        spannerStartZ = glm::clamp((int)glm::floor(spannerTransformedBounds.minimum.z), 0, spannerColorHeight - 1);
+        spannerEndX = glm::clamp((int)glm::ceil(spannerTransformedBounds.maximum.x), 0, spannerColorWidth - 1);
+        spannerEndZ = glm::clamp((int)glm::ceil(spannerTransformedBounds.maximum.z), 0, spannerColorHeight - 1);
+        
+        char* dest = spanner->getColor()->getContents().data() +
+            (spannerStartZ * spannerColorWidth + spannerStartX) * DataBlock::COLOR_BYTES;
+        step = 1.0f / spannerInverseScale;
+        initialPosition = glm::vec3(spannerStartX, 0, spannerStartZ) * step + spanner->getTranslation();
+        position = initialPosition;
+        for (int z = spannerStartZ; z <= spannerEndZ; z++, dest += spannerColorWidth * DataBlock::COLOR_BYTES,
+                position.z += step.z) {
+            char* lineDest = dest;
+            position.x = initialPosition.x;
+            for (int x = spannerStartX; x <= spannerEndX; x++, lineDest += DataBlock::COLOR_BYTES, position.x += step.x) {
+                QRgb color = getColorAt(position);
+                if (color != 0) {
+                    lineDest[0] = qRed(color);
+                    lineDest[1] = qGreen(color);
+                    lineDest[2] = qBlue(color);
+                }
+            }
+        }
+    }
+    
+    // and the material
+    if (_material) {
+        spannerInverseScale = glm::vec3((spannerMaterialWidth - HeightfieldData::SHARED_EDGE) / spanner->getScale(), 1.0f,
+            (spannerMaterialHeight - HeightfieldData::SHARED_EDGE) / (spanner->getScale() * spanner->getAspectZ()));
+        spannerTransform = glm::scale(spannerInverseScale) * spannerBaseTransform;
+        spannerTransformedBounds = spannerTransform * getBounds();
+        spannerStartX = glm::clamp((int)glm::floor(spannerTransformedBounds.minimum.x), 0, spannerMaterialWidth - 1);
+        spannerStartZ = glm::clamp((int)glm::floor(spannerTransformedBounds.minimum.z), 0, spannerMaterialHeight - 1);
+        spannerEndX = glm::clamp((int)glm::ceil(spannerTransformedBounds.maximum.x), 0, spannerMaterialWidth - 1);
+        spannerEndZ = glm::clamp((int)glm::ceil(spannerTransformedBounds.maximum.z), 0, spannerMaterialHeight - 1);
+        
+        char* dest = spanner->getMaterial()->getContents().data() + spannerStartZ * spannerMaterialWidth + spannerStartX;
+        step = 1.0f / spannerInverseScale;
+        initialPosition = glm::vec3(spannerStartX, 0, spannerStartZ) * step + spanner->getTranslation();
+        position = initialPosition;
+        QHash<int, int> materialMap;
+        for (int z = spannerStartZ; z <= spannerEndZ; z++, dest += spannerMaterialWidth, position.z += step.z) {
+            char* lineDest = dest;
+            position.x = initialPosition.x;
+            for (int x = spannerStartX; x <= spannerEndX; x++, lineDest++, position.x += step.x) {
+                int material = getMaterialAt(position);
+                if (material != -1) {
+                    if (material != 0) {
+                        int& mapping = materialMap[material];
+                        if (mapping == 0) {
+                            material = mapping = getMaterialIndex(_material->getMaterials().at(material - 1),
+                                spanner->getMaterial()->getMaterials(), spanner->getMaterial()->getContents());
+                        }
+                    }
+                    *lineDest = material;
+                }
+            }
+        }
+    }
+    
     // clear the height
     QVector<quint16> newHeightContents = _height->getContents();
-    quint16* dest = newHeightContents.data() + startZ * heightWidth + startX;
+    dest = newHeightContents.data() + startZ * heightWidth + startX;
     for (int z = startZ; z <= endZ; z++, dest += heightWidth) {
         memset(dest, 0, (endX - startX + 1) * sizeof(quint16));
     }
@@ -1989,6 +1828,9 @@ QRgb Heightfield::getColorAt(const glm::vec3& point) {
     
     glm::vec3 relative = glm::inverse(getRotation()) * (point - getTranslation()) * glm::vec3(innerWidth / getScale(),
         1.0f, innerHeight / (getScale() * _aspectZ));
+    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > width - 1 || relative.z > height - 1) {
+        return 0;
+    }
     glm::vec3 floors = glm::floor(relative);
     glm::vec3 ceils = glm::ceil(relative);
     glm::vec3 fracts = glm::fract(relative);
@@ -2025,6 +1867,9 @@ int Heightfield::getMaterialAt(const glm::vec3& point) {
     
     glm::vec3 relative = glm::inverse(getRotation()) * (point - getTranslation()) * glm::vec3(innerWidth / getScale(),
         1.0f, innerHeight / (getScale() * _aspectZ));
+    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > width - 1 || relative.z > height - 1) {
+        return -1;
+    }
     return src[(int)glm::round(relative.z) * width + (int)glm::round(relative.x)];
 }
 

@@ -284,39 +284,6 @@ private:
     QUrl _url;
 };
 
-/// A heightfield represented as a spanner.
-class TempHeightfield : public Transformable {
-    Q_OBJECT
-
-public:
-    
-    TempHeightfield(const Box& bounds, float increment, const QByteArray& height, const QByteArray& color,
-        const QByteArray& material, const QVector<SharedObjectPointer>& materials);
-    
-    QByteArray& getHeight() { return _height; }
-    QByteArray& getColor() { return _color; }
-    QByteArray& getMaterial() { return _material; }
-    
-    virtual bool hasOwnColors() const;
-    virtual bool hasOwnMaterials() const;
-    virtual QRgb getColorAt(const glm::vec3& point);
-    virtual int getMaterialAt(const glm::vec3& point);
-    virtual QVector<SharedObjectPointer>& getMaterials();
-    
-    virtual bool contains(const glm::vec3& point);
-    virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
-
-private:
-    
-    float _increment;
-    int _width;
-    float _heightScale;
-    QByteArray _height;
-    QByteArray _color;
-    QByteArray _material;
-    QVector<SharedObjectPointer> _materials;
-};
-
 /// Base class for heightfield data blocks.
 class HeightfieldData : public DataBlock {
 public:
@@ -345,7 +312,7 @@ public:
     HeightfieldHeight(Bitstream& in, int bytes);
     HeightfieldHeight(Bitstream& in, int bytes, const HeightfieldHeightPointer& reference);
     
-    const QVector<quint16>& getContents() const { return _contents; }
+    QVector<quint16>& getContents() { return _contents; }
 
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const HeightfieldHeightPointer& reference);
@@ -407,7 +374,7 @@ public:
     HeightfieldColor(Bitstream& in, int bytes);
     HeightfieldColor(Bitstream& in, int bytes, const HeightfieldColorPointer& reference);
     
-    const QByteArray& getContents() const { return _contents; }
+    QByteArray& getContents() { return _contents; }
     
     void write(Bitstream& out);
     void writeDelta(Bitstream& out, const HeightfieldColorPointer& reference);
@@ -469,7 +436,7 @@ public:
     HeightfieldMaterial(Bitstream& in, int bytes);
     HeightfieldMaterial(Bitstream& in, int bytes, const HeightfieldMaterialPointer& reference);
     
-    const QByteArray& getContents() const { return _contents; }
+    QByteArray& getContents() { return _contents; }
     QVector<SharedObjectPointer>& getMaterials() { return _materials; }
     
     void write(Bitstream& out);
