@@ -17,6 +17,7 @@ const int DEFAULT_WIDTH = 300;
 
 ToolWindow::ToolWindow(QWidget* parent) :
     QMainWindow(parent),
+    _selfHidden(false),
     _hasShown(false),
     _lastGeometry() {
 
