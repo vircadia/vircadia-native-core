@@ -504,10 +504,12 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
             (bodyOrientation * glm::quat(orientation.x, orientation.y, orientation.z, orientation.w) *
              glm::vec3(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z));
         
+        RenderArgs::RenderSide renderSide = RenderArgs::STEREO_LEFT;
         if (eyeIndex == 0) {
             _leftEyePosition = thisEyePosition;
         } else {
             _rightEyePosition = thisEyePosition;
+            renderSide = RenderArgs::STEREO_RIGHT;
         }
 
         _camera->update(1.0f / Application::getInstance()->getFps());
@@ -522,11 +524,15 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
                    _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
 
+      
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
+      
+        // HACK: instead of passing the stereo eye offset directly in the matrix, pass it in the camera offset
+        //glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
         
-        Application::getInstance()->displaySide(*_camera);
+        _camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].ViewAdjust.x, -_eyeRenderDesc[eye].ViewAdjust.y, -_eyeRenderDesc[eye].ViewAdjust.z));
+        Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);
         _activeEyeIndex = -1;

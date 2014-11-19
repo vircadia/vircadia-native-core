@@ -17,8 +17,11 @@ const int DEFAULT_WIDTH = 300;
 
 ToolWindow::ToolWindow(QWidget* parent) :
     QMainWindow(parent),
+    _selfHidden(false),
     _hasShown(false),
     _lastGeometry() {
+
+    Application::getInstance()->installEventFilter(this);
 }
 
 bool ToolWindow::event(QEvent* event) {
@@ -47,8 +50,37 @@ bool ToolWindow::event(QEvent* event) {
     return QMainWindow::event(event);
 }
 
+bool ToolWindow::eventFilter(QObject* sender, QEvent* event) {
+    switch (event->type()) {
+        case QEvent::WindowStateChange:
+            if (Application::getInstance()->getWindow()->isMinimized()) {
+                // If we are already visible, we are self-hiding
+                _selfHidden = isVisible();
+                setVisible(false);
+            } else {
+                if (_selfHidden) {
+                    setVisible(true);
+                }
+            }
+            break;
+        case QEvent::ApplicationDeactivate:
+            _selfHidden = isVisible();
+            setVisible(false);
+            break;
+        case QEvent::ApplicationActivate:
+            if (_selfHidden) {
+                setVisible(true);
+            }
+            break;
+        default:
+            break;
+    }
+
+    return false;
+}
+
 void ToolWindow::onChildVisibilityUpdated(bool visible) {
-    if (visible) {
+    if (!_selfHidden && visible) {
         setVisible(true);
     } else {
         bool hasVisible = false;
@@ -59,7 +91,10 @@ void ToolWindow::onChildVisibilityUpdated(bool visible) {
                 break;
             }
         }
-        setVisible(hasVisible);
+        // If a child was hidden and we don't have any children still visible, hide ourself.
+        if (!hasVisible) {
+            setVisible(false);
+        }
     }
 }
 

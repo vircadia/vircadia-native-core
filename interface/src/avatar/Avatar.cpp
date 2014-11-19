@@ -18,6 +18,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/vector_query.hpp>
 
 #include <GeometryUtil.h>
 #include <NodeList.h>
@@ -664,8 +665,18 @@ void Avatar::renderDisplayName() {
 
     // we need "always facing camera": we must remove the camera rotation from the stack
     glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
-    glm::vec3 axis = glm::axis(rotation);
-    glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+    
+    glm::vec3 frontAxis(1.f, 0.f, 0.f);
+    frontAxis = glm::rotate(rotation, frontAxis);
+    frontAxis = glm::normalize(glm::vec3(frontAxis.x, 0.f, frontAxis.z));
+    
+    // TODO : test this secodn solution  which should be better wfor occulus
+    //glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
+    //glm::vec3 frontAxis = camPosition - textPosition;
+    //frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.f, -frontAxis.x));
+    
+    float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.f : -1.f);
+    glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates
     // We project a unit vector and check the difference in screen coordinates, to check which is the 
@@ -695,7 +706,8 @@ void Avatar::renderDisplayName() {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        float scaleFactor = Application::getInstance()->getRenderResolutionScale() *
+        float scaleFactor = Application::getInstance()->getRenderResolutionScale() * // Scale compensate for the resolution
+            QApplication::desktop()->windowHandle()->devicePixelRatio() * // And the device pixel ratio
             ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
         glScalef(scaleFactor, scaleFactor, 1.0);  
         
