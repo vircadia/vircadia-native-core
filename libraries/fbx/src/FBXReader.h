@@ -120,6 +120,7 @@ public:
     FBXTexture diffuseTexture;
     FBXTexture normalTexture;
     FBXTexture specularTexture;
+    FBXTexture emissiveTexture;
 
     QString materialID;
 };
@@ -147,6 +148,7 @@ public:
     QVector<FBXBlendshape> blendshapes;
     
     bool hasSpecularTexture() const;
+    bool hasEmissiveTexture() const;
 };
 
 /// A single animation frame extracted from an FBX document.

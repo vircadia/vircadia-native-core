@@ -303,7 +303,12 @@ private:
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
     static ProgramObject _translucentProgram;
-    
+
+    static ProgramObject _emissiveProgram;
+    static ProgramObject _emissiveNormalMapProgram;
+    static ProgramObject _emissiveSpecularMapProgram;
+    static ProgramObject _emissiveNormalSpecularMapProgram;
+
     static ProgramObject _shadowProgram;
     
     static ProgramObject _skinProgram;
@@ -311,7 +316,12 @@ private:
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
     static ProgramObject _skinTranslucentProgram;
-    
+
+    static ProgramObject _skinEmissiveProgram;
+    static ProgramObject _skinEmissiveNormalMapProgram;
+    static ProgramObject _skinEmissiveSpecularMapProgram;
+    static ProgramObject _skinEmissiveNormalSpecularMapProgram;
+
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
@@ -328,6 +338,11 @@ private:
     static Locations _specularMapLocations;
     static Locations _normalSpecularMapLocations;
     static Locations _translucentLocations;
+
+    static Locations _emissiveLocations;
+    static Locations _emissiveNormalMapLocations;
+    static Locations _emissiveSpecularMapLocations;
+    static Locations _emissiveNormalSpecularMapLocations;
     
     static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
         
@@ -344,7 +359,12 @@ private:
     static SkinLocations _skinNormalSpecularMapLocations;    
     static SkinLocations _skinShadowLocations;
     static SkinLocations _skinTranslucentLocations;
-        
+
+    static SkinLocations _skinEmissiveLocations;
+    static SkinLocations _skinEmissiveNormalMapLocations;
+    static SkinLocations _skinEmissiveSpecularMapLocations;
+    static SkinLocations _skinEmissiveNormalSpecularMapLocations;    
+
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 
     QVector<AABox> _calculatedMeshBoxes;
@@ -376,6 +396,16 @@ private:
     QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecularSkinned;
     QMap<QString, int> _unsortedMeshesOpaqueSpecularSkinned;
 
+    QMap<QString, int> _unsortedMeshesOpaqueEmissive;
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveTangents;
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveTangentsSpecular;
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveSpecular;
+
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveTangentsSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned;
+    QMap<QString, int> _unsortedMeshesOpaqueEmissiveSpecularSkinned;
+
     QVector<int> _meshesTranslucent;
     QVector<int> _meshesTranslucentTangents;
     QVector<int> _meshesTranslucentTangentsSpecular;
@@ -396,6 +426,16 @@ private:
     QVector<int> _meshesOpaqueTangentsSpecularSkinned;
     QVector<int> _meshesOpaqueSpecularSkinned;
 
+    QVector<int> _meshesOpaqueEmissive;
+    QVector<int> _meshesOpaqueEmissiveTangents;
+    QVector<int> _meshesOpaqueEmissiveTangentsSpecular;
+    QVector<int> _meshesOpaqueEmissiveSpecular;
+
+    QVector<int> _meshesOpaqueEmissiveSkinned;
+    QVector<int> _meshesOpaqueEmissiveTangentsSkinned;
+    QVector<int> _meshesOpaqueEmissiveTangentsSpecularSkinned;
+    QVector<int> _meshesOpaqueEmissiveSpecularSkinned;
+
     // Scene rendering support
     static QVector<Model*> _modelsInScene;
     static gpu::Batch _sceneRenderBatch;
@@ -407,19 +447,19 @@ private:
     void renderSetup(RenderArgs* args);
     bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
     int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
-                        bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
+                        bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
     void setupBatchTransform(gpu::Batch& batch);
-    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned);
+    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned);
 
     int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                                        RenderArgs* args, SkinLocations* skinLocations, GLenum specularTextureUnit);
+                                        RenderArgs* args, SkinLocations* skinLocations, GLenum specularTextureUnit, GLenum emissiveTextureUnit);
 
     static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
-                            SkinLocations*& skinLocations, GLenum& specularTextureUnit);
+                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            SkinLocations*& skinLocations, GLenum& specularTextureUnit, GLenum& emissiveTextureUnit);
 
     static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
+                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
 
 
 };

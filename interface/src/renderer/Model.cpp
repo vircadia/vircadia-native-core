@@ -70,6 +70,11 @@ ProgramObject Model::_specularMapProgram;
 ProgramObject Model::_normalSpecularMapProgram;
 ProgramObject Model::_translucentProgram;
 
+ProgramObject Model::_emissiveProgram;
+ProgramObject Model::_emissiveNormalMapProgram;
+ProgramObject Model::_emissiveSpecularMapProgram;
+ProgramObject Model::_emissiveNormalSpecularMapProgram;
+
 ProgramObject Model::_shadowProgram;
 
 ProgramObject Model::_skinProgram;
@@ -77,6 +82,11 @@ ProgramObject Model::_skinNormalMapProgram;
 ProgramObject Model::_skinSpecularMapProgram;
 ProgramObject Model::_skinNormalSpecularMapProgram;
 ProgramObject Model::_skinTranslucentProgram;
+
+ProgramObject Model::_skinEmissiveProgram;
+ProgramObject Model::_skinEmissiveNormalMapProgram;
+ProgramObject Model::_skinEmissiveSpecularMapProgram;
+ProgramObject Model::_skinEmissiveNormalSpecularMapProgram;
 
 ProgramObject Model::_skinShadowProgram;
 
@@ -86,12 +96,22 @@ Model::Locations Model::_specularMapLocations;
 Model::Locations Model::_normalSpecularMapLocations;
 Model::Locations Model::_translucentLocations;
 
+Model::Locations Model::_emissiveLocations;
+Model::Locations Model::_emissiveNormalMapLocations;
+Model::Locations Model::_emissiveSpecularMapLocations;
+Model::Locations Model::_emissiveNormalSpecularMapLocations;
+
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
 Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
+
+Model::SkinLocations Model::_skinEmissiveLocations;
+Model::SkinLocations Model::_skinEmissiveNormalMapLocations;
+Model::SkinLocations Model::_skinEmissiveSpecularMapLocations;
+Model::SkinLocations Model::_skinEmissiveNormalSpecularMapLocations;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -268,6 +288,39 @@ void Model::init() {
         _translucentProgram.link();
         
         initProgram(_translucentProgram, _translucentLocations);
+
+        // Emissive
+        _emissiveProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model.vert");
+        _emissiveProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model_emissive.frag");
+        _emissiveProgram.link();
+        
+        initProgram(_emissiveProgram, _emissiveLocations);
+
+        _emissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model_normal_map.vert");
+        _emissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_emissive_normal_map.frag");
+        _emissiveNormalMapProgram.link();
+        
+        initProgram(_emissiveNormalMapProgram, _emissiveNormalMapLocations);
+        
+        _emissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model.vert");
+        _emissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_emissive_specular_map.frag");
+        _emissiveSpecularMapProgram.link();
+        
+        initProgram(_emissiveSpecularMapProgram, _emissiveSpecularMapLocations);
+        
+        _emissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model_normal_map.vert");
+        _emissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_emissive_normal_specular_map.frag");
+        _emissiveNormalSpecularMapProgram.link();
+        
+        initProgram(_emissiveNormalSpecularMapProgram, _emissiveNormalSpecularMapLocations, 2);
+        // end emissive
+
         
         _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
         _shadowProgram.addShaderFromSourceFile(QGLShader::Fragment,
@@ -319,6 +372,38 @@ void Model::init() {
         _skinTranslucentProgram.link();
         
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
+
+
+        _skinEmissiveProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/skin_model.vert");
+        _skinEmissiveProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model_emissive.frag");
+        _skinEmissiveProgram.link();
+        
+        initSkinProgram(_skinEmissiveProgram, _skinEmissiveLocations);
+        
+        _skinEmissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
+        _skinEmissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_emissive_normal_map.frag");
+        _skinEmissiveNormalMapProgram.link();
+        
+        initSkinProgram(_skinEmissiveNormalMapProgram, _skinEmissiveNormalMapLocations);
+        
+        _skinEmissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model.vert");
+        _skinEmissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_emissive_specular_map.frag");
+        _skinEmissiveSpecularMapProgram.link();
+        
+        initSkinProgram(_skinEmissiveSpecularMapProgram, _skinEmissiveSpecularMapLocations);
+        
+        _skinEmissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
+        _skinEmissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_emissive_normal_specular_map.frag");
+        _skinEmissiveNormalSpecularMapProgram.link();
+        
+        initSkinProgram(_skinEmissiveNormalSpecularMapProgram, _skinEmissiveNormalSpecularMapLocations, 2);
+        
     }
 }
 
@@ -621,14 +706,23 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     //renderMeshes(RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, book isSkinned, args);
     int opaqueMeshPartsRendered = 0;
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args);
+
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, true, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
+    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, true, args);
 
     // render translucent meshes afterwards
     //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
@@ -642,14 +736,14 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     int translucentMeshPartsRendered = 0;
     const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
-    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args);
+    translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
 
     GLBATCH(glDisable)(GL_ALPHA_TEST);
     GLBATCH(glEnable)(GL_BLEND);
@@ -666,14 +760,14 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
 
     if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
         const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
-        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args);
+        translucentMeshPartsRendered += renderMeshes(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args);
     }
 
     GLBATCH(glDepthMask)(true);
@@ -1562,15 +1656,24 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         int opaqueMeshPartsRendered = 0;
 
         // now, for each model in the scene, render the mesh portions
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, args);
-    
+    /*    opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, false, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, false, true, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, false, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args);
+*/
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, true, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
+        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, true, args);
+
         // render translucent meshes afterwards
         //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
         {
@@ -1583,15 +1686,15 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
 
         int translucentParts = 0;
         const float MOSTLY_OPAQUE_THRESHOLD = 0.75f;
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, false, true, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, false, args);
-        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, true, true, true, args);
-    
+   /*     translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, false, true, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, false, true, true, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, false, true, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, false, args);
+        translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_OPAQUE_THRESHOLD, false, true, true, true, args);
+    */
         GLBATCH(glDisable)(GL_ALPHA_TEST);
         GLBATCH(glEnable)(GL_BLEND);
         GLBATCH(glDepthMask)(false);
@@ -1607,15 +1710,15 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
     
         if (mode == DEFAULT_RENDER_MODE || mode == DIFFUSE_RENDER_MODE) {
             const float MOSTLY_TRANSPARENT_THRESHOLD = 0.0f;
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, false, true, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, false, args);
-            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, true, true, true, args);
-        }
+  /*          translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, false, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, false, true, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, false, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, false, true, true, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, false, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, false, true, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, false, args);
+            translucentParts += renderMeshesForModelsInScene(batch, mode, true, MOSTLY_TRANSPARENT_THRESHOLD, false, true, true, true, args);
+     */   }
 
         GLBATCH(glDepthMask)(true);
         GLBATCH(glDepthFunc)(GL_LESS);
@@ -1689,7 +1792,17 @@ void Model::segregateMeshGroups() {
     _meshesOpaqueSkinned.clear();
     _meshesOpaqueTangentsSpecularSkinned.clear();
     _meshesOpaqueSpecularSkinned.clear();
-    
+
+    _meshesOpaqueEmissiveTangents.clear();
+    _meshesOpaqueEmissive.clear();
+    _meshesOpaqueEmissiveTangentsSpecular.clear();
+    _meshesOpaqueEmissiveSpecular.clear();
+
+    _meshesOpaqueEmissiveTangentsSkinned.clear();
+    _meshesOpaqueEmissiveSkinned.clear();
+    _meshesOpaqueEmissiveTangentsSpecularSkinned.clear();
+    _meshesOpaqueEmissiveSpecularSkinned.clear();
+
     _unsortedMeshesTranslucentTangents.clear();
     _unsortedMeshesTranslucent.clear();
     _unsortedMeshesTranslucentTangentsSpecular.clear();
@@ -1710,6 +1823,16 @@ void Model::segregateMeshGroups() {
     _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
     _unsortedMeshesOpaqueSpecularSkinned.clear();
 
+    _unsortedMeshesOpaqueEmissiveTangents.clear();
+    _unsortedMeshesOpaqueEmissive.clear();
+    _unsortedMeshesOpaqueEmissiveTangentsSpecular.clear();
+    _unsortedMeshesOpaqueEmissiveSpecular.clear();
+
+    _unsortedMeshesOpaqueEmissiveTangentsSkinned.clear();
+    _unsortedMeshesOpaqueEmissiveSkinned.clear();
+    _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned.clear();
+    _unsortedMeshesOpaqueEmissiveSpecularSkinned.clear();
+
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
 
@@ -1723,6 +1846,7 @@ void Model::segregateMeshGroups() {
         bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
+        bool hasEmissive = mesh.hasEmissiveTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
         QString materialID;
 
@@ -1741,71 +1865,108 @@ void Model::segregateMeshGroups() {
             qDebug() << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
 
-        if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
+        if ( !hasEmissive) {
+            if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
-            _unsortedMeshesTranslucent.insertMulti(materialID, i);
+                _unsortedMeshesTranslucent.insertMulti(materialID, i);
 
-        } else if (translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
+            } else if (translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
 
-            _unsortedMeshesTranslucentTangents.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentTangents.insertMulti(materialID, i);
 
-        } else if (translucentMesh && hasTangents && hasSpecular && !isSkinned) {
+            } else if (translucentMesh && hasTangents && hasSpecular && !isSkinned) {
 
-            _unsortedMeshesTranslucentTangentsSpecular.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentTangentsSpecular.insertMulti(materialID, i);
 
-        } else if (translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
+            } else if (translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
 
-            _unsortedMeshesTranslucentSpecular.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentSpecular.insertMulti(materialID, i);
 
-        } else if (translucentMesh && hasTangents && !hasSpecular && isSkinned) {
+            } else if (translucentMesh && hasTangents && !hasSpecular && isSkinned) {
 
-            _unsortedMeshesTranslucentTangentsSkinned.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentTangentsSkinned.insertMulti(materialID, i);
 
-        } else if (translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
+            } else if (translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
 
-            _unsortedMeshesTranslucentSkinned.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentSkinned.insertMulti(materialID, i);
 
-        } else if (translucentMesh && hasTangents && hasSpecular && isSkinned) {
+            } else if (translucentMesh && hasTangents && hasSpecular && isSkinned) {
 
-            _unsortedMeshesTranslucentTangentsSpecularSkinned.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentTangentsSpecularSkinned.insertMulti(materialID, i);
 
-        } else if (translucentMesh && !hasTangents && hasSpecular && isSkinned) {
+            } else if (translucentMesh && !hasTangents && hasSpecular && isSkinned) {
 
-            _unsortedMeshesTranslucentSpecularSkinned.insertMulti(materialID, i);
+                _unsortedMeshesTranslucentSpecularSkinned.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
+            } else if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
-            _unsortedMeshesOpaque.insertMulti(materialID, i);
+                _unsortedMeshesOpaque.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
+            } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
 
-            _unsortedMeshesOpaqueTangents.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueTangents.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
+            } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
 
-            _unsortedMeshesOpaqueTangentsSpecular.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueTangentsSpecular.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
+            } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
 
-            _unsortedMeshesOpaqueSpecular.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueSpecular.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
+            } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
 
-            _unsortedMeshesOpaqueTangentsSkinned.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueTangentsSkinned.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
+            } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
 
-            _unsortedMeshesOpaqueSkinned.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueSkinned.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
+            } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
 
-            _unsortedMeshesOpaqueTangentsSpecularSkinned.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueTangentsSpecularSkinned.insertMulti(materialID, i);
 
-        } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
+            } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
 
-            _unsortedMeshesOpaqueSpecularSkinned.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueSpecularSkinned.insertMulti(materialID, i);
+            } else {
+                qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+            }
         } else {
-            qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+            if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
+
+                _unsortedMeshesOpaqueEmissive.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveTangents.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveTangentsSpecular.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveSpecular.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveTangentsSkinned.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveSkinned.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned.insertMulti(materialID, i);
+
+            } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
+
+                _unsortedMeshesOpaqueEmissiveSpecularSkinned.insertMulti(materialID, i);
+            } else {
+                qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
+            }
         }
     }
     
@@ -1873,6 +2034,38 @@ void Model::segregateMeshGroups() {
         _meshesOpaqueSpecularSkinned.append(i);
     }
 
+    foreach(int i, _unsortedMeshesOpaqueEmissive) {
+        _meshesOpaqueEmissive.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveTangents) {
+        _meshesOpaqueEmissiveTangents.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveTangentsSpecular) {
+        _meshesOpaqueEmissiveTangentsSpecular.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveSpecular) {
+        _meshesOpaqueEmissiveSpecular.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveSkinned) {
+        _meshesOpaqueEmissiveSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveTangentsSkinned) {
+        _meshesOpaqueEmissiveTangentsSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned) {
+        _meshesOpaqueEmissiveTangentsSpecularSkinned.append(i);
+    }
+
+    foreach(int i, _unsortedMeshesOpaqueEmissiveSpecularSkinned) {
+        _meshesOpaqueEmissiveSpecularSkinned.append(i);
+    }
+
     _unsortedMeshesTranslucentTangents.clear();
     _unsortedMeshesTranslucent.clear();
     _unsortedMeshesTranslucentTangentsSpecular.clear();
@@ -1893,10 +2086,20 @@ void Model::segregateMeshGroups() {
     _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
     _unsortedMeshesOpaqueSpecularSkinned.clear();
 
+    _unsortedMeshesOpaqueEmissiveTangents.clear();
+    _unsortedMeshesOpaqueEmissive.clear();
+    _unsortedMeshesOpaqueEmissiveTangentsSpecular.clear();
+    _unsortedMeshesOpaqueEmissiveSpecular.clear();
+
+    _unsortedMeshesOpaqueEmissiveTangentsSkinned.clear();
+    _unsortedMeshesOpaqueEmissiveSkinned.clear();
+    _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned.clear();
+    _unsortedMeshesOpaqueEmissiveSpecularSkinned.clear();
+
     _meshGroupsKnown = true;
 }
 
-QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned) {
+QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned) {
     PROFILE_RANGE(__FUNCTION__);
 
     // depending on which parameters we were called with, pick the correct mesh group to render
@@ -1917,22 +2120,41 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
         whichList = &_meshesTranslucentTangentsSpecularSkinned;
     } else if (translucent && !hasTangents && hasSpecular && isSkinned) {
         whichList = &_meshesTranslucentSpecularSkinned;
-    } else if (!translucent && !hasTangents && !hasSpecular && !isSkinned) {
+
+    } else if (!translucent && !hasEmissive && !hasTangents && !hasSpecular && !isSkinned) {
         whichList = &_meshesOpaque;
-    } else if (!translucent && hasTangents && !hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasEmissive && hasTangents && !hasSpecular && !isSkinned) {
         whichList = &_meshesOpaqueTangents;
-    } else if (!translucent && hasTangents && hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasEmissive && hasTangents && hasSpecular && !isSkinned) {
         whichList = &_meshesOpaqueTangentsSpecular;
-    } else if (!translucent && !hasTangents && hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasEmissive && !hasTangents && hasSpecular && !isSkinned) {
         whichList = &_meshesOpaqueSpecular;
-    } else if (!translucent && hasTangents && !hasSpecular && isSkinned) {
+    } else if (!translucent && !hasEmissive && hasTangents && !hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueTangentsSkinned;
-    } else if (!translucent && !hasTangents && !hasSpecular && isSkinned) {
+    } else if (!translucent && !hasEmissive && !hasTangents && !hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueSkinned;
-    } else if (!translucent && hasTangents && hasSpecular && isSkinned) {
+    } else if (!translucent && !hasEmissive && hasTangents && hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueTangentsSpecularSkinned;
-    } else if (!translucent && !hasTangents && hasSpecular && isSkinned) {
+    } else if (!translucent && !hasEmissive && !hasTangents && hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueSpecularSkinned;
+
+    } else if (!translucent && hasEmissive && !hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueEmissive;
+    } else if (!translucent && hasEmissive && hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueEmissiveTangents;
+    } else if (!translucent && hasEmissive && hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueEmissiveTangentsSpecular;
+    } else if (!translucent && hasEmissive && !hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueEmissiveSpecular;
+    } else if (!translucent && hasEmissive && hasTangents && !hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueEmissiveTangentsSkinned;
+    } else if (!translucent && hasEmissive && !hasTangents && !hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueEmissiveSkinned;
+    } else if (!translucent && hasEmissive && hasTangents && hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueEmissiveTangentsSpecularSkinned;
+    } else if (!translucent && hasEmissive && !hasTangents && hasSpecular && isSkinned) {
+        whichList = &_meshesOpaqueEmissiveSpecularSkinned;
+
     } else {
         qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
     }
@@ -1940,14 +2162,15 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 }
 
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
-                            SkinLocations*& skinLocations, GLenum& specularTextureUnit) {
+                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            SkinLocations*& skinLocations, GLenum& specularTextureUnit, GLenum& emissiveTextureUnit) {
                             
     ProgramObject* program = &_program;
     Locations* locations = &_locations;
     ProgramObject* skinProgram = &_skinProgram;
     skinLocations = &_skinLocations;
     specularTextureUnit = 0;
+    emissiveTextureUnit = 0;
     if (mode == SHADOW_RENDER_MODE) {
         program = &_shadowProgram;
         skinProgram = &_skinShadowProgram;
@@ -1958,27 +2181,59 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
         skinProgram = &_skinTranslucentProgram;
         skinLocations = &_skinTranslucentLocations;
         
-    } else if (hasTangents) {
-        if (hasSpecular) {
-            program = &_normalSpecularMapProgram;
-            locations = &_normalSpecularMapLocations;
-            skinProgram = &_skinNormalSpecularMapProgram;
-            skinLocations = &_skinNormalSpecularMapLocations;
-            specularTextureUnit = GL_TEXTURE2;
+    } else if (hasEmissive) {
+        if (hasTangents) {
+            if (hasSpecular) {
+                program = &_emissiveNormalSpecularMapProgram;
+                locations = &_emissiveNormalSpecularMapLocations;
+                skinProgram = &_skinEmissiveNormalSpecularMapProgram;
+                skinLocations = &_skinEmissiveNormalSpecularMapLocations;
+                specularTextureUnit = GL_TEXTURE2;
+                emissiveTextureUnit = GL_TEXTURE3;
+            } else {
+                program = &_emissiveNormalMapProgram;
+                locations = &_emissiveNormalMapLocations;
+                skinProgram = &_skinEmissiveNormalMapProgram;
+                skinLocations = &_skinEmissiveNormalMapLocations;
+                emissiveTextureUnit = GL_TEXTURE3;
+            }
+        } else if (hasSpecular) {
+            program = &_emissiveSpecularMapProgram;
+            locations = &_emissiveSpecularMapLocations;
+            skinProgram = &_skinEmissiveSpecularMapProgram;
+            skinLocations = &_skinEmissiveSpecularMapLocations;
+            specularTextureUnit = GL_TEXTURE1;
+            emissiveTextureUnit = GL_TEXTURE3;
         } else {
-            program = &_normalMapProgram;
-            locations = &_normalMapLocations;
-            skinProgram = &_skinNormalMapProgram;
-            skinLocations = &_skinNormalMapLocations;
+            program = &_emissiveProgram;
+            locations = &_emissiveLocations;
+            skinProgram = &_skinEmissiveProgram;
+            skinLocations = &_skinEmissiveLocations;
+            emissiveTextureUnit = GL_TEXTURE3;
         }
-    } else if (hasSpecular) {
-        program = &_specularMapProgram;
-        locations = &_specularMapLocations;
-        skinProgram = &_skinSpecularMapProgram;
-        skinLocations = &_skinSpecularMapLocations;
-        specularTextureUnit = GL_TEXTURE1;   
-    }
-    
+    } else {
+        if (hasTangents) {
+            if (hasSpecular) {
+                program = &_normalSpecularMapProgram;
+                locations = &_normalSpecularMapLocations;
+                skinProgram = &_skinNormalSpecularMapProgram;
+                skinLocations = &_skinNormalSpecularMapLocations;
+                specularTextureUnit = GL_TEXTURE2;
+            } else {
+                program = &_normalMapProgram;
+                locations = &_normalMapLocations;
+                skinProgram = &_skinNormalMapProgram;
+                skinLocations = &_skinNormalMapLocations;
+            }
+        } else if (hasSpecular) {
+            program = &_specularMapProgram;
+            locations = &_specularMapLocations;
+            skinProgram = &_skinSpecularMapProgram;
+            skinLocations = &_skinSpecularMapLocations;
+            specularTextureUnit = GL_TEXTURE1;
+        }
+    } 
+
     ProgramObject* activeProgram = program;
     Locations* activeLocations = locations;
 
@@ -1996,7 +2251,7 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
 }
 
 int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
@@ -2004,18 +2259,19 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
     bool pickProgramsNeeded = true;
     SkinLocations* skinLocations;
     GLenum specularTextureUnit;
+    GLenum emissiveTextureUnit;
     
     foreach(Model* model, _modelsInScene) {
-        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned);
+        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned);
         if (whichList) {
             QVector<int>& list = *whichList;
             if (list.size() > 0) {
                 if (pickProgramsNeeded) {
-                    pickPrograms(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit);
+                    pickPrograms(batch, mode, translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
                     pickProgramsNeeded = false;
                 }
                 model->setupBatchTransform(batch);
-                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit);
+                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
                 GLBATCH(glPopMatrix)();
             }
         }
@@ -2028,12 +2284,12 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
 }
 
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
 
-    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned);
+    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned);
     
     if (!whichList) {
         qDebug() << "unexpected!!! we don't know which list of meshes to render...";
@@ -2048,8 +2304,9 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
     SkinLocations* skinLocations;
     GLenum specularTextureUnit;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit);
-    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit);
+    GLenum emissiveTextureUnit;
+    pickPrograms(batch, mode, translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
+    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
     GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
@@ -2057,7 +2314,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
 
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        SkinLocations* skinLocations, GLenum specularTextureUnit) {
+                                        SkinLocations* skinLocations, GLenum specularTextureUnit, GLenum emissiveTextureUnit) {
     PROFILE_RANGE(__FUNCTION__);
     bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
     bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
@@ -2198,6 +2455,15 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                             Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
+
+                    if (emissiveTextureUnit) {
+                        GLBATCH(glActiveTexture)(emissiveTextureUnit);
+                        Texture* emissiveMap = networkPart.emissiveTexture.data();
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
+                            Application::getInstance()->getTextureCache()->getWhiteTextureID() : emissiveMap->getID());
+                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                    }
+
                     if (args) {
                         args->_materialSwitches++;
                     }
@@ -2234,6 +2500,12 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
         if (specularTextureUnit) {
             GLBATCH(glActiveTexture)(specularTextureUnit);
+            GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
+            GLBATCH(glActiveTexture)(GL_TEXTURE0);
+        }
+
+        if (emissiveTextureUnit) {
+            GLBATCH(glActiveTexture)(emissiveTextureUnit);
             GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
         }

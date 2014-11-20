@@ -575,7 +575,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
         foreach (const NetworkMeshPart& part, mesh.parts) {
             if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
                     (part.normalTexture && !part.normalTexture->isLoaded()) ||
-                    (part.specularTexture && !part.specularTexture->isLoaded())) {
+                    (part.specularTexture && !part.specularTexture->isLoaded()) ||
+                    (part.emissiveTexture && !part.emissiveTexture->isLoaded())) {
                 return false;
             }
         }
@@ -668,6 +669,9 @@ void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float prio
             if (part.specularTexture) {
                 part.specularTexture->setLoadPriority(owner, priority);
             }
+            if (part.emissiveTexture) {
+                part.emissiveTexture->setLoadPriority(owner, priority);
+            }
         }
     }
 }
@@ -688,6 +692,9 @@ void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& p
             if (part.specularTexture) {
                 part.specularTexture->setLoadPriorities(priorities);
             }
+            if (part.emissiveTexture) {
+                part.emissiveTexture->setLoadPriorities(priorities);
+            }
         }
     }
 }
@@ -707,6 +714,9 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
             }
             if (part.specularTexture) {
                 part.specularTexture->clearLoadPriority(owner);
+            }
+            if (part.emissiveTexture) {
+                part.emissiveTexture->clearLoadPriority(owner);
             }
         }
     }
@@ -733,6 +743,10 @@ void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& u
                     part.specularTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
                                                                                                      false, QByteArray());
                     part.specularTexture->setLoadPriorities(_loadPriorities);
+                } else if (part.emissiveTextureName == name) {
+                    part.emissiveTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                                                                                                     false, QByteArray());
+                    part.emissiveTexture->setLoadPriorities(_loadPriorities);
                 }
             }
         }
@@ -763,6 +777,11 @@ QStringList NetworkGeometry::getTextureNames() const {
             if (!part.specularTextureName.isEmpty()) {
                 QString textureURL = part.specularTexture->getURL().toString();
                 result << part.specularTextureName + ":" + textureURL;
+            }
+
+            if (!part.emissiveTextureName.isEmpty()) {
+                QString textureURL = part.emissiveTexture->getURL().toString();
+                result << part.emissiveTextureName + ":" + textureURL;
             }
         }
     }
@@ -910,6 +929,13 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                     false, part.specularTexture.content);
                 networkPart.specularTextureName = part.specularTexture.name;
                 networkPart.specularTexture->setLoadPriorities(_loadPriorities);
+            }
+            if (!part.emissiveTexture.filename.isEmpty()) {
+                networkPart.emissiveTexture = Application::getInstance()->getTextureCache()->getTexture(
+                    _textureBase.resolved(QUrl(part.emissiveTexture.filename)), EMISSIVE_TEXTURE,
+                    false, part.emissiveTexture.content);
+                networkPart.emissiveTextureName = part.emissiveTexture.name;
+                networkPart.emissiveTexture->setLoadPriorities(_loadPriorities);
             }
             networkMesh.parts.append(networkPart);
                         
