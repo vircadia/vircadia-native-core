@@ -64,7 +64,14 @@ void Sound::downloadFinished(QNetworkReply* reply) {
             interpretAsWav(rawAudioByteArray, outputAudioByteArray);
             downSample(outputAudioByteArray);
         } else {
-            //  Process as RAW file
+            // check if this was a stereo raw file
+            // since it's raw the only way for us to know that is if the file was called .stereo.raw
+            if (reply->url().fileName().toLower().endsWith("stereo.raw")) {
+                _isStereo = true;
+                qDebug() << "Processing sound from" << reply->url() << "as stereo audio file.";
+            }
+            
+            // Process as RAW file
             downSample(rawAudioByteArray);
         }
         trimFrames();
@@ -206,10 +213,12 @@ void Sound::interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& ou
             qDebug() << "Currently not supporting non PCM audio files.";
             return;
         }
-        if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) != 1) {
-            qDebug() << "Currently not supporting stereo audio files.";
-            return;
+        if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) == 2) {
+            _isStereo = true;
+        } else if (qFromLittleEndian<quint16>(fileHeader.wave.numChannels) > 2) {
+            qDebug() << "Currently not support audio files with more than 2 channels.";
         }
+        
         if (qFromLittleEndian<quint16>(fileHeader.wave.bitsPerSample) != 16) {
             qDebug() << "Currently not supporting non 16bit audio files.";
             return;
