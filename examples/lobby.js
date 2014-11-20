@@ -17,27 +17,21 @@ var reticle = false;
 
 var avatarStickPosition = {};
 
-var orbNaturalExtentsMin = { x: -1230, y: -1223, z: -1210 };
-var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1210 };
-var panelsNaturalExtentsMin = { x: -1223, y: -348, z: 45 };
-var panelsNaturalExtentsMax = { x: 1223, y: 604, z: 1223 };
+var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
+var orbNaturalExtentsMax = { x: 1.230353, y: 1.229819, z: 1.210487 };
+var panelsNaturalExtentsMin = { x: -1.223182, y: -0.348487, z: 0.0451369 };
+var panelsNaturalExtentsMax = { x: 1.223039, y: 0.602978, z: 1.224298 };
 
-var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
-var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
+var orbDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
+var panelsDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
 
-var SCALING_FACTOR = 0.01;
-var orbDimensions = Vec3.multiply(orbNaturalDimensions, SCALING_FACTOR);
-var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR);
+var orbCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbDimensions, 0.5));
+var panelsCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsDimensions, 0.5));
+var panelsCenterShift = Vec3.subtract(orbCenter, panelsCenter);
 
-var orbNaturalCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbNaturalDimensions, 0.5));
-var panelsNaturalCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsNaturalDimensions, 0.5));
-var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR);
-var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR);
-var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
+var ORB_SHIFT = { x: 0, y: 0, z: 0 };
 
-var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
-
-var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
+var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
 var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
 var currentDrone = null;
@@ -66,17 +60,15 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
-      rotation: towardsMe,
-      dimensions: panelsDimensions,
+      rotation: towardsMe
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_OrbNoFrames.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall.fbx",
       position: orbPosition,
       rotation: towardsMe,
-      dimensions: orbDimensions,
       ignoreRayIntersection: true
     };
     
@@ -247,7 +239,7 @@ function toggleEnvironmentRendering(shouldRender) {
 }
 
 function update(deltaTime) {
-  maybeCleanupLobby();
+  // maybeCleanupLobby();
   if (panelWall) {
     
     if (reticle) {
