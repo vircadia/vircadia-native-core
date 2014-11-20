@@ -22,13 +22,22 @@
 #include "SkeletonModel.h"
 #include "SkeletonRagdoll.h"
 
+enum StandingFootState {
+    LEFT_FOOT,
+    RIGHT_FOOT,
+    NO_FOOT
+};
+
 SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) : 
     Model(parent),
     _owningAvatar(owningAvatar),
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
     _ragdoll(NULL),
-    _defaultEyeModelPosition(glm::vec3(0.f, 0.f, 0.f)) {
+    _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
+    _standingFoot(NO_FOOT),
+    _standingOffset(0.0f),
+    _clampedFootPosition(0.0f) {
 }
 
 SkeletonModel::~SkeletonModel() {
@@ -45,7 +54,7 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
 
         glm::vec3 leftEyePosition, rightEyePosition;
         getEyeModelPositions(leftEyePosition, rightEyePosition);
-        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.f;
+        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.0f;
 
         int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
         glm::vec3 rootModelPosition;
@@ -605,6 +614,62 @@ void SkeletonModel::updateVisibleJointStates() {
         parentState.computeVisibleTransform(_jointStates[grandParentIndex].getVisibleTransform());
         state.computeVisibleTransform(parentState.getVisibleTransform());
     }
+}
+
+/// \return offset of hips after foot animation
+void SkeletonModel::updateStandingFoot() {
+    glm::vec3 offset(0.0f);
+    int leftFootIndex = _geometry->getFBXGeometry().leftToeJointIndex;
+    int rightFootIndex = _geometry->getFBXGeometry().rightToeJointIndex;
+
+    if (leftFootIndex != -1 && rightFootIndex != -1) {
+        glm::vec3 leftPosition, rightPosition;
+        getJointPosition(leftFootIndex, leftPosition);
+        getJointPosition(rightFootIndex, rightPosition);
+
+        int lowestFoot = (leftPosition.y < rightPosition.y) ? LEFT_FOOT : RIGHT_FOOT;
+        const float MIN_STEP_HEIGHT_THRESHOLD = 0.05f;
+        bool oneFoot = fabsf(leftPosition.y - rightPosition.y) > MIN_STEP_HEIGHT_THRESHOLD;
+        int currentFoot = oneFoot ? lowestFoot : _standingFoot;
+
+        if (_standingFoot == NO_FOOT) {
+            currentFoot = lowestFoot;
+        }
+        if (currentFoot != _standingFoot) {
+            if (_standingFoot == NO_FOOT) {
+                // pick the lowest foot
+                glm::vec3 lowestPosition = (currentFoot == LEFT_FOOT) ? leftPosition : rightPosition;
+                // we ignore zero length positions which can happen for a few frames until skeleton is fully loaded
+                if (glm::length(lowestPosition) > 0.0f) {
+                    _standingFoot = currentFoot;
+                    _clampedFootPosition = lowestPosition;
+                }
+            } else {
+                // swap feet
+                _standingFoot = currentFoot;
+                glm::vec3 nextPosition = leftPosition;
+                glm::vec3 prevPosition = rightPosition;
+                if (_standingFoot == RIGHT_FOOT) {
+                    nextPosition = rightPosition;
+                    prevPosition = leftPosition;
+                }
+                glm::vec3 oldOffset = _clampedFootPosition - prevPosition;
+                _clampedFootPosition = oldOffset + nextPosition;
+                offset = _clampedFootPosition - nextPosition;
+            }
+        } else {
+            glm::vec3 nextPosition = (_standingFoot == LEFT_FOOT) ? leftPosition : rightPosition;
+            offset = _clampedFootPosition - nextPosition;
+        }
+
+        // clamp the offset to not exceed some max distance
+        const float MAX_STEP_OFFSET = 1.0f;
+        float stepDistance = glm::length(offset);
+        if (stepDistance > MAX_STEP_OFFSET) {
+            offset *= (MAX_STEP_OFFSET / stepDistance);
+        }
+    }
+    _standingOffset = offset;
 }
 
 SkeletonRagdoll* SkeletonModel::buildRagdoll() {

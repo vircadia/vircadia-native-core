@@ -39,17 +39,22 @@ var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
 var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
-var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.raw")
+var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
 var currentDrone = null;
 
-var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.raw")
-var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.raw")
-var currentMusak = null;
+var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
+var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
+var currentMusakInjector = null;
+var currentSound = null;
+
+var inOculusMode =  Menu.isOptionChecked("EnableVRMode");
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
   return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
 }
+
+var MAX_NUM_PANELS = 21;
 
 function drawLobby() {
   if (!panelWall) {
@@ -64,7 +69,7 @@ function drawLobby() {
       url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe,
-      dimensions: panelsDimensions
+      dimensions: panelsDimensions,
     };
     
     var orbShellProps = {
@@ -77,21 +82,23 @@ function drawLobby() {
     
     avatarStickPosition = MyAvatar.position;
 
-    panelWall = Overlays.addOverlay("model", panelWallProps);
+    panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
     
     // for HMD wearers, create a reticle in center of screen
-    var CURSOR_SCALE = 0.025;
+    if (inOculusMode) {
+      var CURSOR_SCALE = 0.025;
     
-    reticle = Overlays.addOverlay("billboard", {
-      url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
-      position: reticlePosition(),
-      ignoreRayIntersection: true,
-      isFacingAvatar: true,
-      alpha: 1.0,
-      scale: CURSOR_SCALE
-    });
-    
+      reticle = Overlays.addOverlay("billboard", {
+        url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
+        position: reticlePosition(),
+        ignoreRayIntersection: true,
+        isFacingAvatar: true,
+        alpha: 1.0,
+        scale: CURSOR_SCALE
+      });
+    }
+      
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
@@ -125,38 +132,61 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
+var MUSAK_VOLUME = 0.5;
+
+function playNextMusak() {
+  if (panelWall) {
+    if (currentSound == latinSound) {
+      if (elevatorSound.downloaded) {
+        currentSound = elevatorSound;
+      }
+    } else if (currentSound == elevatorSound) {
+      if (latinSound.downloaded) {
+        currentSound = latinSound;
+      }
+    }
+  
+    currentMusakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUSAK_VOLUME });
+  }
+}
+
 function playRandomMusak() {
-  chosenSound = null;
+  currentSound = null;
   
   if (latinSound.downloaded && elevatorSound.downloaded) {
-    chosenSound = Math.random < 0.5 ? latinSound : elevatorSound;
+    currentSound = Math.random() < 0.5 ? latinSound : elevatorSound;
   } else if (latinSound.downloaded) {
-    chosenSound = latinSound;
+    currentSound = latinSound;
   } else if (elevatorSound.downloaded) {
-    chosenSound = elevatorSound;
+    currentSound = elevatorSound;
   }
   
-  if (chosenSound) {
-    currentMusak = Audio.playSound(chosenSound, { stereo: true, localOnly: true })
+  if (currentSound) {    
+    // pick a random number of seconds from 0-10 to offset the musak
+    var secondOffset = Math.random() * 10;
+    currentMusakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUSAK_VOLUME });
   } else {
-    currentMusak = null;
+    currentMusakInjector = null;
   }
 }
 
 function cleanupLobby() {
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
-  Overlays.deleteOverlay(reticle);
   
-  Audio.stopInjector(currentDrone);
-  currentDrone = null;
-  
-  Audio.stopInjector(currentMusak);
-  currentMusak = null;
+  if (reticle) {
+    Overlays.deleteOverlay(reticle);
+  }
   
   panelWall = false;
   orbShell = false;
   reticle = false;
+  
+  Audio.stopInjector(currentDrone);
+  currentDrone = null;
+  
+  Audio.stopInjector(currentMusakInjector);
+  currentMusakInjector = null;
   
   locations = {};
   toggleEnvironmentRendering(true);
@@ -218,10 +248,18 @@ function toggleEnvironmentRendering(shouldRender) {
 
 function update(deltaTime) {
   maybeCleanupLobby();
-  if (reticle) {
-    Overlays.editOverlay(reticle, {
-      position: reticlePosition()
-    });
+  if (panelWall) {
+    
+    if (reticle) {
+      Overlays.editOverlay(reticle, {
+        position: reticlePosition()
+      });
+    }
+    
+    // if the reticle is up then we may need to play the next musak
+    if (!Audio.isInjectorPlaying(currentMusakInjector)) {
+      playNextMusak();
+    }
   }
 }
 

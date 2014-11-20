@@ -25,7 +25,7 @@ class Sound : public Resource {
 public:
     Sound(const QUrl& url, bool isStereo = false);
     
-    bool isStereo() const { return _isStereo; }
+    bool isStereo() const { return _isStereo; }    
     bool isReady() const { return _isReady; }
      
     const QByteArray& getByteArray() { return _byteArray; }

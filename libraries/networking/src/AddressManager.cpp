@@ -131,7 +131,7 @@ bool AddressManager::handleUrl(const QUrl& lookupUrl) {
 void AddressManager::handleLookupString(const QString& lookupString) {
     if (!lookupString.isEmpty()) {
         // make this a valid hifi URL and handle it off to handleUrl
-        QString sanitizedString = lookupString;
+        QString sanitizedString = lookupString.trimmed();
         QUrl lookupURL;
         
         if (!lookupString.startsWith('/')) {

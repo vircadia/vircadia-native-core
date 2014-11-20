@@ -101,6 +101,10 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
+    /// skeleton offset caused by moving feet
+    void updateStandingFoot();
+    const glm::vec3& getStandingOffset() const { return _standingOffset; }
+
     virtual void updateVisibleJointStates();
 
     SkeletonRagdoll* buildRagdoll();
@@ -154,6 +158,9 @@ private:
     SkeletonRagdoll* _ragdoll;
 
     glm::vec3 _defaultEyeModelPosition;
+    int _standingFoot;
+    glm::vec3 _standingOffset;
+    glm::vec3 _clampedFootPosition;
 };
 
 #endif // hifi_SkeletonModel_h

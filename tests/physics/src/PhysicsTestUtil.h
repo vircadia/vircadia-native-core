@@ -17,9 +17,9 @@
 
 #include <CollisionInfo.h>
 
-const glm::vec3 xAxis(1.f, 0.f, 0.f);
-const glm::vec3 yAxis(0.f, 1.f, 0.f);
-const glm::vec3 zAxis(0.f, 0.f, 1.f);
+const glm::vec3 xAxis(1.0f, 0.0f, 0.0f);
+const glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
+const glm::vec3 zAxis(0.0f, 0.0f, 1.0f);
 
 std::ostream& operator<<(std::ostream& s, const CollisionInfo& c);
 

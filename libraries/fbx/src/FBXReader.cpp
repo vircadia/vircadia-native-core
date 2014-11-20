@@ -993,7 +993,7 @@ class JointShapeInfo {
 public:
     JointShapeInfo() : numVertices(0), 
             sumVertexWeights(0.0f), sumWeightedRadii(0.0f), numVertexWeights(0), 
-            averageVertex(0.f), boneBegin(0.f), averageRadius(0.f) {
+            averageVertex(0.0f), boneBegin(0.0f), averageRadius(0.0f) {
     }
 
     // NOTE: the points here are in the "joint frame" which has the "jointEnd" at the origin
@@ -1077,6 +1077,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
+    QString jointLeftToeID;
+    QString jointRightToeID;
     
     QVector<QString> humanIKJointNames;
     for (int i = 0;; i++) {
@@ -1176,11 +1178,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     } else if (name == jointHeadName) {
                         jointHeadID = getID(object.properties);
 
-                    } else if (name == jointLeftHandName) {
+                    } else if (name == jointLeftHandName || name == "LeftHand" || name == "joint_L_hand") {
                         jointLeftHandID = getID(object.properties);
 
-                    } else if (name == jointRightHandName) {
+                    } else if (name == jointRightHandName || name == "RightHand" || name == "joint_R_hand") {
                         jointRightHandID = getID(object.properties);
+
+                    } else if (name == "LeftToe" || name == "joint_L_toe" || name == "LeftToe_End") {
+                        jointLeftToeID = getID(object.properties);
+
+                    } else if (name == "RightToe" || name == "joint_R_toe" || name == "RightToe_End") {
+                        jointRightToeID = getID(object.properties);
                     }
                     int humanIKJointIndex = humanIKJointNames.indexOf(name);
                     if (humanIKJointIndex != -1) {
@@ -1576,7 +1584,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.boneRadius = 0.0f;
         joint.inverseBindRotation = joint.inverseDefaultRotation;
         joint.name = model.name;
-        joint.shapePosition = glm::vec3(0.f);
+        joint.shapePosition = glm::vec3(0.0f);
         joint.shapeType = SHAPE_TYPE_UNKNOWN;
         
         foreach (const QString& childID, childMap.values(modelID)) {
@@ -1615,6 +1623,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
     geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
+    geometry.leftToeJointIndex = modelIDs.indexOf(jointLeftToeID);
+    geometry.rightToeJointIndex = modelIDs.indexOf(jointRightToeID);
     
     foreach (const QString& id, humanIKJointIDs) {
         geometry.humanIKJointIndices.append(modelIDs.indexOf(id));
@@ -1917,7 +1927,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
             float radiusScale = extractUniformScale(joint.transform * firstFBXCluster.inverseBindMatrix);
 
-            glm::vec3 averageVertex(0.f);
+            glm::vec3 averageVertex(0.0f);
             foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                 float proj = glm::dot(boneDirection, boneEnd - vertex);
                 float radiusWeight = (proj < 0.0f || proj > boneLength) ? 0.5f : 1.0f;
@@ -1933,7 +1943,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             jointShapeInfo.numVertices = numVertices;
             if (numVertices > 0) {
                 averageVertex /= (float)jointShapeInfo.numVertices;
-                float averageRadius = 0.f;
+                float averageRadius = 0.0f;
                 foreach (const glm::vec3& vertex, extracted.mesh.vertices) {
                     averageRadius += glm::distance(vertex, averageVertex);
                 }
@@ -1949,7 +1959,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
 
     // now that all joints have been scanned, compute a collision shape for each joint
-    glm::vec3 defaultCapsuleAxis(0.f, 1.f, 0.f);
+    glm::vec3 defaultCapsuleAxis(0.0f, 1.0f, 0.0f);
     for (int i = 0; i < geometry.joints.size(); ++i) {
         FBXJoint& joint = geometry.joints[i];
         JointShapeInfo& jointShapeInfo = jointShapeInfos[i];
@@ -1982,7 +1992,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 jointShapeInfo.averageVertex /= (float)jointShapeInfo.numVertices;
                 joint.shapePosition = jointShapeInfo.averageVertex;
             } else {
-                joint.shapePosition = glm::vec3(0.f);
+                joint.shapePosition = glm::vec3(0.0f);
             }
             if (jointShapeInfo.numVertexWeights == 0
                    && jointShapeInfo.numVertices > 0) {

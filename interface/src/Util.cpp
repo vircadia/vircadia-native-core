@@ -65,7 +65,7 @@ void renderWorldBox() {
     glVertex3f(TREE_SCALE, 0, 0);
     glEnd();
     //  Draw meter markers along the 3 axis to help with measuring things
-    const float MARKER_DISTANCE = 1.f;
+    const float MARKER_DISTANCE = 1.0f;
     const float MARKER_RADIUS = 0.05f;
     glEnable(GL_LIGHTING);
     glPushMatrix();
@@ -93,7 +93,7 @@ void renderWorldBox() {
 
 //  Return a random vector of average length 1
 const glm::vec3 randVector() {
-    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.f;
+    return glm::vec3(randFloat() - 0.5f, randFloat() - 0.5f, randFloat() - 0.5f) * 2.0f;
 }
 
 static TextRenderer* textRenderer(int mono) {
@@ -125,7 +125,7 @@ void drawText(int x, int y, float scale, float radians, int mono,
     glTranslatef(static_cast<float>(x), static_cast<float>(y), 0.0f);
     glColor3fv(color);
     glRotated(double(radians * DEGREES_PER_RADIAN), 0.0, 0.0, 1.0);
-    glScalef(scale / 0.1f, scale / 0.1f, 1.f);
+    glScalef(scale / 0.1f, scale / 0.1f, 1.0f);
     textRenderer(mono)->draw(0, 0, string);
     glPopMatrix();
 }

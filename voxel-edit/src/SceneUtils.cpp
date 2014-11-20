@@ -34,7 +34,7 @@ void addCornersAndAxisLines(VoxelTree* tree) {
 
 void addSurfaceScene(VoxelTree * tree) {
     qDebug("adding surface scene...");
-    float voxelSize = 1.f / (8 * TREE_SCALE);
+    float voxelSize = 1.0f / (8 * TREE_SCALE);
    
     // color 1= blue, color 2=green
     unsigned char r1, g1, b1, r2, g2, b2, red, green, blue;
@@ -45,7 +45,7 @@ void addSurfaceScene(VoxelTree * tree) {
         for (float z = 0.0; z < 1.0; z += voxelSize) {
 
             glm::vec2 position = glm::vec2(x, z);
-            float perlin = glm::perlin(position) + .25f * glm::perlin(position * 4.f) + .125f * glm::perlin(position * 16.f);
+            float perlin = glm::perlin(position) + .25f * glm::perlin(position * 4.0f) + .125f * glm::perlin(position * 16.0f);
             float gradient = (1.0f + perlin)/ 2.0f;
             red   = (unsigned char)std::min(255, std::max(0, (int)(r1 + ((r2 - r1) * gradient))));
             green = (unsigned char)std::min(255, std::max(0, (int)(g1 + ((g2 - g1) * gradient))));
