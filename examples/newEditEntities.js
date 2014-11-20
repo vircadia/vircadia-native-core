@@ -39,6 +39,9 @@ Script.include("libraries/gridTool.js");
 var grid = Grid();
 gridTool = GridTool({ horizontalGrid: grid });
 
+Script.include("libraries/entityList.js");
+var entityListTool = EntityListTool();
+
 selectionManager.addEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
@@ -283,6 +286,7 @@ var toolBar = (function () {
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
             if (!isActive) {
+                entityListTool.setVisible(false);
                 gridTool.setVisible(false);
                 grid.setEnabled(false);
                 propertiesTool.setVisible(false);
@@ -290,6 +294,7 @@ var toolBar = (function () {
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
+                entityListTool.setVisible(true);
                 gridTool.setVisible(true);
                 grid.setEnabled(true);
                 propertiesTool.setVisible(true);

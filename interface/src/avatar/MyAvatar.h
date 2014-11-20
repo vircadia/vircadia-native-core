@@ -235,6 +235,7 @@ private:
     PhysicsSimulation _physicsSimulation;
     VoxelShapeManager _voxelShapeManager;
     
+    bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
 
     RecorderPointer _recorder;

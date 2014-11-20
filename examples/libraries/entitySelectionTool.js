@@ -1242,7 +1242,7 @@ SelectionDisplay = (function () {
                                                        Quat.getFront(lastCameraOrientation));
 
             var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
-            lastPlaneIntersection = newIntersection;
+            vector = grid.snapToGrid(vector);
             
             // we only care about the Y axis
             vector.x = 0;
@@ -1258,10 +1258,15 @@ SelectionDisplay = (function () {
                 Vec3.print("            newPosition:", newPosition);
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
-                var properties = Entities.getEntityProperties(SelectionManager.selections[i]);
+                var id = SelectionManager.selections[i];
+                var properties = selectionManager.savedProperties[id.id];
+
                 var original = properties.position;
-                properties.position = Vec3.sum(properties.position, vector);
-                Entities.editEntity(SelectionManager.selections[i], properties);
+                var newPosition = Vec3.sum(properties.position, vector);
+
+                Entities.editEntity(id, {
+                    position: newPosition,
+                });
             }
 
             SelectionManager._update();

@@ -204,6 +204,8 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
             _mouth3,
             _mouth4,
             _blendshapeCoefficients);
+    } else {
+        _saccade = glm::vec3();
     }
     
     if (!isMine) {

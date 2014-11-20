@@ -655,7 +655,10 @@ void Avatar::renderDisplayName() {
     if (_displayName.isEmpty() || _displayNameAlpha == 0.0f) {
         return;
     }
-       
+    
+    // which viewing mode?
+    bool inHMD = Application::getInstance()->isHMDMode();
+    
     glDisable(GL_LIGHTING);
     
     glPushMatrix();
@@ -664,17 +667,18 @@ void Avatar::renderDisplayName() {
     glTranslatef(textPosition.x, textPosition.y, textPosition.z); 
 
     // we need "always facing camera": we must remove the camera rotation from the stack
-    glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
+
     
-    glm::vec3 frontAxis(1.0f, 0.0f, 0.0f);
-    frontAxis = glm::rotate(rotation, frontAxis);
-    frontAxis = glm::normalize(glm::vec3(frontAxis.x, 0.0f, frontAxis.z));
+    glm::vec3 frontAxis(0.0f, 0.0f, 1.0f);
+    if (inHMD) {
+        glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
+        frontAxis = camPosition - textPosition;
+    } else {
+        glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
+        frontAxis = glm::rotate(rotation, frontAxis);
+    }
     
-    // TODO : test this secodn solution  which should be better wfor occulus
-    //glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
-    //glm::vec3 frontAxis = camPosition - textPosition;
-    //frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
-    
+    frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
     float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.0f : -1.0f);
     glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
 
@@ -706,10 +710,16 @@ void Avatar::renderDisplayName() {
 
     if (success) {
         double textWindowHeight = abs(result1[1] - result0[1]);
-        float scaleFactor = Application::getInstance()->getRenderResolutionScale() * // Scale compensate for the resolution
-            QApplication::desktop()->windowHandle()->devicePixelRatio() * // And the device pixel ratio
+        // need to scale to compensate for the font resolution due to the device
+        float scaleFactor = QApplication::desktop()->windowHandle()->devicePixelRatio() *
             ((textWindowHeight > EPSILON) ? 1.0f / textWindowHeight : 1.0f);
-        glScalef(scaleFactor, scaleFactor, 1.0);  
+        if (inHMD) {
+            const float HMDMODE_NAME_SCALE = 0.65f;
+            scaleFactor *= HMDMODE_NAME_SCALE;
+        } else {
+            scaleFactor *= Application::getInstance()->getRenderResolutionScale();
+        }
+        glScalef(scaleFactor, scaleFactor, 1.0);
         
         glScalef(1.0f, -1.0f, 1.0f);  // TextRenderer::draw paints the text upside down in y axis
 
@@ -787,7 +797,10 @@ void Avatar::setSkeletonOffset(const glm::vec3& offset) {
 }
 
 glm::vec3 Avatar::getSkeletonPosition() const { 
-    return _position + _skeletonOffset; 
+    // The avatar is rotated PI about the yAxis, so we have to correct for it 
+    // to get the skeleton offset contribution in the world-frame.
+    const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+    return _position + getOrientation() * FLIP * _skeletonOffset; 
 }
 
 QVector<glm::quat> Avatar::getJointRotations() const {
