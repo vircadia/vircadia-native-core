@@ -1020,15 +1020,36 @@ public:
     glm::vec3 normal;
     QRgb color;
     char material;
-    int axis;
 };
 
-class AxisIndex {
+const int MAX_NORMALS_PER_VERTEX = 4;
+
+class NormalIndex {
 public:
-    int x, y, z;
+    int indices[MAX_NORMALS_PER_VERTEX];
     
-    AxisIndex(int x = -1, int y = -1, int z = -1) : x(x), y(y), z(z) { }
+    int getClosestIndex(const glm::vec3& normal, QVector<VoxelPoint>& vertices) const;
 };
+
+int NormalIndex::getClosestIndex(const glm::vec3& normal, QVector<VoxelPoint>& vertices) const {
+    int firstIndex = indices[0];
+    int closestIndex = firstIndex;
+    const VoxelPoint& firstVertex = vertices.at(firstIndex);
+    float closest = normal.x * firstVertex.normal[0] + normal.y * firstVertex.normal[1] + normal.z * firstVertex.normal[2];
+    for (int i = 1; i < MAX_NORMALS_PER_VERTEX; i++) {
+        int index = indices[i];
+        if (index == firstIndex) {
+            break;
+        }
+        const VoxelPoint& vertex = vertices.at(index);
+        float product = normal.x * vertex.normal[0] + normal.y * vertex.normal[1] + normal.z * vertex.normal[2];
+        if (product > closest) {
+            closest = product;
+            closestIndex = index;
+        }
+    }
+    return closestIndex;
+}
 
 static glm::vec3 safeNormalize(const glm::vec3& vector) {
     float length = glm::length(vector);
@@ -1075,10 +1096,10 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         // as we scan down the cube generating vertices between grid points, we remember the indices of the last
         // (element, line, section--x, y, z) so that we can connect generated vertices as quads
         int expanded = size + 1;
-        QVector<AxisIndex> lineIndices(expanded);
-        QVector<AxisIndex> lastLineIndices(expanded);
-        QVector<AxisIndex> planeIndices(expanded * expanded);
-        QVector<AxisIndex> lastPlaneIndices(expanded * expanded);
+        QVector<NormalIndex> lineIndices(expanded);
+        QVector<NormalIndex> lastLineIndices(expanded);
+        QVector<NormalIndex> planeIndices(expanded * expanded);
+        QVector<NormalIndex> lastPlaneIndices(expanded * expanded);
         
         const int EDGES_PER_CUBE = 12;
         EdgeCrossing crossings[EDGES_PER_CUBE];
@@ -1090,7 +1111,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         for (int z = 0; z < expanded; z++) {
             const QRgb* colorY = colorZ;
             for (int y = 0; y < expanded; y++) {
-                AxisIndex lastIndex;
+                NormalIndex lastIndex;
                 const QRgb* colorX = colorY;
                 for (int x = 0; x < expanded; x++) {
                     int alpha0 = colorX[0] >> ALPHA_OFFSET;
@@ -1165,7 +1186,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.material = materialBase ? materialBase[0] : 0;
                             }
                             crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 0.0f);
-                            crossing.axis = 0;
                         }
                         if (middleY) {
                             if (alpha1 != alpha3) {
@@ -1180,7 +1200,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.material = materialBase ? materialBase[1] : 0;
                                 }
                                 crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
-                                crossing.axis = 1;
                             }
                             if (alpha2 != alpha3) {
                                 QRgb hermite = hermiteBase[hermiteStride];
@@ -1194,7 +1213,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.material = materialBase ? materialBase[size] : 0;
                                 }
                                 crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 0.0f);
-                                crossing.axis = 0;
                             }
                             if (middleZ) {
                                 if (alpha3 != alpha7) {
@@ -1209,7 +1227,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                         crossing.material = materialBase ? materialBase[offset3] : 0;
                                     }
                                     crossing.point = glm::vec3(1.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                                    crossing.axis = 2;
                                 }
                                 if (alpha5 != alpha7) {
                                     QRgb hermite = hermiteBase[hermiteArea + VoxelHermiteData::EDGE_COUNT + 1];
@@ -1223,7 +1240,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                         crossing.material = materialBase ? materialBase[offset5] : 0;
                                     }
                                     crossing.point = glm::vec3(1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
-                                    crossing.axis = 1;
                                 }
                                 if (alpha6 != alpha7) {
                                     QRgb hermite = hermiteBase[hermiteArea + hermiteStride];
@@ -1237,7 +1253,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                         crossing.material = materialBase ? materialBase[offset6] : 0;
                                     }
                                     crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f, 1.0f);
-                                    crossing.axis = 0;
                                 }
                             }
                         }
@@ -1254,7 +1269,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.material = materialBase ? materialBase[1] : 0;
                                 }
                                 crossing.point = glm::vec3(1.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                                crossing.axis = 2;
                             }
                             if (alpha4 != alpha5) {
                                 QRgb hermite = hermiteBase[hermiteArea];
@@ -1268,7 +1282,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.material = materialBase ? materialBase[area] : 0;
                                 }
                                 crossing.point = glm::vec3(qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f, 1.0f);
-                                crossing.axis = 0;
                             }
                         }
                     }
@@ -1285,7 +1298,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                 crossing.material = materialBase ? materialBase[0] : 0;
                             }
                             crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 0.0f);
-                            crossing.axis = 1;
                         }
                         if (middleZ) {
                             if (alpha2 != alpha6) {
@@ -1300,7 +1312,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.material = materialBase ? materialBase[size] : 0;
                                 }
                                 crossing.point = glm::vec3(0.0f, 1.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                                crossing.axis = 2;
                             }
                             if (alpha4 != alpha6) {
                                 QRgb hermite = hermiteBase[hermiteArea + 1];
@@ -1314,7 +1325,6 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                                     crossing.material = materialBase ? materialBase[area] : 0;
                                 }
                                 crossing.point = glm::vec3(0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL, 1.0f);
-                                crossing.axis = 1;
                             }
                         }
                     }
@@ -1330,12 +1340,13 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             crossing.material = materialBase ? materialBase[0] : 0;
                         }
                         crossing.point = glm::vec3(0.0f, 0.0f, qAlpha(hermite) * EIGHT_BIT_MAXIMUM_RECIPROCAL);
-                        crossing.axis = 2;
                     }
                     // at present, we simply average the properties of each crossing as opposed to finding the vertex that
                     // minimizes the quadratic error function as described in the reference paper
                     glm::vec3 center;
-                    glm::vec3 axisNormals[3];
+                    glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
+                    int normalCount = 0;
+                    const float CREASE_COS_NORMAL = glm::cos(glm::radians(40.0f));
                     const int MAX_MATERIALS_PER_VERTEX = 4;
                     quint8 materials[] = { 0, 0, 0, 0 };
                     glm::vec4 materialWeights;
@@ -1344,7 +1355,18 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     for (int i = 0; i < crossingCount; i++) {
                         const EdgeCrossing& crossing = crossings[i];
                         center += crossing.point;
-                        axisNormals[crossing.axis] += crossing.normal; 
+                        
+                        int j = 0;
+                        for (; j < normalCount; j++) {
+                            if (glm::dot(normals[j], crossing.normal) > CREASE_COS_NORMAL) {
+                                normals[j] = safeNormalize(normals[j] + crossing.normal);
+                                break;
+                            }
+                        }
+                        if (j == normalCount) {
+                            normals[normalCount++] = crossing.normal;
+                        }
+                        
                         red += qRed(crossing.color);
                         green += qGreen(crossing.color);
                         blue += qBlue(crossing.color);
@@ -1359,7 +1381,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                         // when assigning a material, search for its presence and, if not found,
                         // place it in the first empty slot
                         if (crossing.material != 0) {
-                            for (int j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
+                            for (j = 0; j < MAX_MATERIALS_PER_VERTEX; j++) {
                                 if (materials[j] == crossing.material) {
                                     materialWeights[j] += 1.0f;
                                     totalWeight += 1.0f;
@@ -1374,18 +1396,15 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             }
                         }
                     }
-                    glm::vec3 normal = safeNormalize(axisNormals[0] + axisNormals[1] + axisNormals[2]);
                     center /= crossingCount;
                     
                     // use a sequence of Givens rotations to perform a QR decomposition
                     // see http://www.cs.rice.edu/~jwarren/papers/techreport02408.pdf
                     glm::mat4 r(0.0f);
                     glm::vec4 bottom;
-                    float smallestCosNormal = 1.0f;
                     for (int i = 0; i < crossingCount; i++) {
                         const EdgeCrossing& crossing = crossings[i];
                         bottom = glm::vec4(crossing.normal, glm::dot(crossing.normal, crossing.point - center));
-                        smallestCosNormal = qMin(smallestCosNormal, glm::dot(crossing.normal, normal));
                         
                         for (int j = 0; j < 4; j++) {
                             float angle = glm::atan(-bottom[j], r[j][j]);
@@ -1450,63 +1469,17 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     }
                     VoxelPoint point = { info.minimum + (glm::vec3(clampedX, clampedY, clampedZ) + center) * scale,
                         { (quint8)(red / crossingCount), (quint8)(green / crossingCount), (quint8)(blue / crossingCount) },
-                        { (char)(normal.x * 127.0f), (char)(normal.y * 127.0f), (char)(normal.z * 127.0f) },
+                        { (char)(normals[0].x * 127.0f), (char)(normals[0].y * 127.0f), (char)(normals[0].z * 127.0f) },
                         { materials[0], materials[1], materials[2], materials[3] },
                         { (quint8)materialWeights[0], (quint8)materialWeights[1], (quint8)materialWeights[2],
                             (quint8)materialWeights[3] } };
                     
-                    // determine whether we must "crease" by generating directional normals
-                    const float CREASE_COS_NORMAL = glm::cos(glm::radians(40.0f));
-                    AxisIndex index(vertices.size(), vertices.size(), vertices.size());
-                    if (smallestCosNormal > CREASE_COS_NORMAL) {    
+                    NormalIndex index = { { vertices.size(), vertices.size(), vertices.size(), vertices.size() } };
+                    vertices.append(point);
+                    for (int i = 1; i < normalCount; i++) {
+                        index.indices[i] = vertices.size();
+                        point.setNormal(normals[i]);
                         vertices.append(point);
-                        
-                    } else {
-                        axisNormals[0] = safeNormalize(axisNormals[0]);
-                        axisNormals[1] = safeNormalize(axisNormals[1]);
-                        axisNormals[2] = safeNormalize(axisNormals[2]);
-                        glm::vec3 normalXY(safeNormalize(axisNormals[0] + axisNormals[1]));
-                        glm::vec3 normalXZ(safeNormalize(axisNormals[0] + axisNormals[2]));
-                        glm::vec3 normalYZ(safeNormalize(axisNormals[1] + axisNormals[2]));
-                        if (glm::dot(axisNormals[0], normalXY) > CREASE_COS_NORMAL &&
-                                glm::dot(axisNormals[1], normalXY) > CREASE_COS_NORMAL) {
-                            point.setNormal(normalXY);
-                            vertices.append(point);
-                            
-                            point.setNormal(axisNormals[2]);
-                            index.z = vertices.size();
-                            vertices.append(point);
-                            
-                        } else if (glm::dot(axisNormals[0], normalXZ) > CREASE_COS_NORMAL &&
-                                glm::dot(axisNormals[2], normalXZ) > CREASE_COS_NORMAL) {
-                            point.setNormal(normalXZ);
-                            vertices.append(point);
-                        
-                            point.setNormal(axisNormals[1]);
-                            index.y = vertices.size();
-                            vertices.append(point);
-                        
-                        } else if (glm::dot(axisNormals[1], normalYZ) > CREASE_COS_NORMAL &&
-                                glm::dot(axisNormals[2], normalYZ) > CREASE_COS_NORMAL) {
-                            point.setNormal(normalYZ);
-                            vertices.append(point);
-                        
-                            point.setNormal(axisNormals[0]);
-                            index.x = vertices.size();
-                            vertices.append(point);
-                        
-                        } else {
-                            point.setNormal(axisNormals[0]);
-                            vertices.append(point);
-                            
-                            point.setNormal(axisNormals[1]);
-                            index.y = vertices.size();
-                            vertices.append(point);
-                            
-                            point.setNormal(axisNormals[2]);
-                            index.z = vertices.size();
-                            vertices.append(point);
-                        }
                     }
                     
                     // the first x, y, and z are repeated for the boundary edge; past that, we consider generating
@@ -1517,19 +1490,22 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             quadIndices.insert(qRgb(x, y - 1, z), indices.size());
                             quadIndices.insert(qRgb(x, y - 1, z - 1), indices.size());
                             quadIndices.insert(qRgb(x, y, z - 1), indices.size());
-                            indices.append(index.x);
-                            int index1 = lastLineIndices.at(x).x;
-                            int index2 = lastPlaneIndices.at((y - 1) * expanded + x).x;
-                            int index3 = lastPlaneIndices.at(y * expanded + x).x;
+                            
+                            glm::vec3 normal(1.0f, 0.0f, 0.0f);
+                            
+                            const NormalIndex& index1 = lastLineIndices.at(x);
+                            const NormalIndex& index2 = lastPlaneIndices.at((y - 1) * expanded + x);
+                            const NormalIndex& index3 = lastPlaneIndices.at(y * expanded + x);
                             if (alpha0 == 0) { // quad faces negative x
-                                indices.append(index3);
-                                indices.append(index2);
-                                indices.append(index1);
+                                indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index1.getClosestIndex(normal, vertices));
                             } else { // quad faces positive x
-                                indices.append(index1);
-                                indices.append(index2);
-                                indices.append(index3);
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index3.getClosestIndex(normal, vertices));
                             }
+                            indices.append(index.getClosestIndex(normal, vertices));
                         }
                         
                         if (alpha0 != alpha2) {
@@ -1537,19 +1513,22 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             quadIndices.insert(qRgb(x - 1, y, z), indices.size());
                             quadIndices.insert(qRgb(x - 1, y, z - 1), indices.size());
                             quadIndices.insert(qRgb(x, y, z - 1), indices.size());
-                            indices.append(index.y);
-                            int index1 = lastIndex.y;
-                            int index2 = lastPlaneIndices.at(y * expanded + x - 1).y;
-                            int index3 = lastPlaneIndices.at(y * expanded + x).y;
+                            
+                            glm::vec3 normal(0.0f, 1.0f, 0.0f);
+                            
+                            const NormalIndex& index1 = lastIndex;
+                            const NormalIndex& index2 = lastPlaneIndices.at(y * expanded + x - 1);
+                            const NormalIndex& index3 = lastPlaneIndices.at(y * expanded + x);
                             if (alpha0 == 0) { // quad faces negative y
-                                indices.append(index1);
-                                indices.append(index2);
-                                indices.append(index3);
+                                indices.append(index1.getClosestIndex(normal = -normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index3.getClosestIndex(normal, vertices));
                             } else { // quad faces positive y
-                                indices.append(index3);
-                                indices.append(index2);
-                                indices.append(index1);
+                                indices.append(index3.getClosestIndex(normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index1.getClosestIndex(normal, vertices));
                             }
+                            indices.append(index.getClosestIndex(normal, vertices));
                         }
                         
                         if (alpha0 != alpha4) {
@@ -1557,19 +1536,22 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             quadIndices.insert(qRgb(x - 1, y, z), indices.size());
                             quadIndices.insert(qRgb(x - 1, y - 1, z), indices.size());
                             quadIndices.insert(qRgb(x, y - 1, z), indices.size());
-                            indices.append(index.z);
-                            int index1 = lastIndex.z;
-                            int index2 = lastLineIndices.at(x - 1).z;
-                            int index3 = lastLineIndices.at(x).z;
+                            
+                            glm::vec3 normal(0.0f, 0.0f, 1.0f);
+                            
+                            const NormalIndex& index1 = lastIndex;
+                            const NormalIndex& index2 = lastLineIndices.at(x - 1);
+                            const NormalIndex& index3 = lastLineIndices.at(x);
                             if (alpha0 == 0) { // quad faces negative z
-                                indices.append(index3);
-                                indices.append(index2);
-                                indices.append(index1);
+                                indices.append(index3.getClosestIndex(normal = -normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index1.getClosestIndex(normal, vertices));
                             } else { // quad faces positive z
-                                indices.append(index1);
-                                indices.append(index2);
-                                indices.append(index3);
+                                indices.append(index1.getClosestIndex(normal, vertices));
+                                indices.append(index2.getClosestIndex(normal, vertices));
+                                indices.append(index3.getClosestIndex(normal, vertices));
                             }
+                            indices.append(index.getClosestIndex(normal, vertices));
                         }
                     }
                     lastIndex = index;
