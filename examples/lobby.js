@@ -47,7 +47,7 @@ var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/eleva
 var currentMusakInjector = null;
 var currentSound = null;
 
-var inOculusMode =  Menu.isOptionChecked("EnableVRMode");
+var inOculusMode =  Menu.isOptionChecked("Enable VR Mode");
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
