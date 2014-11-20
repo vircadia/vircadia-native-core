@@ -666,16 +666,16 @@ void Avatar::renderDisplayName() {
     // we need "always facing camera": we must remove the camera rotation from the stack
     glm::quat rotation = Application::getInstance()->getCamera()->getRotation();
     
-    glm::vec3 frontAxis(1.f, 0.f, 0.f);
+    glm::vec3 frontAxis(1.0f, 0.0f, 0.0f);
     frontAxis = glm::rotate(rotation, frontAxis);
-    frontAxis = glm::normalize(glm::vec3(frontAxis.x, 0.f, frontAxis.z));
+    frontAxis = glm::normalize(glm::vec3(frontAxis.x, 0.0f, frontAxis.z));
     
     // TODO : test this secodn solution  which should be better wfor occulus
     //glm::vec3 camPosition = Application::getInstance()->getCamera()->getPosition();
     //glm::vec3 frontAxis = camPosition - textPosition;
-    //frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.f, -frontAxis.x));
+    //frontAxis = glm::normalize(glm::vec3(frontAxis.z, 0.0f, -frontAxis.x));
     
-    float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.f : -1.f);
+    float angle = acos(frontAxis.x) * ((frontAxis.z < 0) ? 1.0f : -1.0f);
     glRotatef(glm::degrees(angle), 0.0f, 1.0f, 0.0f);
 
     // We need to compute the scale factor such as the text remains with fixed size respect to window coordinates

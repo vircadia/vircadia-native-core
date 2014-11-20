@@ -296,7 +296,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             float y = (float)i / (stacks - 1);
             
             for (int j = 0; j <= slices; j++) {
-                float theta = 3.f * PI_OVER_TWO + PI * (float)j / (float)slices;
+                float theta = 3.0f * PI_OVER_TWO + PI * (float)j / (float)slices;
 
                 //normals
                 *(vertex++) = sinf(theta);

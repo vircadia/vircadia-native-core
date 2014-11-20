@@ -604,7 +604,7 @@ void Application::initializeGL() {
     }
 
     // update before the first render
-    update(1.f / _fps);
+    update(1.0f / _fps);
 
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
@@ -668,7 +668,7 @@ void Application::paintGL() {
 
     // Update camera position
     if (!OculusManager::isConnected()) {
-        _myCamera.update(1.f / _fps);
+        _myCamera.update(1.0f / _fps);
     }
 
     // Note: whichCamera is used to pick between the normal camera myCamera for our
@@ -693,7 +693,7 @@ void Application::paintGL() {
         
         _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
         
-        _viewFrustumOffsetCamera.update(1.f/_fps);
+        _viewFrustumOffsetCamera.update(1.0f/_fps);
         whichCamera = &_viewFrustumOffsetCamera;
     }
 
@@ -712,7 +712,7 @@ void Application::paintGL() {
         } else {
             OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), *whichCamera);
         }
-        _myCamera.update(1.f / _fps);
+        _myCamera.update(1.0f / _fps);
 
     } else if (TV3DManager::isConnected()) {
        
@@ -918,7 +918,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
-                _myAvatar->setDriveKeys(UP, 1.f);
+                _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
             case Qt::Key_Asterisk:
@@ -927,14 +927,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_C:
             case Qt::Key_PageDown:
-                _myAvatar->setDriveKeys(DOWN, 1.f);
+                _myAvatar->setDriveKeys(DOWN, 1.0f);
                 break;
 
             case Qt::Key_W:
                 if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Wireframe);
                 } else {
-                    _myAvatar->setDriveKeys(FWD, 1.f);
+                    _myAvatar->setDriveKeys(FWD, 1.0f);
                 }
                 break;
 
@@ -946,7 +946,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot();
                 } else {
-                    _myAvatar->setDriveKeys(BACK, 1.f);
+                    _myAvatar->setDriveKeys(BACK, 1.0f);
                 }
                 break;
 
@@ -964,13 +964,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
                 } else {
-                    _myAvatar->setDriveKeys(ROT_LEFT, 1.f);
+                    _myAvatar->setDriveKeys(ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_D:
                 if (!isMeta) {
-                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -998,7 +998,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _raiseMirror += 0.05f;
                     }
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.0f);
                 }
                 break;
 
@@ -1010,23 +1010,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _raiseMirror -= 0.05f;
                     }
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.0f);
                 }
                 break;
 
             case Qt::Key_Left:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror += PI / 20.f;
+                    _rotateMirror += PI / 20.0f;
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_Right:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror -= PI / 20.f;
+                    _rotateMirror -= PI / 20.0f;
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1177,48 +1177,48 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     switch (event->key()) {
         case Qt::Key_E:
         case Qt::Key_PageUp:
-            _myAvatar->setDriveKeys(UP, 0.f);
+            _myAvatar->setDriveKeys(UP, 0.0f);
             break;
 
         case Qt::Key_C:
         case Qt::Key_PageDown:
-            _myAvatar->setDriveKeys(DOWN, 0.f);
+            _myAvatar->setDriveKeys(DOWN, 0.0f);
             break;
 
         case Qt::Key_W:
-            _myAvatar->setDriveKeys(FWD, 0.f);
+            _myAvatar->setDriveKeys(FWD, 0.0f);
             break;
 
         case Qt::Key_S:
-            _myAvatar->setDriveKeys(BACK, 0.f);
+            _myAvatar->setDriveKeys(BACK, 0.0f);
             break;
 
         case Qt::Key_A:
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
             break;
 
         case Qt::Key_D:
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
             break;
 
         case Qt::Key_Up:
-            _myAvatar->setDriveKeys(FWD, 0.f);
-            _myAvatar->setDriveKeys(UP, 0.f);
+            _myAvatar->setDriveKeys(FWD, 0.0f);
+            _myAvatar->setDriveKeys(UP, 0.0f);
             break;
 
         case Qt::Key_Down:
-            _myAvatar->setDriveKeys(BACK, 0.f);
-            _myAvatar->setDriveKeys(DOWN, 0.f);
+            _myAvatar->setDriveKeys(BACK, 0.0f);
+            _myAvatar->setDriveKeys(DOWN, 0.0f);
             break;
 
         case Qt::Key_Left:
-            _myAvatar->setDriveKeys(LEFT, 0.f);
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            _myAvatar->setDriveKeys(LEFT, 0.0f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
             break;
 
         case Qt::Key_Right:
-            _myAvatar->setDriveKeys(RIGHT, 0.f);
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            _myAvatar->setDriveKeys(RIGHT, 0.0f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
             break;
         case Qt::Key_Control:
         case Qt::Key_Shift:
@@ -1522,7 +1522,7 @@ void Application::idle() {
             PerformanceTimer perfTimer("update");
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-            update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
+            update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
         {
             PerformanceTimer perfTimer("updateGL");
@@ -1653,8 +1653,8 @@ void Application::makeVoxel(glm::vec3 position,
    }
 
 glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
-    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.f) * TREE_SCALE,
-        (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
+    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.0f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.0f) * TREE_SCALE,
+        (mouseVoxel.z + mouseVoxel.s / 2.0f) * TREE_SCALE);
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -1867,7 +1867,7 @@ void Application::init() {
                                                         3.0f * TREE_SCALE / 2.0f));
     _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
     _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFieldOfView(90.f);
+    _sharedVoxelSystemViewFrustum.setFieldOfView(90.0f);
     _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
     _sharedVoxelSystemViewFrustum.calculate();
     _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
@@ -2163,7 +2163,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
+                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
     }
     //
@@ -3201,12 +3201,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
@@ -3214,11 +3214,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
             // face/body so that the average eye position lies at the origin
             eyeRelativeCamera = true;
-            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
 
         } else {
             _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                      _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+                                      _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
@@ -4214,7 +4214,7 @@ void Application::toggleLogDialog() {
 }
 
 void Application::initAvatarAndViewFrustum() {
-    updateMyAvatar(0.f);
+    updateMyAvatar(0.0f);
 }
 
 void Application::checkVersion() {
@@ -4388,7 +4388,7 @@ unsigned int Application::getRenderTargetFramerate() const {
 
 float Application::getRenderResolutionScale() const {
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
-        return 1.f;
+        return 1.0f;
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
         return 0.666f;
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
@@ -4398,6 +4398,6 @@ float Application::getRenderResolutionScale() const {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
         return 0.25f;
     } else {
-        return 1.f;
+        return 1.0f;
     }
 }

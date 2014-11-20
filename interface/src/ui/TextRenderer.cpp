@@ -73,12 +73,12 @@ int TextRenderer::draw(int x, int y, const char* str, float alpha) {
     // Grab the current color
     float currentColor[4];
     glGetFloatv(GL_CURRENT_COLOR, currentColor);
-    alpha = std::max(0.f, std::min(alpha, 1.f));
+    alpha = std::max(0.0f, std::min(alpha, 1.0f));
     currentColor[3] *= alpha;
-    int compactColor = ((int(currentColor[0] * 255.f) & 0xFF)) |
-                       ((int(currentColor[1] * 255.f) & 0xFF) << 8) |
-                       ((int(currentColor[2] * 255.f) & 0xFF) << 16) |
-                       ((int(currentColor[3] * 255.f) & 0xFF) << 24);
+    int compactColor = ((int(currentColor[0] * 255.0f) & 0xFF)) |
+                       ((int(currentColor[1] * 255.0f) & 0xFF) << 8) |
+                       ((int(currentColor[2] * 255.0f) & 0xFF) << 16) |
+                       ((int(currentColor[3] * 255.0f) & 0xFF) << 24);
 
 // TODO: Remove that code once we test for performance improvments
     //glEnable(GL_TEXTURE_2D);

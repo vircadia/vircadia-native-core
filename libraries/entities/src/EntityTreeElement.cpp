@@ -621,7 +621,7 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
         // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.f * radius);
+        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.0f * radius);
         if (entityCube.touches(box)) {
             foundEntities.push_back(entity);
         }

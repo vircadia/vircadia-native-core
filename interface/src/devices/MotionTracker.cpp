@@ -167,9 +167,9 @@ MotionTracker::Frame::Frame() :
 
 void MotionTracker::Frame::setRotation(const glm::quat& rotation) {
     glm::mat3x3 rot = glm::mat3_cast(rotation);
-    _transform[0] = glm::vec4(rot[0], 0.f);
-    _transform[1] = glm::vec4(rot[1], 0.f);
-    _transform[2] = glm::vec4(rot[2], 0.f);
+    _transform[0] = glm::vec4(rot[0], 0.0f);
+    _transform[1] = glm::vec4(rot[1], 0.0f);
+    _transform[2] = glm::vec4(rot[2], 0.0f);
 }
 
 void MotionTracker::Frame::getRotation(glm::quat& rotation) const {
@@ -177,7 +177,7 @@ void MotionTracker::Frame::getRotation(glm::quat& rotation) const {
 }
 
 void MotionTracker::Frame::setTranslation(const glm::vec3& translation) {
-    _transform[3] = glm::vec4(translation, 1.f);
+    _transform[3] = glm::vec4(translation, 1.0f);
 }
 
 void MotionTracker::Frame::getTranslation(glm::vec3& translation) const {
