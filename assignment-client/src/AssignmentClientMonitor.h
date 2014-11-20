@@ -13,6 +13,7 @@
 #define hifi_AssignmentClientMonitor_h
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/qpointer.h>
 #include <QtCore/QProcess>
 
 #include <Assignment.h>
@@ -23,10 +24,13 @@ class AssignmentClientMonitor : public QCoreApplication {
     Q_OBJECT
 public:
     AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks);
+    
+    void stopChildProcesses();
 private slots:
     void childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 private:
     void spawnChildClient();
+    QList<QPointer<QProcess> > _childProcesses;
     
     QStringList _childArguments;
 };

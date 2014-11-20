@@ -657,12 +657,13 @@ void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entities
     foreach (EntityItem* thisEntity, _changedEntities) {
         // check to see if the lifetime has expired, for immortal entities this is always false
         if (thisEntity->lifetimeHasExpired()) {
-            qDebug() << "Lifetime has expired for thisEntity:" << thisEntity->getEntityItemID();
+            qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
             entitiesToDelete << thisEntity->getEntityItemID();
             clearEntityState(thisEntity);
         } else {
             updateEntityState(thisEntity);
         }
+        thisEntity->clearUpdateFlags();
     }
     _changedEntities.clear();
 }

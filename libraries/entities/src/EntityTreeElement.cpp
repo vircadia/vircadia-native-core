@@ -739,8 +739,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                    // TODO: Andrew to only set changed if something has actually changed
-                    _myTree->entityChanged(entityItem);
+                    if (entityItem->getUpdateFlags()) {
+                        _myTree->entityChanged(entityItem);
+                    }
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
                     if (bestFitBefore != bestFitAfter) {
