@@ -98,7 +98,7 @@ quint64 usecTimestampNow(bool wantDebug) {
 }
 
 float randFloat() {
-    return (rand() % 10000)/10000.f;
+    return (rand() % 10000)/10000.0f;
 }
 
 int randIntInRange (int min, int max) {
@@ -106,7 +106,7 @@ int randIntInRange (int min, int max) {
 }
 
 float randFloatInRange (float min,float max) {
-    return min + ((rand() % 10000)/10000.f * (max-min));
+    return min + ((rand() % 10000)/10000.0f * (max-min));
 }
 
 float randomSign() {
@@ -501,8 +501,8 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
     return -1; // error case
 }
 
-float SMALL_LIMIT = 10.f;
-float LARGE_LIMIT = 1000.f;
+float SMALL_LIMIT = 10.0f;
+float LARGE_LIMIT = 1000.0f;
 
 int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
     // if the ratio is less than 10, then encode it as a positive number scaled from 0 to int16::max()

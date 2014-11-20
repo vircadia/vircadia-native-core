@@ -14,11 +14,10 @@ var position = { x: 700, y: 25, z: 725 };
 var audioOptions = {
     position: position,
     volume: 0.4,
-    loop: true,
-    stereo: false
+    loop: true
 };
 
-var sound = SoundCache.getSound(soundURL, audioOptions.isStereo);
+var sound = SoundCache.getSound(soundURL);
 var injector = null;
 var count = 100;
 

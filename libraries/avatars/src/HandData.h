@@ -100,7 +100,7 @@ public:
     void addToPosition(const glm::vec3& delta);
 
     void addToPenetration(const glm::vec3& penetration) { _totalPenetration += penetration; }
-    void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.f); }
+    void resolvePenetrations() { addToPosition(-_totalPenetration); _totalPenetration = glm::vec3(0.0f); }
     
     void setTipPosition(const glm::vec3& position) { _tipPosition = position; }
     const glm::vec3 getTipPosition() const { return _owningHandData->localToWorldPosition(_tipPosition); }

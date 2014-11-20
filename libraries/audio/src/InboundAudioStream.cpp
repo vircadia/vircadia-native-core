@@ -169,9 +169,16 @@ int InboundAudioStream::parseData(const QByteArray& packet) {
 }
 
 int InboundAudioStream::parseStreamProperties(PacketType type, const QByteArray& packetAfterSeqNum, int& numAudioSamples) {
-    // mixed audio packets do not have any info between the seq num and the audio data.
-    numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
-    return 0;
+    if (type == PacketTypeSilentAudioFrame) {
+        quint16 numSilentSamples = 0;
+        memcpy(&numSilentSamples, packetAfterSeqNum.constData(), sizeof(quint16));
+        numAudioSamples = numSilentSamples;
+        return sizeof(quint16);
+    } else {
+        // mixed audio packets do not have any info between the seq num and the audio data.
+        numAudioSamples = packetAfterSeqNum.size() / sizeof(int16_t);
+        return 0;
+    }
 }
 
 int InboundAudioStream::parseAudioData(PacketType type, const QByteArray& packetAfterStreamProperties, int numAudioSamples) {

@@ -26,6 +26,9 @@ public:
     
     void setShouldLoop(bool shouldLoop) { _shouldLoop = shouldLoop; }
     
+    void setCurrentOffset(int currentOffset) { _currentOffset = currentOffset; }
+signals:
+    void bufferEmpty();
 private:
     
     qint64 recursiveReadFromFront(char* data, qint64 maxSize);

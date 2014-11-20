@@ -90,6 +90,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
+    _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     _simulationState = EntityItem::Static;
@@ -102,6 +103,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
+    _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
@@ -465,7 +467,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
         
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, _position);
+        READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
 
         // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
         if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
@@ -484,7 +486,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
             }
         } else {
-            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, _dimensions);
+            READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensions);
             if (wantDebug) {
                 qDebug() << "    readEntityDataFromBuffer() NEW FORMAT... look for PROP_DIMENSIONS";
             }
@@ -494,19 +496,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "    readEntityDataFromBuffer() _dimensions:" << getDimensionsInMeters() << " in meters";
         }
                 
-        READ_ENTITY_PROPERTY_QUAT(PROP_ROTATION, _rotation);
-        READ_ENTITY_PROPERTY(PROP_MASS, float, _mass);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, _velocity);
-        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, _gravity);
+        READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
+        READ_ENTITY_PROPERTY_SETTER(PROP_MASS, float, updateMass);
+        READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
+        READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
-        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
+        READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, _angularVelocity);
+        READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
-        READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
-        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
+        READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
+        READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
         READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
 
@@ -731,11 +733,6 @@ bool EntityItem::lifetimeHasExpired() const {
     return isMortal() && (getAge() > getLifetime()); 
 }
 
-
-void EntityItem::copyChangedProperties(const EntityItem& other) {
-    *this = other;
-}
-
 EntityItemProperties EntityItem::getProperties() const {
     EntityItemProperties properties;
     properties._id = getID();
@@ -945,6 +942,113 @@ void EntityItem::recalculateCollisionShape() {
     entityAACube.scale(TREE_SCALE); // scale to meters
     _collisionShape.setTranslation(entityAACube.calcCenter());
     _collisionShape.setScale(entityAACube.getScale());
+}
+
+void EntityItem::updatePosition(const glm::vec3& value) { 
+    if (_position != value) {
+        _position = value; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
+    glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
+    if (_position != position) {
+        _position = position;
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updateDimensions(const glm::vec3& value) { 
+    if (_dimensions != value) {
+        _dimensions = value; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_SHAPE;
+    }
+}
+
+void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
+    glm::vec3 dimensions = value / (float) TREE_SCALE;
+    if (_dimensions != dimensions) {
+        _dimensions = dimensions; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_SHAPE;
+    }
+}
+
+void EntityItem::updateRotation(const glm::quat& rotation) { 
+    if (_rotation != rotation) {
+        _rotation = rotation; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updateMass(float value) {
+    if (_mass != value) {
+        _mass = value;
+        _updateFlags |= EntityItem::UPDATE_MASS;
+    }
+}
+
+void EntityItem::updateVelocity(const glm::vec3& value) { 
+    if (_velocity != value) {
+        _velocity = value;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
+    glm::vec3 velocity = value / (float) TREE_SCALE; 
+    if (_velocity != velocity) {
+        _velocity = velocity;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateGravity(const glm::vec3& value) { 
+    if (_gravity != value) {
+        _gravity = value; 
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateGravityInMeters(const glm::vec3& value) { 
+    glm::vec3 gravity = value / (float) TREE_SCALE;
+    if (_gravity != gravity) {
+        _gravity = gravity;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
+    if (_angularVelocity != value) {
+        _angularVelocity = value; 
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateIgnoreForCollisions(bool value) { 
+    if (_ignoreForCollisions != value) {
+        _ignoreForCollisions = value; 
+        _updateFlags |= EntityItem::UPDATE_COLLISION_GROUP;
+    }
+}
+
+void EntityItem::updateCollisionsWillMove(bool value) { 
+    if (_collisionsWillMove != value) {
+        _collisionsWillMove = value; 
+        _updateFlags |= EntityItem::UPDATE_MOTION_TYPE;
+    }
+}
+
+void EntityItem::updateLifetime(float value) {
+    if (_lifetime != value) {
+        _lifetime = value;
+        _updateFlags |= EntityItem::UPDATE_LIFETIME;
+    }
 }
 
 

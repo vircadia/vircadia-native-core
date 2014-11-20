@@ -80,14 +80,14 @@ void Environment::renderAtmospheres(Camera& camera) {
 glm::vec3 Environment::getGravity (const glm::vec3& position) {
     //
     // 'Default' gravity pulls you downward in Y when you are near the X/Z plane
-    const glm::vec3 DEFAULT_GRAVITY(0.f, -1.f, 0.f);
+    const glm::vec3 DEFAULT_GRAVITY(0.0f, -1.0f, 0.0f);
     glm::vec3 gravity(DEFAULT_GRAVITY);
-    float DEFAULT_SURFACE_RADIUS = 30.f;
+    float DEFAULT_SURFACE_RADIUS = 30.0f;
     float gravityStrength;
     
     //  Weaken gravity with height
-    if (position.y > 0.f) {
-        gravityStrength = 1.f / powf((DEFAULT_SURFACE_RADIUS + position.y) / DEFAULT_SURFACE_RADIUS, 2.f);
+    if (position.y > 0.0f) {
+        gravityStrength = 1.0f / powf((DEFAULT_SURFACE_RADIUS + position.y) / DEFAULT_SURFACE_RADIUS, 2.0f);
         gravity *= gravityStrength;
     }
     
@@ -103,7 +103,7 @@ glm::vec3 Environment::getGravity (const glm::vec3& position) {
                 gravity += glm::normalize(vector) * environmentData.getGravity();
             } else {
                 //  Outside a planet, the gravity falls off with distance 
-                gravityStrength = 1.f / powf(glm::length(vector) / surfaceRadius, 2.f);
+                gravityStrength = 1.0f / powf(glm::length(vector) / surfaceRadius, 2.0f);
                 gravity += glm::normalize(vector) * environmentData.getGravity() * gravityStrength;
             }
         }
@@ -261,7 +261,7 @@ void Environment::renderAtmosphere(Camera& camera, const EnvironmentData& data) 
     
     glDepthMask(GL_FALSE);
     glDisable(GL_DEPTH_TEST);
-    Application::getInstance()->getGeometryCache()->renderSphere(1.f, 100, 50); //Draw a unit sphere
+    Application::getInstance()->getGeometryCache()->renderSphere(1.0f, 100, 50); //Draw a unit sphere
     glDepthMask(GL_TRUE);
     
     program->release();

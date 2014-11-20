@@ -131,9 +131,9 @@ bool findSphereDiskPenetration(const glm::vec3& sphereCenter, float sphereRadius
         if (glm::length(localCenter - axialOffset) < diskRadius) {
             // yes, hit the disk
             penetration = (std::fabs(axialDistance) - (sphereRadius + 0.5f * diskThickness) ) * diskNormal;
-            if (axialDistance < 0.f) {
+            if (axialDistance < 0.0f) {
                 // hit the backside of the disk, so negate penetration vector
-                penetration *= -1.f;
+                penetration *= -1.0f;
             }
             return true;
         }

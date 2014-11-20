@@ -47,7 +47,7 @@ void AngularConstraintTests::testHingeConstraint() {
         }
     }
     {   // test just inside min edge of constraint
-        float angle = minAngle + 10.f * EPSILON;
+        float angle = minAngle + 10.0f * EPSILON;
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
@@ -62,7 +62,7 @@ void AngularConstraintTests::testHingeConstraint() {
         }
     }
     {   // test just inside max edge of constraint
-        float angle = maxAngle - 10.f * EPSILON;
+        float angle = maxAngle - 10.0f * EPSILON;
         glm::quat rotation = glm::angleAxis(angle, yAxis);
     
         glm::quat newRotation = rotation;
