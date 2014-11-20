@@ -673,7 +673,7 @@ InsertSpannerTool::InsertSpannerTool(MetavoxelEditor* editor) :
 
 void InsertSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
     MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, spanner)) };
-    Application::getInstance()->getMetavoxels()->applyEdit(message);
+    Application::getInstance()->getMetavoxels()->applyEdit(message, true);
 }
 
 RemoveSpannerTool::RemoveSpannerTool(MetavoxelEditor* editor) :
@@ -857,7 +857,7 @@ void ImportHeightfieldTool::apply() {
                 _heightOffset->value(), (i / HEIGHTFIELD_BLOCK_SIZE) * scale));
             
             MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, heightfield)) };
-            Application::getInstance()->getMetavoxels()->applyEdit(message);
+            Application::getInstance()->getMetavoxels()->applyEdit(message, true);
         }
     }
 }
