@@ -64,9 +64,6 @@ public slots:
     /// adds a model with the specific properties
     Q_INVOKABLE EntityItemID addEntity(const EntityItemProperties& properties);
 
-    // Get EntityItemID from uuid string
-    Q_INVOKABLE EntityItemID getEntityItemID(const QString& entityID);
-
     /// identify a recently created model to determine its true ID
     Q_INVOKABLE EntityItemID identifyEntity(EntityItemID entityID);
 

@@ -61,6 +61,12 @@ var DEFAULT_TEXT_DIMENSION_X = 1.0;
 var DEFAULT_TEXT_DIMENSION_Y = 1.0;
 var DEFAULT_TEXT_DIMENSION_Z = 0.01;
 
+var DEFAULT_DIMENSIONS = {
+    x: DEFAULT_DIMENSION,
+    y: DEFAULT_DIMENSION,
+    z: DEFAULT_DIMENSION
+};
+
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
 
@@ -220,8 +226,8 @@ var toolBar = (function () {
         if (position.x > 0 && position.y > 0 && position.z > 0) {
             var entityId = Entities.addEntity({
                 type: "Model",
-                position: position,
-                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                dimensions: DEFAULT_DIMENSIONS,
                 modelURL: url
             });
             print("Model added: " + url);
@@ -345,8 +351,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 Entities.addEntity({
                                 type: "Box",
-                                position: position,
-                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 color: { red: 255, green: 0, blue: 0 }
 
                                 });
@@ -362,8 +368,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 Entities.addEntity({
                                 type: "Sphere",
-                                position: position,
-                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 color: { red: 255, green: 0, blue: 0 }
                                 });
             } else {
@@ -378,8 +384,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 Entities.addEntity({
                                 type: "Light",
-                                position: position,
-                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 isSpotlight: false,
                                 diffuseColor: { red: 255, green: 255, blue: 255 },
                                 ambientColor: { red: 255, green: 255, blue: 255 },
@@ -403,8 +409,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 Entities.addEntity({ 
                                 type: "Text",
-                                position: position,
-                                dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 backgroundColor: { red: 0, green: 0, blue: 0 },
                                 textColor: { red: 255, green: 255, blue: 255 },
                                 text: "some text",
