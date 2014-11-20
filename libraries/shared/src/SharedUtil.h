@@ -49,14 +49,14 @@ static const float ONE_HALF			= 0.5f;
 static const float ONE_THIRD        = 0.333333f;
 
 static const float PI                 = 3.14159265358979f;
-static const float TWO_PI             = 2.f * PI;
+static const float TWO_PI             = 2.0f * PI;
 static const float PI_OVER_TWO        = ONE_HALF * PI;
 static const float RADIANS_PER_DEGREE = PI / 180.0f;
 static const float DEGREES_PER_RADIAN = 180.0f / PI;
 
 static const float EPSILON          = 0.000001f;	//smallish positive number - used as margin of error for some computations
-static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.f);
-static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.f);
+static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.0f);
+static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.0f);
 static const float METERS_PER_DECIMETER  = 0.1f;
 static const float METERS_PER_CENTIMETER = 0.01f;
 static const float METERS_PER_MILLIMETER = 0.001f;

@@ -78,6 +78,17 @@ float AudioInjector::getLoudness() {
 }
 
 void AudioInjector::injectAudio() {
+    
+    // check if we need to offset the sound by some number of seconds
+    if (_options.secondOffset > 0.0f) {
+        
+        // convert the offset into a number of bytes
+        int byteOffset = (int) floorf(SAMPLE_RATE * _options.secondOffset * (_options.stereo ? 2.0f : 1.0f));
+        byteOffset *= sizeof(int16_t);
+        
+        _currentSendPosition = byteOffset;
+    }
+    
     if (_options.localOnly) {
         injectLocally();
     } else {
@@ -89,9 +100,13 @@ void AudioInjector::injectLocally() {
     bool success = false;
     if (_localAudioInterface) {
         if (_audioData.size() > 0) {
+            
             _localBuffer = new AudioInjectorLocalBuffer(_audioData, this);
             _localBuffer->open(QIODevice::ReadOnly);
             _localBuffer->setShouldLoop(_options.loop);
+            
+            // give our current send position to the local buffer
+            _localBuffer->setCurrentOffset(_currentSendPosition);
             
             QMetaObject::invokeMethod(_localAudioInterface, "outputLocalInjector",
                                       Qt::BlockingQueuedConnection,
@@ -100,7 +115,8 @@ void AudioInjector::injectLocally() {
                                       Q_ARG(qreal, _options.volume),
                                       Q_ARG(AudioInjector*, this));
             
-            
+            // if we're not looping and the buffer tells us it is empty then emit finished
+            connect(_localBuffer, &AudioInjectorLocalBuffer::bufferEmpty, this, &AudioInjector::stop);
             
             if (!success) {
                 qDebug() << "AudioInjector::injectLocally could not output locally via _localAudioInterface";

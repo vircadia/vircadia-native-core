@@ -1330,7 +1330,7 @@ void Model::inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm:
                     centerOfMass += _jointStates[massIndex].getPosition() - pivot;
                 }
                 // the gravitational effect is a rotation that tends to align the two cross products
-                const glm::vec3 worldAlignment = glm::vec3(0.0f, -1.f, 0.0f);
+                const glm::vec3 worldAlignment = glm::vec3(0.0f, -1.0f, 0.0f);
                 glm::quat gravityDelta = rotationBetween(glm::cross(centerOfMass, leverArm),
                     glm::cross(worldAlignment, leverArm));
 
@@ -2173,7 +2173,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, (part.shininess > 128.f ? 128.f: part.shininess));
+                    GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, (part.shininess > 128.0f ? 128.0f: part.shininess));
             
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {

@@ -27,6 +27,7 @@ public:
     bool stereo;
     bool ignorePenumbra;
     bool localOnly;
+    float secondOffset;
 };
 
 Q_DECLARE_METATYPE(AudioInjectorOptions);

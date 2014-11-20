@@ -16,7 +16,7 @@
 using namespace starfield;
 
 const float Generator::STAR_COLORIZATION = 0.1f;
-const float PI_OVER_180 = 3.14159265358979f / 180.f;
+const float PI_OVER_180 = 3.14159265358979f / 180.0f;
 
 void Generator::computeStarPositions(InputVertices& destination, unsigned limit, unsigned seed) {
     InputVertices* vertices = & destination;
@@ -44,9 +44,9 @@ void Generator::computeStarPositions(InputVertices& destination, unsigned limit,
     
     for(int star = 0; star < ceil(limit * MILKY_WAY_RATIO); ++star) {
         float azimuth = ((float)rand() / (float) RAND_MAX) * NUM_DEGREES;
-        float altitude = powf(randFloat()*0.5f, 2.f)/0.25f * MILKY_WAY_WIDTH;
+        float altitude = powf(randFloat()*0.5f, 2.0f)/0.25f * MILKY_WAY_WIDTH;
         if (randFloat() > 0.5f) {
-            altitude *= -1.f;
+            altitude *= -1.0f;
         }
         
         // we need to rotate the Milky Way band to the correct orientation in the sky

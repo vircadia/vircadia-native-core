@@ -68,7 +68,7 @@ void Hand::collideAgainstAvatar(Avatar* avatar, bool isMyHand) {
         skeletonModel.getHandShapes(jointIndex, shapes);
 
         if (avatar->findCollisions(shapes, handCollisions)) {
-            glm::vec3 totalPenetration(0.f);
+            glm::vec3 totalPenetration(0.0f);
             glm::vec3 averageContactPoint;
             for (int j = 0; j < handCollisions.size(); ++j) {
                 CollisionInfo* collision = handCollisions.getCollision(j);
@@ -151,7 +151,7 @@ void Hand::renderHandTargets(bool isMine) {
         
             const float collisionRadius = 0.05f;
             glColor4f(0.5f,0.5f,0.5f, alpha);
-            glutWireSphere(collisionRadius, 10.f, 10.f);
+            glutWireSphere(collisionRadius, 10.0f, 10.0f);
             glPopMatrix();
         }
     }

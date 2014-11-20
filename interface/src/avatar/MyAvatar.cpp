@@ -89,6 +89,7 @@ MyAvatar::MyAvatar() :
     _billboardValid(false),
     _physicsSimulation(),
     _voxelShapeManager(),
+    _feetTouchFloor(true),
     _isLookingAtLeftEye(true)
 {
     ShapeCollider::initDispatchTable();
@@ -115,7 +116,7 @@ QByteArray MyAvatar::toByteArray() {
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
-        _position += _skeletonOffset;
+        _position = getSkeletonPosition();
         QByteArray array = AvatarData::toByteArray();
         // copy the correct position back
         _position = oldPosition;
@@ -132,8 +133,8 @@ void MyAvatar::reset() {
     setThrust(glm::vec3(0.0f));
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
-    eulers.x = 0.f;
-    eulers.z = 0.f;
+    eulers.x = 0.0f;
+    eulers.z = 0.0f;
     setOrientation(glm::quat(eulers));
 }
 
@@ -155,6 +156,9 @@ void MyAvatar::update(float deltaTime) {
     }
 
     simulate(deltaTime);
+    if (_feetTouchFloor) {
+        _skeletonModel.updateStandingFoot();
+    }
 }
 
 void MyAvatar::simulate(float deltaTime) {
@@ -925,7 +929,7 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
-    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.f;
+    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.0f;
     
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
@@ -1034,7 +1038,14 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
     CameraMode mode = Application::getInstance()->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
-        return Avatar::getSkeletonPosition();
+        // The avatar is rotated PI about the yAxis, so we have to correct for it 
+        // to get the skeleton offset contribution in the world-frame.
+        const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 skeletonOffset = _skeletonOffset;
+        if (_feetTouchFloor) {
+            skeletonOffset += _skeletonModel.getStandingOffset();
+        }
+        return _position + getOrientation() * FLIP * skeletonOffset;
     }
     return Avatar::getPosition();
 }
@@ -1939,6 +1950,7 @@ void MyAvatar::updateMotionBehavior() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
+    _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
 void MyAvatar::onToggleRagdoll() {

@@ -700,8 +700,8 @@ bool OctreeServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         statsString += "\r\n";
 
         const char* memoryScaleLabel;
-        const float MEGABYTES = 1000000.f;
-        const float GIGABYTES = 1000000000.f;
+        const float MEGABYTES = 1000000.0f;
+        const float GIGABYTES = 1000000000.0f;
         float memoryScale;
         if (OctreeElement::getTotalMemoryUsage() / MEGABYTES < 1000.0f) {
             memoryScaleLabel = "MB";

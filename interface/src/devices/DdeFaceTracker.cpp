@@ -191,7 +191,7 @@ void resetCoefficient(float * coefficient, float currentValue) {
 float updateAndGetCoefficient(float * coefficient, float currentValue, bool scaleToRange = false) {
     coefficient[MIN] = (currentValue < coefficient[MIN]) ? currentValue : coefficient[MIN];
     coefficient[MAX] = (currentValue > coefficient[MAX]) ? currentValue : coefficient[MAX];
-    coefficient[AVG] = LONG_TERM_AVERAGE * coefficient[AVG] + (1.f - LONG_TERM_AVERAGE) * currentValue;
+    coefficient[AVG] = LONG_TERM_AVERAGE * coefficient[AVG] + (1.0f - LONG_TERM_AVERAGE) * currentValue;
     if (coefficient[MAX] > coefficient[MIN]) {
         if (scaleToRange) {
             return glm::clamp((currentValue - coefficient[AVG]) / (coefficient[MAX] - coefficient[MIN]), 0.0f, 1.0f);

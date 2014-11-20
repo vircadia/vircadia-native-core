@@ -63,6 +63,17 @@
             }                                                               \
         }
 
+#define READ_ENTITY_PROPERTY_QUAT_SETTER(P,M)                               \
+        if (propertyFlags.getHasProperty(P)) {                              \
+            glm::quat fromBuffer;                                           \
+            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                \
+            bytesRead += bytes;                                             \
+            if (overwriteLocalData) {                                       \
+                M(fromBuffer);                                              \
+            }                                                               \
+        }
+
 #define READ_ENTITY_PROPERTY_STRING(P,O)                \
         if (propertyFlags.getHasProperty(P)) {          \
             uint16_t length;                            \
