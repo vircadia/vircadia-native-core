@@ -23,6 +23,8 @@
 
 #include "renderer/ProgramObject.h"
 
+class HeightfieldBaseBatch;
+class HeightfieldSplatBatch;
 class Model;
 
 /// Renders a metavoxel tree.
@@ -77,7 +79,10 @@ public:
     Q_INVOKABLE void setVoxelColor(const SharedObjectPointer& spanner, const QColor& color);
         
     Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
-        
+    
+    void addHeightfieldBaseBatch(const HeightfieldBaseBatch& batch) { _heightfieldBaseBatches.append(batch); }
+    void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }
+    
 signals:
 
     void rendering();
@@ -105,6 +110,51 @@ private:
     
     NetworkSimulation _networkSimulation;
     QReadWriteLock _networkSimulationLock;
+    
+    QVector<HeightfieldBaseBatch> _heightfieldBaseBatches;
+    QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
+};
+
+/// Base class for heightfield batches.
+class HeightfieldBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    QOpenGLBuffer* indexBuffer;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
+    int vertexCount;
+    int indexCount;
+    GLuint heightTextureID;
+    glm::vec4 heightScale;
+};
+
+/// A batch containing a heightfield base. 
+class HeightfieldBaseBatch : public HeightfieldBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    QOpenGLBuffer* indexBuffer;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
+    int vertexCount;
+    int indexCount;
+    GLuint heightTextureID;
+    GLuint colorTextureID;
+    glm::vec4 heightScale;
+    glm::vec2 colorScale;
+};
+
+/// A batch containing a heightfield splat.
+class HeightfieldSplatBatch : public HeightfieldBatch {
+public:
+    GLuint materialTextureID;
+    glm::vec2 textureScale;
+    glm::vec2 splatTextureOffset;
+    int splatTextureIDs[4];
+    glm::vec4 splatTextureScalesS;
+    glm::vec4 splatTextureScalesT;
+    int materialIndex;
 };
 
 /// Generic abstract base class for objects that handle a signal.

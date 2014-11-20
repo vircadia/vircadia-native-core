@@ -15,12 +15,28 @@
 ProgramObject::ProgramObject(QObject* parent) : QGLShaderProgram(parent) {
 }
 
+void ProgramObject::setUniform(int location, const glm::vec2& value) {
+    setUniformValue(location, value.x, value.y);
+}
+
+void ProgramObject::setUniform(const char* name, const glm::vec2& value) {
+    setUniformValue(name, value.x, value.y);
+}
+
 void ProgramObject::setUniform(int location, const glm::vec3& value) {
     setUniformValue(location, value.x, value.y, value.z);
 }
 
 void ProgramObject::setUniform(const char* name, const glm::vec3& value) {
     setUniformValue(name, value.x, value.y, value.z);
+}
+
+void ProgramObject::setUniform(int location, const glm::vec4& value) {
+    setUniformValue(location, value.x, value.y, value.z, value.w);
+}
+
+void ProgramObject::setUniform(const char* name, const glm::vec4& value) {
+    setUniformValue(name, value.x, value.y, value.z, value.w);
 }
 
 void ProgramObject::setUniformArray(const char* name, const glm::vec3* values, int count) {
