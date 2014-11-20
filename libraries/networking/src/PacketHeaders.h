@@ -21,57 +21,57 @@
 // NOTE: if adding a new packet type, you can replace one marked usable or add at the end
 // NOTE: if you want the name of the packet type to be available for debugging or logging, update nameForPacketType() as well
 enum PacketType {
-    PacketTypeUnknown,
+    PacketTypeUnknown, // 0
     PacketTypeStunResponse,
     PacketTypeDomainList,
     PacketTypePing,
     PacketTypePingReply,
-    PacketTypeKillAvatar,
+    PacketTypeKillAvatar, // 5
     PacketTypeAvatarData,
     PacketTypeInjectAudio,
     PacketTypeMixedAudio,
     PacketTypeMicrophoneAudioNoEcho,
-    PacketTypeMicrophoneAudioWithEcho,
+    PacketTypeMicrophoneAudioWithEcho, // 10
     PacketTypeBulkAvatarData,
     PacketTypeSilentAudioFrame,
     PacketTypeEnvironmentData,
     PacketTypeDomainListRequest,
-    PacketTypeRequestAssignment,
+    PacketTypeRequestAssignment, // 15
     PacketTypeCreateAssignment,
     PacketTypeDomainConnectionDenied,
     PacketTypeMuteEnvironment,
     PacketTypeAudioStreamStats,
-    PacketTypeDataServerConfirm,
+    PacketTypeDataServerConfirm, // 20
     PacketTypeVoxelQuery,
     PacketTypeVoxelData,
     PacketTypeVoxelSet,
     PacketTypeVoxelSetDestructive,
-    PacketTypeVoxelErase,
-    PacketTypeOctreeStats, // 26
+    PacketTypeVoxelErase, // 25
+    PacketTypeOctreeStats,
     PacketTypeJurisdiction,
     PacketTypeJurisdictionRequest,
     UNUSED_1,
-    UNUSED_2,
+    UNUSED_2, // 30
     UNUSED_3,
     UNUSED_4,
     PacketTypeNoisyMute,
     PacketTypeMetavoxelData,
-    PacketTypeAvatarIdentity,
+    PacketTypeAvatarIdentity, // 35
     PacketTypeAvatarBillboard,
     PacketTypeDomainConnectRequest,
     PacketTypeDomainServerRequireDTLS,
     PacketTypeNodeJsonStats,
-    PacketTypeEntityQuery,
-    PacketTypeEntityData, // 41
+    PacketTypeEntityQuery, // 40
+    PacketTypeEntityData,
     PacketTypeEntityAddOrEdit,
     PacketTypeEntityErase,
     PacketTypeEntityAddResponse,
     PacketTypeOctreeDataNack, // 45
     PacketTypeVoxelEditNack,
     PacketTypeAudioEnvironment,
-    PacketTypeEntityEditNack, // 48
+    PacketTypeEntityEditNack,
     PacketTypeSignedTransactionPayment,
-    PacketTypeIceServerHeartbeat,
+    PacketTypeIceServerHeartbeat, // 50
     PacketTypeIceServerHeartbeatResponse,
     PacketTypeUnverifiedPing,
     PacketTypeUnverifiedPingReply
