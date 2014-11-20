@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <signal.h>
+
 #include <LogHandler.h>
 
 #include "AssignmentClientMonitor.h"
@@ -17,9 +19,21 @@ const char* NUM_FORKS_PARAMETER = "-n";
 
 const QString ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME = "assignment-client-monitor";
 
+void signalHandler(int param){
+    // get the qApp and cast it to an AssignmentClientMonitor
+    AssignmentClientMonitor* app = qobject_cast<AssignmentClientMonitor*>(qApp);
+    
+    // tell it to stop the child processes and then go down
+    app->stopChildProcesses();
+    app->quit();
+}
+
 AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int numAssignmentClientForks) :
     QCoreApplication(argc, argv)
 {
+    // be a signal handler for SIGTERM so we can stop our children when we get it
+    signal(SIGTERM, signalHandler);
+    
     // start the Logging class with the parent's target name
     LogHandler::getInstance().setTargetName(ASSIGNMENT_CLIENT_MONITOR_TARGET_NAME);
     
@@ -38,8 +52,28 @@ AssignmentClientMonitor::AssignmentClientMonitor(int &argc, char **argv, int num
     }
 }
 
+void AssignmentClientMonitor::stopChildProcesses() {
+    
+    QList<QPointer<QProcess> >::Iterator it = _childProcesses.begin();
+    while (it != _childProcesses.end()) {
+        if (!it->isNull()) {
+            qDebug() << "Monitor is terminating child process" << it->data();
+            
+            // don't re-spawn this child when it goes down
+            disconnect(it->data(), 0, this, 0);
+            
+            it->data()->terminate();
+            it->data()->waitForFinished();
+        }
+        
+        it = _childProcesses.erase(it);
+    }
+}
+
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess *assignmentClient = new QProcess(this);
+    
+    _childProcesses.append(QPointer<QProcess>(assignmentClient));
     
     // make sure that the output from the child process appears in our output
     assignmentClient->setProcessChannelMode(QProcess::ForwardedChannels);
@@ -55,5 +89,10 @@ void AssignmentClientMonitor::spawnChildClient() {
 
 void AssignmentClientMonitor::childProcessFinished(int exitCode, QProcess::ExitStatus exitStatus) {
     qDebug("Replacing dead child assignment client with a new one");
+    
+    // remove the old process from our list of child processes
+    qDebug() << "need to remove" << QPointer<QProcess>(qobject_cast<QProcess*>(sender()));
+    _childProcesses.removeOne(QPointer<QProcess>(qobject_cast<QProcess*>(sender())));
+    
     spawnChildClient();
 }
