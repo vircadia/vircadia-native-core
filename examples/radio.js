@@ -12,13 +12,12 @@
 Script.include("libraries/globals.js");
 
 var modelURL = HIFI_PUBLIC_BUCKET + "models/entities/radio/Speakers.fbx";
-var soundURL = HIFI_PUBLIC_BUCKET + "sounds/FamilyStereo.raw";
+var soundURL = HIFI_PUBLIC_BUCKET + "sounds/family.stereo.raw";
 
 var AudioRotationOffset = Quat.fromPitchYawRollDegrees(0, -90, 0);
 var audioOptions = {
   volume: 0.5,
-  loop: true,
-  stereo: true
+  loop: true
 }
 
 var injector = null;

@@ -2689,6 +2689,14 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     }
 }
 
+bool Application::isHMDMode() const {
+    if (OculusManager::isConnected()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 // loadViewFrustum()
 //

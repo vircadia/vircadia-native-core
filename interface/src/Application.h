@@ -317,6 +317,11 @@ public:
 
     void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
 
+    // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
+    // rendering of several elements depend on that
+    // TODO: carry that information on the Camera as a setting
+    bool isHMDMode() const;
+
 signals:
 
     /// Fired when we're simulating; allows external parties to hook in.

@@ -44,7 +44,11 @@ void AudioScriptingInterface::stopAllInjectors() {
 
 AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
     if (sound) {
-        AudioInjector* injector = new AudioInjector(sound, injectorOptions);
+        // stereo option isn't set from script, this comes from sound metadata or filename
+        AudioInjectorOptions optionsCopy = injectorOptions;
+        optionsCopy.stereo = sound->isStereo();
+        
+        AudioInjector* injector = new AudioInjector(sound, optionsCopy);
         injector->setLocalAudioInterface(_localAudioInterface);
         
         QThread* injectorThread = new QThread();

@@ -484,6 +484,7 @@ namespace MenuOption {
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";
+    const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StereoAudio = "Stereo Audio";
