@@ -37,6 +37,7 @@ const BOUND_H = 3;
 const KEY_STATE_LOWER = 0;
 const KEY_STATE_UPPER = 1;
 
+var windowDimensions = Controller.getViewportDimensions();
 var cursor = null;
 var keyboard = new Keyboard();
 var text = null;
@@ -49,7 +50,7 @@ keyboard.onFullyLoaded = function() {
     print("Virtual-keyboard fully loaded.");
     var dimensions = Controller.getViewportDimensions();
     text = Overlays.addOverlay("text", {
-         x: 0,//(dimensions.x / 2) - (KEYBOARD_WIDTH / 2),
+         x: 0,
          y: dimensions.y - keyboard.height() - 60,
          width: dimensions.x,
          height: 50,
@@ -129,11 +130,13 @@ function KeyboardKey(keyboard, key_properties) {
              });
         }
     };
-    this.updatePosition = function() {
+    this.rescale = function() {
         for (var i = 0; i < tthis.bounds.length; i++) {
              Overlays.editOverlay(tthis.overlays[i], {
-                 x: tthis.keyboard.x + tthis.bounds[i][BOUND_X],
-                 y: tthis.keyboard.y + tthis.bounds[i][BOUND_Y],
+                 x: tthis.keyboard.getX() + tthis.bounds[i][BOUND_X] * keyboard.scale,
+                 y: tthis.keyboard.getY() + tthis.bounds[i][BOUND_Y] * keyboard.scale,
+                 width: this.bounds[i][BOUND_W] * keyboard.scale,
+                 height: this.bounds[i][BOUND_H] * keyboard.scale
              });
         }
     };
@@ -153,8 +156,8 @@ function KeyboardKey(keyboard, key_properties) {
     for (var i = 0; i < this.bounds.length; i++) {
         var newOverlay = Overlays.cloneOverlay(this.keyboard.background);
         Overlays.editOverlay(newOverlay, {
-            x: this.keyboard.x + this.bounds[i][BOUND_X] * keyboard.scale,
-            y: this.keyboard.y + this.bounds[i][BOUND_Y] * keyboard.scale,
+            x: this.keyboard.getX() + this.bounds[i][BOUND_X] * keyboard.scale,
+            y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
             width: this.bounds[i][BOUND_W] * keyboard.scale,
             height: this.bounds[i][BOUND_H] * keyboard.scale,
             subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.key_state) + this.bounds[i][BOUND_Y]},
@@ -166,9 +169,8 @@ function KeyboardKey(keyboard, key_properties) {
 
 function Keyboard() {
     var tthis = this;
-    var dimensions = Controller.getViewportDimensions();
     this.focussed_key = -1;
-    this.scale = dimensions.x / KEYBOARD_WIDTH;
+    this.scale = windowDimensions.x / KEYBOARD_WIDTH;
     this.shift = false;
     this.width = function() {
         return KEYBOARD_WIDTH * tthis.scale;
@@ -176,22 +178,38 @@ function Keyboard() {
     this.height = function() {
         return KEYBOARD_HEIGHT * tthis.scale;
     };
-    this.x = (dimensions.x / 2) - (this.width() / 2);
-    this.y = dimensions.y - this.height();
+    this.getX = function() {
+        return (windowDimensions.x / 2) - (this.width() / 2);
+    };
+    this.getY = function() {
+        return windowDimensions.y - this.height();
+    };
     this.background = Overlays.addOverlay("image", {
-        x: this.x,
-        y: this.y,
+        x: this.getX(),
+        y: this.getY(),
         width: this.width(),
         height: this.height(),
         subImage: {width: KEYBOARD_WIDTH, height: KEYBOARD_HEIGHT, y: KEYBOARD_HEIGHT * KBD_BACKGROUND},
         imageURL: KEYBOARD_URL,
         alpha: 1
     });
+    this.rescale = function() {
+        this.scale = windowDimensions.x / KEYBOARD_WIDTH;
+        Overlays.editOverlay(tthis.background, {
+            x: this.getX(),
+            y: this.getY(),
+            width: this.width(),
+            height: this.height()
+        });
+        for (var i = 0; i < tthis.keys.length; i++) {
+            tthis.keys[i].rescale();
+        }
+    };
 
     this.setFocusPosition = function(x, y) {
         // set to local unscaled position
-        var localx = (x - tthis.x) / tthis.scale;
-        var localy = (y - tthis.y) / tthis.scale;
+        var localx = (x - tthis.getX()) / tthis.scale;
+        var localy = (y - tthis.getY()) / tthis.scale;
         var new_focus_key = -1;
         if (localx >= 0 && localy >= 0 && localx <= KEYBOARD_WIDTH && localy <= KEYBOARD_HEIGHT) {
             for (var i = 0; i < tthis.keys.length; i++) {
@@ -382,16 +400,24 @@ function Cursor() {
     };
     this.onUpdate = null;
     this.update = function() {
-        var dimensions = Controller.getViewportDimensions();
+        var newWindowDimensions = Controller.getViewportDimensions();
+        if (newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y) {
+            windowDimensions = newWindowDimensions;
+            keyboard.rescale();
+            Overlays.editOverlay(text, {
+                y: windowDimensions.y - keyboard.height() - 60,
+                width: windowDimensions.x
+            });
+        }
         var editobject = {};
         if (MyAvatar.getHeadFinalYaw() <= VIEW_ANGLE_BY_TWO && MyAvatar.getHeadFinalYaw() >= -1 * VIEW_ANGLE_BY_TWO) {
              angle = ((-1 * MyAvatar.getHeadFinalYaw()) + VIEW_ANGLE_BY_TWO) / VIEW_ANGLE;
-             tthis.x = angle * dimensions.x;
+             tthis.x = angle * windowDimensions.x;
              editobject.x = tthis.x - (CURSOR_WIDTH / 2);
         }
         if (MyAvatar.getHeadFinalPitch() <= VIEW_ANGLE_BY_TWO && MyAvatar.getHeadFinalPitch() >= -1 * VIEW_ANGLE_BY_TWO) {
              angle = ((-1 * MyAvatar.getHeadFinalPitch()) + VIEW_ANGLE_BY_TWO) / VIEW_ANGLE;
-             tthis.y = angle * dimensions.y;
+             tthis.y = angle * windowDimensions.y;
              editobject.y = tthis.y - (CURSOR_HEIGHT / 2);
         }
         if (Object.keys(editobject).length > 0) {
