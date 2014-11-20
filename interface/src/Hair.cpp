@@ -78,7 +78,7 @@ Hair::Hair(int strands,
             }
             _hairOriginalPosition[vertexIndex] = _hairLastPosition[vertexIndex] = _hairPosition[vertexIndex] = thisVertex;
             
-            _hairQuadDelta[vertexIndex] = glm::vec3(cos(strandAngle) * _hairThickness, 0.f, sin(strandAngle) * _hairThickness);
+            _hairQuadDelta[vertexIndex] = glm::vec3(cos(strandAngle) * _hairThickness, 0.0f, sin(strandAngle) * _hairThickness);
             _hairQuadDelta[vertexIndex] *= ((float)link / _links);
             _hairNormals[vertexIndex] = glm::normalize(randVector());
             if (randFloat() < elevation / PI_OVER_TWO) {
@@ -155,7 +155,7 @@ void Hair::simulate(float deltaTime) {
                 
                 //  Add stiffness to return to original position
                 _hairPosition[vertexIndex] += (_hairOriginalPosition[vertexIndex] - _hairPosition[vertexIndex])
-                * powf(1.f - (float)link / _links, 2.f) * HAIR_STIFFNESS;
+                * powf(1.0f - (float)link / _links, 2.0f) * HAIR_STIFFNESS;
                 
                 //  Add angular acceleration
                 const float ANGULAR_VELOCITY_MIN = 0.001f;
@@ -163,30 +163,30 @@ void Hair::simulate(float deltaTime) {
                     glm::vec3 yawVector = _hairPosition[vertexIndex];
                     glm::vec3 angularVelocity = _angularVelocity * HAIR_ANGULAR_VELOCITY_COUPLING;
                     glm::vec3 angularAcceleration = _angularAcceleration * HAIR_ANGULAR_ACCELERATION_COUPLING;
-                    yawVector.y = 0.f;
+                    yawVector.y = 0.0f;
                     if (glm::length(yawVector) > EPSILON) {
                         float radius = glm::length(yawVector);
                         yawVector = glm::normalize(yawVector);
                         float angle = atan2f(yawVector.x, -yawVector.z) + PI;
-                        glm::vec3 delta = glm::vec3(-1.f, 0.f, 0.f) * glm::angleAxis(angle, glm::vec3(0, 1, 0));
+                        glm::vec3 delta = glm::vec3(-1.0f, 0.0f, 0.0f) * glm::angleAxis(angle, glm::vec3(0, 1, 0));
                         _hairPosition[vertexIndex] -= delta * radius * (angularVelocity.y - angularAcceleration.y) * deltaTime;
                     }
                     glm::vec3 pitchVector = _hairPosition[vertexIndex];
-                    pitchVector.x = 0.f;
+                    pitchVector.x = 0.0f;
                     if (glm::length(pitchVector) > EPSILON) {
                         float radius = glm::length(pitchVector);
                         pitchVector = glm::normalize(pitchVector);
                         float angle = atan2f(pitchVector.y, -pitchVector.z) + PI;
-                        glm::vec3 delta = glm::vec3(0.0f, 1.0f, 0.f) * glm::angleAxis(angle, glm::vec3(1, 0, 0));
+                        glm::vec3 delta = glm::vec3(0.0f, 1.0f, 0.0f) * glm::angleAxis(angle, glm::vec3(1, 0, 0));
                         _hairPosition[vertexIndex] -= delta * radius * (angularVelocity.x - angularAcceleration.x) * deltaTime;
                     }
                     glm::vec3 rollVector = _hairPosition[vertexIndex];
-                    rollVector.z = 0.f;
+                    rollVector.z = 0.0f;
                     if (glm::length(rollVector) > EPSILON) {
                         float radius = glm::length(rollVector);
                         pitchVector = glm::normalize(rollVector);
                         float angle = atan2f(rollVector.x, rollVector.y) + PI;
-                        glm::vec3 delta = glm::vec3(-1.0f, 0.0f, 0.f) * glm::angleAxis(angle, glm::vec3(0, 0, 1));
+                        glm::vec3 delta = glm::vec3(-1.0f, 0.0f, 0.0f) * glm::angleAxis(angle, glm::vec3(0, 0, 1));
                         _hairPosition[vertexIndex] -= delta * radius * (angularVelocity.z - angularAcceleration.z) * deltaTime;
                     }
                 }
@@ -216,16 +216,16 @@ void Hair::render() {
     const float HAIR_SETBACK = 0.0f;
     int sparkleIndex = (int) (randFloat() * SPARKLE_EVERY);
     glPushMatrix();
-    glTranslatef(0.f, 0.f, HAIR_SETBACK);
+    glTranslatef(0.0f, 0.0f, HAIR_SETBACK);
     glBegin(GL_QUADS);
     for (int strand = 0; strand < _strands; strand++) {
         for (int link = 0; link < _links - 1; link++) {
             int vertexIndex = strand * _links + link;
             glm::vec3 thisColor = _hairColors[vertexIndex];
             if (sparkleIndex % SPARKLE_EVERY == 0) {
-                thisColor.x += (1.f - thisColor.x) * loudnessFactor;
-                thisColor.y += (1.f - thisColor.y) * loudnessFactor;
-                thisColor.z += (1.f - thisColor.z) * loudnessFactor;
+                thisColor.x += (1.0f - thisColor.x) * loudnessFactor;
+                thisColor.y += (1.0f - thisColor.y) * loudnessFactor;
+                thisColor.z += (1.0f - thisColor.z) * loudnessFactor;
             }
             glColor3fv(&thisColor.x);
             glNormal3fv(&_hairNormals[vertexIndex].x);

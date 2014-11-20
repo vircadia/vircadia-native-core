@@ -23,7 +23,7 @@ int CoverageMapV2::_checkMapRootCalls = 0;
 int CoverageMapV2::_notAllInView = 0;
 bool CoverageMapV2::wantDebugging = false;
 
-const BoundingBox CoverageMapV2::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
+const BoundingBox CoverageMapV2::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.0f,-1.0f), glm::vec2(2.0f,2.0f));
 
 // Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
 //

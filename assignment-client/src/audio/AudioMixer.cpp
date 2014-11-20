@@ -401,8 +401,8 @@ int AudioMixer::addStreamToMixForListeningNodeWithStream(AudioMixerClientData* l
         
         if (distanceBetween < RADIUS_OF_HEAD) {
             // Diminish effect if source would be inside head
-            penumbraFilterGainL += (1.f - penumbraFilterGainL) * (1.f - distanceBetween / RADIUS_OF_HEAD);
-            penumbraFilterGainR += (1.f - penumbraFilterGainR) * (1.f - distanceBetween / RADIUS_OF_HEAD);
+            penumbraFilterGainL += (1.0f - penumbraFilterGainL) * (1.0f - distanceBetween / RADIUS_OF_HEAD);
+            penumbraFilterGainR += (1.0f - penumbraFilterGainR) * (1.0f - distanceBetween / RADIUS_OF_HEAD);
         }
 
         bool wantDebug = false;

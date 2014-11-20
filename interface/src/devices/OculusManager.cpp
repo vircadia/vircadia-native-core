@@ -56,7 +56,7 @@ Camera* OculusManager::_camera = NULL;
 int OculusManager::_activeEyeIndex = -1;
 
 float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
-float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.f * RADIANS_PER_DEGREE;
+float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.0f * RADIANS_PER_DEGREE;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 2.0f * RADIANS_PER_DEGREE;
 quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
@@ -196,7 +196,7 @@ void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
     headOrientation.z = 0;
     glm::normalize(headOrientation);
     billboard->setPosition(Application::getInstance()->getAvatar()->getHeadPosition()
-        + headOrientation * glm::vec3(0.f, 0.f, -CALIBRATION_MESSAGE_DISTANCE));
+        + headOrientation * glm::vec3(0.0f, 0.0f, -CALIBRATION_MESSAGE_DISTANCE));
     billboard->setRotation(headOrientation);
 }
 #endif
