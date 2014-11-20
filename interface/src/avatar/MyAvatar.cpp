@@ -133,8 +133,8 @@ void MyAvatar::reset() {
     setThrust(glm::vec3(0.0f));
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
-    eulers.x = 0.f;
-    eulers.z = 0.f;
+    eulers.x = 0.0f;
+    eulers.z = 0.0f;
     setOrientation(glm::quat(eulers));
 }
 
@@ -929,7 +929,8 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
-    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.f;
+    
+    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.0f;
     const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     
     int howManyLookingAtMe = 0;

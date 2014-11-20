@@ -6,7 +6,7 @@
 // Modified by Brad Hefta-Gaub to use Entities on Sept. 3, 2014
 // Copyright 2014 High Fidelity, Inc.
 //
-// This sample script creates a swarm of  butterfly entities that fly around the avatar.
+// This sample script creates a swarm of  butterfly entities that fly around your avatar.
 //
 // Distributed under the Apache License, Version 2.0.
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -40,17 +40,17 @@ function vInterpolate(a, b, fraction) {
 
 var startTimeInSeconds = new Date().getTime() / 1000;
 
-var NATURAL_SIZE_OF_BUTTERFLY = { x: 9.512, y: 4.427, z: 1.169 };
+var NATURAL_SIZE_OF_BUTTERFLY = { x: 1.76, y: 0.825, z: 0.20 };
 var lifeTime = 600; // lifetime of the butterflies in seconds
-var range = 1.0; // Over what distance in meters do you want the flock to fly around
+var range = 3.0; // Over what distance in meters do you want the flock to fly around
 var frame = 0;
 
 var CHANCE_OF_MOVING = 0.9;
-var BUTTERFLY_GRAVITY = 0;//-0.06;
-var BUTTERFLY_FLAP_SPEED = 1.0;
+var BUTTERFLY_GRAVITY = 0;
+var BUTTERFLY_FLAP_SPEED = 0.5;
 var BUTTERFLY_VELOCITY = 0.55;
 var DISTANCE_IN_FRONT_OF_ME = 1.5;
-var DISTANCE_ABOVE_ME = 1.0;
+var DISTANCE_ABOVE_ME = 1.5;
 var flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
@@ -81,11 +81,11 @@ function addButterfly() {
     var color = { red: 100, green: 100, blue: 100 };
     var size = 0;
 
-    var minSize = 0.06;
-    var randomSize = 0.2;
-    var maxSize = minSize + randomSize;
+    var MINSIZE = 0.06;
+    var RANGESIZE = 0.2;
+    var maxSize = MINSIZE + RANGESIZE;
     
-    size = 0.06 + Math.random() * 0.2;
+    size = MINSIZE + Math.random() * RANGESIZE;
     
     var dimensions = Vec3.multiply(NATURAL_SIZE_OF_BUTTERFLY, (size / maxSize));
 	
@@ -103,11 +103,11 @@ function addButterfly() {
 		dimensions: dimensions,
         color: color,
 		rotation: rotation,
-		animationURL: "http://business.ozblog.me/objects/butterfly/newButterfly2.fbx",
+		animationURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx",
 		animationIsPlaying: true,
-		modelURL: "http://business.ozblog.me/objects/butterfly/newButterfly2.fbx"
+		modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx"
     };
-    properties.position.z = properties.position.z+1;
+    //properties.position.z = properties.position.z + 1;
     butterflies.push(new defineButterfly(Entities.addEntity(properties), properties.position));
 }
 
@@ -121,17 +121,15 @@ function updateButterflies(deltaTime) {
     // Check to see if we've been running long enough that our butterflies are dead
     var nowTimeInSeconds = new Date().getTime() / 1000;
     if ((nowTimeInSeconds - startTimeInSeconds) >= lifeTime) {
-        //  print("our butterflies are dying, stop our script");
         Script.stop();
         return;
     }
   
     frame++;
-    // Only update every third frame
+    // Only update every third frame because we don't need to do it too quickly
     if ((frame % 3) == 0) {
-        flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
-                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
-                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
+        flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
+                                                            Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
         
         // Update all the butterflies
         for (var i = 0; i < numButterflies; i++) {

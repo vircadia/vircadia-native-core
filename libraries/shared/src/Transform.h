@@ -292,13 +292,13 @@ inline Transform::Mat4& Transform::getMatrix(Transform::Mat4& result) const {
             rot[2] *= _scale.z;
         }
 
-        result[0] = Vec4(rot[0], 0.f);
-        result[1] = Vec4(rot[1], 0.f);
-        result[2] = Vec4(rot[2], 0.f);
+        result[0] = Vec4(rot[0], 0.0f);
+        result[1] = Vec4(rot[1], 0.0f);
+        result[2] = Vec4(rot[2], 0.0f);
     } else {
-        result[0] = Vec4(_scale.x, 0.f, 0.f, 0.f);
-        result[1] = Vec4(0.f, _scale.y, 0.f, 0.f);
-        result[2] = Vec4(0.f, 0.f, _scale.z, 0.f);
+        result[0] = Vec4(_scale.x, 0.0f, 0.0f, 0.0f);
+        result[1] = Vec4(0.0f, _scale.y, 0.0f, 0.0f);
+        result[2] = Vec4(0.0f, 0.0f, _scale.z, 0.0f);
     }
 
     result[3] = Vec4(_translation, 1.0f);
@@ -313,7 +313,7 @@ inline Transform::Mat4& Transform::getInverseMatrix(Transform::Mat4& result) con
 
 inline void Transform::evalFromRawMatrix(const Mat4& matrix) {
     // for now works only in the case of TRS transformation
-    if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.f)) {
+    if ((matrix[0][3] == 0) && (matrix[1][3] == 0) && (matrix[2][3] == 0) && (matrix[3][3] == 1.0f)) {
         setTranslation(Vec3(matrix[3]));
         evalFromRawMatrix(Mat3(matrix));
     }

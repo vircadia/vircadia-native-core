@@ -83,7 +83,7 @@ const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
 
-static const float MAX_AVATAR_SCALE = 1000.f;
+static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
@@ -281,7 +281,7 @@ public:
     
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
-    virtual float getBoundingRadius() const { return 1.f; }
+    virtual float getBoundingRadius() const { return 1.0f; }
     
     const Referential* getReferential() const { return _referential; }
 

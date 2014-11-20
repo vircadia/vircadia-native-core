@@ -45,11 +45,11 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
-    _deltaPitch(0.f),
-    _deltaYaw(0.f),
-    _deltaRoll(0.f),
-    _deltaLeanSideways(0.f),
-    _deltaLeanForward(0.f),
+    _deltaPitch(0.0f),
+    _deltaYaw(0.0f),
+    _deltaRoll(0.0f),
+    _deltaLeanSideways(0.0f),
+    _deltaLeanForward(0.0f),
     _isCameraMoving(false),
     _isLookingAtMe(false),
     _faceModel(this)
@@ -86,7 +86,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
     }
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
-    const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.f;
+    const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
     _averageLoudness = glm::mix(_averageLoudness, _audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
 
     if (_longTermAverageLoudness == -1.0) {
@@ -225,7 +225,7 @@ void Head::simulate(float deltaTime, bool isMine, bool billboard) {
 void Head::relaxLean(float deltaTime) {
     // restore rotation, lean to neutral positions
     const float LEAN_RELAXATION_PERIOD = 0.25f;   // seconds
-    float relaxationFactor = 1.f - glm::min(deltaTime / LEAN_RELAXATION_PERIOD, 1.f);
+    float relaxationFactor = 1.0f - glm::min(deltaTime / LEAN_RELAXATION_PERIOD, 1.0f);
     _deltaYaw *= relaxationFactor;
     _deltaPitch *= relaxationFactor;
     _deltaRoll *= relaxationFactor;
@@ -278,7 +278,7 @@ glm::quat Head::getCameraOrientation () const {
         return getOrientation();
     }
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.f, 0.0f)));
+    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }
 
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
@@ -325,13 +325,13 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     
     glLineWidth(2.0);
     glBegin(GL_LINES);
-    glColor4f(0.2f, 0.2f, 0.2f, 1.f);
+    glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
     glVertex3f(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
-    glColor4f(1.0f, 1.0f, 1.0f, 0.f);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
-    glColor4f(0.2f, 0.2f, 0.2f, 1.f);
+    glColor4f(0.2f, 0.2f, 0.2f, 1.0f);
     glVertex3f(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);
-    glColor4f(1.0f, 1.0f, 1.0f, 0.f);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
     

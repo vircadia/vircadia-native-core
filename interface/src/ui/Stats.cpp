@@ -264,7 +264,7 @@ void Stats::display(
         char packetsPerSecondString[30];
         sprintf(packetsPerSecondString, "Pkts/sec: %d", packetsPerSecond);
         char averageMegabitsPerSecond[30];
-        sprintf(averageMegabitsPerSecond, "Mbps: %3.2f", (float)bytesPerSecond * 8.f / 1000000.f);
+        sprintf(averageMegabitsPerSecond, "Mbps: %3.2f", (float)bytesPerSecond * 8.0f / 1000000.0f);
 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, packetsPerSecondString, color);
@@ -501,24 +501,24 @@ void Stats::display(
 
     voxelStats.str("");
     voxelStats.precision(4);
-    voxelStats << "Voxels Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K ";
+    voxelStats << "Voxels Drawn: " << voxels->getVoxelsWritten() / 1000.0f << "K " <<
+        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.0f << "K ";
     verticalOffset += STATS_PELS_PER_LINE;
     drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
     if (_expanded) {
         // Local Voxel Memory Usage
         voxelStats.str("");
-        voxelStats << "  Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.f << "MB";
+        voxelStats << "  Voxels Memory Nodes: " << VoxelTreeElement::getTotalMemoryUsage() / 1000000.0f << "MB";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
 
         voxelStats.str("");
         voxelStats << 
-                "  Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB / " <<
-                "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.f << "MB";
+                "  Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.0f << "MB / " <<
+                "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.0f << "MB";
         if (voxels->hasVoxelMemoryUsageGPU()) {
-            voxelStats << " / GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.f << "MB";
+            voxelStats << " / GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.0f << "MB";
         }
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
@@ -526,7 +526,7 @@ void Stats::display(
         // Voxel Rendering
         voxelStats.str("");
         voxelStats.precision(4);
-        voxelStats << "  Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.f << "K";
+        voxelStats << "  Voxel Rendering Slots Max: " << voxels->getMaxVoxels() / 1000.0f << "K";
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
@@ -746,7 +746,7 @@ void Stats::display(
                     audioReflector->getEchoesAttenuation());
                 
         verticalOffset += STATS_PELS_PER_LINE;
-        drawText(horizontalOffset, verticalOffset, 0.10f, 0.f, 2.f, reflectionsStatus, color);
+        drawText(horizontalOffset, verticalOffset, 0.10f, 0.0f, 2.0f, reflectionsStatus, color);
 
     }
 }

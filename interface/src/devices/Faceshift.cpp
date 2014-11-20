@@ -109,8 +109,10 @@ void Faceshift::update() {
         _longTermAverageEyePitch = glm::mix(eulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
         _longTermAverageEyeYaw = glm::mix(eulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
     }
-    _estimatedEyePitch = eulers.x - _longTermAverageEyePitch;
-    _estimatedEyeYaw = eulers.y - _longTermAverageEyeYaw;
+    //_estimatedEyePitch = eulers.x - _longTermAverageEyePitch;
+    //_estimatedEyeYaw = eulers.y - _longTermAverageEyeYaw;
+    _estimatedEyePitch = 0.0;  // eulers.x;
+    _estimatedEyeYaw = 0.0;  // eulers.y;
 }
 
 void Faceshift::reset() {
