@@ -930,14 +930,16 @@ void MyAvatar::updateLookAtTargetAvatar() {
     glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
     float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.f;
+    const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
     
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        bool isCurrentTarget = avatar->getIsLookAtTarget();
         avatar->setIsLookAtTarget(false);
         if (!avatar->isMyAvatar() && avatar->isInitialized()) {
             float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - cameraPosition));
-            if (angleTo < smallestAngleTo) {
+            if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
