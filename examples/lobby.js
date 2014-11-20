@@ -171,17 +171,6 @@ function playRandomMusak() {
 }
 
 function cleanupLobby() {
-  
-  // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
-  var panelTexturesReset = {};
-  panelTexturesReset["textures"] = {};
-    
-  for (var j = 0; j < MAX_NUM_PANELS; j++) {
-    panelTexturesReset["textures"]["file" + (j + 1)] = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Texture.jpg";
-  };
-    
-  Overlays.editOverlay(panelWall, panelTexturesReset);
-  
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   
