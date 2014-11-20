@@ -34,7 +34,7 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
     _boundingShape(),
     _boundingShapeLocalOffset(0.0f),
     _ragdoll(NULL),
-    _defaultEyeModelPosition(glm::vec3(0.f, 0.f, 0.f)),
+    _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _standingFoot(NO_FOOT),
     _standingOffset(0.0f),
     _clampedFootPosition(0.0f) {
@@ -54,7 +54,7 @@ void SkeletonModel::setJointStates(QVector<JointState> states) {
 
         glm::vec3 leftEyePosition, rightEyePosition;
         getEyeModelPositions(leftEyePosition, rightEyePosition);
-        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.f;
+        glm::vec3 midEyePosition = (leftEyePosition + rightEyePosition) / 2.0f;
 
         int rootJointIndex = _geometry->getFBXGeometry().rootJointIndex;
         glm::vec3 rootModelPosition;

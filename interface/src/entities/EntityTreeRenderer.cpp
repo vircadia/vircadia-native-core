@@ -82,7 +82,7 @@ void EntityTreeRenderer::init() {
     // make sure our "last avatar position" is something other than our current position, so that on our
     // first chance, we'll check for enter/leave entity events.    
     glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition();
-    _lastAvatarPosition = avatarPosition + glm::vec3(1.f, 1.f, 1.f);
+    _lastAvatarPosition = avatarPosition + glm::vec3(1.0f, 1.0f, 1.0f);
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);

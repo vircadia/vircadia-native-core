@@ -146,11 +146,11 @@ void AvatarMixer::broadcastAvatarData() {
                     float distanceToAvatar = glm::length(myPosition - otherPosition);
                     //  The full rate distance is the distance at which EVERY update will be sent for this avatar
                     //  at a distance of twice the full rate distance, there will be a 50% chance of sending this avatar's update
-                    const float FULL_RATE_DISTANCE = 2.f;
+                    const float FULL_RATE_DISTANCE = 2.0f;
                     
                     //  Decide whether to send this avatar's data based on it's distance from us
                     if ((_performanceThrottlingRatio == 0 || randFloat() < (1.0f - _performanceThrottlingRatio))
-                        && (distanceToAvatar == 0.f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
+                        && (distanceToAvatar == 0.0f || randFloat() < FULL_RATE_DISTANCE / distanceToAvatar)) {
                         QByteArray avatarByteArray;
                         avatarByteArray.append(otherNode->getUUID().toRfc4122());
                         avatarByteArray.append(otherAvatar.toByteArray());

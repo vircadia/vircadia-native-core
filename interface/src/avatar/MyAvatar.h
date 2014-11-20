@@ -101,7 +101,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
-    bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
+    bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
