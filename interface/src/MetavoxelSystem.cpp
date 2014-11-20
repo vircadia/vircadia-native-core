@@ -1491,11 +1491,14 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             quadIndices.insert(qRgb(x, y - 1, z - 1), indices.size());
                             quadIndices.insert(qRgb(x, y, z - 1), indices.size());
                             
-                            glm::vec3 normal(1.0f, 0.0f, 0.0f);
-                            
                             const NormalIndex& index1 = lastLineIndices.at(x);
                             const NormalIndex& index2 = lastPlaneIndices.at((y - 1) * expanded + x);
                             const NormalIndex& index3 = lastPlaneIndices.at(y * expanded + x);
+                            
+                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                            glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
+                                vertices.at(index3.indices[0]).vertex - first);
+                            
                             if (alpha0 == 0) { // quad faces negative x
                                 indices.append(index3.getClosestIndex(normal = -normal, vertices));
                                 indices.append(index2.getClosestIndex(normal, vertices));
@@ -1514,11 +1517,14 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             quadIndices.insert(qRgb(x - 1, y, z - 1), indices.size());
                             quadIndices.insert(qRgb(x, y, z - 1), indices.size());
                             
-                            glm::vec3 normal(0.0f, 1.0f, 0.0f);
-                            
                             const NormalIndex& index1 = lastIndex;
                             const NormalIndex& index2 = lastPlaneIndices.at(y * expanded + x - 1);
                             const NormalIndex& index3 = lastPlaneIndices.at(y * expanded + x);
+                            
+                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                            glm::vec3 normal = glm::cross(vertices.at(index3.indices[0]).vertex - first,
+                                vertices.at(index1.indices[0]).vertex - first);
+                            
                             if (alpha0 == 0) { // quad faces negative y
                                 indices.append(index1.getClosestIndex(normal = -normal, vertices));
                                 indices.append(index2.getClosestIndex(normal, vertices));
@@ -1537,11 +1543,14 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                             quadIndices.insert(qRgb(x - 1, y - 1, z), indices.size());
                             quadIndices.insert(qRgb(x, y - 1, z), indices.size());
                             
-                            glm::vec3 normal(0.0f, 0.0f, 1.0f);
-                            
                             const NormalIndex& index1 = lastIndex;
                             const NormalIndex& index2 = lastLineIndices.at(x - 1);
                             const NormalIndex& index3 = lastLineIndices.at(x);
+                            
+                            const glm::vec3& first = vertices.at(index.indices[0]).vertex;
+                            glm::vec3 normal = glm::cross(vertices.at(index1.indices[0]).vertex - first,
+                                vertices.at(index3.indices[0]).vertex - first);
+                            
                             if (alpha0 == 0) { // quad faces negative z
                                 indices.append(index3.getClosestIndex(normal = -normal, vertices));
                                 indices.append(index2.getClosestIndex(normal, vertices));
