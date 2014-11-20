@@ -201,6 +201,8 @@ public:
     int headJointIndex;
     int leftHandJointIndex;
     int rightHandJointIndex;
+    int leftToeJointIndex;
+    int rightToeJointIndex;
     
     QVector<int> humanIKJointIndices;
     
