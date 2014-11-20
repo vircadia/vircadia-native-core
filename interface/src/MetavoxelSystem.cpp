@@ -1346,7 +1346,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
                     glm::vec3 center;
                     glm::vec3 normals[MAX_NORMALS_PER_VERTEX];
                     int normalCount = 0;
-                    const float CREASE_COS_NORMAL = glm::cos(glm::radians(40.0f));
+                    const float CREASE_COS_NORMAL = glm::cos(glm::radians(45.0f));
                     const int MAX_MATERIALS_PER_VERTEX = 4;
                     quint8 materials[] = { 0, 0, 0, 0 };
                     glm::vec4 materialWeights;
