@@ -619,6 +619,13 @@ void EntityTree::updateEntityState(EntityItem* entity) {
                 break;
         }
         entity->setSimulationState(newState);
+
+        if (_physicsEngine) {
+            EntityMotionState* motionState = entity->getMotionState();
+            if (motionState) {
+                _physicsEngine->updateEntityMotionType(motionState);
+            }
+        }
     }
 }
 
@@ -659,7 +666,6 @@ void EntityTree::removeEntityFromPhysicsEngine(EntityItem* entity) {
     EntityMotionState* motionState = entity->getMotionState();
     if (motionState) {
         _physicsEngine->removeEntity(static_cast<CustomMotionState*>(motionState));
-        entity->destroyMotionState();
     }
 #endif // USE_BULLET_PHYSICS
 }

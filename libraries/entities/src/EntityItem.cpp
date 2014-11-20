@@ -119,8 +119,8 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 
 EntityItem::~EntityItem() {
 #ifdef USE_BULLET_PHYSICS
-    // make sure the _motionState is already deleted (e.g. the entity has been removed
-    // from the physics simulation) BEFORE you get here
+    // Make sure the EntityItem has been removed from the physics engine AND 
+    // that its _motionState has been destroyed BEFORE you get here.
     assert(_motionState == NULL);
 #endif // USE_BULLET_PHYSICS
 }
