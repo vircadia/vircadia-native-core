@@ -618,6 +618,9 @@ void SkeletonModel::updateVisibleJointStates() {
 
 /// \return offset of hips after foot animation
 void SkeletonModel::updateStandingFoot() {
+    if (_geometry == NULL) {
+        return;
+    }
     glm::vec3 offset(0.0f);
     int leftFootIndex = _geometry->getFBXGeometry().leftToeJointIndex;
     int rightFootIndex = _geometry->getFBXGeometry().rightToeJointIndex;
