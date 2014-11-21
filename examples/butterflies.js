@@ -107,7 +107,6 @@ function addButterfly() {
 		animationIsPlaying: true,
 		modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx"
     };
-    //properties.position.z = properties.position.z + 1;
     butterflies.push(new defineButterfly(Entities.addEntity(properties), properties.position));
 }
 
