@@ -22,14 +22,20 @@ var orbNaturalExtentsMax = { x: 1.230353, y: 1.229819, z: 1.210487 };
 var panelsNaturalExtentsMin = { x: -1.223182, y: -0.348487, z: 0.0451369 };
 var panelsNaturalExtentsMax = { x: 1.223039, y: 0.602978, z: 1.224298 };
 
-var orbDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
-var panelsDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
+var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
+var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
 
-var orbCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbDimensions, 0.5));
-var panelsCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsDimensions, 0.5));
+var SCALING_FACTOR = 10;
+var orbDimensions = Vec3.multiply(orbNaturalDimensions, SCALING_FACTOR);
+var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR);
+
+var orbNaturalCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbNaturalDimensions, 0.5));
+var panelsNaturalCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsNaturalDimensions, 0.5));
+var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR);
+var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR);
 var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
-var ORB_SHIFT = { x: 0, y: -0.2, z: 0.05};
+var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
 
 var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
@@ -38,10 +44,10 @@ var currentDrone = null;
 
 var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.stereo.raw")
 var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
-var currentMusakInjector = null;
+var currentMuzakInjector = null;
 var currentSound = null;
 
-var inOculusMode =  Menu.isOptionChecked("Enable VR Mode");
+var inOculusMode = false;
 
 function reticlePosition() {
   var RETICLE_DISTANCE = 1;
@@ -63,13 +69,15 @@ function drawLobby() {
     var panelWallProps = {
       url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall2.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
-      rotation: towardsMe
+      rotation: towardsMe,
+      dimensions: panelsDimensions
     };
     
     var orbShellProps = {
       url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
       position: orbPosition,
       rotation: towardsMe,
+      dimensions: orbDimensions,
       ignoreRayIntersection: true
     };
     
@@ -77,6 +85,8 @@ function drawLobby() {
 
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
+    
+    inOculusMode = Menu.isOptionChecked("Enable VR Mode");
     
     // for HMD wearers, create a reticle in center of screen
     if (inOculusMode) {
@@ -98,8 +108,8 @@ function drawLobby() {
     // start the drone sound
     currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
     
-    // start one of our musak sounds
-    playRandomMusak();
+    // start one of our muzak sounds
+    playRandomMuzak();
   }
 }
 
@@ -125,9 +135,9 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
-var MUSAK_VOLUME = 0.1;
+var MUZAK_VOLUME = 0.1;
 
-function playNextMusak() {
+function playNextMuzak() {
   if (panelWall) {
     if (currentSound == latinSound) {
       if (elevatorSound.downloaded) {
@@ -139,11 +149,11 @@ function playNextMusak() {
       }
     }
   
-    currentMusakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUSAK_VOLUME });
+    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, volume: MUZAK_VOLUME });
   }
 }
 
-function playRandomMusak() {
+function playRandomMuzak() {
   currentSound = null;
   
   if (latinSound.downloaded && elevatorSound.downloaded) {
@@ -155,11 +165,11 @@ function playRandomMusak() {
   }
   
   if (currentSound) {    
-    // pick a random number of seconds from 0-10 to offset the musak
+    // pick a random number of seconds from 0-10 to offset the muzak
     var secondOffset = Math.random() * 10;
-    currentMusakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUSAK_VOLUME });
+    currentMuzakInjector = Audio.playSound(currentSound, { localOnly: true, secondOffset: secondOffset, volume: MUZAK_VOLUME });
   } else {
-    currentMusakInjector = null;
+    currentMuzakInjector = null;
   }
 }
 
@@ -188,8 +198,8 @@ function cleanupLobby() {
   Audio.stopInjector(currentDrone);
   currentDrone = null;
   
-  Audio.stopInjector(currentMusakInjector);
-  currentMusakInjector = null;
+  Audio.stopInjector(currentMuzakInjector);
+  currentMuzakInjector = null;
   
   locations = {};
   toggleEnvironmentRendering(true);
@@ -259,9 +269,9 @@ function update(deltaTime) {
       });
     }
     
-    // if the reticle is up then we may need to play the next musak
-    if (!Audio.isInjectorPlaying(currentMusakInjector)) {
-      playNextMusak();
+    // if the reticle is up then we may need to play the next muzak
+    if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
+      playNextMuzak();
     }
   }
 }
