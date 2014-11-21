@@ -625,17 +625,16 @@ Menu::Menu() :
         audioSourceGroup->addAction(sine440);
     }
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
+    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScope()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
-
-    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,

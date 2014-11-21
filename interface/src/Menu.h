@@ -338,11 +338,11 @@ namespace MenuOption {
     const QString AudioFilterBassCut = "Bass Cut";
     const QString AudioFilterSmiley = "Smiley Curve";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
-    const QString AudioScope = "Audio Scope";
+    const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
     const QString AudioScopeFrames = "Display Frames";
-    const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
