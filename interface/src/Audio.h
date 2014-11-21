@@ -45,10 +45,17 @@
 #include <AudioRingBuffer.h>
 #include <StDev.h>
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4305 )
+#endif
 extern "C" {
     #include <gverb.h>
     #include <gverbdsp.h>
 }
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
