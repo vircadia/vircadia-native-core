@@ -27,9 +27,9 @@ var panelsDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExten
 
 var orbCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbDimensions, 0.5));
 var panelsCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsDimensions, 0.5));
-var panelsCenterShift = Vec3.subtract(orbCenter, panelsCenter);
+var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
-var ORB_SHIFT = { x: 0, y: 0, z: 0 };
+var ORB_SHIFT = { x: 0, y: -0.14, z: -0.08};
 
 var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
@@ -49,6 +49,7 @@ function reticlePosition() {
 }
 
 var MAX_NUM_PANELS = 21;
+var DRONE_VOLUME = 0.3;
 
 function drawLobby() {
   if (!panelWall) {
@@ -60,13 +61,13 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall2.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
       rotation: towardsMe
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
       position: orbPosition,
       rotation: towardsMe,
       ignoreRayIntersection: true
@@ -95,7 +96,7 @@ function drawLobby() {
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     // start the drone sound
-    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true });
+    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
     
     // start one of our musak sounds
     playRandomMusak();
@@ -124,7 +125,7 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
-var MUSAK_VOLUME = 0.5;
+var MUSAK_VOLUME = 0.1;
 
 function playNextMusak() {
   if (panelWall) {
@@ -192,10 +193,10 @@ function actionStartEvent(event) {
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
-
     if (result.intersects && result.overlayID == panelWall) {
-      
+    
       var panelName = result.extraInfo;
+      
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5)) - 1;
