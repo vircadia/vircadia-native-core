@@ -125,6 +125,17 @@
             externalThis.showIndicators(false);
         }
     }
+    
+    var globalMouseClick = function(event) {
+        print("globalMouseClick");
+        var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
+
+        if (clickedOverlay == externalThis.standUpButton) {
+            seat.model = null;
+            externalThis.standUp();
+            Controller.mousePressEvent.disconnect(globalMouseClick);
+        }
+    };
 
     this.sitDown = function() {
         sitting = true;
@@ -140,6 +151,7 @@
         }
         Script.update.connect(sittingDownAnimation);
         Overlays.editOverlay(this.standUpButton, { visible: true });
+        Controller.mousePressEvent.connect(globalMouseClick);
     }
 
     this.standUp = function() {
