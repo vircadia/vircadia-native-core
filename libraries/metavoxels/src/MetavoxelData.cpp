@@ -744,7 +744,6 @@ bool MetavoxelData::deepEquals(const MetavoxelData& other, const MetavoxelLOD& l
         return false;
     }
     if (_roots.size() != other._roots.size()) {
-        qDebug() << _roots << other._roots;
         return false;
     }
     glm::vec3 minimum = getMinimum();
