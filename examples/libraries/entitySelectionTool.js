@@ -260,6 +260,7 @@ SelectionDisplay = (function () {
     var grabberColorFace = { red: 120, green: 120, blue: 120 };
     var grabberLineWidth = 0.5;
     var grabberSolid = true;
+    var grabberMoveUpPosition = { x: 0, y: 0, z: 0 };
 
     var grabberPropertiesCorner = {
                 position: { x:0, y: 0, z: 0},
@@ -1093,7 +1094,8 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(grabberEdgeFL, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeFL });
 
         var grabberMoveUpOffset = 0.1;
-        Overlays.editOverlay(grabberMoveUp, { visible: activeTool == null || mode == "TRANSLATE_UP_DOWN", position: { x: position.x, y: position.y + worldTop + grabberMoveUpOffset, z: position.z } });
+        grabberMoveUpPosition = { x: position.x, y: position.y + worldTop + grabberMoveUpOffset, z: position.z }
+        Overlays.editOverlay(grabberMoveUp, { visible: activeTool == null || mode == "TRANSLATE_UP_DOWN" });
     };
 
     that.setOverlaysVisible = function(isVisible) {
@@ -2297,8 +2299,10 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rollHandle, {
                 scale: handleSize,
             });
+            var pos = Vec3.sum(grabberMoveUpPosition, { x: 0, y: Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 3, z: 0 });
             Overlays.editOverlay(grabberMoveUp, {
-                scale: handleSize,
+                position: pos,
+                scale: handleSize / 2,
             });
         }
     }
