@@ -10,8 +10,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-function keyPressEvent(event) {
-    // if our tools are off, then don't do anything
+Controller.keyPressEvent.connect(function (event) {
     if (event.text == "1") {
         Window.location = "hifi://starchamber";
     } else if (event.text == "2") {
@@ -25,5 +24,4 @@ function keyPressEvent(event) {
     } else if (event.text == "6") {
     	Window.location = "hifi://hoo";
     } 
-}
-Controller.keyPressEvent.connect(keyPressEvent);
+});
