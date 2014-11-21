@@ -1011,7 +1011,7 @@ void VoxelPoint::setNormal(const glm::vec3& normal) {
 }
 
 VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials) :
+        const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials) :
     _vertices(vertices),
     _indices(indices),
     _hermite(hermite),
@@ -1056,7 +1056,7 @@ bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::ve
     int max = _size - 2;
     int x = qMin((int)floors.x, max), y = qMin((int)floors.y, max), z = qMin((int)floors.z, max);
     forever {
-        for (QMultiHash<QRgb, int>::const_iterator it = _quadIndices.constFind(qRgb(x + 1, y + 1, z + 1));
+        for (QMultiHash<VoxelCoord, int>::const_iterator it = _quadIndices.constFind(qRgb(x + 1, y + 1, z + 1));
                 it != _quadIndices.constEnd(); it++) {
             const int* indices = _indices.constData() + *it;
             if (findRayTriangleIntersection(origin, direction, _vertices.at(indices[0]).vertex,
@@ -1311,7 +1311,7 @@ int VoxelAugmentVisitor::visit(MetavoxelInfo& info) {
         QVector<VoxelPoint> vertices;
         QVector<int> indices;
         QVector<glm::vec3> hermiteSegments;
-        QMultiHash<QRgb, int> quadIndices;
+        QMultiHash<VoxelCoord, int> quadIndices;
         
         // see http://www.frankpetterson.com/publications/dualcontour/dualcontour.pdf for a description of the
         // dual contour algorithm for generating meshes from voxel data using Hermite-tagged edges

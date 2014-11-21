@@ -308,12 +308,27 @@ public:
     void setNormal(const glm::vec3& normal);
 };
 
+/// A container for a coordinate within a voxel block.
+class VoxelCoord {
+public:
+    QRgb encoded;
+    
+    VoxelCoord(QRgb encoded) : encoded(encoded) { }
+    
+    bool operator==(const VoxelCoord& other) const { return encoded == other.encoded; }
+};
+
+inline uint qHash(const VoxelCoord& coord, uint seed) {
+    // 31 is just an arbitrary prime number
+    return qHash(qRed(coord.encoded) + 31 * (qGreen(coord.encoded) + 31 * qBlue(coord.encoded)), seed);
+}
+
 /// Contains the information necessary to render a voxel block.
 class VoxelBuffer : public BufferData {
 public:
     
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
+        const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
             QVector<SharedObjectPointer>());
 
     /// Finds the first intersection between the described ray and the voxel data.
@@ -328,7 +343,7 @@ private:
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
-    QMultiHash<QRgb, int> _quadIndices;
+    QMultiHash<VoxelCoord, int> _quadIndices;
     int _size;
     int _vertexCount;
     int _indexCount;
