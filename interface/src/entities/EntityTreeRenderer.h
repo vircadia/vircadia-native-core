@@ -106,9 +106,12 @@ signals:
 public slots:
     void deletingEntity(const EntityItemID& entityID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
-    void checkAndCallPreload(const EntityItemID& entityID);
+    void entitySciptChanging(const EntityItemID& entityID);
     
 private:
+    void checkAndCallPreload(const EntityItemID& entityID);
+    void checkAndCallUnload(const EntityItemID& entityID);
+
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
     PickRay computePickRay(float x, float y);
@@ -127,6 +130,8 @@ private:
 
     QScriptValue loadEntityScript(EntityItem* entity);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
+    QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
+    QScriptValue getPreviouslyLoadedEntityScript(EntityItem* entity);
     QString loadScriptContents(const QString& scriptMaybeURLorText);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
