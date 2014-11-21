@@ -29,7 +29,7 @@ var orbCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbDimensions, 0.5)
 var panelsCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsDimensions, 0.5));
 var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
-var ORB_SHIFT = { x: 0, y: -0.14, z: -0.08};
+var ORB_SHIFT = { x: 0, y: -0.2, z: 0.05};
 
 var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
@@ -164,6 +164,16 @@ function playRandomMusak() {
 }
 
 function cleanupLobby() {
+  // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
+  var panelTexturesReset = {};
+  panelTexturesReset["textures"] = {};
+      
+  for (var j = 0; j < MAX_NUM_PANELS; j++) { 
+    panelTexturesReset["textures"]["file" + (j + 1)] = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Texture.jpg";
+  };
+  
+  Overlays.editOverlay(panelWall, panelTexturesReset);
+  
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   
@@ -224,7 +234,7 @@ function backStartEvent() {
   }
 }
 
-var CLEANUP_EPSILON_DISTANCE = 0.025
+var CLEANUP_EPSILON_DISTANCE = 0.05;
 
 function maybeCleanupLobby() {
   if (panelWall && Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {
@@ -240,7 +250,7 @@ function toggleEnvironmentRendering(shouldRender) {
 }
 
 function update(deltaTime) {
-  // maybeCleanupLobby();
+  maybeCleanupLobby();
   if (panelWall) {
     
     if (reticle) {
