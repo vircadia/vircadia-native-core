@@ -332,11 +332,6 @@ namespace MenuOption {
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
-    const QString AudioFilter = "Audio Filter Bank";
-    const QString AudioFilterFlat = "Flat Response";
-    const QString AudioFilterTrebleCut= "Treble Cut";
-    const QString AudioFilterBassCut = "Bass Cut";
-    const QString AudioFilterSmiley = "Smiley Curve";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";

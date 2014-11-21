@@ -26,8 +26,6 @@
 #include "AudioSourceTone.h"
 #include "AudioSourceNoise.h"
 #include "AudioGain.h"
-#include "AudioFilter.h"
-#include "AudioFilterBank.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -149,11 +147,6 @@ public slots:
     void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
     void addStereoSamplesToScope(const QByteArray& samples);
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
-    void toggleAudioFilter();
-    void selectAudioFilterFlat();
-    void selectAudioFilterTrebleCut();
-    void selectAudioFilterBassCut();
-    void selectAudioFilterSmiley();
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
@@ -332,9 +325,6 @@ private:
     bool _toneSourceEnabled;
     AudioSourceTone _toneSource;
     
-    // Multi-band parametric EQ
-    bool _peqEnabled;
-    AudioFilterPEQ3m _peq;
     
     QMutex _guard;
     QByteArray* _scopeInput;
