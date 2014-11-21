@@ -115,7 +115,6 @@ Audio::Audio(QObject* parent) :
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
-    _peqEnabled(false),
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
@@ -153,7 +152,6 @@ void Audio::init(QGLWidget *parent) {
 void Audio::reset() {
     _receivedAudioStream.reset();
     resetStats();
-    _peq.reset();
     _noiseSource.reset();
     _toneSource.reset();
     _sourceGain.reset();
@@ -457,7 +455,6 @@ void Audio::start() {
     }
 
     _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
-    _peq.initialize( _inputFormat.sampleRate() ); 
     _inputGain.initialize();
     _sourceGain.initialize();
     _noiseSource.initialize();
@@ -469,7 +466,6 @@ void Audio::start() {
 void Audio::stop() {
 
     _inputFrameBuffer.finalize();
-    _peq.finalize();
     _inputGain.finalize();
     _sourceGain.finalize();
     _noiseSource.finalize();
@@ -664,7 +660,7 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    if (!_muted && (_audioSourceInjectEnabled || _peqEnabled)) {
+    if (!_muted && _audioSourceInjectEnabled) {
         
         int16_t* inputFrameData = (int16_t*)inputByteArray.data();
         const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
@@ -685,10 +681,6 @@ void Audio::handleAudioInput() {
             }
             _sourceGain.render(_inputFrameBuffer); // post gain
         }
-        if (_peqEnabled) {
-            _peq.render(_inputFrameBuffer); // 3-band parametric eq
-        }
-
         _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
     }
     
@@ -1471,31 +1463,6 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
-}
-
-void Audio::toggleAudioFilter() {
-    _peqEnabled = !_peqEnabled;
-}
-
-void Audio::selectAudioFilterFlat() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterFlat)) {
-        _peq.loadProfile(0);
-    }
-}
-void Audio::selectAudioFilterTrebleCut() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterTrebleCut)) {
-        _peq.loadProfile(1);
-    }
-}
-void Audio::selectAudioFilterBassCut() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterBassCut)) {
-        _peq.loadProfile(2);
-    }
-}
-void Audio::selectAudioFilterSmiley() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterSmiley)) {
-        _peq.loadProfile(3);
-    }
 }
 
 void Audio::toggleScope() {
