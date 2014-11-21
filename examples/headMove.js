@@ -89,6 +89,7 @@ var WARP_SMOOTHING = 0.90;
 var WARP_START_TIME = 0.25;
 var WARP_START_DISTANCE = 2.5;
 var WARP_SENSITIVITY = 0.15;
+var MAX_WARP_DISTANCE = 25.0;
 
 var fixedHeight = true;
 
@@ -105,7 +106,7 @@ function updateWarp() {
     willMove = (keyDownTime > WARP_START_TIME);
 
     if (willMove) {
-        var distance = Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE;
+        var distance = Math.min(Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE, MAX_WARP_DISTANCE);
         var warpDirection = Vec3.normalize({ x: look.x, y: (fixedHeight ? 0 : look.y), z: look.z });
         var startPosition = (watchAvatar ? Camera.getPosition(): MyAvatar.getEyePosition());
         warpPosition = Vec3.mix(Vec3.sum(startPosition, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
@@ -113,7 +114,7 @@ function updateWarp() {
 
     var cameraPosition;
 
-    if (!watchAvatar && willMove) {
+    if (!watchAvatar && willMove && (distance < WARP_START_DISTANCE * 0.5)) {
         pullBack();
         watchAvatar = true;
     }
