@@ -56,12 +56,50 @@ MetavoxelSystem::~MetavoxelSystem() {
 
 void MetavoxelSystem::init() {
     MetavoxelClientManager::init();
-    DefaultMetavoxelRendererImplementation::init();
     
     _voxelBufferAttribute = AttributeRegistry::getInstance()->registerAttribute(
         new BufferDataAttribute("voxelBuffer"));
     _voxelBufferAttribute->setLODThresholdMultiplier(
         AttributeRegistry::getInstance()->getVoxelColorAttribute()->getLODThresholdMultiplier());
+        
+    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+            "shaders/metavoxel_heightfield_base.vert");
+    _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+        "shaders/metavoxel_heightfield_base.frag");
+    _baseHeightfieldProgram.link();
+    
+    _baseHeightfieldProgram.bind();
+    _baseHeightfieldProgram.setUniformValue("heightMap", 0);
+    _baseHeightfieldProgram.setUniformValue("diffuseMap", 1);
+    _baseHeightScaleLocation = _baseHeightfieldProgram.uniformLocation("heightScale");
+    _baseColorScaleLocation = _baseHeightfieldProgram.uniformLocation("colorScale");
+    _baseHeightfieldProgram.release();
+    
+    loadSplatProgram("heightfield", _splatHeightfieldProgram, _splatHeightfieldLocations);
+    
+    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+        "shaders/metavoxel_heightfield_cursor.vert");
+    _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+        "shaders/metavoxel_cursor.frag");
+    _heightfieldCursorProgram.link();
+    
+    _heightfieldCursorProgram.bind();
+    _heightfieldCursorProgram.setUniformValue("heightMap", 0);
+    _heightfieldCursorProgram.release();
+    
+    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+        "shaders/metavoxel_voxel_base.vert");
+    _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+        "shaders/metavoxel_voxel_base.frag");
+    _baseVoxelProgram.link();
+    
+    loadSplatProgram("voxel", _splatVoxelProgram, _splatVoxelLocations);
+    
+    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+        "shaders/metavoxel_voxel_cursor.vert");
+    _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+        "shaders/metavoxel_cursor.frag");
+    _voxelCursorProgram.link();
 }
 
 MetavoxelLOD MetavoxelSystem::getLOD() {
@@ -175,7 +213,7 @@ void MetavoxelSystem::render() {
         
         glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
         
-        DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().bind();
+        _baseHeightfieldProgram.bind();
         
         foreach (const HeightfieldBaseBatch& batch, _heightfieldBaseBatches) {
             glPushMatrix();
@@ -193,10 +231,8 @@ void MetavoxelSystem::render() {
             
             glBindTexture(GL_TEXTURE_2D, batch.heightTextureID);
             
-            DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniform(
-                DefaultMetavoxelRendererImplementation::getBaseHeightScaleLocation(), batch.heightScale);
-            DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().setUniform(
-                DefaultMetavoxelRendererImplementation::getBaseColorScaleLocation(), batch.colorScale);
+            _baseHeightfieldProgram.setUniform(_baseHeightScaleLocation, batch.heightScale);
+            _baseHeightfieldProgram.setUniform(_baseColorScaleLocation, batch.colorScale);
                 
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, batch.colorTextureID);
@@ -208,12 +244,15 @@ void MetavoxelSystem::render() {
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, 0);
         
+            batch.vertexBuffer->release();
+            batch.indexBuffer->release();
+        
             glPopMatrix();
         }
         
         Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
         
-        DefaultMetavoxelRendererImplementation::getBaseHeightfieldProgram().release();
+        _baseHeightfieldProgram.release();
         
         glDisable(GL_ALPHA_TEST);
         glEnable(GL_BLEND);
@@ -224,10 +263,8 @@ void MetavoxelSystem::render() {
             glEnable(GL_POLYGON_OFFSET_FILL);
             glPolygonOffset(-1.0f, -1.0f);
             
-            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().bind();
-            const DefaultMetavoxelRendererImplementation::SplatLocations& locations =
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldLocations();
-                
+            _splatHeightfieldProgram.bind();
+            
             foreach (const HeightfieldSplatBatch& batch, _heightfieldSplatBatches) {
                 glPushMatrix();
                 glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
@@ -244,26 +281,22 @@ void MetavoxelSystem::render() {
                 
                 glBindTexture(GL_TEXTURE_2D, batch.heightTextureID);
                 
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
-                    locations.heightScale, batch.heightScale.x, batch.heightScale.y);
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniform(
-                    locations.textureScale, batch.textureScale);
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniform(locations.splatTextureOffset,
-                    batch.splatTextureOffset);
+                _splatHeightfieldProgram.setUniformValue(_splatHeightfieldLocations.heightScale,
+                    batch.heightScale.x, batch.heightScale.y);
+                _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.textureScale, batch.textureScale);
+                _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.splatTextureOffset, batch.splatTextureOffset);
                 
                 const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniform(
-                    locations.splatTextureScalesS, batch.splatTextureScalesS);
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniform(
-                    locations.splatTextureScalesT, batch.splatTextureScalesT);
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
-                    locations.textureValueMinima,
+                _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.splatTextureScalesS, batch.splatTextureScalesS);
+                _splatHeightfieldProgram.setUniform(_splatHeightfieldLocations.splatTextureScalesT, batch.splatTextureScalesT);
+                _splatHeightfieldProgram.setUniformValue(
+                    _splatHeightfieldLocations.textureValueMinima,
                     (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
                     (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
                     (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
                     (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
-                DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().setUniformValue(
-                    locations.textureValueMaxima,
+                _splatHeightfieldProgram.setUniformValue(
+                    _splatHeightfieldLocations.textureValueMaxima,
                     (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
                     (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
                     (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
@@ -290,10 +323,13 @@ void MetavoxelSystem::render() {
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, 0);
             
+                batch.vertexBuffer->release();
+                batch.indexBuffer->release();
+                
                 glPopMatrix();   
             }
             
-            DefaultMetavoxelRendererImplementation::getSplatHeightfieldProgram().release();
+            _splatHeightfieldProgram.release();
             
             glDisable(GL_POLYGON_OFFSET_FILL);
             glDepthMask(true);
@@ -308,6 +344,121 @@ void MetavoxelSystem::render() {
         glDisableClientState(GL_VERTEX_ARRAY);  
         
         _heightfieldBaseBatches.clear();
+    }
+    
+    if (!_voxelBaseBatches.isEmpty()) {
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+    
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glDisable(GL_BLEND);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_EQUAL, 0.0f);
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        
+        glEnableClientState(GL_COLOR_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+            
+        _baseVoxelProgram.bind();
+        
+        foreach (const VoxelBaseBatch& batch, _voxelBaseBatches) {
+            batch.vertexBuffer->bind();
+            batch.indexBuffer->bind();
+            
+            VoxelPoint* point = 0;
+            glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
+            glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
+            glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
+            
+            glDrawRangeElements(GL_QUADS, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
+            
+            batch.vertexBuffer->release();
+            batch.indexBuffer->release();
+        }
+        
+        _baseVoxelProgram.release();
+    
+        glDisable(GL_ALPHA_TEST);
+        glEnable(GL_BLEND);
+            
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+        
+        if (!_voxelSplatBatches.isEmpty()) {
+            glDepthFunc(GL_LEQUAL);
+            glDepthMask(false);
+            glEnable(GL_POLYGON_OFFSET_FILL);
+            glPolygonOffset(-1.0f, -1.0f);
+            
+            _splatVoxelProgram.bind();
+            
+            _splatVoxelProgram.enableAttributeArray(_splatVoxelLocations.materials);
+            _splatVoxelProgram.enableAttributeArray(_splatVoxelLocations.materialWeights);
+            
+            foreach (const VoxelSplatBatch& batch, _voxelSplatBatches) {
+                batch.vertexBuffer->bind();
+                batch.indexBuffer->bind();
+                
+                VoxelPoint* point = 0;
+                glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
+                glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
+                glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
+                
+                _splatVoxelProgram.setAttributeBuffer(_splatVoxelLocations.materials,
+                    GL_UNSIGNED_BYTE, (qint64)&point->materials, SPLAT_COUNT, sizeof(VoxelPoint));
+                _splatVoxelProgram.setAttributeBuffer(_splatVoxelLocations.materialWeights,
+                    GL_UNSIGNED_BYTE, (qint64)&point->materialWeights, SPLAT_COUNT, sizeof(VoxelPoint));
+                
+                const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
+                _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesS, batch.splatTextureScalesS);
+                _splatVoxelProgram.setUniform(_splatVoxelLocations.splatTextureScalesT, batch.splatTextureScalesT);
+                _splatVoxelProgram.setUniformValue(
+                    _splatVoxelLocations.textureValueMinima,
+                    (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
+                    (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
+                _splatVoxelProgram.setUniformValue(
+                    _splatVoxelLocations.textureValueMaxima,
+                    (batch.materialIndex + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
+                    (batch.materialIndex + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
+                
+                for (int i = 0; i < SPLAT_COUNT; i++) {
+                    glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
+                    glBindTexture(GL_TEXTURE_2D, batch.splatTextureIDs[i]);
+                }
+                
+                glDrawRangeElements(GL_QUADS, 0, batch.vertexCount - 1, batch.indexCount, GL_UNSIGNED_INT, 0);
+                
+                for (int i = 0; i < SPLAT_COUNT; i++) {
+                    glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
+                    glBindTexture(GL_TEXTURE_2D, 0);
+                }
+            
+                glActiveTexture(GL_TEXTURE0);
+        
+                batch.vertexBuffer->release();
+                batch.indexBuffer->release();
+            }
+            
+            glDisable(GL_POLYGON_OFFSET_FILL);
+            glDepthMask(true);
+            glDepthFunc(GL_LESS);
+            
+            _splatVoxelProgram.disableAttributeArray(_splatVoxelLocations.materials);
+            _splatVoxelProgram.disableAttributeArray(_splatVoxelLocations.materialWeights);
+            
+            _voxelSplatBatches.clear();
+        }
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisable(GL_CULL_FACE);
+        
+        _voxelBaseBatches.clear();
     }
     
     // give external parties a chance to join in
@@ -440,7 +591,7 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().bind();
+    _heightfieldCursorProgram.bind();
     
     glActiveTexture(GL_TEXTURE4);
     float scale = 1.0f / radius;
@@ -456,7 +607,7 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     SpannerCursorRenderVisitor visitor(Box(position - extents, position + extents));
     guide(visitor);
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
+    _heightfieldCursorProgram.release();
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
@@ -504,7 +655,7 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     
     glEnableClientState(GL_VERTEX_ARRAY);
     
-    DefaultMetavoxelRendererImplementation::getVoxelCursorProgram().bind();
+    _voxelCursorProgram.bind();
     
     glActiveTexture(GL_TEXTURE4);
     float scale = 1.0f / radius;
@@ -521,16 +672,16 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     BufferCursorRenderVisitor voxelVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute(), bounds);
     guideToAugmented(voxelVisitor);
     
-    DefaultMetavoxelRendererImplementation::getVoxelCursorProgram().release();
+    _voxelCursorProgram.release();
     
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().bind();
+    _heightfieldCursorProgram.bind();
     
     SpannerCursorRenderVisitor spannerVisitor(bounds);
     guide(spannerVisitor);
     
-    DefaultMetavoxelRendererImplementation::getHeightfieldCursorProgram().release();
+    _heightfieldCursorProgram.release();
     
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     
@@ -610,6 +761,29 @@ void MetavoxelSystem::guideToAugmented(MetavoxelVisitor& visitor, bool render) {
             }
         }
     }
+}
+
+void MetavoxelSystem::loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations) {
+    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
+        "shaders/metavoxel_" + type + "_splat.vert");
+    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
+        "shaders/metavoxel_" + type + "_splat.frag");
+    program.link();
+    
+    program.bind();
+    program.setUniformValue("heightMap", 0);
+    program.setUniformValue("textureMap", 1);
+    program.setUniformValueArray("diffuseMaps", SPLAT_TEXTURE_UNITS, SPLAT_COUNT);
+    locations.heightScale = program.uniformLocation("heightScale");
+    locations.textureScale = program.uniformLocation("textureScale");
+    locations.splatTextureOffset = program.uniformLocation("splatTextureOffset");
+    locations.splatTextureScalesS = program.uniformLocation("splatTextureScalesS");
+    locations.splatTextureScalesT = program.uniformLocation("splatTextureScalesT");
+    locations.textureValueMinima = program.uniformLocation("textureValueMinima");
+    locations.textureValueMaxima = program.uniformLocation("textureValueMaxima");
+    locations.materials = program.attributeLocation("materials");
+    locations.materialWeights = program.attributeLocation("materialWeights");
+    program.release();
 }
 
 Throttle::Throttle() :
@@ -946,10 +1120,12 @@ void VoxelBuffer::render(bool cursor) {
         _vertexBuffer.create();
         _vertexBuffer.bind();
         _vertexBuffer.allocate(_vertices.constData(), _vertices.size() * sizeof(VoxelPoint));
+        _vertexBuffer.release();
         
         _indexBuffer.create();
         _indexBuffer.bind();
         _indexBuffer.allocate(_indices.constData(), _indices.size() * sizeof(int));
+        _indexBuffer.release();
         
         if (!_materials.isEmpty()) {
             _networkTextures.resize(_materials.size());
@@ -961,101 +1137,62 @@ void VoxelBuffer::render(bool cursor) {
                 }
             }
         }
-    } else {
-        _vertexBuffer.bind();
-        _indexBuffer.bind();
     }
     
-    VoxelPoint* point = 0;
-    glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
-    glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
-    glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
+    if (cursor) {
+        _vertexBuffer.bind();
+        _indexBuffer.bind();
+        
+        VoxelPoint* point = 0;
+        glVertexPointer(3, GL_FLOAT, sizeof(VoxelPoint), &point->vertex);
+        glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelPoint), &point->color);
+        glNormalPointer(GL_BYTE, sizeof(VoxelPoint), &point->normal);
+        
+        glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+        
+        _vertexBuffer.release();
+        _indexBuffer.release();
+        return;
+    }
     
-    glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+    VoxelBaseBatch baseBatch;
+    baseBatch.vertexBuffer = &_vertexBuffer;
+    baseBatch.indexBuffer = &_indexBuffer;
+    baseBatch.vertexCount = _vertexCount;
+    baseBatch.indexCount = _indexCount;
+    Application::getInstance()->getMetavoxels()->addVoxelBaseBatch(baseBatch);
     
-    if (!(_materials.isEmpty() || cursor)) {
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
-        
-        glDepthFunc(GL_LEQUAL);
-        glDepthMask(false);
-        glEnable(GL_BLEND);
-        glDisable(GL_ALPHA_TEST);
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(-1.0f, -1.0f);
-        
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().bind();
-        const DefaultMetavoxelRendererImplementation::SplatLocations& locations =
-            DefaultMetavoxelRendererImplementation::getSplatVoxelLocations();
-        
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().setAttributeBuffer(locations.materials,
-            GL_UNSIGNED_BYTE, (qint64)&point->materials, SPLAT_COUNT, sizeof(VoxelPoint));
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().enableAttributeArray(locations.materials);
-        
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().setAttributeBuffer(locations.materialWeights,
-            GL_UNSIGNED_BYTE, (qint64)&point->materialWeights, SPLAT_COUNT, sizeof(VoxelPoint));
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().enableAttributeArray(locations.materialWeights);
-        
+    if (!_materials.isEmpty()) {
+        VoxelSplatBatch splatBatch;
+        splatBatch.vertexBuffer = &_vertexBuffer;
+        splatBatch.indexBuffer = &_indexBuffer;
+        splatBatch.vertexCount = _vertexCount;
+        splatBatch.indexCount = _indexCount;
+    
         for (int i = 0; i < _materials.size(); i += SPLAT_COUNT) {
-            QVector4D scalesS, scalesT;
-            
             for (int j = 0; j < SPLAT_COUNT; j++) {
-                glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[j]);
                 int index = i + j;
                 if (index < _networkTextures.size()) {
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
                     if (texture) {
                         MaterialObject* material = static_cast<MaterialObject*>(_materials.at(index).data());
-                        scalesS[j] = 1.0f / material->getScaleS();
-                        scalesT[j] = 1.0f / material->getScaleT();
-                        glBindTexture(GL_TEXTURE_2D, texture->getID());    
+                        splatBatch.splatTextureScalesS[j] = 1.0f / material->getScaleS();
+                        splatBatch.splatTextureScalesT[j] = 1.0f / material->getScaleT();
+                        splatBatch.splatTextureIDs[j] = texture->getID();
+                           
                     } else {
-                        glBindTexture(GL_TEXTURE_2D, 0);
+                        splatBatch.splatTextureIDs[j] = 0;
                     }
                 } else {
-                    glBindTexture(GL_TEXTURE_2D, 0);
+                    splatBatch.splatTextureIDs[j] = 0;
                 }
             }
-            const float QUARTER_STEP = 0.25f * EIGHT_BIT_MAXIMUM_RECIPROCAL;
-            DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().setUniformValue(
-                locations.splatTextureScalesS, scalesS);
-            DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().setUniformValue(
-                locations.splatTextureScalesT, scalesT);
-            DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().setUniformValue(
-                locations.textureValueMinima,
-                (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP,
-                (i + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP, (i + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL - QUARTER_STEP);
-            DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().setUniformValue(
-                locations.textureValueMaxima,
-                (i + 1) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP, (i + 2) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP,
-                (i + 3) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP, (i + 4) * EIGHT_BIT_MAXIMUM_RECIPROCAL + QUARTER_STEP);
-            glDrawRangeElements(GL_QUADS, 0, _vertexCount - 1, _indexCount, GL_UNSIGNED_INT, 0);
+            splatBatch.materialIndex = i;
+            Application::getInstance()->getMetavoxels()->addVoxelSplatBatch(splatBatch);
         }
-    
-        for (int i = 0; i < SPLAT_COUNT; i++) {
-            glActiveTexture(GL_TEXTURE0 + SPLAT_TEXTURE_UNITS[i]);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
-    
-        glActiveTexture(GL_TEXTURE0);
-        
-        glDisable(GL_POLYGON_OFFSET_FILL);
-        glEnable(GL_ALPHA_TEST);
-        glDisable(GL_BLEND);
-        glDepthMask(true);
-        glDepthFunc(GL_LESS);
-        
-        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
-        
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materials);
-        DefaultMetavoxelRendererImplementation::getSplatVoxelProgram().disableAttributeArray(locations.materialWeights);
-        
-        DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
     }
     
-    _vertexBuffer.release();
-    _indexBuffer.release();
-    
-    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData) && !cursor) {
+    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
         if (!_hermiteBuffer.isCreated()) {
             _hermiteBuffer.create();
             _hermiteBuffer.bind();
@@ -1065,9 +1202,6 @@ void VoxelBuffer::render(bool cursor) {
         } else {
             _hermiteBuffer.bind();
         }
-        
-        glDisableClientState(GL_COLOR_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
         
         glVertexPointer(3, GL_FLOAT, 0, 0);
         
@@ -1080,10 +1214,7 @@ void VoxelBuffer::render(bool cursor) {
         
         glDrawArrays(GL_LINES, 0, _hermiteCount);
         
-        DefaultMetavoxelRendererImplementation::getBaseVoxelProgram().bind();
-        
-        glEnableClientState(GL_COLOR_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
+        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().release();
         
         _hermiteBuffer.release();
     }
@@ -1105,49 +1236,6 @@ bool BufferDataAttribute::merge(void*& parent, void* children[], bool postRead) 
 
 AttributeValue BufferDataAttribute::inherit(const AttributeValue& parentValue) const {
     return AttributeValue(parentValue.getAttribute());
-}
-
-void DefaultMetavoxelRendererImplementation::init() {
-    if (!_baseHeightfieldProgram.isLinked()) {
-        _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/metavoxel_heightfield_base.vert");
-        _baseHeightfieldProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_heightfield_base.frag");
-        _baseHeightfieldProgram.link();
-        
-        _baseHeightfieldProgram.bind();
-        _baseHeightfieldProgram.setUniformValue("heightMap", 0);
-        _baseHeightfieldProgram.setUniformValue("diffuseMap", 1);
-        _baseHeightScaleLocation = _baseHeightfieldProgram.uniformLocation("heightScale");
-        _baseColorScaleLocation = _baseHeightfieldProgram.uniformLocation("colorScale");
-        _baseHeightfieldProgram.release();
-        
-        loadSplatProgram("heightfield", _splatHeightfieldProgram, _splatHeightfieldLocations);
-        
-        _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/metavoxel_heightfield_cursor.vert");
-        _heightfieldCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_cursor.frag");
-        _heightfieldCursorProgram.link();
-        
-        _heightfieldCursorProgram.bind();
-        _heightfieldCursorProgram.setUniformValue("heightMap", 0);
-        _heightfieldCursorProgram.release();
-        
-        _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/metavoxel_voxel_base.vert");
-        _baseVoxelProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_voxel_base.frag");
-        _baseVoxelProgram.link();
-        
-        loadSplatProgram("voxel", _splatVoxelProgram, _splatVoxelLocations);
-        
-        _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-            "shaders/metavoxel_voxel_cursor.vert");
-        _voxelCursorProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-            "shaders/metavoxel_cursor.frag");
-        _voxelCursorProgram.link();
-    }
 }
 
 DefaultMetavoxelRendererImplementation::DefaultMetavoxelRendererImplementation() {
@@ -1872,75 +1960,11 @@ void DefaultMetavoxelRendererImplementation::render(MetavoxelData& data, Metavox
         SpannerRenderVisitor spannerRenderVisitor(lod);
         data.guide(spannerRenderVisitor);
     }
-    
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
-    
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glDisable(GL_BLEND);
-    glEnable(GL_CULL_FACE);
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_EQUAL, 0.0f);
-    
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderDualContourSurfaces)) {
-        glEnableClientState(GL_COLOR_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
-        
-        _baseVoxelProgram.bind();
-        
         BufferRenderVisitor voxelRenderVisitor(Application::getInstance()->getMetavoxels()->getVoxelBufferAttribute());
         data.guide(voxelRenderVisitor);
-        
-        _baseVoxelProgram.release();
-        
-        glDisableClientState(GL_COLOR_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
     }
-    
-    glDisable(GL_ALPHA_TEST);
-    glDisable(GL_CULL_FACE);
-    glEnable(GL_BLEND);
-        
-    glDisableClientState(GL_VERTEX_ARRAY);
-    
-    Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
 }
-
-void DefaultMetavoxelRendererImplementation::loadSplatProgram(const char* type,
-        ProgramObject& program, SplatLocations& locations) {
-    program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() +
-        "shaders/metavoxel_" + type + "_splat.vert");
-    program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() +
-        "shaders/metavoxel_" + type + "_splat.frag");
-    program.link();
-    
-    program.bind();
-    program.setUniformValue("heightMap", 0);
-    program.setUniformValue("textureMap", 1);
-    program.setUniformValueArray("diffuseMaps", SPLAT_TEXTURE_UNITS, SPLAT_COUNT);
-    locations.heightScale = program.uniformLocation("heightScale");
-    locations.textureScale = program.uniformLocation("textureScale");
-    locations.splatTextureOffset = program.uniformLocation("splatTextureOffset");
-    locations.splatTextureScalesS = program.uniformLocation("splatTextureScalesS");
-    locations.splatTextureScalesT = program.uniformLocation("splatTextureScalesT");
-    locations.textureValueMinima = program.uniformLocation("textureValueMinima");
-    locations.textureValueMaxima = program.uniformLocation("textureValueMaxima");
-    locations.materials = program.attributeLocation("materials");
-    locations.materialWeights = program.attributeLocation("materialWeights");
-    program.release();
-}
-
-ProgramObject DefaultMetavoxelRendererImplementation::_baseHeightfieldProgram;
-int DefaultMetavoxelRendererImplementation::_baseHeightScaleLocation;
-int DefaultMetavoxelRendererImplementation::_baseColorScaleLocation;
-ProgramObject DefaultMetavoxelRendererImplementation::_splatHeightfieldProgram;
-DefaultMetavoxelRendererImplementation::SplatLocations DefaultMetavoxelRendererImplementation::_splatHeightfieldLocations;
-ProgramObject DefaultMetavoxelRendererImplementation::_heightfieldCursorProgram;
-ProgramObject DefaultMetavoxelRendererImplementation::_baseVoxelProgram;
-ProgramObject DefaultMetavoxelRendererImplementation::_splatVoxelProgram;
-DefaultMetavoxelRendererImplementation::SplatLocations DefaultMetavoxelRendererImplementation::_splatVoxelLocations;
-ProgramObject DefaultMetavoxelRendererImplementation::_voxelCursorProgram;
 
 SphereRenderer::SphereRenderer() {
 }

@@ -26,6 +26,8 @@
 class HeightfieldBaseBatch;
 class HeightfieldSplatBatch;
 class Model;
+class VoxelBaseBatch;
+class VoxelSplatBatch;
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public MetavoxelClientManager {
@@ -83,6 +85,9 @@ public:
     void addHeightfieldBaseBatch(const HeightfieldBaseBatch& batch) { _heightfieldBaseBatches.append(batch); }
     void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }
     
+    void addVoxelBaseBatch(const VoxelBaseBatch& batch) { _voxelBaseBatches.append(batch); }
+    void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
+    
 signals:
 
     void rendering();
@@ -113,6 +118,46 @@ private:
     
     QVector<HeightfieldBaseBatch> _heightfieldBaseBatches;
     QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
+    QVector<VoxelBaseBatch> _voxelBaseBatches;
+    QVector<VoxelSplatBatch> _voxelSplatBatches;
+    
+    ProgramObject _baseHeightfieldProgram;
+    int _baseHeightScaleLocation;
+    int _baseColorScaleLocation;
+    
+    class SplatLocations {
+    public:
+        int heightScale;
+        int textureScale;
+        int splatTextureOffset;
+        int splatTextureScalesS;
+        int splatTextureScalesT;
+        int textureValueMinima;
+        int textureValueMaxima;
+        int materials;
+        int materialWeights;
+    };
+    
+    ProgramObject _splatHeightfieldProgram;
+    SplatLocations _splatHeightfieldLocations;
+    
+    int _splatHeightScaleLocation;
+    int _splatTextureScaleLocation;
+    int _splatTextureOffsetLocation;
+    int _splatTextureScalesSLocation;
+    int _splatTextureScalesTLocation;
+    int _splatTextureValueMinimaLocation;
+    int _splatTextureValueMaximaLocation;
+    
+    ProgramObject _heightfieldCursorProgram;
+    
+    ProgramObject _baseVoxelProgram;
+    ProgramObject _splatVoxelProgram;
+    SplatLocations _splatVoxelLocations;
+    
+    ProgramObject _voxelCursorProgram;
+    
+    static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
 };
 
 /// Base class for heightfield batches.
@@ -151,6 +196,24 @@ public:
     GLuint materialTextureID;
     glm::vec2 textureScale;
     glm::vec2 splatTextureOffset;
+    int splatTextureIDs[4];
+    glm::vec4 splatTextureScalesS;
+    glm::vec4 splatTextureScalesT;
+    int materialIndex;
+};
+
+/// Base class for voxel batches.
+class VoxelBaseBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    QOpenGLBuffer* indexBuffer;
+    int vertexCount;
+    int indexCount;
+};
+
+/// A batch containing a voxel splat.
+class VoxelSplatBatch : public VoxelBaseBatch {
+public:
     int splatTextureIDs[4];
     glm::vec4 splatTextureScalesS;
     glm::vec4 splatTextureScalesT;
@@ -296,69 +359,11 @@ class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplement
 
 public:
     
-    static void init();
-
-    static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
-    static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
-    static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
-    
-    class SplatLocations {
-    public:
-        int heightScale;
-        int textureScale;
-        int splatTextureOffset;
-        int splatTextureScalesS;
-        int splatTextureScalesT;
-        int textureValueMinima;
-        int textureValueMaxima;
-        int materials;
-        int materialWeights;
-    };
-    
-    static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
-    static const SplatLocations& getSplatHeightfieldLocations() { return _splatHeightfieldLocations; }
-    
-    static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
-    
-    static ProgramObject& getBaseVoxelProgram() { return _baseVoxelProgram; }
-    
-    static ProgramObject& getSplatVoxelProgram() { return _splatVoxelProgram; }
-    static const SplatLocations& getSplatVoxelLocations() { return _splatVoxelLocations; }
-    
-    static ProgramObject& getVoxelCursorProgram() { return _voxelCursorProgram; }
-    
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
-
-private:
-
-    static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
-    
-    static ProgramObject _baseHeightfieldProgram;
-    static int _baseHeightScaleLocation;
-    static int _baseColorScaleLocation;
-    
-    static ProgramObject _splatHeightfieldProgram;
-    static SplatLocations _splatHeightfieldLocations;
-    
-    static int _splatHeightScaleLocation;
-    static int _splatTextureScaleLocation;
-    static int _splatTextureOffsetLocation;
-    static int _splatTextureScalesSLocation;
-    static int _splatTextureScalesTLocation;
-    static int _splatTextureValueMinimaLocation;
-    static int _splatTextureValueMaximaLocation;
-    
-    static ProgramObject _heightfieldCursorProgram;
-    
-    static ProgramObject _baseVoxelProgram;
-    static ProgramObject _splatVoxelProgram;
-    static SplatLocations _splatVoxelLocations;
-    
-    static ProgramObject _voxelCursorProgram;
 };
 
 /// Renders spheres.
