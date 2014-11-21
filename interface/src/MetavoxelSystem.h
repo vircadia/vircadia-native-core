@@ -23,10 +23,10 @@
 
 #include "renderer/ProgramObject.h"
 
-class HeightfieldBaseBatch;
+class HeightfieldBaseLayerBatch;
 class HeightfieldSplatBatch;
 class Model;
-class VoxelBaseBatch;
+class VoxelBatch;
 class VoxelSplatBatch;
 
 /// Renders a metavoxel tree.
@@ -82,10 +82,10 @@ public:
         
     Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
     
-    void addHeightfieldBaseBatch(const HeightfieldBaseBatch& batch) { _heightfieldBaseBatches.append(batch); }
+    void addHeightfieldBaseBatch(const HeightfieldBaseLayerBatch& batch) { _heightfieldBaseBatches.append(batch); }
     void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }
     
-    void addVoxelBaseBatch(const VoxelBaseBatch& batch) { _voxelBaseBatches.append(batch); }
+    void addVoxelBaseBatch(const VoxelBatch& batch) { _voxelBaseBatches.append(batch); }
     void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
     
 signals:
@@ -116,9 +116,9 @@ private:
     NetworkSimulation _networkSimulation;
     QReadWriteLock _networkSimulationLock;
     
-    QVector<HeightfieldBaseBatch> _heightfieldBaseBatches;
+    QVector<HeightfieldBaseLayerBatch> _heightfieldBaseBatches;
     QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
-    QVector<VoxelBaseBatch> _voxelBaseBatches;
+    QVector<VoxelBatch> _voxelBaseBatches;
     QVector<VoxelSplatBatch> _voxelSplatBatches;
     
     ProgramObject _baseHeightfieldProgram;
@@ -174,19 +174,10 @@ public:
     glm::vec4 heightScale;
 };
 
-/// A batch containing a heightfield base. 
-class HeightfieldBaseBatch : public HeightfieldBatch {
+/// A batch containing a heightfield base layer. 
+class HeightfieldBaseLayerBatch : public HeightfieldBatch {
 public:
-    QOpenGLBuffer* vertexBuffer;
-    QOpenGLBuffer* indexBuffer;
-    glm::vec3 translation;
-    glm::quat rotation;
-    glm::vec3 scale;
-    int vertexCount;
-    int indexCount;
-    GLuint heightTextureID;
     GLuint colorTextureID;
-    glm::vec4 heightScale;
     glm::vec2 colorScale;
 };
 
@@ -203,7 +194,7 @@ public:
 };
 
 /// Base class for voxel batches.
-class VoxelBaseBatch {
+class VoxelBatch {
 public:
     QOpenGLBuffer* vertexBuffer;
     QOpenGLBuffer* indexBuffer;
@@ -212,7 +203,7 @@ public:
 };
 
 /// A batch containing a voxel splat.
-class VoxelSplatBatch : public VoxelBaseBatch {
+class VoxelSplatBatch : public VoxelBatch {
 public:
     int splatTextureIDs[4];
     glm::vec4 splatTextureScalesS;
@@ -319,8 +310,8 @@ public:
 };
 
 inline uint qHash(const VoxelCoord& coord, uint seed) {
-    // 31 is just an arbitrary prime number
-    return qHash(qRed(coord.encoded) + 31 * (qGreen(coord.encoded) + 31 * qBlue(coord.encoded)), seed);
+    // multiply by prime numbers greater than the possible size
+    return qHash(qRed(coord.encoded) + 257 * (qGreen(coord.encoded) + 263 * qBlue(coord.encoded)), seed);
 }
 
 /// Contains the information necessary to render a voxel block.

@@ -215,7 +215,7 @@ void MetavoxelSystem::render() {
         
         _baseHeightfieldProgram.bind();
         
-        foreach (const HeightfieldBaseBatch& batch, _heightfieldBaseBatches) {
+        foreach (const HeightfieldBaseLayerBatch& batch, _heightfieldBaseBatches) {
             glPushMatrix();
             glTranslatef(batch.translation.x, batch.translation.y, batch.translation.z);
             glm::vec3 axis = glm::axis(batch.rotation);
@@ -362,7 +362,7 @@ void MetavoxelSystem::render() {
             
         _baseVoxelProgram.bind();
         
-        foreach (const VoxelBaseBatch& batch, _voxelBaseBatches) {
+        foreach (const VoxelBatch& batch, _voxelBaseBatches) {
             batch.vertexBuffer->bind();
             batch.indexBuffer->bind();
             
@@ -1155,7 +1155,7 @@ void VoxelBuffer::render(bool cursor) {
         return;
     }
     
-    VoxelBaseBatch baseBatch;
+    VoxelBatch baseBatch;
     baseBatch.vertexBuffer = &_vertexBuffer;
     baseBatch.indexBuffer = &_indexBuffer;
     baseBatch.vertexCount = _vertexCount;
@@ -2209,7 +2209,7 @@ void HeightfieldRenderer::render(bool cursor) {
         return;
     }
     
-    HeightfieldBaseBatch baseBatch;
+    HeightfieldBaseLayerBatch baseBatch;
     baseBatch.vertexBuffer = &bufferPair.first;
     baseBatch.indexBuffer = &bufferPair.second;
     baseBatch.translation = heightfield->getTranslation();
