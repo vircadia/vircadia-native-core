@@ -6,6 +6,10 @@
 //  Copyright 2014 High Fidelity, Inc.
 //
 //  Control a virtual keyboard using your favorite HMD.
+//  Usage: Enable VR-mode and go to First person mode,
+//  look at the key that you would like to press, and press the spacebar on your "REAL" keyboard.
+//
+//  leased some code from newEditEntities.js for Text Entity example
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -20,6 +24,8 @@ const KBD_BACKGROUND        = 4;
 const KEYBOARD_URL = "http://test.thoys.nl/hifi/images/virtualKeyboard/keyboard.svg";
 const CURSOR_URL = "http://test.thoys.nl/hifi/images/virtualKeyboard/cursor.svg";
 
+const SPACEBAR_CHARCODE = 32;
+
 const KEYBOARD_WIDTH  = 1174.7;
 const KEYBOARD_HEIGHT = 434.1;
 
@@ -30,6 +36,11 @@ const CURSOR_HEIGHT = 33.9;
 // Try setting it to 60 if it goes too fast for you.
 const VIEW_ANGLE = 30.0;
 const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
+
+const SPAWN_DISTANCE = 1;
+const DEFAULT_TEXT_DIMENSION_X = 1;
+const DEFAULT_TEXT_DIMENSION_Y = 1;
+const DEFAULT_TEXT_DIMENSION_Z = 0.02;
 
 const BOUND_X = 0;
 const BOUND_Y = 1;
@@ -43,9 +54,55 @@ var windowDimensions = Controller.getViewportDimensions();
 var cursor = null;
 var keyboard = new Keyboard();
 var text = null;
+var textText = "";
+function appendChar(char) {
+    textText += char;
+    updateTextOverlay();
+    Overlays.editOverlay(text, {text: textText});
+}
+function deleteChar() {
+    if (textText.length > 0) {
+        textText = textText.substring(0, textText.length - 1);
+        updateTextOverlay();
+    }
+}
+function updateTextOverlay() {
+    Overlays.editOverlay(text, {text: textText});
+}
+keyboard.onKeyPress = function(event) {
+    if (event.event == 'keypress') {
+        appendChar(event.char);
+    } else if (event.event == 'enter') {
+        appendChar("\n");
+    }
+};
 
-keyboard.onKeyPress = function() {
-    print("Key press event test");
+keyboard.onKeyRelease = function(event) {
+    print("Key release event test");
+    // you can cancel a key by releasing its focusing before releasing it
+    if (event.focus) {
+        if (event.event == 'delete') {
+           deleteChar();
+        } else if (event.event == 'submit') {
+           print(textText);
+
+           var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+           if (position.x > 0 && position.y > 0 && position.z > 0) {
+               Entities.addEntity({ 
+                   type: "Text",
+                   position: position,
+                   dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
+                   backgroundColor: { red: 0, green: 0, blue: 0 },
+                   textColor: { red: 255, green: 255, blue: 255 },
+                   text: textText,
+                   lineHight: "0.1"
+               });
+           }
+           textText = "";
+           updateTextOverlay();
+        }
+    }
 };
 
 keyboard.onFullyLoaded = function() {
@@ -53,9 +110,9 @@ keyboard.onFullyLoaded = function() {
     var dimensions = Controller.getViewportDimensions();
     text = Overlays.addOverlay("text", {
          x: 0,
-         y: dimensions.y - keyboard.height() - 60,
+         y: dimensions.y - keyboard.height() - 260,
          width: dimensions.x,
-         height: 50,
+         height: 250,
          backgroundColor: { red: 255, green: 255, blue: 255},
          color: { red: 0, green: 0, blue: 0},
          topMargin: 10,
@@ -86,9 +143,9 @@ function KeyboardKey(keyboard, key_properties) {
     this.getKeyEvent = function() {
         if (tthis.event == 'keypress') {
             var state = tthis.states[(tthis.keyboard.shift ? 1 : 2) % tthis.states.length];
-            return {key: state.charCode, char: state.char, event: tthis.event};
+            return {key: state.charCode, char: state.char, event: tthis.event, focus: tthis._focus};
         }
-        return {event: tthis.event};
+        return {event: tthis.event, focus: tthis._focus};
     };
     this.containsCoord = function(x, y) {
         for (var i = 0; i < this.bounds.length; i++) {
@@ -221,7 +278,6 @@ function Keyboard() {
         if (localx >= 0 && localy >= 0 && localx <= KEYBOARD_WIDTH && localy <= KEYBOARD_HEIGHT) {
             for (var i = 0; i < tthis.keys.length; i++) {
                 if (tthis.keys[i].containsCoord(localx, localy)) {
-                    //print(tthis.keys[i].states[0].char);
                     new_focus_key = i;
                     break;
                 }
@@ -439,7 +495,7 @@ function Cursor() {
             windowDimensions = newWindowDimensions;
             keyboard.rescale();
             Overlays.editOverlay(text, {
-                y: windowDimensions.y - keyboard.height() - 60,
+                y: windowDimensions.y - keyboard.height() - 260,
                 width: windowDimensions.x
             });
         }
@@ -464,16 +520,14 @@ function Cursor() {
     Script.update.connect(this.update);
 }
 
-function keyPressEvent(key) {
-    if (key.text === "SPACE") {
-        print("pressed space");
+function keyPressEvent(event) {
+    if (event.key === SPACEBAR_CHARCODE) {
         keyboard.pressFocussedKey();
     }
 }
 
-function keyReleaseEvent(key) {
-    if (key.text === "SPACE") {
-        print("released space");
+function keyReleaseEvent(event) {
+    if (event.key === SPACEBAR_CHARCODE) {
         keyboard.releaseKeys();
     }
 }
@@ -482,9 +536,9 @@ function scriptEnding() {
     keyboard.remove();
     cursor.remove();
     Overlays.deleteOverlay(text);
-    Controller.releaseKeyEvents({key: 32});
+    Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
 }
-Controller.captureKeyEvents({key: 32});
+Controller.captureKeyEvents({key: SPACEBAR_CHARCODE});
 Controller.keyPressEvent.connect(keyPressEvent);
 Controller.keyReleaseEvent.connect(keyReleaseEvent);
 Script.scriptEnding.connect(scriptEnding);
