@@ -2317,7 +2317,7 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
 
-    {
+    if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
         _entities.update(); // update the models...
         {
