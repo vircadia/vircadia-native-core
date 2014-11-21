@@ -792,7 +792,7 @@ void ImportHeightfieldTool::renderPreview() {
     static_cast<Heightfield*>(_spanner.data())->getRenderer()->render();
 }
 
-const int HEIGHTFIELD_BLOCK_SIZE = 32;
+const int HEIGHTFIELD_BLOCK_SIZE = 256;
 
 void ImportHeightfieldTool::apply() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
