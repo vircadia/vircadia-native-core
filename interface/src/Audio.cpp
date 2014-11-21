@@ -1378,26 +1378,20 @@ bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* inje
                                                      localFormat, this);
         localOutput->setVolume(volume);
         
-        // add this to our list of local injected outputs, we will need to clean it up when the injector says it is done
-        _injectedOutputInterfaces.insert(injector, localOutput);
+        // move the localOutput to the same thread as the local injector buffer
+        localOutput->moveToThread(injector->getLocalBuffer()->thread());
         
-        connect(injector, &AudioInjector::finished, this, &Audio::cleanupLocalOutputInterface);
+        // have it be cleaned up when that thread is done
+        connect(injector->thread(), &QThread::finished, localOutput, &QAudioOutput::stop);
+        connect(injector->thread(), &QThread::finished, localOutput, &QAudioOutput::deleteLater);
+        
+        qDebug() << "Starting QAudioOutput for local injector" << localOutput;
         
         localOutput->start(injector->getLocalBuffer());
         return localOutput->state() == QAudio::ActiveState;
     }
     
     return false;
-}
-
-void Audio::cleanupLocalOutputInterface() {
-    QAudioOutput* outputInterface = _injectedOutputInterfaces.value(sender());
-    if (outputInterface) {
-        qDebug() << "Stopping a QAudioOutput interface since injector" << sender() << "is finished";
-        
-        outputInterface->stop();
-        outputInterface->deleteLater();
-    }
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {
