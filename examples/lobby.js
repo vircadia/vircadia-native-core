@@ -17,27 +17,21 @@ var reticle = false;
 
 var avatarStickPosition = {};
 
-var orbNaturalExtentsMin = { x: -1230, y: -1223, z: -1210 };
-var orbNaturalExtentsMax = { x: 1230, y: 1229, z: 1210 };
-var panelsNaturalExtentsMin = { x: -1223, y: -348, z: 45 };
-var panelsNaturalExtentsMax = { x: 1223, y: 604, z: 1223 };
+var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
+var orbNaturalExtentsMax = { x: 1.230353, y: 1.229819, z: 1.210487 };
+var panelsNaturalExtentsMin = { x: -1.223182, y: -0.348487, z: 0.0451369 };
+var panelsNaturalExtentsMax = { x: 1.223039, y: 0.602978, z: 1.224298 };
 
-var orbNaturalDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
-var panelsNaturalDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
+var orbDimensions = Vec3.subtract(orbNaturalExtentsMax, orbNaturalExtentsMin);
+var panelsDimensions = Vec3.subtract(panelsNaturalExtentsMax, panelsNaturalExtentsMin);
 
-var SCALING_FACTOR = 0.01;
-var orbDimensions = Vec3.multiply(orbNaturalDimensions, SCALING_FACTOR);
-var panelsDimensions = Vec3.multiply(panelsNaturalDimensions, SCALING_FACTOR);
-
-var orbNaturalCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbNaturalDimensions, 0.5));
-var panelsNaturalCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsNaturalDimensions, 0.5));
-var orbCenter = Vec3.multiply(orbNaturalCenter, SCALING_FACTOR);
-var panelsCenter = Vec3.multiply(panelsNaturalCenter, SCALING_FACTOR);
+var orbCenter = Vec3.sum(orbNaturalExtentsMin, Vec3.multiply(orbDimensions, 0.5));
+var panelsCenter = Vec3.sum(panelsNaturalExtentsMin, Vec3.multiply(panelsDimensions, 0.5));
 var panelsCenterShift = Vec3.subtract(panelsCenter, orbCenter);
 
-var ORB_SHIFT = { x: 0, y: -1.4, z: -0.8};
+var ORB_SHIFT = { x: 0, y: -0.2, z: 0.05};
 
-var HELMET_ATTACHMENT_URL =  HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
+var HELMET_ATTACHMENT_URL = HIFI_PUBLIC_BUCKET + "models/attachments/IronManMaskOnly.fbx"
 
 var droneSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/drone.stereo.raw")
 var currentDrone = null;
@@ -55,6 +49,7 @@ function reticlePosition() {
 }
 
 var MAX_NUM_PANELS = 21;
+var DRONE_VOLUME = 0.3;
 
 function drawLobby() {
   if (!panelWall) {
@@ -66,17 +61,15 @@ function drawLobby() {
     var orbPosition = Vec3.sum(Camera.position, Vec3.multiplyQbyV(towardsMe, ORB_SHIFT));
     
     var panelWallProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_PanelsWithFrames.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/PanelWall2.fbx",
       position: Vec3.sum(orbPosition, Vec3.multiplyQbyV(towardsMe, panelsCenterShift)),
-      rotation: towardsMe,
-      dimensions: panelsDimensions,
+      rotation: towardsMe
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Lobby5_OrbNoFrames.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
       position: orbPosition,
       rotation: towardsMe,
-      dimensions: orbDimensions,
       ignoreRayIntersection: true
     };
     
@@ -103,7 +96,7 @@ function drawLobby() {
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
     
     // start the drone sound
-    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true });
+    currentDrone = Audio.playSound(droneSound, { stereo: true, loop: true, localOnly: true, volume: DRONE_VOLUME });
     
     // start one of our musak sounds
     playRandomMusak();
@@ -132,7 +125,7 @@ function changeLobbyTextures() {
   Overlays.editOverlay(panelWall, textureProp);
 }
 
-var MUSAK_VOLUME = 0.5;
+var MUSAK_VOLUME = 0.1;
 
 function playNextMusak() {
   if (panelWall) {
@@ -171,6 +164,16 @@ function playRandomMusak() {
 }
 
 function cleanupLobby() {
+  // for each of the 21 placeholder textures, set them back to default so the cached model doesn't have changed textures
+  var panelTexturesReset = {};
+  panelTexturesReset["textures"] = {};
+      
+  for (var j = 0; j < MAX_NUM_PANELS; j++) { 
+    panelTexturesReset["textures"]["file" + (j + 1)] = HIFI_PUBLIC_BUCKET + "models/sets/Lobby/LobbyPrototype/Texture.jpg";
+  };
+  
+  Overlays.editOverlay(panelWall, panelTexturesReset);
+  
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
   
@@ -200,10 +203,10 @@ function actionStartEvent(event) {
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
-
     if (result.intersects && result.overlayID == panelWall) {
-      
+    
       var panelName = result.extraInfo;
+      
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5)) - 1;
@@ -231,7 +234,7 @@ function backStartEvent() {
   }
 }
 
-var CLEANUP_EPSILON_DISTANCE = 0.025
+var CLEANUP_EPSILON_DISTANCE = 0.05;
 
 function maybeCleanupLobby() {
   if (panelWall && Vec3.length(Vec3.subtract(avatarStickPosition, MyAvatar.position)) > CLEANUP_EPSILON_DISTANCE) {

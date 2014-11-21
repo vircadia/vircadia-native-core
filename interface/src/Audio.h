@@ -179,9 +179,6 @@ signals:
     void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-
-private slots:
-    void cleanupLocalOutputInterface();
 private:
     void outputFormatChanged();
 
@@ -369,8 +366,6 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
-    
-    QHash<QObject*, QAudioOutput*> _injectedOutputInterfaces;
 };
 
 
