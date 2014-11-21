@@ -26,7 +26,9 @@ const KEYBOARD_HEIGHT = 434.1;
 const CURSOR_WIDTH = 33.9;
 const CURSOR_HEIGHT = 33.9;
 
-const VIEW_ANGLE = 60.0;
+// VIEW_ANGLE can be adjusted to your likings, the smaller the faster movement.
+// Try setting it to 60 if it goes too fast for you.
+const VIEW_ANGLE = 30.0;
 const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
 
 const BOUND_X = 0;
@@ -81,7 +83,12 @@ function KeyboardKey(keyboard, key_properties) {
     this.key_state = key_properties.key_state != undefined ? key_properties.key_state : KBD_LOWERCASE_DEFAULT;
     // one overlay per bound vector [this.bounds]
     this.overlays = [];
-    this.updatePosition = function() {
+    this.getKeyEvent = function() {
+        if (tthis.event == 'keypress') {
+            var state = tthis.states[(tthis.keyboard.shift ? 1 : 2) % tthis.states.length];
+            return {key: state.charCode, char: state.char, event: tthis.event};
+        }
+        return {event: tthis.event};
     };
     this.containsCoord = function(x, y) {
         for (var i = 0; i < this.bounds.length; i++) {
@@ -99,7 +106,7 @@ function KeyboardKey(keyboard, key_properties) {
         tthis.setState(eval('KBD_' + (tthis.keyboard.shift ? 'UPPERCASE' : 'LOWERCASE') + '_' + (tthis._focus ? 'HOVER' : 'DEFAULT')));
     };
     this.updateColor = function() {
-        var colorIntensity = _beingpressed ? 128 : 255;
+        var colorIntensity = this._beingpressed ? 128 : 255;
         for (var i = 0; i < tthis.bounds.length; i++) {
              Overlays.editOverlay(tthis.overlays[i], 
                  {color: {red: colorIntensity, green: colorIntensity, blue: colorIntensity}}
@@ -221,7 +228,6 @@ function Keyboard() {
             }
         }
         if (new_focus_key != tthis.focussed_key) {
-            //print(new_focus_key);
             if (tthis.focussed_key != -1) {
                 tthis.keys[tthis.focussed_key].blur();
             }
@@ -235,14 +241,44 @@ function Keyboard() {
 
     this.pressFocussedKey = function() {
         if (tthis.focussed_key != -1) {
-            this.onKeyPress(tthis.keys[tthis.focussed_key]);
+            if (tthis.keys[tthis.focussed_key].event == 'shift') {
+                tthis.toggleShift();
+            } else {
+                tthis.keys[tthis.focussed_key].press();
+            }
+            if (this.onKeyPress != null) {
+                this.onKeyPress(tthis.keys[tthis.focussed_key].getKeyEvent());
+            }
         }
 
         return tthis;
     };
- 
-    this.updatePosition = function() {
-        
+    
+    this.releaseKeys = function() {
+        for (var i = 0; i < tthis.keys.length; i++) {
+             if (tthis.keys[i]._beingpressed) {
+                 if (tthis.keys[i].event != 'shift') {
+                     tthis.keys[i].release();
+                 }
+                 if (this.onKeyRelease != null) {
+                     this.onKeyRelease(tthis.keys[i].getKeyEvent());
+                 }
+             }
+        }
+    };
+
+    this.toggleShift = function() {
+        tthis.shift = !tthis.shift;
+        for (var i = 0; i < tthis.keys.length; i++) {
+             tthis.keys[i].updateState();
+             if (tthis.keys[i].event == 'shift') {
+                 if (tthis.shift) {
+                     tthis.keys[i].press();
+                     continue;
+                 }
+                 tthis.keys[i].release();
+             }
+        }
     };
 
     this.getFocussedKey = function() {
@@ -260,8 +296,7 @@ function Keyboard() {
     };
 
     this.onKeyPress = null;
-    this.onKeyDown = null;
-    this.onKeyUp = null;
+    this.onKeyRelease = null;
     this.onSubmit = null;
     this.onFullyLoaded = null;
 
@@ -354,7 +389,7 @@ function Keyboard() {
 
         {bounds: [[972, 283, 190, 63]], event: 'shift'},
 
-        {bounds: [[249, 355, 573, 67]], states: [{charCode: 192, char: ' '}]},
+        {bounds: [[249, 355, 573, 67]], states: [{charCode: 32, char: ' '}]},
 
         {bounds: [[899, 355, 263, 67]], event: 'submit'}
     ];
@@ -375,9 +410,8 @@ function Keyboard() {
 
 function Cursor() {
     var tthis = this;
-    var dimensions = Controller.getViewportDimensions();
-    this.x = dimensions.x / 2;
-    this.y = dimensions.y / 2;
+    this.x = windowDimensions.x / 2;
+    this.y = windowDimensions.y / 2;
     this.overlay = Overlays.addOverlay("image", {
         x: this.x,
         y: this.y,
@@ -433,12 +467,14 @@ function Cursor() {
 function keyPressEvent(key) {
     if (key.text === "SPACE") {
         print("pressed space");
+        keyboard.pressFocussedKey();
     }
 }
 
 function keyReleaseEvent(key) {
     if (key.text === "SPACE") {
         print("released space");
+        keyboard.releaseKeys();
     }
 }
 
