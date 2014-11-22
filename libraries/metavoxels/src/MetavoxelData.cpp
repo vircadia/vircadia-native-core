@@ -577,7 +577,9 @@ void MetavoxelData::read(Bitstream& in, const MetavoxelLOD& lod) {
         }
         MetavoxelStreamBase base = { attribute, in, lod, lod };
         MetavoxelStreamState state = { base, getMinimum(), _size };
+        in.setContext(&base);
         attribute->readMetavoxelRoot(*this, state);
+        in.setContext(NULL);
     }
 }
 
@@ -587,7 +589,9 @@ void MetavoxelData::write(Bitstream& out, const MetavoxelLOD& lod) const {
         out << it.key();
         MetavoxelStreamBase base = { it.key(), out, lod, lod };
         MetavoxelStreamState state = { base, getMinimum(), _size };
+        out.setContext(&base);
         it.key()->writeMetavoxelRoot(*it.value(), state);
+        out.setContext(NULL);
     }
     out << AttributePointer();
 }
@@ -622,6 +626,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
             MetavoxelStreamBase base = { attribute, in, lod, referenceLOD };
             MetavoxelStreamState state = { base, minimum, _size };
             MetavoxelNode* oldRoot = _roots.value(attribute);
+            in.setContext(&base);
             if (oldRoot) {
                 bool changed;
                 in >> changed;
@@ -637,6 +642,7 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
             } else {
                 attribute->readMetavoxelRoot(*this, state);
             } 
+            in.setContext(NULL);
         }
         
         forever {
@@ -657,7 +663,9 @@ void MetavoxelData::readDelta(const MetavoxelData& reference, const MetavoxelLOD
                 it != remainingRoots.constEnd(); it++) {
             MetavoxelStreamBase base = { it.key(), in, lod, referenceLOD };
             MetavoxelStreamState state = { base, minimum, _size };
+            in.setContext(&base);
             it.key()->readMetavoxelSubdivision(*this, state);
+            in.setContext(NULL);
         }
     }
 }
@@ -693,6 +701,7 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
         MetavoxelNode* referenceRoot = expandedReference->_roots.value(it.key());
         MetavoxelStreamBase base = { it.key(), out, lod, referenceLOD };
         MetavoxelStreamState state = { base, minimum, _size };
+        out.setContext(&base);
         if (it.value() != referenceRoot || becameSubdivided) {
             out << it.key();    
             if (referenceRoot) {
@@ -707,6 +716,7 @@ void MetavoxelData::writeDelta(const MetavoxelData& reference, const MetavoxelLO
                 it.key()->writeMetavoxelRoot(*it.value(), state);
             }
         }
+        out.setContext(NULL);
     }
     out << AttributePointer();
     

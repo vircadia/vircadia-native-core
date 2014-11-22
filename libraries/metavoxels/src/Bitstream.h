@@ -342,6 +342,12 @@ public:
     /// Returns a reference to the underlying data stream.
     QDataStream& getUnderlying() { return _underlying; }
 
+    /// Sets the context pointer.
+    void setContext(void* context) { _context = context; }
+
+    /// Returns the context pointer.
+    void* getContext() const { return _context; }
+
     /// Substitutes the supplied metaobject for the given class name's default mapping.  This is mostly useful for testing the
     /// process of mapping between different types, but may in the future be used for permanently renaming classes.
     void addMetaObjectSubstitution(const QByteArray& className, const QMetaObject* metaObject);
@@ -561,6 +567,8 @@ private:
 
     MetadataType _metadataType;
     GenericsMode _genericsMode;
+
+    void* _context;
 
     RepeatedValueStreamer<const ObjectStreamer*, const ObjectStreamer*, ObjectStreamerPointer> _objectStreamerStreamer;
     RepeatedValueStreamer<const TypeStreamer*, const TypeStreamer*, TypeStreamerPointer> _typeStreamerStreamer;

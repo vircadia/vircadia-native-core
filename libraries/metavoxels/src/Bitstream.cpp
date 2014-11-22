@@ -151,6 +151,7 @@ Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, Generic
     _position(0),
     _metadataType(metadataType),
     _genericsMode(genericsMode),
+    _context(NULL),
     _objectStreamerStreamer(*this),
     _typeStreamerStreamer(*this),
     _attributeStreamer(*this),
