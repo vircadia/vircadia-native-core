@@ -15,6 +15,13 @@ var panelWall = false;
 var orbShell = false;
 var reticle = false;
 var descriptionText = false;
+
+// used for formating the description text
+var textWidth = 400;
+var textHeight = 100;
+var textBottomMargin = 20;
+var textFontHeight = 20;
+
 var lastMouseMove = 0;
 var IDLE_HOVER_TIME = 2000; // if you haven't moved the mouse in 2 seconds, and in HMD mode, then we use reticle for hover
 var avatarStickPosition = {};
@@ -84,10 +91,6 @@ function drawLobby() {
     };
 
     var windowDimensions = Controller.getViewportDimensions();
-    var textWidth = 400;
-    var textHeight = 100;
-    var textBottomMargin = 20;
-    var textFontHeight = 20;
     
     var descriptionTextProps = {
         x: (windowDimensions.x - textWidth) / 2,
@@ -295,9 +298,38 @@ function handleLookAt(pickRay) {
         var panelIndex = parseInt(panelName.slice(5)) - 1;
         if (panelIndex < locations.length) {
           var actionLocation = locations[panelIndex];
-
-          Overlays.editOverlay(descriptionText, { text: actionLocation.description });
           
+          // handle line wrapping
+          var allWords = actionLocation.description.split(" ");
+          var currentGoodLine = "";
+          var currentTestLine = "";
+          var formatedDescription = "";
+          var wordsFormated = 0;
+          var currentTestWord = 0;
+          var wordsOnLine = 0;
+          while (wordsFormated < allWords.length) {
+            // first add the "next word" to the line and test it.
+            currentTestLine = currentGoodLine;
+            if (wordsOnLine > 0) {
+                currentTestLine += " " + allWords[currentTestWord];
+            } else {
+                currentTestLine = allWords[currentTestWord];
+            }
+            var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
+            if (lineLength < textWidth || wordsOnLine == 0) {
+              wordsFormated++;
+              currentTestWord++;
+              wordsOnLine++;
+              currentGoodLine = currentTestLine;
+            } else {
+              formatedDescription += currentGoodLine + "\n";
+              wordsOnLine = 0;
+              currentGoodLine = "";
+              currentTestLine = "";
+            }
+          }
+          formatedDescription += currentGoodLine;
+          Overlays.editOverlay(descriptionText, { text: formatedDescription });
         }
       }
     }
