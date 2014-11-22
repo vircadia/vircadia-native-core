@@ -1409,6 +1409,16 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
         return false;
     }
     
+    // check if this is a request for our domain ID
+    const QString URI_ID = "/id";
+    if (connection->requestOperation() == QNetworkAccessManager::GetOperation
+        && url.path() == URI_ID) {
+        QUuid domainID = LimitedNodeList::getInstance()->getSessionUUID();
+        
+        connection->respond(HTTPConnection::StatusCode200, uuidStringWithoutCurlyBraces(domainID).toLocal8Bit());
+        return true;
+    }
+    
     // all requests below require a cookie to prove authentication so check that first
     if (!isAuthenticatedRequest(connection, url)) {
         // this is not an authenticated request
