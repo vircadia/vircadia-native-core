@@ -14,7 +14,9 @@ Script.include("libraries/globals.js");
 var panelWall = false;
 var orbShell = false;
 var reticle = false;
-
+var descriptionText = false;
+var lastMouseMove = 0;
+var IDLE_HOVER_TIME = 2000; // if you haven't moved the mouse in 2 seconds, and in HMD mode, then we use reticle for hover
 var avatarStickPosition = {};
 
 var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
@@ -80,11 +82,32 @@ function drawLobby() {
       dimensions: orbDimensions,
       ignoreRayIntersection: true
     };
+
+    var windowDimensions = Controller.getViewportDimensions();
+    var textWidth = 400;
+    var textHeight = 100;
+    var textBottomMargin = 20;
+    var textFontHeight = 20;
+    
+    var descriptionTextProps = {
+        x: (windowDimensions.x - textWidth) / 2,
+        y: windowDimensions.y - textHeight - textBottomMargin,
+        width: textWidth,
+        height: textHeight,
+        backgroundColor: { red: 100, green: 100, blue: 100},
+        color: { red: 255, green: 255, blue: 255},
+        topMargin: 4,
+        leftMargin: 4,
+        text: "",
+        font: { size: textFontHeight },
+        alpha: 0.9
+    };
     
     avatarStickPosition = MyAvatar.position;
 
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
+    descriptionText = Overlays.addOverlay("text", descriptionTextProps);
     
     inOculusMode = Menu.isOptionChecked("Enable VR Mode");
     
@@ -186,6 +209,8 @@ function cleanupLobby() {
   
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
+  Overlays.deleteOverlay(descriptionText);
+  
   
   if (reticle) {
     Overlays.deleteOverlay(reticle);
@@ -209,7 +234,6 @@ function cleanupLobby() {
 
 function actionStartEvent(event) {
   if (panelWall) {
-        
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
@@ -259,6 +283,27 @@ function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Avatars", shouldRender);
 }
 
+function handleLookAt(pickRay) {
+  if (panelWall && descriptionText) {
+    // we've got an action event and our panel wall is up
+    // check if we hit a panel and if we should jump there
+    var result = Overlays.findRayIntersection(pickRay);
+    if (result.intersects && result.overlayID == panelWall) {
+      var panelName = result.extraInfo;
+      var panelStringIndex = panelName.indexOf("Panel");
+      if (panelStringIndex != -1) {
+        var panelIndex = parseInt(panelName.slice(5)) - 1;
+        if (panelIndex < locations.length) {
+          var actionLocation = locations[panelIndex];
+
+          Overlays.editOverlay(descriptionText, { text: actionLocation.description });
+          
+        }
+      }
+    }
+  }
+}
+
 function update(deltaTime) {
   maybeCleanupLobby();
   if (panelWall) {
@@ -267,8 +312,17 @@ function update(deltaTime) {
       Overlays.editOverlay(reticle, {
         position: reticlePosition()
       });
+
+      var nowDate = new Date();
+      var now = nowDate.getTime();
+      if (now - lastMouseMove > IDLE_HOVER_TIME) {
+        var windowDimensions = Controller.getViewportDimensions();
+        var pickRay = Camera.computePickRay(windowDimensions.x / 2, windowDimensions.y / 2);
+        handleLookAt(pickRay);
+      }
+      
     }
-    
+
     // if the reticle is up then we may need to play the next muzak
     if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
       playNextMuzak();
@@ -276,6 +330,14 @@ function update(deltaTime) {
   }
 }
 
+function mouseMoveEvent(event) {
+  var nowDate = new Date();
+  lastMouseMove = nowDate.getTime();
+  var pickRay = Camera.computePickRay(event.x, event.y);
+  handleLookAt(pickRay);
+}
+
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.actionStartEvent.connect(actionStartEvent);
 Controller.backStartEvent.connect(backStartEvent);
 Script.update.connect(update);
