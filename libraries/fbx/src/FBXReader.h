@@ -19,6 +19,7 @@
 #include <QVector>
 
 #include <Extents.h>
+#include <Transform.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -102,6 +103,10 @@ public:
     QString name;
     QByteArray filename;
     QByteArray content;
+    
+    Transform transform;
+    int texcoordSet;
+    std::string texcoordSetName;
 };
 
 /// A single part of a mesh (with the same material).
@@ -136,13 +141,14 @@ public:
     QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
+    QVector<glm::vec2> texCoords1;
     QVector<glm::vec4> clusterIndices;
     QVector<glm::vec4> clusterWeights;
     
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
-    
+
     bool isEye;
     
     QVector<FBXBlendshape> blendshapes;

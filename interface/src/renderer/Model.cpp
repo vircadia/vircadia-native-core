@@ -70,10 +70,10 @@ ProgramObject Model::_specularMapProgram;
 ProgramObject Model::_normalSpecularMapProgram;
 ProgramObject Model::_translucentProgram;
 
-ProgramObject Model::_emissiveProgram;
-ProgramObject Model::_emissiveNormalMapProgram;
-ProgramObject Model::_emissiveSpecularMapProgram;
-ProgramObject Model::_emissiveNormalSpecularMapProgram;
+ProgramObject Model::_lightmapProgram;
+ProgramObject Model::_lightmapNormalMapProgram;
+ProgramObject Model::_lightmapSpecularMapProgram;
+ProgramObject Model::_lightmapNormalSpecularMapProgram;
 
 ProgramObject Model::_shadowProgram;
 
@@ -83,11 +83,6 @@ ProgramObject Model::_skinSpecularMapProgram;
 ProgramObject Model::_skinNormalSpecularMapProgram;
 ProgramObject Model::_skinTranslucentProgram;
 
-ProgramObject Model::_skinEmissiveProgram;
-ProgramObject Model::_skinEmissiveNormalMapProgram;
-ProgramObject Model::_skinEmissiveSpecularMapProgram;
-ProgramObject Model::_skinEmissiveNormalSpecularMapProgram;
-
 ProgramObject Model::_skinShadowProgram;
 
 Model::Locations Model::_locations;
@@ -96,10 +91,10 @@ Model::Locations Model::_specularMapLocations;
 Model::Locations Model::_normalSpecularMapLocations;
 Model::Locations Model::_translucentLocations;
 
-Model::Locations Model::_emissiveLocations;
-Model::Locations Model::_emissiveNormalMapLocations;
-Model::Locations Model::_emissiveSpecularMapLocations;
-Model::Locations Model::_emissiveNormalSpecularMapLocations;
+Model::Locations Model::_lightmapLocations;
+Model::Locations Model::_lightmapNormalMapLocations;
+Model::Locations Model::_lightmapSpecularMapLocations;
+Model::Locations Model::_lightmapNormalSpecularMapLocations;
 
 Model::SkinLocations Model::_skinLocations;
 Model::SkinLocations Model::_skinNormalMapLocations;
@@ -107,11 +102,6 @@ Model::SkinLocations Model::_skinSpecularMapLocations;
 Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
-
-Model::SkinLocations Model::_skinEmissiveLocations;
-Model::SkinLocations Model::_skinEmissiveNormalMapLocations;
-Model::SkinLocations Model::_skinEmissiveSpecularMapLocations;
-Model::SkinLocations Model::_skinEmissiveNormalSpecularMapLocations;
 
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
@@ -160,17 +150,40 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
     glBindAttribLocation(program.programId(), gpu::Stream::TANGENT, "tangent");
 
+    glBindAttribLocation(program.programId(), gpu::Stream::TEXCOORD1, "texcoord1");
+
     glLinkProgram(program.programId());
 
     locations.tangent = program.attributeLocation("tangent");
 
     locations.alphaThreshold = program.uniformLocation("alphaThreshold");
 
+    locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
+
+
     program.setUniformValue("diffuseMap", 0);
 
     program.setUniformValue("normalMap", 1);
 
-    program.setUniformValue("specularMap", specularTextureUnit);
+    int loc = program.uniformLocation("specularMap");
+    if (loc >= 0) {
+        program.setUniformValue("specularMap", 2);
+        locations.specularTextureUnit = 2;
+    } else {
+        locations.specularTextureUnit = -1;
+    }
+    
+    loc = program.uniformLocation("emissiveMap");
+    if (loc >= 0) {
+        program.setUniformValue("emissiveMap", 3);
+        locations.emissiveTextureUnit = 3;
+    } else {
+        locations.emissiveTextureUnit = -1;
+    }
+
+    if (!program.isLinked()) {
+        program.release();
+    }
 
     program.release();
 
@@ -289,37 +302,37 @@ void Model::init() {
         
         initProgram(_translucentProgram, _translucentLocations);
 
-        // Emissive
-        _emissiveProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model.vert");
-        _emissiveProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model_emissive.frag");
-        _emissiveProgram.link();
+        // Lightmap
+        _lightmapProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_lightmap.vert");
+        _lightmapProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model_lightmap.frag");
+        _lightmapProgram.link();
         
-        initProgram(_emissiveProgram, _emissiveLocations);
+        initProgram(_lightmapProgram, _lightmapLocations);
 
-        _emissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
-        _emissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_emissive_normal_map.frag");
-        _emissiveNormalMapProgram.link();
+        _lightmapNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
+        _lightmapNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_lightmap_normal_map.frag");
+        _lightmapNormalMapProgram.link();
         
-        initProgram(_emissiveNormalMapProgram, _emissiveNormalMapLocations);
+        initProgram(_lightmapNormalMapProgram, _lightmapNormalMapLocations);
         
-        _emissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model.vert");
-        _emissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_emissive_specular_map.frag");
-        _emissiveSpecularMapProgram.link();
+        _lightmapSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model_lightmap.vert");
+        _lightmapSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_lightmap_specular_map.frag");
+        _lightmapSpecularMapProgram.link();
         
-        initProgram(_emissiveSpecularMapProgram, _emissiveSpecularMapLocations);
+        initProgram(_lightmapSpecularMapProgram, _lightmapSpecularMapLocations);
         
-        _emissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/model_normal_map.vert");
-        _emissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_emissive_normal_specular_map.frag");
-        _emissiveNormalSpecularMapProgram.link();
+        _lightmapNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
+            Application::resourcesPath() + "shaders/model_lightmap_normal_map.vert");
+        _lightmapNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
+            Application::resourcesPath() + "shaders/model_lightmap_normal_specular_map.frag");
+        _lightmapNormalSpecularMapProgram.link();
         
-        initProgram(_emissiveNormalSpecularMapProgram, _emissiveNormalSpecularMapLocations, 2);
-        // end emissive
+        initProgram(_lightmapNormalSpecularMapProgram, _lightmapNormalSpecularMapLocations, 2);
+        // end lightmap
 
         
         _shadowProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model_shadow.vert");
@@ -374,36 +387,6 @@ void Model::init() {
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
 
 
-        _skinEmissiveProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/skin_model.vert");
-        _skinEmissiveProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model_emissive.frag");
-        _skinEmissiveProgram.link();
-        
-        initSkinProgram(_skinEmissiveProgram, _skinEmissiveLocations);
-        
-        _skinEmissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinEmissiveNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_emissive_normal_map.frag");
-        _skinEmissiveNormalMapProgram.link();
-        
-        initSkinProgram(_skinEmissiveNormalMapProgram, _skinEmissiveNormalMapLocations);
-        
-        _skinEmissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model.vert");
-        _skinEmissiveSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_emissive_specular_map.frag");
-        _skinEmissiveSpecularMapProgram.link();
-        
-        initSkinProgram(_skinEmissiveSpecularMapProgram, _skinEmissiveSpecularMapLocations);
-        
-        _skinEmissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
-            Application::resourcesPath() + "shaders/skin_model_normal_map.vert");
-        _skinEmissiveNormalSpecularMapProgram.addShaderFromSourceFile(QGLShader::Fragment,
-            Application::resourcesPath() + "shaders/model_emissive_normal_specular_map.frag");
-        _skinEmissiveNormalSpecularMapProgram.link();
-        
-        initSkinProgram(_skinEmissiveNormalSpecularMapProgram, _skinEmissiveNormalSpecularMapLocations, 2);
-        
     }
 }
 
@@ -716,13 +699,9 @@ bool Model::renderCore(float alpha, RenderMode mode, RenderArgs* args) {
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args);
 
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, true, args);
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, true, args);
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, true, args);
     opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
-    opaqueMeshPartsRendered += renderMeshes(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, true, args);
 
     // render translucent meshes afterwards
     //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
@@ -1666,13 +1645,9 @@ void Model::endScene(RenderMode mode, RenderArgs* args) {
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, false, true, true, true, args);
 */
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, false, true, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, false, true, true, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, false, true, args);
         opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, false, args);
-        opaqueMeshPartsRendered += renderMeshesForModelsInScene(batch, mode, false, DEFAULT_ALPHA_THRESHOLD, true, true, true, true, args);
 
         // render translucent meshes afterwards
         //Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(false, true, true);
@@ -1793,15 +1768,10 @@ void Model::segregateMeshGroups() {
     _meshesOpaqueTangentsSpecularSkinned.clear();
     _meshesOpaqueSpecularSkinned.clear();
 
-    _meshesOpaqueEmissiveTangents.clear();
-    _meshesOpaqueEmissive.clear();
-    _meshesOpaqueEmissiveTangentsSpecular.clear();
-    _meshesOpaqueEmissiveSpecular.clear();
-
-    _meshesOpaqueEmissiveTangentsSkinned.clear();
-    _meshesOpaqueEmissiveSkinned.clear();
-    _meshesOpaqueEmissiveTangentsSpecularSkinned.clear();
-    _meshesOpaqueEmissiveSpecularSkinned.clear();
+    _meshesOpaqueLightmapTangents.clear();
+    _meshesOpaqueLightmap.clear();
+    _meshesOpaqueLightmapTangentsSpecular.clear();
+    _meshesOpaqueLightmapSpecular.clear();
 
     _unsortedMeshesTranslucentTangents.clear();
     _unsortedMeshesTranslucent.clear();
@@ -1823,15 +1793,10 @@ void Model::segregateMeshGroups() {
     _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
     _unsortedMeshesOpaqueSpecularSkinned.clear();
 
-    _unsortedMeshesOpaqueEmissiveTangents.clear();
-    _unsortedMeshesOpaqueEmissive.clear();
-    _unsortedMeshesOpaqueEmissiveTangentsSpecular.clear();
-    _unsortedMeshesOpaqueEmissiveSpecular.clear();
-
-    _unsortedMeshesOpaqueEmissiveTangentsSkinned.clear();
-    _unsortedMeshesOpaqueEmissiveSkinned.clear();
-    _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned.clear();
-    _unsortedMeshesOpaqueEmissiveSpecularSkinned.clear();
+    _unsortedMeshesOpaqueLightmapTangents.clear();
+    _unsortedMeshesOpaqueLightmap.clear();
+    _unsortedMeshesOpaqueLightmapTangentsSpecular.clear();
+    _unsortedMeshesOpaqueLightmapSpecular.clear();
 
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -1846,7 +1811,7 @@ void Model::segregateMeshGroups() {
         bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
-        bool hasEmissive = mesh.hasEmissiveTexture();
+        bool haslightmap = mesh.hasEmissiveTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
         QString materialID;
 
@@ -1865,7 +1830,7 @@ void Model::segregateMeshGroups() {
             qDebug() << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
 
-        if ( !hasEmissive) {
+        if ( !haslightmap) {
             if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
                 _unsortedMeshesTranslucent.insertMulti(materialID, i);
@@ -1935,35 +1900,20 @@ void Model::segregateMeshGroups() {
         } else {
             if (!translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
-                _unsortedMeshesOpaqueEmissive.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueLightmap.insertMulti(materialID, i);
 
             } else if (!translucentMesh && hasTangents && !hasSpecular && !isSkinned) {
 
-                _unsortedMeshesOpaqueEmissiveTangents.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueLightmapTangents.insertMulti(materialID, i);
 
             } else if (!translucentMesh && hasTangents && hasSpecular && !isSkinned) {
 
-                _unsortedMeshesOpaqueEmissiveTangentsSpecular.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueLightmapTangentsSpecular.insertMulti(materialID, i);
 
             } else if (!translucentMesh && !hasTangents && hasSpecular && !isSkinned) {
 
-                _unsortedMeshesOpaqueEmissiveSpecular.insertMulti(materialID, i);
+                _unsortedMeshesOpaqueLightmapSpecular.insertMulti(materialID, i);
 
-            } else if (!translucentMesh && hasTangents && !hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueEmissiveTangentsSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && !hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueEmissiveSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && hasTangents && hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned.insertMulti(materialID, i);
-
-            } else if (!translucentMesh && !hasTangents && hasSpecular && isSkinned) {
-
-                _unsortedMeshesOpaqueEmissiveSpecularSkinned.insertMulti(materialID, i);
             } else {
                 qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
             }
@@ -2034,36 +1984,20 @@ void Model::segregateMeshGroups() {
         _meshesOpaqueSpecularSkinned.append(i);
     }
 
-    foreach(int i, _unsortedMeshesOpaqueEmissive) {
-        _meshesOpaqueEmissive.append(i);
+    foreach(int i, _unsortedMeshesOpaqueLightmap) {
+        _meshesOpaqueLightmap.append(i);
     }
 
-    foreach(int i, _unsortedMeshesOpaqueEmissiveTangents) {
-        _meshesOpaqueEmissiveTangents.append(i);
+    foreach(int i, _unsortedMeshesOpaqueLightmapTangents) {
+        _meshesOpaqueLightmapTangents.append(i);
     }
 
-    foreach(int i, _unsortedMeshesOpaqueEmissiveTangentsSpecular) {
-        _meshesOpaqueEmissiveTangentsSpecular.append(i);
+    foreach(int i, _unsortedMeshesOpaqueLightmapTangentsSpecular) {
+        _meshesOpaqueLightmapTangentsSpecular.append(i);
     }
 
-    foreach(int i, _unsortedMeshesOpaqueEmissiveSpecular) {
-        _meshesOpaqueEmissiveSpecular.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueEmissiveSkinned) {
-        _meshesOpaqueEmissiveSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueEmissiveTangentsSkinned) {
-        _meshesOpaqueEmissiveTangentsSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned) {
-        _meshesOpaqueEmissiveTangentsSpecularSkinned.append(i);
-    }
-
-    foreach(int i, _unsortedMeshesOpaqueEmissiveSpecularSkinned) {
-        _meshesOpaqueEmissiveSpecularSkinned.append(i);
+    foreach(int i, _unsortedMeshesOpaqueLightmapSpecular) {
+        _meshesOpaqueLightmapSpecular.append(i);
     }
 
     _unsortedMeshesTranslucentTangents.clear();
@@ -2086,20 +2020,15 @@ void Model::segregateMeshGroups() {
     _unsortedMeshesOpaqueTangentsSpecularSkinned.clear();
     _unsortedMeshesOpaqueSpecularSkinned.clear();
 
-    _unsortedMeshesOpaqueEmissiveTangents.clear();
-    _unsortedMeshesOpaqueEmissive.clear();
-    _unsortedMeshesOpaqueEmissiveTangentsSpecular.clear();
-    _unsortedMeshesOpaqueEmissiveSpecular.clear();
-
-    _unsortedMeshesOpaqueEmissiveTangentsSkinned.clear();
-    _unsortedMeshesOpaqueEmissiveSkinned.clear();
-    _unsortedMeshesOpaqueEmissiveTangentsSpecularSkinned.clear();
-    _unsortedMeshesOpaqueEmissiveSpecularSkinned.clear();
+    _unsortedMeshesOpaqueLightmapTangents.clear();
+    _unsortedMeshesOpaqueLightmap.clear();
+    _unsortedMeshesOpaqueLightmapTangentsSpecular.clear();
+    _unsortedMeshesOpaqueLightmapSpecular.clear();
 
     _meshGroupsKnown = true;
 }
 
-QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned) {
+QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned) {
     PROFILE_RANGE(__FUNCTION__);
 
     // depending on which parameters we were called with, pick the correct mesh group to render
@@ -2121,39 +2050,31 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
     } else if (translucent && !hasTangents && hasSpecular && isSkinned) {
         whichList = &_meshesTranslucentSpecularSkinned;
 
-    } else if (!translucent && !hasEmissive && !hasTangents && !hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasLightmap && !hasTangents && !hasSpecular && !isSkinned) {
         whichList = &_meshesOpaque;
-    } else if (!translucent && !hasEmissive && hasTangents && !hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasLightmap && hasTangents && !hasSpecular && !isSkinned) {
         whichList = &_meshesOpaqueTangents;
-    } else if (!translucent && !hasEmissive && hasTangents && hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasLightmap && hasTangents && hasSpecular && !isSkinned) {
         whichList = &_meshesOpaqueTangentsSpecular;
-    } else if (!translucent && !hasEmissive && !hasTangents && hasSpecular && !isSkinned) {
+    } else if (!translucent && !hasLightmap && !hasTangents && hasSpecular && !isSkinned) {
         whichList = &_meshesOpaqueSpecular;
-    } else if (!translucent && !hasEmissive && hasTangents && !hasSpecular && isSkinned) {
+    } else if (!translucent && !hasLightmap && hasTangents && !hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueTangentsSkinned;
-    } else if (!translucent && !hasEmissive && !hasTangents && !hasSpecular && isSkinned) {
+    } else if (!translucent && !hasLightmap && !hasTangents && !hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueSkinned;
-    } else if (!translucent && !hasEmissive && hasTangents && hasSpecular && isSkinned) {
+    } else if (!translucent && !hasLightmap && hasTangents && hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueTangentsSpecularSkinned;
-    } else if (!translucent && !hasEmissive && !hasTangents && hasSpecular && isSkinned) {
+    } else if (!translucent && !hasLightmap && !hasTangents && hasSpecular && isSkinned) {
         whichList = &_meshesOpaqueSpecularSkinned;
 
-    } else if (!translucent && hasEmissive && !hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueEmissive;
-    } else if (!translucent && hasEmissive && hasTangents && !hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueEmissiveTangents;
-    } else if (!translucent && hasEmissive && hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueEmissiveTangentsSpecular;
-    } else if (!translucent && hasEmissive && !hasTangents && hasSpecular && !isSkinned) {
-        whichList = &_meshesOpaqueEmissiveSpecular;
-    } else if (!translucent && hasEmissive && hasTangents && !hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueEmissiveTangentsSkinned;
-    } else if (!translucent && hasEmissive && !hasTangents && !hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueEmissiveSkinned;
-    } else if (!translucent && hasEmissive && hasTangents && hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueEmissiveTangentsSpecularSkinned;
-    } else if (!translucent && hasEmissive && !hasTangents && hasSpecular && isSkinned) {
-        whichList = &_meshesOpaqueEmissiveSpecularSkinned;
+    } else if (!translucent && hasLightmap && !hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueLightmap;
+    } else if (!translucent && hasLightmap && hasTangents && !hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueLightmapTangents;
+    } else if (!translucent && hasLightmap && hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueLightmapTangentsSpecular;
+    } else if (!translucent && hasLightmap && !hasTangents && hasSpecular && !isSkinned) {
+        whichList = &_meshesOpaqueLightmapSpecular;
 
     } else {
         qDebug() << "unexpected!!! this mesh didn't fall into any or our groups???";
@@ -2162,15 +2083,13 @@ QVector<int>* Model::pickMeshList(bool translucent, float alphaThreshold, bool h
 }
 
 void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
-                            SkinLocations*& skinLocations, GLenum& specularTextureUnit, GLenum& emissiveTextureUnit) {
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            Locations*& locations, SkinLocations*& skinLocations) {
                             
     ProgramObject* program = &_program;
-    Locations* locations = &_locations;
+    locations = &_locations;
     ProgramObject* skinProgram = &_skinProgram;
     skinLocations = &_skinLocations;
-    specularTextureUnit = 0;
-    emissiveTextureUnit = 0;
     if (mode == SHADOW_RENDER_MODE) {
         program = &_shadowProgram;
         skinProgram = &_skinShadowProgram;
@@ -2181,35 +2100,29 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
         skinProgram = &_skinTranslucentProgram;
         skinLocations = &_skinTranslucentLocations;
         
-    } else if (hasEmissive) {
+    } else if (hasLightmap) {
         if (hasTangents) {
             if (hasSpecular) {
-                program = &_emissiveNormalSpecularMapProgram;
-                locations = &_emissiveNormalSpecularMapLocations;
-                skinProgram = &_skinEmissiveNormalSpecularMapProgram;
-                skinLocations = &_skinEmissiveNormalSpecularMapLocations;
-                specularTextureUnit = GL_TEXTURE2;
-                emissiveTextureUnit = GL_TEXTURE3;
+                program = &_lightmapNormalSpecularMapProgram;
+                locations = &_lightmapNormalSpecularMapLocations;
+                skinProgram = NULL;
+                skinLocations = NULL;
             } else {
-                program = &_emissiveNormalMapProgram;
-                locations = &_emissiveNormalMapLocations;
-                skinProgram = &_skinEmissiveNormalMapProgram;
-                skinLocations = &_skinEmissiveNormalMapLocations;
-                emissiveTextureUnit = GL_TEXTURE3;
+                program = &_lightmapNormalMapProgram;
+                locations = &_lightmapNormalMapLocations;
+                skinProgram = NULL;
+                skinLocations = NULL;
             }
         } else if (hasSpecular) {
-            program = &_emissiveSpecularMapProgram;
-            locations = &_emissiveSpecularMapLocations;
-            skinProgram = &_skinEmissiveSpecularMapProgram;
-            skinLocations = &_skinEmissiveSpecularMapLocations;
-            specularTextureUnit = GL_TEXTURE1;
-            emissiveTextureUnit = GL_TEXTURE3;
+            program = &_lightmapSpecularMapProgram;
+            locations = &_lightmapSpecularMapLocations;
+            skinProgram = NULL;
+            skinLocations = NULL;
         } else {
-            program = &_emissiveProgram;
-            locations = &_emissiveLocations;
-            skinProgram = &_skinEmissiveProgram;
-            skinLocations = &_skinEmissiveLocations;
-            emissiveTextureUnit = GL_TEXTURE3;
+            program = &_lightmapProgram;
+            locations = &_lightmapLocations;
+            skinProgram = NULL;
+            skinLocations = NULL;
         }
     } else {
         if (hasTangents) {
@@ -2218,7 +2131,6 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
                 locations = &_normalSpecularMapLocations;
                 skinProgram = &_skinNormalSpecularMapProgram;
                 skinLocations = &_skinNormalSpecularMapLocations;
-                specularTextureUnit = GL_TEXTURE2;
             } else {
                 program = &_normalMapProgram;
                 locations = &_normalMapLocations;
@@ -2230,7 +2142,6 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
             locations = &_specularMapLocations;
             skinProgram = &_skinSpecularMapProgram;
             skinLocations = &_skinSpecularMapLocations;
-            specularTextureUnit = GL_TEXTURE1;
         }
     } 
 
@@ -2240,6 +2151,7 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
     if (isSkinned) {
         activeProgram = skinProgram;
         activeLocations = skinLocations;
+        locations = skinLocations;
     }
     // This code replace the "bind()" on the QGLProgram
     if (!activeProgram->isLinked()) {
@@ -2251,27 +2163,26 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
 }
 
 int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
 
     bool pickProgramsNeeded = true;
+    Locations* locations;
     SkinLocations* skinLocations;
-    GLenum specularTextureUnit;
-    GLenum emissiveTextureUnit;
     
     foreach(Model* model, _modelsInScene) {
-        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned);
+        QVector<int>* whichList = model->pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
         if (whichList) {
             QVector<int>& list = *whichList;
             if (list.size() > 0) {
                 if (pickProgramsNeeded) {
-                    pickPrograms(batch, mode, translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
+                    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations, skinLocations);
                     pickProgramsNeeded = false;
                 }
                 model->setupBatchTransform(batch);
-                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
+                meshPartsRendered += model->renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations, skinLocations);
                 GLBATCH(glPopMatrix)();
             }
         }
@@ -2284,12 +2195,12 @@ int Model::renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool
 }
 
 int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
-                            bool hasEmissive, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args) {
 
     PROFILE_RANGE(__FUNCTION__);
     int meshPartsRendered = 0;
 
-    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned);
+    QVector<int>* whichList = pickMeshList(translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned);
     
     if (!whichList) {
         qDebug() << "unexpected!!! we don't know which list of meshes to render...";
@@ -2302,11 +2213,10 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
         return 0;
     }
 
+    Locations* locations;
     SkinLocations* skinLocations;
-    GLenum specularTextureUnit;
-    GLenum emissiveTextureUnit;
-    pickPrograms(batch, mode, translucent, alphaThreshold, hasEmissive, hasTangents, hasSpecular, isSkinned, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
-    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, skinLocations, specularTextureUnit, emissiveTextureUnit);
+    pickPrograms(batch, mode, translucent, alphaThreshold, hasLightmap, hasTangents, hasSpecular, isSkinned, args, locations, skinLocations);
+    meshPartsRendered = renderMeshesFromList(list, batch, mode, translucent, alphaThreshold, args, locations, skinLocations);
     GLBATCH(glUseProgram)(0);
 
     return meshPartsRendered;
@@ -2314,7 +2224,7 @@ int Model::renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, fl
 
 
 int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, RenderArgs* args,
-                                        SkinLocations* skinLocations, GLenum specularTextureUnit, GLenum emissiveTextureUnit) {
+                                        Locations* locations, SkinLocations* skinLocations) {
     PROFILE_RANGE(__FUNCTION__);
     bool dontCullOutOfViewMeshParts = Menu::getInstance()->isOptionChecked(MenuOption::DontCullOutOfViewMeshParts);
     bool cullTooSmallMeshParts = !Menu::getInstance()->isOptionChecked(MenuOption::DontCullTooSmallMeshParts);
@@ -2431,7 +2341,7 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
                     GLBATCH(glMaterialfv)(GL_FRONT, GL_SPECULAR, (const float*)&specular);
                     GLBATCH(glMaterialf)(GL_FRONT, GL_SHININESS, (part.shininess > 128.0f ? 128.0f: part.shininess));
-            
+
                     Texture* diffuseMap = networkPart.diffuseTexture.data();
                     if (mesh.isEye && diffuseMap) {
                         diffuseMap = (_dilatedTextures[i][j] =
@@ -2439,7 +2349,18 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
                     GLBATCH(glBindTexture)(GL_TEXTURE_2D, !diffuseMap ?
                         Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
-                
+
+                    if (locations->texcoordMatrices >= 0) {
+                        glm::mat4 texcoordTransform[2];
+                        if (!part.diffuseTexture.transform.isIdentity()) {
+                            part.diffuseTexture.transform.getMatrix(texcoordTransform[0]);
+                        }
+                        if (!part.emissiveTexture.transform.isIdentity()) {
+                            part.emissiveTexture.transform.getMatrix(texcoordTransform[1]);
+                        }
+                        GLBATCH(glUniformMatrix4fv)(locations->texcoordMatrices, 2, false, (const float*) &texcoordTransform);
+                    }
+
                     if (!mesh.tangents.isEmpty()) {                 
                         GLBATCH(glActiveTexture)(GL_TEXTURE1);
                         Texture* normalMap = networkPart.normalTexture.data();
@@ -2448,19 +2369,20 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
                 
-                    if (specularTextureUnit) {
-                        GLBATCH(glActiveTexture)(specularTextureUnit);
+                    if (locations->specularTextureUnit >= 0) {
+                        GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
                         Texture* specularMap = networkPart.specularTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !specularMap ?
                             Application::getInstance()->getTextureCache()->getWhiteTextureID() : specularMap->getID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 
-                    if (emissiveTextureUnit) {
-                        GLBATCH(glActiveTexture)(emissiveTextureUnit);
+                    if (locations->emissiveTextureUnit >= 0) {
+                        GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                         Texture* emissiveMap = networkPart.emissiveTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
                             Application::getInstance()->getTextureCache()->getWhiteTextureID() : emissiveMap->getID());
+                       // GLBATCH(glBindTexture)(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getWhiteTextureID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 
@@ -2498,14 +2420,14 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
         }
 
-        if (specularTextureUnit) {
-            GLBATCH(glActiveTexture)(specularTextureUnit);
+        if (locations->specularTextureUnit >= 0) {
+            GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->specularTextureUnit);
             GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
         }
 
-        if (emissiveTextureUnit) {
-            GLBATCH(glActiveTexture)(emissiveTextureUnit);
+        if (locations->emissiveTextureUnit >= 0) {
+            GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
             GLBATCH(glBindTexture)(GL_TEXTURE_2D, 0);
             GLBATCH(glActiveTexture)(GL_TEXTURE0);
         }

@@ -11,6 +11,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+const int MAX_TEXCOORDS = 2;
+
+uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+
 // the tangent vector
 attribute vec3 tangent;
 
@@ -29,7 +33,7 @@ void main(void) {
     gl_FrontColor = gl_Color * gl_FrontMaterial.diffuse;
     
     // and the texture coordinates
-    gl_TexCoord[0] = gl_MultiTexCoord0;
+    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.f, 1.f);
     
     // use standard pipeline transform
     gl_Position = ftransform();

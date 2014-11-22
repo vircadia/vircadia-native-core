@@ -964,7 +964,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
                 int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
                 int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-                int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+                int texCoords1Offset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+                int clusterIndicesOffset = texCoords1Offset + mesh.texCoords1.size() * sizeof(glm::vec2);
                 int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
 
                 networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
@@ -977,6 +978,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.colors.constData());
                 networkMesh._vertexBuffer->setSubData(texCoordsOffset,
                     mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords.constData());
+                networkMesh._vertexBuffer->setSubData(texCoords1Offset,
+                    mesh.texCoords1.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords1.constData());
                 networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
                     mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterIndices.constData());
                 networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
@@ -989,6 +992,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, tangentsOffset, sizeof(glm::vec3));
                 if (mesh.colors.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
                 if (mesh.texCoords.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+                if (mesh.texCoords1.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
                 if (mesh.clusterIndices.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
                 if (mesh.clusterWeights.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
 
@@ -999,6 +1003,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
                 if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                if (mesh.texCoords1.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
                 if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
                 if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
             }
