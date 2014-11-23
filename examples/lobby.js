@@ -103,7 +103,8 @@ function drawLobby() {
         leftMargin: 4,
         text: "",
         font: { size: textFontHeight },
-        alpha: 0.9
+        alpha: 0.9,
+        visible: false // starts out hidden
     };
     
     avatarStickPosition = MyAvatar.position;
@@ -299,37 +300,41 @@ function handleLookAt(pickRay) {
         if (panelIndex < locations.length) {
           var actionLocation = locations[panelIndex];
           
-          // handle line wrapping
-          var allWords = actionLocation.description.split(" ");
-          var currentGoodLine = "";
-          var currentTestLine = "";
-          var formatedDescription = "";
-          var wordsFormated = 0;
-          var currentTestWord = 0;
-          var wordsOnLine = 0;
-          while (wordsFormated < allWords.length) {
-            // first add the "next word" to the line and test it.
-            currentTestLine = currentGoodLine;
-            if (wordsOnLine > 0) {
-                currentTestLine += " " + allWords[currentTestWord];
-            } else {
-                currentTestLine = allWords[currentTestWord];
+          if (actionLocation.description == "") {
+              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: true });
+          } else {
+              // handle line wrapping
+              var allWords = actionLocation.description.split(" ");
+              var currentGoodLine = "";
+              var currentTestLine = "";
+              var formatedDescription = "";
+              var wordsFormated = 0;
+              var currentTestWord = 0;
+              var wordsOnLine = 0;
+              while (wordsFormated < allWords.length) {
+                // first add the "next word" to the line and test it.
+                currentTestLine = currentGoodLine;
+                if (wordsOnLine > 0) {
+                    currentTestLine += " " + allWords[currentTestWord];
+                } else {
+                    currentTestLine = allWords[currentTestWord];
+                }
+                var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
+                if (lineLength < textWidth || wordsOnLine == 0) {
+                  wordsFormated++;
+                  currentTestWord++;
+                  wordsOnLine++;
+                  currentGoodLine = currentTestLine;
+                } else {
+                  formatedDescription += currentGoodLine + "\n";
+                  wordsOnLine = 0;
+                  currentGoodLine = "";
+                  currentTestLine = "";
+                }
+              }
+              formatedDescription += currentGoodLine;
+              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
             }
-            var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
-            if (lineLength < textWidth || wordsOnLine == 0) {
-              wordsFormated++;
-              currentTestWord++;
-              wordsOnLine++;
-              currentGoodLine = currentTestLine;
-            } else {
-              formatedDescription += currentGoodLine + "\n";
-              wordsOnLine = 0;
-              currentGoodLine = "";
-              currentTestLine = "";
-            }
-          }
-          formatedDescription += currentGoodLine;
-          Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
         } else {
           Overlays.editOverlay(descriptionText, { text: "", visible: false });
         }
