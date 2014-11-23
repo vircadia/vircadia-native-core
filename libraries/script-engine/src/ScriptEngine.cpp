@@ -618,16 +618,20 @@ void ScriptEngine::stopTimer(QTimer *timer) {
 }
 
 QUrl ScriptEngine::resolvePath(const QString& include) const {
-    // first lets check to see if it's already a full URL
     QUrl url(include);
+    // first lets check to see if it's already a full URL
     if (!url.scheme().isEmpty()) {
         return url;
     }
 
     // we apparently weren't a fully qualified url, so, let's assume we're relative
     // to the original URL of our script
-    QUrl parentURL(_fileNameString);
-
+    QUrl parentURL;
+    if (_parentURL.isEmpty()) {
+        parentURL = QUrl(_fileNameString);
+    } else {
+        parentURL = QUrl(_parentURL);
+    }
     // if the parent URL's scheme is empty, then this is probably a local file...
     if (parentURL.scheme().isEmpty()) {
         parentURL = QUrl::fromLocalFile(_fileNameString);
@@ -660,6 +664,7 @@ void ScriptEngine::include(const QString& includeFile) {
 #else
         QString fileName = url.toLocalFile();
 #endif
+
         QFile scriptFile(fileName);
         if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
             qDebug() << "Including file:" << fileName;

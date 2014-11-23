@@ -99,13 +99,15 @@ QScriptValue EntityTreeRenderer::loadEntityScript(const EntityItemID& entityItem
 }
 
 
-QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText) {
+QString EntityTreeRenderer::loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL) {
     QUrl url(scriptMaybeURLorText);
     
     // If the url is not valid, this must be script text...
     if (!url.isValid()) {
+        isURL = false;
         return scriptMaybeURLorText;
     }
+    isURL = true;
 
     QString scriptContents; // assume empty
     
@@ -168,7 +170,8 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         return QScriptValue(); // no script
     }
     
-    QString scriptContents = loadScriptContents(entity->getScript());
+    bool isURL = false; // loadScriptContents() will tell us if this is a URL or just text.
+    QString scriptContents = loadScriptContents(entity->getScript(), isURL);
     
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
@@ -179,6 +182,9 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         return QScriptValue(); // invalid script
     }
     
+    if (isURL) {
+        _entitiesScriptEngine->setParentURL(entity->getScript());
+    }
     QScriptValue entityScriptConstructor = _entitiesScriptEngine->evaluate(scriptContents);
     
     if (!entityScriptConstructor.isFunction()) {
@@ -189,8 +195,13 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     }
 
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
+
     EntityScriptDetails newDetails = { entity->getScript(), entityScriptObject };
     _entityScripts[entityID] = newDetails;
+
+    if (isURL) {
+        _entitiesScriptEngine->setParentURL("");
+    }
 
     return entityScriptObject; // newly constructed
 }

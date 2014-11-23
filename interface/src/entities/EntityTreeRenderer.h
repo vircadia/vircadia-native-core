@@ -132,7 +132,7 @@ private:
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
     QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
     QScriptValue getPreviouslyLoadedEntityScript(EntityItem* entity);
-    QString loadScriptContents(const QString& scriptMaybeURLorText);
+    QString loadScriptContents(const QString& scriptMaybeURLorText, bool& isURL);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
