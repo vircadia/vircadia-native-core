@@ -18,8 +18,8 @@ var descriptionText = false;
 
 // used for formating the description text, in meters
 var textWidth = 4;
-var textHeight = 1;
-var numberOfLines = 4;
+var textHeight = .5;
+var numberOfLines = 2;
 var textMargin = 0.0625;
 var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
@@ -65,8 +65,8 @@ function reticlePosition() {
 }
 
 function textOverlayPosition() {
-  var TEXT_DISTANCE_OUT = 5;
-  var TEXT_DISTANCE_DOWN = -1;
+  var TEXT_DISTANCE_OUT = 6;
+  var TEXT_DISTANCE_DOWN = -2;
   return Vec3.sum(Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), TEXT_DISTANCE_OUT)),
                               Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
 }
