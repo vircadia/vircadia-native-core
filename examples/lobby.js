@@ -329,7 +329,9 @@ function handleLookAt(pickRay) {
             }
           }
           formatedDescription += currentGoodLine;
-          Overlays.editOverlay(descriptionText, { text: formatedDescription });
+          Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
+        } else {
+          Overlays.editOverlay(descriptionText, { text: "", visible: false });
         }
       }
     }
@@ -348,8 +350,7 @@ function update(deltaTime) {
       var nowDate = new Date();
       var now = nowDate.getTime();
       if (now - lastMouseMove > IDLE_HOVER_TIME) {
-        var windowDimensions = Controller.getViewportDimensions();
-        var pickRay = Camera.computePickRay(windowDimensions.x / 2, windowDimensions.y / 2);
+        var pickRay = Camera.computeViewPickRay(0.5, 0.5);
         handleLookAt(pickRay);
       }
       
@@ -363,14 +364,16 @@ function update(deltaTime) {
 }
 
 function mouseMoveEvent(event) {
-  var nowDate = new Date();
-  lastMouseMove = nowDate.getTime();
-  var pickRay = Camera.computePickRay(event.x, event.y);
-  handleLookAt(pickRay);
+  if (panelWall) {
+      var nowDate = new Date();
+      lastMouseMove = nowDate.getTime();
+      var pickRay = Camera.computePickRay(event.x, event.y);
+      handleLookAt(pickRay);
+    }
 }
 
-Controller.mouseMoveEvent.connect(mouseMoveEvent);
 Controller.actionStartEvent.connect(actionStartEvent);
 Controller.backStartEvent.connect(backStartEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(maybeCleanupLobby);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);
