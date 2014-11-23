@@ -108,6 +108,12 @@ PickRay Camera::computePickRay(float x, float y) {
     return result;
 }
 
+PickRay Camera::computeViewPickRay(float xRatio, float yRatio) {
+    PickRay result;
+    Application::getInstance()->getViewFrustum()->computePickRay(xRatio, yRatio, result.origin, result.direction);
+    return result;
+}
+
 void Camera::setModeString(const QString& mode) {
     CameraMode targetMode = stringToMode(mode);
     
