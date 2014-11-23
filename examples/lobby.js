@@ -16,11 +16,12 @@ var orbShell = false;
 var reticle = false;
 var descriptionText = false;
 
-// used for formating the description text
-var textWidth = 400;
-var textHeight = 100;
-var textBottomMargin = 20;
-var textFontHeight = 20;
+// used for formating the description text, in meters
+var textWidth = 4;
+var textHeight = 1;
+var numberOfLines = 4;
+var textMargin = 0.0625;
+var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
 var lastMouseMove = 0;
 var IDLE_HOVER_TIME = 2000; // if you haven't moved the mouse in 2 seconds, and in HMD mode, then we use reticle for hover
@@ -63,6 +64,14 @@ function reticlePosition() {
   return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
 }
 
+function textOverlayPosition() {
+  var TEXT_DISTANCE_OUT = 5;
+  var TEXT_DISTANCE_DOWN = -1;
+  return Vec3.sum(Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), TEXT_DISTANCE_OUT)),
+                              Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
+}
+
+
 var MAX_NUM_PANELS = 21;
 var DRONE_VOLUME = 0.3;
 
@@ -91,27 +100,29 @@ function drawLobby() {
     };
 
     var windowDimensions = Controller.getViewportDimensions();
-    
+
     var descriptionTextProps = {
-        x: (windowDimensions.x - textWidth) / 2,
-        y: windowDimensions.y - textHeight - textBottomMargin,
-        width: textWidth,
-        height: textHeight,
-        backgroundColor: { red: 100, green: 100, blue: 100},
+        position: textOverlayPosition(),
+        dimensions: { x: textWidth, y: textHeight },
+        backgroundColor: { red: 0, green: 0, blue: 0},
         color: { red: 255, green: 255, blue: 255},
-        topMargin: 4,
-        leftMargin: 4,
+        topMargin: textMargin,
+        leftMargin: textMargin,
+        bottomMargin: textMargin,
+        rightMargin: textMargin,
         text: "",
-        font: { size: textFontHeight },
+        lineHeight: lineHeight,
         alpha: 0.9,
-        visible: false // starts out hidden
+        ignoreRayIntersection: true,
+        visible: false,
+        isFacingAvatar: true
     };
     
     avatarStickPosition = MyAvatar.position;
 
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
-    descriptionText = Overlays.addOverlay("text", descriptionTextProps);
+    descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
     
     inOculusMode = Menu.isOptionChecked("Enable VR Mode");
     
@@ -358,8 +369,9 @@ function update(deltaTime) {
         var pickRay = Camera.computeViewPickRay(0.5, 0.5);
         handleLookAt(pickRay);
       }
-      
     }
+
+    Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
     if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
