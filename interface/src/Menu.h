@@ -373,6 +373,7 @@ namespace MenuOption {
     const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
     const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
     const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
+    const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -443,7 +444,6 @@ namespace MenuOption {
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
-    const QString RenderEntitiesAsScene = "Render Entities as Scene";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
