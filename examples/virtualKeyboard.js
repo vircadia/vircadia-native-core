@@ -38,8 +38,6 @@ const VIEW_ANGLE = 30.0;
 const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
 
 const SPAWN_DISTANCE = 1;
-const DEFAULT_TEXT_DIMENSION_X = 1;
-const DEFAULT_TEXT_DIMENSION_Y = 1;
 const DEFAULT_TEXT_DIMENSION_Z = 0.02;
 
 const BOUND_X = 0;
@@ -50,11 +48,18 @@ const BOUND_H = 3;
 const KEY_STATE_LOWER = 0;
 const KEY_STATE_UPPER = 1;
 
+const TEXT_MARGIN_TOP = 0.15;
+const TEXT_MARGIN_LEFT = 0.15;
+const TEXT_MARGIN_RIGHT = 0.17;
+const TEXT_MARGIN_BOTTOM = 0.17;
+
 var windowDimensions = Controller.getViewportDimensions();
 var cursor = null;
 var keyboard = new Keyboard();
 var text = null;
 var textText = "";
+var textSizeMeasureOverlay = Overlays.addOverlay("text3d", {visible: false});
+
 function appendChar(char) {
     textText += char;
     updateTextOverlay();
@@ -88,15 +93,36 @@ keyboard.onKeyRelease = function(event) {
 
            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
+           var textLines = textText.split("\n");
+           var maxLineWidth = 0;
+           for (textLine in textLines) {
+               var lineWidth = Overlays.textWidth(textSizeMeasureOverlay, textLines[textLine]);
+               if (lineWidth > maxLineWidth) {
+                   maxLineWidth = lineWidth;
+               }
+           }
+           var usernameLine = "--" + GlobalServices.myUsername;
+           var usernameWidth = Overlays.textWidth(textSizeMeasureOverlay, usernameLine);
+           if (maxLineWidth < usernameWidth) {
+               maxLineWidth = usernameWidth;
+           } else {
+               var spaceableWidth = maxLineWidth - usernameWidth;
+               var spaceWidth = Overlays.textWidth(textSizeMeasureOverlay, " ");
+               var numberOfSpaces = Math.floor(spaceableWidth / spaceWidth);
+               for (var i = 0; i < numberOfSpaces; i++) {
+                   usernameLine = " " + usernameLine;
+               }
+           }
+           var dimension_x = maxLineWidth + TEXT_MARGIN_RIGHT + TEXT_MARGIN_LEFT;
            if (position.x > 0 && position.y > 0 && position.z > 0) {
                Entities.addEntity({ 
                    type: "Text",
+                   rotation: MyAvatar.orientation,
                    position: position,
-                   dimensions: { x: DEFAULT_TEXT_DIMENSION_X, y: DEFAULT_TEXT_DIMENSION_Y, z: DEFAULT_TEXT_DIMENSION_Z },
+                   dimensions: { x: dimension_x, y: (textLines.length + 1) * 0.14 + TEXT_MARGIN_TOP + TEXT_MARGIN_BOTTOM, z: DEFAULT_TEXT_DIMENSION_Z },
                    backgroundColor: { red: 0, green: 0, blue: 0 },
                    textColor: { red: 255, green: 255, blue: 255 },
-                   text: textText,
-                   lineHight: "0.1"
+                   text: textText + "\n" + usernameLine
                });
            }
            textText = "";
@@ -363,85 +389,85 @@ function Keyboard() {
     // coords [[x,y,w,h],[x,y,w,h]]
     // states array of 1 or 2 objects [lowercase, uppercase] each object contains a charCode and a char
     var keyProperties = [
-        {bounds: [[12, 12, 65, 52]], states: [{charCode: 192, char: '~'}]},
-        {bounds: [[84, 12, 65, 52]], states: [{charCode: 192, char: '!'}]},
-        {bounds: [[156, 12, 65, 52]], states: [{charCode: 192, char: '@'}]},
-        {bounds: [[228, 12, 65, 52]], states: [{charCode: 192, char: '#'}]},
-        {bounds: [[300, 12, 65, 52]], states: [{charCode: 192, char: '$'}]},
-        {bounds: [[372, 12, 65, 52]], states: [{charCode: 192, char: '%'}]},
-        {bounds: [[445, 12, 65, 52]], states: [{charCode: 192, char: '^'}]},
-        {bounds: [[517, 12, 65, 52]], states: [{charCode: 192, char: '&'}]},
-        {bounds: [[589, 12, 65, 52]], states: [{charCode: 192, char: '*'}]},
-        {bounds: [[662, 12, 65, 52]], states: [{charCode: 192, char: '('}]},
-        {bounds: [[734, 12, 65, 52]], states: [{charCode: 192, char: ')'}]},
-        {bounds: [[806, 12, 65, 52]], states: [{charCode: 192, char: '_'}]},
-        {bounds: [[881, 12, 65, 52]], states: [{charCode: 192, char: '{'}]},
-        {bounds: [[953, 12, 65, 52]], states: [{charCode: 192, char: '}'}]},
-        {bounds: [[1025, 12, 65, 52]], states: [{charCode: 192, char: '<'}]},
-        {bounds: [[1097, 12, 65, 52]], states: [{charCode: 192, char: '>'}]},
+        {bounds: [[12, 12, 65, 52]], states: [{charCode: 126, char: '~'}]},
+        {bounds: [[84, 12, 65, 52]], states: [{charCode: 33, char: '!'}]},
+        {bounds: [[156, 12, 65, 52]], states: [{charCode: 64, char: '@'}]},
+        {bounds: [[228, 12, 65, 52]], states: [{charCode: 35, char: '#'}]},
+        {bounds: [[300, 12, 65, 52]], states: [{charCode: 36, char: '$'}]},
+        {bounds: [[372, 12, 65, 52]], states: [{charCode: 37, char: '%'}]},
+        {bounds: [[445, 12, 65, 52]], states: [{charCode: 94, char: '^'}]},
+        {bounds: [[517, 12, 65, 52]], states: [{charCode: 38, char: '&'}]},
+        {bounds: [[589, 12, 65, 52]], states: [{charCode: 42, char: '*'}]},
+        {bounds: [[662, 12, 65, 52]], states: [{charCode: 40, char: '('}]},
+        {bounds: [[734, 12, 65, 52]], states: [{charCode: 41, char: ')'}]},
+        {bounds: [[806, 12, 65, 52]], states: [{charCode: 95, char: '_'}]},
+        {bounds: [[881, 12, 65, 52]], states: [{charCode: 123, char: '{'}]},
+        {bounds: [[953, 12, 65, 52]], states: [{charCode: 125, char: '}'}]},
+        {bounds: [[1025, 12, 65, 52]], states: [{charCode: 60, char: '<'}]},
+        {bounds: [[1097, 12, 65, 52]], states: [{charCode: 62, char: '>'}]},
 
-        {bounds: [[12, 71, 65, 63]], states: [{charCode: 192, char: '`'}]},
-        {bounds: [[84, 71, 65, 63]], states: [{charCode: 192, char: '1'}]},
-        {bounds: [[156, 71, 65, 63]], states: [{charCode: 192, char: '2'}]},
-        {bounds: [[228, 71, 65, 63]], states: [{charCode: 192, char: '3'}]},
-        {bounds: [[300, 71, 65, 63]], states: [{charCode: 192, char: '4'}]},
-        {bounds: [[372, 71, 65, 63]], states: [{charCode: 192, char: '5'}]},
-        {bounds: [[445, 71, 65, 63]], states: [{charCode: 192, char: '6'}]},
-        {bounds: [[517, 71, 65, 63]], states: [{charCode: 192, char: '7'}]},
-        {bounds: [[589, 71, 65, 63]], states: [{charCode: 192, char: '8'}]},
-        {bounds: [[661, 71, 65, 63]], states: [{charCode: 192, char: '9'}]},
-        {bounds: [[733, 71, 65, 63]], states: [{charCode: 192, char: '0'}]},
-        {bounds: [[806, 71, 65, 63]], states: [{charCode: 192, char: '-'}]},
-        {bounds: [[880, 71, 65, 63]], states: [{charCode: 192, char: '='}]},
-        {bounds: [[953, 71, 65, 63]], states: [{charCode: 192, char: '+'}]},
+        {bounds: [[12, 71, 65, 63]], states: [{charCode: 96, char: '`'}]},
+        {bounds: [[84, 71, 65, 63]], states: [{charCode: 49, char: '1'}]},
+        {bounds: [[156, 71, 65, 63]], states: [{charCode: 50, char: '2'}]},
+        {bounds: [[228, 71, 65, 63]], states: [{charCode: 51, char: '3'}]},
+        {bounds: [[300, 71, 65, 63]], states: [{charCode: 52, char: '4'}]},
+        {bounds: [[372, 71, 65, 63]], states: [{charCode: 53, char: '5'}]},
+        {bounds: [[445, 71, 65, 63]], states: [{charCode: 54, char: '6'}]},
+        {bounds: [[517, 71, 65, 63]], states: [{charCode: 55, char: '7'}]},
+        {bounds: [[589, 71, 65, 63]], states: [{charCode: 56, char: '8'}]},
+        {bounds: [[661, 71, 65, 63]], states: [{charCode: 57, char: '9'}]},
+        {bounds: [[733, 71, 65, 63]], states: [{charCode: 48, char: '0'}]},
+        {bounds: [[806, 71, 65, 63]], states: [{charCode: 45, char: '-'}]},
+        {bounds: [[880, 71, 65, 63]], states: [{charCode: 61, char: '='}]},
+        {bounds: [[953, 71, 65, 63]], states: [{charCode: 43, char: '+'}]},
         {bounds: [[1024, 71, 139, 63]], event: 'delete'},
 
         // enter key has 2 bounds and one state
         {bounds: [[11, 143, 98, 71], [11, 213, 121, 62]], event: 'enter'},
 
-        {bounds: [[118, 142, 64, 63]], states: [{charCode: 192, char: 'q'}, {charCode: 192, char: 'Q'}]},
-        {bounds: [[190, 142, 64, 63]], states: [{charCode: 192, char: 'w'}, {charCode: 192, char: 'W'}]},
-        {bounds: [[262, 142, 64, 63]], states: [{charCode: 192, char: 'e'}, {charCode: 192, char: 'E'}]},
-        {bounds: [[334, 142, 64, 63]], states: [{charCode: 192, char: 'r'}, {charCode: 192, char: 'R'}]},
-        {bounds: [[407, 142, 64, 63]], states: [{charCode: 192, char: 't'}, {charCode: 192, char: 'T'}]},
-        {bounds: [[479, 142, 64, 63]], states: [{charCode: 192, char: 'y'}, {charCode: 192, char: 'Y'}]},
-        {bounds: [[551, 142, 65, 63]], states: [{charCode: 192, char: 'u'}, {charCode: 192, char: 'U'}]},
-        {bounds: [[623, 142, 65, 63]], states: [{charCode: 192, char: 'i'}, {charCode: 192, char: 'I'}]},
-        {bounds: [[695, 142, 65, 63]], states: [{charCode: 192, char: 'o'}, {charCode: 192, char: 'O'}]},
-        {bounds: [[768, 142, 64, 63]], states: [{charCode: 192, char: 'p'}, {charCode: 192, char: 'P'}]},
-        {bounds: [[840, 142, 64, 63]], states: [{charCode: 192, char: '['}]},
-        {bounds: [[912, 142, 65, 63]], states: [{charCode: 192, char: ']'}]},
-        {bounds: [[984, 142, 65, 63]], states: [{charCode: 192, char: '\\'}]},
-        {bounds: [[1055, 142, 65, 63]], states: [{charCode: 192, char: '|'}]},
+        {bounds: [[118, 142, 64, 63]], states: [{charCode: 113, char: 'q'}, {charCode: 81, char: 'Q'}]},
+        {bounds: [[190, 142, 64, 63]], states: [{charCode: 119, char: 'w'}, {charCode: 87, char: 'W'}]},
+        {bounds: [[262, 142, 64, 63]], states: [{charCode: 101, char: 'e'}, {charCode: 69, char: 'E'}]},
+        {bounds: [[334, 142, 64, 63]], states: [{charCode: 114, char: 'r'}, {charCode: 82, char: 'R'}]},
+        {bounds: [[407, 142, 64, 63]], states: [{charCode: 116, char: 't'}, {charCode: 84, char: 'T'}]},
+        {bounds: [[479, 142, 64, 63]], states: [{charCode: 121, char: 'y'}, {charCode: 89, char: 'Y'}]},
+        {bounds: [[551, 142, 65, 63]], states: [{charCode: 117, char: 'u'}, {charCode: 85, char: 'U'}]},
+        {bounds: [[623, 142, 65, 63]], states: [{charCode: 105, char: 'i'}, {charCode: 73, char: 'I'}]},
+        {bounds: [[695, 142, 65, 63]], states: [{charCode: 111, char: 'o'}, {charCode: 79, char: 'O'}]},
+        {bounds: [[768, 142, 64, 63]], states: [{charCode: 112, char: 'p'}, {charCode: 80, char: 'P'}]},
+        {bounds: [[840, 142, 64, 63]], states: [{charCode: 91, char: '['}]},
+        {bounds: [[912, 142, 65, 63]], states: [{charCode: 93, char: ']'}]},
+        {bounds: [[984, 142, 65, 63]], states: [{charCode: 92, char: '\\'}]},
+        {bounds: [[1055, 142, 65, 63]], states: [{charCode: 124, char: '|'}]},
         
         {bounds: [[1126, 143, 35, 72], [1008, 214, 153, 62]], event: 'enter'},
 
-        {bounds: [[140, 213, 65, 63]], states: [{charCode: 192, char: 'a'}, {charCode: 192, char: 'A'}]},
-        {bounds: [[211, 213, 64, 63]], states: [{charCode: 192, char: 's'}, {charCode: 192, char: 'S'}]},
-        {bounds: [[283, 213, 65, 63]], states: [{charCode: 192, char: 'd'}, {charCode: 192, char: 'D'}]},
-        {bounds: [[355, 213, 65, 63]], states: [{charCode: 192, char: 'f'}, {charCode: 192, char: 'F'}]},
-        {bounds: [[428, 213, 64, 63]], states: [{charCode: 192, char: 'g'}, {charCode: 192, char: 'G'}]},
-        {bounds: [[500, 213, 64, 63]], states: [{charCode: 192, char: 'h'}, {charCode: 192, char: 'H'}]},
-        {bounds: [[572, 213, 65, 63]], states: [{charCode: 192, char: 'j'}, {charCode: 192, char: 'J'}]},
-        {bounds: [[644, 213, 65, 63]], states: [{charCode: 192, char: 'k'}, {charCode: 192, char: 'K'}]},
-        {bounds: [[716, 213, 65, 63]], states: [{charCode: 192, char: 'l'}, {charCode: 192, char: 'L'}]},
-        {bounds: [[789, 213, 64, 63]], states: [{charCode: 192, char: ';'}]},
-        {bounds: [[861, 213, 64, 63]], states: [{charCode: 192, char: '\''}]},
-        {bounds: [[934, 213, 65, 63]], states: [{charCode: 192, char: ':'}]},
+        {bounds: [[140, 213, 65, 63]], states: [{charCode: 97, char: 'a'}, {charCode: 65, char: 'A'}]},
+        {bounds: [[211, 213, 64, 63]], states: [{charCode: 115, char: 's'}, {charCode: 83, char: 'S'}]},
+        {bounds: [[283, 213, 65, 63]], states: [{charCode: 100, char: 'd'}, {charCode: 68, char: 'D'}]},
+        {bounds: [[355, 213, 65, 63]], states: [{charCode: 102, char: 'f'}, {charCode: 70, char: 'F'}]},
+        {bounds: [[428, 213, 64, 63]], states: [{charCode: 103, char: 'g'}, {charCode: 71, char: 'G'}]},
+        {bounds: [[500, 213, 64, 63]], states: [{charCode: 104, char: 'h'}, {charCode: 72, char: 'H'}]},
+        {bounds: [[572, 213, 65, 63]], states: [{charCode: 106, char: 'j'}, {charCode: 74, char: 'J'}]},
+        {bounds: [[644, 213, 65, 63]], states: [{charCode: 107, char: 'k'}, {charCode: 75, char: 'K'}]},
+        {bounds: [[716, 213, 65, 63]], states: [{charCode: 108, char: 'l'}, {charCode: 76, char: 'L'}]},
+        {bounds: [[789, 213, 64, 63]], states: [{charCode: 59, char: ';'}]},
+        {bounds: [[861, 213, 64, 63]], states: [{charCode: 39, char: '\''}]},
+        {bounds: [[934, 213, 65, 63]], states: [{charCode: 58, char: ':'}]},
 
         {bounds: [[12, 283, 157, 63]], event: 'shift'},
 
-        {bounds: [[176, 283, 65, 63]], states: [{charCode: 192, char: 'z'}, {charCode: 192, char: 'Z'}]},
-        {bounds: [[249, 283, 64, 63]], states: [{charCode: 192, char: 'x'}, {charCode: 192, char: 'X'}]},
-        {bounds: [[321, 283, 64, 63]], states: [{charCode: 192, char: 'c'}, {charCode: 192, char: 'C'}]},
-        {bounds: [[393, 283, 64, 63]], states: [{charCode: 192, char: 'v'}, {charCode: 192, char: 'V'}]},
-        {bounds: [[465, 283, 65, 63]], states: [{charCode: 192, char: 'b'}, {charCode: 192, char: 'B'}]},
-        {bounds: [[537, 283, 65, 63]], states: [{charCode: 192, char: 'n'}, {charCode: 192, char: 'N'}]},
-        {bounds: [[610, 283, 64, 63]], states: [{charCode: 192, char: 'm'}, {charCode: 192, char: 'M'}]},
-        {bounds: [[682, 283, 64, 63]], states: [{charCode: 192, char: ','}]},
-        {bounds: [[754, 283, 65, 63]], states: [{charCode: 192, char: '.'}]},
-        {bounds: [[826, 283, 65, 63]], states: [{charCode: 192, char: '/'}]},
-        {bounds: [[899, 283, 64, 63]], states: [{charCode: 192, char: '?'}]},
+        {bounds: [[176, 283, 65, 63]], states: [{charCode: 122, char: 'z'}, {charCode: 90, char: 'Z'}]},
+        {bounds: [[249, 283, 64, 63]], states: [{charCode: 120, char: 'x'}, {charCode: 88, char: 'X'}]},
+        {bounds: [[321, 283, 64, 63]], states: [{charCode: 99, char: 'c'}, {charCode: 67, char: 'C'}]},
+        {bounds: [[393, 283, 64, 63]], states: [{charCode: 118, char: 'v'}, {charCode: 86, char: 'V'}]},
+        {bounds: [[465, 283, 65, 63]], states: [{charCode: 98, char: 'b'}, {charCode: 66, char: 'B'}]},
+        {bounds: [[537, 283, 65, 63]], states: [{charCode: 110, char: 'n'}, {charCode: 78, char: 'N'}]},
+        {bounds: [[610, 283, 64, 63]], states: [{charCode: 109, char: 'm'}, {charCode: 77, char: 'M'}]},
+        {bounds: [[682, 283, 64, 63]], states: [{charCode: 44, char: ','}]},
+        {bounds: [[754, 283, 65, 63]], states: [{charCode: 46, char: '.'}]},
+        {bounds: [[826, 283, 65, 63]], states: [{charCode: 47, char: '/'}]},
+        {bounds: [[899, 283, 64, 63]], states: [{charCode: 63, char: '?'}]},
 
         {bounds: [[972, 283, 190, 63]], event: 'shift'},
 
@@ -536,6 +562,7 @@ function scriptEnding() {
     keyboard.remove();
     cursor.remove();
     Overlays.deleteOverlay(text);
+    Overlays.deleteOverlay(textSizeMeasureOverlay);
     Controller.releaseKeyEvents({key: SPACEBAR_CHARCODE});
 }
 Controller.captureKeyEvents({key: SPACEBAR_CHARCODE});
