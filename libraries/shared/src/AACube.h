@@ -78,6 +78,10 @@ inline bool operator==(const AACube& a, const AACube& b) {
     return a.getCorner() == b.getCorner() && a.getScale() == b.getScale();
 }
 
+inline bool operator!=(const AACube& a, const AACube& b) {
+    return a.getCorner() != b.getCorner() || a.getScale() == b.getScale();
+}
+
 inline QDebug operator<<(QDebug debug, const AACube& cube) {
     debug << "AACube[ (" 
             << cube.getCorner().x << "," << cube.getCorner().y << "," << cube.getCorner().z << " ) to ("
