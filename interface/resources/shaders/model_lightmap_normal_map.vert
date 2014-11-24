@@ -38,8 +38,8 @@ void main(void) {
     gl_FrontColor = gl_Color * gl_FrontMaterial.diffuse;
     
     // and the texture coordinates
-    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.f, 1.f);
-    interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(texcoord1.xy, 0.f, 1.f)).xy;
+    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
+    interpolatedTexcoord1 = vec2(texcoordMatrices[1] * vec4(texcoord1.xy, 0.0, 1.0)).xy;
    
     // use standard pipeline transform
     gl_Position = ftransform();
