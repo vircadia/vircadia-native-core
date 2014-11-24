@@ -30,6 +30,10 @@
 
 #include "FBXReader.h"
 
+
+// TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
+//#define DEBUG_FBXREADER
+
 using namespace std;
 
 struct TextureParam {
@@ -868,7 +872,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         data.extracted.mesh.vertices.append(position);
         data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
-        if (hasMoreTexcoords) { data.extracted.mesh.texCoords1.append(vertex.texCoord1); }
+        if (hasMoreTexcoords) {
+            data.extracted.mesh.texCoords1.append(vertex.texCoord1);
+        }
     } else {
         indices.append(*it);
         data.extracted.mesh.normals[*it] += normal;
@@ -911,7 +917,6 @@ ExtractedMesh extractMesh(const FBXNode& object) {
             if (child.properties.at(0).toInt() == 0) {
                 AttributeData attrib;
                 attrib.index = child.properties.at(0).toInt();
-                int unknown = 0;
                 foreach (const FBXNode& subdata, child.children) {
                     if (subdata.name == "UV") {
                         data.texCoords = createVec2Vector(getDoubleVector(subdata));
@@ -921,22 +926,25 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                         attrib.texCoordIndices = getIntVector(subdata);
                     } else if (subdata.name == "Name") {
                         attrib.name = subdata.properties.at(0).toString().toStdString();
-                    } else {
+                    } 
+#if defined(DEBUG_FBXREADER)
+                    else {
+                        int unknown = 0;
                         std::string subname = subdata.name.data();
-                        if (subdata.name == "Version") {
-                        } else if (subdata.name == "MappingInformationType") {
-                        } else if (subdata.name == "ReferenceInformationType") {
+                        if ( (subdata.name == "Version")
+                             || (subdata.name == "MappingInformationType")
+                             || (subdata.name == "ReferenceInformationType") ) {
                         } else {
                             unknown++;
                         }
                     }
+#endif
                 }
                 data.extracted.texcoordSetMap.insert(QString(attrib.name.c_str()), data.attributes.size());
                 data.attributes.push_back(attrib);
             } else {
                 AttributeData attrib;
                 attrib.index = child.properties.at(0).toInt();
-                int unknown = 0;
                 foreach (const FBXNode& subdata, child.children) {
                     if (subdata.name == "UV") {
                         attrib.texCoords = createVec2Vector(getDoubleVector(subdata));
@@ -944,15 +952,19 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                         attrib.texCoordIndices = getIntVector(subdata);
                     } else if  (subdata.name == "Name") {
                         attrib.name = subdata.properties.at(0).toString().toStdString();
-                    } else {
+                    }
+#if defined(DEBUG_FBXREADER)
+                    else {
+                        int unknown = 0;
                         std::string subname = subdata.name.data();
-                        if (subdata.name == "Version") {
-                        } else if (subdata.name == "MappingInformationType") {
-                        } else if (subdata.name == "ReferenceInformationType") {
+                        if ( (subdata.name == "Version")
+                             || (subdata.name == "MappingInformationType")
+                             || (subdata.name == "ReferenceInformationType") ) {
                         } else {
                             unknown++;
                         }
                     }
+#endif
                 }
 
                 QHash<QString, int>::iterator it = data.extracted.texcoordSetMap.find(QString(attrib.name.c_str()));
@@ -961,7 +973,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
                     data.attributes.push_back(attrib);
                 } else {
                     // WTF same names for different UVs?
-                    unknown = data.attributes.size();
+                    qDebug() << "LayerElementUV #" << attrib.index << " is reusing the same name as #" << (*it) << ". Skip this texcoord attribute.";
                 }
             }
         } else if (child.name == "LayerElementMaterial") {
@@ -1145,12 +1157,10 @@ FBXTexture getTexture(const QString& textureID,
         texture.transform.setTranslation(p.translation);
         texture.transform.setRotation(glm::quat(glm::radians(p.rotation)));
         texture.transform.setScale(p.scaling);
-        if (p.UVSet != "map1" || (p.UVSet != "UVSet0")) {
+        if ((p.UVSet != "map1") || (p.UVSet != "UVSet0")) {
             texture.texcoordSet = 1;
         }
-
         texture.texcoordSetName = p.UVSet;
-
     }
     return texture;
 }
@@ -1260,7 +1270,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
     }
     QMultiHash<QString, WeightedIndex> blendshapeChannelIndices;
+#if defined(DEBUG_FBXREADER)
     int unknown = 0;
+#endif
     FBXGeometry geometry;
     float unitScaleFactor = 1.0f;
     foreach (const FBXNode& child, node.children) {
@@ -1466,7 +1478,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     TextureParam tex;
                     bool texparam = false;
                     foreach (const FBXNode& subobject, object.children) {
-                        std::string subname = subobject.name.data();
                         if (subobject.name == "RelativeFilename") {
                             // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
@@ -1491,7 +1502,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                                                 subobject.properties.at(2).value<int>(),
                                                                 subobject.properties.at(3).value<int>()));
                         } else if (subobject.name == "Properties70") {
-
                             QByteArray propertyName;
                             int index;
                                 propertyName = "P";
@@ -1499,7 +1509,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                 foreach (const FBXNode& property, subobject.children) {
                                     if (property.name == propertyName) {
                                         QString v = property.properties.at(0).toString();
-                                        std::string propName = v.toStdString();
                                         if (property.properties.at(0) == "UVSet") {
                                             tex.assign(tex.UVSet, property.properties.at(index).toString().toStdString());
                                         } else if (property.properties.at(0) == "CurrentTextureBlendMode") {
@@ -1512,20 +1521,28 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                             tex.assign(tex.rotation, getVec3(property.properties, index));
                                         } else if (property.properties.at(0) == "Scaling") {
                                             tex.assign(tex.scaling, getVec3(property.properties, index));
-                                        } else {
+                                        }
+#if defined(DEBUG_FBXREADER)
+                                        else {
+                                            std::string propName = v.toStdString();
                                             unknown++;
                                         }
+#endif
                                     }
                                 }
-                        } else {
+                        }
+#if defined(DEBUG_FBXREADER)
+                        else {
                             if (subobject.name == "Type") {
                             } else if (subobject.name == "Version") {
                             } else if (subobject.name == "FileName") {
                             } else if (subobject.name == "Media") {
                             } else {
+                                std::string subname = subobject.name.data();
                                 unknown++;
                             }
                         }
+#endif
                     }
 
                     if (!tex.isDefault) {

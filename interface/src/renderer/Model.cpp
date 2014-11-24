@@ -387,8 +387,6 @@ void Model::init() {
         _skinTranslucentProgram.link();
         
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
-
-
     }
 }
 
@@ -1813,7 +1811,7 @@ void Model::segregateMeshGroups() {
         bool translucentMesh = networkMesh.getTranslucentPartCount(mesh) == networkMesh.parts.size();
         bool hasTangents = !mesh.tangents.isEmpty();
         bool hasSpecular = mesh.hasSpecularTexture();
-        bool haslightmap = mesh.hasEmissiveTexture();
+        bool hasLightmap = mesh.hasEmissiveTexture();
         bool isSkinned = state.clusterMatrices.size() > 1;
         QString materialID;
 
@@ -1832,7 +1830,7 @@ void Model::segregateMeshGroups() {
             qDebug() << "materialID:" << materialID << "parts:" << mesh.parts.size();
         }
 
-        if ( !haslightmap) {
+        if (!hasLightmap) {
             if (translucentMesh && !hasTangents && !hasSpecular && !isSkinned) {
 
                 _unsortedMeshesTranslucent.insertMulti(materialID, i);
@@ -2387,7 +2385,6 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         Texture* emissiveMap = networkPart.emissiveTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
                             Application::getInstance()->getTextureCache()->getWhiteTextureID() : emissiveMap->getID());
-                       // GLBATCH(glBindTexture)(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getWhiteTextureID());
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 

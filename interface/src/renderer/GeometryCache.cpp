@@ -971,7 +971,6 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
 
                 networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-                //networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
 
                 networkMesh._vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
                 networkMesh._vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
