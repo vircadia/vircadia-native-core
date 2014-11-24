@@ -43,7 +43,49 @@ function SittableUpdate(deltaTime){
     */
 }
 
+SeatIndicator = function(modelProperties, seatIndex) {
+    var buttonImageUrl = "https://worklist-prod.s3.amazonaws.com/attachment/0aca88e1-9bd8-5c1d.svg";
+    var buttonWidth = 37;
+    var buttonHeight = 46;
 
+    var halfDiagonal = Vec3.length(modelProperties.dimensions) / 2.0;
+
+    this.position =  Vec3.sum(modelProperties.position,
+                              Vec3.multiply(Vec3.multiplyQbyV(modelProperties.rotation, modelProperties.sittingPoints[seatIndex].position),
+                                            halfDiagonal)); // hack
+                          
+    this.orientation = Quat.multiply(modelProperties.rotation,
+                                     modelProperties.sittingPoints[seatIndex].rotation);
+    this.scale = MyAvatar.scale / 3;
+
+    this.sphere = Overlays.addOverlay("billboard", {
+                                      subImage: { x: 0, y: buttonHeight, width: buttonWidth, height: buttonHeight},
+                                      url: buttonImageUrl,
+                                      position: this.position,
+                                      scale: this.scale,
+                                      size: this.scale,
+                                      solid: true,
+                                      color: { red: 255, green: 255, blue: 255 },
+                                      alpha: 0.8,
+                                      visible: true,
+                                      isFacingAvatar: true
+                                      });
+
+    this.show = function(doShow) {
+        Overlays.editOverlay(this.sphere, { visible: doShow });
+    }
+
+    this.update = function() {
+        Overlays.editOverlay(this.sphere, {
+                             position: this.position,
+                             size: this.scale
+                             });
+    }
+
+    this.cleanup = function() {
+        Overlays.deleteOverlay(this.sphere);
+    }
+};
 
 Sittable = function() { 
 
@@ -65,7 +107,7 @@ Sittable = function() {
     var passedTime = 0.0;
     var startPosition = null;
     var startRotation = null;
-    var animationLenght = 2.0;
+    var animationLength = 2.0;
 
     var avatarOldPosition = { x: 0, y: 0, z: 0 };
 
@@ -108,9 +150,9 @@ Sittable = function() {
     var sittingDownAnimation = function(deltaTime) {
 
         passedTime += deltaTime;
-        var factor = passedTime/animationLenght;
+        var factor = passedTime/animationLength;
     
-        if ( passedTime <= animationLenght  ) {
+        if ( passedTime <= animationLength  ) {
             updateJoints(factor);
 
             var pos = { x: startPosition.x - 0.3 * factor, y: startPosition.y - 0.5 * factor, z: startPosition.z};
@@ -126,13 +168,13 @@ Sittable = function() {
     var standingUpAnimation = function(deltaTime) {
 
         passedTime += deltaTime;
-        var factor = 1 - passedTime/animationLenght;
+        var factor = 1 - passedTime/animationLength;
 
-        if ( passedTime <= animationLenght  ) {
+        if ( passedTime <= animationLength  ) {
         
             updateJoints(factor);
 
-            var pos = { x: startPosition.x + 0.3 * (passedTime/animationLenght), y: startPosition.y + 0.5 * (passedTime/animationLenght), z: startPosition.z};
+            var pos = { x: startPosition.x + 0.3 * (passedTime/animationLength), y: startPosition.y + 0.5 * (passedTime/animationLength), z: startPosition.z};
             MyAvatar.position = pos;
         } else {
             Script.update.disconnect(standingUpAnimation);
@@ -144,12 +186,12 @@ Sittable = function() {
     
     var goToSeatAnimation = function(deltaTime) {
         passedTime += deltaTime;
-        var factor = passedTime/animationLenght;
+        var factor = passedTime/animationLength;
     
-        if (passedTime <= animationLenght) {
+        if (passedTime <= animationLength) {
             var targetPosition = Vec3.sum(seat.position, { x: 0.3, y: 0.5, z: 0 });
             MyAvatar.position = Vec3.sum(Vec3.multiply(startPosition, 1 - factor), Vec3.multiply(targetPosition, factor));
-        } else if (passedTime <= 2 * animationLenght) {
+        } else if (passedTime <= 2 * animationLength) {
             //Quat.print("MyAvatar: ", MyAvatar.orientation);
             //Quat.print("Seat: ", seat.rotation);
             MyAvatar.orientation = Quat.mix(startRotation, seat.rotation, factor - 1);
@@ -199,46 +241,6 @@ Sittable = function() {
         Script.update.connect(standingUpAnimation);
         Overlays.editOverlay(this.standUpButton, { visible: false });
         Controller.mousePressEvent.disconnect(globalMouseClick);
-    }
-
-    function SeatIndicator(modelProperties, seatIndex) {
-        var halfDiagonal = Vec3.length(modelProperties.dimensions) / 2.0;
-
-        this.position =  Vec3.sum(modelProperties.position,
-                                  Vec3.multiply(Vec3.multiplyQbyV(modelProperties.rotation, modelProperties.sittingPoints[seatIndex].position),
-                                                halfDiagonal)); // hack
-                              
-        this.orientation = Quat.multiply(modelProperties.rotation,
-                                         modelProperties.sittingPoints[seatIndex].rotation);
-        this.scale = MyAvatar.scale / 3;
-    
-        this.sphere = Overlays.addOverlay("billboard", {
-                                          subImage: { x: 0, y: buttonHeight, width: buttonWidth, height: buttonHeight},
-                                          url: buttonImageUrl,
-                                          position: this.position,
-                                          scale: this.scale,
-                                          size: this.scale,
-                                          solid: true,
-                                          color: { red: 255, green: 255, blue: 255 },
-                                          alpha: 0.8,
-                                          visible: true,
-                                          isFacingAvatar: true
-                                          });
-    
-        this.show = function(doShow) {
-            Overlays.editOverlay(this.sphere, { visible: doShow });
-        }
-    
-        this.update = function() {
-            Overlays.editOverlay(this.sphere, {
-                                 position: this.position,
-                                 size: this.scale
-                                 });
-        }
-    
-        this.cleanup = function() {
-            Overlays.deleteOverlay(this.sphere);
-        }
     }
 
     this.addIndicators = function() {
