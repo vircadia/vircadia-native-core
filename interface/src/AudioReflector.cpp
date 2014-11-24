@@ -66,10 +66,15 @@ AudioReflector::AudioReflector(QObject* parent) :
 }
 
 bool AudioReflector::haveAttributesChanged() {
-    bool withDiffusion = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
-    bool dontDistanceAttenuate = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
-    bool alternateDistanceAttenuate = Menu::getInstance()->isOptionChecked(
-                                                MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
+
+    // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+    bool withDiffusion = true; 
+
+    // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
+    bool dontDistanceAttenuate = false;
+
+    //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
+    bool alternateDistanceAttenuate = false; 
     
     bool attributesChange = (_withDiffusion != withDiffusion
         || _lastPreDelay != _preDelay
@@ -107,7 +112,8 @@ void AudioReflector::render() {
     calculateAllReflections();
     
     // only render if we've been asked to do so
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingRenderPaths)) {
+    bool renderPaths = false; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingRenderPaths)
+    if (renderPaths) {
         drawRays();
     }
 }
@@ -116,7 +122,8 @@ void AudioReflector::render() {
 //       = 3ms per meter
 float AudioReflector::getDelayFromDistance(float distance) {
     float delay = (_soundMsPerMeter * distance);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay)) {
+    bool includePreDelay = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay)
+    if (includePreDelay) {
         delay += _preDelay;
     }
     return delay;
@@ -126,12 +133,11 @@ float AudioReflector::getDelayFromDistance(float distance) {
 float AudioReflector::getDistanceAttenuationCoefficient(float distance) {
 
 
-    bool doDistanceAttenuation = !Menu::getInstance()->isOptionChecked(
-                                            MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
+     //!Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
+    bool doDistanceAttenuation = true;
 
-    bool originalFormula = !Menu::getInstance()->isOptionChecked(
-                                            MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
-    
+    //!Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
+    bool originalFormula = true; 
     
     float distanceCoefficient = 1.0f;
     
@@ -170,7 +176,8 @@ float AudioReflector::getDistanceAttenuationCoefficient(float distance) {
 }
 
 glm::vec3 AudioReflector::getFaceNormal(BoxFace face) {
-    bool wantSlightRandomness = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces);
+    // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces);
+    bool wantSlightRandomness = true;
     glm::vec3 faceNormal;
     const float MIN_RANDOM_LENGTH = 0.99f;
     const float MAX_RANDOM_LENGTH = 1.0f;
@@ -202,8 +209,8 @@ const int NUMBER_OF_CHANNELS = 2;
 void AudioReflector::injectAudiblePoint(AudioSource source, const AudiblePoint& audiblePoint,
                         const QByteArray& samples, unsigned int sampleTime, int sampleRate) {
 
-    bool wantEarSeparation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars);
-    bool wantStereo = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource);
+    bool wantEarSeparation = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars);
+    bool wantStereo = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource);
     glm::vec3 rightEarPosition = wantEarSeparation ? _myAvatar->getHead()->getRightEarPosition() : 
                                     _myAvatar->getHead()->getPosition();
     glm::vec3 leftEarPosition = wantEarSeparation ? _myAvatar->getHead()->getLeftEarPosition() :
@@ -316,7 +323,8 @@ void AudioReflector::preProcessOriginalInboundAudio(unsigned int sampleTime,
 }
 
 void AudioReflector::processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format) {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)) {
+    bool processLocalAudio = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)
+    if (processLocalAudio) {
         const int NUM_CHANNELS_INPUT = 1;
         const int NUM_CHANNELS_OUTPUT = 2;
         const int EXPECTED_SAMPLE_RATE = 24000;
@@ -458,7 +466,7 @@ void AudioReflector::identifyAudioSources() {
 void AudioReflector::calculateAllReflections() {
     // only recalculate when we've moved, or if the attributes have changed
     // TODO: what about case where new voxels are added in front of us???
-    bool wantHeadOrientation = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingHeadOriented);
+    bool wantHeadOrientation = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingHeadOriented);
     glm::quat orientation = wantHeadOrientation ? _myAvatar->getHead()->getFinalOrientationInWorldFrame() : _myAvatar->getOrientation();
     glm::vec3 origin = _myAvatar->getHead()->getPosition();
     glm::vec3 listenerPosition = _myAvatar->getHead()->getPosition();
@@ -505,7 +513,8 @@ void AudioReflector::drawRays() {
         }
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)) {
+    bool processLocalAudio = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)
+    if (processLocalAudio) {
         // draw the paths for local audio
         foreach(AudioPath* const& path, _localAudioPaths) {
             // if this is an original reflection, draw it in RED
@@ -575,7 +584,8 @@ void AudioReflector::analyzePaths() {
 
     float initialAttenuation = 1.0f;    
 
-    float preDelay = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) ? _preDelay : 0.0f;
+    bool wantPreDelay = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay)
+    float preDelay = wantPreDelay ? _preDelay : 0.0f;
 
     // NOTE: we're still calculating our initial paths based on the listeners position. But the analysis code has been
     // updated to support individual sound sources (which is how we support diffusion), we can use this new paradigm to
@@ -701,7 +711,7 @@ void AudioReflector::handlePathPoint(AudioPath* path, float distance, OctreeElem
     float reflectiveAttenuation = currentReflectiveAttenuation * material.reflectiveRatio;
     float totalDiffusionAttenuation = currentReflectiveAttenuation * material.diffusionRatio;
     
-    bool wantDiffusions = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+    bool wantDiffusions = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
     int fanout = wantDiffusions ? _diffusionFanout : 0;
 
     float partialDiffusionAttenuation = fanout < 1 ? 0.0f : totalDiffusionAttenuation / (float)fanout;
