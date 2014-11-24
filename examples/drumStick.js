@@ -64,9 +64,7 @@ function checkSticks(deltaTime) {
 			if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
 				state[palm] = 0;
         
-        var options = {
-          position: Controller.getSpatialControlPosition(palm * 2 + 1);
-        }
+        		var options = { position: Controller.getSpatialControlPosition(palm * 2 + 1) };
         
 				if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
 				options.volume = strokeSpeed[palm];

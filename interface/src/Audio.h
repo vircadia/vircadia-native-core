@@ -26,8 +26,6 @@
 #include "AudioSourceTone.h"
 #include "AudioSourceNoise.h"
 #include "AudioGain.h"
-#include "AudioFilter.h"
-#include "AudioFilterBank.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -47,10 +45,17 @@
 #include <AudioRingBuffer.h>
 #include <StDev.h>
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4305 )
+#endif
 extern "C" {
     #include <gverb.h>
     #include <gverbdsp.h>
 }
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -149,11 +154,6 @@ public slots:
     void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
     void addStereoSamplesToScope(const QByteArray& samples);
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
-    void toggleAudioFilter();
-    void selectAudioFilterFlat();
-    void selectAudioFilterTrebleCut();
-    void selectAudioFilterBassCut();
-    void selectAudioFilterSmiley();
 
     virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
@@ -179,9 +179,6 @@ signals:
     void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-
-private slots:
-    void cleanupLocalOutputInterface();
 private:
     void outputFormatChanged();
 
@@ -335,9 +332,6 @@ private:
     bool _toneSourceEnabled;
     AudioSourceTone _toneSource;
     
-    // Multi-band parametric EQ
-    bool _peqEnabled;
-    AudioFilterPEQ3m _peq;
     
     QMutex _guard;
     QByteArray* _scopeInput;
@@ -369,8 +363,6 @@ private:
     AudioOutputIODevice _audioOutputIODevice;
     
     WeakRecorderPointer _recorder;
-    
-    QHash<QObject*, QAudioOutput*> _injectedOutputInterfaces;
 };
 
 

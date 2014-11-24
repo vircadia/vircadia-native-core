@@ -53,9 +53,29 @@ Grid = function(opts) {
         }
     }
 
-    that.snapToGrid = function(position, majorOnly) {
+    that.snapToSurface = function(position, dimensions) {
         if (!snapToGrid) {
             return position;
+        }
+
+        if (dimensions === undefined) {
+            dimensions = { x: 0, y: 0, z: 0 };
+        }
+
+        return {
+            x: position.x,
+            y: origin.y + (dimensions.y / 2),
+            z: position.z
+        };
+    }
+
+    that.snapToGrid = function(position, majorOnly, dimensions) {
+        if (!snapToGrid) {
+            return position;
+        }
+
+        if (dimensions === undefined) {
+            dimensions = { x: 0, y: 0, z: 0 };
         }
 
         var spacing = majorOnly ? (minorGridSpacing * majorGridEvery) : minorGridSpacing;
@@ -66,7 +86,7 @@ Grid = function(opts) {
         position.y = Math.round(position.y / spacing) * spacing;
         position.z = Math.round(position.z / spacing) * spacing;
 
-        return Vec3.sum(position, origin);
+        return Vec3.sum(Vec3.sum(position, Vec3.multiply(0.5, dimensions)), origin);
     }
 
     that.snapToSpacing = function(delta, majorOnly) {

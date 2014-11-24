@@ -64,6 +64,9 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 }
 
 void EntityTreeRenderer::clear() {
+    foreach (const EntityItemID& entityID, _entityScripts.keys()) {
+        checkAndCallUnload(entityID);
+    }
     OctreeRenderer::clear();
     _entityScripts.clear();
 }
@@ -86,7 +89,7 @@ void EntityTreeRenderer::init() {
     
     connect(entityTree, &EntityTree::deletingEntity, this, &EntityTreeRenderer::deletingEntity);
     connect(entityTree, &EntityTree::addingEntity, this, &EntityTreeRenderer::checkAndCallPreload);
-    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::checkAndCallPreload);
+    connect(entityTree, &EntityTree::entityScriptChanging, this, &EntityTreeRenderer::entitySciptChanging);
     connect(entityTree, &EntityTree::changingEntityID, this, &EntityTreeRenderer::changingEntityID);
 }
 
@@ -192,6 +195,22 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     return entityScriptObject; // newly constructed
 }
 
+QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID) {
+    EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
+    return getPreviouslyLoadedEntityScript(entity);
+}
+
+
+QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(EntityItem* entity) {
+    if (entity) {
+        EntityItemID entityID = entity->getEntityItemID();
+        if (_entityScripts.contains(entityID)) {
+            EntityScriptDetails details = _entityScripts[entityID];
+            return details.scriptObject; // previously loaded
+        }
+    }
+    return QScriptValue(); // no script
+}
 void EntityTreeRenderer::setTree(Octree* newTree) {
     OctreeRenderer::setTree(newTree);
     static_cast<EntityTree*>(_tree)->setFBXService(this);
@@ -272,7 +291,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+    bool dontRenderAsScene = Menu::getInstance()->isOptionChecked(MenuOption::DontRenderEntitiesAsScene);
     
     if (dontRenderAsScene) {
         OctreeRenderer::render(renderMode, renderSide);
@@ -842,7 +861,13 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
+    checkAndCallUnload(entityID);
     _entityScripts.remove(entityID);
+}
+
+void EntityTreeRenderer::entitySciptChanging(const EntityItemID& entityID) {
+    checkAndCallUnload(entityID);
+    checkAndCallPreload(entityID);
 }
 
 void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
@@ -853,6 +878,15 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID) {
         entityScript.property("preload").call(entityScript, entityArgs);
     }
 }
+
+void EntityTreeRenderer::checkAndCallUnload(const EntityItemID& entityID) {
+    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
+    if (entityScript.property("unload").isValid()) {
+        QScriptValueList entityArgs = createEntityArgs(entityID);
+        entityScript.property("unload").call(entityScript, entityArgs);
+    }
+}
+
 
 void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID) {
     if (_entityScripts.contains(oldEntityID)) {
