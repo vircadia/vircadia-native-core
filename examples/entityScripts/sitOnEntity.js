@@ -127,9 +127,7 @@
     }
     
     var globalMouseClick = function(event) {
-        print("globalMouseClick");
         var clickedOverlay = Overlays.getOverlayAtPoint({x: event.x, y: event.y});
-
         if (clickedOverlay == externalThis.standUpButton) {
             seat.model = null;
             externalThis.standUp();
@@ -166,6 +164,7 @@
         } catch (e){}
         Script.update.connect(standingUpAnimation);
         Overlays.editOverlay(this.standUpButton, { visible: false });
+        Controller.mousePressEvent.disconnect(globalMouseClick);
     }
 
     function SeatIndicator(modelProperties, seatIndex) {
@@ -226,20 +225,11 @@
                     print("Was seated: " + sitting);
                     storeStartPoseAndTransition();
                     updateJoints(1.0);
-                    Overlays.editOverlay(this.standUpButton, { visible: true });
                 }
             }
             frame++;
         }
-
-        var locationChanged = false;
-        if (location.hostname != oldHost || !location.isConnected) {
-            this.removeIndicators();
-            oldHost = location.hostname;
-            locationChanged = true;
-        }
     }
-    var oldHost = location.hostname;
 
     this.addIndicators = function() {
         if (!this.indicatorsAdded) {
@@ -351,12 +341,13 @@
 
     this.unload = function(entityID) {
         this.cleanup();
+        Script.update.disconnect(update);
     };
     
     this.preload = function(entityID) {
         this.updateProperties(entityID); // All callbacks start by updating the properties
         this.createStandupButton();
-        Script.update.connect(update); // do we want to do this??? how expensive will this be?
+        Script.update.connect(update);
     };
 
 

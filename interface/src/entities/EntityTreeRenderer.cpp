@@ -64,6 +64,9 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 }
 
 void EntityTreeRenderer::clear() {
+    foreach (const EntityItemID& entityID, _entityScripts.keys()) {
+        checkAndCallUnload(entityID);
+    }
     OctreeRenderer::clear();
     _entityScripts.clear();
 }
@@ -288,7 +291,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+    bool dontRenderAsScene = Menu::getInstance()->isOptionChecked(MenuOption::DontRenderEntitiesAsScene);
     
     if (dontRenderAsScene) {
         OctreeRenderer::render(renderMode, renderSide);
@@ -858,7 +861,6 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-
     checkAndCallUnload(entityID);
     _entityScripts.remove(entityID);
 }
