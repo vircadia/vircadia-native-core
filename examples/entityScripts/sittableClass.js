@@ -11,6 +11,40 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var activeSittable = null;
+function SittableUpdate(deltaTime){
+
+    // This keeps the standup button in a reasonable place.
+    var newWindowDimensions = Controller.getViewportDimensions();
+    if( newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y ){
+        windowDimensions = newWindowDimensions;
+        var newX = windowDimensions.x - buttonPadding - buttonWidth;
+        var newY = (windowDimensions.y - buttonHeight) / 2 ;
+        Overlays.editOverlay( activeSittable.standUpButton, {x: newX, y: newY} );
+    }
+
+
+    // this appears to be some logic related to storing the original position
+    /*
+
+    // For a weird reason avatar joint don't update till the 10th frame
+    // Set the update frame to 20 to be safe
+    var UPDATE_FRAME = 20;
+    if (frame <= UPDATE_FRAME) {
+        if (frame == UPDATE_FRAME) {
+            if (sitting == true) {
+                print("Was seated: " + sitting);
+                activeSittable.storeStartPoseAndTransition();
+                activeSittable.updateJoints(1.0);
+            }
+        }
+        frame++;
+    }
+    */
+}
+
+
+
 Sittable = function() { 
 
     this.entityID = null;
@@ -207,30 +241,6 @@ Sittable = function() {
         }
     }
 
-    function update(deltaTime){
-        var newWindowDimensions = Controller.getViewportDimensions();
-        if( newWindowDimensions.x != windowDimensions.x || newWindowDimensions.y != windowDimensions.y ){
-            windowDimensions = newWindowDimensions;
-            var newX = windowDimensions.x - buttonPadding - buttonWidth;
-            var newY = (windowDimensions.y - buttonHeight) / 2 ;
-            Overlays.editOverlay( this.standUpButton, {x: newX, y: newY} );
-        }
-    
-        // For a weird reason avatar joint don't update till the 10th frame
-        // Set the update frame to 20 to be safe
-        var UPDATE_FRAME = 20;
-        if (frame <= UPDATE_FRAME) {
-            if (frame == UPDATE_FRAME) {
-                if (sitting == true) {
-                    print("Was seated: " + sitting);
-                    storeStartPoseAndTransition();
-                    updateJoints(1.0);
-                }
-            }
-            frame++;
-        }
-    }
-
     this.addIndicators = function() {
         if (!this.indicatorsAdded) {
             if (this.properties.sittingPoints.length > 0) {
@@ -345,14 +355,14 @@ Sittable.prototype = {
     unload : function(entityID) {
         print("Sittable.unload()");
         this.cleanup();
-        //Script.update.disconnect(update);
+        //Script.update.disconnect(SittableUpdate);
     },
     
     preload : function(entityID) {
         print("Sittable.preload()");
         this.updateProperties(entityID); // All callbacks start by updating the properties
         this.createStandupButton();
-        //Script.update.connect(update);
+        //Script.update.connect(SittableUpdate);
     },
 
 
