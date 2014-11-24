@@ -522,6 +522,14 @@ bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geomet
                 }
                 _textureFilenames.insert(part.specularTexture.filename);
             }
+            if (!part.emissiveTexture.filename.isEmpty() && part.emissiveTexture.content.isEmpty() &&
+                    !_textureFilenames.contains(part.emissiveTexture.filename)) {
+                if (!addPart(texdir + "/" + part.emissiveTexture.filename,
+                             QString("texture%1").arg(++_texturesCount), true)) {
+                    return false;
+                }
+                _textureFilenames.insert(part.emissiveTexture.filename);
+            }
         }
     }
     
