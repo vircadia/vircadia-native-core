@@ -11,6 +11,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+const int MAX_TEXCOORDS = 2;
+
+uniform mat4 texcoordMatrices[MAX_TEXCOORDS];
+
 // the interpolated normal
 varying vec4 normal;
 
@@ -22,7 +26,7 @@ void main(void) {
     gl_FrontColor = gl_Color * gl_FrontMaterial.diffuse;
     
     // and the texture coordinates
-    gl_TexCoord[0] = gl_MultiTexCoord0;
+    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
     // use standard pipeline transform
     gl_Position = ftransform();

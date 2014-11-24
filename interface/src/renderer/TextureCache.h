@@ -25,7 +25,7 @@ class NetworkTexture;
 
 typedef QSharedPointer<NetworkTexture> NetworkTexturePointer;
 
-enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, SPLAT_TEXTURE };
+enum TextureType { DEFAULT_TEXTURE, NORMAL_TEXTURE, SPECULAR_TEXTURE, EMISSIVE_TEXTURE, SPLAT_TEXTURE };
 
 /// Stores cached textures, including render-to-texture targets.
 class TextureCache : public ResourceCache {
@@ -67,7 +67,7 @@ public:
     
     /// Returns the ID of the primary framebuffer object's specular texture.
     GLuint getPrimarySpecularTextureID();
-    
+
     /// Enables or disables draw buffers on the primary framebuffer.  Note: the primary framebuffer must be bound.
     void setPrimaryDrawBuffers(bool color, bool normal = false, bool specular = false);
     
