@@ -43,7 +43,7 @@ void main(void) {
     // set the diffuse, normal, specular data
     vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
     vec4 emissive = texture2D(emissiveMap, interpolatedTexcoord1.st);
-    gl_FragData[0] = vec4(gl_Color.rgb * emissive.rgb, mix(gl_Color.a, 1.0 - gl_Color.a, step(diffuse.a, alphaThreshold)));
+    gl_FragData[0] = vec4(gl_Color.rgb * diffuse.rgb * (vec3(0.1) + 4 * emissive.rgb), mix(gl_Color.a, 1.0 - gl_Color.a, step(diffuse.a, alphaThreshold)));
     gl_FragData[1] = viewNormal + vec4(0.5, 0.5, 0.5, 1.0);
     gl_FragData[2] = vec4(gl_FrontMaterial.specular.rgb, gl_FrontMaterial.shininess / 128.0);
 }
