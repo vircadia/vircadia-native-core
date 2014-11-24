@@ -17,8 +17,9 @@ uniform sampler2D diffuseMap;
 // the normal map texture
 uniform sampler2D normalMap;
 
-// the emissive map texture
+// the emissive map texture and parameters
 uniform sampler2D emissiveMap;
+uniform vec2 emissiveParams;
 
 // the alpha threshold
 uniform float alphaThreshold;
@@ -43,7 +44,7 @@ void main(void) {
     // set the diffuse, normal, specular data
     vec4 diffuse = texture2D(diffuseMap, gl_TexCoord[0].st);
     vec4 emissive = texture2D(emissiveMap, interpolatedTexcoord1.st);
-    gl_FragData[0] = vec4(gl_Color.rgb * diffuse.rgb * (vec3(0.1) + 4 * emissive.rgb), mix(gl_Color.a, 1.0 - gl_Color.a, step(diffuse.a, alphaThreshold)));
+    gl_FragData[0] = vec4(gl_Color.rgb * diffuse.rgb * (vec3(emissiveParams.x) + emissiveParams.y * emissive.rgb), mix(gl_Color.a, 1.0 - gl_Color.a, step(diffuse.a, alphaThreshold)));
     gl_FragData[1] = viewNormal + vec4(0.5, 0.5, 0.5, 1.0);
     gl_FragData[2] = vec4(gl_FrontMaterial.specular.rgb, gl_FrontMaterial.shininess / 128.0);
 }

@@ -160,6 +160,8 @@ void Model::initProgram(ProgramObject& program, Model::Locations& locations, int
 
     locations.texcoordMatrices = program.uniformLocation("texcoordMatrices");
 
+    locations.emissiveParams = program.uniformLocation("emissiveParams");
+
 
     program.setUniformValue("diffuseMap", 0);
 
@@ -2378,6 +2380,9 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
 
                     if (locations->emissiveTextureUnit >= 0) {
+                        assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
+                        GLBATCH(glUniform2f)(locations->emissiveParams, 0.1f, 4.0f);
+
                         GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                         Texture* emissiveMap = networkPart.emissiveTexture.data();
                         GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?

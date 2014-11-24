@@ -147,6 +147,7 @@ protected:
 
     void do_glUseProgram(Batch& batch, uint32 paramOffset);
     void do_glUniform1f(Batch& batch, uint32 paramOffset);
+    void do_glUniform2f(Batch& batch, uint32 paramOffset);
     void do_glUniformMatrix4fv(Batch& batch, uint32 paramOffset);
 
     void do_glMatrixMode(Batch& batch, uint32 paramOffset);

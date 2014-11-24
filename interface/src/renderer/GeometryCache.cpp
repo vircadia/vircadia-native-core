@@ -830,6 +830,8 @@ void GeometryReader::run() {
     }
     try {
         QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
+
+
             _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {

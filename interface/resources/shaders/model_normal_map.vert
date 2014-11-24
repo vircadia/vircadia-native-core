@@ -33,7 +33,7 @@ void main(void) {
     gl_FrontColor = gl_Color * gl_FrontMaterial.diffuse;
     
     // and the texture coordinates
-    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.f, 1.f);
+    gl_TexCoord[0] = texcoordMatrices[0] * vec4(gl_MultiTexCoord0.xy, 0.0, 1.0);
     
     // use standard pipeline transform
     gl_Position = ftransform();

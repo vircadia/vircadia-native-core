@@ -329,6 +329,7 @@ private:
         int texcoordMatrices;
         int specularTextureUnit;
         int emissiveTextureUnit;
+        int emissiveParams;
     };
     
     static Locations _locations;
