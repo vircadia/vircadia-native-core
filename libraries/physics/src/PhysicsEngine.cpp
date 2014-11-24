@@ -205,12 +205,6 @@ bool PhysicsEngine::updateEntity(CustomMotionState* motionState, uint32_t flags)
 // private
 void PhysicsEngine::updateEntityHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
     MotionType newType = motionState->getMotionType();
-    MotionType oldType = MOTION_TYPE_DYNAMIC;
-    if (body->isStaticObject()) {
-        oldType = MOTION_TYPE_STATIC;
-    } else if (body->isKinematicObject()) {
-        oldType = MOTION_TYPE_KINEMATIC;
-    }
 
     // pull body out of physics engine
     _dynamicsWorld->removeRigidBody(body);
@@ -307,9 +301,6 @@ void PhysicsEngine::updateEntityEasy(btRigidBody* body, CustomMotionState* motio
         body->updateInertiaTensor();
     }
     body->activate();
-
-    btVector3 v = body->getLinearVelocity();
-    btVector3 g = body->getGravity();
 
     // TODO: support collision groups
 };
