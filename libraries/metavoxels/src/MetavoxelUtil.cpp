@@ -14,7 +14,6 @@
 #include <QDoubleSpinBox>
 #include <QFormLayout>
 #include <QHBoxLayout>
-#include <QItemEditorCreatorBase>
 #include <QItemEditorFactory>
 #include <QLineEdit>
 #include <QMetaType>
@@ -77,30 +76,9 @@ QByteArray DelegatingItemEditorFactory::valuePropertyName(int userType) const {
     return propertyName.isNull() ? _parentFactory->valuePropertyName(userType) : propertyName;
 }
 
-static QItemEditorFactory* getItemEditorFactory() {
+QItemEditorFactory* getItemEditorFactory() {
     static QItemEditorFactory* factory = new DelegatingItemEditorFactory();
     return factory;
-}
-
-/// Because Windows doesn't necessarily have the staticMetaObject available when we want to create,
-/// this class simply delays the value property name lookup until actually requested.
-template<class T> class LazyItemEditorCreator : public QItemEditorCreatorBase {
-public:
-    
-    virtual QWidget* createWidget(QWidget* parent) const { return new T(parent); }
-    
-    virtual QByteArray valuePropertyName() const;
-
-protected:
-    
-    QByteArray _valuePropertyName;
-};
-
-template<class T> QByteArray LazyItemEditorCreator<T>::valuePropertyName() const {
-    if (_valuePropertyName.isNull()) {
-        const_cast<LazyItemEditorCreator<T>*>(this)->_valuePropertyName = T::staticMetaObject.userProperty().name();
-    }
-    return _valuePropertyName;    
 }
 
 static QItemEditorCreatorBase* createDoubleEditorCreator() {

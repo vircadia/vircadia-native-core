@@ -156,7 +156,7 @@ void Leapmotion::update() {
     if (lastFrameID >= newFrameID)
         return;
 
-    glm::vec3 delta(0.f);
+    glm::vec3 delta(0.0f);
     glm::quat handOri;
     if (!frame.hands().isEmpty()) {
         for (int handNum = 0; handNum < frame.hands().count(); handNum++) {

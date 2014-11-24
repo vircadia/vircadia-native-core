@@ -75,13 +75,14 @@ void Text3DOverlay::render(RenderArgs* args) {
     glPushMatrix(); {
         glTranslatef(_position.x, _position.y, _position.z);
         glm::quat rotation;
+        
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera
             rotation = Application::getInstance()->getCamera()->getRotation();
-            rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
         } else {
             rotation = getRotation();
         }
+        
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 

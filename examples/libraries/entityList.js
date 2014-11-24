@@ -33,12 +33,11 @@ EntityListTool = function(opts) {
             var ids = data.entityIds;
             var entityIDs = [];
             for (var i = 0; i < ids.length; i++) {
-                var entityID = Entities.getEntityItemID(ids[i]);
-                if (entityID.isKnownID) {
-                    entityIDs.push(entityID);
-                } else {
-                    print("Tried to select invalid entity: " + ids[i]);
-                }
+                entityIDs.push({
+                    id: ids[i],
+                    isKnownID: true,
+                    creatorTokenID: 0,
+                });
             }
             selectionManager.setSelections(entityIDs);
             if (data.focus) {

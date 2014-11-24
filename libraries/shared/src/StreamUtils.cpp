@@ -86,7 +86,7 @@ std::ostream& operator<<(std::ostream& s, const SphereShape& sphere) {
 std::ostream& operator<<(std::ostream& s, const CapsuleShape& capsule) {
     s << "{type='capsule', center=" << capsule.getPosition()
         << ", radius=" << capsule.getRadius()
-        << ", length=" << (2.f * capsule.getHalfHeight())
+        << ", length=" << (2.0f * capsule.getHalfHeight())
         << ", begin=" << capsule.getStartPoint()
         << ", end=" << capsule.getEndPoint()
         << "}";

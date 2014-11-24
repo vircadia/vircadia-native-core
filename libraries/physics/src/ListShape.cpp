@@ -73,11 +73,11 @@ void ListShape::clear() {
         delete _subShapeEntries[i]._shape;
     }
     _subShapeEntries.clear();
-    setBoundingRadius(0.f);
+    setBoundingRadius(0.0f);
 }
 
 void ListShape::computeBoundingRadius() {
-    float maxRadius = 0.f;
+    float maxRadius = 0.0f;
     for (int i = 0; i < _subShapeEntries.size(); ++i) {
         ListShapeEntry& entry = _subShapeEntries[i];
         float radius = glm::length(entry._localPosition) + entry._shape->getBoundingRadius();

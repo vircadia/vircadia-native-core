@@ -39,8 +39,8 @@ public:
 
     static quint32 getNextID() { static quint32 nextID = 0; return ++nextID; }
 
-    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.f), 
-            _translation(0.f), _rotation(), _mass(MAX_SHAPE_MASS) {
+    Shape() : _type(UNKNOWN_SHAPE), _owningEntity(NULL), _boundingRadius(0.0f), 
+            _translation(0.0f), _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
     virtual ~Shape() { }
@@ -87,20 +87,20 @@ public:
 protected:
     // these ctors are protected (used by derived classes only)
     Shape(Type type) : _type(type), _owningEntity(NULL), 
-            _boundingRadius(0.f), _translation(0.f), 
+            _boundingRadius(0.0f), _translation(0.0f), 
             _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
     Shape(Type type, const glm::vec3& position) : 
             _type(type), _owningEntity(NULL), 
-            _boundingRadius(0.f), _translation(position), 
+            _boundingRadius(0.0f), _translation(position), 
             _rotation(), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }
 
     Shape(Type type, const glm::vec3& position, const glm::quat& rotation) : _type(type), _owningEntity(NULL), 
-            _boundingRadius(0.f), _translation(position), 
+            _boundingRadius(0.0f), _translation(position), 
             _rotation(rotation), _mass(MAX_SHAPE_MASS) {
         _id = getNextID();
     }

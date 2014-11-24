@@ -66,7 +66,7 @@ void ThreadSafePhysicsEngine::initSafe(EntityTree* entities) {
 void applyStaticFriction(float deltaTime, glm::vec3& velocity, float maxVelocity, float strength) {
     float v = glm::length(velocity);
     if (v < maxVelocity) {
-        velocity *= glm::clamp((1.0f - deltaTime * strength * (1.f - v / maxVelocity)), 0.0f, 1.0f);
+        velocity *= glm::clamp((1.0f - deltaTime * strength * (1.0f - v / maxVelocity)), 0.0f, 1.0f);
     }
 }
 
@@ -75,10 +75,10 @@ void applyStaticFriction(float deltaTime, glm::vec3& velocity, float maxVelocity
 //
 
 void applyDamping(float deltaTime, glm::vec3& velocity, float linearStrength, float squaredStrength) {
-    if (squaredStrength == 0.f) {
-        velocity *= glm::clamp(1.f - deltaTime * linearStrength, 0.f, 1.f);
+    if (squaredStrength == 0.0f) {
+        velocity *= glm::clamp(1.0f - deltaTime * linearStrength, 0.0f, 1.0f);
     } else {
-        velocity *= glm::clamp(1.f - deltaTime * (linearStrength + glm::length(velocity) * squaredStrength), 0.f, 1.f);
+        velocity *= glm::clamp(1.0f - deltaTime * (linearStrength + glm::length(velocity) * squaredStrength), 0.0f, 1.0f);
     }
 }
 

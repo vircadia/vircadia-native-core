@@ -1139,7 +1139,7 @@ bool sphereAACube_StarkAngles(const glm::vec3& sphereCenter, float sphereRadius,
         glm::vec3 surfaceB = cubeCenter - (0.5f * cubeSide / maxBA) * BA;
         // collision happens when "vector to surfaceA from surfaceB" dots with BA to produce a positive value
         glm::vec3 surfaceAB = surfaceA - surfaceB;
-        if (glm::dot(surfaceAB, BA) > 0.f) {
+        if (glm::dot(surfaceAB, BA) > 0.0f) {
             CollisionInfo* collision = collisions.getNewCollision();
             if (collision) {
                 // penetration is parallel to box side direction

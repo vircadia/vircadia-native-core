@@ -38,7 +38,7 @@ AvatarData::AvatarData() :
     _position(0.0f),
     _handPosition(0.0f),
     _referential(NULL),
-    _bodyYaw(-90.f),
+    _bodyYaw(-90.0f),
     _bodyPitch(0.0f),
     _bodyRoll(0.0f),
     _targetScale(1.0f),

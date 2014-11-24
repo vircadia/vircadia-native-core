@@ -267,7 +267,7 @@ void EntityCollisionSystem::updateCollisionWithAvatars(EntityItem* entity) {
                 collision->_addedVelocity /= (float)(TREE_SCALE);
                 glm::vec3 relativeVelocity = collision->_addedVelocity - entity->getVelocity();
     
-                if (glm::dot(relativeVelocity, collision->_penetration) <= 0.f) {
+                if (glm::dot(relativeVelocity, collision->_penetration) <= 0.0f) {
                     // only collide when Entity and collision point are moving toward each other
                     // (doing this prevents some "collision snagging" when Entity penetrates the object)
                     collision->_penetration /= (float)(TREE_SCALE);
