@@ -72,6 +72,12 @@ void CustomMotionState::setAngularVelocity(const glm::vec3& velocity) const {
     _body->setAngularVelocity(v);
 }
 
+void CustomMotionState::setGravity(const glm::vec3& gravity) const {
+    btVector3 g;
+    glmToBullet(gravity, g);
+    _body->setGravity(g);
+}
+
 void CustomMotionState::getVelocity(glm::vec3& velocityOut) const {
     bulletToGLM(_body->getLinearVelocity(), velocityOut);
 }

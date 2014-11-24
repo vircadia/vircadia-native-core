@@ -77,12 +77,13 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 }
 
 /// Adds a new entity item to the tree
-void EntityTree::addEntityItem(EntityItem* entity) {
+void EntityTree::addEntityInternal(EntityItem* entity) {
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityItemID entityID = entity->getEntityItemID();
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qDebug() << "UNEXPECTED!!!! don't call addEntityItem() on existing EntityItems. entityID=" << entityID;
+        // should probably assert here
+        qDebug() << "UNEXPECTED!!!! don't call addEntityInternal() on existing EntityItems. entityID=" << entityID;
         return;
     }
 
@@ -90,17 +91,39 @@ void EntityTree::addEntityItem(EntityItem* entity) {
     AddEntityOperator theOperator(this, entity);
     recurseTreeWithOperator(&theOperator);
 
-    updateEntityState(entity);
+    emitAddingEntity(entity);
+}
 
+void EntityTree::emitAddingEntity(EntityItem* entity) {
+    // add entity to proper internal lists
+    EntityItem::SimulationState newState = entity->computeSimulationState();
+    switch (newState) {
+        case EntityItem::Moving:
+            _movingEntities.push_back(entity);
+            break;
+
+        case EntityItem::Mortal:
+            _mortalEntities.push_back(entity);
+            break;
+
+        default:
+            break;
+    }
+    entity->setSimulationState(newState);
+    entity->clearUpdateFlags();
+
+    // add entity to physics engine
     if (_physicsEngine && !entity->getMotionState()) {
         addEntityToPhysicsEngine(entity);
     }
 
     _isDirty = true;
+
+    // finally emit the signal
+    emit addingEntity(entity->getEntityItemID());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (!containingElement) {
         qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entityID doesn't exist!!! entityID=" << entityID;
@@ -127,20 +150,9 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
             }
         }
     } else {
-        // check to see if we need to simulate this entity...
-        QString entityScriptBefore = existingEntity->getScript();
-    
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
-
-        updateEntityState(existingEntity);
-
-        QString entityScriptAfter = existingEntity->getScript();
-        if (entityScriptBefore != entityScriptAfter) {
-            emitEntityScriptChanging(entityID); // the entity script has changed
-        }
-
     }
     
     containingElement = getContainingElement(entityID);
@@ -177,8 +189,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
 
     if (result) {
         // this does the actual adding of the entity
-        addEntityItem(result);
-        emitAddingEntity(entityID);
+        addEntityInternal(result);
     }
     return result;
 }
@@ -202,14 +213,6 @@ void EntityTree::setPhysicsEngine(PhysicsEngine* engine) {
 #endif // USE_BULLET_PHYSICS
     }
     _physicsEngine = engine;
-}
-
-void EntityTree::emitAddingEntity(const EntityItemID& entityItemID) {
-    emit addingEntity(entityItemID);
-}
-
-void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
-    emit entityScriptChanging(entityItemID);
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
@@ -619,13 +622,6 @@ void EntityTree::updateEntityState(EntityItem* entity) {
                 break;
         }
         entity->setSimulationState(newState);
-
-        if (_physicsEngine) {
-            EntityMotionState* motionState = entity->getMotionState();
-            if (motionState) {
-                _physicsEngine->updateEntityMotionType(motionState);
-            }
-        }
     }
 }
 
@@ -701,8 +697,15 @@ void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entities
             entitiesToDelete << thisEntity->getEntityItemID();
             clearEntityState(thisEntity);
         } else {
-            // TODO: Andrew to push changes to physics engine (when we know how to sort the changes)
+            uint32_t flags = thisEntity->getUpdateFlags();
+            if (flags & EntityItem::UPDATE_SCRIPT) {
+                emit entityScriptChanging(thisEntity->getEntityItemID());
+            }
+
             updateEntityState(thisEntity);
+            if (_physicsEngine && thisEntity->getMotionState()) {
+                _physicsEngine->updateEntity(thisEntity->getMotionState(), flags);
+            }
         }
         thisEntity->clearUpdateFlags();
     }
@@ -742,7 +745,7 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                         qDebug() << "Entity " << thisEntity->getEntityItemID() << " moved out of domain bounds.";
                         entitiesToDelete << thisEntity->getEntityItemID();
                         clearEntityState(thisEntity);
-                    } else {
+                    } else if (newCube != oldCube) {
                         moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
                         updateEntityState(thisEntity);
                     }

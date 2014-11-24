@@ -50,7 +50,9 @@ void EntityCollisionSystem::update() {
     if (_entities->tryLockForRead()) {
         QList<EntityItem*>& movingEntities = _entities->getMovingEntities();
         foreach (EntityItem* entity, movingEntities) {
-            checkEntity(entity);
+            if (!entity->getMotionState()) {
+                checkEntity(entity);
+            }
         }
         _entities->unlock();
     }

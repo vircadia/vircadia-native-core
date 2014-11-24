@@ -35,6 +35,7 @@ public:
     //virtual void setWorldTransform (const btTransform &worldTrans);
 
     virtual void applyVelocities() const = 0;
+    virtual void applyGravity() const = 0;
 
     virtual void computeShapeInfo(ShapeInfo& info) = 0;
 
@@ -49,6 +50,7 @@ public:
 
     void setVelocity(const glm::vec3& velocity) const;
     void setAngularVelocity(const glm::vec3& velocity) const;
+    void setGravity(const glm::vec3& gravity) const;
 
     void getVelocity(glm::vec3& velocityOut) const;
     void getAngularVelocity(glm::vec3& angularVelocityOut) const;

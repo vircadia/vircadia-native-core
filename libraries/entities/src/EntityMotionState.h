@@ -12,10 +12,16 @@
 #ifndef hifi_EntityMotionState_h
 #define hifi_EntityMotionState_h
 
-#ifdef USE_BULLET_PHYSICS
-
 #include <AACube.h>
+#ifdef USE_BULLET_PHYSICS
 #include <CustomMotionState.h>
+#else // USE_BULLET_PHYSICS
+// CustomMotionState stubbery
+class CustomMotionState {
+public:
+    bool _foo;
+};
+#endif // USE_BULLET_PHYSICS
 
 class EntityItem;
 
@@ -29,9 +35,12 @@ public:
 
     MotionType getMotionType() const;
 
+#ifdef USE_BULLET_PHYSICS
     void getWorldTransform (btTransform &worldTrans) const;
     void setWorldTransform (const btTransform &worldTrans);
+#endif // USE_BULLET_PHYSICS
     void applyVelocities() const;
+    void applyGravity() const;
 
     void computeShapeInfo(ShapeInfo& info);
 
@@ -42,5 +51,4 @@ protected:
     AACube _oldBoundingCube;
 };
 
-#endif // USE_BULLET_PHYSICS
 #endif // hifi_EntityMotionState_h

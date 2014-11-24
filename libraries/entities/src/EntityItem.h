@@ -22,6 +22,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
+#include <PhysicsEngine.h>
 #include <VoxelDetail.h>
 
 #include "EntityItemID.h" 
@@ -35,9 +36,7 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
-#ifdef USE_BULLET_PHYSICS
 class EntityMotionState;
-#endif // USE_BULLET_PHYSICS
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -46,14 +45,21 @@ class EntityItem  {
 
 public:
     enum EntityUpdateFlags {
-        UPDATE_POSITION = 0x0001,
-        UPDATE_VELOCITY = 0x0002,
-        UPDATE_MASS = 0x0004,
-        UPDATE_COLLISION_GROUP = 0x0008,
-        UPDATE_MOTION_TYPE = 0x0010,
-        UPDATE_SHAPE = 0x0020,
-        UPDATE_LIFETIME = 0x0040
-        //UPDATE_APPEARANCE = 0x8000,
+        // flags for things that need to be relayed to physics engine
+        UPDATE_POSITION = PHYSICS_UPDATE_POSITION, //0x0001,
+        UPDATE_VELOCITY = PHYSICS_UPDATE_VELOCITY, //0x0002,
+        UPDATE_GRAVITY = PHYSICS_UPDATE_GRAVITY, //0x0004,
+        UPDATE_MASS = PHYSICS_UPDATE_MASS, //0x0008,
+        UPDATE_COLLISION_GROUP = PHYSICS_UPDATE_COLLISION_GROUP, //0x0010,
+        UPDATE_MOTION_TYPE = PHYSICS_UPDATE_MOTION_TYPE, //0x0020,
+        UPDATE_SHAPE = PHYSICS_UPDATE_SHAPE, //0x0040,
+        //...
+        // add new flags here in the middle
+        //...
+        // non-physics stuff
+        UPDATE_SCRIPT = 0x2000,
+        UPDATE_LIFETIME = 0x4000,
+        UPDATE_APPEARANCE = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -292,19 +298,18 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
+    void updateScript(const QString& value);
 
     uint32_t getUpdateFlags() const { return _updateFlags; }
-    void clearUpdateFlags() { _updateFlags = 0; }
 
-#ifdef USE_BULLET_PHYSICS
     EntityMotionState* getMotionState() const { return _motionState; }
     virtual EntityMotionState* createMotionState() { return NULL; }
     void destroyMotionState();
-#endif // USE_BULLET_PHYSICS
     SimulationState getSimulationState() const { return _simulationState; }
     
 protected:
     friend class EntityTree;
+    void clearUpdateFlags() { _updateFlags = 0; }
     void setSimulationState(SimulationState state) { _simulationState = state; }
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -348,9 +353,7 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
-#ifdef USE_BULLET_PHYSICS
     EntityMotionState* _motionState;
-#endif // USE_BULLET_PHYSICS
     SimulationState _simulationState;   // only set by EntityTree
 
     // UpdateFlags are set whenever a property changes that requires the change to be communicated to other

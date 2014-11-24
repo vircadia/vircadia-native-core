@@ -32,7 +32,7 @@ void PhysicsEngine::init() {
         // NOTE: we don't care about memory leaking groundShape and groundObject --> 
         // they'll exist until the executable exits.
         const float halfSide = 200.0f;
-        const float halfHeight = 10.0f;
+        const float halfHeight = 1.0f;
 
         btCollisionShape* groundShape = new btBoxShape(btVector3(halfSide, halfHeight, halfSide));
         btTransform groundTransform;
@@ -40,6 +40,7 @@ void PhysicsEngine::init() {
         groundTransform.setOrigin(btVector3(halfSide, -halfHeight, halfSide));
 
         btCollisionObject* groundObject = new btCollisionObject();
+        groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
         groundObject->setCollisionShape(groundShape);
         groundObject->setWorldTransform(groundTransform);
         _dynamicsWorld->addCollisionObject(groundObject);
@@ -131,7 +132,7 @@ bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         float mass = 0.0f;
         btRigidBody* body = NULL;
-        switch(motionState->_motionType) {
+        switch(motionState->getMotionType()) {
             case MOTION_TYPE_KINEMATIC: {
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -147,6 +148,7 @@ bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
                 body->updateInertiaTensor();
                 motionState->_body = body;
                 motionState->applyVelocities();
+                motionState->applyGravity();
                 break;
             }
             case MOTION_TYPE_STATIC:
@@ -158,6 +160,8 @@ bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
                 break;
             }
         }
+        // wtf?
+        body->setFlags(BT_DISABLE_WORLD_GRAVITY);
         body->setRestitution(motionState->_restitution);
         body->setFriction(motionState->_friction);
         _dynamicsWorld->addRigidBody(body);
@@ -182,60 +186,132 @@ bool PhysicsEngine::removeEntity(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsEngine::updateEntityMotionType(CustomMotionState* motionState) {
+bool PhysicsEngine::updateEntity(CustomMotionState* motionState, uint32_t flags) {
     btRigidBody* body = motionState->_body;
     if (!body) {
         return false;
     }
-   
+
+    if (flags & PHYSICS_UPDATE_HARD) {
+        // a hard update requires the body be pulled out of physics engine, changed, then reinserted
+        updateEntityHard(body, motionState, flags);
+    } else if (flags & PHYSICS_UPDATE_EASY) {
+        // an easy update does not require that the body be pulled out of physics engine
+        updateEntityEasy(body, motionState, flags);
+    }
+    return true;
+}
+
+// private
+void PhysicsEngine::updateEntityHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
+    MotionType newType = motionState->getMotionType();
     MotionType oldType = MOTION_TYPE_DYNAMIC;
     if (body->isStaticObject()) {
         oldType = MOTION_TYPE_STATIC;
     } else if (body->isKinematicObject()) {
         oldType = MOTION_TYPE_KINEMATIC;
     }
-    MotionType newType = motionState->getMotionType();
-    if (oldType != newType) {
-        // pull body out of physics engine
-        _dynamicsWorld->removeRigidBody(body);
 
-        // update various properties and flags
-        switch (newType) {
-            case MOTION_TYPE_KINEMATIC: {
-                body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
-                body->setActivationState(DISABLE_DEACTIVATION);
-                body->updateInertiaTensor();
-                break;
-            }
-            case MOTION_TYPE_DYNAMIC: {
+    // pull body out of physics engine
+    _dynamicsWorld->removeRigidBody(body);
+
+    if (flags & PHYSICS_UPDATE_SHAPE) {
+        btCollisionShape* oldShape = body->getCollisionShape();
+        ShapeInfo info;
+        motionState->computeShapeInfo(info);
+        btCollisionShape* newShape = _shapeManager.getShape(info);
+        if (newShape != oldShape) {
+            body->setCollisionShape(newShape);
+            _shapeManager.releaseShape(oldShape);
+        } else {
+            // whoops, shape hasn't changed after all so we must release the reference
+            // that was created when looking it up
+            _shapeManager.releaseShape(newShape);
+        }
+        // MASS bit should be set whenever SHAPE is set
+        assert(flags & PHYSICS_UPDATE_MASS);
+    }
+    bool easyUpdate = flags & PHYSICS_UPDATE_EASY;
+    if (easyUpdate) {
+        updateEntityEasy(body, motionState, flags);
+    }
+
+    // update the motion parameters
+    switch (newType) {
+        case MOTION_TYPE_KINEMATIC: {
+            int collisionFlags = body->getCollisionFlags() | btCollisionObject::CF_KINEMATIC_OBJECT;
+            collisionFlags &= ~(btCollisionObject::CF_STATIC_OBJECT);
+            body->setCollisionFlags(collisionFlags);
+            body->forceActivationState(DISABLE_DEACTIVATION);
+
+            body->setMassProps(0.0f, btVector3(0.0f, 0.0f, 0.0f));
+            body->updateInertiaTensor();
+            break;
+        }
+        case MOTION_TYPE_DYNAMIC: {
+            int collisionFlags = body->getCollisionFlags() & ~(btCollisionObject::CF_KINEMATIC_OBJECT | btCollisionObject::CF_STATIC_OBJECT);
+            body->setCollisionFlags(collisionFlags);
+            if (! (flags & PHYSICS_UPDATE_MASS)) {
+                // always update mass properties when going dynamic (unless it's already been done)
                 btVector3 inertia(0.0f, 0.0f, 0.0f);
                 float mass = motionState->getMass();
                 body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+                body->setMassProps(mass, inertia);
                 body->updateInertiaTensor();
-                motionState->applyVelocities();
-                break;
             }
-            default: {
-                // MOTION_TYPE_STATIC
-                body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-                body->updateInertiaTensor();
-                break;
-            }
+            bool forceActivation = true;
+            body->activate(forceActivation);
+            break;
         }
+        default: {
+            // MOTION_TYPE_STATIC
+            int collisionFlags = body->getCollisionFlags() | btCollisionObject::CF_STATIC_OBJECT;
+            collisionFlags &= ~(btCollisionObject::CF_KINEMATIC_OBJECT);
+            body->setCollisionFlags(collisionFlags);
+            body->forceActivationState(DISABLE_SIMULATION);
 
-        // reinsert body into physics engine
-        body->setRestitution(motionState->_restitution);
-        body->setFriction(motionState->_friction);
-        _dynamicsWorld->addRigidBody(body);
-        return true;
+            body->setMassProps(0.0f, btVector3(0.0f, 0.0f, 0.0f));
+            body->updateInertiaTensor();
+
+            body->setLinearVelocity(btVector3(0.0f, 0.0f, 0.0f));
+            body->setAngularVelocity(btVector3(0.0f, 0.0f, 0.0f));
+            break;
+        }
     }
-    return false;
+
+    // reinsert body into physics engine
+    _dynamicsWorld->addRigidBody(body);
+
+    body->activate();
 }
 
-bool PhysicsEngine::updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues) {
-    // TODO: implement this
-    assert(motionState);
-    return false;
-}
+// private
+void PhysicsEngine::updateEntityEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
+    if (flags & PHYSICS_UPDATE_POSITION) {
+        btTransform transform;
+        motionState->getWorldTransform(transform);
+        body->setWorldTransform(transform);
+    }
+    if (flags & PHYSICS_UPDATE_VELOCITY) {
+        motionState->applyVelocities();
+        motionState->applyGravity();
+    }
+    body->setRestitution(motionState->_restitution);
+    body->setFriction(motionState->_friction);
+
+    if (flags & PHYSICS_UPDATE_MASS) {
+        float mass = motionState->getMass();
+        btVector3 inertia(0.0f, 0.0f, 0.0f);
+        body->getCollisionShape()->calculateLocalInertia(mass, inertia);
+        body->setMassProps(mass, inertia);
+        body->updateInertiaTensor();
+    }
+    body->activate();
+
+    btVector3 v = body->getLinearVelocity();
+    btVector3 g = body->getGravity();
+
+    // TODO: support collision groups
+};
 
 #endif // USE_BULLET_PHYSICS

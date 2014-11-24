@@ -12,6 +12,24 @@
 #ifndef hifi_PhysicsEngine_h
 #define hifi_PhysicsEngine_h
 
+enum PhysicsUpdateFlag {
+    PHYSICS_UPDATE_POSITION = 0x0001,
+    PHYSICS_UPDATE_VELOCITY = 0x0002,
+    PHYSICS_UPDATE_GRAVITY = 0x0004,
+    PHYSICS_UPDATE_MASS = 0x0008,
+    PHYSICS_UPDATE_COLLISION_GROUP = 0x0010,
+    PHYSICS_UPDATE_MOTION_TYPE = 0x0020,
+    PHYSICS_UPDATE_SHAPE = 0x0040
+};
+
+typedef unsigned int uint32_t;
+
+// The update flags trigger two varieties of updates: "hard" which require the body to be pulled 
+// and re-added to the physics engine and "easy" which just updates the body properties.
+const uint32_t PHYSICS_UPDATE_HARD = PHYSICS_UPDATE_MOTION_TYPE | PHYSICS_UPDATE_SHAPE;
+const uint32_t PHYSICS_UPDATE_EASY = PHYSICS_UPDATE_POSITION | PHYSICS_UPDATE_VELOCITY | 
+        PHYSICS_UPDATE_GRAVITY PHYSICS_UPDATE_MASS | PHYSICS_UPDATE_COLLISION_GROUP;
+
 #ifdef USE_BULLET_PHYSICS
 
 #include <btBulletDynamicsCommon.h>
@@ -68,12 +86,14 @@ public:
     bool removeEntity(CustomMotionState* motionState);
 
     /// \param motionState pointer to Entity's MotionState
+    /// \param flags set of bits indicating what categories of properties need to be updated
     /// \return true if entity updated
-    bool updateEntityMotionType(CustomMotionState* motionState);
-
-    bool updateEntityMassProperties(CustomMotionState* motionState, float mass, const glm::vec3& inertiaEigenValues);
+    bool updateEntity(CustomMotionState* motionState, uint32_t flags);
 
 protected:
+    void updateEntityHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
+    void updateEntityEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
+
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig;
     btCollisionDispatcher* _collisionDispatcher;

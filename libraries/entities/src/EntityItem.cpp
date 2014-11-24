@@ -91,9 +91,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
-#ifdef USE_BULLET_PHYSICS
     _motionState = NULL;
-#endif // USE_BULLET_PHYSICS
     _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
@@ -107,9 +105,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
-#ifdef USE_BULLET_PHYSICS
     _motionState = NULL;
-#endif // USE_BULLET_PHYSICS
     _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
@@ -118,11 +114,9 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
-#ifdef USE_BULLET_PHYSICS
     // Make sure the EntityItem has been removed from the physics engine AND 
     // that its _motionState has been destroyed BEFORE you get here.
     assert(_motionState == NULL);
-#endif // USE_BULLET_PHYSICS
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -519,7 +513,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
         READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
-        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
+        READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT, updateScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
         READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
@@ -797,23 +791,23 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         }
     }
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters); // this will call recalculate collision shape if needed
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocityInMeters);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, updateScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
@@ -985,7 +979,7 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
     if (_dimensions != value) {
         _dimensions = value; 
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_SHAPE;
+        _updateFlags |= (EntityItem::UPDATE_SHAPE | EntityItem::UPDATE_MASS);
     }
 }
 
@@ -994,7 +988,7 @@ void EntityItem::updateDimensionsInMeters(const glm::vec3& value) {
     if (_dimensions != dimensions) {
         _dimensions = dimensions; 
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_SHAPE;
+        _updateFlags |= (EntityItem::UPDATE_SHAPE | EntityItem::UPDATE_MASS);
     }
 }
 
@@ -1031,7 +1025,7 @@ void EntityItem::updateVelocityInMeters(const glm::vec3& value) {
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if (_gravity != value) {
         _gravity = value; 
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_GRAVITY;
     }
 }
 
@@ -1039,7 +1033,7 @@ void EntityItem::updateGravityInMeters(const glm::vec3& value) {
     glm::vec3 gravity = value / (float) TREE_SCALE;
     if (_gravity != gravity) {
         _gravity = gravity;
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _updateFlags |= EntityItem::UPDATE_GRAVITY;
     }
 }
 
@@ -1071,12 +1065,17 @@ void EntityItem::updateLifetime(float value) {
     }
 }
 
-#ifdef USE_BULLET_PHYSICS
+void EntityItem::updateScript(const QString& value) { 
+    if (_script != value) {
+        _script = value; 
+        _updateFlags |= EntityItem::UPDATE_SCRIPT;
+    }
+}
+
 void EntityItem::destroyMotionState() {
     if (_motionState) {
         delete _motionState;
         _motionState = NULL;
     }
 }
-#endif // USE_BULLET_PHYSICS
 

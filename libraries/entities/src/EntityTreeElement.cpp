@@ -742,12 +742,13 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
-                    QString entityScriptBefore = entityItem->getScript();
+                    uint32_t oldFlags = entityItem->getUpdateFlags();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                    if (entityItem->getUpdateFlags()) {
+                    if (!oldFlags && entityItem->getUpdateFlags()) {
+                        // this entity is not yet on the changed list and needs to be added
                         _myTree->entityChanged(entityItem);
                     }
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
@@ -763,21 +764,14 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         }
                     }
-
-                    QString entityScriptAfter = entityItem->getScript();
-                    if (entityScriptBefore != entityScriptAfter) {
-                        _myTree->emitEntityScriptChanging(entityItemID); // the entity script has changed
-                    }
-
                 } else {
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     if (entityItem) {
                         bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
                         addEntityItem(entityItem); // add this new entity to this elements entities
+                        _myTree->emitAddingEntity(entityItem);
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
-                        _myTree->updateEntityState(entityItem);
-                        _myTree->emitAddingEntity(entityItemID); // we just added an entity
                     }
                 }
                 // Move the buffer forward to read more entities

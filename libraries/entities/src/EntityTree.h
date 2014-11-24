@@ -79,7 +79,8 @@ public:
 
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
-    void addEntityItem(EntityItem* entityItem);
+    void addEntityInternal(EntityItem* entityItem);
+    void emitAddingEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -146,9 +147,6 @@ public:
     void removeEntityFromPhysicsEngine(EntityItem* entity);
 
     void trackDeletedEntity(const EntityItemID& entityID);
-
-    void emitAddingEntity(const EntityItemID& entityItemID);
-    void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
 

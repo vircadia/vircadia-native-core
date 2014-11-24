@@ -11,6 +11,7 @@
 
 #ifdef USE_BULLET_PHYSICS
 #include <BulletUtil.h>
+#endif // USE_BULLET_PHYSICS
 
 #include "EntityItem.h"
 #include "EntityMotionState.h"
@@ -41,9 +42,10 @@ MotionType EntityMotionState::getMotionType() const {
     // HACK: According to EntityTree the meaning of "static" is "not moving" whereas
     // to Bullet it means "can't move".  For demo purposes we temporarily interpret
     // Entity::weightless to mean Bullet::static.
-    return _entity->hasGravity() ? MOTION_TYPE_DYNAMIC : MOTION_TYPE_STATIC;
+    return _entity->getCollisionsWillMove() ? MOTION_TYPE_DYNAMIC : MOTION_TYPE_STATIC;
 }
 
+#ifdef USE_BULLET_PHYSICS
 // This callback is invoked by the physics simulation in two cases:
 // (1) when the RigidBody is first added to the world
 //     (irregardless of MotionType: STATIC, DYNAMIC, or KINEMATIC)
@@ -64,34 +66,54 @@ void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation frame...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
-    glm::vec3 pos;
-    bulletToGLM(worldTrans.getOrigin(), pos);
-    _entity->setPositionInMeters(pos + _cachedWorldOffset);
+    uint32_t updateFlags = _entity->getUpdateFlags();
+    if (! (updateFlags &  PHYSICS_UPDATE_POSITION)) {
+        glm::vec3 pos;
+        bulletToGLM(worldTrans.getOrigin(), pos);
+        _entity->setPositionInMeters(pos + _cachedWorldOffset);
+    
+        glm::quat rot;
+        bulletToGLM(worldTrans.getRotation(), rot);
+        _entity->setRotation(rot);
+    }
 
-    glm::quat rot;
-    bulletToGLM(worldTrans.getRotation(), rot);
-    _entity->setRotation(rot);
-
-    glm::vec3 v;
-    getVelocity(v);
-    _entity->setVelocityInMeters(v);
-    getAngularVelocity(v);
-    _entity->setAngularVelocity(v);
+    if (! (updateFlags &  PHYSICS_UPDATE_VELOCITY)) {
+        glm::vec3 v;
+        getVelocity(v);
+        _entity->setVelocityInMeters(v);
+        getAngularVelocity(v);
+        _entity->setAngularVelocity(v);
+    }
 }
+#endif // USE_BULLET_PHYSICS
 
 void EntityMotionState::applyVelocities() const {
+#ifdef USE_BULLET_PHYSICS
     if (_body) {
         setVelocity(_entity->getVelocityInMeters());
         setAngularVelocity(_entity->getAngularVelocity());
+        _body->setActivationState(ACTIVE_TAG);
     }
+#endif // USE_BULLET_PHYSICS
+}
+
+void EntityMotionState::applyGravity() const {
+#ifdef USE_BULLET_PHYSICS
+    if (_body) {
+        setGravity(_entity->getGravityInMeters());
+        _body->setActivationState(ACTIVE_TAG);
+    }
+#endif // USE_BULLET_PHYSICS
 }
 
 void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
+#ifdef USE_BULLET_PHYSICS
     // HACK: for now we make everything a box.
-    glm::vec3 halfExtents = _entity->getDimensionsInMeters();
+    glm::vec3 halfExtents = 0.5f * _entity->getDimensionsInMeters();
     btVector3 bulletHalfExtents;
     glmToBullet(halfExtents, bulletHalfExtents);
     info.setBox(bulletHalfExtents);
+#endif // USE_BULLET_PHYSICS
 }
 
 void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {
@@ -100,4 +122,3 @@ void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {
     _oldBoundingCube = newCube;
 }
 
-#endif // USE_BULLET_PHYSICS
