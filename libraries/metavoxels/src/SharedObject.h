@@ -24,6 +24,7 @@
 
 class QComboBox;
 
+class Bitstream;
 class SharedObject;
 
 typedef QHash<int, QPointer<SharedObject> > WeakSharedObjectHash;
@@ -76,8 +77,20 @@ public:
     /// this is an instance of a superclass of the other object's class) rather than simply returning false.
     virtual bool equals(const SharedObject* other, bool sharedAncestry = false) const;
 
-    // Dumps the contents of this object to the debug output.
+    /// Dumps the contents of this object to the debug output.
     virtual void dump(QDebug debug = QDebug(QtDebugMsg)) const;
+
+    /// Writes the non-property contents of this object to the specified stream.
+    virtual void writeExtra(Bitstream& out) const;
+    
+    /// Reads the non-property contents of this object from the specified stream.
+    virtual void readExtra(Bitstream& in);
+
+    /// Writes the delta-encoded non-property contents of this object to the specified stream.
+    virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
+
+    /// Reads the delta-encoded non-property contents of this object from the specified stream.
+    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
 
 private:
     

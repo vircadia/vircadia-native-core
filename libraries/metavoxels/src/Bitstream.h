@@ -1133,6 +1133,18 @@ private:
     QVector<StreamerPropertyPair> _properties;
 };
 
+/// A streamer that maps to a local shared object class.  Shared objects can write extra, non-property data.
+class SharedObjectStreamer : public MappedObjectStreamer {
+public:
+    
+    SharedObjectStreamer(const QMetaObject* metaObject, const QVector<StreamerPropertyPair>& properties);
+    
+    virtual void write(Bitstream& out, const QObject* object) const;
+    virtual void writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const;
+    virtual QObject* read(Bitstream& in, QObject* object = NULL) const;
+    virtual QObject* readRawDelta(Bitstream& in, const QObject* reference, QObject* object = NULL) const;
+};
+
 typedef QPair<TypeStreamerPointer, QByteArray> StreamerNamePair;
 
 /// A streamer for generic objects.

@@ -131,6 +131,22 @@ void SharedObject::dump(QDebug debug) const {
     }
 }
 
+void SharedObject::writeExtra(Bitstream& out) const {
+    // nothing by default
+}
+
+void SharedObject::readExtra(Bitstream& in) {
+    // nothing by default
+}
+
+void SharedObject::writeExtraDelta(Bitstream& out, const SharedObject* reference) const {
+    // nothing by default
+}
+
+void SharedObject::readExtraDelta(Bitstream& in, const SharedObject* reference) {
+    // nothing by default
+}
+
 QAtomicInt SharedObject::_nextID(1);
 WeakSharedObjectHash SharedObject::_weakHash;
 QReadWriteLock SharedObject::_weakHashLock;
