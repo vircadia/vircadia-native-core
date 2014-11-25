@@ -3502,7 +3502,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
     }
 }
 
-
 void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
@@ -3516,7 +3515,11 @@ void Application::resetSensors() {
     _prioVR.reset();
     //_leapmotion.reset();
 
-    QCursor::setPos(_mouseX, _mouseY);
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    QCursor::setPos(currentScreen, windowCenter);
+    
     _myAvatar->reset();
 
     QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
