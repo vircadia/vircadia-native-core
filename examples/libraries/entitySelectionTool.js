@@ -273,6 +273,8 @@ SelectionDisplay = (function () {
                 visible: false,
                 dashed: false,
                 lineWidth: grabberLineWidth,
+                drawInFront: true,
+                borderSize: 1.4,
             };
 
     var grabberPropertiesEdge = {
@@ -284,6 +286,8 @@ SelectionDisplay = (function () {
                 visible: false,
                 dashed: false,
                 lineWidth: grabberLineWidth,
+                drawInFront: true,
+                borderSize: 1.4,
             };
 
     var grabberPropertiesFace = {
@@ -295,6 +299,8 @@ SelectionDisplay = (function () {
                 visible: false,
                 dashed: false,
                 lineWidth: grabberLineWidth,
+                drawInFront: true,
+                borderSize: 1.4,
             };
     
     var highlightBox = Overlays.addOverlay("cube", {
@@ -328,7 +334,8 @@ SelectionDisplay = (function () {
                     visible: false,
                     size: 0.1,
                     scale: 0.1,
-                    isFacingAvatar: true
+                    isFacingAvatar: true,
+                    drawInFront: true,
                   });
 
     // var normalLine = Overlays.addOverlay("line3d", {
@@ -2293,7 +2300,7 @@ SelectionDisplay = (function () {
                     size: grabberSize,
                 });
             }
-            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 10;
             Overlays.editOverlay(yawHandle, {
                 scale: handleSize,
             });
