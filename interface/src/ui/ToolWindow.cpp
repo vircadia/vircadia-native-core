@@ -21,6 +21,7 @@ ToolWindow::ToolWindow(QWidget* parent) :
     _hasShown(false),
     _lastGeometry() {
 
+    setDockOptions(QMainWindow::ForceTabbedDocks);
     Application::getInstance()->installEventFilter(this);
 }
 
