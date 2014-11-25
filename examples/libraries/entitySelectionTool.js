@@ -306,7 +306,7 @@ SelectionDisplay = (function () {
     var highlightBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 180, green: 180, blue: 180},
+                    color: { red: 90, green: 90, blue: 90},
                     alpha: 1,
                     solid: false,
                     visible: false,
@@ -318,7 +318,7 @@ SelectionDisplay = (function () {
     var selectionBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 180, green: 180, blue: 180},
+                    color: { red: 60, green: 60, blue: 60},
                     alpha: 1,
                     solid: false,
                     visible: false,
