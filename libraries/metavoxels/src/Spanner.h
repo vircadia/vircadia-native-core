@@ -494,6 +494,9 @@ public:
         const HeightfieldColorPointer& color = HeightfieldColorPointer(),
         const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer());
     
+    void setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
+        const HeightfieldMaterialPointer& material);
+    
     const HeightfieldHeightPointer& getHeight() const { return _height; }
     const HeightfieldColorPointer& getColor() const { return _color; }
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
@@ -533,9 +536,10 @@ class Heightfield : public Transformable {
     Q_OBJECT
     Q_PROPERTY(float aspectY MEMBER _aspectY WRITE setAspectY NOTIFY aspectYChanged)
     Q_PROPERTY(float aspectZ MEMBER _aspectZ WRITE setAspectZ NOTIFY aspectZChanged)
-    Q_PROPERTY(HeightfieldHeightPointer height MEMBER _height WRITE setHeight NOTIFY heightChanged)
-    Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged)
-    Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged DESIGNABLE false)
+    Q_PROPERTY(HeightfieldHeightPointer height MEMBER _height WRITE setHeight NOTIFY heightChanged STORED false)
+    Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged STORED false)
+    Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged STORED false
+        DESIGNABLE false)
 
 public:
     
@@ -600,6 +604,7 @@ protected:
 private slots:
     
     void updateBounds();
+    void updateRoot();
     
 private:
 

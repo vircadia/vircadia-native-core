@@ -1145,6 +1145,94 @@ HeightfieldNode::HeightfieldNode(const HeightfieldHeightPointer& height, const H
     _material(material) {
 }
 
+const int HEIGHT_LEAF_SIZE = 256 + HeightfieldHeight::HEIGHT_EXTENSION;
+
+void HeightfieldNode::setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
+        const HeightfieldMaterialPointer& material) {
+    clearChildren();
+    
+    int heightWidth = height->getWidth();
+    if (heightWidth <= HEIGHT_LEAF_SIZE) {
+        _height = height;
+        _color = color;
+        _material = material;
+        return;
+    }
+    int heightHeight = height->getContents().size() / heightWidth;
+    int innerChildHeightWidth = (heightWidth - HeightfieldHeight::HEIGHT_EXTENSION) / 2;
+    int innerChildHeightHeight = (heightHeight - HeightfieldHeight::HEIGHT_EXTENSION) / 2;
+    int childHeightWidth = innerChildHeightWidth + HeightfieldHeight::HEIGHT_EXTENSION;
+    int childHeightHeight = innerChildHeightHeight + HeightfieldHeight::HEIGHT_EXTENSION;
+    
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        QVector<quint16> childHeightContents(childHeightWidth * childHeightHeight);
+        quint16* heightDest = childHeightContents.data();
+        bool maximumX = (i & X_MAXIMUM_FLAG), maximumY = (i & Y_MAXIMUM_FLAG);
+        const quint16* heightSrc = height->getContents().constData() + (maximumY ? innerChildHeightHeight * heightWidth : 0) +
+            (maximumX ? innerChildHeightWidth : 0);
+        for (int z = 0; z < childHeightHeight; z++, heightDest += childHeightWidth, heightSrc += heightWidth) {
+            memcpy(heightDest, heightSrc, childHeightWidth * sizeof(quint16));
+        }
+        
+        HeightfieldColorPointer childColor;
+        if (color) {
+            int colorWidth = color->getWidth();
+            int colorHeight = color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+            int innerChildColorWidth = (colorWidth - HeightfieldData::SHARED_EDGE) / 2;
+            int innerChildColorHeight = (colorHeight - HeightfieldData::SHARED_EDGE) / 2;
+            int childColorWidth = innerChildColorWidth + HeightfieldData::SHARED_EDGE;
+            int childColorHeight = innerChildColorHeight + HeightfieldData::SHARED_EDGE;
+            QByteArray childColorContents(childColorWidth * childColorHeight * DataBlock::COLOR_BYTES, 0);
+            char* dest = childColorContents.data();
+            const char* src = color->getContents().constData() + ((maximumY ? innerChildColorHeight * colorWidth : 0) +
+                (maximumX ? innerChildColorWidth : 0)) * DataBlock::COLOR_BYTES;
+            for (int z = 0; z < childColorHeight; z++, dest += childColorWidth * DataBlock::COLOR_BYTES,
+                    src += colorWidth * DataBlock::COLOR_BYTES) {
+                memcpy(dest, src, childColorWidth * DataBlock::COLOR_BYTES);
+            }
+            childColor = new HeightfieldColor(childColorWidth, childColorContents);
+        }
+        
+        HeightfieldMaterialPointer childMaterial;
+        if (material) {
+            int materialWidth = material->getWidth();
+            int materialHeight = material->getContents().size() / materialWidth;
+            int innerChildMaterialWidth = (materialWidth - HeightfieldData::SHARED_EDGE) / 2;
+            int innerChildMaterialHeight = (materialHeight - HeightfieldData::SHARED_EDGE) / 2;
+            int childMaterialWidth = innerChildMaterialWidth + HeightfieldData::SHARED_EDGE;
+            int childMaterialHeight = innerChildMaterialHeight + HeightfieldData::SHARED_EDGE;
+            QByteArray childMaterialContents(childMaterialWidth * childMaterialHeight, 0);
+            QVector<SharedObjectPointer> childMaterials;
+            uchar* dest = (uchar*)childMaterialContents.data();
+            const uchar* src = (const uchar*)material->getContents().data() +
+                (maximumY ? innerChildMaterialHeight * materialWidth : 0) + (maximumX ? innerChildMaterialWidth : 0);
+            QHash<int, int> materialMap;
+            for (int z = 0; z < childMaterialHeight; z++, dest += childMaterialWidth, src += materialWidth) {
+                const uchar* lineSrc = src;
+                for (uchar* lineDest = dest, *end = dest + childMaterialWidth; lineDest != end; lineDest++, lineSrc++) {
+                    int value = *lineSrc;
+                    if (value != 0) {
+                        int& mapping = materialMap[value];
+                        if (mapping == 0) {
+                            childMaterials.append(material->getMaterials().at(value - 1));
+                            mapping = childMaterials.size();
+                        }
+                        value = mapping;
+                    }
+                    *lineDest = value;
+                }
+            }
+            childMaterial = new HeightfieldMaterial(childMaterialWidth, childMaterialContents, childMaterials);
+        }
+    
+        _children[i] = new HeightfieldNode();
+        _children[i]->setContents(HeightfieldHeightPointer(new HeightfieldHeight(childHeightWidth, childHeightContents)),
+            childColor, childMaterial);
+    }
+    
+    mergeChildren();
+}
+
 bool HeightfieldNode::isLeaf() const {
     for (int i = 0; i < CHILD_COUNT; i++) {
         if (_children[i]) {
@@ -1406,8 +1494,7 @@ void HeightfieldNode::mergeChildren() {
 
 Heightfield::Heightfield() :
     _aspectY(1.0f),
-    _aspectZ(1.0f),
-    _root(new HeightfieldNode()) {
+    _aspectZ(1.0f) {
     
     connect(this, &Heightfield::translationChanged, this, &Heightfield::updateBounds);
     connect(this, &Heightfield::rotationChanged, this, &Heightfield::updateBounds);
@@ -1415,6 +1502,11 @@ Heightfield::Heightfield() :
     connect(this, &Heightfield::aspectYChanged, this, &Heightfield::updateBounds);
     connect(this, &Heightfield::aspectZChanged, this, &Heightfield::updateBounds);
     updateBounds();
+    
+    connect(this, &Heightfield::heightChanged, this, &Heightfield::updateRoot);
+    connect(this, &Heightfield::colorChanged, this, &Heightfield::updateRoot);
+    connect(this, &Heightfield::materialChanged, this, &Heightfield::updateRoot);
+    updateRoot();
 }
 
 void Heightfield::setAspectY(float aspectY) {
@@ -2484,6 +2576,13 @@ void Heightfield::updateBounds() {
     glm::vec3 extent(getScale(), getScale() * _aspectY, getScale() * _aspectZ);
     glm::mat4 rotationMatrix = glm::mat4_cast(getRotation());
     setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(glm::vec3(), extent));
+}
+
+void Heightfield::updateRoot() {
+    _root = new HeightfieldNode();
+    if (_height) {
+        _root->setContents(_height, _color, _material);
+    }
 }
 
 MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {
