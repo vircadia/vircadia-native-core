@@ -166,6 +166,9 @@ QScriptValue Base3DOverlay::getProperty(const QString& property) {
     if (property == "ignoreRayIntersection") {
         return _ignoreRayIntersection;
     }
+    if (property == "drawInFront") {
+        return _drawInFront;
+    }
 
     return Overlay::getProperty(property);
 }
