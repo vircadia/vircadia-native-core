@@ -64,10 +64,12 @@ void Cube3DOverlay::render(RenderArgs* args) {
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             if (_isSolid) {
                 if (_borderSize > 0) {
-                    // Disable writing to the depth mask so that the following draw
-                    // will not be occluded by this one.  This means the border
-                    // could be covered by overlays that are further back and drawn
-                    // later, but this is good enough for the use-case.
+                    // Draw a cube at a larger size behind the main cube, creating
+                    // a border effect.
+                    // Disable writing to the depth mask so that the "border" cube will not
+                    // occlude the main cube.  This means the border could be covered by
+                    // overlays that are further back and drawn later, but this is good
+                    // enough for the use-case.
                     glDepthMask(GL_FALSE);
                     glPushMatrix();
                         glColor4f(1.0f, 1.0f, 1.0f, alpha);
