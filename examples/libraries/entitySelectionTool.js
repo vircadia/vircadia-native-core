@@ -205,7 +205,9 @@ SelectionDisplay = (function () {
     
     var MINIMUM_DIMENSION = 0.001;
 
-    var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.015;
+    var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.0075;
+
+    var showExtendedStretchHandles = false;
     
     var spaceMode = SPACE_LOCAL;
     var mode = "UNKNOWN";
@@ -260,6 +262,7 @@ SelectionDisplay = (function () {
     var grabberColorFace = { red: 120, green: 120, blue: 120 };
     var grabberLineWidth = 0.5;
     var grabberSolid = true;
+    var grabberMoveUpPosition = { x: 0, y: 0, z: 0 };
 
     var grabberPropertiesCorner = {
                 position: { x:0, y: 0, z: 0},
@@ -270,6 +273,8 @@ SelectionDisplay = (function () {
                 visible: false,
                 dashed: false,
                 lineWidth: grabberLineWidth,
+                drawInFront: true,
+                borderSize: 1.4,
             };
 
     var grabberPropertiesEdge = {
@@ -281,6 +286,8 @@ SelectionDisplay = (function () {
                 visible: false,
                 dashed: false,
                 lineWidth: grabberLineWidth,
+                drawInFront: true,
+                borderSize: 1.4,
             };
 
     var grabberPropertiesFace = {
@@ -292,6 +299,8 @@ SelectionDisplay = (function () {
                 visible: false,
                 dashed: false,
                 lineWidth: grabberLineWidth,
+                drawInFront: true,
+                borderSize: 1.4,
             };
     
     var highlightBox = Overlays.addOverlay("cube", {
@@ -325,7 +334,8 @@ SelectionDisplay = (function () {
                     visible: false,
                     size: 0.1,
                     scale: 0.1,
-                    isFacingAvatar: true
+                    isFacingAvatar: true,
+                    drawInFront: true,
                   });
 
     // var normalLine = Overlays.addOverlay("line3d", {
@@ -532,7 +542,8 @@ SelectionDisplay = (function () {
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        isFacingAvatar: false
+                                        isFacingAvatar: false,
+                                        drawInFront: true,
                                       });
 
 
@@ -544,7 +555,8 @@ SelectionDisplay = (function () {
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        isFacingAvatar: false
+                                        isFacingAvatar: false,
+                                        drawInFront: true,
                                       });
 
 
@@ -556,7 +568,8 @@ SelectionDisplay = (function () {
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        isFacingAvatar: false
+                                        isFacingAvatar: false,
+                                        drawInFront: true,
                                       });
 
     var allOverlays = [
@@ -1056,21 +1069,23 @@ SelectionDisplay = (function () {
         EdgeFL = Vec3.sum(position, EdgeFL);
 
         var stretchHandlesVisible = spaceMode == SPACE_LOCAL;
+        var extendedStretchHandlesVisible = stretchHandlesVisible && showExtendedStretchHandles;
         Overlays.editOverlay(grabberLBN, { visible: stretchHandlesVisible, rotation: rotation, position: LBN });
         Overlays.editOverlay(grabberRBN, { visible: stretchHandlesVisible, rotation: rotation, position: RBN });
         Overlays.editOverlay(grabberLBF, { visible: stretchHandlesVisible, rotation: rotation, position: LBF });
         Overlays.editOverlay(grabberRBF, { visible: stretchHandlesVisible, rotation: rotation, position: RBF });
-        Overlays.editOverlay(grabberLTN, { visible: stretchHandlesVisible, rotation: rotation, position: LTN });
-        Overlays.editOverlay(grabberRTN, { visible: stretchHandlesVisible, rotation: rotation, position: RTN });
-        Overlays.editOverlay(grabberLTF, { visible: stretchHandlesVisible, rotation: rotation, position: LTF });
-        Overlays.editOverlay(grabberRTF, { visible: stretchHandlesVisible, rotation: rotation, position: RTF });
+
+        Overlays.editOverlay(grabberLTN, { visible: extendedStretchHandlesVisible, rotation: rotation, position: LTN });
+        Overlays.editOverlay(grabberRTN, { visible: extendedStretchHandlesVisible, rotation: rotation, position: RTN });
+        Overlays.editOverlay(grabberLTF, { visible: extendedStretchHandlesVisible, rotation: rotation, position: LTF });
+        Overlays.editOverlay(grabberRTF, { visible: extendedStretchHandlesVisible, rotation: rotation, position: RTF });
 
         Overlays.editOverlay(grabberTOP, { visible: stretchHandlesVisible, rotation: rotation, position: TOP });
         Overlays.editOverlay(grabberBOTTOM, { visible: stretchHandlesVisible, rotation: rotation, position: BOTTOM });
-        Overlays.editOverlay(grabberLEFT, { visible: stretchHandlesVisible, rotation: rotation, position: LEFT });
-        Overlays.editOverlay(grabberRIGHT, { visible: stretchHandlesVisible, rotation: rotation, position: RIGHT });
-        Overlays.editOverlay(grabberNEAR, { visible: stretchHandlesVisible, rotation: rotation, position: NEAR });
-        Overlays.editOverlay(grabberFAR, { visible: stretchHandlesVisible, rotation: rotation, position: FAR });
+        Overlays.editOverlay(grabberLEFT, { visible: extendedStretchHandlesVisible, rotation: rotation, position: LEFT });
+        Overlays.editOverlay(grabberRIGHT, { visible: extendedStretchHandlesVisible, rotation: rotation, position: RIGHT });
+        Overlays.editOverlay(grabberNEAR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: NEAR });
+        Overlays.editOverlay(grabberFAR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: FAR });
 
         Overlays.editOverlay(selectionBox, {
             position: position,
@@ -1079,21 +1094,22 @@ SelectionDisplay = (function () {
             visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
         });
 
-        Overlays.editOverlay(grabberEdgeTR, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeTR });
-        Overlays.editOverlay(grabberEdgeTL, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeTL });
-        Overlays.editOverlay(grabberEdgeTF, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeTF });
-        Overlays.editOverlay(grabberEdgeTN, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeTN });
+        Overlays.editOverlay(grabberEdgeTR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTR });
+        Overlays.editOverlay(grabberEdgeTL, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTL });
+        Overlays.editOverlay(grabberEdgeTF, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTF });
+        Overlays.editOverlay(grabberEdgeTN, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTN });
         Overlays.editOverlay(grabberEdgeBR, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeBR });
         Overlays.editOverlay(grabberEdgeBL, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeBL });
         Overlays.editOverlay(grabberEdgeBF, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeBF });
         Overlays.editOverlay(grabberEdgeBN, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeBN });
-        Overlays.editOverlay(grabberEdgeNR, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeNR });
-        Overlays.editOverlay(grabberEdgeNL, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeNL });
-        Overlays.editOverlay(grabberEdgeFR, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeFR });
-        Overlays.editOverlay(grabberEdgeFL, { visible: stretchHandlesVisible, rotation: rotation, position: EdgeFL });
+        Overlays.editOverlay(grabberEdgeNR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeNR });
+        Overlays.editOverlay(grabberEdgeNL, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeNL });
+        Overlays.editOverlay(grabberEdgeFR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeFR });
+        Overlays.editOverlay(grabberEdgeFL, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeFL });
 
         var grabberMoveUpOffset = 0.1;
-        Overlays.editOverlay(grabberMoveUp, { visible: activeTool == null || mode == "TRANSLATE_UP_DOWN", position: { x: position.x, y: position.y + worldTop + grabberMoveUpOffset, z: position.z } });
+        grabberMoveUpPosition = { x: position.x, y: position.y + worldTop + grabberMoveUpOffset, z: position.z }
+        Overlays.editOverlay(grabberMoveUp, { visible: activeTool == null || mode == "TRANSLATE_UP_DOWN" });
     };
 
     that.setOverlaysVisible = function(isVisible) {
@@ -1505,10 +1521,10 @@ SelectionDisplay = (function () {
     addStretchTool(grabberEdgeTL, "STRETCH_EdgeTL", null, {x: -1, y: 1, z: 0});
     addStretchTool(grabberEdgeTF, "STRETCH_EdgeTF", null, {x: 0, y: 1, z: -1});
     addStretchTool(grabberEdgeTN, "STRETCH_EdgeTN", null, {x: 0, y: 1, z: 1});
-    addStretchTool(grabberEdgeBR, "STRETCH_EdgeBR", null, {x: 1, y: -1, z: 0});
-    addStretchTool(grabberEdgeBL, "STRETCH_EdgeBL", null, {x: -1, y: -1, z: 0});
-    addStretchTool(grabberEdgeBF, "STRETCH_EdgeBF", null, {x: 0, y: -1, z: 1});
-    addStretchTool(grabberEdgeBN, "STRETCH_EdgeBN", null, {x: 0, y: -1, z: -1});
+    addStretchTool(grabberEdgeBR, "STRETCH_EdgeBR", null, {x: -1, y: 0, z: 0});
+    addStretchTool(grabberEdgeBL, "STRETCH_EdgeBL", null, {x: 1, y: 0, z: 0});
+    addStretchTool(grabberEdgeBF, "STRETCH_EdgeBF", null, {x: 0, y: 0, z: -1});
+    addStretchTool(grabberEdgeBN, "STRETCH_EdgeBN", null, {x: 0, y: 0, z: 1});
     addStretchTool(grabberEdgeNR, "STRETCH_EdgeNR", null, {x: -1, y: 0, z: 1});
     addStretchTool(grabberEdgeNL, "STRETCH_EdgeNL", null, {x: 1, y: 0, z: 1});
     addStretchTool(grabberEdgeFR, "STRETCH_EdgeFR", null, {x: -1, y: 0, z: -1});
@@ -2287,7 +2303,7 @@ SelectionDisplay = (function () {
                     size: grabberSize,
                 });
             }
-            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 10;
             Overlays.editOverlay(yawHandle, {
                 scale: handleSize,
             });
@@ -2297,8 +2313,10 @@ SelectionDisplay = (function () {
             Overlays.editOverlay(rollHandle, {
                 scale: handleSize,
             });
+            var pos = Vec3.sum(grabberMoveUpPosition, { x: 0, y: Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 3, z: 0 });
             Overlays.editOverlay(grabberMoveUp, {
-                scale: handleSize,
+                position: pos,
+                scale: handleSize / 2,
             });
         }
     }

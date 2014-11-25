@@ -460,7 +460,8 @@ void Stats::display(
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
     lines = _expanded ? 14 : 3;
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
+    bool wantSpatialProcessing = false; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)
+    if (_expanded && wantSpatialProcessing) {
         lines += 10; // spatial audio processing adds 1 spacing line and 8 extra lines of info
     }
 
@@ -652,7 +653,7 @@ void Stats::display(
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, (char*)voxelStats.str().c_str(), color);
     }
 
-    if (_expanded && Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)) {
+    if (_expanded && wantSpatialProcessing) {
         verticalOffset += STATS_PELS_PER_LINE; // space one line...
         
         const AudioReflector* audioReflector = Application::getInstance()->getAudioReflector();
@@ -660,23 +661,24 @@ void Stats::display(
         // add some reflection stats
         char reflectionsStatus[128];
 
+        bool includeOriginal = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)
+        bool separateEars = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
+        bool stereoSource = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource)
+        bool randomSurfaces = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces)
+
         sprintf(reflectionsStatus, "Reflections: %d, Original: %s, Ears: %s, Source: %s, Normals: %s", 
                 audioReflector->getReflections(),
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)
-                    ? "included" : "silent"),
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSeparateEars)
-                    ? "two" : "one"),
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingStereoSource)
-                    ? "stereo" : "mono"),
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces)
-                    ? "random" : "regular")
+                (includeOriginal ? "included" : "silent"),
+                (separateEars ? "two" : "one"),
+                (stereoSource ? "stereo" : "mono"),
+                (randomSurfaces ? "random" : "regular")
                 );
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
-        float preDelay = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay) ? 
-                                        audioReflector->getPreDelay() : 0.0f;
+        bool wantPreDelay = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingPreDelay)
+        float preDelay = wantPreDelay ? audioReflector->getPreDelay() : 0.0f;
 
         sprintf(reflectionsStatus, "Delay: pre: %6.3f, average %6.3f, max %6.3f, min %6.3f, speed: %6.3f", 
                 preDelay,
@@ -688,12 +690,12 @@ void Stats::display(
         verticalOffset += STATS_PELS_PER_LINE;
         
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
-        
-        bool distanceAttenuationDisabled = Menu::getInstance()->isOptionChecked(
-                                                        MenuOption::AudioSpatialProcessingDontDistanceAttenuate);
 
-        bool alternateDistanceAttenuationEnabled = Menu::getInstance()->isOptionChecked(
-                                                        MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
+        //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingDontDistanceAttenuate);        
+        bool distanceAttenuationDisabled = false; 
+
+        // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate);
+        bool alternateDistanceAttenuationEnabled = false; 
         
         sprintf(reflectionsStatus, "Attenuation: average %5.3f, max %5.3f, min %5.3f, %s: %5.3f", 
                 audioReflector->getAverageAttenuation(),
@@ -706,15 +708,14 @@ void Stats::display(
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
-        sprintf(reflectionsStatus, "Local Audio: %s Attenuation: %5.3f", 
-                (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio)
-                    ? "yes" : "no"),
+        bool localAudio = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingProcessLocalAudio);
+        sprintf(reflectionsStatus, "Local Audio: %s Attenuation: %5.3f", (localAudio ? "yes" : "no"),
                 audioReflector->getLocalAudioAttenuationFactor());
                 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, reflectionsStatus, color);
 
-        bool diffusionEnabled = Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
+        bool diffusionEnabled = true; //Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingWithDiffusions);
         int fanout = diffusionEnabled ? audioReflector->getDiffusionFanout() : 0;
         int diffusionPaths = diffusionEnabled ? audioReflector->getDiffusionPathCount() : 0;
         sprintf(reflectionsStatus, "Diffusion: %s, Fanout: %d, Paths: %d", 

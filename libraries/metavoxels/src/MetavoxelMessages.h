@@ -177,21 +177,6 @@ public:
 
 DECLARE_STREAMABLE_METATYPE(ClearSpannersEdit)
 
-/// An edit that sets a spanner's attributes in the voxel tree.
-class SetSpannerEdit : public MetavoxelEdit {
-    STREAMABLE
-
-public:
-    
-    STREAM SharedObjectPointer spanner;
-    
-    SetSpannerEdit(const SharedObjectPointer& spanner = SharedObjectPointer());
-    
-    virtual void apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const;
-};
-
-DECLARE_STREAMABLE_METATYPE(SetSpannerEdit)
-
 /// An edit that directly sets part of the metavoxel data.
 class SetDataEdit : public MetavoxelEdit {
     STREAMABLE
