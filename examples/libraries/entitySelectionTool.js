@@ -205,7 +205,7 @@ SelectionDisplay = (function () {
     
     var MINIMUM_DIMENSION = 0.001;
 
-    var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.015;
+    var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.0075;
     
     var spaceMode = SPACE_LOCAL;
     var mode = "UNKNOWN";
