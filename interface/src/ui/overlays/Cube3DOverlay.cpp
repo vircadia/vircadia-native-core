@@ -70,7 +70,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
                     // later, but this is good enough for the use-case.
                     glDepthMask(GL_FALSE);
                     glPushMatrix();
-                        glColor4f(MAX_COLOR, MAX_COLOR, MAX_COLOR, 1.0f);
+                        glColor4f(1.0f, 1.0f, 1.0f, alpha);
                         glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
                         Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
                     glPopMatrix();
