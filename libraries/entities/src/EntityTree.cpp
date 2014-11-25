@@ -653,7 +653,6 @@ void EntityTree::update() {
 }
 
 void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
-    // TODO: switch these to iterators so we can remove items that get deleted
     foreach (EntityItem* thisEntity, _changedEntities) {
         // check to see if the lifetime has expired, for immortal entities this is always false
         if (thisEntity->lifetimeHasExpired()) {
@@ -675,15 +674,17 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
         {
             PerformanceTimer perfTimer("_movingEntities");
 
-            // TODO: switch these to iterators so we can remove items that get deleted
-            for (int i = 0; i < _movingEntities.size(); i++) {
-                EntityItem* thisEntity = _movingEntities[i];
+            QList<EntityItem*>::iterator item_itr = _movingEntities.begin();
+            while (item_itr != _movingEntities.end()) {
+                EntityItem* thisEntity = *item_itr;
 
                 // always check to see if the lifetime has expired, for immortal entities this is always false
                 if (thisEntity->lifetimeHasExpired()) {
                     qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
                     entitiesToDelete << thisEntity->getEntityItemID();
-                    clearEntityState(thisEntity);
+                    // remove thisEntity from the list
+                    item_itr = _movingEntities.erase(item_itr);
+                    thisEntity->setSimulationState(EntityItem::Static);
                 } else {
                     AACube oldCube = thisEntity->getMaximumAACube();
                     thisEntity->update(now);
@@ -694,10 +695,22 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                     if (!domainBounds.touches(newCube)) {
                         qDebug() << "Entity " << thisEntity->getEntityItemID() << " moved out of domain bounds.";
                         entitiesToDelete << thisEntity->getEntityItemID();
-                        clearEntityState(thisEntity);
+                        // remove thisEntity from the list
+                        item_itr = _movingEntities.erase(item_itr);
+                        thisEntity->setSimulationState(EntityItem::Static);
                     } else {
                         moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
-                        updateEntityState(thisEntity);
+                        EntityItem::SimulationState newState = thisEntity->computeSimulationState();
+                        if (newState != EntityItem::Moving) {
+                            if (newState == EntityItem::Mortal) {
+                                _mortalEntities.push_back(thisEntity);
+                            }
+                            // remove thisEntity from the list
+                            item_itr = _movingEntities.erase(item_itr);
+                            thisEntity->setSimulationState(newState);
+                        } else {
+                            ++item_itr;
+                        }
                     }
                 }
             }
@@ -710,18 +723,30 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
 }
 
 void EntityTree::updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
-    // TODO: switch these to iterators so we can remove items that get deleted
-    for (int i = 0; i < _mortalEntities.size(); i++) {
-        EntityItem* thisEntity = _mortalEntities[i];
+    QList<EntityItem*>::iterator item_itr = _mortalEntities.begin();
+    while (item_itr != _mortalEntities.end()) {
+        EntityItem* thisEntity = *item_itr;
         thisEntity->update(now);
         // always check to see if the lifetime has expired, for immortal entities this is always false
         if (thisEntity->lifetimeHasExpired()) {
             qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
             entitiesToDelete << thisEntity->getEntityItemID();
-            clearEntityState(thisEntity);
+            // remove thisEntity from the list
+            item_itr = _mortalEntities.erase(item_itr);
+            thisEntity->setSimulationState(EntityItem::Static);
         } else {
             // check to see if this entity is no longer moving
-            updateEntityState(thisEntity);
+            EntityItem::SimulationState newState = thisEntity->computeSimulationState();
+            if (newState != EntityItem::Mortal) {
+                if (newState == EntityItem::Moving) {
+                    _movingEntities.push_back(thisEntity);
+                }
+                // remove thisEntity from the list
+                item_itr = _mortalEntities.erase(item_itr);
+                thisEntity->setSimulationState(newState);
+            } else {
+                ++item_itr;
+            }
         }
     }
 }
