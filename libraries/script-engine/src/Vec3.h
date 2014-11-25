@@ -25,6 +25,7 @@ class Vec3 : public QObject {
     Q_OBJECT
 
 public slots:
+    glm::vec3 reflect(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 cross(const glm::vec3& v1, const glm::vec3& v2);
     float dot(const glm::vec3& v1, const glm::vec3& v2);
     glm::vec3 multiply(const glm::vec3& v1, float f);

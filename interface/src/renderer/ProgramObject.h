@@ -21,8 +21,12 @@ public:
     
     ProgramObject(QObject* parent = 0);
     
+    void setUniform(int location, const glm::vec2& value);
+    void setUniform(const char* name, const glm::vec2& value);
     void setUniform(int location, const glm::vec3& value);
     void setUniform(const char* name, const glm::vec3& value);
+    void setUniform(int location, const glm::vec4& value);
+    void setUniform(const char* name, const glm::vec4& value);
     void setUniformArray(const char* name, const glm::vec3* values, int count); 
 };
 

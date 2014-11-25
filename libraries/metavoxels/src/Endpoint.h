@@ -16,6 +16,7 @@
 
 #include "DatagramSequencer.h"
 #include "MetavoxelData.h"
+#include "Spanner.h"
 
 class PacketRecord;
 

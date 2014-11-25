@@ -34,6 +34,7 @@ public:
         TANGENT,
         SKIN_CLUSTER_INDEX,
         SKIN_CLUSTER_WEIGHT,
+        TEXCOORD1,
 
         NUM_INPUT_SLOTS,
     };

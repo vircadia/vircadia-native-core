@@ -63,7 +63,7 @@ public:
     int calculateHeight(const char* str);
 
     // also returns the height of the tallest character
-    int draw(int x, int y, const char* str, float alpha = 1.f);
+    int draw(int x, int y, const char* str, float alpha = 1.0f);
     
     int computeWidth(char ch);
     int computeWidth(const char* str);

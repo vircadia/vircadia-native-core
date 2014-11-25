@@ -446,7 +446,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
     addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::RenderEntitiesAsScene, 0, false);
+    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontRenderEntitiesAsScene, 0, false);
 
     QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
     addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
@@ -464,7 +464,7 @@ Menu::Menu() :
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
-    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderHeightfields, 0, true);
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderSpanners, 0, true);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
     addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
         SLOT(showMetavoxelNetworkSimulator()));
@@ -545,47 +545,6 @@ Menu::Menu() :
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioNoiseReduction()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioFilter,
-                                           0,
-                                           false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleAudioFilter()));
-
-    QMenu* audioFilterMenu = audioDebugMenu->addMenu("Audio Filter");
-    addDisabledActionAndSeparator(audioFilterMenu, "Filter Response");
-    {
-        QAction *flat = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterFlat,
-                                                                        0,
-                                                                        true,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterFlat()));
-
-        QAction *trebleCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterTrebleCut,
-                                                                        0,
-                                                                        false,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterTrebleCut()));
-
-        QAction *bassCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterBassCut,
-                                                                        0,
-                                                                        false,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterBassCut()));
-
-        QAction *smiley = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterSmiley,
-                                                                        0,
-                                                                        false,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterSmiley()));
-
-
-        QActionGroup* audioFilterGroup = new QActionGroup(audioFilterMenu);
-        audioFilterGroup->addAction(flat);
-        audioFilterGroup->addAction(trebleCut);
-        audioFilterGroup->addAction(bassCut);
-        audioFilterGroup->addAction(smiley);
-    }
-
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
@@ -625,17 +584,16 @@ Menu::Menu() :
         audioSourceGroup->addAction(sine440);
     }
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
+    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScope()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
-
-    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,

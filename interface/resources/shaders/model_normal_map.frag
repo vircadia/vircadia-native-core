@@ -4,7 +4,7 @@
 //  model_normal_map.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 10/29/13.
+//  Created by Andrzej Kapolka on 10/14/13.
 //  Copyright 2013 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.

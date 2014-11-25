@@ -26,7 +26,7 @@
 
 var birdsInFlock = 20;
 
-var birdLifetime = 60; // 2 minutes
+var birdLifetime = 300; // 1 minute
 var count=0; // iterations
 
 var enableFlyTowardPoints = true; // some birds have a point they want to fly to
