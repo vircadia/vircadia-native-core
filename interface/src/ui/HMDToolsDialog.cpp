@@ -51,8 +51,8 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     
     _previousRect = Application::getInstance()->getWindow()->rect();
     
-    
-    // QDesktopWidget::screenCountChanged() SIGNAL
+
+    Application::getInstance()->getWindow()->activateWindow();
 }
 
 HMDToolsDialog::~HMDToolsDialog() {
@@ -70,7 +70,7 @@ void HMDToolsDialog::enterModeClicked(bool checked) {
     
     if (hmdScreen >= 0) {
         QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-        QScreen* targetScreen = QGuiApplication::screens()[hmdScreen];
+        _hmdScreen = QGuiApplication::screens()[hmdScreen];
         
         _previousRect = Application::getInstance()->getWindow()->rect();
         qDebug() << "_previousRect:" << _previousRect;
@@ -85,27 +85,36 @@ void HMDToolsDialog::enterModeClicked(bool checked) {
 
         qDebug() << "about to move to:" << rect.topLeft();
 
-        mainWindow->setScreen(targetScreen);
+        mainWindow->setScreen(_hmdScreen);
         mainWindow->setGeometry(rect);
 
         _wasMoved = true;
     }
     Application::getInstance()->setFullscreen(true);
     Application::getInstance()->setEnableVRMode(true);
+    
+    const int SLIGHT_DELAY = 500;
+    QTimer::singleShot(SLIGHT_DELAY, this, SLOT(activateWindowAfterEnterMode()));
 }
 
-void HMDToolsDialog::moveWindowAfterLeaveMode() {
-    qDebug() << "moveWindowAfterLeaveMode";
+void HMDToolsDialog::activateWindowAfterEnterMode() {
+    qDebug() << "activateWindowAfterEnterMode";
+    Application::getInstance()->getWindow()->activateWindow();
+
     QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-    mainWindow->setScreen(_previousScreen);
-    mainWindow->setGeometry(_previousRect);
+    QPoint windowCenter = mainWindow->geometry().center();
+    //QPoint desktopCenter = mainWindow->mapToGlobal(windowCenter);
+    qDebug() << "windowCenter:" << windowCenter;
+    QCursor::setPos(_hmdScreen, windowCenter);
 }
+
 
 void HMDToolsDialog::leaveModeClicked(bool checked) {
     qDebug() << "leaveModeClicked";
 
     Application::getInstance()->setFullscreen(false);
     Application::getInstance()->setEnableVRMode(false);
+    Application::getInstance()->getWindow()->activateWindow();
 
     if (_wasMoved) {
         QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
@@ -117,6 +126,15 @@ void HMDToolsDialog::leaveModeClicked(bool checked) {
     }
     _wasMoved = false;
 }
+
+void HMDToolsDialog::moveWindowAfterLeaveMode() {
+    qDebug() << "moveWindowAfterLeaveMode";
+    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
+    mainWindow->setScreen(_previousScreen);
+    mainWindow->setGeometry(_previousRect);
+    Application::getInstance()->getWindow()->activateWindow();
+}
+
 
 void HMDToolsDialog::reject() {
     // Just regularly close upon ESC

@@ -28,6 +28,7 @@ public slots:
     void reject();
     void enterModeClicked(bool checked);
     void leaveModeClicked(bool checked);
+    void activateWindowAfterEnterMode();
     void moveWindowAfterLeaveMode();
 
 protected:
@@ -38,6 +39,7 @@ private:
     bool _wasMoved;
     QRect _previousRect;
     QScreen* _previousScreen;
+    QScreen* _hmdScreen;
 };
 
 #endif // hifi_HMDToolsDialog_h
