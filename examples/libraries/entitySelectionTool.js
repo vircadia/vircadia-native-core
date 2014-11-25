@@ -542,7 +542,8 @@ SelectionDisplay = (function () {
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        isFacingAvatar: false
+                                        isFacingAvatar: false,
+                                        drawInFront: true,
                                       });
 
 
@@ -554,7 +555,8 @@ SelectionDisplay = (function () {
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        isFacingAvatar: false
+                                        isFacingAvatar: false,
+                                        drawInFront: true,
                                       });
 
 
@@ -566,7 +568,8 @@ SelectionDisplay = (function () {
                                         visible: false,
                                         size: 0.1,
                                         scale: 0.1,
-                                        isFacingAvatar: false
+                                        isFacingAvatar: false,
+                                        drawInFront: true,
                                       });
 
     var allOverlays = [
