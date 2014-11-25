@@ -2836,7 +2836,12 @@ void Application::updateShadowMap() {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.render3D(false, RenderArgs::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("3dOverlaysFront");
+            _overlays.render3D(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3051,7 +3056,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
+            _overlays.render3D(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3134,6 +3139,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Render 3D overlays that should be drawn in front
+    {
+        PerformanceTimer perfTimer("3dOverlaysFront");
+        glClear(GL_DEPTH_BUFFER_BIT);
+        _overlays.render3D(true);
     }
 }
 

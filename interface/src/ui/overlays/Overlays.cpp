@@ -93,7 +93,7 @@ void Overlays::render2D() {
     }
 }
 
-void Overlays::render3D(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
+void Overlays::render3D(bool drawFront, RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
     QReadLocker lock(&_lock);
     if (_overlays3D.size() == 0) {
         return;
@@ -112,6 +112,10 @@ void Overlays::render3D(RenderArgs::RenderMode renderMode, RenderArgs::RenderSid
     
 
     foreach(Overlay* thisOverlay, _overlays3D) {
+        Base3DOverlay* overlay3D = static_cast<Base3DOverlay*>(thisOverlay);
+        if (overlay3D->getDrawInFront() != drawFront) {
+            continue;
+        }
         glPushMatrix();
         switch (thisOverlay->getAnchor()) {
             case Overlay::MY_AVATAR:
@@ -301,6 +305,7 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& value, OverlayProp
 
 RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
     float bestDistance = std::numeric_limits<float>::max();
+    bool bestIsFront = false;
     RayToOverlayIntersectionResult result;
     QMapIterator<unsigned int, Overlay*> i(_overlays3D);
     i.toBack();
@@ -313,7 +318,9 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray)
             BoxFace thisFace;
             QString thisExtraInfo;
             if (thisOverlay->findRayIntersectionExtraInfo(ray.origin, ray.direction, thisDistance, thisFace, thisExtraInfo)) {
-                if (thisDistance < bestDistance) {
+                bool isDrawInFront = thisOverlay->getDrawInFront();
+                if (thisDistance < bestDistance && (!bestIsFront || isDrawInFront)) {
+                    bestIsFront = isDrawInFront;
                     bestDistance = thisDistance;
                     result.intersects = true;
                     result.distance = thisDistance;

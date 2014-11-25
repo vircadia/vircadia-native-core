@@ -989,7 +989,8 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         QByteArray buffer = inputBuffer;
 
         // Accumulate direct transmission of audio from sender to receiver
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
+        bool includeOriginal = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)
+        if (includeOriginal) {
             emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
             addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
         }
@@ -1264,7 +1265,8 @@ void Audio::selectAudioSourceSine440() {
 }
 
 void Audio::toggleAudioSpatialProcessing() {
-    _processSpatialAudio = !_processSpatialAudio;
+    // spatial audio disabled for now
+    _processSpatialAudio = false; //!_processSpatialAudio;
     if (_processSpatialAudio) {
         _spatialAudioStart = 0;
         _spatialAudioFinish = 0;
