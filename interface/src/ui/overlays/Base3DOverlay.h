@@ -36,6 +36,7 @@ public:
     bool getIsSolidLine() const { return !_isDashedLine; }
     const glm::quat& getRotation() const { return _rotation; }
     bool getIgnoreRayIntersection() const { return _ignoreRayIntersection; }
+    bool getDrawInFront() const { return _drawInFront; }
 
     // setters
     void setPosition(const glm::vec3& position) { _position = position; }
@@ -44,6 +45,7 @@ public:
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setRotation(const glm::quat& value) { _rotation = value; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
+    void setDrawInFront(bool value);
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
@@ -55,6 +57,9 @@ public:
             return findRayIntersection(origin, direction, distance, face);
     }
 
+signals:
+    void drawInFrontUpdated(bool newValue);
+
 protected:
     void drawDashedLine(const glm::vec3& start, const glm::vec3& end);
 
@@ -64,6 +69,7 @@ protected:
     bool _isSolid;
     bool _isDashedLine;
     bool _ignoreRayIntersection;
+    bool _drawInFront;
 };
  
 #endif // hifi_Base3DOverlay_h
