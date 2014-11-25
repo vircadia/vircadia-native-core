@@ -35,7 +35,13 @@ const char SOLID_BLOCK_CHAR = 127;
 #define MONO_FONT_FAMILY "Courier"
 
 // the Inconsolata font family
+#ifdef Q_OS_WIN
+#define INCONSOLATA_FONT_FAMILY "Fixedsys"
+#define INCONSOLATA_FONT_WEIGHT QFont::Normal
+#else
 #define INCONSOLATA_FONT_FAMILY "Inconsolata"
+#define INCONSOLATA_FONT_WEIGHT QFont::Bold
+#endif
 
 class Glyph;
 
