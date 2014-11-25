@@ -1568,6 +1568,10 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
+        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu show() after hide() doesn't work with Rift VR display so set height instead.
@@ -1578,6 +1582,7 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    _window->show();
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -1585,6 +1590,10 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
+    }
+
     if (enableVRMode) {
         if (!OculusManager::isConnected()) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
