@@ -342,12 +342,12 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& value, OverlayProp
 }
 
 RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray) {
-    QMap<unsigned int, Overlay*> overlayMaps[] = { _overlays3DFront, _overlays3D };
+    QMap<unsigned int, Overlay*>* overlayMaps[] = { &_overlays3DFront, &_overlays3D };
 
     float bestDistance = std::numeric_limits<float>::max();
     RayToOverlayIntersectionResult result;
     for (int idx = 0; idx < 2; idx++) {
-        QMapIterator<unsigned int, Overlay*> i(overlayMaps[idx]);
+        QMapIterator<unsigned int, Overlay*> i(*overlayMaps[idx]);
         i.toBack();
         while (i.hasPrevious()) {
             i.previous();
