@@ -2839,6 +2839,11 @@ void Application::updateShadowMap() {
             _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
         }
 
+        {
+            PerformanceTimer perfTimer("3dOverlaysFront");
+            _overlays.render3DFront(RenderArgs::SHADOW_RENDER_MODE);
+        }
+
         glDisable(GL_POLYGON_OFFSET_FILL);
 
         glPopMatrix();
@@ -3134,6 +3139,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Render 3D overlays that should be drawn in front
+    {
+        PerformanceTimer perfTimer("3dOverlaysFront");
+        glClear(GL_DEPTH_BUFFER_BIT);
+        _overlays.render3DFront();
     }
 }
 
