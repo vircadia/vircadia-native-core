@@ -46,13 +46,6 @@ Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
 Base3DOverlay::~Base3DOverlay() {
 }
 
-void Base3DOverlay::setDrawInFront(bool value) {
-    if (value != _drawInFront) {
-        _drawInFront = value;
-        emit drawInFrontUpdated(value);
-    }
-}
-
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
 

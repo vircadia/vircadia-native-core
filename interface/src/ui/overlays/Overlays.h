@@ -52,9 +52,7 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
-                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
-    void render3DFront(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+    void render3D(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
                         RenderArgs::RenderSide renderSide = RenderArgs::MONO);
     void render2D();
 
@@ -91,19 +89,10 @@ public slots:
     /// overlay; in meters if it is a 3D text overlay
     float textWidth(unsigned int id, const QString& text) const;
 
-protected:
-    void render3DOverlays(QMap<unsigned int, Overlay*>& overlays, RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide);
-
-private slots:
-    /// QSignalMapper unfortunately does not work with unsigned integers.
-    void handleOverlayDrawInFrontUpdated(int overlayID);
-
 private:
     QMap<unsigned int, Overlay*> _overlays2D;
     QMap<unsigned int, Overlay*> _overlays3D;
-    QMap<unsigned int, Overlay*> _overlays3DFront;
     QList<Overlay*> _overlaysToDelete;
-    QSignalMapper _overlaySignalMapper;
     unsigned int _nextOverlayID;
     QGLWidget* _parent;
     QReadWriteLock _lock;

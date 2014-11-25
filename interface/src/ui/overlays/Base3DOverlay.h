@@ -45,7 +45,7 @@ public:
     void setIsDashedLine(bool isDashedLine) { _isDashedLine = isDashedLine; }
     void setRotation(const glm::quat& value) { _rotation = value; }
     void setIgnoreRayIntersection(bool value) { _ignoreRayIntersection = value; }
-    void setDrawInFront(bool value);
+    void setDrawInFront(bool value) { _drawInFront = value; }
 
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
@@ -56,9 +56,6 @@ public:
                                                     float& distance, BoxFace& face, QString& extraInfo) const {
             return findRayIntersection(origin, direction, distance, face);
     }
-
-signals:
-    void drawInFrontUpdated(bool newValue);
 
 protected:
     void drawDashedLine(const glm::vec3& start, const glm::vec3& end);
