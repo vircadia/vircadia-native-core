@@ -76,6 +76,7 @@ class QSettings;
 class AnimationsDialog;
 class AttachmentsDialog;
 class BandwidthDialog;
+class HMDToolsDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class MetavoxelNetworkSimulator;
@@ -120,6 +121,7 @@ public:
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
+    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
@@ -183,6 +185,7 @@ public slots:
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
+    void hmdTools();
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
@@ -217,6 +220,7 @@ private slots:
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
+    void hmdToolsClosed();
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
@@ -284,6 +288,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    HMDToolsDialog* _hmdToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -412,6 +417,7 @@ namespace MenuOption {
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
     const QString HeadMouse = "Head Mouse";
+    const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";

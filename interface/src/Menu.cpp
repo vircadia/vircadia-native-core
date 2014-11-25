@@ -97,6 +97,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
+    _hmdToolsDialog(NULL),
     _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -334,6 +335,7 @@ Menu::Menu() :
                                             appInstance, SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
+    addActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 0, this, SLOT(hmdTools()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
                                            appInstance,
@@ -1643,6 +1645,22 @@ void Menu::lodToolsClosed() {
     if (_lodToolsDialog) {
         delete _lodToolsDialog;
         _lodToolsDialog = NULL;
+    }
+}
+
+void Menu::hmdTools() {
+    if (!_hmdToolsDialog) {
+        _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
+        connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+        _hmdToolsDialog->show();
+    }
+    _hmdToolsDialog->raise();
+}
+
+void Menu::hmdToolsClosed() {
+    if (_hmdToolsDialog) {
+        delete _hmdToolsDialog;
+        _hmdToolsDialog = NULL;
     }
 }
 
