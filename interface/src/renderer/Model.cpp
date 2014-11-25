@@ -2347,8 +2347,12 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         diffuseMap = (_dilatedTextures[i][j] =
                             static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                     }
-                    GLBATCH(glBindTexture)(GL_TEXTURE_2D, !diffuseMap ?
-                        Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
+                    static bool showDiffuse = true;
+                    if (showDiffuse && diffuseMap) {
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, diffuseMap->getID());
+                    } else {
+                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getWhiteTextureID());
+                    }
 
                     if (locations->texcoordMatrices >= 0) {
                         glm::mat4 texcoordTransform[2];
@@ -2379,7 +2383,11 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
 
                     if (locations->emissiveTextureUnit >= 0) {
                         assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                        GLBATCH(glUniform2f)(locations->emissiveParams, 0.1f, 4.0f);
+                        static float emissiveOffset = 0.1f;
+                        static float emissiveScale = 1.0f;
+                        //GLBATCH(glUniform2f)(locations->emissiveParams, 0.1f, 4.0f);
+                        GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+                        
 
                         GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                         Texture* emissiveMap = networkPart.emissiveTexture.data();

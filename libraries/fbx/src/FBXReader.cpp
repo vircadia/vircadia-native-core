@@ -1597,9 +1597,28 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     } else if (property.properties.at(0) == "Opacity") {
                                         material.opacity = property.properties.at(index).value<double>();
                                     }
+#if defined(DEBUG_FBXREADER)
+                                    else {
+                                        const std::string propname = property.properties.at(0).toString().toStdString();
+                                        if (propname == "EmissiveFactor") {
+                                        }
+                                    }
+#endif
                                 }
                             }
                         }
+#if defined(DEBUG_FBXREADER)
+                        else {
+                            std::string propname = subobject.name.data();
+                            int unknown = 0;
+                            if ( (propname == "Version")
+                                ||(propname == "ShadingModel")
+                                ||(propname == "Multilayer")) {
+                            } else {
+                                unknown++;
+                            }
+                        }
+#endif
                     }
                     material.id = getID(object.properties);
                     materials.insert(material.id, material);
@@ -1687,7 +1706,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         } else if (type.contains("emissive")) {
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
+                        } else if (type.contains("ambient")) {
+                            emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else {
+                            std::string typenam = type.data();
                             counter++;
                         }
                     }
