@@ -335,7 +335,12 @@ Menu::Menu() :
                                             appInstance, SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
-    addActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, 0, this, SLOT(hmdTools()));
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+                                           false,
+                                           this,
+                                           SLOT(hmdTools(bool)));
+
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
                                            appInstance,
@@ -1596,13 +1601,18 @@ void Menu::lodToolsClosed() {
     }
 }
 
-void Menu::hmdTools() {
-    if (!_hmdToolsDialog) {
-        _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
-        connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
-        _hmdToolsDialog->show();
+void Menu::hmdTools(bool showTools) {
+    if (showTools) {
+        if (!_hmdToolsDialog) {
+            _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
+            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+            _hmdToolsDialog->show();
+        }
+        _hmdToolsDialog->raise();
+    } else {
+        hmdToolsClosed();
     }
-    _hmdToolsDialog->raise();
+    Application::getInstance()->getWindow()->activateWindow();
 }
 
 void Menu::hmdToolsClosed() {

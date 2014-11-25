@@ -185,7 +185,7 @@ public slots:
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
-    void hmdTools();
+    void hmdTools(bool showTools);
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
