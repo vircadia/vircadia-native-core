@@ -24,6 +24,7 @@
 
 #include <GeometryUtil.h>
 
+#include "MetavoxelData.h"
 #include "Spanner.h"
 
 using namespace std;
@@ -1107,9 +1108,306 @@ template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const
     }
 }
 
+bool HeightfieldStreamState::shouldSubdivide() const {
+    return base.lod.shouldSubdivide(minimum, size);
+}
+
+bool HeightfieldStreamState::shouldSubdivideReference() const {
+    return base.referenceLOD.shouldSubdivide(minimum, size);
+}
+
+bool HeightfieldStreamState::becameSubdivided() const {
+    return base.lod.becameSubdivided(minimum, size, base.referenceLOD);
+}
+
+bool HeightfieldStreamState::becameSubdividedOrCollapsed() const {
+    return base.lod.becameSubdividedOrCollapsed(minimum, size, base.referenceLOD);
+}
+
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+const int MAXIMUM_FLAG_MASK = X_MAXIMUM_FLAG | Y_MAXIMUM_FLAG;
+
+static glm::vec2 getNextMinimum(const glm::vec2& minimum, float nextSize, int index) {
+    return minimum + glm::vec2(
+        (index & X_MAXIMUM_FLAG) ? nextSize : 0.0f,
+        (index & Y_MAXIMUM_FLAG) ? nextSize : 0.0f);
+}
+
+void HeightfieldStreamState::setMinimum(const glm::vec2& lastMinimum, int index) {
+    minimum = getNextMinimum(lastMinimum, size, index);
+}
+
+HeightfieldNode::HeightfieldNode(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
+        const HeightfieldMaterialPointer& material) :
+    _height(height),
+    _color(color),
+    _material(material) {
+}
+
+bool HeightfieldNode::isLeaf() const {
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        if (_children[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+void HeightfieldNode::read(HeightfieldStreamState& state) {
+    clearChildren();
+    
+    if (!state.shouldSubdivide()) {
+        state.base.stream >> _height >> _color >> _material;
+        return;
+    }
+    bool leaf;
+    state.base.stream >> leaf;
+    if (leaf) {
+        state.base.stream >> _height >> _color >> _material;
+        
+    } else {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            _children[i] = new HeightfieldNode();
+            _children[i]->read(nextState);
+        }
+        mergeChildren();
+    }
+}
+
+void HeightfieldNode::write(HeightfieldStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        state.base.stream << _height << _color << _material;
+        return;
+    }
+    bool leaf = isLeaf();
+    state.base.stream << leaf;
+    if (leaf) {
+        state.base.stream << _height << _color << _material;
+        
+    } else {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            _children[i]->write(nextState);
+        }
+    }
+}
+
+void HeightfieldNode::readDelta(const HeightfieldNodePointer& reference, HeightfieldStreamState& state) {
+    clearChildren();
+
+    if (!state.shouldSubdivide()) {
+        state.base.stream.readDelta(_height, reference->getHeight());
+        state.base.stream.readDelta(_color, reference->getColor());
+        state.base.stream.readDelta(_material, reference->getMaterial());
+        return;
+    }
+    bool leaf;
+    state.base.stream >> leaf;
+    if (leaf) {
+        state.base.stream.readDelta(_height, reference->getHeight());
+        state.base.stream.readDelta(_color, reference->getColor());
+        state.base.stream.readDelta(_material, reference->getMaterial());
+        
+    } else {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        if (reference->isLeaf() || !state.shouldSubdivideReference()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                _children[i] = new HeightfieldNode();
+                _children[i]->read(nextState);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                bool changed;
+                state.base.stream >> changed;
+                if (changed) {    
+                    _children[i] = new HeightfieldNode();
+                    _children[i]->readDelta(reference->getChild(i), nextState);
+                } else {
+                    if (nextState.becameSubdividedOrCollapsed()) {
+                        _children[i] = reference->getChild(i)->readSubdivision(nextState);
+                        
+                    } else {
+                        _children[i] = reference->getChild(i);    
+                    }
+                }
+            }
+        }
+        mergeChildren();
+    }
+}
+
+void HeightfieldNode::writeDelta(const HeightfieldNodePointer& reference, HeightfieldStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        state.base.stream.writeDelta(_height, reference->getHeight());
+        state.base.stream.writeDelta(_color, reference->getColor());
+        state.base.stream.writeDelta(_material, reference->getMaterial());
+        return;    
+    }
+    bool leaf = isLeaf();
+    state.base.stream << leaf;
+    if (leaf) {
+        state.base.stream.writeDelta(_height, reference->getHeight());
+        state.base.stream.writeDelta(_color, reference->getColor());
+        state.base.stream.writeDelta(_material, reference->getMaterial());
+        
+    } else {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        if (reference->isLeaf() || !state.shouldSubdivideReference()) {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                _children[i]->write(nextState);
+            }
+        } else {
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                if (_children[i] == reference->getChild(i)) {
+                    state.base.stream << false;
+                    if (nextState.becameSubdivided()) {
+                        _children[i]->writeSubdivision(nextState);
+                    }
+                } else {                    
+                    state.base.stream << true;
+                    _children[i]->writeDelta(reference->getChild(i), nextState);
+                }
+            }
+        }
+    }
+}
+
+HeightfieldNode* HeightfieldNode::readSubdivision(HeightfieldStreamState& state) {
+    if (state.shouldSubdivide()) {
+        if (!state.shouldSubdivideReference()) {
+            bool leaf;
+            state.base.stream >> leaf;
+            if (leaf) {
+                return isLeaf() ? this : new HeightfieldNode(_height, _color, _material);
+                
+            } else {
+                HeightfieldNode* newNode = new HeightfieldNode(_height, _color, _material);
+                HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+                for (int i = 0; i < CHILD_COUNT; i++) {
+                    nextState.setMinimum(state.minimum, i);
+                    newNode->_children[i] = new HeightfieldNode();
+                    newNode->_children[i]->readSubdivided(nextState, state, this);
+                }
+                return newNode;
+            }
+        } else if (!isLeaf()) {
+            HeightfieldNode* node = this;
+            HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                if (nextState.becameSubdividedOrCollapsed()) {
+                    HeightfieldNode* child = _children[i]->readSubdivision(nextState);
+                    if (_children[i] != child) {
+                        if (node == this) {
+                            node = new HeightfieldNode(*this);
+                        }
+                        node->_children[i] = child;
+                    }
+                }
+            }
+            if (node != this) {
+                node->mergeChildren();
+            }
+            return node;
+        }
+    } else if (!isLeaf()) {
+        return new HeightfieldNode(_height, _color, _material);
+    }
+    return this;
+}
+
+void HeightfieldNode::writeSubdivision(HeightfieldStreamState& state) const {
+    if (!state.shouldSubdivide()) {
+        return;
+    }
+    bool leaf = isLeaf();
+    if (!state.shouldSubdivideReference()) {
+        state.base.stream << leaf;
+        if (!leaf) {
+            HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+            for (int i = 0; i < CHILD_COUNT; i++) {
+                nextState.setMinimum(state.minimum, i);
+                _children[i]->writeSubdivided(nextState, state, this);
+            }
+        }
+    } else if (!leaf) {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            if (nextState.becameSubdivided()) {
+                _children[i]->writeSubdivision(nextState);
+            }
+        }
+    }
+}
+
+void HeightfieldNode::readSubdivided(HeightfieldStreamState& state, const HeightfieldStreamState& ancestorState,
+        const HeightfieldNode* ancestor) {
+    clearChildren();
+    
+    if (!state.shouldSubdivide()) {
+        // TODO: subdivision encoding
+        state.base.stream >> _height >> _color >> _material;
+        return;
+    }
+    bool leaf;
+    state.base.stream >> leaf;
+    if (leaf) {
+        state.base.stream >> _height >> _color >> _material;
+    
+    } else {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            _children[i] = new HeightfieldNode();
+            _children[i]->readSubdivided(nextState, ancestorState, ancestor);
+        }
+        mergeChildren();
+    }
+}
+
+void HeightfieldNode::writeSubdivided(HeightfieldStreamState& state, const HeightfieldStreamState& ancestorState,
+        const HeightfieldNode* ancestor) const {
+    if (!state.shouldSubdivide()) {
+        // TODO: subdivision encoding
+        state.base.stream << _height << _color << _material;
+        return;
+    }
+    bool leaf = isLeaf();
+    state.base.stream << leaf;
+    if (leaf) {
+        state.base.stream << _height << _color << _material;
+        
+    } else {
+        HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            nextState.setMinimum(state.minimum, i);
+            _children[i]->writeSubdivided(nextState, ancestorState, ancestor);
+        }
+    }
+}
+
+void HeightfieldNode::clearChildren() {
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        _children[i].reset();
+    }
+}
+
+void HeightfieldNode::mergeChildren() {
+}
+
 Heightfield::Heightfield() :
     _aspectY(1.0f),
-    _aspectZ(1.0f) {
+    _aspectZ(1.0f),
+    _root(new HeightfieldNode()) {
     
     connect(this, &Heightfield::translationChanged, this, &Heightfield::updateBounds);
     connect(this, &Heightfield::rotationChanged, this, &Heightfield::updateBounds);
@@ -2115,6 +2413,69 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
     return false;
 }
 
+void Heightfield::writeExtra(Bitstream& out) const {
+    MetavoxelLOD lod;
+    if (out.getContext()) {
+        lod = transformLOD(static_cast<MetavoxelStreamBase*>(out.getContext())->lod);
+    }
+    HeightfieldStreamBase base = { out, lod, lod };
+    HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
+    _root->write(state);
+}
+
+void Heightfield::readExtra(Bitstream& in) {
+    MetavoxelLOD lod;
+    if (in.getContext()) {
+        lod = transformLOD(static_cast<MetavoxelStreamBase*>(in.getContext())->lod);
+    }
+    HeightfieldStreamBase base = { in, lod, lod };
+    HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
+    _root = new HeightfieldNode();
+    _root->read(state);
+}
+
+void Heightfield::writeExtraDelta(Bitstream& out, const SharedObject* reference) const {
+    MetavoxelLOD lod, referenceLOD;
+    if (out.getContext()) {
+        MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(out.getContext());
+        lod = transformLOD(base->lod);
+        referenceLOD = transformLOD(base->referenceLOD);
+    }
+    HeightfieldStreamBase base = { out, lod, referenceLOD };
+    HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
+    const HeightfieldNodePointer& referenceRoot = static_cast<const Heightfield*>(reference)->getRoot();
+    if (_root == referenceRoot) {
+        out << false;
+        if (state.becameSubdivided()) {
+            _root->writeSubdivision(state);
+        }
+    } else {
+        out << true;
+        _root->writeDelta(referenceRoot, state);
+    }    
+}
+
+void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
+    MetavoxelLOD lod, referenceLOD;
+    if (in.getContext()) {
+        MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(in.getContext());
+        lod = transformLOD(base->lod);
+        referenceLOD = transformLOD(base->referenceLOD);
+    }
+    HeightfieldStreamBase base = { in, lod, referenceLOD };
+    HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
+    
+    bool changed;
+    in >> changed;
+    if (changed) {
+        _root = new HeightfieldNode();
+        _root->readDelta(static_cast<const Heightfield*>(reference)->getRoot(), state);
+    
+    } else if (state.becameSubdividedOrCollapsed()) {
+        _root = _root->readSubdivision(state);
+    }
+}
+
 QByteArray Heightfield::getRendererClassName() const {
     return "HeightfieldRenderer";
 }
@@ -2123,4 +2484,13 @@ void Heightfield::updateBounds() {
     glm::vec3 extent(getScale(), getScale() * _aspectY, getScale() * _aspectZ);
     glm::mat4 rotationMatrix = glm::mat4_cast(getRotation());
     setBounds(glm::translate(getTranslation()) * rotationMatrix * Box(glm::vec3(), extent));
+}
+
+MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {
+    // after transforming into unit space, we scale the threshold in proportion to vertical distance
+    glm::vec3 inverseScale(1.0f / getScale(), 1.0f / (getScale() * _aspectY), 1.0f / (getScale() * _aspectZ));
+    glm::vec3 position = glm::inverse(getRotation()) * (lod.position - getTranslation()) * inverseScale;
+    const float THRESHOLD_MULTIPLIER = 2.0f;
+    return MetavoxelLOD(glm::vec3(position.x, position.z, 0.0f), lod.threshold *
+        qMax(0.5f, glm::abs(position.y - 0.5f)) * THRESHOLD_MULTIPLIER);
 }

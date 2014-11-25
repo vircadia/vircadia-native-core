@@ -20,6 +20,7 @@
 class HeightfieldColor;
 class HeightfieldHeight;
 class HeightfieldMaterial;
+class HeightfieldNode;
 class SpannerRenderer;
 
 /// An object that spans multiple octree cells.
@@ -458,6 +459,75 @@ Bitstream& operator>>(Bitstream& in, HeightfieldMaterialPointer& value);
 template<> void Bitstream::writeRawDelta(const HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 
+typedef QExplicitlySharedDataPointer<HeightfieldNode> HeightfieldNodePointer;
+
+/// Holds the base state used in streaming heightfield data.
+class HeightfieldStreamBase {
+public:
+    Bitstream& stream;
+    const MetavoxelLOD& lod;
+    const MetavoxelLOD& referenceLOD;
+};
+
+/// Holds the state used in streaming a heightfield node.
+class HeightfieldStreamState {
+public:
+    HeightfieldStreamBase& base;
+    glm::vec2 minimum;
+    float size;
+    
+    bool shouldSubdivide() const;
+    bool shouldSubdivideReference() const;
+    bool becameSubdivided() const;
+    bool becameSubdividedOrCollapsed() const;
+    
+    void setMinimum(const glm::vec2& lastMinimum, int index);
+};
+
+/// A node in a heightfield quadtree.
+class HeightfieldNode : public QSharedData {
+public:
+    
+    static const int CHILD_COUNT = 4;
+    
+    HeightfieldNode(const HeightfieldHeightPointer& height = HeightfieldHeightPointer(),
+        const HeightfieldColorPointer& color = HeightfieldColorPointer(),
+        const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer());
+    
+    const HeightfieldHeightPointer& getHeight() const { return _height; }
+    const HeightfieldColorPointer& getColor() const { return _color; }
+    const HeightfieldMaterialPointer& getMaterial() const { return _material; }
+    
+    bool isLeaf() const;
+    
+    const HeightfieldNodePointer& getChild(int index) const { return _children[index]; }
+    
+    void read(HeightfieldStreamState& state);
+    void write(HeightfieldStreamState& state) const;
+    
+    void readDelta(const HeightfieldNodePointer& reference, HeightfieldStreamState& state);
+    void writeDelta(const HeightfieldNodePointer& reference, HeightfieldStreamState& state) const;
+    
+    HeightfieldNode* readSubdivision(HeightfieldStreamState& state);
+    void writeSubdivision(HeightfieldStreamState& state) const;
+    
+    void readSubdivided(HeightfieldStreamState& state, const HeightfieldStreamState& ancestorState,
+        const HeightfieldNode* ancestor);
+    void writeSubdivided(HeightfieldStreamState& state, const HeightfieldStreamState& ancestorState,
+        const HeightfieldNode* ancestor) const;
+    
+private:
+    
+    void clearChildren();
+    void mergeChildren();
+    
+    HeightfieldHeightPointer _height;
+    HeightfieldColorPointer _color;
+    HeightfieldMaterialPointer _material;
+    
+    HeightfieldNodePointer _children[CHILD_COUNT];
+};
+
 /// A heightfield represented as a spanner.
 class Heightfield : public Transformable {
     Q_OBJECT
@@ -486,6 +556,8 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
 
+    const HeightfieldNodePointer& getRoot() const { return _root; }
+
     virtual bool isHeightfield() const;
     
     virtual float getHeight(const glm::vec3& location) const;
@@ -508,6 +580,11 @@ public:
     virtual bool contains(const glm::vec3& point);
     virtual bool intersects(const glm::vec3& start, const glm::vec3& end, float& distance, glm::vec3& normal);
     
+    virtual void writeExtra(Bitstream& out) const;
+    virtual void readExtra(Bitstream& in);
+    virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
+    virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
+    
 signals:
 
     void aspectYChanged(float aspectY);
@@ -526,11 +603,16 @@ private slots:
     
 private:
 
+    MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
+
     float _aspectY;
     float _aspectZ;
+    
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
+    
+    HeightfieldNodePointer _root;
 };
 
 #endif // hifi_Spanner_h

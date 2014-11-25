@@ -56,6 +56,34 @@ bool MetavoxelLOD::becameSubdividedOrCollapsed(const glm::vec3& minimum, float s
     return true;
 }
 
+bool MetavoxelLOD::shouldSubdivide(const glm::vec2& minimum, float size, float multiplier) const {
+    return size >= glm::distance(glm::vec2(position), minimum + glm::vec2(size, size) * 0.5f) * threshold * multiplier;
+}
+
+bool MetavoxelLOD::becameSubdivided(const glm::vec2& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier) const {
+    if (position == reference.position && threshold >= reference.threshold) {
+        return false; // first off, nothing becomes subdivided if it doesn't change
+    }
+    if (!shouldSubdivide(minimum, size, multiplier)) {
+        return false; // this one must be subdivided
+    }
+    // TODO: find some way of culling subtrees that can't possibly contain subdivided nodes
+    return true;
+}
+
+bool MetavoxelLOD::becameSubdividedOrCollapsed(const glm::vec2& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier) const {
+    if (position == reference.position && threshold == reference.threshold) {
+        return false; // first off, nothing becomes subdivided or collapsed if it doesn't change
+    }
+    if (!(shouldSubdivide(minimum, size, multiplier) || reference.shouldSubdivide(minimum, size, multiplier))) {
+        return false; // this one or the reference must be subdivided
+    }
+    // TODO: find some way of culling subtrees that can't possibly contain subdivided or collapsed nodes
+    return true;
+}
+
 MetavoxelData::MetavoxelData() : _size(1.0f) {
 }
 
