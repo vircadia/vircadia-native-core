@@ -47,8 +47,10 @@ Base3DOverlay::~Base3DOverlay() {
 }
 
 void Base3DOverlay::setDrawInFront(bool value) {
-    _drawInFront = value;
-    emit drawInFrontUpdated(value);
+    if (value != _drawInFront) {
+        _drawInFront = value;
+        emit drawInFrontUpdated(value);
+    }
 }
 
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
@@ -59,7 +61,6 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     if (drawInFront.isValid()) {
         bool value = drawInFront.toVariant().toBool();
         setDrawInFront(value);
-        _drawInFront = value;
     }
 
     QScriptValue position = properties.property("position");
