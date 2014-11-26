@@ -47,6 +47,7 @@ public slots:
     void pruneDeletedEntities();
 
 private:
+    EntitySimulation* _entitySimulation;
 };
 
 #endif // hifi_EntityServer_h
