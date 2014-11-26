@@ -260,8 +260,6 @@ public:
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
-    virtual void render();
-    
 protected slots:
 
     virtual void apply() = 0;
@@ -270,7 +268,7 @@ protected:
     
     QFormLayout* _form;
     Vec3Editor* _translation;
-    QDoubleSpinBox* _scale;
+    QDoubleSpinBox* _spacing;
 };
 
 /// Allows importing a heightfield.

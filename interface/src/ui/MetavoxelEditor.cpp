@@ -732,11 +732,11 @@ HeightfieldTool::HeightfieldTool(MetavoxelEditor* editor, const QString& name) :
     layout()->addWidget(widget);
     
     _form->addRow("Translation:", _translation = new Vec3Editor(widget));
-    _form->addRow("Scale:", _scale = new QDoubleSpinBox());
-    _scale->setMinimum(-FLT_MAX);
-    _scale->setMaximum(FLT_MAX);
-    _scale->setPrefix("2^");
-    _scale->setValue(2.0);
+    _form->addRow("Spacing:", _spacing = new QDoubleSpinBox());
+    _spacing->setMaximum(FLT_MAX);
+    _spacing->setDecimals(3);
+    _spacing->setSingleStep(0.001);
+    _spacing->setValue(1.0);
     
     QPushButton* applyButton = new QPushButton("Apply");
     layout()->addWidget(applyButton);
@@ -747,28 +747,20 @@ bool HeightfieldTool::appliesTo(const AttributePointer& attribute) const {
     return attribute->inherits("SpannerSetAttribute");
 }
 
-void HeightfieldTool::render() {
-    float scale = pow(2.0, _scale->value());
-    _translation->setSingleStep(scale);
-    glm::vec3 quantizedTranslation = scale * glm::floor(_translation->getValue() / scale);
-    _translation->setValue(quantizedTranslation);
-}
-
 ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     HeightfieldTool(editor, "Import Heightfield"),
     _spanner(new Heightfield()) {
     
     _form->addRow("Height Scale:", _heightScale = new QDoubleSpinBox());
-    const double MAX_OFFSET_SCALE = 100000.0;
-    _heightScale->setMaximum(MAX_OFFSET_SCALE);
+    _heightScale->setMaximum(FLT_MAX);
     _heightScale->setSingleStep(0.01);
-    _heightScale->setValue(8.0);
+    _heightScale->setValue(16.0);
     connect(_heightScale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
         &ImportHeightfieldTool::updateSpanner);
         
     _form->addRow("Height Offset:", _heightOffset = new QDoubleSpinBox());
-    _heightOffset->setMinimum(-MAX_OFFSET_SCALE);
-    _heightOffset->setMaximum(MAX_OFFSET_SCALE);
+    _heightOffset->setMinimum(-FLT_MAX);
+    _heightOffset->setMaximum(FLT_MAX);
     _heightOffset->setSingleStep(0.01);
     connect(_heightOffset, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
         &ImportHeightfieldTool::updateSpanner);
@@ -780,7 +772,7 @@ ImportHeightfieldTool::ImportHeightfieldTool(MetavoxelEditor* editor) :
     connect(_color, &HeightfieldColorEditor::colorChanged, this, &ImportHeightfieldTool::updateSpanner);
     
     connect(_translation, &Vec3Editor::valueChanged, this, &ImportHeightfieldTool::updateSpanner);
-    connect(_scale, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
+    connect(_spacing, static_cast<void (QDoubleSpinBox::*)(double)>(&QDoubleSpinBox::valueChanged), this,
         &ImportHeightfieldTool::updateSpanner);
 }
 
@@ -801,22 +793,19 @@ void ImportHeightfieldTool::apply() {
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);       
 }
 
-const int HEIGHTFIELD_BLOCK_SIZE = 256;
-
 void ImportHeightfieldTool::updateSpanner() {
     Heightfield* heightfield = static_cast<Heightfield*>(_spanner.data());
     heightfield->setHeight(_height->getHeight());
     heightfield->setColor(_color->getColor());
     
-    float scale = pow(2.0, _scale->value());
+    float scale = 1.0f;
     float aspectZ = 1.0f;
     if (_height->getHeight()) {
         int width = _height->getHeight()->getWidth();
         int innerWidth = width - HeightfieldHeight::HEIGHT_EXTENSION;
         int innerHeight = _height->getHeight()->getContents().size() / width - HeightfieldHeight::HEIGHT_EXTENSION;
-        float widthBlocks = glm::ceil((float)innerWidth / HEIGHTFIELD_BLOCK_SIZE);
-        scale *= widthBlocks;
-        aspectZ = glm::ceil((float)innerHeight / HEIGHTFIELD_BLOCK_SIZE) / widthBlocks;
+        scale = innerWidth * _spacing->value();
+        aspectZ = (float)innerHeight / innerWidth;
     }
     heightfield->setScale(scale);
     heightfield->setAspectY(_heightScale->value() / scale);
