@@ -126,9 +126,9 @@ void HMDToolsDialog::enterModeClicked(bool checked) {
 
 void HMDToolsDialog::activateWindowAfterEnterMode() {
     Application::getInstance()->getWindow()->activateWindow();
-    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-    QPoint windowCenter = mainWindow->geometry().center();
-    QCursor::setPos(_hmdScreen, windowCenter);
+
+    // center the cursor on the main application window
+    centerCursorOnWidget(Application::getInstance()->getWindow());
 }
 
 
@@ -178,10 +178,12 @@ void HMDToolsDialog::centerCursorOnWidget(QWidget* widget) {
 }
 
 void HMDToolsDialog::showEvent(QShowEvent* event) {
+    // center the cursor on the hmd tools dialog
     centerCursorOnWidget(this);
 }
 
 void HMDToolsDialog::hideEvent(QHideEvent* event) {
+    // center the cursor on the main application window
     centerCursorOnWidget(Application::getInstance()->getWindow());
 }
 
