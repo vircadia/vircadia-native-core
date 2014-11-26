@@ -20,6 +20,8 @@ public:
     // Sets up the UI
     HMDToolsDialog(QWidget* parent);
     ~HMDToolsDialog();
+
+    QString getDebugDetails() const;
     
 signals:
     void closed();
@@ -30,6 +32,7 @@ public slots:
     void leaveModeClicked(bool checked);
     void activateWindowAfterEnterMode();
     void moveWindowAfterLeaveMode();
+    void applicationWindowScreenChanged(QScreen* screen);
 
 protected:
     // Emits a 'closed' signal when this dialog is closed.
@@ -40,6 +43,7 @@ private:
     QRect _previousRect;
     QScreen* _previousScreen;
     QScreen* _hmdScreen;
+    QLabel* _debugDetails;
 };
 
 #endif // hifi_HMDToolsDialog_h

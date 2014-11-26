@@ -44,18 +44,50 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     form->addRow("", leaveModeButton);
     connect(leaveModeButton,SIGNAL(clicked(bool)),this,SLOT(leaveModeClicked(bool)));
 
+    // Create a label with debug details...
+    _debugDetails = new QLabel();
+    _debugDetails->setText(getDebugDetails());
+    const int WIDTH = 350;
+    const int HEIGHT = 100;
+    _debugDetails->setFixedSize(WIDTH, HEIGHT);
+    form->addRow("", _debugDetails);
+    
     this->QDialog::setLayout(form);
 
-
     _wasMoved = false;
-    
     _previousRect = Application::getInstance()->getWindow()->rect();
-    
-
     Application::getInstance()->getWindow()->activateWindow();
+
+    QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
+    connect(mainWindow, &QWindow::screenChanged, this, &HMDToolsDialog::applicationWindowScreenChanged);
 }
 
 HMDToolsDialog::~HMDToolsDialog() {
+}
+
+void HMDToolsDialog::applicationWindowScreenChanged(QScreen* screen) {
+    _debugDetails->setText(getDebugDetails());
+}
+
+QString HMDToolsDialog::getDebugDetails() const {
+    QString results;
+
+    int hmdScreenNumber = OculusManager::getHMDScreen();
+    if (hmdScreenNumber > 0) {
+        results += "HMD Screen: " + QGuiApplication::screens()[hmdScreenNumber]->name() + "\n";
+    } else {
+        results += "HMD Screen Name: Unknown\n";
+    }
+
+    int desktopPrimaryScreenNumber = QApplication::desktop()->primaryScreen();
+    QScreen* desktopPrimaryScreen = QGuiApplication::screens()[desktopPrimaryScreenNumber];
+    results += "Desktop's Primary Screen: " + desktopPrimaryScreen->name() + "\n";
+
+    results += "Application Primary Screen: " + QGuiApplication::primaryScreen()->name() + "\n";
+    QScreen* mainWindowScreen = Application::getInstance()->getWindow()->windowHandle()->screen();
+    results += "Application Main Window Screen: " + mainWindowScreen->name() + "\n";
+
+    return results;
 }
 
 void HMDToolsDialog::enterModeClicked(bool checked) {
@@ -74,6 +106,9 @@ void HMDToolsDialog::enterModeClicked(bool checked) {
         mainWindow->setGeometry(rect);
 
         _wasMoved = true;
+    } else {
+        // if we're on a single screen setup, then hide our tools window when entering HMD mode
+        hide(); 
     }
     Application::getInstance()->setFullscreen(true);
     Application::getInstance()->setEnableVRMode(true);
