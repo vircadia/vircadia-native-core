@@ -316,14 +316,14 @@ void Stats::display(
     horizontalOffset = _lastHorizontalOffset + _generalStatsWidth +1;
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
-        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
+        int pingAudio = -1, pingAvatar = -1, pingVoxel = -1, pingVoxelMax = -1;
 
         NodeList* nodeList = NodeList::getInstance();
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
         SharedNodePointer avatarMixerNode = nodeList->soloNodeOfType(NodeType::AvatarMixer);
 
-        pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
-        pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
+        pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : -1;
+        pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : -1;
 
         // Now handle voxel servers, since there could be more than one, we average their ping times
         unsigned long totalPingVoxel = 0;
@@ -354,12 +354,25 @@ void Stats::display(
 
         
         char audioPing[30];
-        sprintf(audioPing, "Audio ping: %d", pingAudio);
-                 
+        if (pingAudio >= 0) {
+            sprintf(audioPing, "Audio ping: %d", pingAudio);
+        } else {
+            sprintf(audioPing, "Audio ping: --");
+        }
+
         char avatarPing[30];
-        sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
+        if (pingAvatar >= 0) {
+            sprintf(avatarPing, "Avatar ping: %d", pingAvatar);
+        } else {
+            sprintf(avatarPing, "Avatar ping: --");
+        }
+
         char voxelAvgPing[30];
-        sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
+        if (pingVoxel >= 0) {
+            sprintf(voxelAvgPing, "Voxel avg ping: %d", pingVoxel);
+        } else {
+            sprintf(voxelAvgPing, "Voxel avg ping: --");
+        }
 
         verticalOffset += STATS_PELS_PER_LINE;
         drawText(horizontalOffset, verticalOffset, scale, rotation, font, audioPing, color);
@@ -370,7 +383,11 @@ void Stats::display(
 
         if (_expanded) {
             char voxelMaxPing[30];
-            sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
+            if (pingVoxel >= 0) {  // Average is only meaningful if pingVoxel is valid.
+                sprintf(voxelMaxPing, "Voxel max ping: %d", pingVoxelMax);
+            } else {
+                sprintf(voxelMaxPing, "Voxel max ping: --");
+            }
 
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, voxelMaxPing, color);
