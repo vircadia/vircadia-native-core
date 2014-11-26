@@ -668,6 +668,8 @@ void Application::paintGL() {
 
     // Update camera position
     if (!OculusManager::isConnected()) {
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
         _myCamera.update(1.0f / _fps);
     }
 
