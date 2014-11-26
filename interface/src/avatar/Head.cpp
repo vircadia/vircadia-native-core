@@ -273,7 +273,12 @@ void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
     _correctedLookAtPosition = correctedLookAtPosition;
 }
 
-glm::quat Head::getCameraOrientation () const {
+glm::quat Head::getCameraOrientation() const {
+    // NOTE: Head::getCameraOrientation() is not used for orienting the camera "view" while in Oculus mode, so
+    // you may wonder why this code is here. This method will be called while in Oculus mode to determine how
+    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're 
+    // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
+    // always the same.
     if (OculusManager::isConnected()) {
         return getOrientation();
     }
