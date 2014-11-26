@@ -52,6 +52,7 @@ Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
     _bytesReceivedMovingAverage(NULL),
     _linkedData(NULL),
     _isAlive(true),
+    _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
     _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
