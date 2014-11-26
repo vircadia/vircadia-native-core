@@ -47,10 +47,10 @@ void main(void) {
     
     // get the normal from the map
     vec4 normal = normalVal;
-    if (normalVal.a == 0.5) {
+    if ((normalVal.a >= 0.45) && (normalVal.a <= 0.55)) {
         normal.a = 1.0;
         normalVal.a = 0.0;
-        gl_FragColor = vec4(diffuseVal.rgb * specularColor.rgb, normal.a);
+        gl_FragColor = vec4(diffuseVal.rgb * specularVal.rgb, 1.0);
     } else {
         vec3 normalizedNormal = normalize(normal.xyz * 2.0 - vec3(1.0));
         
