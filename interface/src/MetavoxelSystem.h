@@ -24,6 +24,7 @@
 #include "renderer/ProgramObject.h"
 
 class HeightfieldBaseLayerBatch;
+class HeightfieldRendererNode;
 class HeightfieldSplatBatch;
 class Model;
 class VoxelBatch;
@@ -419,6 +420,8 @@ private:
     Model* _model;
 };
 
+typedef QExplicitlySharedDataPointer<HeightfieldRendererNode> HeightfieldRendererNodePointer;
+
 /// Renders heightfields.
 class HeightfieldRenderer : public SpannerRenderer {
     Q_OBJECT
@@ -426,26 +429,45 @@ class HeightfieldRenderer : public SpannerRenderer {
 public:
     
     Q_INVOKABLE HeightfieldRenderer();
-    virtual ~HeightfieldRenderer();
     
     virtual void init(Spanner* spanner);
     virtual void render(bool cursor = false);
 
 private slots:
 
-    void applyHeight(const HeightfieldHeightPointer& height);
-    void applyColor(const HeightfieldColorPointer& color);
-    void applyMaterial(const HeightfieldMaterialPointer& material);
+    void updateRoot();
 
 private:
+    
+    HeightfieldRendererNodePointer _root;
+};
+
+/// A node in the heightfield renderer quadtree.
+class HeightfieldRendererNode : public QSharedData {
+public:
+    
+    static const int CHILD_COUNT = 4;
+    
+    HeightfieldRendererNode(const HeightfieldNodePointer& heightfieldNode);
+    virtual ~HeightfieldRendererNode();
+    
+    void render(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale, bool cursor = false);
+    
+private:
+
+    bool isLeaf() const;
+
+    HeightfieldNodePointer _heightfieldNode;
+
+    HeightfieldRendererNodePointer _children[CHILD_COUNT];
     
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     GLuint _materialTextureID;
     QVector<NetworkTexturePointer> _networkTextures;
     
-    typedef QPair<int, int> IntPair;
-    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    typedef QPair<int, int> IntPair;    
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;
     static QHash<IntPair, BufferPair> _bufferPairs;
 };
 

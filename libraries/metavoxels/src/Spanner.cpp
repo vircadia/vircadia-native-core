@@ -1684,6 +1684,12 @@ void Heightfield::setMaterial(const HeightfieldMaterialPointer& material) {
     }
 }
 
+void Heightfield::setRoot(const HeightfieldNodePointer& root) {
+    if (_root != root) {
+        emit rootChanged(_root = root);
+    }
+}
+
 bool Heightfield::isHeightfield() const {
     return true;
 }
@@ -2667,8 +2673,10 @@ void Heightfield::readExtra(Bitstream& in) {
     }
     HeightfieldStreamBase base = { in, lod, lod };
     HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
-    _root = new HeightfieldNode();
-    _root->read(state);
+    
+    HeightfieldNodePointer root(new HeightfieldNode());
+    root->read(state);
+    setRoot(root);
 }
 
 void Heightfield::writeExtraDelta(Bitstream& out, const SharedObject* reference) const {
@@ -2705,11 +2713,12 @@ void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
     bool changed;
     in >> changed;
     if (changed) {
-        _root = new HeightfieldNode();
-        _root->readDelta(static_cast<const Heightfield*>(reference)->getRoot(), state);
+        HeightfieldNodePointer root(new HeightfieldNode());
+        root->readDelta(static_cast<const Heightfield*>(reference)->getRoot(), state);
+        setRoot(root);
     
     } else if (state.becameSubdividedOrCollapsed()) {
-        _root = _root->readSubdivision(state);
+        setRoot(HeightfieldNodePointer(_root->readSubdivision(state)));
     }
 }
 
@@ -2724,10 +2733,11 @@ void Heightfield::updateBounds() {
 }
 
 void Heightfield::updateRoot() {
-    _root = new HeightfieldNode();
+    HeightfieldNodePointer root(new HeightfieldNode());
     if (_height) {
-        _root->setContents(_height, _color, _material);
+        root->setContents(_height, _color, _material);
     }
+    setRoot(root);
 }
 
 MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {

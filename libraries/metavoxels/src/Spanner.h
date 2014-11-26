@@ -540,6 +540,7 @@ class Heightfield : public Transformable {
     Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged STORED false)
     Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged STORED false
         DESIGNABLE false)
+    Q_PROPERTY(HeightfieldNodePointer root MEMBER _root WRITE setRoot NOTIFY rootChanged STORED false DESIGNABLE false)
 
 public:
     
@@ -560,6 +561,7 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
 
+    void setRoot(const HeightfieldNodePointer& root);
     const HeightfieldNodePointer& getRoot() const { return _root; }
 
     virtual bool isHeightfield() const;
@@ -596,6 +598,7 @@ signals:
     void heightChanged(const HeightfieldHeightPointer& height);
     void colorChanged(const HeightfieldColorPointer& color);
     void materialChanged(const HeightfieldMaterialPointer& material);
+    void rootChanged(const HeightfieldNodePointer& root);
     
 protected:
     

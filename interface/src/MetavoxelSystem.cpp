@@ -2073,57 +2073,67 @@ void StaticModelRenderer::applyURL(const QUrl& url) {
 }
 
 HeightfieldRenderer::HeightfieldRenderer() {
-    glGenTextures(1, &_heightTextureID);
-    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        
-    glGenTextures(1, &_colorTextureID);
-    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    
-    glGenTextures(1, &_materialTextureID);
-    glBindTexture(GL_TEXTURE_2D, _materialTextureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-HeightfieldRenderer::~HeightfieldRenderer() {
-    glDeleteTextures(1, &_heightTextureID);
-    glDeleteTextures(1, &_colorTextureID);
-    glDeleteTextures(1, &_materialTextureID);
 }
 
 void HeightfieldRenderer::init(Spanner* spanner) {
     SpannerRenderer::init(spanner);
     
     Heightfield* heightfield = static_cast<Heightfield*>(spanner);
-    applyHeight(heightfield->getHeight());
-    applyColor(heightfield->getColor());
-    applyMaterial(heightfield->getMaterial());
-    
-    connect(heightfield, &Heightfield::heightChanged, this, &HeightfieldRenderer::applyHeight);
-    connect(heightfield, &Heightfield::colorChanged, this, &HeightfieldRenderer::applyColor);
-    connect(heightfield, &Heightfield::materialChanged, this, &HeightfieldRenderer::applyMaterial);
+    connect(heightfield, &Heightfield::rootChanged, this, &HeightfieldRenderer::updateRoot);
+    updateRoot();
 }
 
 void HeightfieldRenderer::render(bool cursor) {
-    // create the buffer objects lazily
     Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
-    if (!heightfield->getHeight()) {
+    _root->render(heightfield->getTranslation(), heightfield->getRotation(), glm::vec3(heightfield->getScale(),
+        heightfield->getScale() * heightfield->getAspectY(), heightfield->getScale() * heightfield->getAspectZ()), cursor);
+}
+
+void HeightfieldRenderer::updateRoot() {
+    Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
+    _root = new HeightfieldRendererNode(heightfield->getRoot());
+}
+
+HeightfieldRendererNode::HeightfieldRendererNode(const HeightfieldNodePointer& heightfieldNode) :
+    _heightfieldNode(heightfieldNode),
+    _heightTextureID(0),
+    _colorTextureID(0),
+    _materialTextureID(0) {
+    
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        HeightfieldNodePointer child = heightfieldNode->getChild(i);
+        if (child) {
+            _children[i] = new HeightfieldRendererNode(child);
+        }    
+    }
+}
+
+HeightfieldRendererNode::~HeightfieldRendererNode() {
+    glDeleteTextures(1, &_heightTextureID);
+    glDeleteTextures(1, &_colorTextureID);
+    glDeleteTextures(1, &_materialTextureID);
+}
+
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
+
+void HeightfieldRendererNode::render(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, bool cursor) {
+    if (!isLeaf()) {
+        glm::vec3 nextScale(scale.x * 0.5f, scale.y, scale.z * 0.5f);
+        glm::vec3 xOffset = rotation * glm::vec3(nextScale.x, 0.0f, 0.0f);
+        glm::vec3 zOffset = rotation * glm::vec3(0.0f, 0.0f, nextScale.z);
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            _children[i]->render(translation + (i & X_MAXIMUM_FLAG ? xOffset : glm::vec3()) +
+                (i & Y_MAXIMUM_FLAG ? zOffset : glm::vec3()), rotation, nextScale, cursor);
+        }
         return;
     }
-    int width = heightfield->getHeight()->getWidth();
-    int height = heightfield->getHeight()->getContents().size() / width;
-    
+    if (!_heightfieldNode->getHeight()) {
+        return;
+    }
+    int width = _heightfieldNode->getHeight()->getWidth();
+    int height = _heightfieldNode->getHeight()->getContents().size() / width;
     int innerWidth = width - 2 * HeightfieldHeight::HEIGHT_BORDER;
     int innerHeight = height - 2 * HeightfieldHeight::HEIGHT_BORDER;
     int vertexCount = width * height;
@@ -2180,17 +2190,71 @@ void HeightfieldRenderer::render(bool cursor) {
         bufferPair.second.allocate(indices.constData(), indexCount * sizeof(int));
         bufferPair.second.release();
     }
+    if (_heightTextureID == 0) {
+        glGenTextures(1, &_heightTextureID);
+        glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        const QVector<quint16>& heightContents = _heightfieldNode->getHeight()->getContents();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
+            GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
     
-    float xScale = heightfield->getScale(), zScale = xScale * heightfield->getAspectZ();
+        glGenTextures(1, &_colorTextureID);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (_heightfieldNode->getColor()) {
+            const QByteArray& contents = _heightfieldNode->getColor()->getContents();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _heightfieldNode->getColor()->getWidth(),
+                contents.size() / (_heightfieldNode->getColor()->getWidth() * DataBlock::COLOR_BYTES),
+                0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
+            
+        } else {
+            const quint8 WHITE_COLOR[] = { 255, 255, 255 };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
+        }
+        
+        glGenTextures(1, &_materialTextureID);
+        glBindTexture(GL_TEXTURE_2D, _materialTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (_heightfieldNode->getMaterial()) {
+            const QByteArray& contents = _heightfieldNode->getMaterial()->getContents();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, _heightfieldNode->getMaterial()->getWidth(),
+                contents.size() / _heightfieldNode->getMaterial()->getWidth(),
+                0, GL_RED, GL_UNSIGNED_BYTE, contents.constData());
+                
+            const QVector<SharedObjectPointer>& materials = _heightfieldNode->getMaterial()->getMaterials();
+            _networkTextures.resize(materials.size());
+            for (int i = 0; i < materials.size(); i++) {
+                const SharedObjectPointer& material = materials.at(i);
+                if (material) {
+                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                        static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
+                }
+            }
+        } else {
+            const quint8 ZERO_VALUE = 0;
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    
     if (cursor) {
         bufferPair.first.bind();
         bufferPair.second.bind();
     
         glPushMatrix();
-        glTranslatef(heightfield->getTranslation().x, heightfield->getTranslation().y, heightfield->getTranslation().z);
-        glm::vec3 axis = glm::axis(heightfield->getRotation());
-        glRotatef(glm::degrees(glm::angle(heightfield->getRotation())), axis.x, axis.y, axis.z);
-        glScalef(xScale, xScale * heightfield->getAspectY(), zScale);
+        glTranslatef(translation.x, translation.y, translation.z);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        glScalef(scale.x, scale.y, scale.z);
         
         HeightfieldPoint* point = 0;
         glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -2208,13 +2272,12 @@ void HeightfieldRenderer::render(bool cursor) {
         bufferPair.second.release();
         return;
     }
-    
     HeightfieldBaseLayerBatch baseBatch;
     baseBatch.vertexBuffer = &bufferPair.first;
     baseBatch.indexBuffer = &bufferPair.second;
-    baseBatch.translation = heightfield->getTranslation();
-    baseBatch.rotation = heightfield->getRotation();
-    baseBatch.scale = glm::vec3(xScale, xScale * heightfield->getAspectY(), zScale);
+    baseBatch.translation = translation;
+    baseBatch.rotation = rotation;
+    baseBatch.scale = scale;
     baseBatch.vertexCount = vertexCount;
     baseBatch.indexCount = indexCount;
     baseBatch.heightTextureID = _heightTextureID;
@@ -2223,13 +2286,13 @@ void HeightfieldRenderer::render(bool cursor) {
     baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
     Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);    
     
-    if (heightfield->getMaterial() && !_networkTextures.isEmpty()) {
+    if (!_networkTextures.isEmpty()) {
         HeightfieldSplatBatch splatBatch;
         splatBatch.vertexBuffer = &bufferPair.first;
         splatBatch.indexBuffer = &bufferPair.second;
-        splatBatch.translation = heightfield->getTranslation();
-        splatBatch.rotation = heightfield->getRotation();
-        splatBatch.scale = glm::vec3(xScale, xScale * heightfield->getAspectY(), zScale);
+        splatBatch.translation = translation;
+        splatBatch.rotation = rotation;
+        splatBatch.scale = scale;
         splatBatch.vertexCount = vertexCount;
         splatBatch.indexCount = indexCount;
         splatBatch.heightTextureID = _heightTextureID;
@@ -2237,10 +2300,10 @@ void HeightfieldRenderer::render(bool cursor) {
         splatBatch.materialTextureID = _materialTextureID;
         splatBatch.textureScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
         splatBatch.splatTextureOffset = glm::vec2(
-            glm::dot(heightfield->getTranslation(), heightfield->getRotation() * glm::vec3(1.0f, 0.0f, 0.0f)) / xScale,
-            glm::dot(heightfield->getTranslation(), heightfield->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) / zScale);
+            glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
+            glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);
         
-        const QVector<SharedObjectPointer>& materials = heightfield->getMaterial()->getMaterials();
+        const QVector<SharedObjectPointer>& materials = _heightfieldNode->getMaterial()->getMaterials();
         for (int i = 0; i < materials.size(); i += SPLAT_COUNT) {
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 int index = i + j;
@@ -2248,8 +2311,8 @@ void HeightfieldRenderer::render(bool cursor) {
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
                     if (texture) {
                         MaterialObject* material = static_cast<MaterialObject*>(materials.at(index).data());
-                        splatBatch.splatTextureScalesS[j] = xScale / material->getScaleS();
-                        splatBatch.splatTextureScalesT[j] = zScale / material->getScaleT();
+                        splatBatch.splatTextureScalesS[j] = scale.x / material->getScaleS();
+                        splatBatch.splatTextureScalesT[j] = scale.z / material->getScaleT();
                         splatBatch.splatTextureIDs[j] = texture->getID();
                         
                     } else {
@@ -2265,62 +2328,14 @@ void HeightfieldRenderer::render(bool cursor) {
     }
 }
 
-void HeightfieldRenderer::applyHeight(const HeightfieldHeightPointer& height) {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
-    if (height) {
-        const QVector<quint16>& contents = height->getContents();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, height->getWidth(), contents.size() / height->getWidth(), 0,
-            GL_RED, GL_UNSIGNED_SHORT, contents.constData());
-        
-    } else {
-        const quint16 ZERO_VALUE = 0;
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 1, 1, 0, GL_RED, GL_UNSIGNED_SHORT, &ZERO_VALUE);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void HeightfieldRenderer::applyColor(const HeightfieldColorPointer& color) {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-    if (color) {
-        const QByteArray& contents = color->getContents();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, color->getWidth(),
-            contents.size() / (color->getWidth() * DataBlock::COLOR_BYTES), 0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
-        
-    } else {
-        const quint8 WHITE_COLOR[] = { 255, 255, 255 };
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void HeightfieldRenderer::applyMaterial(const HeightfieldMaterialPointer& material) {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, _materialTextureID);
-    if (material) {
-        const QByteArray& contents = material->getContents();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, material->getWidth(), contents.size() / material->getWidth(), 0,
-            GL_RED, GL_UNSIGNED_BYTE, contents.constData());
-            
-        const QVector<SharedObjectPointer>& materials = material->getMaterials();
-        _networkTextures.resize(materials.size());
-        for (int i = 0; i < materials.size(); i++) {
-            const SharedObjectPointer& material = materials.at(i);
-            if (material) {
-                _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
-                    static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
-            } else {
-                _networkTextures[i].clear();
-            }
+bool HeightfieldRendererNode::isLeaf() const {
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        if (_children[i]) {
+            return false;
         }
-    } else {
-        const quint8 ZERO_VALUE = 0;
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
-        _networkTextures.clear();
     }
-    glBindTexture(GL_TEXTURE_2D, 0);
+    return true;
 }
 
-QHash<HeightfieldRenderer::IntPair, HeightfieldRenderer::BufferPair> HeightfieldRenderer::_bufferPairs;
+QHash<HeightfieldRendererNode::IntPair, HeightfieldRendererNode::BufferPair> HeightfieldRendererNode::_bufferPairs;
 
