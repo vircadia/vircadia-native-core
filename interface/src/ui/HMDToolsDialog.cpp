@@ -73,7 +73,7 @@ QString HMDToolsDialog::getDebugDetails() const {
     QString results;
 
     int hmdScreenNumber = OculusManager::getHMDScreen();
-    if (hmdScreenNumber > 0) {
+    if (hmdScreenNumber >= 0) {
         results += "HMD Screen: " + QGuiApplication::screens()[hmdScreenNumber]->name() + "\n";
     } else {
         results += "HMD Screen Name: Unknown\n";
@@ -91,7 +91,10 @@ QString HMDToolsDialog::getDebugDetails() const {
 }
 
 void HMDToolsDialog::enterModeClicked(bool checked) {
+    _debugDetails->setText(getDebugDetails());
+
     int hmdScreen = OculusManager::getHMDScreen();
+    qDebug() << "enterModeClicked().... hmdScreen:" << hmdScreen;
     
     if (hmdScreen >= 0) {
         QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
@@ -106,10 +109,14 @@ void HMDToolsDialog::enterModeClicked(bool checked) {
         mainWindow->setGeometry(rect);
 
         _wasMoved = true;
-    } else {
-        // if we're on a single screen setup, then hide our tools window when entering HMD mode
-        hide(); 
     }
+    
+    
+    // if we're on a single screen setup, then hide our tools window when entering HMD mode
+    if (QApplication::desktop()->screenCount() == 1) {
+        close();
+    }
+
     Application::getInstance()->setFullscreen(true);
     Application::getInstance()->setEnableVRMode(true);
     
@@ -126,6 +133,8 @@ void HMDToolsDialog::activateWindowAfterEnterMode() {
 
 
 void HMDToolsDialog::leaveModeClicked(bool checked) {
+    _debugDetails->setText(getDebugDetails());
+
     Application::getInstance()->setFullscreen(false);
     Application::getInstance()->setEnableVRMode(false);
     Application::getInstance()->getWindow()->activateWindow();
@@ -152,15 +161,13 @@ void HMDToolsDialog::moveWindowAfterLeaveMode() {
 
 void HMDToolsDialog::reject() {
     // Just regularly close upon ESC
-    this->QDialog::close();
+    close();
 }
 
 void HMDToolsDialog::closeEvent(QCloseEvent* event) {
+    // TODO: consider if we want to prevent closing of this window with event->ignore();
     this->QDialog::closeEvent(event);
     emit closed();
-    
-    // TODO: consider if we want to prevent closing of this window
-    //event->ignore();
 }
 
 
