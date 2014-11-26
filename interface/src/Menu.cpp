@@ -659,6 +659,10 @@ Menu::Menu() :
 Menu::~Menu() {
     bandwidthDetailsClosed();
     octreeStatsDetailsClosed();
+    if (_hmdToolsDialog) {
+        delete _hmdToolsDialog;
+        _hmdToolsDialog = NULL;
+    }
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1606,8 +1610,8 @@ void Menu::hmdTools(bool showTools) {
         if (!_hmdToolsDialog) {
             _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
             connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
-            _hmdToolsDialog->show();
         }
+        _hmdToolsDialog->show();
         _hmdToolsDialog->raise();
     } else {
         hmdToolsClosed();
@@ -1616,10 +1620,8 @@ void Menu::hmdTools(bool showTools) {
 }
 
 void Menu::hmdToolsClosed() {
-    if (_hmdToolsDialog) {
-        delete _hmdToolsDialog;
-        _hmdToolsDialog = NULL;
-    }
+    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
+    _hmdToolsDialog->hide();
 }
 
 void Menu::cycleFrustumRenderMode() {

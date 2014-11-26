@@ -123,6 +123,9 @@ void HMDToolsDialog::reject() {
 void HMDToolsDialog::closeEvent(QCloseEvent* event) {
     this->QDialog::closeEvent(event);
     emit closed();
+    
+    // TODO: consider if we want to prevent closing of this window
+    //event->ignore();
 }
 
 
