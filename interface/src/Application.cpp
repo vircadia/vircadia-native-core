@@ -668,8 +668,6 @@ void Application::paintGL() {
 
     // Update camera position
     if (!OculusManager::isConnected()) {
-        _myCamera.setHmdPosition(glm::vec3());
-        _myCamera.setHmdRotation(glm::quat());
         _myCamera.update(1.0f / _fps);
     }
 
@@ -1606,6 +1604,11 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        
+        _mirrorCamera.setHmdPosition(glm::vec3());
+        _mirrorCamera.setHmdRotation(glm::quat());
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
