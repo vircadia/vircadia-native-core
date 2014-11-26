@@ -155,7 +155,9 @@ public:
     QSharedPointer<NetworkTexture> normalTexture;
     QString specularTextureName;
     QSharedPointer<NetworkTexture> specularTexture;
-    
+    QString emissiveTextureName;
+    QSharedPointer<NetworkTexture> emissiveTexture;
+
     bool isTranslucent() const;
 };
 

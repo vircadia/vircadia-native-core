@@ -10,9 +10,10 @@
 //
 
 #include "EntityTreeHeadlessViewer.h"
+#include "SimpleEntitySimulation.h"
 
-EntityTreeHeadlessViewer::EntityTreeHeadlessViewer() :
-    OctreeHeadlessViewer() {
+EntityTreeHeadlessViewer::EntityTreeHeadlessViewer()
+    :   OctreeHeadlessViewer(), _simulation(NULL) {
 }
 
 EntityTreeHeadlessViewer::~EntityTreeHeadlessViewer() {
@@ -20,8 +21,14 @@ EntityTreeHeadlessViewer::~EntityTreeHeadlessViewer() {
 
 void EntityTreeHeadlessViewer::init() {
     OctreeHeadlessViewer::init();
+    if (!_simulation) {
+        SimpleEntitySimulation* simpleSimulation = new SimpleEntitySimulation();
+        EntityTree* entityTree = static_cast<EntityTree*>(_tree);
+        simpleSimulation->setEntityTree(entityTree);
+        entityTree->setSimulation(simpleSimulation);
+        _simulation = simpleSimulation;
+    }
 }
-
 
 void EntityTreeHeadlessViewer::update() {
     if (_tree) {

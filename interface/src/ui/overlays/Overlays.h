@@ -13,6 +13,7 @@
 
 #include <QString>
 #include <QScriptValue>
+#include <QSignalMapper>
 
 #include "Overlay.h"
 
@@ -51,7 +52,7 @@ public:
     ~Overlays();
     void init(QGLWidget* parent);
     void update(float deltatime);
-    void render3D(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
+    void render3D(bool drawFront, RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE,
                         RenderArgs::RenderSide renderSide = RenderArgs::MONO);
     void render2D();
 

@@ -13,6 +13,7 @@
 #include <PhysicsEngine.h>
 
 #include "EntityTree.h"
+#include "EntitySimulation.h"
 
 #include "AddEntityOperator.h"
 #include "DeleteEntityOperator.h"
@@ -20,7 +21,7 @@
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
-EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _physicsEngine(NULL) {
+EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _simulation(NULL) {
     _rootElement = createNewElement();
 }
 
@@ -36,14 +37,11 @@ EntityTreeElement* EntityTree::createNewElement(unsigned char * octalCode) {
 
 void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     // this would be a good place to clean up our entities...
-    foreach (EntityTreeElement* element, _entityToElementMap) {
-        element->cleanupEntities(_physicsEngine);
+    if (_simulation) {
+        _simulation->clearEntities();
     }
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
-    _movingEntities.clear();
-    _mortalEntities.clear();
-    _changedEntities.clear();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -91,30 +89,9 @@ void EntityTree::addEntityInternal(EntityItem* entity) {
     AddEntityOperator theOperator(this, entity);
     recurseTreeWithOperator(&theOperator);
 
-    emitAddingEntity(entity);
-}
-
-void EntityTree::emitAddingEntity(EntityItem* entity) {
-    // add entity to proper internal lists
-    EntityItem::SimulationState newState = entity->computeSimulationState();
-    switch (newState) {
-        case EntityItem::Moving:
-            _movingEntities.push_back(entity);
-            break;
-
-        case EntityItem::Mortal:
-            _mortalEntities.push_back(entity);
-            break;
-
-        default:
-            break;
-    }
-    entity->setSimulationState(newState);
-    entity->clearUpdateFlags();
-
-    // add entity to physics engine
-    if (_physicsEngine && !entity->getMotionState()) {
-        addEntityToPhysicsEngine(entity);
+    // check to see if we need to simulate this entity..
+    if (_simulation) {
+        _simulation->addEntity(entityItem);
     }
 
     _isDirty = true;
@@ -147,12 +124,24 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
                 UpdateEntityOperator theOperator(this, containingElement, existingEntity, tempProperties);
                 recurseTreeWithOperator(&theOperator);
                 _isDirty = true;
+                if (_simulation && existingEntity->getUpdateFlags() != 0) {
+                    _simulation->entityChanged(existingEntity);
+                }
             }
         }
     } else {
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
+
+        if (_simulation && existingEntity->getUpdateFlags() != 0) {
+            _simulation->entityChanged(existingEntity);
+        }
+
+        QString entityScriptAfter = existingEntity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entityID); // the entity script has changed
+        }
     }
     
     containingElement = getContainingElement(entityID);
@@ -195,13 +184,16 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
 }
 
 
-void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
+void EntityTree::trackDeletedEntity(EntityItem* entity) {
+    if (_simulation) {
+        _simulation->removeEntity(entity);
+    }
     // this is only needed on the server to send delete messages for recently deleted entities to the viewers
     if (getIsServer()) {
         // set up the deleted entities ID
         quint64 deletedAt = usecTimestampNow();
         _recentlyDeletedEntitiesLock.lockForWrite();
-        _recentlyDeletedEntityItemIDs.insert(deletedAt, entityID.id);
+        _recentlyDeletedEntityItemIDs.insert(deletedAt, entity->getEntityItemID().id);
         _recentlyDeletedEntitiesLock.unlock();
     }
 }
@@ -213,6 +205,19 @@ void EntityTree::setPhysicsEngine(PhysicsEngine* engine) {
 #endif // USE_BULLET_PHYSICS
     }
     _physicsEngine = engine;
+}
+
+void EntityTree::setSimulation(EntitySimulation* simulation) {
+    if (simulation) {
+        // assert that the simulation's backpointer has already been properly connected
+        assert(simulation->getEntityTree() == this);
+    } 
+    if (_simulation && _simulation != simulation) {
+        // It's important to clearEntities() on the simulation since taht will update each
+        // EntityItem::_simulationState correctly so as to not confuse the next _simulation.
+        _simulation->clearEntities();
+    }
+    _simulation = simulation;
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
@@ -236,29 +241,6 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs) {
     recurseTreeWithOperator(&theOperator);
     _isDirty = true;
 }
-
-void EntityTree::removeEntityFromSimulationLists(const EntityItemID& entityID) {
-    EntityItem* theEntity = findEntityByEntityItemID(entityID);
-
-    if (theEntity) {
-        // make sure to remove it from any of our simulation lists
-        EntityItem::SimulationState theState = theEntity->computeSimulationState();
-        switch (theState) {
-            case EntityItem::Moving:
-                _movingEntities.removeAll(theEntity);
-                break;
-
-            case EntityItem::Mortal:
-                _mortalEntities.removeAll(theEntity);
-                break;
-
-            default:
-                break;
-        }
-        _changedEntities.remove(theEntity);
-    }
-}
-
 
 /// This method is used to find and fix entity IDs that are shifting from creator token based to known ID based entity IDs. 
 /// This should only be used on a client side (viewing) tree. The typical usage is that a local editor has been creating 
@@ -592,60 +574,13 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
     extraEncodeData->clear();
 }
 
-void EntityTree::updateEntityState(EntityItem* entity) {
-    EntityItem::SimulationState oldState = entity->getSimulationState();
-    EntityItem::SimulationState newState = entity->computeSimulationState();
-    if (newState != oldState) {
-        switch (oldState) {
-            case EntityItem::Moving:
-                _movingEntities.removeAll(entity);
-                break;
-    
-            case EntityItem::Mortal:
-                _mortalEntities.removeAll(entity);
-                break;
-    
-            default:
-                break;
-        }
-    
-        switch (newState) {
-            case EntityItem::Moving:
-                _movingEntities.push_back(entity);
-                break;
-    
-            case EntityItem::Mortal:
-                _mortalEntities.push_back(entity);
-                break;
-    
-            default:
-                break;
-        }
-        entity->setSimulationState(newState);
-    }
-}
-
-void EntityTree::clearEntityState(EntityItem* entity) {
-    EntityItem::SimulationState oldState = entity->getSimulationState();
-    switch (oldState) {
-        case EntityItem::Moving:
-            _movingEntities.removeAll(entity);
-            break;
-
-        case EntityItem::Mortal:
-            _mortalEntities.removeAll(entity);
-            break;
-
-        default:
-            break;
-    }
-    entity->setSimulationState(EntityItem::Static);
-}
-
 void EntityTree::entityChanged(EntityItem* entity) {
-    _changedEntities.insert(entity);
+    if (_simulation) {
+        _simulation->entityChanged(entity);
+    }
 }
 
+/* TODO: andrew to port this to new EntitySimuation 
 void EntityTree::addEntityToPhysicsEngine(EntityItem* entity) {
 #ifdef USE_BULLET_PHYSICS
     EntityMotionState* motionState = entity->createMotionState();
@@ -664,28 +599,6 @@ void EntityTree::removeEntityFromPhysicsEngine(EntityItem* entity) {
         _physicsEngine->removeEntity(static_cast<CustomMotionState*>(motionState));
     }
 #endif // USE_BULLET_PHYSICS
-}
-
-void EntityTree::update() {
-    // our new strategy should be to segregate entities into three classes:
-    //   1) stationary things that are not changing - most models
-    //   2) mortal things - these are stationary but have a lifetime - then need to be checked, 
-    //      can be touched linearly, and won't change the tree
-    //   2) moving/changing things - like things animating they can be touched linearly and they don't change the tree
-    // finally - all things that need to be deleted, can be handled on a single delete pass.
-    //
-    // TODO: theoretically we could combine the move and delete tree passes... 
-    lockForWrite();
-    quint64 now = usecTimestampNow();
-    QSet<EntityItemID> entitiesToDelete;
-    updateChangedEntities(now, entitiesToDelete);
-    updateMovingEntities(now, entitiesToDelete);
-    updateMortalEntities(now, entitiesToDelete);
-
-    if (entitiesToDelete.size() > 0) {
-        deleteEntities(entitiesToDelete);
-    }
-    unlock();
 }
 
 void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
@@ -751,31 +664,29 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                     }
                 }
             }
+            deleteEntities(idsToDelete);
         }
-        if (moveOperator.hasMovingEntities()) {
-            PerformanceTimer perfTimer("recurseTreeWithOperator");
-            recurseTreeWithOperator(&moveOperator);
-        }
+        unlock();
     }
 }
+*/
 
-void EntityTree::updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
-    // TODO: switch these to iterators so we can remove items that get deleted
-    for (int i = 0; i < _mortalEntities.size(); i++) {
-        EntityItem* thisEntity = _mortalEntities[i];
-        thisEntity->update(now);
-        // always check to see if the lifetime has expired, for immortal entities this is always false
-        if (thisEntity->lifetimeHasExpired()) {
-            qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
-            entitiesToDelete << thisEntity->getEntityItemID();
-            clearEntityState(thisEntity);
-        } else {
-            // check to see if this entity is no longer moving
-            updateEntityState(thisEntity);
+void EntityTree::update() {
+    if (_simulation) {
+        lockForWrite();
+        QSet<EntityItem*> entitiesToDelete;
+        _simulation->update(entitiesToDelete);
+        if (entitiesToDelete.size() > 0) {
+            // translate into list of ID's
+            QSet<EntityItemID> idsToDelete;
+            foreach (EntityItem* entity, entitiesToDelete) {
+                idsToDelete.insert(entity->getEntityItemID());
+            }
+            deleteEntities(idsToDelete);
         }
+        unlock();
     }
 }
-
 
 bool EntityTree::hasEntitiesDeletedSince(quint64 sinceTime) {
     // we can probably leverage the ordered nature of QMultiMap to do this quickly...
@@ -991,19 +902,16 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
-    if (_entityToElementMap.contains(entityItemID)) {
-        return _entityToElementMap.value(entityItemID);
-    } else if (entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN){
+    EntityTreeElement* element = _entityToElementMap.value(entityItemID);
+    if (!element && entityItemID.creatorTokenID != UNKNOWN_ENTITY_TOKEN){
         // check the creator token version too...
         EntityItemID creatorTokenOnly;
         creatorTokenOnly.id = UNKNOWN_ENTITY_ID;
         creatorTokenOnly.creatorTokenID = entityItemID.creatorTokenID;
         creatorTokenOnly.isKnownID = false;
-        if (_entityToElementMap.contains(creatorTokenOnly)) {
-            return _entityToElementMap.value(creatorTokenOnly);
-        }
+        element = _entityToElementMap.value(creatorTokenOnly);
     }
-    return NULL;
+    return element;
 }
 
 // TODO: do we need to make this thread safe? Or is it acceptable as is

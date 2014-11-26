@@ -48,9 +48,6 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
             details.cube = details.containingElement->getAACube();
             _entitiesToDelete << details;
             _lookingCount++;
-            _tree->trackDeletedEntity(searchEntityID);
-            // before deleting any entity make sure to remove it from our Mortal, Changing, and Moving lists
-            _tree->removeEntityFromSimulationLists(searchEntityID);
         }
     }
 }
@@ -78,13 +75,9 @@ bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
     EntityTreeElement* entityTreeElement = static_cast<EntityTreeElement*>(element);
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
-    // path of the tree. For this operation, we want to recurse the branch of the tree if
-    // and of the following are true:
-    //   * We have not yet found the old entity, and this branch contains our old entity
-    //   * We have not yet found the new entity, and this branch contains our new entity
-    //
-    // Note: it's often the case that the branch in question contains both the old entity
-    // and the new entity.
+    // path of the tree. For this operation, we want to recurse the branch of the tree if:
+    //   * We have not yet found the all entities, and 
+    //   * this branch contains our some of the entities we're looking for.
     
     bool keepSearching = false; // assume we don't need to search any more
     
@@ -100,6 +93,8 @@ bool DeleteEntityOperator::preRecursion(OctreeElement* element) {
             if (entityTreeElement == details.containingElement) {
                 EntityItemID entityItemID = details.entity->getEntityItemID();
                 EntityItem* theEntity = entityTreeElement->getEntityWithEntityItemID(entityItemID); // find the actual entity
+                assert(theEntity);
+                _tree->trackDeletedEntity(theEntity);
                 entityTreeElement->removeEntityItem(theEntity); // remove it from the element
                 _tree->setContainingElement(entityItemID, NULL); // update or id to element lookup
                 _tree->removeEntityFromPhysicsEngine(theEntity);

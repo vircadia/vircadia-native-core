@@ -307,10 +307,10 @@ public:
     void destroyMotionState();
     SimulationState getSimulationState() const { return _simulationState; }
     
-protected:
-    friend class EntityTree;
-    void clearUpdateFlags() { _updateFlags = 0; }
+    SimulationState getSimulationState() const { return _simulationState; }
+    
     void setSimulationState(SimulationState state) { _simulationState = state; }
+protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();

@@ -19,7 +19,7 @@
 
 
 class Model;
-class PhysicsEngine;
+class EntitySimulation;
 
 class NewlyCreatedEntityHook {
 public:
@@ -86,7 +86,7 @@ public:
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     void deleteEntity(const EntityItemID& entityID);
     void deleteEntities(QSet<EntityItemID> entityIDs);
-    void removeEntityFromSimulationLists(const EntityItemID& entityID);
+    void removeEntityFromSimulation(EntityItem* entity);
 
     const EntityItem* findClosestEntity(glm::vec3 position, float targetRadius);
     EntityItem* findEntityByID(const QUuid& id);
@@ -139,19 +139,17 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void updateEntityState(EntityItem* entity);
-    void clearEntityState(EntityItem* entity);
-
     void entityChanged(EntityItem* entity);
     void addEntityToPhysicsEngine(EntityItem* entity);
     void removeEntityFromPhysicsEngine(EntityItem* entity);
 
-    void trackDeletedEntity(const EntityItemID& entityID);
+    void trackDeletedEntity(EntityItem* entity);
 
-    QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
+    void emitAddingEntity(const EntityItemID& entityItemID);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
-    void setPhysicsEngine(PhysicsEngine* engine);
-    
+    void setSimulation(EntitySimulation* simulation);
+
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -159,10 +157,6 @@ signals:
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
 
 private:
-
-    void updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-    void updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
-    void updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
 
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
@@ -179,13 +173,7 @@ private:
     EntityItemFBXService* _fbxService;
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
-
-    QList<EntityItem*> _movingEntities; // entities that need to be updated
-    QList<EntityItem*> _mortalEntities; // entities that need to be checked for expiry
-
-    QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
-
-    PhysicsEngine* _physicsEngine;
+    EntitySimulation* _simulation;
 };
 
 #endif // hifi_EntityTree_h

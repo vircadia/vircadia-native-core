@@ -21,6 +21,8 @@
 
 #include "EntityTree.h"
 
+class EntitySimulation;
+
 // Generic client side Octree renderer class.
 class EntityTreeHeadlessViewer : public OctreeHeadlessViewer {
     Q_OBJECT
@@ -40,6 +42,8 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
+protected:
+    EntitySimulation* _simulation;
 };
 
 #endif // hifi_EntityTreeHeadlessViewer_h

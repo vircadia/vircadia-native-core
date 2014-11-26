@@ -96,6 +96,7 @@ function printVector(string, vector) {
 
 function shootBullet(position, velocity) {
     var BULLET_SIZE = 0.01;
+    var BULLET_LIFETIME = 20.0;
     var BULLET_GRAVITY = -0.02;
     Entities.addEntity(
         { type: "Sphere",
@@ -103,6 +104,7 @@ function shootBullet(position, velocity) {
           dimensions: { x: BULLET_SIZE, y: BULLET_SIZE, z: BULLET_SIZE }, 
           color: {  red: 10, green: 10, blue: 10 },  
           velocity: velocity, 
+          lifetime: BULLET_LIFETIME,
           gravity: {  x: 0, y: BULLET_GRAVITY, z: 0 }, 
           damping: 0 });
 
@@ -118,6 +120,7 @@ function shootBullet(position, velocity) {
 function shootTarget() {
     var TARGET_SIZE = 0.25;
     var TARGET_GRAVITY = -0.6;
+    var TARGET_LIFETIME = 300.0;
     var TARGET_UP_VELOCITY = 3.0;
     var TARGET_FWD_VELOCITY = 5.0;
     var DISTANCE_TO_LAUNCH_FROM = 3.0;
@@ -140,7 +143,7 @@ function shootTarget() {
           color: {  red: 0, green: 200, blue: 200 },  
           velocity: velocity, 
           gravity: {  x: 0, y: TARGET_GRAVITY, z: 0 }, 
-          lifetime: 1000.0,
+          lifetime: TARGET_LIFETIME,
           damping: 0.99 });
 
     // Record start time 

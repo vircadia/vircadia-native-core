@@ -445,6 +445,7 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
     saveSettings();
@@ -1972,7 +1973,9 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+    EntityTree* entityTree = _entities.getTree();
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_audio, &_avatarManager);
+    entityTree->setSimulation(&_entityCollisionSystem);
 
     // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
@@ -2335,11 +2338,12 @@ void Application::update(float deltaTime) {
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
+        // NOTE: the _entities.update() call below will wait for lock 
+        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
         _entities.update(); // update the models...
-        {
-            PerformanceTimer perfTimer("collisions");
-            _entityCollisionSystem.update(); // collide the entities...
-        }
+        // The _entityCollisionSystem.updateCollisions() call below merely tries for lock,
+        // and on failure it skips collision detection.
+        _entityCollisionSystem.updateCollisions(); // collide the entities...
     }
 
     {
@@ -2852,7 +2856,12 @@ void Application::updateShadowMap() {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.render3D(false, RenderArgs::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("3dOverlaysFront");
+            _overlays.render3D(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3067,7 +3076,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
+            _overlays.render3D(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3150,6 +3159,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Render 3D overlays that should be drawn in front
+    {
+        PerformanceTimer perfTimer("3dOverlaysFront");
+        glClear(GL_DEPTH_BUFFER_BIT);
+        _overlays.render3D(true);
     }
 }
 
