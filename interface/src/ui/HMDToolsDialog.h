@@ -35,10 +35,13 @@ public slots:
     void applicationWindowScreenChanged(QScreen* screen);
 
 protected:
-    // Emits a 'closed' signal when this dialog is closed.
-    void closeEvent(QCloseEvent*);
+    virtual void closeEvent(QCloseEvent*); // Emits a 'closed' signal when this dialog is closed.
+    virtual void showEvent(QShowEvent* event);
+    virtual void hideEvent(QHideEvent* event);
 
 private:
+    void centerCursorOnWidget(QWidget* widget);
+
     bool _wasMoved;
     QRect _previousRect;
     QScreen* _previousScreen;

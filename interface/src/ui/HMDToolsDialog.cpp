@@ -170,4 +170,19 @@ void HMDToolsDialog::closeEvent(QCloseEvent* event) {
     emit closed();
 }
 
+void HMDToolsDialog::centerCursorOnWidget(QWidget* widget) {
+    QWindow* window = widget->windowHandle();
+    QScreen* screen = window->screen();
+    QPoint windowCenter = window->geometry().center();
+    QCursor::setPos(screen, windowCenter);
+}
+
+void HMDToolsDialog::showEvent(QShowEvent* event) {
+    centerCursorOnWidget(this);
+}
+
+void HMDToolsDialog::hideEvent(QHideEvent* event) {
+    centerCursorOnWidget(Application::getInstance()->getWindow());
+}
+
 
