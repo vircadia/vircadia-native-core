@@ -16,27 +16,33 @@
 #include <CollisionInfo.h>
 #include <HeadData.h>
 #include <HandData.h>
+#include <PerfStat.h>
 #include <SphereShape.h>
 
-#include "EntityItem.h"
+#include <EntityItem.h>
+#include <EntityEditPacketSender.h>
+#include <EntityTree.h>
+#include <EntityTreeElement.h>
+
 #include "EntityCollisionSystem.h"
-#include "EntityEditPacketSender.h"
-#include "EntityTree.h"
-#include "EntityTreeElement.h"
 
 const int MAX_COLLISIONS_PER_Entity = 16;
 
-EntityCollisionSystem::EntityCollisionSystem(EntityEditPacketSender* packetSender,
-    EntityTree* Entities, VoxelTree* voxels, AbstractAudioInterface* audio,
-    AvatarHashMap* avatars) : _collisions(MAX_COLLISIONS_PER_Entity) {
-    init(packetSender, Entities, voxels, audio, avatars);
+EntityCollisionSystem::EntityCollisionSystem()
+    :   SimpleEntitySimulation(), 
+        _packetSender(NULL),
+        _voxels(NULL),
+        _audio(NULL),
+        _avatars(NULL),
+        _collisions(MAX_COLLISIONS_PER_Entity) {
 }
 
 void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
-    EntityTree* Entities, VoxelTree* voxels, AbstractAudioInterface* audio,
-    AvatarHashMap* avatars) {
+        EntityTree* entities, VoxelTree* voxels, AbstractAudioInterface* audio,
+        AvatarHashMap* avatars) {
+    assert(entities);
+    setEntityTree(entities);
     _packetSender = packetSender;
-    _entities = Entities;
     _voxels = voxels;
     _audio = audio;
     _avatars = avatars;
@@ -45,14 +51,15 @@ void EntityCollisionSystem::init(EntityEditPacketSender* packetSender,
 EntityCollisionSystem::~EntityCollisionSystem() {
 }
 
-void EntityCollisionSystem::update() {
+void EntityCollisionSystem::updateCollisions() {
+    PerformanceTimer perfTimer("collisions");
+    assert(_entityTree);
     // update all Entities
-    if (_entities->tryLockForRead()) {
-        QList<EntityItem*>& movingEntities = _entities->getMovingEntities();
-        foreach (EntityItem* entity, movingEntities) {
+    if (_entityTree->tryLockForRead()) {
+        foreach (EntityItem* entity, _movingEntities) {
             checkEntity(entity);
         }
-        _entities->unlock();
+        _entityTree->unlock();
     }
 }
 
@@ -127,9 +134,8 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
     CollisionList collisions(MAX_COLLISIONS_PER_ENTITY);
     bool shapeCollisionsAccurate = false;
     
-    bool shapeCollisions = _entities->findShapeCollisions(&entityA->getCollisionShapeInMeters(), 
+    bool shapeCollisions = _entityTree->findShapeCollisions(&entityA->getCollisionShapeInMeters(), 
                                             collisions, Octree::NoLock, &shapeCollisionsAccurate);
-    
 
     if (shapeCollisions) {
         for(int i = 0; i < collisions.size(); i++) {
@@ -203,7 +209,7 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
                     propertiesA.setLastEdited(now);
 
-                    _entities->updateEntity(idA, propertiesA);
+                    _entityTree->updateEntity(idA, propertiesA);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
                 }            
 
@@ -220,7 +226,7 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
                     propertiesB.setLastEdited(now);
 
-                    _entities->updateEntity(idB, propertiesB);
+                    _entityTree->updateEntity(idB, propertiesB);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
                 }      
             }
@@ -326,6 +332,6 @@ void EntityCollisionSystem::applyHardCollision(EntityItem* entity, const Collisi
     properties.setVelocity(velocity * (float)TREE_SCALE);
     properties.setLastEdited(usecTimestampNow());
 
-    _entities->updateEntity(entityItemID, properties);
+    _entityTree->updateEntity(entityItemID, properties);
     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, entityItemID, properties);
 }

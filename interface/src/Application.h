@@ -31,7 +31,6 @@
 #include <QSystemTrayIcon>
 
 #include <EntityEditPacketSender.h>
-#include <EntityCollisionSystem.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -60,6 +59,7 @@
 #include "devices/SixenseManager.h"
 #include "devices/Visage.h"
 #include "devices/DdeFaceTracker.h"
+#include "entities/EntityCollisionSystem.h"
 #include "entities/EntityTreeRenderer.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/DeferredLightingEffect.h"
