@@ -59,32 +59,17 @@ HMDToolsDialog::~HMDToolsDialog() {
 }
 
 void HMDToolsDialog::enterModeClicked(bool checked) {
-    qDebug() << "enterModeClicked";
-
     int hmdScreen = OculusManager::getHMDScreen();
-    
-    // hack to test...
-    if (hmdScreen == -1) {
-        hmdScreen = 0;
-    }
     
     if (hmdScreen >= 0) {
         QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
         _hmdScreen = QGuiApplication::screens()[hmdScreen];
         
         _previousRect = Application::getInstance()->getWindow()->rect();
-        qDebug() << "_previousRect:" << _previousRect;
         _previousRect = QRect(mainWindow->mapToGlobal(_previousRect.topLeft()), 
                                 mainWindow->mapToGlobal(_previousRect.bottomRight()));
-        qDebug() << "after mapping... _previousRect:" << _previousRect;
-        
         _previousScreen = mainWindow->screen();
-        qDebug() << "_previousScreen:" << _previousScreen;
-
         QRect rect = QApplication::desktop()->screenGeometry(hmdScreen);
-
-        qDebug() << "about to move to:" << rect.topLeft();
-
         mainWindow->setScreen(_hmdScreen);
         mainWindow->setGeometry(rect);
 
@@ -98,20 +83,14 @@ void HMDToolsDialog::enterModeClicked(bool checked) {
 }
 
 void HMDToolsDialog::activateWindowAfterEnterMode() {
-    qDebug() << "activateWindowAfterEnterMode";
     Application::getInstance()->getWindow()->activateWindow();
-
     QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
     QPoint windowCenter = mainWindow->geometry().center();
-    //QPoint desktopCenter = mainWindow->mapToGlobal(windowCenter);
-    qDebug() << "windowCenter:" << windowCenter;
     QCursor::setPos(_hmdScreen, windowCenter);
 }
 
 
 void HMDToolsDialog::leaveModeClicked(bool checked) {
-    qDebug() << "leaveModeClicked";
-
     Application::getInstance()->setFullscreen(false);
     Application::getInstance()->setEnableVRMode(false);
     Application::getInstance()->getWindow()->activateWindow();
@@ -128,11 +107,11 @@ void HMDToolsDialog::leaveModeClicked(bool checked) {
 }
 
 void HMDToolsDialog::moveWindowAfterLeaveMode() {
-    qDebug() << "moveWindowAfterLeaveMode";
     QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
     mainWindow->setScreen(_previousScreen);
     mainWindow->setGeometry(_previousRect);
     Application::getInstance()->getWindow()->activateWindow();
+    Application::getInstance()->resetSensors();
 }
 
 
