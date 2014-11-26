@@ -14,24 +14,36 @@
 
 #include <QSet>
 
-#include "EntityItemID.h"
 #include "EntityTree.h"
 
 class EntitySimulation {
 public:
-    EntitySimulation(EntityTree* tree) : _myTree(tree) { assert(tree); }
-    virtual ~EntitySimulation() { _myTree = NULL; }
+    EntitySimulation() : _entityTree(NULL) { }
+    virtual ~EntitySimulation() {}
 
-    /// \sideeffect For each EntityItem* that EntitySimulation puts on entitiesToDelete it will automatically 
-    /// removeEntity() on any internal lists -- no need to call removeEntity() for that one later.
-    virtual void update(QSet<EntityItemID>& entitiesToDelete) = 0;
+    /// \param tree pointer to EntityTree which is stored internally
+    virtual void setEntityTree(EntityTree* tree);
 
+    /// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
+    virtual void update(QSet<EntityItem*>& entitiesToDelete) = 0;
+
+    /// \param entity pointer to EntityItem to add to the simulation
+    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list
     virtual void addEntity(EntityItem* entity) = 0;
+
+    /// \param entity pointer to EntityItem to removed from the simulation
+    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate non-membership to internal list
     virtual void removeEntity(EntityItem* entity) = 0;
-    virtual void updateEntity(EntityItem* entity) = 0;
+
+    /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
+    virtual void entityChanged(EntityItem* entity) = 0;
+
+    virtual void clearEntities() = 0;
+
+    EntityTree* getEntityTree() { return _entityTree; }
 
 protected:
-    EntityTree* _myTree;
+    EntityTree* _entityTree;
 };
 
 #endif // hifi_EntitySimulation_h
