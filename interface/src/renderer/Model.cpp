@@ -2382,12 +2382,10 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                     }
 
                     if (locations->emissiveTextureUnit >= 0) {
-                        assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                        static float emissiveOffset = 0.1f;
-                        static float emissiveScale = 1.0f;
-                        //GLBATCH(glUniform2f)(locations->emissiveParams, 0.1f, 4.0f);
+                      //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
+                        float emissiveOffset = part.emissiveParams.x;
+                        float emissiveScale = part.emissiveParams.y;
                         GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
-                        
 
                         GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
                         Texture* emissiveMap = networkPart.emissiveTexture.data();

@@ -829,10 +829,17 @@ void GeometryReader::run() {
         return;
     }
     try {
-        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
+        std::string urlname = _url.path().toLower().toStdString();
+        FBXGeometry fbxgeo;
+        if (_url.path().toLower().endsWith(".svo")) {
+            fbxgeo = readSVO(_reply->readAll());
+        } else {
+            fbxgeo = readFBX(_reply->readAll(), _mapping);
+        }
+        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
 
 
-            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
+      //      _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
