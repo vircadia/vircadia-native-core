@@ -1490,6 +1490,151 @@ void HeightfieldNode::clearChildren() {
 }
 
 void HeightfieldNode::mergeChildren() {
+    if (isLeaf()) {
+        return;
+    }
+    int heightWidth = 0;
+    int heightHeight = 0;
+    int colorWidth = 0;
+    int colorHeight = 0;
+    int materialWidth = 0;
+    int materialHeight = 0;
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        HeightfieldHeightPointer childHeight = _children[i]->getHeight();
+        if (childHeight) {
+            int childHeightWidth = childHeight->getWidth();
+            int childHeightHeight = childHeight->getContents().size() / childHeightWidth;
+            heightWidth = qMax(heightWidth, childHeightWidth);
+            heightHeight = qMax(heightHeight, childHeightHeight);
+        }
+        HeightfieldColorPointer childColor = _children[i]->getColor();
+        if (childColor) {
+            int childColorWidth = childColor->getWidth();
+            int childColorHeight = childColor->getContents().size() / (childColorWidth * DataBlock::COLOR_BYTES);
+            colorWidth = qMax(colorWidth, childColorWidth);
+            colorHeight = qMax(colorHeight, childColorHeight);
+        }
+        HeightfieldMaterialPointer childMaterial = _children[i]->getMaterial();
+        if (childMaterial) {
+            int childMaterialWidth = childMaterial->getWidth();
+            int childMaterialHeight = childMaterial->getContents().size() / childMaterialWidth;
+            materialWidth = qMax(materialWidth, childMaterialWidth);
+            materialHeight = qMax(materialHeight, childMaterialHeight);
+        }
+    }
+    if (heightWidth > 0) {
+        QVector<quint16> heightContents(heightWidth * heightHeight);
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            HeightfieldHeightPointer childHeight = _children[i]->getHeight();
+            int childHeightWidth = childHeight->getWidth();
+            int childHeightHeight = childHeight->getContents().size() / childHeightWidth;
+            if (childHeightWidth != heightWidth || childHeightHeight != heightHeight) {
+                qWarning() << "Height dimension mismatch [heightWidth=" << heightWidth << ", heightHeight=" << heightHeight <<
+                    ", childHeightWidth=" << childHeightWidth << ", childHeightHeight=" << childHeightHeight << "]";
+                continue;
+            }
+            int innerHeightWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+            int innerHeightHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+            int innerQuadrantHeightWidth = innerHeightWidth / 2;
+            int innerQuadrantHeightHeight = innerHeightHeight / 2;
+            int quadrantHeightWidth = innerQuadrantHeightWidth + HeightfieldHeight::HEIGHT_EXTENSION - 1;
+            int quadrantHeightHeight = innerQuadrantHeightHeight + HeightfieldHeight::HEIGHT_EXTENSION - 1;
+            quint16* dest = heightContents.data() + (i & Y_MAXIMUM_FLAG ? (innerQuadrantHeightHeight + 1) * heightWidth : 0) +
+                (i & X_MAXIMUM_FLAG ? innerQuadrantHeightWidth + 1 : 0);
+            const quint16* src = childHeight->getContents().constData();
+            for (int z = 0; z < quadrantHeightHeight; z++, dest += heightWidth, src += heightWidth * 2) {
+                const quint16* lineSrc = src;
+                for (quint16* lineDest = dest, *end = dest + quadrantHeightWidth; lineDest != end; lineDest++, lineSrc += 2) {
+                    *lineDest = *lineSrc;
+                }
+            }
+        }
+        _height = new HeightfieldHeight(heightWidth, heightContents);
+        
+    } else {
+        _height.reset();
+    }
+    if (colorWidth > 0) {
+        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0);
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            HeightfieldColorPointer childColor = _children[i]->getColor();
+            int childColorWidth = childColor->getWidth();
+            int childColorHeight = childColor->getContents().size() / (childColorWidth * DataBlock::COLOR_BYTES);
+            if (childColorWidth != colorWidth || childColorHeight != colorHeight) {
+                qWarning() << "Color dimension mismatch [colorWidth=" << colorWidth << ", colorHeight=" << colorHeight <<
+                    ", childColorWidth=" << childColorWidth << ", childColorHeight=" << childColorHeight << "]";
+                continue;
+            }
+            int innerColorWidth = colorWidth - HeightfieldData::SHARED_EDGE;
+            int innerColorHeight = colorHeight - HeightfieldData::SHARED_EDGE;
+            int innerQuadrantColorWidth = innerColorWidth / 2;
+            int innerQuadrantColorHeight = innerColorHeight / 2;
+            int quadrantColorWidth = innerQuadrantColorWidth + HeightfieldData::SHARED_EDGE;
+            int quadrantColorHeight = innerQuadrantColorHeight + HeightfieldData::SHARED_EDGE;
+            char* dest = colorContents.data() + ((i & Y_MAXIMUM_FLAG ? innerQuadrantColorHeight * colorWidth : 0) +
+                (i & X_MAXIMUM_FLAG ? innerQuadrantColorWidth : 0)) * DataBlock::COLOR_BYTES;
+            const char* src = childColor->getContents().constData();
+            for (int z = 0; z < quadrantColorHeight; z++, dest += colorWidth * DataBlock::COLOR_BYTES,
+                    src += colorWidth * DataBlock::COLOR_BYTES * 2) {
+                const char* lineSrc = src;
+                for (char* lineDest = dest, *end = dest + quadrantColorWidth * DataBlock::COLOR_BYTES;
+                        lineDest != end; lineDest += DataBlock::COLOR_BYTES, lineSrc += DataBlock::COLOR_BYTES * 2) {
+                    lineDest[0] = lineSrc[0];
+                    lineDest[1] = lineSrc[1];
+                    lineDest[2] = lineSrc[2];
+                }
+            }
+        }
+        _color = new HeightfieldColor(colorWidth, colorContents);
+    
+    } else {
+        _color.reset();
+    }
+    if (materialWidth > 0) {
+        QByteArray materialContents(materialWidth * materialHeight, 0);
+        QVector<SharedObjectPointer> materials;
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            HeightfieldMaterialPointer childMaterial = _children[i]->getMaterial();
+            int childMaterialWidth = childMaterial->getWidth();
+            int childMaterialHeight = childMaterial->getContents().size() / childMaterialWidth;
+            if (childMaterialWidth != materialWidth || childMaterialHeight != materialHeight) {
+                qWarning() << "Material dimension mismatch [materialWidth=" << materialWidth << ", materialHeight=" <<
+                    materialHeight << ", childMaterialWidth=" << childMaterialWidth << ", childMaterialHeight=" <<
+                    childMaterialHeight << "]";
+                continue;
+            }
+            int innerMaterialWidth = materialWidth - HeightfieldData::SHARED_EDGE;
+            int innerMaterialHeight = materialHeight - HeightfieldData::SHARED_EDGE;
+            int innerQuadrantMaterialWidth = innerMaterialWidth / 2;
+            int innerQuadrantMaterialHeight = innerMaterialHeight / 2;
+            int quadrantMaterialWidth = innerQuadrantMaterialWidth + HeightfieldData::SHARED_EDGE;
+            int quadrantMaterialHeight = innerQuadrantMaterialHeight + HeightfieldData::SHARED_EDGE;
+            uchar* dest = (uchar*)materialContents.data() +
+                (i & Y_MAXIMUM_FLAG ? innerQuadrantMaterialHeight * materialWidth : 0) +
+                    (i & X_MAXIMUM_FLAG ? innerQuadrantMaterialWidth : 0);
+            const uchar* src = (const uchar*)childMaterial->getContents().constData();
+            QHash<int, int> materialMap;
+            for (int z = 0; z < quadrantMaterialHeight; z++, dest += materialWidth, src += materialWidth * 2) {
+                const uchar* lineSrc = src;
+                for (uchar* lineDest = dest, *end = dest + quadrantMaterialWidth; lineDest != end; lineDest++, lineSrc += 2) {
+                    int value = *lineSrc;
+                    if (value != 0) {
+                        int& mapping = materialMap[value];
+                        if (mapping == 0) {
+                            mapping = getMaterialIndex(childMaterial->getMaterials().at(value - 1),
+                                materials, materialContents);
+                        }
+                        value = mapping;
+                    }
+                    *lineDest = value;
+                }
+            }
+        }
+        _material = new HeightfieldMaterial(materialWidth, materialContents, materials);
+        
+    } else {
+        _material.reset();
+    }
 }
 
 Heightfield::Heightfield() :
