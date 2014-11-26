@@ -984,7 +984,8 @@ void ApplicationOverlay::renderAudioMeter() {
     const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
 
     int audioMeterY;
-    bool boxed = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) &&
+    bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !OculusManager::isConnected();
+    bool boxed = smallMirrorVisible &&
         !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
     if (boxed) {
         audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
