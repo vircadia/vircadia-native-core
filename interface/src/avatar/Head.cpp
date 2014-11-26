@@ -273,7 +273,8 @@ void Head::setCorrectedLookAtPosition(glm::vec3 correctedLookAtPosition) {
     _correctedLookAtPosition = correctedLookAtPosition;
 }
 
-glm::quat Head::getCameraOrientation () const {
+glm::quat Head::getCameraOrientation() const {
+    // this is used to support driving toward where you're head is looking
     if (OculusManager::isConnected()) {
         return getOrientation();
     }
