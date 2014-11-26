@@ -50,7 +50,7 @@ BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
 };
 
 BandwidthMeter::BandwidthMeter() :
-    _textRenderer(TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, QFont::Bold, false)),
+    _textRenderer(TextRenderer::getInstance(INCONSOLATA_FONT_FAMILY, -1, INCONSOLATA_FONT_WEIGHT, false)),
     _scaleMaxIndex(INITIAL_SCALE_MAXIMUM_INDEX) {
 
     _channels = static_cast<ChannelInfo*>( malloc(sizeof(_CHANNELS)) );
