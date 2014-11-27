@@ -2381,24 +2381,27 @@ int Model::renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMod
                         GLBATCH(glActiveTexture)(GL_TEXTURE0);
                     }
 
-                    if (locations->emissiveTextureUnit >= 0) {
-                      //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
-                        float emissiveOffset = part.emissiveParams.x;
-                        float emissiveScale = part.emissiveParams.y;
-                        GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
-
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
-                        Texture* emissiveMap = networkPart.emissiveTexture.data();
-                        GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
-                            Application::getInstance()->getTextureCache()->getWhiteTextureID() : emissiveMap->getID());
-                        GLBATCH(glActiveTexture)(GL_TEXTURE0);
-                    }
-
                     if (args) {
                         args->_materialSwitches++;
                     }
 
                 }
+
+                // HACK: For unkwon reason (yet!) this code that should be assigned only if the material changes need to be called for every
+                // drawcall with an emissive, so let's do it for now.
+                if (locations->emissiveTextureUnit >= 0) {
+                    //  assert(locations->emissiveParams >= 0); // we should have the emissiveParams defined in the shader
+                    float emissiveOffset = part.emissiveParams.x;
+                    float emissiveScale = part.emissiveParams.y;
+                    GLBATCH(glUniform2f)(locations->emissiveParams, emissiveOffset, emissiveScale);
+
+                    GLBATCH(glActiveTexture)(GL_TEXTURE0 + locations->emissiveTextureUnit);
+                    Texture* emissiveMap = networkPart.emissiveTexture.data();
+                    GLBATCH(glBindTexture)(GL_TEXTURE_2D, !emissiveMap ?
+                        Application::getInstance()->getTextureCache()->getWhiteTextureID() : emissiveMap->getID());
+                    GLBATCH(glActiveTexture)(GL_TEXTURE0);
+                }
+
                 lastMaterialID = part.materialID;
             }
             
