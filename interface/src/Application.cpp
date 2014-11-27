@@ -438,6 +438,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    setFullscreen(false); // if you exit while in full screen, you'll get bad behavior when you restart.
 }
 
 Application::~Application() {
