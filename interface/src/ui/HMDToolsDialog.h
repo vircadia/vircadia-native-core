@@ -28,14 +28,15 @@ signals:
 
 public slots:
     void reject();
-    void enterModeClicked(bool checked);
-    void leaveModeClicked(bool checked);
+    void switchModeClicked(bool checked);
     void activateWindowAfterEnterMode();
     void moveWindowAfterLeaveMode();
     void applicationWindowScreenChanged(QScreen* screen);
     void dialogWindowScreenChanged(QScreen* screen);
     void dialogWindowGeometryChanged(int arg);
-
+    void aboutToQuit(); 
+    void screenCountChanged(int newCount);
+    
 protected:
     virtual void closeEvent(QCloseEvent*); // Emits a 'closed' signal when this dialog is closed.
     virtual void showEvent(QShowEvent* event);
@@ -43,15 +44,20 @@ protected:
 
 private:
     void centerCursorOnWidget(QWidget* widget);
+    void enterHDMMode();
+    void leaveHDMMode();
 
     bool _wasMoved;
     QRect _previousRect;
     QScreen* _previousScreen;
     QScreen* _hmdScreen;
+    int _hmdScreenNumber;
+    QPushButton* _switchModeButton;
     QLabel* _debugDetails;
 
     QRect _previousDialogRect;
     QScreen* _previousDialogScreen;
+    bool _inHDMMode;
 };
 
 #endif // hifi_HMDToolsDialog_h
