@@ -119,6 +119,7 @@ public:
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
     glm::vec3 emissiveColor;
+    glm::vec2 emissiveParams;
     float shininess;
     float opacity;
     
