@@ -35,6 +35,7 @@ public slots:
     void applicationWindowScreenChanged(QScreen* screen);
     void dialogWindowScreenChanged(QScreen* screen);
     void dialogWindowGeometryChanged(int arg);
+    void aboutToQuit();
 
 protected:
     virtual void closeEvent(QCloseEvent*); // Emits a 'closed' signal when this dialog is closed.
@@ -43,6 +44,8 @@ protected:
 
 private:
     void centerCursorOnWidget(QWidget* widget);
+    void enterHDMMode();
+    void leaveHDMMode();
 
     bool _wasMoved;
     QRect _previousRect;
@@ -52,6 +55,7 @@ private:
 
     QRect _previousDialogRect;
     QScreen* _previousDialogScreen;
+    bool _inHDMMode;
 };
 
 #endif // hifi_HMDToolsDialog_h

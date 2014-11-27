@@ -30,7 +30,8 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) ,
     _previousScreen(NULL),
     _hmdScreen(NULL),
-    _previousDialogScreen(NULL)
+    _previousDialogScreen(NULL),
+    _inHDMMode(false)
 {
     this->setWindowTitle("HMD Tools");
 
@@ -65,14 +66,18 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
     connect(mainWindow, &QWindow::screenChanged, this, &HMDToolsDialog::applicationWindowScreenChanged);
 
-    // watch for our dialog window moving screens. If it does we want to enforce our rules about what screens we're
-    // allowed on
+    // watch for our dialog window moving screens. If it does we want to enforce our rules about
+    // what screens we're allowed on
     QWindow* dialogWindow = windowHandle();
     connect(dialogWindow, &QWindow::screenChanged, this, &HMDToolsDialog::dialogWindowScreenChanged);
     connect(dialogWindow, &QWindow::xChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
     connect(dialogWindow, &QWindow::yChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
     connect(dialogWindow, &QWindow::widthChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
     connect(dialogWindow, &QWindow::heightChanged, this, &HMDToolsDialog::dialogWindowGeometryChanged);
+    
+    // when the application is about to quit, leave HDM mode
+    connect(Application::getInstance(), SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+    
 }
 
 HMDToolsDialog::~HMDToolsDialog() {
@@ -159,37 +164,45 @@ QString HMDToolsDialog::getDebugDetails() const {
 }
 
 void HMDToolsDialog::enterModeClicked(bool checked) {
-    _debugDetails->setText(getDebugDetails());
+    enterHDMMode();
+}
 
-    int hmdScreen = OculusManager::getHMDScreen();
-    qDebug() << "enterModeClicked().... hmdScreen:" << hmdScreen;
+void HMDToolsDialog::enterHDMMode() {
+    if (!_inHDMMode) {
+        _debugDetails->setText(getDebugDetails());
+
+        int hmdScreen = OculusManager::getHMDScreen();
+        qDebug() << "enterModeClicked().... hmdScreen:" << hmdScreen;
     
-    if (hmdScreen >= 0) {
-        QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-        _hmdScreen = QGuiApplication::screens()[hmdScreen];
+        if (hmdScreen >= 0) {
+            QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
+            _hmdScreen = QGuiApplication::screens()[hmdScreen];
         
-        _previousRect = Application::getInstance()->getWindow()->rect();
-        _previousRect = QRect(mainWindow->mapToGlobal(_previousRect.topLeft()), 
-                                mainWindow->mapToGlobal(_previousRect.bottomRight()));
-        _previousScreen = mainWindow->screen();
-        QRect rect = QApplication::desktop()->screenGeometry(hmdScreen);
-        mainWindow->setScreen(_hmdScreen);
-        mainWindow->setGeometry(rect);
+            _previousRect = Application::getInstance()->getWindow()->rect();
+            _previousRect = QRect(mainWindow->mapToGlobal(_previousRect.topLeft()), 
+                                    mainWindow->mapToGlobal(_previousRect.bottomRight()));
+            _previousScreen = mainWindow->screen();
+            QRect rect = QApplication::desktop()->screenGeometry(hmdScreen);
+            mainWindow->setScreen(_hmdScreen);
+            mainWindow->setGeometry(rect);
 
-        _wasMoved = true;
-    }
+            _wasMoved = true;
+        }
     
     
-    // if we're on a single screen setup, then hide our tools window when entering HMD mode
-    if (QApplication::desktop()->screenCount() == 1) {
-        close();
-    }
+        // if we're on a single screen setup, then hide our tools window when entering HMD mode
+        if (QApplication::desktop()->screenCount() == 1) {
+            close();
+        }
 
-    Application::getInstance()->setFullscreen(true);
-    Application::getInstance()->setEnableVRMode(true);
+        Application::getInstance()->setFullscreen(true);
+        Application::getInstance()->setEnableVRMode(true);
     
-    const int SLIGHT_DELAY = 500;
-    QTimer::singleShot(SLIGHT_DELAY, this, SLOT(activateWindowAfterEnterMode()));
+        const int SLIGHT_DELAY = 500;
+        QTimer::singleShot(SLIGHT_DELAY, this, SLOT(activateWindowAfterEnterMode()));
+    
+        _inHDMMode = true;
+    }
 }
 
 void HMDToolsDialog::activateWindowAfterEnterMode() {
@@ -199,23 +212,30 @@ void HMDToolsDialog::activateWindowAfterEnterMode() {
     centerCursorOnWidget(Application::getInstance()->getWindow());
 }
 
-
 void HMDToolsDialog::leaveModeClicked(bool checked) {
-    _debugDetails->setText(getDebugDetails());
+    leaveHDMMode();
+}
 
-    Application::getInstance()->setFullscreen(false);
-    Application::getInstance()->setEnableVRMode(false);
-    Application::getInstance()->getWindow()->activateWindow();
 
-    if (_wasMoved) {
-        QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-        mainWindow->setScreen(_previousScreen);
-        mainWindow->setGeometry(_previousRect);
+void HMDToolsDialog::leaveHDMMode() {
+    if (_inHDMMode) {
+        _debugDetails->setText(getDebugDetails());
+
+        Application::getInstance()->setFullscreen(false);
+        Application::getInstance()->setEnableVRMode(false);
+        Application::getInstance()->getWindow()->activateWindow();
+
+        if (_wasMoved) {
+            QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
+            mainWindow->setScreen(_previousScreen);
+            mainWindow->setGeometry(_previousRect);
     
-        const int SLIGHT_DELAY = 1500;
-        QTimer::singleShot(SLIGHT_DELAY, this, SLOT(moveWindowAfterLeaveMode()));
+            const int SLIGHT_DELAY = 1500;
+            QTimer::singleShot(SLIGHT_DELAY, this, SLOT(moveWindowAfterLeaveMode()));
+        }
+        _wasMoved = false;
+        _inHDMMode = false;
     }
-    _wasMoved = false;
 }
 
 void HMDToolsDialog::moveWindowAfterLeaveMode() {
@@ -253,6 +273,13 @@ void HMDToolsDialog::showEvent(QShowEvent* event) {
 void HMDToolsDialog::hideEvent(QHideEvent* event) {
     // center the cursor on the main application window
     centerCursorOnWidget(Application::getInstance()->getWindow());
+}
+
+
+void HMDToolsDialog::aboutToQuit() {
+    if (_inHDMMode) {
+        leaveHDMMode();
+    }
 }
 
 
