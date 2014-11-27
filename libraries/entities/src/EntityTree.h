@@ -79,7 +79,7 @@ public:
 
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
-    void addEntityInternal(EntityItem* entityItem);
+    void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);

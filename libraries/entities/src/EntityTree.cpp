@@ -74,28 +74,13 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 }
 
 /// Adds a new entity item to the tree
-void EntityTree::addEntityInternal(EntityItem* entity) {
-    // You should not call this on existing entities that are already part of the tree! Call updateEntity()
-    EntityItemID entityID = entity->getEntityItemID();
-    EntityTreeElement* containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        // should probably assert here
-        qDebug() << "UNEXPECTED!!!! don't call addEntityInternal() on existing EntityItems. entityID=" << entityID;
-        return;
-    }
-
-    // Recurse the tree and store the entity in the correct tree element
-    AddEntityOperator theOperator(this, entity);
-    recurseTreeWithOperator(&theOperator);
-
+void EntityTree::postAddEntity(EntityItem* entity) {
+    assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
-        _simulation->addEntity(entityItem);
+        _simulation->addEntity(entity);
     }
-
     _isDirty = true;
-
-    // finally emit the signal
     emit addingEntity(entity->getEntityItemID());
 }
 
@@ -176,8 +161,11 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     result = EntityTypes::constructEntityItem(type, entityID, properties);
 
     if (result) {
-        // this does the actual adding of the entity
-        addEntityInternal(result);
+        // Recurse the tree and store the entity in the correct tree element
+        AddEntityOperator theOperator(this, result);
+        recurseTreeWithOperator(&theOperator);
+
+        postAddEntity(result);
     }
     return result;
 }
