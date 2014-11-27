@@ -550,10 +550,47 @@ void MetavoxelSystem::setVoxelMaterial(const SharedObjectPointer& spanner, const
     applyMaterialEdit(edit, true);
 }
 
-class SpannerCursorRenderVisitor : public SpannerVisitor {
+class SpannerRenderVisitor : public SpannerVisitor {
 public:
     
-    SpannerCursorRenderVisitor(const Box& bounds);
+    SpannerRenderVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+    virtual bool visit(Spanner* spanner);
+
+protected:
+    
+    int _containmentDepth;
+};
+
+SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod,
+        encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
+}
+
+int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
+    if (_containmentDepth >= _depth) {
+        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            info.getBounds());
+        if (intersection == Frustum::NO_INTERSECTION) {
+            return STOP_RECURSION;
+        }
+        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
+    }
+    return SpannerVisitor::visit(info);
+}
+
+bool SpannerRenderVisitor::visit(Spanner* spanner) {
+    spanner->getRenderer()->render(_lod, _containmentDepth <= _depth);
+    return true;
+}
+
+class SpannerCursorRenderVisitor : public SpannerRenderVisitor {
+public:
+    
+    SpannerCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds);
     
     virtual bool visit(Spanner* spanner);
     
@@ -564,20 +601,20 @@ private:
     Box _bounds;
 };
 
-SpannerCursorRenderVisitor::SpannerCursorRenderVisitor(const Box& bounds) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()),
+SpannerCursorRenderVisitor::SpannerCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds) :
+    SpannerRenderVisitor(lod),
     _bounds(bounds) {
 }
 
 bool SpannerCursorRenderVisitor::visit(Spanner* spanner) {
     if (spanner->isHeightfield()) {
-        spanner->getRenderer()->render(true);
+         spanner->getRenderer()->render(_lod, _containmentDepth <= _depth, true);
     }
     return true;
 }
 
 int SpannerCursorRenderVisitor::visit(MetavoxelInfo& info) {
-    return info.getBounds().intersects(_bounds) ? SpannerVisitor::visit(info) : STOP_RECURSION;
+    return info.getBounds().intersects(_bounds) ? SpannerRenderVisitor::visit(info) : STOP_RECURSION;
 }
 
 void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float radius) {
@@ -604,7 +641,7 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
-    SpannerCursorRenderVisitor visitor(Box(position - extents, position + extents));
+    SpannerCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
     guide(visitor);
     
     _heightfieldCursorProgram.release();
@@ -678,7 +715,7 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     
     _heightfieldCursorProgram.bind();
     
-    SpannerCursorRenderVisitor spannerVisitor(bounds);
+    SpannerCursorRenderVisitor spannerVisitor(getLOD(), bounds);
     guide(spannerVisitor);
     
     _heightfieldCursorProgram.release();
@@ -1880,43 +1917,6 @@ void DefaultMetavoxelRendererImplementation::simulate(MetavoxelData& data, float
     data.guide(spannerSimulateVisitor);
 }
 
-class SpannerRenderVisitor : public SpannerVisitor {
-public:
-    
-    SpannerRenderVisitor(const MetavoxelLOD& lod);
-    
-    virtual int visit(MetavoxelInfo& info);
-    virtual bool visit(Spanner* spanner);
-
-private:
-    
-    int _containmentDepth;
-};
-
-SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), lod,
-        encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
-    _containmentDepth(INT_MAX) {
-}
-
-int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
-    if (_containmentDepth >= _depth) {
-        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
-            info.getBounds());
-        if (intersection == Frustum::NO_INTERSECTION) {
-            return STOP_RECURSION;
-        }
-        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
-    }
-    return SpannerVisitor::visit(info);
-}
-
-bool SpannerRenderVisitor::visit(Spanner* spanner) {
-    spanner->getRenderer()->render();
-    return true;
-}
-
 class BufferRenderVisitor : public MetavoxelVisitor {
 public:
     
@@ -1970,7 +1970,7 @@ SphereRenderer::SphereRenderer() {
 }
 
 
-void SphereRenderer::render(bool cursor) {
+void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
     const QColor& color = sphere->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF());
@@ -1990,7 +1990,7 @@ void SphereRenderer::render(bool cursor) {
 CuboidRenderer::CuboidRenderer() {
 }
 
-void CuboidRenderer::render(bool cursor) {
+void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Cuboid* cuboid = static_cast<Cuboid*>(_spanner);
     const QColor& color = cuboid->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF());
@@ -2041,7 +2041,7 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::render(bool cursor) {
+void StaticModelRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     _model->render();
 }
 
@@ -2083,10 +2083,9 @@ void HeightfieldRenderer::init(Spanner* spanner) {
     updateRoot();
 }
 
-void HeightfieldRenderer::render(bool cursor) {
+void HeightfieldRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
-    _root->render(heightfield->getTranslation(), heightfield->getRotation(), glm::vec3(heightfield->getScale(),
-        heightfield->getScale() * heightfield->getAspectY(), heightfield->getScale() * heightfield->getAspectZ()), cursor);
+    _root->render(heightfield, heightfield->transformLOD(lod), glm::vec2(), 1.0f, contained, cursor);
 }
 
 void HeightfieldRenderer::updateRoot() {
@@ -2117,15 +2116,28 @@ HeightfieldRendererNode::~HeightfieldRendererNode() {
 const int X_MAXIMUM_FLAG = 1;
 const int Y_MAXIMUM_FLAG = 2;
 
-void HeightfieldRendererNode::render(const glm::vec3& translation, const glm::quat& rotation,
-        const glm::vec3& scale, bool cursor) {
-    if (!isLeaf()) {
-        glm::vec3 nextScale(scale.x * 0.5f, scale.y, scale.z * 0.5f);
-        glm::vec3 xOffset = rotation * glm::vec3(nextScale.x, 0.0f, 0.0f);
-        glm::vec3 zOffset = rotation * glm::vec3(0.0f, 0.0f, nextScale.z);
+void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLOD& lod,
+        const glm::vec2& minimum, float size, bool contained, bool cursor) {
+    const glm::quat& rotation = heightfield->getRotation();
+    glm::vec3 scale(heightfield->getScale() * size, heightfield->getScale() * heightfield->getAspectY(),
+        heightfield->getScale() * heightfield->getAspectZ() * size);
+    glm::vec3 translation = heightfield->getTranslation() + rotation * glm::vec3(minimum.x * heightfield->getScale(),
+        0.0f, minimum.y * heightfield->getScale() * heightfield->getAspectZ());
+    if (!contained) {
+        Frustum::IntersectionType type = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale));
+        if (type == Frustum::NO_INTERSECTION) {
+            return;
+        }
+        if (type == Frustum::CONTAINS_INTERSECTION) {
+            contained = true;
+        }
+    }
+    if (!isLeaf() && lod.shouldSubdivide(minimum, size)) {
+        float nextSize = size * 0.5f;
         for (int i = 0; i < CHILD_COUNT; i++) {
-            _children[i]->render(translation + (i & X_MAXIMUM_FLAG ? xOffset : glm::vec3()) +
-                (i & Y_MAXIMUM_FLAG ? zOffset : glm::vec3()), rotation, nextScale, cursor);
+            _children[i]->render(heightfield, lod, minimum + glm::vec2(i & X_MAXIMUM_FLAG ? nextSize : 0.0f,
+                i & Y_MAXIMUM_FLAG ? nextSize : 0.0f), nextSize, contained, cursor);
         }
         return;
     }

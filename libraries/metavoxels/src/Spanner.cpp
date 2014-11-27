@@ -168,7 +168,7 @@ void SpannerRenderer::simulate(float deltaTime) {
     // nothing by default
 }
 
-void SpannerRenderer::render(bool cursor) {
+void SpannerRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     // nothing by default
 }
 
@@ -1573,10 +1573,10 @@ void HeightfieldNode::mergeChildren() {
             int quadrantColorHeight = innerQuadrantColorHeight + HeightfieldData::SHARED_EDGE;
             char* dest = colorContents.data() + ((i & Y_MAXIMUM_FLAG ? innerQuadrantColorHeight * colorWidth : 0) +
                 (i & X_MAXIMUM_FLAG ? innerQuadrantColorWidth : 0)) * DataBlock::COLOR_BYTES;
-            const char* src = childColor->getContents().constData();
+            const uchar* src = (const uchar*)childColor->getContents().constData();
             for (int z = 0; z < quadrantColorHeight; z++, dest += colorWidth * DataBlock::COLOR_BYTES,
                     src += colorWidth * DataBlock::COLOR_BYTES * 2) {
-                const char* lineSrc = src;
+                const uchar* lineSrc = src;
                 for (char* lineDest = dest, *end = dest + quadrantColorWidth * DataBlock::COLOR_BYTES;
                         lineDest != end; lineDest += DataBlock::COLOR_BYTES, lineSrc += DataBlock::COLOR_BYTES * 2) {
                     lineDest[0] = lineSrc[0];
@@ -1688,6 +1688,15 @@ void Heightfield::setRoot(const HeightfieldNodePointer& root) {
     if (_root != root) {
         emit rootChanged(_root = root);
     }
+}
+
+MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {
+    // after transforming into unit space, we scale the threshold in proportion to vertical distance
+    glm::vec3 inverseScale(1.0f / getScale(), 1.0f / (getScale() * _aspectY), 1.0f / (getScale() * _aspectZ));
+    glm::vec3 position = glm::inverse(getRotation()) * (lod.position - getTranslation()) * inverseScale;
+    const float THRESHOLD_MULTIPLIER = 256.0f;
+    return MetavoxelLOD(glm::vec3(position.x, position.z, 0.0f), lod.threshold *
+        qMax(0.5f, glm::abs(position.y * _aspectY - 0.5f)) * THRESHOLD_MULTIPLIER);
 }
 
 bool Heightfield::isHeightfield() const {
@@ -2738,13 +2747,4 @@ void Heightfield::updateRoot() {
         root->setContents(_height, _color, _material);
     }
     setRoot(root);
-}
-
-MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {
-    // after transforming into unit space, we scale the threshold in proportion to vertical distance
-    glm::vec3 inverseScale(1.0f / getScale(), 1.0f / (getScale() * _aspectY), 1.0f / (getScale() * _aspectZ));
-    glm::vec3 position = glm::inverse(getRotation()) * (lod.position - getTranslation()) * inverseScale;
-    const float THRESHOLD_MULTIPLIER = 2.0f;
-    return MetavoxelLOD(glm::vec3(position.x, position.z, 0.0f), lod.threshold *
-        qMax(0.5f, glm::abs(position.y - 0.5f)) * THRESHOLD_MULTIPLIER);
 }

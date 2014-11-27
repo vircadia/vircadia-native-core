@@ -381,7 +381,7 @@ public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
 };
 
 /// Renders cuboids.
@@ -392,7 +392,7 @@ public:
     
     Q_INVOKABLE CuboidRenderer();
     
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
 };
 
 /// Renders static models.
@@ -405,7 +405,7 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
@@ -431,7 +431,7 @@ public:
     Q_INVOKABLE HeightfieldRenderer();
     
     virtual void init(Spanner* spanner);
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
 
 private slots:
 
@@ -451,7 +451,8 @@ public:
     HeightfieldRendererNode(const HeightfieldNodePointer& heightfieldNode);
     virtual ~HeightfieldRendererNode();
     
-    void render(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale, bool cursor = false);
+    void render(Heightfield* heightfield, const MetavoxelLOD& lod, const glm::vec2& minimum, float size,
+        bool contained, bool cursor = false);
     
 private:
 

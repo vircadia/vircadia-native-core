@@ -634,7 +634,7 @@ void PlaceSpannerTool::simulate(float deltaTime) {
 
 void PlaceSpannerTool::renderPreview() {
     Spanner* spanner = static_cast<Spanner*>(getSpanner().data());
-    spanner->getRenderer()->render();
+    spanner->getRenderer()->render(Application::getInstance()->getMetavoxels()->getLOD());
 }
 
 bool PlaceSpannerTool::appliesTo(const AttributePointer& attribute) const {
@@ -781,7 +781,7 @@ void ImportHeightfieldTool::simulate(float deltaTime) {
 }
 
 void ImportHeightfieldTool::renderPreview() {
-    static_cast<Heightfield*>(_spanner.data())->getRenderer()->render();
+    static_cast<Heightfield*>(_spanner.data())->getRenderer()->render(Application::getInstance()->getMetavoxels()->getLOD());
 }
 
 void ImportHeightfieldTool::apply() {

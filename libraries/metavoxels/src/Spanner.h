@@ -134,7 +134,7 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual void render(bool cursor = false);
+    virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 protected:
@@ -564,6 +564,8 @@ public:
     void setRoot(const HeightfieldNodePointer& root);
     const HeightfieldNodePointer& getRoot() const { return _root; }
 
+    MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
+
     virtual bool isHeightfield() const;
     
     virtual float getHeight(const glm::vec3& location) const;
@@ -610,8 +612,6 @@ private slots:
     void updateRoot();
     
 private:
-
-    MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
 
     float _aspectY;
     float _aspectZ;
