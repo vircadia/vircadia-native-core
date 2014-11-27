@@ -650,20 +650,11 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //Only behave like a true mirror when in the OR
-        if (OculusManager::isConnected()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                   glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        } else {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                  glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        }
+        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
 
     // Update camera position
