@@ -28,10 +28,11 @@
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) ,
-    _switchModeButton(NULL),
-    _debugDetails(NULL),
     _previousScreen(NULL),
     _hmdScreen(NULL),
+    _hmdScreenNumber(-1),
+    _switchModeButton(NULL),
+    _debugDetails(NULL),
     _previousDialogScreen(NULL),
     _inHDMMode(false)
 {
@@ -75,6 +76,9 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     
     // when the application is about to quit, leave HDM mode
     connect(Application::getInstance(), SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+
+    // keep track of changes to the number of screens
+    connect(QApplication::desktop(), &QDesktopWidget::screenCountChanged, this, &HMDToolsDialog::screenCountChanged);
     
 }
 
@@ -99,11 +103,11 @@ void HMDToolsDialog::dialogWindowScreenChanged(QScreen* screen) {
     // if we have more than one screen, and a known hmdScreen then try to 
     // keep our dialog off of the hmdScreen
     if (QApplication::desktop()->screenCount() > 1) {
-        int hmdScreenNumber = OculusManager::getHMDScreen();
-
-        if (hmdScreenNumber >= 0) {
-            QScreen* hmdScreen = QGuiApplication::screens()[hmdScreenNumber];
     
+        // we want to use a local variable here because we are not necesarily in HMD mode
+        int hmdScreenNumber = OculusManager::getHMDScreen();
+        if (_hmdScreenNumber >= 0) {
+            QScreen* hmdScreen = QGuiApplication::screens()[hmdScreenNumber];
             if (screen == hmdScreen) {
                 qDebug() << "HMD Tools: Whoa! What are you doing? You don't want to move me to the HMD Screen!";
                 QWindow* dialogWindow = windowHandle();
@@ -157,6 +161,7 @@ QString HMDToolsDialog::getDebugDetails() const {
     results += "Application Primary Screen: " + QGuiApplication::primaryScreen()->name() + "\n";
     QScreen* mainWindowScreen = Application::getInstance()->getWindow()->windowHandle()->screen();
     results += "Application Main Window Screen: " + mainWindowScreen->name() + "\n";
+    results += "Total Screens: " + QString::number(QApplication::desktop()->screenCount()) + "\n";
 
     return results;
 }
@@ -174,18 +179,17 @@ void HMDToolsDialog::enterHDMMode() {
         _switchModeButton->setText("Leave HMD Mode");
         _debugDetails->setText(getDebugDetails());
 
-        int hmdScreen = OculusManager::getHMDScreen();
-        qDebug() << "enterModeClicked().... hmdScreen:" << hmdScreen;
+        _hmdScreenNumber = OculusManager::getHMDScreen();
     
-        if (hmdScreen >= 0) {
+        if (_hmdScreenNumber >= 0) {
             QWindow* mainWindow = Application::getInstance()->getWindow()->windowHandle();
-            _hmdScreen = QGuiApplication::screens()[hmdScreen];
+            _hmdScreen = QGuiApplication::screens()[_hmdScreenNumber];
         
             _previousRect = Application::getInstance()->getWindow()->rect();
             _previousRect = QRect(mainWindow->mapToGlobal(_previousRect.topLeft()), 
                                     mainWindow->mapToGlobal(_previousRect.bottomRight()));
             _previousScreen = mainWindow->screen();
-            QRect rect = QApplication::desktop()->screenGeometry(hmdScreen);
+            QRect rect = QApplication::desktop()->screenGeometry(_hmdScreenNumber);
             mainWindow->setScreen(_hmdScreen);
             mainWindow->setGeometry(rect);
 
@@ -280,5 +284,26 @@ void HMDToolsDialog::aboutToQuit() {
         leaveHDMMode();
     }
 }
+
+void HMDToolsDialog::screenCountChanged(int newCount) {
+    if (!OculusManager::isConnected()) {
+        OculusManager::connect();
+    }
+    int hmdScreenNumber = OculusManager::getHMDScreen();
+
+    if (_inHDMMode && _hmdScreenNumber != hmdScreenNumber) {
+        qDebug() << "HMD Display changed WHILE IN HMD MODE";
+        leaveHDMMode();
+        
+        // if there is a new best HDM screen then go back into HDM mode after done leaving
+        if (hmdScreenNumber >= 0) {
+            qDebug() << "Trying to go back into HDM Mode";
+            const int SLIGHT_DELAY = 2000;
+            QTimer::singleShot(SLIGHT_DELAY, this, SLOT(enterHDMMode()));
+        }
+    }
+    _debugDetails->setText(getDebugDetails());
+}
+
 
 

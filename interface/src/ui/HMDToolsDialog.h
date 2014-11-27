@@ -34,8 +34,9 @@ public slots:
     void applicationWindowScreenChanged(QScreen* screen);
     void dialogWindowScreenChanged(QScreen* screen);
     void dialogWindowGeometryChanged(int arg);
-    void aboutToQuit();
-
+    void aboutToQuit(); 
+    void screenCountChanged(int newCount);
+    
 protected:
     virtual void closeEvent(QCloseEvent*); // Emits a 'closed' signal when this dialog is closed.
     virtual void showEvent(QShowEvent* event);
@@ -50,6 +51,7 @@ private:
     QRect _previousRect;
     QScreen* _previousScreen;
     QScreen* _hmdScreen;
+    int _hmdScreenNumber;
     QPushButton* _switchModeButton;
     QLabel* _debugDetails;
 
