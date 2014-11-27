@@ -97,6 +97,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
+    _hmdToolsDialog(NULL),
     _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -333,6 +334,12 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H, false,
                                             appInstance, SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
+
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+                                           false,
+                                           this,
+                                           SLOT(hmdTools(bool)));
+
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
@@ -652,6 +659,10 @@ Menu::Menu() :
 Menu::~Menu() {
     bandwidthDetailsClosed();
     octreeStatsDetailsClosed();
+    if (_hmdToolsDialog) {
+        delete _hmdToolsDialog;
+        _hmdToolsDialog = NULL;
+    }
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1592,6 +1603,25 @@ void Menu::lodToolsClosed() {
         delete _lodToolsDialog;
         _lodToolsDialog = NULL;
     }
+}
+
+void Menu::hmdTools(bool showTools) {
+    if (showTools) {
+        if (!_hmdToolsDialog) {
+            _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
+            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+        }
+        _hmdToolsDialog->show();
+        _hmdToolsDialog->raise();
+    } else {
+        hmdToolsClosed();
+    }
+    Application::getInstance()->getWindow()->activateWindow();
+}
+
+void Menu::hmdToolsClosed() {
+    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
+    _hmdToolsDialog->hide();
 }
 
 void Menu::cycleFrustumRenderMode() {

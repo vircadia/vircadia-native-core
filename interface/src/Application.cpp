@@ -1568,6 +1568,10 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
+        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu show() after hide() doesn't work with Rift VR display so set height instead.
@@ -1578,6 +1582,7 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    _window->show();
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -1585,6 +1590,10 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
+    }
+
     if (enableVRMode) {
         if (!OculusManager::isConnected()) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
@@ -1595,6 +1604,11 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        
+        _mirrorCamera.setHmdPosition(glm::vec3());
+        _mirrorCamera.setHmdRotation(glm::quat());
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
@@ -3505,7 +3519,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
     }
 }
 
-
 void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
@@ -3519,7 +3532,11 @@ void Application::resetSensors() {
     _prioVR.reset();
     //_leapmotion.reset();
 
-    QCursor::setPos(_mouseX, _mouseY);
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    QCursor::setPos(currentScreen, windowCenter);
+    
     _myAvatar->reset();
 
     QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);

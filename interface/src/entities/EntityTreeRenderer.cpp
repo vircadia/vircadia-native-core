@@ -195,22 +195,14 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     return entityScriptObject; // newly constructed
 }
 
-QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID) {
-    EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return getPreviouslyLoadedEntityScript(entity);
-}
-
-
-QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(EntityItem* entity) {
-    if (entity) {
-        EntityItemID entityID = entity->getEntityItemID();
-        if (_entityScripts.contains(entityID)) {
-            EntityScriptDetails details = _entityScripts[entityID];
-            return details.scriptObject; // previously loaded
-        }
+QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityItemID& entityID) {
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        return details.scriptObject; // previously loaded
     }
     return QScriptValue(); // no script
 }
+
 void EntityTreeRenderer::setTree(Octree* newTree) {
     OctreeRenderer::setTree(newTree);
     static_cast<EntityTree*>(_tree)->setFBXService(this);
