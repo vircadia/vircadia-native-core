@@ -76,25 +76,14 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 }
 
 /// Adds a new entity item to the tree
-void EntityTree::addEntityItem(EntityItem* entityItem) {
-    // You should not call this on existing entities that are already part of the tree! Call updateEntity()
-    EntityItemID entityID = entityItem->getEntityItemID();
-    EntityTreeElement* containingElement = getContainingElement(entityID);
-    if (containingElement) {
-        qDebug() << "UNEXPECTED!!!! don't call addEntityItem() on existing EntityItems. entityID=" << entityID;
-        return;
-    }
-
-    // Recurse the tree and store the entity in the correct tree element
-    AddEntityOperator theOperator(this, entityItem);
-    recurseTreeWithOperator(&theOperator);
-
+void EntityTree::postAddEntity(EntityItem* entity) {
+    assert(entity);
     // check to see if we need to simulate this entity..
     if (_simulation) {
-        _simulation->addEntity(entityItem);
+        _simulation->addEntity(entity);
     }
-
     _isDirty = true;
+    emit addingEntity(entity->getEntityItemID());
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -177,9 +166,11 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     result = EntityTypes::constructEntityItem(type, entityID, properties);
 
     if (result) {
-        // this does the actual adding of the entity
-        addEntityItem(result);
-        emitAddingEntity(entityID);
+        // Recurse the tree and store the entity in the correct tree element
+        AddEntityOperator theOperator(this, result);
+        recurseTreeWithOperator(&theOperator);
+
+        postAddEntity(result);
     }
     return result;
 }
@@ -197,10 +188,6 @@ void EntityTree::trackDeletedEntity(EntityItem* entity) {
         _recentlyDeletedEntityItemIDs.insert(deletedAt, entity->getEntityItemID().id);
         _recentlyDeletedEntitiesLock.unlock();
     }
-}
-
-void EntityTree::emitAddingEntity(const EntityItemID& entityItemID) {
-    emit addingEntity(entityItemID);
 }
 
 void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {

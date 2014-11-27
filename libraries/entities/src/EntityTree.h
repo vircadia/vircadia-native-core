@@ -79,7 +79,7 @@ public:
 
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
-    void addEntityItem(EntityItem* entityItem);
+    void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -142,7 +142,6 @@ public:
 
     void trackDeletedEntity(EntityItem* entity);
 
-    void emitAddingEntity(const EntityItemID& entityItemID);
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);
