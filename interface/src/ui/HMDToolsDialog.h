@@ -28,8 +28,7 @@ signals:
 
 public slots:
     void reject();
-    void enterModeClicked(bool checked);
-    void leaveModeClicked(bool checked);
+    void switchModeClicked(bool checked);
     void activateWindowAfterEnterMode();
     void moveWindowAfterLeaveMode();
     void applicationWindowScreenChanged(QScreen* screen);
@@ -51,6 +50,7 @@ private:
     QRect _previousRect;
     QScreen* _previousScreen;
     QScreen* _hmdScreen;
+    QPushButton* _switchModeButton;
     QLabel* _debugDetails;
 
     QRect _previousDialogRect;

@@ -28,6 +28,8 @@
 
 HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint) ,
+    _switchModeButton(NULL),
+    _debugDetails(NULL),
     _previousScreen(NULL),
     _hmdScreen(NULL),
     _previousDialogScreen(NULL),
@@ -37,21 +39,17 @@ HMDToolsDialog::HMDToolsDialog(QWidget* parent) :
 
     // Create layouter
     QFormLayout* form = new QFormLayout();
+    const int WIDTH = 350;
 
     // Add a button to enter
-    QPushButton* enterModeButton = new QPushButton("Enter HMD Mode");
-    form->addRow("", enterModeButton);
-    connect(enterModeButton,SIGNAL(clicked(bool)),this,SLOT(enterModeClicked(bool)));
-
-    // Add a button to leave
-    QPushButton* leaveModeButton = new QPushButton("Leave HMD Mode");
-    form->addRow("", leaveModeButton);
-    connect(leaveModeButton,SIGNAL(clicked(bool)),this,SLOT(leaveModeClicked(bool)));
+    _switchModeButton = new QPushButton("Enter HMD Mode");
+    _switchModeButton->setFixedWidth(WIDTH);
+    form->addRow("", _switchModeButton);
+    connect(_switchModeButton,SIGNAL(clicked(bool)),this,SLOT(switchModeClicked(bool)));
 
     // Create a label with debug details...
     _debugDetails = new QLabel();
     _debugDetails->setText(getDebugDetails());
-    const int WIDTH = 350;
     const int HEIGHT = 100;
     _debugDetails->setFixedSize(WIDTH, HEIGHT);
     form->addRow("", _debugDetails);
@@ -163,12 +161,17 @@ QString HMDToolsDialog::getDebugDetails() const {
     return results;
 }
 
-void HMDToolsDialog::enterModeClicked(bool checked) {
-    enterHDMMode();
+void HMDToolsDialog::switchModeClicked(bool checked) {
+    if (!_inHDMMode) {
+        enterHDMMode();
+    } else {
+        leaveHDMMode();
+    }
 }
 
 void HMDToolsDialog::enterHDMMode() {
     if (!_inHDMMode) {
+        _switchModeButton->setText("Leave HMD Mode");
         _debugDetails->setText(getDebugDetails());
 
         int hmdScreen = OculusManager::getHMDScreen();
@@ -212,13 +215,9 @@ void HMDToolsDialog::activateWindowAfterEnterMode() {
     centerCursorOnWidget(Application::getInstance()->getWindow());
 }
 
-void HMDToolsDialog::leaveModeClicked(bool checked) {
-    leaveHDMMode();
-}
-
-
 void HMDToolsDialog::leaveHDMMode() {
     if (_inHDMMode) {
+        _switchModeButton->setText("Enter HMD Mode");
         _debugDetails->setText(getDebugDetails());
 
         Application::getInstance()->setFullscreen(false);
