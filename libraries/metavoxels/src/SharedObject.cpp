@@ -147,6 +147,14 @@ void SharedObject::readExtraDelta(Bitstream& in, const SharedObject* reference) 
     // nothing by default
 }
 
+void SharedObject::writeExtraSubdivision(Bitstream& out) {
+    // nothing by default
+}
+
+void SharedObject::readExtraSubdivision(Bitstream& in) {
+    // nothing by default
+}
+
 QAtomicInt SharedObject::_nextID(1);
 WeakSharedObjectHash SharedObject::_weakHash;
 QReadWriteLock SharedObject::_weakHashLock;

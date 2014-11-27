@@ -2731,6 +2731,37 @@ void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
     }
 }
 
+void Heightfield::writeExtraSubdivision(Bitstream& out) {
+    MetavoxelLOD lod, referenceLOD;
+    if (out.getContext()) {
+        MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(out.getContext());
+        lod = transformLOD(base->lod);
+        referenceLOD = transformLOD(base->referenceLOD);
+    }
+    HeightfieldStreamBase base = { out, lod, referenceLOD };
+    HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
+    
+    if (state.becameSubdivided()) {
+        out << SharedObjectPointer(this);
+        _root->writeSubdivision(state);
+    }
+}
+
+void Heightfield::readExtraSubdivision(Bitstream& in) {
+    MetavoxelLOD lod, referenceLOD;
+    if (in.getContext()) {
+        MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(in.getContext());
+        lod = transformLOD(base->lod);
+        referenceLOD = transformLOD(base->referenceLOD);
+    }
+    HeightfieldStreamBase base = { in, lod, referenceLOD };
+    HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
+    
+    if (state.becameSubdividedOrCollapsed()) {
+        setRoot(HeightfieldNodePointer(_root->readSubdivision(state)));
+    }
+}
+
 QByteArray Heightfield::getRendererClassName() const {
     return "HeightfieldRenderer";
 }
