@@ -301,12 +301,11 @@ public:
     void updateScript(const QString& value);
 
     uint32_t getUpdateFlags() const { return _updateFlags; }
+    void clearUpdateFlags() { _updateFlags = 0; }
 
     EntityMotionState* getMotionState() const { return _motionState; }
     virtual EntityMotionState* createMotionState() { return NULL; }
     void destroyMotionState();
-    SimulationState getSimulationState() const { return _simulationState; }
-    
     SimulationState getSimulationState() const { return _simulationState; }
     
     void setSimulationState(SimulationState state) { _simulationState = state; }

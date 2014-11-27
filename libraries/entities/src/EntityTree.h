@@ -80,7 +80,6 @@ public:
     // The newer API...
     EntityItem* getOrCreateEntityItem(const EntityItemID& entityID, const EntityItemProperties& properties);
     void addEntityInternal(EntityItem* entityItem);
-    void emitAddingEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -140,12 +139,9 @@ public:
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
     void entityChanged(EntityItem* entity);
-    void addEntityToPhysicsEngine(EntityItem* entity);
-    void removeEntityFromPhysicsEngine(EntityItem* entity);
 
     void trackDeletedEntity(EntityItem* entity);
 
-    void emitAddingEntity(const EntityItemID& entityItemID);
     void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     void setSimulation(EntitySimulation* simulation);

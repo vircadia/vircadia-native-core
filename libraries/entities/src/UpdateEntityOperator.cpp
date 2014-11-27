@@ -301,7 +301,6 @@ bool UpdateEntityOperator::preRecursion(OctreeElement* element) {
                 // set the entity properties and mark our element as changed.
                 uint32_t oldUpdateFlags = _existingEntity->getUpdateFlags();
                 bool somethingChanged = _existingEntity->setProperties(_properties);
-                uint32_t newUpdateFlags = _existingEntity->getUpdateFlags();
                 if (somethingChanged && !oldUpdateFlags && _existingEntity->getUpdateFlags()) {
                     // this entity hasn't yet been added to changed list
                     _tree->entityChanged(_existingEntity);

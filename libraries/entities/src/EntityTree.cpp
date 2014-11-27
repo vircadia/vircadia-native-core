@@ -10,7 +10,6 @@
 //
 
 #include <PerfStat.h>
-#include <PhysicsEngine.h>
 
 #include "EntityTree.h"
 #include "EntitySimulation.h"
@@ -138,9 +137,9 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
             _simulation->entityChanged(existingEntity);
         }
 
-        QString entityScriptAfter = existingEntity->getScript();
-        if (entityScriptBefore != entityScriptAfter) {
-            emitEntityScriptChanging(entityID); // the entity script has changed
+        uint32_t flags = existingEntity->getUpdateFlags();
+        if (flags & EntityItem::UPDATE_SCRIPT) {
+            emit entityScriptChanging(existingEntity->getEntityItemID());
         }
     }
     
@@ -196,15 +195,6 @@ void EntityTree::trackDeletedEntity(EntityItem* entity) {
         _recentlyDeletedEntityItemIDs.insert(deletedAt, entity->getEntityItemID().id);
         _recentlyDeletedEntitiesLock.unlock();
     }
-}
-
-void EntityTree::setPhysicsEngine(PhysicsEngine* engine) {
-    if (_physicsEngine) {
-#ifdef USE_BULLET_PHYSICS
-        // TODO: remove all entities before we clear the engine
-#endif // USE_BULLET_PHYSICS
-    }
-    _physicsEngine = engine;
 }
 
 void EntityTree::setSimulation(EntitySimulation* simulation) {
