@@ -116,6 +116,7 @@ public:
 
     void _glUseProgram(GLuint program);
     void _glUniform1f(GLint location, GLfloat v0);
+    void _glUniform2f(GLint location, GLfloat v0, GLfloat v1);
     void _glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat* value);
 
     void _glMatrixMode(GLenum mode); 
@@ -185,6 +186,7 @@ public:
 
         COMMAND_glUseProgram,
         COMMAND_glUniform1f,
+        COMMAND_glUniform2f,
         COMMAND_glUniformMatrix4fv,
 
         COMMAND_glMatrixMode,

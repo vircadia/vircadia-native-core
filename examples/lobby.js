@@ -14,7 +14,17 @@ Script.include("libraries/globals.js");
 var panelWall = false;
 var orbShell = false;
 var reticle = false;
+var descriptionText = false;
 
+// used for formating the description text, in meters
+var textWidth = 4;
+var textHeight = .5;
+var numberOfLines = 2;
+var textMargin = 0.0625;
+var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
+
+var lastMouseMove = 0;
+var IDLE_HOVER_TIME = 2000; // if you haven't moved the mouse in 2 seconds, and in HMD mode, then we use reticle for hover
 var avatarStickPosition = {};
 
 var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
@@ -54,6 +64,14 @@ function reticlePosition() {
   return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
 }
 
+function textOverlayPosition() {
+  var TEXT_DISTANCE_OUT = 6;
+  var TEXT_DISTANCE_DOWN = -2;
+  return Vec3.sum(Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), TEXT_DISTANCE_OUT)),
+                              Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
+}
+
+
 var MAX_NUM_PANELS = 21;
 var DRONE_VOLUME = 0.3;
 
@@ -80,11 +98,31 @@ function drawLobby() {
       dimensions: orbDimensions,
       ignoreRayIntersection: true
     };
+
+    var windowDimensions = Controller.getViewportDimensions();
+
+    var descriptionTextProps = {
+        position: textOverlayPosition(),
+        dimensions: { x: textWidth, y: textHeight },
+        backgroundColor: { red: 0, green: 0, blue: 0},
+        color: { red: 255, green: 255, blue: 255},
+        topMargin: textMargin,
+        leftMargin: textMargin,
+        bottomMargin: textMargin,
+        rightMargin: textMargin,
+        text: "",
+        lineHeight: lineHeight,
+        alpha: 0.9,
+        ignoreRayIntersection: true,
+        visible: false,
+        isFacingAvatar: true
+    };
     
     avatarStickPosition = MyAvatar.position;
 
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
+    descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
     
     inOculusMode = Menu.isOptionChecked("Enable VR Mode");
     
@@ -186,6 +224,8 @@ function cleanupLobby() {
   
   Overlays.deleteOverlay(panelWall);
   Overlays.deleteOverlay(orbShell);
+  Overlays.deleteOverlay(descriptionText);
+  
   
   if (reticle) {
     Overlays.deleteOverlay(reticle);
@@ -209,7 +249,6 @@ function cleanupLobby() {
 
 function actionStartEvent(event) {
   if (panelWall) {
-        
     // we've got an action event and our panel wall is up
     // check if we hit a panel and if we should jump there
     var result = Overlays.findRayIntersection(event.actionRay);
@@ -259,6 +298,62 @@ function toggleEnvironmentRendering(shouldRender) {
   Menu.setIsOptionChecked("Avatars", shouldRender);
 }
 
+function handleLookAt(pickRay) {
+  if (panelWall && descriptionText) {
+    // we've got an action event and our panel wall is up
+    // check if we hit a panel and if we should jump there
+    var result = Overlays.findRayIntersection(pickRay);
+    if (result.intersects && result.overlayID == panelWall) {
+      var panelName = result.extraInfo;
+      var panelStringIndex = panelName.indexOf("Panel");
+      if (panelStringIndex != -1) {
+        var panelIndex = parseInt(panelName.slice(5)) - 1;
+        if (panelIndex < locations.length) {
+          var actionLocation = locations[panelIndex];
+          
+          if (actionLocation.description == "") {
+              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: true });
+          } else {
+              // handle line wrapping
+              var allWords = actionLocation.description.split(" ");
+              var currentGoodLine = "";
+              var currentTestLine = "";
+              var formatedDescription = "";
+              var wordsFormated = 0;
+              var currentTestWord = 0;
+              var wordsOnLine = 0;
+              while (wordsFormated < allWords.length) {
+                // first add the "next word" to the line and test it.
+                currentTestLine = currentGoodLine;
+                if (wordsOnLine > 0) {
+                    currentTestLine += " " + allWords[currentTestWord];
+                } else {
+                    currentTestLine = allWords[currentTestWord];
+                }
+                var lineLength = Overlays.textWidth(descriptionText, currentTestLine);
+                if (lineLength < textWidth || wordsOnLine == 0) {
+                  wordsFormated++;
+                  currentTestWord++;
+                  wordsOnLine++;
+                  currentGoodLine = currentTestLine;
+                } else {
+                  formatedDescription += currentGoodLine + "\n";
+                  wordsOnLine = 0;
+                  currentGoodLine = "";
+                  currentTestLine = "";
+                }
+              }
+              formatedDescription += currentGoodLine;
+              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
+            }
+        } else {
+          Overlays.editOverlay(descriptionText, { text: "", visible: false });
+        }
+      }
+    }
+  }
+}
+
 function update(deltaTime) {
   maybeCleanupLobby();
   if (panelWall) {
@@ -267,8 +362,17 @@ function update(deltaTime) {
       Overlays.editOverlay(reticle, {
         position: reticlePosition()
       });
+
+      var nowDate = new Date();
+      var now = nowDate.getTime();
+      if (now - lastMouseMove > IDLE_HOVER_TIME) {
+        var pickRay = Camera.computeViewPickRay(0.5, 0.5);
+        handleLookAt(pickRay);
+      }
     }
-    
+
+    Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
+
     // if the reticle is up then we may need to play the next muzak
     if (!Audio.isInjectorPlaying(currentMuzakInjector)) {
       playNextMuzak();
@@ -276,7 +380,17 @@ function update(deltaTime) {
   }
 }
 
+function mouseMoveEvent(event) {
+  if (panelWall) {
+      var nowDate = new Date();
+      lastMouseMove = nowDate.getTime();
+      var pickRay = Camera.computePickRay(event.x, event.y);
+      handleLookAt(pickRay);
+    }
+}
+
 Controller.actionStartEvent.connect(actionStartEvent);
 Controller.backStartEvent.connect(backStartEvent);
 Script.update.connect(update);
 Script.scriptEnding.connect(maybeCleanupLobby);
+Controller.mouseMoveEvent.connect(mouseMoveEvent);

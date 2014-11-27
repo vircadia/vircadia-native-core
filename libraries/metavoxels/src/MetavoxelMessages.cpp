@@ -10,6 +10,7 @@
 //
 
 #include "MetavoxelMessages.h"
+#include "Spanner.h"
 
 void MetavoxelEditMessage::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     static_cast<const MetavoxelEdit*>(edit.data())->apply(data, objects);
@@ -39,8 +40,7 @@ private:
 };
 
 BoxSetEditVisitor::BoxSetEditVisitor(const BoxSetEdit& edit) :
-    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << edit.value.getAttribute() <<
-        AttributeRegistry::getInstance()->getSpannerMaskAttribute()),
+    MetavoxelVisitor(QVector<AttributePointer>(), QVector<AttributePointer>() << edit.value.getAttribute()),
     _edit(edit) {
 }
 
@@ -55,55 +55,15 @@ int BoxSetEditVisitor::visit(MetavoxelInfo& info) {
     float volume = (size.x * size.y * size.z) / (info.size * info.size * info.size);
     if (volume >= 1.0f) {
         info.outputValues[0] = _edit.value;
-        info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<float>(1.0f));
         return STOP_RECURSION; // entirely contained
     }
     if (info.size <= _edit.granularity) {
         if (volume >= 0.5f) {
             info.outputValues[0] = _edit.value;
-            info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<float>(1.0f));
         }
         return STOP_RECURSION; // reached granularity limit; take best guess
     }
     return DEFAULT_ORDER; // subdivide
-}
-
-class GatherUnmaskedSpannersVisitor : public SpannerVisitor {
-public:
-    
-    GatherUnmaskedSpannersVisitor(const Box& bounds);
-
-    const QList<SharedObjectPointer>& getUnmaskedSpanners() const { return _unmaskedSpanners; }
-
-    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-
-private:
-    
-    Box _bounds;
-    QList<SharedObjectPointer> _unmaskedSpanners;
-};
-
-GatherUnmaskedSpannersVisitor::GatherUnmaskedSpannersVisitor(const Box& bounds) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()),
-    _bounds(bounds) {
-}
-
-bool GatherUnmaskedSpannersVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    if (!spanner->isMasked() && spanner->getBounds().intersects(_bounds)) {
-        _unmaskedSpanners.append(spanner);
-    }
-    return true;
-}
-
-static void setIntersectingMasked(const Box& bounds, MetavoxelData& data) {
-    GatherUnmaskedSpannersVisitor visitor(bounds);
-    data.guide(visitor);
-    
-    foreach (const SharedObjectPointer& object, visitor.getUnmaskedSpanners()) {
-        Spanner* newSpanner = static_cast<Spanner*>(object->clone(true));
-        newSpanner->setMasked(true);
-        data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), object, newSpanner);
-    }
 }
 
 void BoxSetEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
@@ -114,9 +74,6 @@ void BoxSetEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects)
 
     BoxSetEditVisitor setVisitor(*this);
     data.guide(setVisitor);
-    
-    // flip the mask flag of all intersecting spanners
-    setIntersectingMasked(region, data);
 }
 
 GlobalSetEdit::GlobalSetEdit(const OwnedAttributeValue& value) :
@@ -155,56 +112,8 @@ InsertSpannerEdit::InsertSpannerEdit(const AttributePointer& attribute, const Sh
     spanner(spanner) {
 }
 
-class UpdateSpannerVisitor : public MetavoxelVisitor {
-public:
-    
-    UpdateSpannerVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    Spanner* _spanner;
-    float _voxelizationSize;
-    int _steps;
-};
-
-UpdateSpannerVisitor::UpdateSpannerVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
-    MetavoxelVisitor(QVector<AttributePointer>() << attributes << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        attributes),
-    _spanner(spanner),
-    _voxelizationSize(qMax(spanner->getBounds().getLongestSide(), spanner->getPlacementGranularity()) * 2.0f /
-        AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()),
-    _steps(glm::round(logf(AttributeRegistry::getInstance()->getSpannersAttribute()->getLODThresholdMultiplier()) /
-        logf(2.0f) - 2.0f)) {
-}
-
-int UpdateSpannerVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_spanner->getBounds())) {
-        return STOP_RECURSION;
-    }
-    MetavoxelInfo* parentInfo = info.parentInfo;
-    for (int i = 0; i < _steps && parentInfo; i++) {
-        parentInfo = parentInfo->parentInfo;
-    }
-    for (int i = 0; i < _outputs.size(); i++) {
-        info.outputValues[i] = AttributeValue(_outputs.at(i));
-    }
-    if (parentInfo) {
-        foreach (const SharedObjectPointer& object,
-                parentInfo->inputValues.at(_outputs.size()).getInlineValue<SharedObjectSet>()) {
-            static_cast<const Spanner*>(object.data())->blendAttributeValues(info, true);
-        }
-    }
-    return (info.size > _voxelizationSize) ? DEFAULT_ORDER : STOP_RECURSION;
-}
-
 void InsertSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    data.insert(attribute, this->spanner);
-    
-    Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
-    UpdateSpannerVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
-    data.guide(visitor);  
+    data.insert(attribute, spanner);
 }
 
 RemoveSpannerEdit::RemoveSpannerEdit(const AttributePointer& attribute, int id) :
@@ -218,99 +127,15 @@ void RemoveSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& o
         qDebug() << "Missing object to remove" << id;
         return;
     }
-    // keep a strong reference to the object
-    SharedObjectPointer sharedPointer = object;
     data.remove(attribute, object);
-    
-    Spanner* spanner = static_cast<Spanner*>(object);
-    UpdateSpannerVisitor visitor(spanner->getVoxelizedAttributes(), spanner);
-    data.guide(visitor);
 }
 
 ClearSpannersEdit::ClearSpannersEdit(const AttributePointer& attribute) :
     attribute(attribute) {
 }
 
-class GatherSpannerAttributesVisitor : public SpannerVisitor {
-public:
-    
-    GatherSpannerAttributesVisitor(const AttributePointer& attribute);
-    
-    const QSet<AttributePointer>& getAttributes() const { return _attributes; }
-    
-    virtual bool visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize);
-
-protected:
-    
-    QSet<AttributePointer> _attributes;
-};
-
-GatherSpannerAttributesVisitor::GatherSpannerAttributesVisitor(const AttributePointer& attribute) :
-    SpannerVisitor(QVector<AttributePointer>() << attribute) {
-}
-
-bool GatherSpannerAttributesVisitor::visit(Spanner* spanner, const glm::vec3& clipMinimum, float clipSize) {
-    foreach (const AttributePointer& attribute, spanner->getVoxelizedAttributes()) {
-        _attributes.insert(attribute);
-    }
-    return true;
-}
-
 void ClearSpannersEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    // find all the spanner attributes
-    GatherSpannerAttributesVisitor visitor(attribute);
-    data.guide(visitor);
-    
     data.clear(attribute);
-    foreach (const AttributePointer& attribute, visitor.getAttributes()) {
-        data.clear(attribute);
-    }
-}
-
-SetSpannerEdit::SetSpannerEdit(const SharedObjectPointer& spanner) :
-    spanner(spanner) {
-}
-
-class SetSpannerEditVisitor : public MetavoxelVisitor {
-public:
-    
-    SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    Spanner* _spanner;
-};
-
-SetSpannerEditVisitor::SetSpannerEditVisitor(const QVector<AttributePointer>& attributes, Spanner* spanner) :
-    MetavoxelVisitor(attributes, QVector<AttributePointer>() << attributes <<
-        AttributeRegistry::getInstance()->getSpannerMaskAttribute()),
-    _spanner(spanner) {
-}
-
-int SetSpannerEditVisitor::visit(MetavoxelInfo& info) {
-    if (_spanner->blendAttributeValues(info)) {
-        return DEFAULT_ORDER;
-    }
-    if (info.outputValues.at(0).getAttribute()) {
-        info.outputValues.last() = AttributeValue(_outputs.last(), encodeInline<float>(1.0f));
-    }
-    return STOP_RECURSION;
-}
-
-void SetSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
-    
-    // expand to fit the entire spanner
-    while (!data.getBounds().contains(spanner->getBounds())) {
-        data.expand();
-    }
-    
-    SetSpannerEditVisitor visitor(spanner->getAttributes(), spanner);
-    data.guide(visitor);
-    
-    setIntersectingMasked(spanner->getBounds(), data);
 }
 
 SetDataEdit::SetDataEdit(const glm::vec3& minimum, const MetavoxelData& data, bool blend) :
@@ -329,216 +154,25 @@ PaintHeightfieldHeightEdit::PaintHeightfieldHeightEdit(const glm::vec3& position
     height(height) {
 }
 
-class PaintHeightfieldHeightEditVisitor : public MetavoxelVisitor {
-public:
-    
-    PaintHeightfieldHeightEditVisitor(const PaintHeightfieldHeightEdit& edit);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    PaintHeightfieldHeightEdit _edit;
-    Box _bounds;
-};
-
-PaintHeightfieldHeightEditVisitor::PaintHeightfieldHeightEditVisitor(const PaintHeightfieldHeightEdit& edit) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute(),
-        QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute()),
-    _edit(edit) {
-    
-    glm::vec3 extents(_edit.radius, _edit.radius, _edit.radius);
-    _bounds = Box(_edit.position - extents, _edit.position + extents);
-}
-
-const int EIGHT_BIT_MAXIMUM = 255;
-
-int PaintHeightfieldHeightEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    HeightfieldHeightDataPointer pointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
-    if (!pointer) {
-        return STOP_RECURSION;
-    }
-    QByteArray contents(pointer->getContents());
-    int size = glm::sqrt((float)contents.size());
-    int highest = size - 1;
-    float heightScale = size / info.size;
-    
-    glm::vec3 center = (_edit.position - info.minimum) * heightScale;
-    float scaledRadius = _edit.radius * heightScale;
-    glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
-    
-    glm::vec3 start = glm::floor(center - extents);
-    glm::vec3 end = glm::ceil(center + extents);
-    
-    // raise/lower all points within the radius
-    float z = qMax(start.z, 0.0f);
-    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-    uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
-    float squaredRadius = scaledRadius * scaledRadius;
-    float squaredRadiusReciprocal = 1.0f / squaredRadius; 
-    float scaledHeight = _edit.height * EIGHT_BIT_MAXIMUM / info.size;
-    bool changed = false;
-    for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
-        uchar* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest++) {
-            float dx = x - center.x, dz = z - center.z;
-            float distanceSquared = dx * dx + dz * dz;
-            if (distanceSquared <= squaredRadius) {
-                // height falls off towards edges
-                int value = *dest + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
-                if (value != *dest) {
-                    *dest = qMin(qMax(value, 0), EIGHT_BIT_MAXIMUM);
-                    changed = true;
-                }
-            }
-        }
-        lineDest += size;
-    }
-    if (changed) {
-        HeightfieldHeightDataPointer newPointer(new HeightfieldHeightData(contents));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newPointer));
-    }
-    return STOP_RECURSION;
-}
-
 void PaintHeightfieldHeightEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintHeightfieldHeightEditVisitor visitor(*this);
-    data.guide(visitor);
+    // increase the extents slightly to include neighboring tiles
+    const float RADIUS_EXTENSION = 1.1f;
+    glm::vec3 extents = glm::vec3(radius, radius, radius) * RADIUS_EXTENSION;
+    QVector<SharedObjectPointer> results;
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
+        Box(position - extents, position + extents), results);
+    
+    foreach (const SharedObjectPointer& spanner, results) {
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintHeight(position, radius, height);
+        if (newSpanner != spanner) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
+        }
+    }
 }
 
 MaterialEdit::MaterialEdit(const SharedObjectPointer& material, const QColor& averageColor) :
     material(material),
     averageColor(averageColor) {
-}
-
-class PaintHeightfieldMaterialEditVisitor : public MetavoxelVisitor {
-public:
-    
-    PaintHeightfieldMaterialEditVisitor(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color);
-    
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    glm::vec3 _position;
-    float _radius;
-    SharedObjectPointer _material;
-    QColor _color;
-    Box _bounds;
-};
-
-PaintHeightfieldMaterialEditVisitor::PaintHeightfieldMaterialEditVisitor(const glm::vec3& position, float radius,
-        const SharedObjectPointer& material, const QColor& color) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), QVector<AttributePointer>() <<
-        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute()),
-    _position(position),
-    _radius(radius),
-    _material(material),
-    _color(color) {
-    
-    const float LARGE_EXTENT = 100000.0f;
-    glm::vec3 extents(_radius, LARGE_EXTENT, _radius);
-    _bounds = Box(_position - extents, _position + extents);
-}
-
-int PaintHeightfieldMaterialEditVisitor::visit(MetavoxelInfo& info) {
-    if (!info.getBounds().intersects(_bounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    HeightfieldColorDataPointer colorPointer = info.inputValues.at(0).getInlineValue<HeightfieldColorDataPointer>();
-    if (colorPointer) {
-        QByteArray contents(colorPointer->getContents());
-        int size = glm::sqrt((float)contents.size() / DataBlock::COLOR_BYTES);
-        int highest = size - 1;
-        float heightScale = size / info.size;
-        
-        glm::vec3 center = (_position - info.minimum) * heightScale;
-        float scaledRadius = _radius * heightScale;
-        glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
-        
-        glm::vec3 start = glm::floor(center - extents);
-        glm::vec3 end = glm::ceil(center + extents);
-        
-        // paint all points within the radius
-        float z = qMax(start.z, 0.0f);
-        float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-        int stride = size * DataBlock::COLOR_BYTES;
-        char* lineDest = contents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
-        float squaredRadius = scaledRadius * scaledRadius; 
-        char red = _color.red(), green = _color.green(), blue = _color.blue();
-        bool changed = false;
-        for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
-            char* dest = lineDest;
-            for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
-                float dx = x - center.x, dz = z - center.z;
-                if (dx * dx + dz * dz <= squaredRadius) {
-                    dest[0] = red;
-                    dest[1] = green;
-                    dest[2] = blue;
-                    changed = true;
-                }
-            }
-            lineDest += stride;
-        }
-        if (changed) {
-            HeightfieldColorDataPointer newPointer(new HeightfieldColorData(contents));
-            info.outputValues[0] = AttributeValue(info.inputValues.at(0).getAttribute(),
-                encodeInline<HeightfieldColorDataPointer>(newPointer));
-        }
-    }
-    
-    HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(1).getInlineValue<HeightfieldMaterialDataPointer>();
-    if (materialPointer) {
-        QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
-        QByteArray contents(materialPointer->getContents());
-        uchar materialIndex = getMaterialIndex(_material, materials, contents);
-        int size = glm::sqrt((float)contents.size());
-        int highest = size - 1;
-        float heightScale = highest / info.size;
-        
-        glm::vec3 center = (_position - info.minimum) * heightScale;
-        float scaledRadius = _radius * heightScale;
-        glm::vec3 extents(scaledRadius, scaledRadius, scaledRadius);
-        
-        glm::vec3 start = glm::floor(center - extents);
-        glm::vec3 end = glm::ceil(center + extents);
-        
-        // paint all points within the radius
-        float z = qMax(start.z, 0.0f);
-        float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highest);
-        uchar* lineDest = (uchar*)contents.data() + (int)z * size + (int)startX;
-        float squaredRadius = scaledRadius * scaledRadius; 
-        bool changed = false;
-        for (float endZ = qMin(end.z, (float)highest); z <= endZ; z += 1.0f) {
-            uchar* dest = lineDest;
-            for (float x = startX; x <= endX; x += 1.0f, dest++) {
-                float dx = x - center.x, dz = z - center.z;
-                if (dx * dx + dz * dz <= squaredRadius) {
-                    *dest = materialIndex;
-                    changed = true;
-                }
-            }
-            lineDest += size;
-        }
-        if (changed) {
-            clearUnusedMaterials(materials, contents);
-            HeightfieldMaterialDataPointer newPointer(new HeightfieldMaterialData(contents, materials));
-            info.outputValues[1] = AttributeValue(_outputs.at(1), encodeInline<HeightfieldMaterialDataPointer>(newPointer));
-        }
-    }
-    return STOP_RECURSION;
 }
 
 PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& position, float radius,
@@ -549,8 +183,17 @@ PaintHeightfieldMaterialEdit::PaintHeightfieldMaterialEdit(const glm::vec3& posi
 }
 
 void PaintHeightfieldMaterialEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
-    PaintHeightfieldMaterialEditVisitor visitor(position, radius, material, averageColor);
-    data.guide(visitor);
+    glm::vec3 extents(radius, radius, radius);
+    QVector<SharedObjectPointer> results;
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(),
+        Box(position - extents, position + extents), results);
+    
+    foreach (const SharedObjectPointer& spanner, results) {
+        Spanner* newSpanner = static_cast<Spanner*>(spanner.data())->paintMaterial(position, radius, material, averageColor);
+        if (newSpanner != spanner) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), spanner, newSpanner);
+        }
+    }
 }
 
 const int VOXEL_BLOCK_SIZE = 16;
@@ -709,7 +352,8 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     if (minZ > 0) {
         hermiteMinZ--;
         hermiteSizeZ++;
-    }
+    }    
+    const int EIGHT_BIT_MAXIMUM = 255;
     QRgb* hermiteDestZ = hermiteContents.data() + hermiteMinZ * hermiteArea + hermiteMinY * hermiteSamples +
         hermiteMinX * VoxelHermiteData::EDGE_COUNT;
     for (int z = hermiteMinZ, hermiteMaxZ = z + hermiteSizeZ - 1; z <= hermiteMaxZ; z++, hermiteDestZ += hermiteArea) {
@@ -850,262 +494,6 @@ int VoxelMaterialSpannerEditVisitor::visit(MetavoxelInfo& info) {
     return STOP_RECURSION;
 }
 
-class HeightfieldClearFetchVisitor : public MetavoxelVisitor {
-public:
-    
-    HeightfieldClearFetchVisitor(const Box& bounds, float granularity);
-
-    const SharedObjectPointer& getSpanner() const { return _spanner; }
-
-    virtual int visit(MetavoxelInfo& info);
-
-private:
-    
-    Box _bounds;
-    Box _expandedBounds;
-    SharedObjectPointer _spanner;
-    Box _spannerBounds;
-    int _heightfieldWidth;
-    int _heightfieldHeight;
-};
-
-HeightfieldClearFetchVisitor::HeightfieldClearFetchVisitor(const Box& bounds, float granularity) :
-    MetavoxelVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-        AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute(), QVector<AttributePointer>() <<
-            AttributeRegistry::getInstance()->getHeightfieldAttribute() <<
-            AttributeRegistry::getInstance()->getHeightfieldColorAttribute() <<
-            AttributeRegistry::getInstance()->getHeightfieldMaterialAttribute()) {
-     
-    // find the bounds of all voxel nodes intersected
-    float nodeSize = VOXEL_BLOCK_SIZE * glm::pow(2.0f, glm::floor(glm::log(granularity) / glm::log(2.0f)));
-    _bounds.minimum = glm::floor(bounds.minimum / nodeSize) * nodeSize;
-    _bounds.maximum = glm::ceil(bounds.maximum / nodeSize) * nodeSize;
-    
-    // expand to include edges
-    _expandedBounds = _bounds;
-    float increment = nodeSize / VOXEL_BLOCK_SIZE;
-    _expandedBounds.maximum.x += increment;
-    _expandedBounds.maximum.z += increment;
-}
-
-int HeightfieldClearFetchVisitor::visit(MetavoxelInfo& info) {
-    Box bounds = info.getBounds();
-    if (!bounds.intersects(_expandedBounds)) {
-        return STOP_RECURSION;
-    }
-    if (!info.isLeaf) {
-        return DEFAULT_ORDER;
-    }
-    HeightfieldHeightDataPointer heightPointer = info.inputValues.at(0).getInlineValue<HeightfieldHeightDataPointer>();
-    if (!heightPointer) {
-        return STOP_RECURSION;
-    }
-    QByteArray contents(heightPointer->getContents());
-    int size = glm::sqrt((float)contents.size());
-    float heightScale = size / info.size;
-    
-    Box overlap = bounds.getIntersection(_expandedBounds);
-    int srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
-    int srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
-    int srcWidth = glm::ceil((overlap.maximum.x - overlap.minimum.x) * heightScale);
-    int srcHeight = glm::ceil((overlap.maximum.z - overlap.minimum.z) * heightScale);
-    char* src = contents.data() + srcY * size + srcX;
-    
-    // check for non-zero values
-    bool foundNonZero = false;
-    for (int y = 0; y < srcHeight; y++, src += (size - srcWidth)) {
-        for (char* end = src + srcWidth; src != end; src++) {
-            if (*src != 0) {
-                foundNonZero = true;
-                goto outerBreak;
-            }
-        }
-    }
-    outerBreak:
-    
-    // if everything is zero, we're done
-    if (!foundNonZero) {
-        return STOP_RECURSION;
-    }
-    
-    // create spanner if necessary
-    Heightfield* spanner = static_cast<Heightfield*>(_spanner.data());
-    float increment = 1.0f / heightScale;
-    if (!spanner) {    
-        _spannerBounds.minimum = glm::floor(_bounds.minimum / increment) * increment;
-        _spannerBounds.maximum = (glm::ceil(_bounds.maximum / increment) + glm::vec3(1.0f, 0.0f, 1.0f)) * increment;
-        _spannerBounds.minimum.y = bounds.minimum.y;
-        _spannerBounds.maximum.y = bounds.maximum.y;
-        _heightfieldWidth = (int)glm::round((_spannerBounds.maximum.x - _spannerBounds.minimum.x) / increment);
-        _heightfieldHeight = (int)glm::round((_spannerBounds.maximum.z - _spannerBounds.minimum.z) / increment);
-        int heightfieldArea = _heightfieldWidth * _heightfieldHeight;
-        Box innerBounds = _spannerBounds;
-        innerBounds.maximum.x -= increment;
-        innerBounds.maximum.z -= increment;
-        _spanner = spanner = new Heightfield(innerBounds, increment, QByteArray(heightfieldArea, 0),
-            QByteArray(heightfieldArea * DataBlock::COLOR_BYTES, 0), QByteArray(heightfieldArea, 0),
-            QVector<SharedObjectPointer>());
-    }
-    
-    // copy the inner area
-    overlap = bounds.getIntersection(_spannerBounds);
-    int destX = (overlap.minimum.x - _spannerBounds.minimum.x) * heightScale;
-    int destY = (overlap.minimum.z - _spannerBounds.minimum.z) * heightScale;
-    int destWidth = (int)glm::round((overlap.maximum.x - overlap.minimum.x) * heightScale);
-    int destHeight = (int)glm::round((overlap.maximum.z - overlap.minimum.z) * heightScale);
-    char* dest = spanner->getHeight().data() + destY * _heightfieldWidth + destX;
-    srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
-    srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
-    src = contents.data() + srcY * size + srcX;
-    
-    for (int y = 0; y < destHeight; y++, dest += _heightfieldWidth, src += size) {
-        memcpy(dest, src, destWidth);
-    }
-    
-    // clear the inner area
-    Box innerBounds = _spannerBounds;
-    innerBounds.minimum.x += increment;
-    innerBounds.minimum.z += increment;
-    innerBounds.maximum.x -= increment;
-    innerBounds.maximum.z -= increment;
-    Box innerOverlap = bounds.getIntersection(innerBounds);
-    destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-    destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-    destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-    destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-    dest = contents.data() + destY * size + destX;
-    
-    for (int y = 0; y < destHeight; y++, dest += size) {
-        memset(dest, 0, destWidth);
-    }
-    
-    // see if there are any non-zero values left
-    foundNonZero = false;
-    dest = contents.data();
-    for (char* end = dest + contents.size(); dest != end; dest++) {
-        if (*dest != 0) {
-            foundNonZero = true;
-            break;
-        }
-    }
-    
-    // if all is gone, clear the node
-    if (foundNonZero) {
-        HeightfieldHeightDataPointer newHeightPointer(new HeightfieldHeightData(contents));
-        info.outputValues[0] = AttributeValue(_outputs.at(0), encodeInline<HeightfieldHeightDataPointer>(newHeightPointer));
-        
-    } else {
-        info.outputValues[0] = AttributeValue(_outputs.at(0));
-    }
-    
-    // allow a border for what we clear in terms of color/material
-    innerBounds.minimum.x += increment;
-    innerBounds.minimum.z += increment;
-    innerBounds.maximum.x -= increment;
-    innerBounds.maximum.z -= increment;
-    innerOverlap = bounds.getIntersection(innerBounds);
-    
-    HeightfieldColorDataPointer colorPointer = info.inputValues.at(1).getInlineValue<HeightfieldColorDataPointer>();
-    if (colorPointer) {
-        contents = colorPointer->getContents();
-        size = glm::sqrt((float)contents.size() / DataBlock::COLOR_BYTES);
-        heightScale = size / info.size;
-        
-        // copy the inner area
-        destX = (overlap.minimum.x - _spannerBounds.minimum.x) * heightScale;
-        destY = (overlap.minimum.z - _spannerBounds.minimum.z) * heightScale;
-        destWidth = (int)glm::round((overlap.maximum.x - overlap.minimum.x) * heightScale);
-        destHeight = (int)glm::round((overlap.maximum.z - overlap.minimum.z) * heightScale);
-        dest = spanner->getColor().data() + (destY * _heightfieldWidth + destX) * DataBlock::COLOR_BYTES;
-        srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
-        srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
-        src = contents.data() + (srcY * size + srcX) * DataBlock::COLOR_BYTES;
-        
-        for (int y = 0; y < destHeight; y++, dest += _heightfieldWidth * DataBlock::COLOR_BYTES,
-                src += size * DataBlock::COLOR_BYTES) {
-            memcpy(dest, src, destWidth * DataBlock::COLOR_BYTES);
-        }
-        
-        if (foundNonZero) {
-            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-            if (destWidth > 0 && destHeight > 0) {
-                dest = contents.data() + (destY * size + destX) * DataBlock::COLOR_BYTES;
-                
-                for (int y = 0; y < destHeight; y++, dest += size * DataBlock::COLOR_BYTES) {
-                    memset(dest, 0, destWidth * DataBlock::COLOR_BYTES);
-                }
-                
-                HeightfieldColorDataPointer newColorPointer(new HeightfieldColorData(contents));
-                info.outputValues[1] = AttributeValue(_outputs.at(1),
-                    encodeInline<HeightfieldColorDataPointer>(newColorPointer));
-            }
-        } else {
-            info.outputValues[1] = AttributeValue(_outputs.at(1));
-        }
-    }
-    
-    HeightfieldMaterialDataPointer materialPointer = info.inputValues.at(2).getInlineValue<HeightfieldMaterialDataPointer>();
-    if (materialPointer) {
-        contents = materialPointer->getContents();
-        QVector<SharedObjectPointer> materials = materialPointer->getMaterials();
-        size = glm::sqrt((float)contents.size());
-        heightScale = size / info.size;
-        
-        // copy the inner area
-        destX = (overlap.minimum.x - _spannerBounds.minimum.x) * heightScale;
-        destY = (overlap.minimum.z - _spannerBounds.minimum.z) * heightScale;
-        destWidth = (int)glm::round((overlap.maximum.x - overlap.minimum.x) * heightScale);
-        destHeight = (int)glm::round((overlap.maximum.z - overlap.minimum.z) * heightScale);
-        uchar* dest = (uchar*)spanner->getMaterial().data() + destY * _heightfieldWidth + destX;
-        srcX = (overlap.minimum.x - info.minimum.x) * heightScale;
-        srcY = (overlap.minimum.z - info.minimum.z) * heightScale;
-        uchar* src = (uchar*)contents.data() + srcY * size + srcX;
-        QHash<int, int> materialMap;
-        
-        for (int y = 0; y < destHeight; y++, dest += _heightfieldWidth, src += size) {
-            for (uchar* lineSrc = src, *lineDest = dest, *end = src + destWidth; lineSrc != end; lineSrc++, lineDest++) {
-                int material = *lineSrc;
-                if (material != 0) {
-                    int& mapping = materialMap[material];
-                    if (mapping == 0) {
-                        mapping = getMaterialIndex(materials.at(material - 1), spanner->getMaterials(),
-                            spanner->getMaterial());
-                    }
-                    material = mapping;
-                }
-                *lineDest = material;
-            }
-        }
-        
-        if (foundNonZero) {
-            destX = (innerOverlap.minimum.x - info.minimum.x) * heightScale;
-            destY = (innerOverlap.minimum.z - info.minimum.z) * heightScale;
-            destWidth = glm::ceil((innerOverlap.maximum.x - innerOverlap.minimum.x) * heightScale);
-            destHeight = glm::ceil((innerOverlap.maximum.z - innerOverlap.minimum.z) * heightScale);
-            if (destWidth > 0 && destHeight > 0) {
-                dest = (uchar*)contents.data() + destY * size + destX;
-                
-                for (int y = 0; y < destHeight; y++, dest += size) {
-                    memset(dest, 0, destWidth);
-                }
-                
-                clearUnusedMaterials(materials, contents);
-                HeightfieldMaterialDataPointer newMaterialPointer(new HeightfieldMaterialData(contents, materials));
-                info.outputValues[2] = AttributeValue(_outputs.at(2),
-                    encodeInline<HeightfieldMaterialDataPointer>(newMaterialPointer));
-            }
-        } else {
-            info.outputValues[2] = AttributeValue(_outputs.at(2));
-        }
-    }
-    
-    return STOP_RECURSION;
-}
-
 void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObjectHash& objects) const {
     // expand to fit the entire edit
     Spanner* spanner = static_cast<Spanner*>(this->spanner.data());
@@ -1116,14 +504,34 @@ void VoxelMaterialSpannerEdit::apply(MetavoxelData& data, const WeakSharedObject
     QColor color = averageColor;
     color.setAlphaF(color.alphaF() > 0.5f ? 1.0f : 0.0f);
     
-    // clear/fetch any heightfield data
-    HeightfieldClearFetchVisitor heightfieldVisitor(spanner->getBounds(), spanner->getVoxelizationGranularity());
-    data.guide(heightfieldVisitor);
+    // find the bounds of all voxel nodes intersected
+    float nodeSize = VOXEL_BLOCK_SIZE * glm::pow(2.0f, glm::floor(
+        glm::log(spanner->getVoxelizationGranularity()) / glm::log(2.0f)));
+    Box bounds(glm::floor(spanner->getBounds().minimum / nodeSize) * nodeSize,
+        glm::ceil(spanner->getBounds().maximum / nodeSize) * nodeSize);
+    
+    // expand to include edges
+    Box expandedBounds = bounds;
+    float increment = nodeSize / VOXEL_BLOCK_SIZE;
+    expandedBounds.maximum.x += increment;
+    expandedBounds.maximum.z += increment;
+    
+    // get all intersecting spanners
+    QVector<SharedObjectPointer> results;
+    data.getIntersecting(AttributeRegistry::getInstance()->getSpannersAttribute(), expandedBounds, results);
+    
+    // clear/voxelize as appropriate
+    SharedObjectPointer heightfield;
+    foreach (const SharedObjectPointer& result, results) {
+        Spanner* newSpanner = static_cast<Spanner*>(result.data())->clearAndFetchHeight(bounds, heightfield);
+        if (newSpanner != result) {
+            data.replace(AttributeRegistry::getInstance()->getSpannersAttribute(), result, newSpanner);
+        }
+    }
     
     // voxelize the fetched heightfield, if any
-    if (heightfieldVisitor.getSpanner()) {
-        VoxelMaterialSpannerEditVisitor visitor(static_cast<Spanner*>(heightfieldVisitor.getSpanner().data()),
-            material, color);
+    if (heightfield) {
+        VoxelMaterialSpannerEditVisitor visitor(static_cast<Spanner*>(heightfield.data()), material, color);
         data.guide(visitor);
     }
     

@@ -64,6 +64,9 @@ EntityTreeRenderer::~EntityTreeRenderer() {
 }
 
 void EntityTreeRenderer::clear() {
+    foreach (const EntityItemID& entityID, _entityScripts.keys()) {
+        checkAndCallUnload(entityID);
+    }
     OctreeRenderer::clear();
     _entityScripts.clear();
 }
@@ -192,22 +195,14 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     return entityScriptObject; // newly constructed
 }
 
-QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID) {
-    EntityItem* entity = static_cast<EntityTree*>(_tree)->findEntityByEntityItemID(entityItemID);
-    return getPreviouslyLoadedEntityScript(entity);
-}
-
-
-QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(EntityItem* entity) {
-    if (entity) {
-        EntityItemID entityID = entity->getEntityItemID();
-        if (_entityScripts.contains(entityID)) {
-            EntityScriptDetails details = _entityScripts[entityID];
-            return details.scriptObject; // previously loaded
-        }
+QScriptValue EntityTreeRenderer::getPreviouslyLoadedEntityScript(const EntityItemID& entityID) {
+    if (_entityScripts.contains(entityID)) {
+        EntityScriptDetails details = _entityScripts[entityID];
+        return details.scriptObject; // previously loaded
     }
     return QScriptValue(); // no script
 }
+
 void EntityTreeRenderer::setTree(Octree* newTree) {
     OctreeRenderer::setTree(newTree);
     static_cast<EntityTree*>(_tree)->setFBXService(this);
@@ -288,7 +283,7 @@ void EntityTreeRenderer::checkEnterLeaveEntities() {
 }
 
 void EntityTreeRenderer::render(RenderArgs::RenderMode renderMode, RenderArgs::RenderSide renderSide) {
-    bool dontRenderAsScene = !Menu::getInstance()->isOptionChecked(MenuOption::RenderEntitiesAsScene);
+    bool dontRenderAsScene = Menu::getInstance()->isOptionChecked(MenuOption::DontRenderEntitiesAsScene);
     
     if (dontRenderAsScene) {
         OctreeRenderer::render(renderMode, renderSide);
@@ -858,7 +853,6 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
-
     checkAndCallUnload(entityID);
     _entityScripts.remove(entityID);
 }

@@ -76,6 +76,7 @@ class QSettings;
 class AnimationsDialog;
 class AttachmentsDialog;
 class BandwidthDialog;
+class HMDToolsDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class MetavoxelNetworkSimulator;
@@ -120,6 +121,7 @@ public:
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
+    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
@@ -183,6 +185,7 @@ public slots:
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
+    void hmdTools(bool showTools);
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
@@ -217,6 +220,7 @@ private slots:
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
+    void hmdToolsClosed();
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
@@ -284,6 +288,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    HMDToolsDialog* _hmdToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -341,18 +346,6 @@ namespace MenuOption {
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
-    const QString AudioSpatialProcessing = "Audio Spatial Processing";
-    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
-    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
-    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
-    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
-    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
-    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
-    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
-    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
-    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
-    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
     const QString AudioSourceInject = "Generated Audio";
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
@@ -373,6 +366,7 @@ namespace MenuOption {
     const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
     const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
     const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
+    const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -411,6 +405,7 @@ namespace MenuOption {
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
     const QString HeadMouse = "Head Mouse";
+    const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
@@ -443,12 +438,11 @@ namespace MenuOption {
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString RenderBoundingCollisionShapes = "Show Bounding Collision Shapes";
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
-    const QString RenderEntitiesAsScene = "Render Entities as Scene";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
-    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderSpanners = "Render Spanners";
     const QString RenderTargetFramerate = "Framerate";
     const QString RenderTargetFramerateUnlimited = "Unlimited";
     const QString RenderTargetFramerate60 = "60";

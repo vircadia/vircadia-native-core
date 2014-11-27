@@ -1559,6 +1559,10 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
+        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu show() after hide() doesn't work with Rift VR display so set height instead.
@@ -1569,6 +1573,7 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    _window->show();
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -1576,6 +1581,10 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
+    }
+
     if (enableVRMode) {
         if (!OculusManager::isConnected()) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
@@ -1586,6 +1595,11 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        
+        _mirrorCamera.setHmdPosition(glm::vec3());
+        _mirrorCamera.setHmdRotation(glm::quat());
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
@@ -2827,7 +2841,12 @@ void Application::updateShadowMap() {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.render3D(false, RenderArgs::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("3dOverlaysFront");
+            _overlays.render3D(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -3042,7 +3061,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
+            _overlays.render3D(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3125,6 +3144,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Render 3D overlays that should be drawn in front
+    {
+        PerformanceTimer perfTimer("3dOverlaysFront");
+        glClear(GL_DEPTH_BUFFER_BIT);
+        _overlays.render3D(true);
     }
 }
 
@@ -3484,7 +3510,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
     }
 }
 
-
 void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
@@ -3498,7 +3523,11 @@ void Application::resetSensors() {
     _prioVR.reset();
     //_leapmotion.reset();
 
-    QCursor::setPos(_mouseX, _mouseY);
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    QCursor::setPos(currentScreen, windowCenter);
+    
     _myAvatar->reset();
 
     QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);

@@ -46,31 +46,50 @@ quint64 usecTimestampNow(bool wantDebug) {
         TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
         timestampTimer.start();
         usecTimestampNowIsInitialized = true;
-    } else {
-        // We've seen the QElapsedTimer begin to introduce dramatic errors if it's been
-        // continuously running for a long time. So we will periodically reset it.
-        const quint64 SECS_TO_NSECS = 1000000000;
-        const quint64 RESET_AFTER_ELAPSED_SECS = 60 * 60; // 1 hour: 60 minutes * 60 seconds
-        const quint64 RESET_AFTER_ELAPSED_NSECS = RESET_AFTER_ELAPSED_SECS * SECS_TO_NSECS; 
-        const quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
-        if (nsecsElapsed > RESET_AFTER_ELAPSED_NSECS) {
-            quint64 msecsElapsed = timestampTimer.restart();
-            quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
-            TIME_REFERENCE += usecsElapsed;
-            if (wantDebug) {
-                qDebug() << "usecTimestampNow() - resetting QElapsedTimer. ";
-                qDebug() << "    RESET_AFTER_ELAPSED_NSECS:" << RESET_AFTER_ELAPSED_NSECS;
-                qDebug() << "    nsecsElapsed:" << nsecsElapsed;
-                qDebug() << "    msecsElapsed:" << msecsElapsed;
-                qDebug() << "    usecsElapsed:" << usecsElapsed;
-            }
-        }
     }
     
+    quint64 now;
     quint64 nsecsElapsed = timestampTimer.nsecsElapsed();
     quint64 usecsElapsed = nsecsElapsed / 1000;  // nsec to usec
-    quint64 now = TIME_REFERENCE + usecsElapsed + ::usecTimestampNowAdjust;
     
+    // QElapsedTimer may not advance if the CPU has gone to sleep. In which case it
+    // will begin to deviate from real time. We detect that here, and reset if necessary
+    quint64 msecsCurrentTime = QDateTime::currentMSecsSinceEpoch();
+    quint64 msecsEstimate = (TIME_REFERENCE + usecsElapsed) / 1000; // usecs to msecs
+    int possibleSkew = msecsEstimate - msecsCurrentTime;
+    const int TOLERANCE = 10000; // up to 10 seconds of skew is tolerated
+    if (abs(possibleSkew) > TOLERANCE) {
+        // reset our TIME_REFERENCE and timer
+        TIME_REFERENCE = QDateTime::currentMSecsSinceEpoch() * 1000; // ms to usec
+        timestampTimer.restart();
+        now = TIME_REFERENCE + ::usecTimestampNowAdjust;
+
+        if (wantDebug) {
+            qDebug() << "usecTimestampNow() - resetting QElapsedTimer. ";
+            qDebug() << "    msecsCurrentTime:" << msecsCurrentTime;
+            qDebug() << "       msecsEstimate:" << msecsEstimate;
+            qDebug() << "        possibleSkew:" << possibleSkew;
+            qDebug() << "           TOLERANCE:" << TOLERANCE;
+            
+            qDebug() << "        nsecsElapsed:" << nsecsElapsed;
+            qDebug() << "        usecsElapsed:" << usecsElapsed;
+
+            QDateTime currentLocalTime = QDateTime::currentDateTime();
+
+            quint64 msecsNow = now / 1000; // usecs to msecs
+            QDateTime nowAsString;
+            nowAsString.setMSecsSinceEpoch(msecsNow);
+
+            qDebug() << "                 now:" << now;
+            qDebug() << "            msecsNow:" << msecsNow;
+
+            qDebug() << "         nowAsString:" << nowAsString.toString("yyyy-MM-dd hh:mm:ss.zzz");
+            qDebug() << "    currentLocalTime:" << currentLocalTime.toString("yyyy-MM-dd hh:mm:ss.zzz");
+        }
+    } else {
+        now = TIME_REFERENCE + usecsElapsed + ::usecTimestampNowAdjust;
+    }
+
     if (wantDebug) {
         QDateTime currentLocalTime = QDateTime::currentDateTime();
 
@@ -636,3 +655,24 @@ QString formatSecondsElapsed(float seconds) {
     }
     return result;
 }
+
+bool similarStrings(const QString& stringA, const QString& stringB) {
+    QStringList aWords = stringA.split(" ");
+    QStringList bWords = stringB.split(" ");
+    float aWordsInB = 0.0f;
+    foreach(QString aWord, aWords) {
+        if (bWords.contains(aWord)) {
+            aWordsInB += 1.0f;
+        }
+    }
+    float bWordsInA = 0.0f;
+    foreach(QString bWord, bWords) {
+        if (aWords.contains(bWord)) {
+            bWordsInA += 1.0f;
+        }
+    }
+    float similarity = 0.5f * (aWordsInB / (float)bWords.size()) + 0.5f * (bWordsInA / (float)aWords.size());
+    const float SIMILAR_ENOUGH = 0.5f; // half the words the same is similar enough for us
+    return similarity >= SIMILAR_ENOUGH;
+}
+

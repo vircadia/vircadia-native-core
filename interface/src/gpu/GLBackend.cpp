@@ -53,6 +53,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_glUseProgram),
     (&::gpu::GLBackend::do_glUniform1f),
+    (&::gpu::GLBackend::do_glUniform2f),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
     (&::gpu::GLBackend::do_glMatrixMode),
@@ -687,6 +688,23 @@ void Batch::_glUniform1f(GLint location, GLfloat v0) {
 void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
     glUniform1f(
         batch._params[paramOffset + 1]._int,
+        batch._params[paramOffset + 0]._float);
+    CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
+    ADD_COMMAND_GL(glUniform2f);
+
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform2f, 1);
+}
+void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
+    glUniform2f(
+        batch._params[paramOffset + 2]._int,
+        batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
     CHECK_GL_ERROR();
 }
