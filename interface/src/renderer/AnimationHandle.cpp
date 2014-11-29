@@ -138,11 +138,9 @@ void AnimationHandle::simulate(float deltaTime) {
         return;
     }
     
-    // TODO: When moving the loop/frame calculations to AnimationLoop class, we changed this behavior
-    // see AnimationLoop class for more details. Do we need to support clamping the endFrameIndex to
-    // the max number of frames in the geometry???
-    //
-    // float endFrameIndex = qMin(_lastFrame, animationGeometry.animationFrames.size() - (_loop ? 0.0f : 1.0f));
+    if (_animationLoop.getMaxFrameIndexHint() != animationGeometry.animationFrames.size()) {
+        _animationLoop.setMaxFrameIndexHint(animationGeometry.animationFrames.size());
+    }
         
     // blend between the closest two frames
     applyFrame(getFrameIndex());

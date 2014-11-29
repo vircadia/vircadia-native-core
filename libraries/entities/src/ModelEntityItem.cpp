@@ -344,7 +344,9 @@ QVector<glm::quat> ModelEntityItem::getAnimationFrame() {
         Animation* myAnimation = getAnimation(_animationURL);
         QVector<FBXAnimationFrame> frames = myAnimation->getFrames();
         int frameCount = frames.size();
-
+        if (_animationLoop.getMaxFrameIndexHint() != frameCount) {
+            _animationLoop.setMaxFrameIndexHint(frameCount);
+        }
         if (frameCount > 0) {
             int animationFrameIndex = (int)(glm::floor(getAnimationFrameIndex())) % frameCount;
             if (animationFrameIndex < 0 || animationFrameIndex > frameCount) {
