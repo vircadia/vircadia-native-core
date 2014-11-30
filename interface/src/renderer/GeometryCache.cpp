@@ -834,7 +834,12 @@ void GeometryReader::run() {
         if (_url.path().toLower().endsWith(".svo")) {
             fbxgeo = readSVO(_reply->readAll());
         } else {
-            fbxgeo = readFBX(_reply->readAll(), _mapping);
+            bool grabLightmaps = true;
+            // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...
+            if (_url.path().toLower().endsWith("loungev4_11-18.fbx")) {
+                grabLightmaps = false;
+            }
+            fbxgeo = readFBX(_reply->readAll(), _mapping, grabLightmaps);
         }
         QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
 
