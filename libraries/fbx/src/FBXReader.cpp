@@ -1194,7 +1194,7 @@ int matchTextureUVSetToAttributeChannel(const std::string& texUVSetName, const Q
     }
 }
 
-FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
+FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
     QHash<QString, int> meshIDsToMeshIndices;
@@ -1704,10 +1704,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         } else if (type.contains("shininess")) {
                             counter++;
 
-                        } else if (type.contains("emissive")) {
+                        } else if (loadLightmaps && type.contains("emissive")) {
                             emissiveTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
 
-                        } else if (type.contains("ambient")) {
+                        } else if (loadLightmaps && type.contains("ambient")) {
                             ambientTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         } else {
                             std::string typenam = type.data();
@@ -2372,10 +2372,10 @@ QByteArray writeMapping(const QVariantHash& mapping) {
     return buffer.data();
 }
 
-FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping) {
+FBXGeometry readFBX(const QByteArray& model, const QVariantHash& mapping, bool loadLightmaps) {
     QBuffer buffer(const_cast<QByteArray*>(&model));
     buffer.open(QIODevice::ReadOnly);
-    return extractFBXGeometry(parseFBX(&buffer), mapping);
+    return extractFBXGeometry(parseFBX(&buffer), mapping, loadLightmaps);
 }
 
 bool addMeshVoxelsOperation(OctreeElement* element, void* extraData) {
