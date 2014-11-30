@@ -19,6 +19,7 @@ var warpPosition = { x: 0, y: 0, z: 0 };
 
 var hipsToEyes;
 var restoreCountdownTimer;
+var headTurningTimer = 0.0;
 
 //  Overlays to show target location 
 
@@ -167,6 +168,20 @@ function update(deltaTime) {
             watchAvatar = false; 
             restoreCountDownTimer = 0.0;
         }
+    }
+    var HEAD_TURN_TIME = 0.10;
+    var HEAD_TURN_DEGREES = 4.0; 
+    var HEAD_TURN_START_ANGLE = 45.0;
+    var currentYaw = MyAvatar.getHeadFinalYaw();
+    if (Math.abs(currentYaw) > HEAD_TURN_START_ANGLE) {
+        headTurningTimer += deltaTime;
+        if (headTurningTimer > HEAD_TURN_TIME) {
+            headTurningTimer = 0.0;
+            MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, (currentYaw > 0) ? HEAD_TURN_DEGREES: -HEAD_TURN_DEGREES, 0), 
+                                                 MyAvatar.orientation);
+        }
+    } else {
+        headTurningTimer = 0.0;
     }
 }
 
