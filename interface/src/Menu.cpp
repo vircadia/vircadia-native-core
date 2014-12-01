@@ -445,23 +445,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
-    
-    QMenu* entitiesDebugMenu = developerMenu->addMenu("Entities");
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelBounds, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontRenderEntitiesAsScene, 0, false);
-
-    QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-
-    
-    
-    
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
