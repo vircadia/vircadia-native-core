@@ -337,9 +337,31 @@ bool DomainServer::optionallySetupAssignmentPayment() {
 
 void DomainServer::setupAutomaticNetworking() {
     
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
+    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+
+    // setup our timer to check our IP via stun every X seconds
+    QTimer* dynamicIPTimer = new QTimer(this);
+    connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
+    
+    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+        dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
+        
+        // setup a timer to heartbeat with the ice-server every so often
+        QTimer* iceHeartbeatTimer = new QTimer(this);
+        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
+        iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+        
+        // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
+        connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+    }
+    
     if (!didSetupAccountManagerWithAccessToken()) {
-        qDebug() << "Cannot setup domain-server automatic networking without an access token.";
-        qDebug() << "Please add an access token to your config file or via the web interface.";
+        qDebug() << "Cannot send heartbeat to data server without an access token.";
+        qDebug() << "Add an access token to your config file or via the web interface.";
         
         return;
     }
@@ -350,19 +372,11 @@ void DomainServer::setupAutomaticNetworking() {
     if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
         _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
         
-        LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
             qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
                 << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
-            
-            const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
-            const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
-            
-            // setup our timer to check our IP via stun every X seconds
-            QTimer* dynamicIPTimer = new QTimer(this);
-            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
             
             if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
                 dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
@@ -370,17 +384,6 @@ void DomainServer::setupAutomaticNetworking() {
                 // send public socket changes to the data server so nodes can find us at our new IP
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
             } else {
-                dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
-                
-                // setup a timer to heartbeat with the ice-server every so often
-                QTimer* iceHeartbeatTimer = new QTimer(this);
-                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
-                iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
-                
-                // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
-                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-                
                 // send our heartbeat to data server so it knows what our network settings are
                 sendHeartbeatToDataServer();
             }
