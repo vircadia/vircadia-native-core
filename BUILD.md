@@ -96,12 +96,13 @@ Currently building on Windows has been tested using the following compilers:
 
 #####Windows SDK 7.1
 
-Whichever version of Visual Studio you use, you will need [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
+If using Visual Studio 2010, or using Visual Studio 2013 but building as a Visual Studio 2010 project, you need [Microsoft Windows SDK for Windows 7 and .NET Framework 4](http://www.microsoft.com/en-us/download/details.aspx?id=8279).
 
 NOTE: If using Visual Studio C++ 2010 Express, you need to follow a specific install order. See below before installing the Windows SDK.
 
-######Windows 8.1
-You may have already downloaded the Windows 8 SDK (e.g. if you have previously installed Visual Studio 2013).  If so, change CMAKE_PREFIX_PATH in %HIFI_DIR%\CMakeLists.txt to point to the Windows 8 SDK binaries. The default path is `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`
+######Windows SDK 8.1
+
+If using Visual Studio 2013 and building as a Visual Studio 2013 project you need the Windows 8 SDK which you should already have as part of installing Visual Studio 2013. You should be able to see it at `C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86`.
 
 #####Visual Studio C++ 2010 Express
 
@@ -123,9 +124,11 @@ Some of the build instructions will ask you to start a Visual Studio Command Pro
 
 #####Visual Studio 2013
 
-This product must be purchased separately.
+You can use the Community or Professional editions of Visual Studio 2013.
 
-Visual Studio 2013 doesn't have a shortcut to start a Visual Studio Command Prompt. Instead, start a regular command prompt and then run:
+You can start a Visual Studio 2013 command prompt using the shortcut provided in the Visual Studio Tools folder installed as part of Visual Studio 2013.
+
+Or you can start a regular command prompt and then run:
 
     "%VS120COMNTOOLS%\vsvars32.bat"
 
@@ -145,6 +148,8 @@ NOTE: Qt does not support 64-bit builds on Windows 7, so you must use the 32-bit
 Once Qt is installed, you need to manually configure the following:
 * Make sure the Qt runtime DLLs are loadable. You must do this before you attempt to build because some tools for the build depend on Qt. E.g., add to the PATH: `Qt\5.2.0\msvc2010_opengl\bin\`. 
 * Set the QT_CMAKE_PREFIX_PATH environment variable to your `Qt\5.2.0\msvc2010_opengl` directory.
+
+If building as a Visual Studio 2013 project, download and configure the msvc2013 version of Qt instead.
 
 ####External Libraries
 
