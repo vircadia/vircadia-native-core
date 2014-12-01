@@ -44,6 +44,8 @@ const char DEFAULT_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
 const unsigned short STUN_SERVER_PORT = 3478;
 
+const QString DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY = "domain-server.local-port";
+
 class HifiSockAddr;
 
 typedef QSet<NodeType_t> NodeSet;
