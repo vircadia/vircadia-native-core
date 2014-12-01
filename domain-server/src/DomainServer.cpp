@@ -18,6 +18,7 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QJsonArray>
 #include <QtCore/QProcess>
+#include <QtCore/qsharedmemory.h>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QTimer>
 #include <QtCore/QUrlQuery>
@@ -227,6 +228,18 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     populateDefaultStaticAssignmentsExcludingTypes(parsedTypes);
 
     LimitedNodeList* nodeList = LimitedNodeList::createInstance(domainServerPort, domainServerDTLSPort);
+    
+    // no matter the local port, save it to shared mem so that local assignment clients can ask what it is
+    QSharedMemory* sharedPortMem = new QSharedMemory(DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY, this);
+    quint16 localPort = nodeList->getNodeSocket().localPort();
+    
+    // attempt to create the shared memory segment
+    if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
+        memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
+        qDebug() << "Wrote local listening port to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY;
+    } else {
+        qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
+    }
     
     // set our LimitedNodeList UUID to match the UUID from our config
     // nodes will currently use this to add resources to data-web that relate to our domain
