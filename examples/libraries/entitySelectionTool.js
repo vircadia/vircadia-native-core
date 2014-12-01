@@ -200,12 +200,20 @@ SelectionManager = (function() {
     return that;
 })();
 
+function normalizeDegrees(degrees) {
+    while (degrees > 180) degrees -= 360;
+    while (degrees < -180) degrees += 360;
+    return degrees;
+}
+
 SelectionDisplay = (function () {
     var that = {};
     
     var MINIMUM_DIMENSION = 0.001;
 
     var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.0075;
+
+    var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.2;
 
     var showExtendedStretchHandles = false;
     
@@ -223,6 +231,9 @@ SelectionDisplay = (function () {
     var innerSnapAngle = 22.5; // the angle which we snap to on the inner rotation tool
     var innerRadius;
     var outerRadius;
+    var yawOffset = 0;
+    var pitchOffset = 0;
+    var rollOffset = 0;
     var yawHandleRotation;
     var pitchHandleRotation;
     var rollHandleRotation;
@@ -324,6 +335,23 @@ SelectionDisplay = (function () {
                     visible: false,
                     dashed: true,
                     lineWidth: 1.0,
+                });
+
+    var rotationDegreesDisplay = Overlays.addOverlay("text3d", {
+                    position: { x:0, y: 0, z: 0},
+                    text: "",
+                    color: { red: 0, green: 0, blue: 0},
+                    backgroundColor: { red: 255, green: 255, blue: 255 },
+                    alpha: 0.7,
+                    visible: false,
+                    isFacingAvatar: true,
+                    drawInFront: true,
+                    dimensions: { x: 0, y: 0 },
+                    lineHeight: 0.0,
+                    topMargin: 0,
+                    rightMargin: 0,
+                    bottomMargin: 0,
+                    leftMargin: 0,
                 });
 
     var grabberMoveUp = Overlays.addOverlay("billboard", {
@@ -585,6 +613,7 @@ SelectionDisplay = (function () {
         rotateOverlayCurrent,
         rotateZeroOverlay,
         rotateCurrentOverlay,
+        rotationDegreesDisplay,
         xRailOverlay,
         yRailOverlay,
         zRailOverlay,
@@ -757,6 +786,10 @@ SelectionDisplay = (function () {
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
 
+                yawOffset = 90;
+                pitchOffset = 0;
+                rollOffset = 0;
+
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 pitchNormal  = { x: 1, y: 0, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
@@ -787,6 +820,10 @@ SelectionDisplay = (function () {
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 0, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
+
+                yawOffset = 0;
+                pitchOffset = 180;
+                rollOffset = 90;
 
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 pitchNormal = { x: 1, y: 0, z: 0 };
@@ -822,6 +859,10 @@ SelectionDisplay = (function () {
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 90 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
 
+                yawOffset = 180;
+                pitchOffset = 90;
+                rollOffset = 180;
+
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 pitchNormal = { x: 1, y: 0, z: 0 };
                 rollNormal  = { x: 0, y: 0, z: 1 };
@@ -848,8 +889,12 @@ SelectionDisplay = (function () {
             } else {
             
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 270, z: 0 });
-                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
+                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
+
+                yawOffset = 270;
+                pitchOffset = 180;
+                rollOffset = 180;
 
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
@@ -1570,11 +1615,17 @@ SelectionDisplay = (function () {
                     endAt: 0,
                     innerRadius: 0.9,
                 });
+
+            Overlays.editOverlay(rotationDegreesDisplay, {
+                visible: true,
+                ignoreRayIntersection: true,
+            });
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+            Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
 
             pushCommandForSelections();
         },
@@ -1605,12 +1656,9 @@ SelectionDisplay = (function () {
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
                 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = false;
-                // var innerRadius = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-                if (distanceFromCenter < innerRadius) {
-                    angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
-                    snapToInner = true;
-                }
+                var snapToInner = distanceFromCenter < innerRadius;
+                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                 
                 // for debugging
                 if (debug) {
@@ -1632,7 +1680,20 @@ SelectionDisplay = (function () {
                         rotation: Quat.multiply(yawChange, initialProperties.rotation),
                     });
                 }
-                
+
+                var angle = (yawOffset + angleFromZero + 180) * (Math.PI / 180);
+                var position = Vec3.sum( selectionManager.worldPosition, {
+                    x: -Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+                    y: -selectionManager.worldDimensions.y / 2,
+                    z: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+                });
+                Overlays.editOverlay(rotationDegreesDisplay, {
+                    position: position,
+                    dimensions: { x: innerRadius / 2, y: innerRadius / 5.6 },
+                    lineHeight: innerRadius / 6,
+                    text: normalizeDegrees(angleFromZero),
+                });
+
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
                 var endAtCurrent = angleFromZero;
@@ -1701,11 +1762,17 @@ SelectionDisplay = (function () {
                     endAt: 0,
                     innerRadius: 0.9,
                 });
+
+            Overlays.editOverlay(rotationDegreesDisplay, {
+                visible: true,
+                ignoreRayIntersection: true,
+            });
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+            Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
 
             pushCommandForSelections();
         },
@@ -1736,11 +1803,9 @@ SelectionDisplay = (function () {
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = false;
-                if (distanceFromCenter < innerRadius) {
-                    angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
-                    snapToInner = true;
-                }
+                var snapToInner = distanceFromCenter < innerRadius;
+                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                 
                 // for debugging
                 if (debug) {
@@ -1763,6 +1828,19 @@ SelectionDisplay = (function () {
                         rotation: Quat.multiply(pitchChange, initialProperties.rotation),
                     });
                 }
+
+                var angle = (rollOffset + angleFromZero - 90) * (Math.PI / 180);
+                var position = Vec3.sum( selectionManager.worldPosition, {
+                    x: selectionManager.worldDimensions.x / 2,
+                    y: Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+                    z: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+                });
+                Overlays.editOverlay(rotationDegreesDisplay, {
+                    position: position,
+                    dimensions: { x: innerRadius / 2, y: innerRadius / 5.6 },
+                    lineHeight: innerRadius / 6,
+                    text: normalizeDegrees(angleFromZero),
+                });
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
@@ -1831,11 +1909,17 @@ SelectionDisplay = (function () {
                     endAt: 0,
                     innerRadius: 0.9,
                 });
+
+            Overlays.editOverlay(rotationDegreesDisplay, {
+                visible: true,
+                ignoreRayIntersection: true,
+            });
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+            Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
 
             pushCommandForSelections();
         },
@@ -1866,11 +1950,9 @@ SelectionDisplay = (function () {
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = false;
-                if (distanceFromCenter < innerRadius) {
-                    angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
-                    snapToInner = true;
-                }
+                var snapToInner = distanceFromCenter < innerRadius;
+                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
 
                 // for debugging
                 if (debug) {
@@ -1892,6 +1974,19 @@ SelectionDisplay = (function () {
                         rotation: Quat.multiply(rollChange, initialProperties.rotation),
                     });
                 }
+
+                var angle = (rollOffset + angleFromZero + 90) * (Math.PI / 180);
+                var position = Vec3.sum( selectionManager.worldPosition, {
+                    x: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+                    y: -Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+                    z: -selectionManager.worldDimensions.z / 2,
+                });
+                Overlays.editOverlay(rotationDegreesDisplay, {
+                    position: position,
+                    dimensions: { x: innerRadius / 2, y: innerRadius / 5.6 },
+                    lineHeight: innerRadius / 6,
+                    text: normalizeDegrees(angleFromZero),
+                });
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
