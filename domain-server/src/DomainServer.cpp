@@ -235,8 +235,11 @@ void DomainServer::setupNodeListAndAssignments(const QUuid& sessionUUID) {
     
     // attempt to create the shared memory segment
     if (sharedPortMem->create(sizeof(localPort)) || sharedPortMem->attach()) {
+        sharedPortMem->lock();
         memcpy(sharedPortMem->data(), &localPort, sizeof(localPort));
-        qDebug() << "Wrote local listening port to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY;
+        sharedPortMem->unlock();
+        
+        qDebug() << "Wrote local listening port" << localPort << "to shared memory at key" << DOMAIN_SERVER_LOCAL_PORT_SMEM_KEY;
     } else {
         qWarning() << "Failed to create and attach to shared memory to share local port with assignment-client children.";
     }
