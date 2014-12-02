@@ -50,7 +50,6 @@ void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
             updateObject(motionState, entity->getUpdateFlags());
         }
         entity->clearUpdateFlags();
-        // TODO: implement this
         ++item_itr;
     } 
 
@@ -81,10 +80,15 @@ void PhysicsEngine::addEntity(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
-        EntityMotionState* motionState = new EntityMotionState(entity);
-        entity->setPhysicsInfo(static_cast<void*>(motionState));
         if (entity->isMortal()) {
             _mortalEntities.insert(entity);
+        }
+        EntityMotionState* motionState = new EntityMotionState(entity);
+        if (addObject(motionState)) {
+            entity->setPhysicsInfo(static_cast<void*>(motionState));
+        } else {
+            // We failed to add the object to the simulation.  Probably because we couldn't create a shape for it.
+            delete motionState;
         }
     }
 }
