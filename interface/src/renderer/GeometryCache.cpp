@@ -841,6 +841,8 @@ void GeometryReader::run() {
                 grabLightmaps = false;
             } else if (_url.path().toLower().endsWith("apt8_reboot.fbx")) {
                 lightmapLevel = 4.0f;
+            } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
+                lightmapLevel = 3.5f;
             }
             fbxgeo = readFBX(_reply->readAll(), _mapping, grabLightmaps, lightmapLevel);
         }
