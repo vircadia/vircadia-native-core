@@ -332,7 +332,7 @@ SelectionDisplay = (function () {
                     solid: false,
                     visible: false,
                     dashed: true,
-                    lineWidth: 1.0,
+                    lineWidth: 2.0,
                     ignoreRayIntersection: true // this never ray intersects
                 });
 
@@ -344,7 +344,7 @@ SelectionDisplay = (function () {
                     solid: false,
                     visible: false,
                     dashed: true,
-                    lineWidth: 1.0,
+                    lineWidth: 2.0,
                 });
 
     var selectionBoxes = [];
