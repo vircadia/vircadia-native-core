@@ -1913,9 +1913,12 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
         return;
     }
     if (colorWidth > 0) {
-        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0);
+        QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0xFF);
         for (int i = 0; i < CHILD_COUNT; i++) {
             HeightfieldColorPointer childColor = _children[i]->getColor();
+            if (!childColor) {
+                continue;
+            }
             int childColorWidth = childColor->getWidth();
             int childColorHeight = childColor->getContents().size() / (childColorWidth * DataBlock::COLOR_BYTES);
             if (childColorWidth != colorWidth || childColorHeight != colorHeight) {
@@ -1953,6 +1956,9 @@ void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
         QVector<SharedObjectPointer> materials;
         for (int i = 0; i < CHILD_COUNT; i++) {
             HeightfieldMaterialPointer childMaterial = _children[i]->getMaterial();
+            if (!childMaterial) {
+                continue;
+            }
             int childMaterialWidth = childMaterial->getWidth();
             int childMaterialHeight = childMaterial->getContents().size() / childMaterialWidth;
             if (childMaterialWidth != materialWidth || childMaterialHeight != materialHeight) {
