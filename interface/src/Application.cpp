@@ -1574,7 +1574,9 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
-    _window->show();
+    if (!_aboutToQuit) {
+        _window->show();
+    }
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
