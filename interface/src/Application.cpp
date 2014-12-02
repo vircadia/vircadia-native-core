@@ -4025,7 +4025,7 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     } else {
         // connect to the appropriate signals of this script engine
         connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
-        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptLoadError);
+        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
         
         // get the script engine object to load the script at the designated script URL
         scriptEngine->loadURL(scriptUrl);
