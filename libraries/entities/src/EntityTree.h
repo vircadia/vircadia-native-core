@@ -149,6 +149,9 @@ public:
 
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
     
+    bool getLightsArePickable() const { return _lightsArePickable; }
+    void setLightsArePickable(bool value) { _lightsArePickable = value; }
+    
 signals:
     void deletingEntity(const EntityItemID& entityID);
     void addingEntity(const EntityItemID& entityID);
@@ -181,6 +184,8 @@ private:
     QList<EntityItem*> _mortalEntities; // entities that need to be checked for expiry
 
     QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
+    
+    bool _lightsArePickable;
 };
 
 #endif // hifi_EntityTree_h
