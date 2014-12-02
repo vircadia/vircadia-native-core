@@ -213,7 +213,11 @@ SelectionDisplay = (function () {
 
     var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.0075;
 
+    // These are multipliers for sizing the rotation degrees display while rotating an entity
     var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.2;
+    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.5;
+    var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
+    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.17;
 
     var showExtendedStretchHandles = false;
     
@@ -1589,6 +1593,26 @@ SelectionDisplay = (function () {
     addStretchTool(grabberEdgeFR, "STRETCH_EdgeFR", null, {x: -1, y: 0, z: -1}, { x: 1, y: 0, z: 1 });
     addStretchTool(grabberEdgeFL, "STRETCH_EdgeFL", null, {x: 1, y: 0, z: -1}, { x: -1, y: 0, z: 1 });
 
+    function updateRotationDegreesOverlay(angleFromZero, handleRotation, centerPosition) {
+        var angle = angleFromZero * (Math.PI / 180);
+        var position = {
+            x: Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+            y: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+            z: 0,
+        };
+        position = Vec3.multiplyQbyV(handleRotation, position);
+        position = Vec3.sum(centerPosition, position);
+        Overlays.editOverlay(rotationDegreesDisplay, {
+            position: position,
+            dimensions: {
+                x: innerRadius * ROTATION_DISPLAY_SIZE_X_MULTIPLIER,
+                y: innerRadius * ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
+            },
+            lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
+            text: normalizeDegrees(angleFromZero),
+        });
+    }
+
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
@@ -1634,6 +1658,8 @@ SelectionDisplay = (function () {
                 visible: true,
                 ignoreRayIntersection: true,
             });
+
+            updateRotationDegreesOverlay(0, yawHandleRotation, yawCenter);
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
@@ -1695,18 +1721,7 @@ SelectionDisplay = (function () {
                     });
                 }
 
-                var angle = (yawOffset + angleFromZero + 180) * (Math.PI / 180);
-                var position = Vec3.sum( selectionManager.worldPosition, {
-                    x: -Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-                    y: -selectionManager.worldDimensions.y / 2,
-                    z: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-                });
-                Overlays.editOverlay(rotationDegreesDisplay, {
-                    position: position,
-                    dimensions: { x: innerRadius / 2, y: innerRadius / 5.6 },
-                    lineHeight: innerRadius / 6,
-                    text: normalizeDegrees(angleFromZero),
-                });
+                updateRotationDegreesOverlay(angleFromZero, yawHandleRotation, yawCenter);
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
@@ -1781,6 +1796,8 @@ SelectionDisplay = (function () {
                 visible: true,
                 ignoreRayIntersection: true,
             });
+
+            updateRotationDegreesOverlay(0, pitchHandleRotation, pitchCenter);
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
@@ -1843,18 +1860,7 @@ SelectionDisplay = (function () {
                     });
                 }
 
-                var angle = (rollOffset + angleFromZero - 90) * (Math.PI / 180);
-                var position = Vec3.sum( selectionManager.worldPosition, {
-                    x: selectionManager.worldDimensions.x / 2,
-                    y: Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-                    z: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-                });
-                Overlays.editOverlay(rotationDegreesDisplay, {
-                    position: position,
-                    dimensions: { x: innerRadius / 2, y: innerRadius / 5.6 },
-                    lineHeight: innerRadius / 6,
-                    text: normalizeDegrees(angleFromZero),
-                });
+                updateRotationDegreesOverlay(angleFromZero, pitchHandleRotation, pitchCenter);
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
@@ -1928,6 +1934,8 @@ SelectionDisplay = (function () {
                 visible: true,
                 ignoreRayIntersection: true,
             });
+
+            updateRotationDegreesOverlay(0, rollHandleRotation, rollCenter);
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
@@ -1989,18 +1997,7 @@ SelectionDisplay = (function () {
                     });
                 }
 
-                var angle = (rollOffset + angleFromZero + 90) * (Math.PI / 180);
-                var position = Vec3.sum( selectionManager.worldPosition, {
-                    x: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-                    y: -Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
-                    z: -selectionManager.worldDimensions.z / 2,
-                });
-                Overlays.editOverlay(rotationDegreesDisplay, {
-                    position: position,
-                    dimensions: { x: innerRadius / 2, y: innerRadius / 5.6 },
-                    lineHeight: innerRadius / 6,
-                    text: normalizeDegrees(angleFromZero),
-                });
+                updateRotationDegreesOverlay(angleFromZero, rollHandleRotation, rollCenter);
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
