@@ -19,12 +19,11 @@
 #include <PerfStat.h>
 #include <SphereShape.h>
 
-#include <EntityItem.h>
-#include <EntityEditPacketSender.h>
-#include <EntityTree.h>
-#include <EntityTreeElement.h>
-
 #include "EntityCollisionSystem.h"
+#include "EntityEditPacketSender.h"
+#include "EntityItem.h"
+#include "EntityTreeElement.h"
+#include "EntityTree.h"
 
 const int MAX_COLLISIONS_PER_Entity = 16;
 

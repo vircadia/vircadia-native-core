@@ -36,7 +36,6 @@ public:
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode();
-    virtual Octree* createTree();
     virtual char getMyNodeType() const { return NodeType::VoxelServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeVoxelQuery; }
     virtual const char* getMyServerName() const { return VOXEL_SERVER_NAME; }
@@ -50,6 +49,7 @@ public:
     virtual int sendSpecialPacket(const SharedNodePointer& node, OctreeQueryNode* queryNode, int& packetsSent);
 
 protected:
+    virtual Octree* createTree();
     virtual void readAdditionalConfiguration(const QJsonObject& settingsSectionObject);
 
 private:

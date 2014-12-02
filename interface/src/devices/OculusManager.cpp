@@ -14,9 +14,14 @@
 
 #include "OculusManager.h"
 
+#include <QDesktopWidget>
+#include <QGuiApplication>
 #include <QOpenGLFramebufferObject>
+#include <QScreen>
 
 #include <glm/glm.hpp>
+
+#include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
 #include "Application.h"
@@ -75,9 +80,7 @@ glm::vec3 OculusManager::_rightEyePosition = glm::vec3();
 void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
     _calibrationState = UNCALIBRATED;
-
     qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
-
     ovr_Initialize();
 
     _ovrHmd = ovrHmd_Create(0);
@@ -86,6 +89,7 @@ void OculusManager::connect() {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
         }
         _isConnected = true;
+        
 #if defined(__APPLE__) || defined(_WIN32)
         _eyeFov[0] = _ovrHmd->DefaultEyeFov[0];
         _eyeFov[1] = _ovrHmd->DefaultEyeFov[1];
@@ -715,3 +719,59 @@ void OculusManager::overrideOffAxisFrustum(float& left, float& right, float& bot
     }
 #endif
 }
+
+int OculusManager::getHMDScreen() {
+    int hmdScreenIndex = -1; // unknown
+#ifdef HAVE_LIBOVR
+    // TODO: it might be smarter to handle multiple HMDs connected in this case. but for now,
+    // we will simply assume the initialization code that set up _ovrHmd picked the best hmd
+
+    if (_ovrHmd) {
+        QString productNameFromOVR = _ovrHmd->ProductName;
+
+        int hmdWidth = _ovrHmd->Resolution.w;
+        int hmdHeight = _ovrHmd->Resolution.h;
+        int hmdAtX = _ovrHmd->WindowsPos.x;
+        int hmdAtY = _ovrHmd->WindowsPos.y;
+
+        // we will score the likelihood that each screen is a match based on the following
+        // rubrik of potential matching features
+        const int EXACT_NAME_MATCH = 100;
+        const int SIMILAR_NAMES = 10;
+        const int EXACT_LOCATION_MATCH = 50;
+        const int EXACT_RESOLUTION_MATCH = 25;
+        
+        int bestMatchScore = 0;
+
+        // look at the display list and see if we can find the best match
+        QDesktopWidget* desktop = QApplication::desktop();
+        int screenNumber = 0;
+        foreach (QScreen* screen, QGuiApplication::screens()) {
+            QString screenName = screen->name();
+            QRect screenRect = desktop->screenGeometry(screenNumber);
+            
+            int screenScore = 0;
+            if (screenName == productNameFromOVR) {
+                screenScore += EXACT_NAME_MATCH;
+            }
+            if (similarStrings(screenName, productNameFromOVR)) {
+                screenScore += SIMILAR_NAMES;
+            }
+            if (hmdWidth == screenRect.width() && hmdHeight == screenRect.height()) {
+                screenScore += EXACT_RESOLUTION_MATCH;
+            }
+            if (hmdAtX == screenRect.x() && hmdAtY == screenRect.y()) {
+                screenScore += EXACT_LOCATION_MATCH;
+            }
+            if (screenScore > bestMatchScore) {
+                bestMatchScore = screenScore;
+                hmdScreenIndex = screenNumber;
+            }
+
+            screenNumber++;
+        }
+    }
+#endif
+    return hmdScreenIndex;
+}
+

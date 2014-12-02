@@ -119,14 +119,14 @@ MotionTracker::JointTracker::JointTracker() :
     _absFrame(),
     _semantic(""),
     _parent(INVALID_PARENT),
-    _lastUpdate(0)
+    _lastUpdate(1)  // Joint inactive
 {
 }
 
 MotionTracker::JointTracker::JointTracker(const Semantic& semantic, Index parent) :
     _semantic(semantic),
     _parent(parent),
-    _lastUpdate(0)
+    _lastUpdate(1)  // Joint inactive
 {
 }
 

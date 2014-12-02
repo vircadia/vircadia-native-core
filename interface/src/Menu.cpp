@@ -97,6 +97,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
+    _hmdToolsDialog(NULL),
     _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -334,6 +335,12 @@ Menu::Menu() :
                                             appInstance, SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+                                           false,
+                                           this,
+                                           SLOT(hmdTools(bool)));
+
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
                                            appInstance,
@@ -438,23 +445,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
-    
-    QMenu* entitiesDebugMenu = developerMenu->addMenu("Entities");
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelBounds, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DontRenderEntitiesAsScene, 0, false);
-
-    QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-
-    
-    
-    
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
@@ -652,6 +643,10 @@ Menu::Menu() :
 Menu::~Menu() {
     bandwidthDetailsClosed();
     octreeStatsDetailsClosed();
+    if (_hmdToolsDialog) {
+        delete _hmdToolsDialog;
+        _hmdToolsDialog = NULL;
+    }
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1592,6 +1587,25 @@ void Menu::lodToolsClosed() {
         delete _lodToolsDialog;
         _lodToolsDialog = NULL;
     }
+}
+
+void Menu::hmdTools(bool showTools) {
+    if (showTools) {
+        if (!_hmdToolsDialog) {
+            _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
+            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+        }
+        _hmdToolsDialog->show();
+        _hmdToolsDialog->raise();
+    } else {
+        hmdToolsClosed();
+    }
+    Application::getInstance()->getWindow()->activateWindow();
+}
+
+void Menu::hmdToolsClosed() {
+    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
+    _hmdToolsDialog->hide();
 }
 
 void Menu::cycleFrustumRenderMode() {

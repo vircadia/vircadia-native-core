@@ -30,7 +30,6 @@ public:
     EntityTreeHeadlessViewer();
     virtual ~EntityTreeHeadlessViewer();
 
-    virtual Octree* createTree() { return new EntityTree(true); }
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
@@ -42,7 +41,10 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
+
 protected:
+    virtual Octree* createTree() { return new EntityTree(true); }
+
     EntitySimulation* _simulation;
 };
 

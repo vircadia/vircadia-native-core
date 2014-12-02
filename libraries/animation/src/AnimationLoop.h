@@ -44,6 +44,9 @@ public:
 
     void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(frameIndex, _firstFrame, _lastFrame); }
     float getFrameIndex() const { return _frameIndex; }
+
+    void setMaxFrameIndexHint(float value) { _maxFrameIndexHint = value; }
+    float getMaxFrameIndexHint() const { return _maxFrameIndexHint; }
     
     void start() { setRunning(true); }
     void stop() { setRunning(false); }
@@ -58,6 +61,7 @@ private:
     float _lastFrame;
     bool _running;
     float _frameIndex;
+    float _maxFrameIndexHint;
 };
 
 #endif // hifi_AnimationLoop_h
