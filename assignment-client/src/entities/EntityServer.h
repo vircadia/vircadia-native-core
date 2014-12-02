@@ -27,7 +27,6 @@ public:
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode();
-    virtual Octree* createTree();
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
     virtual const char* getMyServerName() const { return MODEL_SERVER_NAME; }
@@ -45,6 +44,9 @@ public:
 
 public slots:
     void pruneDeletedEntities();
+
+protected:
+    virtual Octree* createTree();
 
 private:
     EntitySimulation* _entitySimulation;
