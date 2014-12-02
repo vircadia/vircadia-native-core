@@ -1129,118 +1129,118 @@ void ApplicationOverlay::renderStatsAndLogs() {
     nodeBoundsDisplay.drawOverlay();
 }
 
-//Renders a hemisphere with texture coordinates.
-void ApplicationOverlay::renderTexturedHemisphere() {
-    const int slices = 80;
-    const int stacks = 80;
-
-    //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
-    static VerticesIndices vbo(0, 0);
-    int vertices = slices * (stacks - 1) + 1;
-    int indices = slices * 2 * 3 * (stacks - 2) + slices * 3;
-
-    static float oldTextureFOV = _textureFov;
-    //We only generate the VBO when the _textureFov changes
-    if (vbo.first == 0 || oldTextureFOV != _textureFov) {
-        oldTextureFOV = _textureFov;
-        TextureVertex* vertexData = new TextureVertex[vertices];
-        TextureVertex* vertex = vertexData;
-        for (int i = 0; i < stacks - 1; i++) {
-            float phi = PI_OVER_TWO * (float)i / (float)(stacks - 1);
-            float z = -sinf(phi), radius = cosf(phi);
-
-            for (int j = 0; j < slices; j++) {
-                float theta = TWO_PI * (float)j / (float)slices;
-
-                vertex->position.x = sinf(theta) * radius;
-                vertex->position.y = cosf(theta) * radius;
-                vertex->position.z = z;
-                vertex->uv.x = asin(vertex->position.x) / (_textureFov) + 0.5f;
-                vertex->uv.y = asin(vertex->position.y) / (_textureFov) + 0.5f;
-                vertex++;
-            }
-        }
-        vertex->position.x = 0.0f;
-        vertex->position.y = 0.0f;
-        vertex->position.z = -1.0f;
-        vertex->uv.x = 0.5f;
-        vertex->uv.y = 0.5f;
-        vertex++;
-
-        if (vbo.first == 0){
-            glGenBuffers(1, &vbo.first);
-        }
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        const int BYTES_PER_VERTEX = sizeof(TextureVertex);
-        glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-        delete[] vertexData;
-
-        GLushort* indexData = new GLushort[indices];
-        GLushort* index = indexData;
-        for (int i = 0; i < stacks - 2; i++) {
-            GLushort bottom = i * slices;
-            GLushort top = bottom + slices;
-            for (int j = 0; j < slices; j++) {
-                int next = (j + 1) % slices;
-
-                *(index++) = bottom + j;
-                *(index++) = top + next;
-                *(index++) = top + j;
-
-                *(index++) = bottom + j;
-                *(index++) = bottom + next;
-                *(index++) = top + next;
-            }
-        }
-        GLushort bottom = (stacks - 2) * slices;
-        GLushort top = bottom + slices;
-        for (int i = 0; i < slices; i++) {
-            *(index++) = bottom + i;
-            *(index++) = bottom + (i + 1) % slices;
-            *(index++) = top;
-        }
-
-        glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
-        const int BYTES_PER_INDEX = sizeof(GLushort);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-        delete[] indexData;
-
-    } else {
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
+ApplicationOverlay::VerticesIndices* ApplicationOverlay::makeTexturedHemiphereVBO(float fov,
+                                                                                  float aspectRatio,
+                                                                                  int slices,
+                                                                                  int stacks) {
+    if (fov >= PI) {
+        qDebug() << "ApplicationOverlay::makeHemiphereVBO(): FOV greater or equal than Pi will create issues";
     }
+    
+    //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
+    VerticesIndices* vbo = new VerticesIndices(0, 0);
+    
+    // Compute number of vertices needed
+    int vertices = slices * stacks;
+    
+    // Compute vertices positions and texture UV coordinate
+    TextureVertex* vertexData = new TextureVertex[vertices];
+    TextureVertex* vertexPtr = &vertexData[0];
+    for (int i = 0; i < stacks; i++) {
+        float stacksRatio = (float)i / (float)stacks; // First stack is 0.0f, last stack is 1.0f
+        // abs(phi) <= fov / 2.0f
+        float phi = fov * (stacksRatio - 0.5f);
+        
+        for (int j = 0; j < slices; j++) {
+            float slicesRatio = (float)j / (float)slices; // First slice is 0.0f, last slice is 1.0f
+            // abs(theta) <= fov * aspectRatio / 2.0f
+            float theta = fov * aspectRatio * (slicesRatio - 0.5f);
+            
+            vertexPtr->position.x = -sinf(theta);
+            vertexPtr->position.y = sinf(phi);
+            vertexPtr->position.z = cosf(theta);
+            vertexPtr->uv.x = slicesRatio;
+            vertexPtr->uv.y = 1.0f - stacksRatio;
+            vertexPtr++;
+        }
+    }
+    // Create and write to buffer
+    glGenBuffers(1, &vbo->first);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo->first);
+    static const int BYTES_PER_VERTEX = sizeof(TextureVertex);
+    glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+    delete[] vertexData;
+    
+    
+    // Compute number of indices needed
+    static const int VERTEX_PER_TRANGLE = 3;
+    static const int TRIANGLE_PER_RECTANGLE = 2;
+    int numberOfRectangles = (slices - 1) * (stacks - 1);
+    int indices = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
+    
+    // Compute indices order
+    GLushort* indexData = new GLushort[indices];
+    GLushort* indexPtr = indexData;
+    for (int i = 0; i < stacks - 1; i++) {
+        for (int j = 0; j < slices - 1; j++) {
+            GLushort bottomLeftIndex = i * slices + j;
+            GLushort bottomRightIndex = bottomLeftIndex + 1;
+            GLushort topLeftIndex = bottomLeftIndex + slices;
+            GLushort topRightIndex = topLeftIndex + 1;
+            
+            *(indexPtr++) = topLeftIndex;
+            *(indexPtr++) = bottomLeftIndex;
+            *(indexPtr++) = topRightIndex;
+            
+            *(indexPtr++) = topRightIndex;
+            *(indexPtr++) = bottomLeftIndex;
+            *(indexPtr++) = bottomRightIndex;
+        }
+    }
+    // Create and write to buffer
+    glGenBuffers(1, &vbo->second);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo->second);
+    static const int BYTES_PER_INDEX = sizeof(GLushort);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+    delete[] indexData;
+    
+    return vbo;
+}
+
+//Renders a hemisphere with texture coordinates.
+void ApplicationOverlay::renderTexturedHemisphere(ApplicationOverlay::VerticesIndices* vbo, int vertices, int indices) {
+    glBindBuffer(GL_ARRAY_BUFFER, vbo->first);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo->second);
  
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
-    glVertexPointer(3, GL_FLOAT, sizeof(TextureVertex), (void*)0);
-    glTexCoordPointer(2, GL_FLOAT, sizeof(TextureVertex), (void*)12);
+    static const int STRIDE = sizeof(TextureVertex);
+    static const void* VERTEX_POINTER = 0;
+    static const void* TEX_COORD_POINTER = (void*)sizeof(glm::vec3);
+    glVertexPointer(3, GL_FLOAT, STRIDE, VERTEX_POINTER);
+    glTexCoordPointer(2, GL_FLOAT, STRIDE, TEX_COORD_POINTER);
 
-    glPushMatrix();
-    Application* application = Application::getInstance();
-    MyAvatar* myAvatar = application->getAvatar();
+    
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     const glm::quat& orientation = myAvatar->getOrientation();
     const glm::vec3& position = myAvatar->getDefaultEyePosition();
-
-    glm::mat4 rotation = glm::toMat4(orientation);
-
-    glTranslatef(position.x, position.y, position.z);
-    glMultMatrixf(&rotation[0][0]);
-    
     const float scale = _oculusuiRadius * myAvatar->getScale();
-    glScalef(scale, scale, scale);
-
-    glDrawRangeElements(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-
-    glPopMatrix();
+    
+    glPushMatrix(); {
+        glTranslatef(position.x, position.y, position.z);
+        glm::mat4 rotation = glm::toMat4(orientation);
+        glMultMatrixf(&rotation[0][0]);
+        glScalef(scale, scale, scale);
+        
+        glDrawRangeElements(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
+    } glPopMatrix();
 
     glDisableClientState(GL_VERTEX_ARRAY);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
 }
 
 void ApplicationOverlay::renderDomainConnectionStatusBorder() {

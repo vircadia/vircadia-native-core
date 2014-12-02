@@ -55,8 +55,10 @@ private:
     void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
     void renderAudioMeter();
     void renderStatsAndLogs();
-    void renderTexturedHemisphere();
     void renderDomainConnectionStatusBorder();
+    
+    VerticesIndices* makeTexturedHemiphereVBO(float fov, float aspectRatio, int slices, int stacks);
+    void renderTexturedHemisphere(ApplicationOverlay::VerticesIndices* vbo, int vertices, int indices);
 
     QOpenGLFramebufferObject* _framebufferObject;
     float _trailingAudioLoudness;
