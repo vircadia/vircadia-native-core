@@ -438,6 +438,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    setFullscreen(false); // if you exit while in full screen, you'll get bad behavior when you restart.
 }
 
 Application::~Application() {
@@ -651,20 +652,11 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //Only behave like a true mirror when in the OR
-        if (OculusManager::isConnected()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                   glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        } else {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                  glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        }
+        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
 
     // Update camera position
@@ -851,7 +843,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toString());
         }
         
         return false;
@@ -1569,6 +1561,10 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
+        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu show() after hide() doesn't work with Rift VR display so set height instead.
@@ -1579,6 +1575,7 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    _window->show();
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -1586,6 +1583,10 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
+    }
+
     if (enableVRMode) {
         if (!OculusManager::isConnected()) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
@@ -1596,6 +1597,11 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        
+        _mirrorCamera.setHmdPosition(glm::vec3());
+        _mirrorCamera.setHmdRotation(glm::quat());
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
@@ -3509,7 +3515,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
     }
 }
 
-
 void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
@@ -3523,7 +3528,11 @@ void Application::resetSensors() {
     _prioVR.reset();
     //_leapmotion.reset();
 
-    QCursor::setPos(_mouseX, _mouseY);
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    QCursor::setPos(currentScreen, windowCenter);
+    
     _myAvatar->reset();
 
     QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
@@ -4008,26 +4017,23 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         return _scriptEnginesHash[scriptURLString];
     }
 
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
+    ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     scriptEngine->setUserLoaded(isUserLoaded);
     
-    registerScriptEngineWithApplicationServices(scriptEngine);
+    if (scriptFilename.isNull()) {
+        // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
+        // doesn't just get an empty script engine)
+        
+        // we can complete setup now since there isn't a script we have to load
+        registerScriptEngineWithApplicationServices(scriptEngine);
+    } else {
+        // connect to the appropriate signals of this script engine
+        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
+        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
+        
+        // get the script engine object to load the script at the designated script URL
+        scriptEngine->loadURL(scriptUrl);
+    }
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {
@@ -4036,6 +4042,22 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::handleScriptEngineLoaded(const QUrl& scriptURL) {
+    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    
+    _scriptEnginesHash.insertMulti(scriptURL.toString(), scriptEngine);
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    UserActivityLogger::getInstance().loadedScript(scriptURL.toString());
+    
+    // register our application services and set it off on its own thread
+    registerScriptEngineWithApplicationServices(scriptEngine);
+}
+
+void Application::handleScriptLoadError(const QUrl& scriptURL) {
+    qDebug() << "Application::loadScript(), script failed to load...";
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptURL.toString() + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {

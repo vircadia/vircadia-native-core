@@ -655,3 +655,24 @@ QString formatSecondsElapsed(float seconds) {
     }
     return result;
 }
+
+bool similarStrings(const QString& stringA, const QString& stringB) {
+    QStringList aWords = stringA.split(" ");
+    QStringList bWords = stringB.split(" ");
+    float aWordsInB = 0.0f;
+    foreach(QString aWord, aWords) {
+        if (bWords.contains(aWord)) {
+            aWordsInB += 1.0f;
+        }
+    }
+    float bWordsInA = 0.0f;
+    foreach(QString bWord, bWords) {
+        if (aWords.contains(bWord)) {
+            bWordsInA += 1.0f;
+        }
+    }
+    float similarity = 0.5f * (aWordsInB / (float)bWords.size()) + 0.5f * (bWordsInA / (float)aWords.size());
+    const float SIMILAR_ENOUGH = 0.5f; // half the words the same is similar enough for us
+    return similarity >= SIMILAR_ENOUGH;
+}
+

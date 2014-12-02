@@ -71,6 +71,7 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
+#include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
@@ -392,9 +393,13 @@ private slots:
     void timer();
     void idle();
     void aboutToQuit();
+    
+    void handleScriptEngineLoaded(const QUrl& scriptURL);
+    void handleScriptLoadError(const QUrl& scriptURL);
 
     void connectedToDomain(const QString& hostname);
 
+    friend class HMDToolsDialog;
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void setEnableVRMode(bool enableVRMode);

@@ -200,12 +200,25 @@ SelectionManager = (function() {
     return that;
 })();
 
+// Normalize degrees to be in the range (-180, 180]
+function normalizeDegrees(degrees) {
+    while (degrees > 180) degrees -= 360;
+    while (degrees <= -180) degrees += 360;
+    return degrees;
+}
+
 SelectionDisplay = (function () {
     var that = {};
     
     var MINIMUM_DIMENSION = 0.001;
 
     var GRABBER_DISTANCE_TO_SIZE_RATIO = 0.0075;
+
+    // These are multipliers for sizing the rotation degrees display while rotating an entity
+    var ROTATION_DISPLAY_DISTANCE_MULTIPLIER = 1.2;
+    var ROTATION_DISPLAY_SIZE_X_MULTIPLIER = 0.5;
+    var ROTATION_DISPLAY_SIZE_Y_MULTIPLIER = 0.18;
+    var ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER = 0.17;
 
     var showExtendedStretchHandles = false;
     
@@ -306,7 +319,7 @@ SelectionDisplay = (function () {
     var highlightBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 180, green: 180, blue: 180},
+                    color: { red: 90, green: 90, blue: 90},
                     alpha: 1,
                     solid: false,
                     visible: false,
@@ -318,12 +331,30 @@ SelectionDisplay = (function () {
     var selectionBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 180, green: 180, blue: 180},
+                    color: { red: 60, green: 60, blue: 60},
                     alpha: 1,
                     solid: false,
                     visible: false,
                     dashed: true,
                     lineWidth: 1.0,
+                });
+
+    var rotationDegreesDisplay = Overlays.addOverlay("text3d", {
+                    position: { x:0, y: 0, z: 0},
+                    text: "",
+                    color: { red: 0, green: 0, blue: 0},
+                    backgroundColor: { red: 255, green: 255, blue: 255 },
+                    alpha: 0.7,
+                    visible: false,
+                    isFacingAvatar: true,
+                    drawInFront: true,
+                    ignoreRayIntersection: true,
+                    dimensions: { x: 0, y: 0 },
+                    lineHeight: 0.0,
+                    topMargin: 0,
+                    rightMargin: 0,
+                    bottomMargin: 0,
+                    leftMargin: 0,
                 });
 
     var grabberMoveUp = Overlays.addOverlay("billboard", {
@@ -585,6 +616,7 @@ SelectionDisplay = (function () {
         rotateOverlayCurrent,
         rotateZeroOverlay,
         rotateCurrentOverlay,
+        rotationDegreesDisplay,
         xRailOverlay,
         yRailOverlay,
         zRailOverlay,
@@ -848,8 +880,8 @@ SelectionDisplay = (function () {
             } else {
             
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 270, z: 0 });
-                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
+                rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
 
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
@@ -1292,7 +1324,11 @@ SelectionDisplay = (function () {
     var vec3Mult = function(v1, v2) {
         return { x: v1.x * v2.x, y: v1.y * v2.y, z: v1.z * v2.z };
     }
-    var makeStretchTool = function(stretchMode, direction, pivot) {
+    // stretchMode - name of mode
+    // direction - direction to stretch in
+    // pivot - point to use as a pivot
+    // offset - the position of the overlay tool relative to the selections center position
+    var makeStretchTool = function(stretchMode, direction, pivot, offset) {
         var signs = {
             x: direction.x < 0 ? -1 : (direction.x > 0 ? 1 : 0),
             y: direction.y < 0 ? -1 : (direction.y > 0 ? 1 : 0),
@@ -1313,6 +1349,7 @@ SelectionDisplay = (function () {
         var initialDimensions = null;
         var initialIntersection = null;
         var initialProperties = null;
+        var pickRayPosition = null;
         var rotation = null;
 
         var onBegin = function(event) {
@@ -1321,12 +1358,21 @@ SelectionDisplay = (function () {
             rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
 
             if (spaceMode == SPACE_LOCAL) {
+                rotation = SelectionManager.localRotation;
                 initialPosition = SelectionManager.localPosition;
                 initialDimensions = SelectionManager.localDimensions;
             } else {
+                rotation = SelectionManager.worldRotation;
                 initialPosition = SelectionManager.worldPosition;
                 initialDimensions = SelectionManager.worldDimensions;
             }
+
+            var scaledOffset = {
+                x: initialDimensions.x * offset.x * 0.5,
+                y: initialDimensions.y * offset.y * 0.5,
+                z: initialDimensions.z * offset.z * 0.5,
+            };
+            pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffset));
 
             if (numDimensions == 1 && mask.x) {
                 var start = Vec3.multiplyQbyV(rotation, { x: -10000, y: 0, z: 0 });
@@ -1381,7 +1427,7 @@ SelectionDisplay = (function () {
             planeNormal = Vec3.multiplyQbyV(rotation, planeNormal);
             var pickRay = Camera.computePickRay(event.x, event.y);
             lastPick = rayPlaneIntersection(pickRay,
-                                            initialPosition,
+                                            pickRayPosition,
                                             planeNormal);
 
             // Overlays.editOverlay(normalLine, {
@@ -1416,7 +1462,7 @@ SelectionDisplay = (function () {
 
             var pickRay = Camera.computePickRay(event.x, event.y);
             newPick = rayPlaneIntersection(pickRay,
-                                           initialPosition,
+                                           pickRayPosition,
                                            planeNormal);
             var vector = Vec3.subtract(newPick, lastPick);
 
@@ -1491,44 +1537,64 @@ SelectionDisplay = (function () {
         };
     };
 
-    function addStretchTool(overlay, mode, pivot, direction) {
+    function addStretchTool(overlay, mode, pivot, direction, offset) {
         if (!pivot) {
             pivot = Vec3.multiply(-1, direction);
             pivot.y = direction.y;
         }
-        var tool = makeStretchTool(mode, direction, pivot);
+        var tool = makeStretchTool(mode, direction, pivot, offset);
 
         addGrabberTool(overlay, tool);
     }
 
-    addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 });
-    addStretchTool(grabberFAR, "STRETCH_FAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
-    addStretchTool(grabberTOP, "STRETCH_TOP", { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
-    addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 });
-    addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
-    addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
+    addStretchTool(grabberFAR, "STRETCH_FAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 });
+    addStretchTool(grabberTOP, "STRETCH_TOP", { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 });
+    addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
+    addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
 
-    addStretchTool(grabberLBN, "STRETCH_LBN", null, {x: 1, y: 0, z: 1});
-    addStretchTool(grabberRBN, "STRETCH_RBN", null, {x: -1, y: 0, z: 1});
-    addStretchTool(grabberLBF, "STRETCH_LBF", null, {x: 1, y: 0, z: -1});
-    addStretchTool(grabberRBF, "STRETCH_RBF", null, {x: -1, y: 0, z: -1});
-    addStretchTool(grabberLTN, "STRETCH_LTN", null, {x: 1, y: 0, z: 1});
-    addStretchTool(grabberRTN, "STRETCH_RTN", null, {x: -1, y: 0, z: 1});
-    addStretchTool(grabberLTF, "STRETCH_LTF", null, {x: 1, y: 0, z: -1});
-    addStretchTool(grabberRTF, "STRETCH_RTF", null, {x: -1, y: 0, z: -1});
+    addStretchTool(grabberLBN, "STRETCH_LBN", null, {x: 1, y: 0, z: 1}, { x: -1, y: -1, z: -1 });
+    addStretchTool(grabberRBN, "STRETCH_RBN", null, {x: -1, y: 0, z: 1}, { x: 1, y: -1, z: -1 });
+    addStretchTool(grabberLBF, "STRETCH_LBF", null, {x: 1, y: 0, z: -1}, { x: -1, y: -1, z: 1 });
+    addStretchTool(grabberRBF, "STRETCH_RBF", null, {x: -1, y: 0, z: -1}, { x: 1, y: -1, z: 1 });
+    addStretchTool(grabberLTN, "STRETCH_LTN", null, {x: 1, y: 0, z: 1}, { x: -1, y: 1, z: -1 });
+    addStretchTool(grabberRTN, "STRETCH_RTN", null, {x: -1, y: 0, z: 1}, { x: 1, y: 1, z: -1 });
+    addStretchTool(grabberLTF, "STRETCH_LTF", null, {x: 1, y: 0, z: -1}, { x: -1, y: 1, z: 1 });
+    addStretchTool(grabberRTF, "STRETCH_RTF", null, {x: -1, y: 0, z: -1}, { x: 1, y: 1, z: 1 });
 
-    addStretchTool(grabberEdgeTR, "STRETCH_EdgeTR", null, {x: 1, y: 1, z: 0});
-    addStretchTool(grabberEdgeTL, "STRETCH_EdgeTL", null, {x: -1, y: 1, z: 0});
-    addStretchTool(grabberEdgeTF, "STRETCH_EdgeTF", null, {x: 0, y: 1, z: -1});
-    addStretchTool(grabberEdgeTN, "STRETCH_EdgeTN", null, {x: 0, y: 1, z: 1});
-    addStretchTool(grabberEdgeBR, "STRETCH_EdgeBR", null, {x: -1, y: 0, z: 0});
-    addStretchTool(grabberEdgeBL, "STRETCH_EdgeBL", null, {x: 1, y: 0, z: 0});
-    addStretchTool(grabberEdgeBF, "STRETCH_EdgeBF", null, {x: 0, y: 0, z: -1});
-    addStretchTool(grabberEdgeBN, "STRETCH_EdgeBN", null, {x: 0, y: 0, z: 1});
-    addStretchTool(grabberEdgeNR, "STRETCH_EdgeNR", null, {x: -1, y: 0, z: 1});
-    addStretchTool(grabberEdgeNL, "STRETCH_EdgeNL", null, {x: 1, y: 0, z: 1});
-    addStretchTool(grabberEdgeFR, "STRETCH_EdgeFR", null, {x: -1, y: 0, z: -1});
-    addStretchTool(grabberEdgeFL, "STRETCH_EdgeFL", null, {x: 1, y: 0, z: -1});
+    addStretchTool(grabberEdgeTR, "STRETCH_EdgeTR", null, {x: 1, y: 1, z: 0}, { x: 1, y: 1, z: 0 });
+    addStretchTool(grabberEdgeTL, "STRETCH_EdgeTL", null, {x: -1, y: 1, z: 0}, { x: -1, y: 1, z: 0 });
+    addStretchTool(grabberEdgeTF, "STRETCH_EdgeTF", null, {x: 0, y: 1, z: -1}, { x: 0, y: 1, z: -1 });
+    addStretchTool(grabberEdgeTN, "STRETCH_EdgeTN", null, {x: 0, y: 1, z: 1}, { x: 0, y: 1, z: 1 });
+    addStretchTool(grabberEdgeBR, "STRETCH_EdgeBR", null, {x: -1, y: 0, z: 0}, { x: 1, y: -1, z: 0 });
+    addStretchTool(grabberEdgeBL, "STRETCH_EdgeBL", null, {x: 1, y: 0, z: 0}, { x: -1, y: -1, z: 0 });
+    addStretchTool(grabberEdgeBF, "STRETCH_EdgeBF", null, {x: 0, y: 0, z: -1}, { x: 0, y: -1, z: -1 });
+    addStretchTool(grabberEdgeBN, "STRETCH_EdgeBN", null, {x: 0, y: 0, z: 1}, { x: 0, y: -1, z: 1 });
+    addStretchTool(grabberEdgeNR, "STRETCH_EdgeNR", null, {x: -1, y: 0, z: 1}, { x: 1, y: 0, z: -1 });
+    addStretchTool(grabberEdgeNL, "STRETCH_EdgeNL", null, {x: 1, y: 0, z: 1}, { x: -1, y: 0, z: -1 });
+    addStretchTool(grabberEdgeFR, "STRETCH_EdgeFR", null, {x: -1, y: 0, z: -1}, { x: 1, y: 0, z: 1 });
+    addStretchTool(grabberEdgeFL, "STRETCH_EdgeFL", null, {x: 1, y: 0, z: -1}, { x: -1, y: 0, z: 1 });
+
+    function updateRotationDegreesOverlay(angleFromZero, handleRotation, centerPosition) {
+        var angle = angleFromZero * (Math.PI / 180);
+        var position = {
+            x: Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+            y: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
+            z: 0,
+        };
+        position = Vec3.multiplyQbyV(handleRotation, position);
+        position = Vec3.sum(centerPosition, position);
+        Overlays.editOverlay(rotationDegreesDisplay, {
+            position: position,
+            dimensions: {
+                x: innerRadius * ROTATION_DISPLAY_SIZE_X_MULTIPLIER,
+                y: innerRadius * ROTATION_DISPLAY_SIZE_Y_MULTIPLIER
+            },
+            lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
+            text: normalizeDegrees(angleFromZero),
+        });
+    }
 
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
@@ -1570,11 +1636,18 @@ SelectionDisplay = (function () {
                     endAt: 0,
                     innerRadius: 0.9,
                 });
+
+            Overlays.editOverlay(rotationDegreesDisplay, {
+                visible: true,
+            });
+
+            updateRotationDegreesOverlay(0, yawHandleRotation, yawCenter);
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+            Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
 
             pushCommandForSelections();
         },
@@ -1605,12 +1678,9 @@ SelectionDisplay = (function () {
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
                 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = false;
-                // var innerRadius = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-                if (distanceFromCenter < innerRadius) {
-                    angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
-                    snapToInner = true;
-                }
+                var snapToInner = distanceFromCenter < innerRadius;
+                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                 
                 // for debugging
                 if (debug) {
@@ -1632,7 +1702,9 @@ SelectionDisplay = (function () {
                         rotation: Quat.multiply(yawChange, initialProperties.rotation),
                     });
                 }
-                
+
+                updateRotationDegreesOverlay(angleFromZero, yawHandleRotation, yawCenter);
+
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
                 var endAtCurrent = angleFromZero;
@@ -1701,11 +1773,18 @@ SelectionDisplay = (function () {
                     endAt: 0,
                     innerRadius: 0.9,
                 });
+
+            Overlays.editOverlay(rotationDegreesDisplay, {
+                visible: true,
+            });
+
+            updateRotationDegreesOverlay(0, pitchHandleRotation, pitchCenter);
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+            Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
 
             pushCommandForSelections();
         },
@@ -1736,11 +1815,9 @@ SelectionDisplay = (function () {
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = false;
-                if (distanceFromCenter < innerRadius) {
-                    angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
-                    snapToInner = true;
-                }
+                var snapToInner = distanceFromCenter < innerRadius;
+                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
                 
                 // for debugging
                 if (debug) {
@@ -1763,6 +1840,8 @@ SelectionDisplay = (function () {
                         rotation: Quat.multiply(pitchChange, initialProperties.rotation),
                     });
                 }
+
+                updateRotationDegreesOverlay(angleFromZero, pitchHandleRotation, pitchCenter);
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
@@ -1831,11 +1910,18 @@ SelectionDisplay = (function () {
                     endAt: 0,
                     innerRadius: 0.9,
                 });
+
+            Overlays.editOverlay(rotationDegreesDisplay, {
+                visible: true,
+            });
+
+            updateRotationDegreesOverlay(0, rollHandleRotation, rollCenter);
         },
         onEnd: function(event, reason) {
             Overlays.editOverlay(rotateOverlayInner, { visible: false });
             Overlays.editOverlay(rotateOverlayOuter, { visible: false });
             Overlays.editOverlay(rotateOverlayCurrent, { visible: false });
+            Overlays.editOverlay(rotationDegreesDisplay, { visible: false });
 
             pushCommandForSelections();
         },
@@ -1866,11 +1952,9 @@ SelectionDisplay = (function () {
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = false;
-                if (distanceFromCenter < innerRadius) {
-                    angleFromZero = Math.floor(angleFromZero/innerSnapAngle) * innerSnapAngle;
-                    snapToInner = true;
-                }
+                var snapToInner = distanceFromCenter < innerRadius;
+                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
 
                 // for debugging
                 if (debug) {
@@ -1892,6 +1976,8 @@ SelectionDisplay = (function () {
                         rotation: Quat.multiply(rollChange, initialProperties.rotation),
                     });
                 }
+
+                updateRotationDegreesOverlay(angleFromZero, rollHandleRotation, rollCenter);
 
                 // update the rotation display accordingly...
                 var startAtCurrent = 0;
