@@ -245,10 +245,15 @@ function handleGrabBehavior(deltaTime) {
 }
 
 // Update for joysticks and move button
+var THRUST_DEAD_ZONE = 0.1;
 function flyWithHydra(deltaTime) {
     var thrustJoystickPosition = Controller.getJoystickPosition(THRUST_CONTROLLER);
     
-    if (thrustJoystickPosition.x != 0 || thrustJoystickPosition.y != 0) {
+    if (debug) {
+        print("thrust X: " + thrustJoystickPosition.x + " Y: " + thrustJoystickPosition.y);
+    }
+    
+    if (Math.abs(thrustJoystickPosition.x) > THRUST_DEAD_ZONE || Math.abs(thrustJoystickPosition.y) > THRUST_DEAD_ZONE) {
         if (thrustMultiplier < MAX_THRUST_MULTIPLIER) {
             thrustMultiplier *= 1 + (deltaTime * THRUST_INCREASE_RATE);
         }
