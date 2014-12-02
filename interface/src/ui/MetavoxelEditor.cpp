@@ -182,13 +182,6 @@ QVariant MetavoxelEditor::getValue() const {
     return editor ? editor->metaObject()->userProperty().read(editor) : QVariant();
 }
 
-void MetavoxelEditor::detachValue() {
-    SharedObjectEditor* editor = qobject_cast<SharedObjectEditor*>(_valueArea->widget());
-    if (editor) {
-        editor->detachObject();
-    }
-}
-
 bool MetavoxelEditor::eventFilter(QObject* watched, QEvent* event) {
     // pass along to the active tool
     MetavoxelTool* tool = getActiveTool();
@@ -616,7 +609,7 @@ PlaceSpannerTool::PlaceSpannerTool(MetavoxelEditor* editor, const QString& name,
 }
 
 void PlaceSpannerTool::simulate(float deltaTime) {
-    Spanner* spanner = static_cast<Spanner*>(getSpanner(true).data());
+    Spanner* spanner = static_cast<Spanner*>(getSpanner().data());
     Transformable* transformable = qobject_cast<Transformable*>(spanner);
     if (transformable && _followMouse->isChecked() && !Application::getInstance()->isMouseHidden()) {
         // find the intersection of the mouse ray with the grid and place the transformable there
@@ -649,10 +642,7 @@ bool PlaceSpannerTool::eventFilter(QObject* watched, QEvent* event) {
     return false;
 }
 
-SharedObjectPointer PlaceSpannerTool::getSpanner(bool detach) {
-    if (detach) {
-        _editor->detachValue();
-    }
+SharedObjectPointer PlaceSpannerTool::getSpanner() {
     return _editor->getValue().value<SharedObjectPointer>();
 }
 
@@ -663,7 +653,7 @@ QColor PlaceSpannerTool::getColor() {
 void PlaceSpannerTool::place() {
     AttributePointer attribute = AttributeRegistry::getInstance()->getAttribute(_editor->getSelectedAttribute());
     if (attribute) {
-        applyEdit(attribute, getSpanner());
+        applyEdit(attribute, getSpanner()->clone());
     }
 }
 
@@ -897,7 +887,8 @@ MaterialControl::MaterialControl(QWidget* widget, QFormLayout* form, bool cleara
 SharedObjectPointer MaterialControl::getMaterial() {
     SharedObjectPointer material = _materialEditor->getObject();
     if (static_cast<MaterialObject*>(material.data())->getDiffuse().isValid()) {
-        _materialEditor->detachObject();
+        material = material->clone();
+        
     } else {
         material = SharedObjectPointer();
     }
@@ -1014,10 +1005,7 @@ bool VoxelMaterialSpannerTool::appliesTo(const AttributePointer& attribute) cons
     return attribute->inherits("VoxelColorAttribute");
 }
 
-SharedObjectPointer VoxelMaterialSpannerTool::getSpanner(bool detach) {
-    if (detach) {
-        _spannerEditor->detachObject();
-    }
+SharedObjectPointer VoxelMaterialSpannerTool::getSpanner() {
     return _spannerEditor->getObject();
 }
 
@@ -1026,7 +1014,6 @@ QColor VoxelMaterialSpannerTool::getColor() {
 }
 
 void VoxelMaterialSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
-    _spannerEditor->detachObject();
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner,
         _materialControl->getMaterial(), _materialControl->getColor())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);

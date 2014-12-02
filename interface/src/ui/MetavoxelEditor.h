@@ -46,7 +46,6 @@ public:
     glm::quat getGridRotation() const;
     
     QVariant getValue() const;
-    void detachValue();
     
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
@@ -197,7 +196,7 @@ public:
 protected:
 
     virtual QColor getColor();
-    virtual SharedObjectPointer getSpanner(bool detach = false);
+    virtual SharedObjectPointer getSpanner();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
 protected slots:
@@ -422,7 +421,7 @@ public:
 
 protected:
 
-    virtual SharedObjectPointer getSpanner(bool detach = false);
+    virtual SharedObjectPointer getSpanner();
     virtual QColor getColor();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
     
