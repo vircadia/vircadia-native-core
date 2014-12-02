@@ -579,6 +579,8 @@ public:
 
     MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
 
+    virtual SharedObject* clone(bool withID = false, SharedObject* target = NULL) const;
+    
     virtual bool isHeightfield() const;
     
     virtual float getHeight(const glm::vec3& location) const;

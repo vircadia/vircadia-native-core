@@ -2063,6 +2063,12 @@ MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {
         qMax(0.5f, glm::abs(position.y * _aspectY - 0.5f)) * THRESHOLD_MULTIPLIER);
 }
 
+SharedObject* Heightfield::clone(bool withID, SharedObject* target) const {
+    Heightfield* newHeightfield = static_cast<Heightfield*>(Spanner::clone(withID, target));
+    newHeightfield->setRoot(_root);
+    return newHeightfield;
+}
+
 bool Heightfield::isHeightfield() const {
     return true;
 }

@@ -789,7 +789,7 @@ void ImportHeightfieldTool::apply() {
     if (!(_height->getHeight() && attribute)) {
         return;
     }
-    MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, _spanner)) };
+    MetavoxelEditMessage message = { QVariant::fromValue(InsertSpannerEdit(attribute, _spanner->clone())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);       
 }
 
