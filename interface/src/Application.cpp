@@ -4013,26 +4013,23 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         return _scriptEnginesHash[scriptURLString];
     }
 
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
+    ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     scriptEngine->setUserLoaded(isUserLoaded);
     
-    registerScriptEngineWithApplicationServices(scriptEngine);
+    if (scriptFilename.isNull()) {
+        // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
+        // doesn't just get an empty script engine)
+        
+        // we can complete setup now since there isn't a script we have to load
+        registerScriptEngineWithApplicationServices(scriptEngine);
+    } else {
+        // connect to the appropriate signals of this script engine
+        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
+        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptLoadError);
+        
+        // get the script engine object to load the script at the designated script URL
+        scriptEngine->loadURL(scriptUrl);
+    }
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {
@@ -4041,6 +4038,22 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::handleScriptEngineLoaded(const QUrl& scriptURL) {
+    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    
+    _scriptEnginesHash.insertMulti(scriptURL.toString(), scriptEngine);
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    UserActivityLogger::getInstance().loadedScript(scriptURL.toString());
+    
+    // register our application services and set it off on its own thread
+    registerScriptEngineWithApplicationServices(scriptEngine);
+}
+
+void Application::handleScriptLoadError(const QUrl& scriptURL) {
+    qDebug() << "Application::loadScript(), script failed to load...";
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptURL.toString() + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {

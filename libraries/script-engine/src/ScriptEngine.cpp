@@ -177,10 +177,10 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
                 qDebug() << "Loading file:" << fileName;
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
-                emit scriptLoaded();
+                emit scriptLoaded(url);
             } else {
                 qDebug() << "ERROR Loading file:" << fileName;
-                emit errorLoadingScript();
+                emit errorLoadingScript(url);
             }
         } else {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -195,9 +195,10 @@ void ScriptEngine::handleScriptDownload() {
     
     if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
         _scriptContents = reply->readAll();
+        emit scriptLoaded(reply->url());
     } else {
         qDebug() << "ERROR Loading file:" << reply->url().toString();
-        emit errorLoadingScript();
+        emit errorLoadingScript(reply->url());
     }
 }
 
