@@ -17,6 +17,7 @@
 #include <SharedUtil.h> // for MILLIMETERS_PER_METER
 
 #include "BulletUtil.h"
+#include "DoubleHashKey.h"
 #include "ShapeInfo.h"
 
 void ShapeInfo::collectInfo(const btCollisionShape* shape) {

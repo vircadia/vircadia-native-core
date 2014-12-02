@@ -22,7 +22,6 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
-#include <PhysicsEngine.h>
 #include <VoxelDetail.h>
 
 #include "EntityItemID.h" 
@@ -46,13 +45,13 @@ class EntityItem  {
 public:
     enum EntityUpdateFlags {
         // flags for things that need to be relayed to physics engine
-        UPDATE_POSITION = PHYSICS_UPDATE_POSITION, //0x0001,
-        UPDATE_VELOCITY = PHYSICS_UPDATE_VELOCITY, //0x0002,
-        UPDATE_GRAVITY = PHYSICS_UPDATE_GRAVITY, //0x0004,
-        UPDATE_MASS = PHYSICS_UPDATE_MASS, //0x0008,
-        UPDATE_COLLISION_GROUP = PHYSICS_UPDATE_COLLISION_GROUP, //0x0010,
-        UPDATE_MOTION_TYPE = PHYSICS_UPDATE_MOTION_TYPE, //0x0020,
-        UPDATE_SHAPE = PHYSICS_UPDATE_SHAPE, //0x0040,
+        UPDATE_POSITION = 0x0001,
+        UPDATE_VELOCITY = 0x0002,
+        UPDATE_GRAVITY = 0x0004,
+        UPDATE_MASS = 0x0008,
+        UPDATE_COLLISION_GROUP = 0x0010,
+        UPDATE_MOTION_TYPE = 0x0020,
+        UPDATE_SHAPE = 0x0040,
         //...
         // add new flags here in the middle
         //...
@@ -303,9 +302,7 @@ public:
     uint32_t getUpdateFlags() const { return _updateFlags; }
     void clearUpdateFlags() { _updateFlags = 0; }
 
-    EntityMotionState* getMotionState() const { return _motionState; }
-    virtual EntityMotionState* createMotionState() { return NULL; }
-    void destroyMotionState();
+    void* getPhysicsInfo() const { return _physicsInfo; }
     SimulationState getSimulationState() const { return _simulationState; }
     
     void setSimulationState(SimulationState state) { _simulationState = state; }
@@ -352,7 +349,7 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
-    EntityMotionState* _motionState;
+    void* _physicsInfo;
     SimulationState _simulationState;   // only set by EntityTree
 
     // UpdateFlags are set whenever a property changes that requires the change to be communicated to other

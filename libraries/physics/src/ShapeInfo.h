@@ -18,8 +18,6 @@
 #include <LinearMath/btHashMap.h>
 #include <glm/glm.hpp>
 
-#include "DoubleHashKey.h"
-
 class ShapeInfo {
 public:
     ShapeInfo() : _type(INVALID_SHAPE_PROXYTYPE) {}

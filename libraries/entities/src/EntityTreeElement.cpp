@@ -16,9 +16,7 @@
 
 #include <FBXReader.h>
 #include <GeometryUtil.h>
-#include <PhysicsEngine.h>
 
-#include "EntityMotionState.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
@@ -655,6 +653,7 @@ EntityItem* EntityTreeElement::getEntityWithEntityItemID(const EntityItemID& id)
     return foundEntity;
 }
 
+/* TODO: probably move the cleanupEntities() stuff into EntityTree
 void EntityTreeElement::cleanupEntities(PhysicsEngine* physicsEngine) {
     uint16_t numberOfEntities = _entityItems->size();
     for (uint16_t i = 0; i < numberOfEntities; i++) {
@@ -662,13 +661,14 @@ void EntityTreeElement::cleanupEntities(PhysicsEngine* physicsEngine) {
         EntityMotionState* motionState = entity->getMotionState();
         if (motionState) {
             assert(physicsEngine);
-            physicsEngine->removeEntity(static_cast<CustomMotionState*>(motionState));
+            physicsEngine->removeObject(static_cast<CustomMotionState*>(motionState));
             entity->destroyMotionState();
         }
         delete entity;
     }
     _entityItems->clear();
 }
+*/
 
 bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
     bool foundEntity = false;

@@ -13,7 +13,7 @@
 #include <glm/gtx/norm.hpp>
 
 #include "AACubeShape.h"
-#include <SharedUtil.h> // for SQUARE_ROOT_OF_3 
+#include "SharedUtil.h" // for SQUARE_ROOT_OF_3 
 
 glm::vec3 faceNormals[3] = { glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) };
 

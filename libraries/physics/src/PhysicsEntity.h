@@ -18,12 +18,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <CollisionInfo.h>
+#include <RayIntersectionInfo.h>
+
 #ifdef USE_BULLET_PHYSICS
 #include "PhysicsEngine.h"
 #endif // USE_BULLET_PHYSICS
-
-#include "CollisionInfo.h"
-#include "RayIntersectionInfo.h"
 
 class Shape;
 class PhysicsSimulation;

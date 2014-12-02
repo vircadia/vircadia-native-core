@@ -11,16 +11,14 @@
 
 #include <glm/gtx/norm.hpp>
 
-#include <GeometryUtil.h>
-#include <StreamUtils.h>
-
-#include "ShapeCollider.h"
-
 #include "AACubeShape.h"
 #include "CapsuleShape.h"
+#include "GeometryUtil.h"
 #include "ListShape.h"
 #include "PlaneShape.h"
+#include "ShapeCollider.h"
 #include "SphereShape.h"
+#include "StreamUtils.h"
 
 
 // NOTE:

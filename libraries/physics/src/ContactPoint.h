@@ -15,7 +15,8 @@
 #include <QtGlobal>
 #include <glm/glm.hpp>
 
-#include "CollisionInfo.h"
+#include <CollisionInfo.h>
+
 #include "VerletPoint.h"
 
 class Shape;

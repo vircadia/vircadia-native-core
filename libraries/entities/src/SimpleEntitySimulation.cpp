@@ -16,7 +16,7 @@
 #include "MovingEntitiesOperator.h"
 #include "SimpleEntitySimulation.h"
 
-void SimpleEntitySimulation::update(QSet<EntityItem*>& entitiesToDelete) {
+void SimpleEntitySimulation::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
     quint64 now = usecTimestampNow();
     updateChangedEntities(now, entitiesToDelete);
     updateMovingEntities(now, entitiesToDelete);

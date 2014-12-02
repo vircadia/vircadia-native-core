@@ -21,7 +21,6 @@
 
 class EntityTree;
 class EntityTreeElement;
-class PhysicsEngine;
 
 class EntityTreeUpdateArgs {
 public:
@@ -176,7 +175,8 @@ public:
 
     EntityItem* getEntityWithEntityItemID(const EntityItemID& id);
 
-    void cleanupEntities(PhysicsEngine* physicsEngine);
+    // TODO: probably move the cleanupEntities() stuff into EntityTree
+    //void cleanupEntities(PhysicsEngine* physicsEngine);
     bool removeEntityWithEntityItemID(const EntityItemID& id);
     bool removeEntityItem(EntityItem* entity);
 

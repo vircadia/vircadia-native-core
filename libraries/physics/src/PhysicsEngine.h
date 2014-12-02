@@ -77,22 +77,22 @@ public:
     /// \return true if Voxel removed
     bool removeVoxel(const glm::vec3& position, float scale);
 
-    /// \param motionState pointer to Entity's MotionState
-    /// \return true if Entity added
-    bool addEntity(CustomMotionState* motionState);
+    /// \param motionState pointer to Object's MotionState
+    /// \return true if Object added
+    bool addObject(CustomMotionState* motionState);
 
-    /// \param motionState pointer to Entity's MotionState
-    /// \return true if Entity removed
-    bool removeEntity(CustomMotionState* motionState);
+    /// \param motionState pointer to Object's MotionState
+    /// \return true if Object removed
+    bool removeObject(CustomMotionState* motionState);
 
-    /// \param motionState pointer to Entity's MotionState
+    /// \param motionState pointer to Object's MotionState
     /// \param flags set of bits indicating what categories of properties need to be updated
     /// \return true if entity updated
-    bool updateEntity(CustomMotionState* motionState, uint32_t flags);
+    bool updateObject(CustomMotionState* motionState, uint32_t flags);
 
 protected:
-    void updateEntityHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
-    void updateEntityEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
+    void updateObjectHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
+    void updateObjectEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
 
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig;

@@ -24,10 +24,10 @@ void PhysicsEngine::init() {
         _constraintSolver = new btSequentialImpulseConstraintSolver;
         _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
 
-        // TODO: once the initial physics system is working we will set gravity of the world to be zero
-        // and each object will have to specify its own local gravity, or we'll set up gravity zones.
-        //_dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
-        //
+        // default gravity of the world is zero, so each object must specify its own gravity
+        // TODO: set up gravity zones
+        _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
+        
         // GROUND HACK: In the meantime we add a big planar floor to catch falling objects
         // NOTE: we don't care about memory leaking groundShape and groundObject --> 
         // they'll exist until the executable exits.
@@ -123,7 +123,7 @@ bool PhysicsEngine::removeVoxel(const glm::vec3& position, float scale) {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
+bool PhysicsEngine::addObject(CustomMotionState* motionState) {
     assert(motionState);
     ShapeInfo info;
     motionState->computeShapeInfo(info);
@@ -170,7 +170,7 @@ bool PhysicsEngine::addEntity(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsEngine::removeEntity(CustomMotionState* motionState) {
+bool PhysicsEngine::removeObject(CustomMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->_body;
     if (body) {
@@ -186,7 +186,7 @@ bool PhysicsEngine::removeEntity(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsEngine::updateEntity(CustomMotionState* motionState, uint32_t flags) {
+bool PhysicsEngine::updateObject(CustomMotionState* motionState, uint32_t flags) {
     btRigidBody* body = motionState->_body;
     if (!body) {
         return false;
@@ -194,16 +194,16 @@ bool PhysicsEngine::updateEntity(CustomMotionState* motionState, uint32_t flags)
 
     if (flags & PHYSICS_UPDATE_HARD) {
         // a hard update requires the body be pulled out of physics engine, changed, then reinserted
-        updateEntityHard(body, motionState, flags);
+        updateObjectHard(body, motionState, flags);
     } else if (flags & PHYSICS_UPDATE_EASY) {
         // an easy update does not require that the body be pulled out of physics engine
-        updateEntityEasy(body, motionState, flags);
+        updateObjectEasy(body, motionState, flags);
     }
     return true;
 }
 
 // private
-void PhysicsEngine::updateEntityHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
+void PhysicsEngine::updateObjectHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
     MotionType newType = motionState->getMotionType();
 
     // pull body out of physics engine
@@ -227,7 +227,7 @@ void PhysicsEngine::updateEntityHard(btRigidBody* body, CustomMotionState* motio
     }
     bool easyUpdate = flags & PHYSICS_UPDATE_EASY;
     if (easyUpdate) {
-        updateEntityEasy(body, motionState, flags);
+        updateObjectEasy(body, motionState, flags);
     }
 
     // update the motion parameters
@@ -280,7 +280,7 @@ void PhysicsEngine::updateEntityHard(btRigidBody* body, CustomMotionState* motio
 }
 
 // private
-void PhysicsEngine::updateEntityEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
+void PhysicsEngine::updateObjectEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
     if (flags & PHYSICS_UPDATE_POSITION) {
         btTransform transform;
         motionState->getWorldTransform(transform);

@@ -16,7 +16,6 @@
 
 #include "AddEntityOperator.h"
 #include "DeleteEntityOperator.h"
-#include "EntityMotionState.h"
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
@@ -653,7 +652,7 @@ void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
         QSet<EntityItem*> entitiesToDelete;
-        _simulation->update(entitiesToDelete);
+        _simulation->updateEntities(entitiesToDelete);
         if (entitiesToDelete.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;

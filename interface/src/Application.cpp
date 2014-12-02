@@ -2021,8 +2021,8 @@ void Application::init() {
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::updateMyAvatarTransform);
 
 #ifdef USE_BULLET_PHYSICS
-    _physicsEngine.initSafe(_entities.getTree());
-    _entities.getTree()->setPhysicsEngine(&_physicsEngine);
+//    _physicsEngine.initSafe(_entities.getTree());
+//    _entities.getTree()->setSimulation(&_physicsEngine);
 #endif // USE_BULLET_PHYSICS
 }
 
@@ -4159,15 +4159,14 @@ void Application::updateMyAvatarTransform() {
     glm::vec3 avatarPosition = _myAvatar->getPosition();
     glm::vec3 physicsWorldOffset = _physicsEngine.getOriginOffset();
     if (glm::distance(avatarPosition, physicsWorldOffset) > SIMULATION_OFFSET_QUANTIZATION) {
-        //_entityCollisionSystem.forgetAllPhysics();
         glm::vec3 newOriginOffset = avatarPosition;
         int halfExtent = (int)HALF_SIMULATION_EXTENT;
         for (int i = 0; i < 3; ++i) {
             newOriginOffset[i] = (float)(glm::max(halfExtent, 
                     ((int)(avatarPosition[i] / SIMULATION_OFFSET_QUANTIZATION)) * (int)SIMULATION_OFFSET_QUANTIZATION));
         }
+        // TODO: Andrew to replace this with method that actually moves existing object positions in PhysicsEngine
         _physicsEngine.setOriginOffset(newOriginOffset);
-        //_entityCollisionSystem.rememberAllPhysics();
     }
 #endif // USE_BULLET_PHYSICS
 }

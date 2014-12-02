@@ -21,7 +21,7 @@ public:
     SimpleEntitySimulation() : EntitySimulation() { }
     virtual ~SimpleEntitySimulation() { setEntityTree(NULL); }
 
-    virtual void update(QSet<EntityItem*>& entitiesToDelete);
+    virtual void updateEntities(QSet<EntityItem*>& entitiesToDelete);
 
     virtual void addEntity(EntityItem* entity);
     virtual void removeEntity(EntityItem* entity);

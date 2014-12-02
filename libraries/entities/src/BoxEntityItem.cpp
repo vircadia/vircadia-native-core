@@ -15,7 +15,6 @@
 #include <ByteCountCoding.h>
 
 #include "BoxEntityItem.h"
-#include "EntityMotionState.h"
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
 
@@ -97,6 +96,7 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
 
+/*
 #ifdef USE_BULLET_PHYSICS
 EntityMotionState* BoxEntityItem::createMotionState() {
     if (!_motionState) {
@@ -107,4 +107,5 @@ EntityMotionState* BoxEntityItem::createMotionState() {
     return _motionState;
 }
 #endif // USE_BULLET_PHYSICS
+*/
 

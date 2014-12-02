@@ -9,11 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifdef USE_BULLET_PHYSICS
-#include <BulletUtil.h>
-#endif // USE_BULLET_PHYSICS
+#include <EntityItem.h>
 
-#include "EntityItem.h"
+#ifdef USE_BULLET_PHYSICS
+#include "BulletUtil.h"
+#endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
 
 // TODO: store _cachedWorldOffset in a more central location -- VoxelTree and others also need to know about it
@@ -67,7 +67,7 @@ void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     uint32_t updateFlags = _entity->getUpdateFlags();
-    if (! (updateFlags &  PHYSICS_UPDATE_POSITION)) {
+    if (! (updateFlags &  EntityItem::UPDATE_POSITION)) {
         glm::vec3 pos;
         bulletToGLM(worldTrans.getOrigin(), pos);
         _entity->setPositionInMeters(pos + _cachedWorldOffset);
@@ -77,7 +77,7 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
         _entity->setRotation(rot);
     }
 
-    if (! (updateFlags &  PHYSICS_UPDATE_VELOCITY)) {
+    if (! (updateFlags &  EntityItem::UPDATE_VELOCITY)) {
         glm::vec3 v;
         getVelocity(v);
         _entity->setVelocityInMeters(v);

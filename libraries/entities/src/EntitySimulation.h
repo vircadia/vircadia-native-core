@@ -25,7 +25,7 @@ public:
     virtual void setEntityTree(EntityTree* tree);
 
     /// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
-    virtual void update(QSet<EntityItem*>& entitiesToDelete) = 0;
+    virtual void updateEntities(QSet<EntityItem*>& entitiesToDelete) = 0;
 
     /// \param entity pointer to EntityItem to add to the simulation
     /// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list

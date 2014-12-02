@@ -4,9 +4,8 @@ set(TARGET_NAME entities)
 setup_hifi_library(Network Script)
 
 include_glm()
-include_bullet()
 
-link_hifi_libraries(shared octree fbx networking animation physics)
+link_hifi_libraries(shared octree fbx networking animation)
 
 # call macro to link our dependencies and bubble them up via a property on our target
 link_shared_dependencies()

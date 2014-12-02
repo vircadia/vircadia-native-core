@@ -21,7 +21,6 @@
 
 #include "EntityScriptingInterface.h"
 #include "EntityItem.h"
-#include "EntityMotionState.h"
 #include "EntityTree.h"
 
 const float EntityItem::IMMORTAL = -1.0f; /// special lifetime which means the entity lives for ever. default lifetime
@@ -91,7 +90,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
-    _motionState = NULL;
+    _physicsInfo = NULL;
     _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
@@ -105,7 +104,7 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
-    _motionState = NULL;
+    _physicsInfo = NULL;
     _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
@@ -114,9 +113,6 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
 }
 
 EntityItem::~EntityItem() {
-    // Make sure the EntityItem has been removed from the physics engine AND 
-    // that its _motionState has been destroyed BEFORE you get here.
-    assert(_motionState == NULL);
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -628,7 +624,7 @@ void EntityItem::update(const quint64& updateTime) {
         qDebug() << "     ********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
     }
 
-    if (!_motionState) {
+    if (!_physicsInfo) {
         if (hasAngularVelocity()) {
             glm::quat rotation = getRotation();
             glm::vec3 angularVelocity = glm::radians(getAngularVelocity());
@@ -1069,13 +1065,6 @@ void EntityItem::updateScript(const QString& value) {
     if (_script != value) {
         _script = value; 
         _updateFlags |= EntityItem::UPDATE_SCRIPT;
-    }
-}
-
-void EntityItem::destroyMotionState() {
-    if (_motionState) {
-        delete _motionState;
-        _motionState = NULL;
     }
 }
 

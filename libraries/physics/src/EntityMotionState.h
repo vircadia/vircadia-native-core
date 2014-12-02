@@ -13,9 +13,11 @@
 #define hifi_EntityMotionState_h
 
 #include <AACube.h>
+
 #ifdef USE_BULLET_PHYSICS
-#include <CustomMotionState.h>
+#include "CustomMotionState.h"
 #else // USE_BULLET_PHYSICS
+
 // CustomMotionState stubbery
 class CustomMotionState {
 public:

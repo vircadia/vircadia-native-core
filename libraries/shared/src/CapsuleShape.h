@@ -12,9 +12,8 @@
 #ifndef hifi_CapsuleShape_h
 #define hifi_CapsuleShape_h
 
-#include <SharedUtil.h>
-
 #include "Shape.h"
+#include "SharedUtil.h" 
 
 // default axis of CapsuleShape is Y-axis
 const glm::vec3 DEFAULT_CAPSULE_AXIS(0.0f, 1.0f, 0.0f);
