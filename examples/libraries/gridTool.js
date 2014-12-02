@@ -177,6 +177,8 @@ Grid = function(opts) {
                 color: gridColor,
                 alpha: gridAlpha,
         });
+
+        that.emitUpdate();
     }
 
     function cleanup() {
@@ -207,6 +209,7 @@ GridTool = function(opts) {
 
     horizontalGrid.addListener(function(data) {
         webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+        selectionDisplay.updateHandles();
     });
 
     webView.eventBridge.webEventReceived.connect(function(data) {
