@@ -51,8 +51,8 @@ var toolWidth = 50;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
-var allowLargeModels = false;
-var allowSmallModels = false;
+var allowLargeModels = true;
+var allowSmallModels = true;
 var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
@@ -644,9 +644,9 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
-                        afterItem: "Paste Models", isCheckable: true });
+                        afterItem: "Paste Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S",
-                        afterItem: "Allow Select Large Models", isCheckable: true });
+                        afterItem: "Allow Select Large Models", isCheckable: true, isChecked: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
