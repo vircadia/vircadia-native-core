@@ -100,71 +100,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
 {
 }
 
-ScriptEngine::ScriptEngine(const QUrl& scriptURL,
-                           AbstractControllerScriptingInterface* controllerScriptingInterface)  :
-    _scriptContents(),
-    _isFinished(false),
-    _isRunning(false),
-    _isInitialized(false),
-    _isAvatar(false),
-    _avatarIdentityTimer(NULL),
-    _avatarBillboardTimer(NULL),
-    _timerFunctionMap(),
-    _isListeningToAudioStream(false),
-    _avatarSound(NULL),
-    _numAvatarSoundSentBytes(0),
-    _controllerScriptingInterface(controllerScriptingInterface),
-    _avatarData(NULL),
-    _scriptName(),
-    _fileNameString(),
-    _quatLibrary(),
-    _vec3Library(),
-    _uuidLibrary(),
-    _animationCache(this),
-    _isUserLoaded(false),
-    _arrayBufferClass(new ArrayBufferClass(this))
-{
-    QString scriptURLString = scriptURL.toString();
-    _fileNameString = scriptURLString;
-
-    QUrl url(scriptURL);
-    
-    // if the scheme length is one or lower, maybe they typed in a file, let's try
-    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
-    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
-        url = QUrl::fromLocalFile(scriptURLString);
-    }
-
-    // ok, let's see if it's valid... and if so, load it
-    if (url.isValid()) {
-        if (url.scheme() == "file") {
-            QString fileName = url.toLocalFile();
-            QFile scriptFile(fileName);
-            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "Loading file:" << fileName;
-                QTextStream in(&scriptFile);
-                _scriptContents = in.readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << fileName;
-                emit errorMessage("ERROR Loading file:" + fileName);
-            }
-        } else {
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
-            qDebug() << "Downloading script at" << url;
-            QEventLoop loop;
-            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-            loop.exec();
-            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-                _scriptContents = reply->readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << url.toString();
-                emit errorMessage("ERROR Loading file:" + url.toString());
-            }
-        }
-    }
-}
-
 void ScriptEngine::setIsAvatar(bool isAvatar) {
     _isAvatar = isAvatar;
 
@@ -215,6 +150,56 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     _scriptContents = scriptContents;
     _fileNameString = fileNameString;
     return true;
+}
+
+void ScriptEngine::loadURL(const QUrl& scriptURL) {
+    if (_isRunning) {
+        return;
+    }
+    
+    QString scriptURLString = scriptURL.toString();
+    _fileNameString = scriptURLString;
+    
+    QUrl url(scriptURL);
+    
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        url = QUrl::fromLocalFile(scriptURLString);
+    }
+    
+    // ok, let's see if it's valid... and if so, load it
+    if (url.isValid()) {
+        if (url.scheme() == "file") {
+            QString fileName = url.toLocalFile();
+            QFile scriptFile(fileName);
+            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+                qDebug() << "Loading file:" << fileName;
+                QTextStream in(&scriptFile);
+                _scriptContents = in.readAll();
+                emit scriptLoaded(url);
+            } else {
+                qDebug() << "ERROR Loading file:" << fileName;
+                emit errorLoadingScript(url);
+            }
+        } else {
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
+        }
+    }
+}
+
+void ScriptEngine::handleScriptDownload() {
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    
+    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+        _scriptContents = reply->readAll();
+        emit scriptLoaded(reply->url());
+    } else {
+        qDebug() << "ERROR Loading file:" << reply->url().toString();
+        emit errorLoadingScript(reply->url());
+    }
 }
 
 Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
