@@ -829,10 +829,25 @@ void GeometryReader::run() {
         return;
     }
     try {
-        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
+        std::string urlname = _url.path().toLower().toStdString();
+        FBXGeometry fbxgeo;
+        if (_url.path().toLower().endsWith(".svo")) {
+            fbxgeo = readSVO(_reply->readAll());
+        } else {
+            bool grabLightmaps = true;
+            float lightmapLevel = 1.0f;
+            // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...
+            if (_url.path().toLower().endsWith("loungev4_11-18.fbx")) {
+                grabLightmaps = false;
+            } else if (_url.path().toLower().endsWith("apt8_reboot.fbx")) {
+                lightmapLevel = 4.0f;
+            }
+            fbxgeo = readFBX(_reply->readAll(), _mapping, grabLightmaps, lightmapLevel);
+        }
+        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
 
 
-            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
+      //      _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
