@@ -20,11 +20,12 @@
 
 #include <AvatarHashMap.h>
 #include <CollisionInfo.h>
-#include <EntityItem.h>
 #include <OctreePacketData.h>
 #include <SharedUtil.h>
-#include <SimpleEntitySimulation.h>
 #include <VoxelDetail.h>
+
+#include "EntityItem.h"
+#include "SimpleEntitySimulation.h"
 
 class AbstractAudioInterface;
 class AvatarData;
