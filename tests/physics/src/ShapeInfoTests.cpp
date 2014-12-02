@@ -10,7 +10,13 @@
 //
 
 #include <iostream>
+
+#include <btBulletDynamicsCommon.h>
+#include <LinearMath/btHashMap.h>
+
+#include <DoubleHashKey.h>
 #include <ShapeInfo.h>
+#include <ShapeInfoUtil.h>
 #include <StreamUtils.h>
 
 #include "ShapeInfoTests.h"
@@ -40,21 +46,20 @@ void ShapeInfoTests::testHashFunctions() {
         // test sphere
         info.setSphere(radiusX);
         ++testCount;
-        int hash = info.computeHash();
-        int hash2 = info.computeHash2();
-        int* hashPtr = hashes.find(hash);
-        if (hashPtr && *hashPtr == hash2) {
+        DoubleHashKey key = ShapeInfoUtil::computeHash(info);
+        int* hashPtr = hashes.find(key._hash);
+        if (hashPtr && *hashPtr == key._hash2) {
             std::cout << testCount << "  hash collision radiusX = " << radiusX 
-                << "  h1 = 0x" << std::hex << (unsigned int)(hash) 
-                << "  h2 = 0x" << std::hex << (unsigned int)(hash2) 
+                << "  h1 = 0x" << std::hex << (unsigned int)(key._hash) 
+                << "  h2 = 0x" << std::hex << (unsigned int)(key._hash2) 
                 << std::endl;
             ++numCollisions;
             assert(false);
         } else {
-            hashes.insert(hash, hash2);
+            hashes.insert(key._hash, key._hash2);
         }
         for (int k = 0; k < 32; ++k) {
-            if (masks[k] & hash2) {
+            if (masks[k] & key._hash2) {
                 ++bits[k];
             }
         }
@@ -76,21 +81,20 @@ void ShapeInfoTests::testHashFunctions() {
                 }
 
                 ++testCount;
-                hash = info.computeHash();
-                hash2 = info.computeHash2();
-                hashPtr = hashes.find(hash);
-                if (hashPtr && *hashPtr == hash2) {
+                key = ShapeInfoUtil::computeHash(info);
+                hashPtr = hashes.find(key._hash);
+                if (hashPtr && *hashPtr == key._hash2) {
                     std::cout << testCount << "  hash collision radiusX = " << radiusX << "  radiusY = " << radiusY 
-                        << "  h1 = 0x" << std::hex << (unsigned int)(hash) 
-                        << "  h2 = 0x" << std::hex << (unsigned int)(hash2) 
+                        << "  h1 = 0x" << std::hex << (unsigned int)(key._hash) 
+                        << "  h2 = 0x" << std::hex << (unsigned int)(key._hash2) 
                         << std::endl;
                     ++numCollisions;
                     assert(false);
                 } else {
-                    hashes.insert(hash, hash2);
+                    hashes.insert(key._hash, key._hash2);
                 }
                 for (int k = 0; k < 32; ++k) {
-                    if (masks[k] & hash2) {
+                    if (masks[k] & key._hash2) {
                         ++bits[k];
                     }
                 }
@@ -99,24 +103,23 @@ void ShapeInfoTests::testHashFunctions() {
             for (int z = 1; z < numSteps && testCount < maxTests; ++z) {
                 float radiusZ = (float)z * deltaLength;
                 // test box
-                info.setBox(btVector3(radiusX, radiusY, radiusZ));
+                info.setBox(glm::vec3(radiusX, radiusY, radiusZ));
                 ++testCount;
-                hash = info.computeHash();
-                hash2 = info.computeHash2();
-                hashPtr = hashes.find(hash);
-                if (hashPtr && *hashPtr == hash2) {
+                DoubleHashKey key = ShapeInfoUtil::computeHash(info);
+                hashPtr = hashes.find(key._hash);
+                if (hashPtr && *hashPtr == key._hash2) {
                     std::cout << testCount << "  hash collision radiusX = " << radiusX 
                         << "  radiusY = " << radiusY << "  radiusZ = " << radiusZ 
-                        << "  h1 = 0x" << std::hex << (unsigned int)(hash) 
-                        << "  h2 = 0x" << std::hex << (unsigned int)(hash2) 
+                        << "  h1 = 0x" << std::hex << (unsigned int)(key._hash) 
+                        << "  h2 = 0x" << std::hex << (unsigned int)(key._hash2) 
                         << std::endl;
                     ++numCollisions;
                     assert(false);
                 } else {
-                    hashes.insert(hash, hash2);
+                    hashes.insert(key._hash, key._hash2);
                 }
                 for (int k = 0; k < 32; ++k) {
-                    if (masks[k] & hash2) {
+                    if (masks[k] & key._hash2) {
                         ++bits[k];
                     }
                 }
@@ -136,29 +139,27 @@ void ShapeInfoTests::testHashFunctions() {
 void ShapeInfoTests::testBoxShape() {
 #ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
-    btVector3 halfExtents(1.23f, 4.56f, 7.89f);
+    glm::vec3 halfExtents(1.23f, 4.56f, 7.89f);
     info.setBox(halfExtents);
-    int hash = info.computeHash();
-    int hash2 = info.computeHash2();
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
 
-    btCollisionShape* shape = info.createShape();
+    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
     if (!shape) {
         std::cout << __FILE__ << ":" << __LINE__ << " ERROR: NULL Box shape" << std::endl;
     }
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
-    int otherHash = otherInfo.computeHash();
-    if (hash != otherHash) {
+    DoubleHashKey otherKey = ShapeInfoUtil::computeHash(otherInfo);
+    if (key._hash != otherKey._hash) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Box shape hash = " << hash << " but found hash = " << otherHash << std::endl;
+            << " ERROR: expected Box shape hash = " << key._hash << " but found hash = " << otherKey._hash << std::endl;
     }
 
-    int otherHash2= otherInfo.computeHash2();
-    if (hash2 != otherHash2) {
+    if (key._hash2 != otherKey._hash2) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Box shape hash2 = " << hash2 << " but found hash2 = " << otherHash2 << std::endl;
+            << " ERROR: expected Box shape hash2 = " << key._hash2 << " but found hash2 = " << otherKey._hash2 << std::endl;
     }
 
     delete shape;
@@ -170,24 +171,21 @@ void ShapeInfoTests::testSphereShape() {
     ShapeInfo info;
     float radius = 1.23f;
     info.setSphere(radius);
-    int hash = info.computeHash();
-    int hash2 = info.computeHash2();
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
 
-    btCollisionShape* shape = info.createShape();
+    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
-    int otherHash = otherInfo.computeHash();
-    if (hash != otherHash) {
+    DoubleHashKey otherKey = ShapeInfoUtil::computeHash(otherInfo);
+    if (key._hash != otherKey._hash) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Sphere shape hash = " << hash << " but found hash = " << otherHash << std::endl;
+            << " ERROR: expected Sphere shape hash = " << key._hash << " but found hash = " << otherKey._hash << std::endl;
     }
-    
-    int otherHash2 = otherInfo.computeHash2();
-    if (hash2 != otherHash2) {
+    if (key._hash2 != otherKey._hash2) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Sphere shape hash2 = " << hash2 << " but found hash2 = " << otherHash2 << std::endl;
+            << " ERROR: expected Sphere shape hash2 = " << key._hash2 << " but found hash2 = " << otherKey._hash2 << std::endl;
     }
 
     delete shape;
@@ -200,24 +198,21 @@ void ShapeInfoTests::testCylinderShape() {
     float radius = 1.23f;
     float height = 4.56f;
     info.setCylinder(radius, height);
-    int hash = info.computeHash();
-    int hash2 = info.computeHash2();
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
 
-    btCollisionShape* shape = info.createShape();
+    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
-    int otherHash = otherInfo.computeHash();
-    if (hash != otherHash) {
+    DoubleHashKey otherKey = ShapeInfoUtil::computeHash(otherInfo);
+    if (key._hash != otherKey._hash) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Cylinder shape hash = " << hash << " but found hash = " << otherHash << std::endl;
+            << " ERROR: expected Cylinder shape hash = " << key._hash << " but found hash = " << otherKey._hash << std::endl;
     }
-
-    int otherHash2 = otherInfo.computeHash2();
-    if (hash2 != otherHash2) {
+    if (key._hash2 != otherKey._hash2) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Cylinder shape hash2 = " << hash2 << " but found hash2 = " << otherHash2 << std::endl;
+            << " ERROR: expected Cylinder shape hash2 = " << key._hash2 << " but found hash2 = " << otherKey._hash2 << std::endl;
     }
 
     delete shape;
@@ -230,24 +225,21 @@ void ShapeInfoTests::testCapsuleShape() {
     float radius = 1.23f;
     float height = 4.56f;
     info.setCapsule(radius, height);
-    int hash = info.computeHash();
-    int hash2 = info.computeHash2();
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
 
-    btCollisionShape* shape = info.createShape();
+    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
-    int otherHash = otherInfo.computeHash();
-    if (hash != otherHash) {
+    DoubleHashKey otherKey = ShapeInfoUtil::computeHash(otherInfo);
+    if (key._hash != otherKey._hash) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Capsule shape hash = " << hash << " but found hash = " << otherHash << std::endl;
+            << " ERROR: expected Capsule shape hash = " << key._hash << " but found hash = " << otherKey._hash << std::endl;
     }
-
-    int otherHash2 = otherInfo.computeHash2();
-    if (hash2 != otherHash2) {
+    if (key._hash2 != otherKey._hash2) {
         std::cout << __FILE__ << ":" << __LINE__
-            << " ERROR: expected Capsule shape hash2 = " << hash2 << " but found hash2 = " << otherHash2 << std::endl;
+            << " ERROR: expected Capsule shape hash2 = " << key._hash2 << " but found hash2 = " << otherKey._hash2 << std::endl;
     }
 
     delete shape;

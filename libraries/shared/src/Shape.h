@@ -25,12 +25,15 @@ class VerletPoint;
 
 const float MAX_SHAPE_MASS = 1.0e18f; // something less than sqrt(FLT_MAX)
 
-const quint8 SPHERE_SHAPE = 0;
-const quint8 CAPSULE_SHAPE = 1;
-const quint8 PLANE_SHAPE = 2;
-const quint8 AACUBE_SHAPE = 3;
-const quint8 LIST_SHAPE = 4;
-const quint8 UNKNOWN_SHAPE = 5;
+const quint8 UNKNOWN_SHAPE = 0;
+const quint8 INVALID_SHAPE = 0;
+const quint8 SPHERE_SHAPE = 1;
+const quint8 CAPSULE_SHAPE = 2;
+const quint8 PLANE_SHAPE = 3;
+const quint8 BOX_SHAPE = 4;
+const quint8 AACUBE_SHAPE = 5;
+const quint8 CYLINDER_SHAPE = 6;
+const quint8 LIST_SHAPE = 7;
 
 class Shape {
 public:

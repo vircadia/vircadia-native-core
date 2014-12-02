@@ -27,7 +27,7 @@ ShapeManager::~ShapeManager() {
 
 
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
-    ShapeKey key(info);
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->_refCount++;
@@ -45,7 +45,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
 }
 
 bool ShapeManager::releaseShape(const ShapeInfo& info) {
-    ShapeKey key(info);
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         if (shapeRef->_refCount > 0) {
@@ -70,14 +70,15 @@ bool ShapeManager::releaseShape(const ShapeInfo& info) {
 }
 
 bool ShapeManager::releaseShape(const btCollisionShape* shape) {
-    ShapeInfo info(shape);
+    ShapeInfo info;
+    ShapeInfoUtil::collectInfoFromShape(shape, info);
     return releaseShape(info);
 }
 
 void ShapeManager::collectGarbage() {
     int numShapes = _pendingGarbage.size();
     for (int i = 0; i < numShapes; ++i) {
-        ShapeKey& key = _pendingGarbage[i];
+        DoubleHashKey& key = _pendingGarbage[i];
         ShapeReference* shapeRef = _shapeMap.find(key);
         if (shapeRef && shapeRef->_refCount == 0) {
             delete shapeRef->_shape;
@@ -88,7 +89,7 @@ void ShapeManager::collectGarbage() {
 }
 
 int ShapeManager::getNumReferences(const ShapeInfo& info) const {
-    ShapeKey key(info);
+    DoubleHashKey key = ShapeInfoUtil::computeHash(info);
     const ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         return shapeRef->_refCount;

@@ -18,6 +18,8 @@ public:
     static unsigned int hashFunction(unsigned int value, int primeIndex);
     static unsigned int hashFunction2(unsigned int value);
 
+    DoubleHashKey() : _hash(0), _hash2(0) { }
+
     DoubleHashKey(unsigned int value, int primeIndex = 0) : 
         _hash(hashFunction(value, primeIndex)), 
         _hash2(hashFunction2(value)) { 
@@ -28,10 +30,6 @@ public:
     }
 
     unsigned int getHash() const { return (unsigned int)_hash; }
-
-protected:
-    // the default ctor is protected so that only derived classes can use it
-    DoubleHashKey() : _hash(0), _hash2(0) { }
 
     int _hash;
     int _hash2;

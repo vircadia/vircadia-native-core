@@ -17,17 +17,9 @@
 #include <btBulletDynamicsCommon.h>
 #include <LinearMath/btHashMap.h>
 
-#include "DoubleHashKey.h"
-#include "ShapeInfo.h"
+#include <ShapeInfo.h>
 
-class ShapeKey : public DoubleHashKey
-{
-public:
-    ShapeKey(const ShapeInfo& info) : DoubleHashKey() {
-        _hash = info.computeHash();
-        _hash2 = info.computeHash2();
-    }
-};
+#include "DoubleHashKey.h"
 
 class ShapeManager {
 public:
@@ -56,8 +48,8 @@ private:
         ShapeReference() : _refCount(0), _shape(NULL) {}
     };
 
-    btHashMap<ShapeKey, ShapeReference> _shapeMap;
-    btAlignedObjectArray<ShapeKey> _pendingGarbage;
+    btHashMap<DoubleHashKey, ShapeReference> _shapeMap;
+    btAlignedObjectArray<DoubleHashKey> _pendingGarbage;
 };
 
 #endif // USE_BULLET_PHYSICS

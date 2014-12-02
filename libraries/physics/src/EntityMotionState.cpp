@@ -107,13 +107,9 @@ void EntityMotionState::applyGravity() const {
 }
 
 void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
-#ifdef USE_BULLET_PHYSICS
     // HACK: for now we make everything a box.
     glm::vec3 halfExtents = 0.5f * _entity->getDimensionsInMeters();
-    btVector3 bulletHalfExtents;
-    glmToBullet(halfExtents, bulletHalfExtents);
-    info.setBox(bulletHalfExtents);
-#endif // USE_BULLET_PHYSICS
+    info.setBox(halfExtents);
 }
 
 void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {

@@ -20,7 +20,7 @@ void ShapeManagerTests::testShapeAccounting() {
 #ifdef USE_BULLET_PHYSICS
     ShapeManager shapeManager;
     ShapeInfo info;
-    info.setBox(btVector3(1.0f, 1.0f, 1.0f));
+    info.setBox(glm::vec3(1.0f, 1.0f, 1.0f));
     
     // NOTE: ShapeManager returns -1 as refcount when the shape is unknown, 
     // which is distinct from "known but with zero references"
@@ -132,7 +132,7 @@ void ShapeManagerTests::addManyShapes() {
     ShapeInfo info;
     for (int i = 0; i < numSizes; ++i) {
         float s = startSize + (float)i * deltaSize;
-        btVector3 scale(s, 1.23f + s, s - 0.573f);
+        glm::vec3 scale(s, 1.23f + s, s - 0.573f);
         info.setBox(0.5f * scale);
         btCollisionShape* shape = shapeManager.getShape(info);
         if (!shape) {
@@ -157,14 +157,14 @@ void ShapeManagerTests::addManyShapes() {
 void ShapeManagerTests::addBoxShape() {
 #ifdef USE_BULLET_PHYSICS
     ShapeInfo info;
-    btVector3 halfExtents(1.23f, 4.56f, 7.89f);
+    glm::vec3 halfExtents(1.23f, 4.56f, 7.89f);
     info.setBox(halfExtents);
 
     ShapeManager shapeManager;
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    collectInfoFromShape(shape, otherInfo);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
@@ -184,7 +184,7 @@ void ShapeManagerTests::addSphereShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    collectInfoFromShape(shape, otherInfo);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
@@ -205,7 +205,7 @@ void ShapeManagerTests::addCylinderShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    collectInfoFromShape(shape, otherInfo);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
@@ -226,7 +226,7 @@ void ShapeManagerTests::addCapsuleShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    collectInfoFromShape(shape, otherInfo);
+    ShapeInfoUtil::collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
