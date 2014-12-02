@@ -89,11 +89,19 @@ SelectionManager = (function() {
         }
     }
 
-    that.addEntity = function(entityID) {
+    that.addEntity = function(entityID, toggleSelection) {
         if (entityID.isKnownID) {
-            var idx = that.selections.indexOf(entityID);
+            var idx = -1;
+            for (var i = 0; i < that.selections.length; i++) {
+                if (entityID.id == that.selections[i].id) {
+                    idx = i;
+                    break;
+                }
+            }
             if (idx == -1) {
                 that.selections.push(entityID);
+            } else if (toggleSelection) {
+                that.selections.splice(idx, 1);
             }
         } else {
             var idx = that.pendingSelections.indexOf(entityID);
