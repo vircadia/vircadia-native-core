@@ -367,6 +367,15 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
     const float MAX_LEAN = 45.0f;
+
+    // Invert left/right lean when in mirror mode
+    // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
+    // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
+    // match your body movements.
+    if (OculusManager::isConnected() && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        relativePosition.x = -relativePosition.x;
+    }
+
     head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
