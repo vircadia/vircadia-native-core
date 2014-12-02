@@ -571,8 +571,6 @@ void ApplicationOverlay::renderControllerPointers() {
     static quint64 pressedTime[NUMBER_OF_MAGNIFIERS] = { 0ULL, 0ULL, 0ULL };
     static bool isPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
     static bool stateWhenPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
-    static bool triggerPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
-    static bool bumperPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -611,30 +609,6 @@ void ApplicationOverlay::renderControllerPointers() {
             if (usecTimestampNow() < pressedTime[index] + MAX_BUTTON_PRESS_TIME) {
                 _magActive[index] = !stateWhenPressed[index];
             }
-        }
-
-        //Check for UI active toggle
-        if (palmData->getTrigger() == 1.0f) {
-            if (!triggerPressed[index]) {
-                if (bumperPressed[index]) {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface,
-                                                            !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
-                }
-                triggerPressed[index] = true;
-            }
-        } else {
-            triggerPressed[index] = false;
-        }
-        if ((controllerButtons & BUTTON_FWD)) {
-            if (!bumperPressed[index]) {
-                if (triggerPressed[index]) {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface,
-                                                            !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
-                }
-                bumperPressed[index] = true;
-            }
-        } else {
-            bumperPressed[index] = false;
         }
 
         //if we have the oculus, we should make the cursor smaller since it will be
