@@ -96,7 +96,8 @@ public:
     virtual void writeExtraSubdivision(Bitstream& out);
     
     /// Reads the subdivision of the non-property contents of this object from the specified stream.
-    virtual void readExtraSubdivision(Bitstream& in);
+    /// \return the modified object, or this if no modification was performed
+    virtual SharedObject* readExtraSubdivision(Bitstream& in);
 
 private:
     

@@ -151,8 +151,8 @@ void SharedObject::writeExtraSubdivision(Bitstream& out) {
     // nothing by default
 }
 
-void SharedObject::readExtraSubdivision(Bitstream& in) {
-    // nothing by default
+SharedObject* SharedObject::readExtraSubdivision(Bitstream& in) {
+    return this;
 }
 
 QAtomicInt SharedObject::_nextID(1);

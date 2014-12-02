@@ -505,6 +505,10 @@ public:
     
     const HeightfieldNodePointer& getChild(int index) const { return _children[index]; }
     
+    float getHeight(const glm::vec3& location) const;
+    
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+    
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
     
@@ -593,7 +597,7 @@ public:
     virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
     virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
     virtual void writeExtraSubdivision(Bitstream& out);
-    virtual void readExtraSubdivision(Bitstream& in);
+    virtual SharedObject* readExtraSubdivision(Bitstream& in);
     
 signals:
 
