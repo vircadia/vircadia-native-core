@@ -842,7 +842,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toString());
         }
         
         return false;
