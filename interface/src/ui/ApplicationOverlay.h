@@ -37,7 +37,6 @@ public:
 
 
     // Getters
-    QOpenGLFramebufferObject* getFramebufferObject();
     float getAlpha() const { return _alpha; }
   
 private:
@@ -48,7 +47,31 @@ private:
     };
 
     typedef QPair<GLuint, GLuint> VerticesIndices;
-
+    class TexturedHemisphere {
+    public:
+        TexturedHemisphere();
+        ~TexturedHemisphere();
+        
+        void bind();
+        void release();
+        
+        void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
+        void buildFramebufferObject(const QSize& size);
+        void render(const glm::quat& orientation, const glm::vec3& position, const float scale);
+        
+    private:
+        void cleanupVBO();
+        
+        GLuint _vertices;
+        GLuint _indices;
+        QOpenGLFramebufferObject* _framebufferObject;
+        VerticesIndices _vbo;
+    };
+    
+    VerticesIndices* makeTexturedHemiphereVBO(float fov, float aspectRatio, int slices, int stacks);
+    void renderTexturedHemisphere(ApplicationOverlay::VerticesIndices* vbo, int vertices, int indices);
+    QOpenGLFramebufferObject* newFramebufferObject(QSize& size);
+    
     void renderPointers();
     void renderControllerPointers();
     void renderPointersOculus(const glm::vec3& eyePos);
@@ -56,15 +79,14 @@ private:
     void renderAudioMeter();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
-    
-    VerticesIndices* makeTexturedHemiphereVBO(float fov, float aspectRatio, int slices, int stacks);
-    void renderTexturedHemisphere(ApplicationOverlay::VerticesIndices* vbo, int vertices, int indices);
 
-    QOpenGLFramebufferObject* _framebufferObject;
+    TexturedHemisphere _overlays;
+    TexturedHemisphere _reticule;
+    
     float _trailingAudioLoudness;
     float _textureFov;
     
-    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS = RIGHT_CONTROLLER + 1 };
+    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS };
     bool _reticleActive[NUMBER_OF_MAGNIFIERS];
     int _mouseX[NUMBER_OF_MAGNIFIERS];
     int _mouseY[NUMBER_OF_MAGNIFIERS];
@@ -74,7 +96,7 @@ private:
     float _magSizeMult[NUMBER_OF_MAGNIFIERS];
     
     float _alpha;
-    float _oculusuiRadius;
+    float _oculusUIRadius;
 
     GLuint _crosshairTexture;
 };

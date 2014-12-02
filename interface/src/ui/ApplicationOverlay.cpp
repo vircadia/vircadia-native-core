@@ -27,20 +27,16 @@ const float MAG_SPEED = 0.08f;
 
 const quint64 MSECS_TO_USECS = 1000ULL;
 
-// Fast helper functions
-inline float max(float a, float b) {
-    return (a > b) ? a : b;
-}
+const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
+const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
-inline float min(float a, float b) {
-    return (a < b) ? a : b;
-}
+const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
+const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 
-ApplicationOverlay::ApplicationOverlay() : 
-    _framebufferObject(NULL),
-    _textureFov(DEFAULT_OCULUS_UI_ANGULAR_SIZE * RADIANS_PER_DEGREE),
+ApplicationOverlay::ApplicationOverlay() :
+    _textureFov(glm::radians(DEFAULT_OCULUS_UI_ANGULAR_SIZE)),
     _alpha(1.0f),
-    _oculusuiRadius(1.0f),
+    _oculusUIRadius(1.0f),
     _crosshairTexture(0) {
 
     memset(_reticleActive, 0, sizeof(_reticleActive));
@@ -49,23 +45,14 @@ ApplicationOverlay::ApplicationOverlay() :
 }
 
 ApplicationOverlay::~ApplicationOverlay() {
-    if (_framebufferObject != NULL) {
-        delete _framebufferObject;
-    }
 }
 
-const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
-const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
-
-const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
-const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 
 // Renders the overlays either to a texture or to the screen
 void ApplicationOverlay::renderOverlay(bool renderToTexture) {
-
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "ApplicationOverlay::displayOverlay()");
 
-    _textureFov = Menu::getInstance()->getOculusUIAngularSize() * RADIANS_PER_DEGREE;
+    _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
 
     Application* application = Application::getInstance();
 
@@ -86,42 +73,39 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
         }
     }
 
-    if (renderToTexture) {
-        getFramebufferObject()->bind();
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
     // Render 2D overlay
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-
-    glLoadIdentity();
-    gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_LIGHTING);
-
-    renderAudioMeter();
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
-        myAvatar->renderHeadMouse(glWidget->width(), glWidget->height());
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    if (renderToTexture) {
+        _overlays.bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     }
-
-    renderStatsAndLogs();
-
-    // give external parties a change to hook in
-    emit application->renderingOverlay();
-
-    overlays.render2D();
-
-    renderPointers();
-
-    renderDomainConnectionStatusBorder();
-
-    glPopMatrix();
-
+    
+    glPushMatrix(); {
+        glLoadIdentity();
+        gluOrtho2D(0, glWidget->width(), glWidget->height(), 0);
+        
+        renderAudioMeter();
+        
+        if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)) {
+            myAvatar->renderHeadMouse(glWidget->width(), glWidget->height());
+        }
+        
+        renderStatsAndLogs();
+        
+        // give external parties a change to hook in
+        emit application->renderingOverlay();
+        
+        overlays.render2D();
+        
+        renderPointers();
+        
+        renderDomainConnectionStatusBorder();
+    } glPopMatrix();
 
     glMatrixMode(GL_MODELVIEW);
     glEnable(GL_DEPTH_TEST);
@@ -129,7 +113,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 
     if (renderToTexture) {
-        getFramebufferObject()->release();
+        _overlays.release();
     }
 }
 
@@ -559,7 +543,6 @@ void ApplicationOverlay::renderPointers() {
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
-
 }
 
 void ApplicationOverlay::renderControllerPointers() {
@@ -844,118 +827,6 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     glEnable(GL_DEPTH_TEST);
 }
 
-//Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const
-{
-    Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
-
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
-
-    const float magnifyWidth = MAGNIFY_WIDTH * sizeMult;
-    const float magnifyHeight = MAGNIFY_HEIGHT * sizeMult;
-
-    mouseX -= magnifyWidth / 2;
-    mouseY -= magnifyHeight / 2;
-
-    float newWidth = magnifyWidth * MAGNIFY_MULT;
-    float newHeight = magnifyHeight * MAGNIFY_MULT;
-
-    // Magnification Texture Coordinates
-    float magnifyULeft = mouseX / (float)widgetWidth;
-    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
-    float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
-    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
-
-    // Coordinates of magnification overlay
-    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
-    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
-
-    // Get position on hemisphere using angle
-
-    //Get new UV coordinates from our magnification window
-    float newULeft = newMouseX / widgetWidth;
-    float newURight = (newMouseX + newWidth) / widgetWidth;
-    float newVBottom = 1.0 - newMouseY / widgetHeight;
-    float newVTop = 1.0 - (newMouseY - newHeight) / widgetHeight;
-
-    // Project our position onto the hemisphere using the UV coordinates
-    float radius = _oculusuiRadius * application->getAvatar()->getScale();
-    float radius2 = radius * radius;
-
-    float lX = radius * sin((newULeft - 0.5f) * _textureFov);
-    float rX = radius * sin((newURight - 0.5f) * _textureFov);
-    float bY = radius * sin((newVBottom - 0.5f) * _textureFov);
-    float tY = radius * sin((newVTop - 0.5f) * _textureFov);
-
-    float blZ, tlZ, brZ, trZ;
-
-    float dist;
-    float discriminant;
-
-    //Bottom Left
-    dist = sqrt(lX * lX + bY * bY);
-    discriminant = radius2 - dist * dist;
-    if (discriminant > 0) {
-        blZ = sqrt(discriminant);
-    } else {
-        blZ = 0;
-    }
-    //Top Left
-    dist = sqrt(lX * lX + tY * tY);
-    discriminant = radius2 - dist * dist;
-    if (discriminant > 0) {
-        tlZ = sqrt(discriminant);
-    } else {
-        tlZ = 0;
-    }
-    //Bottom Right
-    dist = sqrt(rX * rX + bY * bY);
-    discriminant = radius2 - dist * dist;
-    if (discriminant > 0) {
-        brZ = sqrt(discriminant);
-    } else {
-        brZ = 0;
-    }
-    //Top Right
-    dist = sqrt(rX * rX + tY * tY);
-    discriminant = radius2 - dist * dist;
-    if (discriminant > 0) {
-        trZ = sqrt(discriminant);
-    } else {
-        trZ = 0;
-    }
-    
-    if (showBorder) {
-        glDisable(GL_TEXTURE_2D);
-        glLineWidth(1.0f);
-        //Outer Line
-        glBegin(GL_LINE_STRIP);
-        glColor4f(1.0f, 0.0f, 0.0f, _alpha);
-
-        glVertex3f(lX, tY, -tlZ);
-        glVertex3f(rX, tY, -trZ);
-        glVertex3f(rX, bY, -brZ);
-        glVertex3f(lX, bY, -blZ);
-        glVertex3f(lX, tY, -tlZ);
-
-        glEnd();
-        glEnable(GL_TEXTURE_2D);
-    }
-    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-
-    glBegin(GL_QUADS);
-
-    glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(lX, tY, -tlZ);
-    glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(rX, tY, -trZ);
-    glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(rX, bY, -brZ);
-    glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(lX, bY, -blZ);
-
-    glEnd();
-
-}
-
 void ApplicationOverlay::renderAudioMeter() {
 
     Application* application = Application::getInstance();
@@ -1129,120 +1000,6 @@ void ApplicationOverlay::renderStatsAndLogs() {
     nodeBoundsDisplay.drawOverlay();
 }
 
-ApplicationOverlay::VerticesIndices* ApplicationOverlay::makeTexturedHemiphereVBO(float fov,
-                                                                                  float aspectRatio,
-                                                                                  int slices,
-                                                                                  int stacks) {
-    if (fov >= PI) {
-        qDebug() << "ApplicationOverlay::makeHemiphereVBO(): FOV greater or equal than Pi will create issues";
-    }
-    
-    //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
-    VerticesIndices* vbo = new VerticesIndices(0, 0);
-    
-    // Compute number of vertices needed
-    int vertices = slices * stacks;
-    
-    // Compute vertices positions and texture UV coordinate
-    TextureVertex* vertexData = new TextureVertex[vertices];
-    TextureVertex* vertexPtr = &vertexData[0];
-    for (int i = 0; i < stacks; i++) {
-        float stacksRatio = (float)i / (float)stacks; // First stack is 0.0f, last stack is 1.0f
-        // abs(phi) <= fov / 2.0f
-        float phi = fov * (stacksRatio - 0.5f);
-        
-        for (int j = 0; j < slices; j++) {
-            float slicesRatio = (float)j / (float)slices; // First slice is 0.0f, last slice is 1.0f
-            // abs(theta) <= fov * aspectRatio / 2.0f
-            float theta = fov * aspectRatio * (slicesRatio - 0.5f);
-            
-            vertexPtr->position.x = -sinf(theta);
-            vertexPtr->position.y = sinf(phi);
-            vertexPtr->position.z = cosf(theta);
-            vertexPtr->uv.x = slicesRatio;
-            vertexPtr->uv.y = 1.0f - stacksRatio;
-            vertexPtr++;
-        }
-    }
-    // Create and write to buffer
-    glGenBuffers(1, &vbo->first);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo->first);
-    static const int BYTES_PER_VERTEX = sizeof(TextureVertex);
-    glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
-    delete[] vertexData;
-    
-    
-    // Compute number of indices needed
-    static const int VERTEX_PER_TRANGLE = 3;
-    static const int TRIANGLE_PER_RECTANGLE = 2;
-    int numberOfRectangles = (slices - 1) * (stacks - 1);
-    int indices = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
-    
-    // Compute indices order
-    GLushort* indexData = new GLushort[indices];
-    GLushort* indexPtr = indexData;
-    for (int i = 0; i < stacks - 1; i++) {
-        for (int j = 0; j < slices - 1; j++) {
-            GLushort bottomLeftIndex = i * slices + j;
-            GLushort bottomRightIndex = bottomLeftIndex + 1;
-            GLushort topLeftIndex = bottomLeftIndex + slices;
-            GLushort topRightIndex = topLeftIndex + 1;
-            
-            *(indexPtr++) = topLeftIndex;
-            *(indexPtr++) = bottomLeftIndex;
-            *(indexPtr++) = topRightIndex;
-            
-            *(indexPtr++) = topRightIndex;
-            *(indexPtr++) = bottomLeftIndex;
-            *(indexPtr++) = bottomRightIndex;
-        }
-    }
-    // Create and write to buffer
-    glGenBuffers(1, &vbo->second);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo->second);
-    static const int BYTES_PER_INDEX = sizeof(GLushort);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
-    delete[] indexData;
-    
-    return vbo;
-}
-
-//Renders a hemisphere with texture coordinates.
-void ApplicationOverlay::renderTexturedHemisphere(ApplicationOverlay::VerticesIndices* vbo, int vertices, int indices) {
-    glBindBuffer(GL_ARRAY_BUFFER, vbo->first);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo->second);
- 
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-
-    static const int STRIDE = sizeof(TextureVertex);
-    static const void* VERTEX_POINTER = 0;
-    static const void* TEX_COORD_POINTER = (void*)sizeof(glm::vec3);
-    glVertexPointer(3, GL_FLOAT, STRIDE, VERTEX_POINTER);
-    glTexCoordPointer(2, GL_FLOAT, STRIDE, TEX_COORD_POINTER);
-
-    
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getDefaultEyePosition();
-    const float scale = _oculusuiRadius * myAvatar->getScale();
-    
-    glPushMatrix(); {
-        glTranslatef(position.x, position.y, position.z);
-        glm::mat4 rotation = glm::toMat4(orientation);
-        glMultMatrixf(&rotation[0][0]);
-        glScalef(scale, scale, scale);
-        
-        glDrawRangeElements(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
-    } glPopMatrix();
-
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-}
-
 void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     NodeList* nodeList = NodeList::getInstance();
 
@@ -1267,22 +1024,281 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     }
 }
 
-QOpenGLFramebufferObject* ApplicationOverlay::getFramebufferObject() {
-    QSize size = Application::getInstance()->getGLWidget()->getDeviceSize();
-    if (!_framebufferObject || _framebufferObject->size() != size) {
-
-        delete _framebufferObject;
-
-        _framebufferObject = new QOpenGLFramebufferObject(size);
-        glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
-        glBindTexture(GL_TEXTURE_2D, 0);
+//Renders a small magnification of the currently bound texture at the coordinates
+void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const {
+    Application* application = Application::getInstance();
+    GLCanvas* glWidget = application->getGLWidget();
+    
+    const int widgetWidth = glWidget->width();
+    const int widgetHeight = glWidget->height();
+    
+    const float magnifyWidth = MAGNIFY_WIDTH * sizeMult;
+    const float magnifyHeight = MAGNIFY_HEIGHT * sizeMult;
+    
+    mouseX -= magnifyWidth / 2;
+    mouseY -= magnifyHeight / 2;
+    
+    float newWidth = magnifyWidth * MAGNIFY_MULT;
+    float newHeight = magnifyHeight * MAGNIFY_MULT;
+    
+    // Magnification Texture Coordinates
+    float magnifyULeft = mouseX / (float)widgetWidth;
+    float magnifyURight = (mouseX + magnifyWidth) / (float)widgetWidth;
+    float magnifyVBottom = 1.0f - mouseY / (float)widgetHeight;
+    float magnifyVTop = 1.0f - (mouseY + magnifyHeight) / (float)widgetHeight;
+    
+    // Coordinates of magnification overlay
+    float newMouseX = (mouseX + magnifyWidth / 2) - newWidth / 2.0f;
+    float newMouseY = (mouseY + magnifyHeight / 2) + newHeight / 2.0f;
+    
+    // Get position on hemisphere using angle
+    
+    //Get new UV coordinates from our magnification window
+    float newULeft = newMouseX / widgetWidth;
+    float newURight = (newMouseX + newWidth) / widgetWidth;
+    float newVBottom = 1.0 - newMouseY / widgetHeight;
+    float newVTop = 1.0 - (newMouseY - newHeight) / widgetHeight;
+    
+    // Project our position onto the hemisphere using the UV coordinates
+    float radius = _oculusuiRadius * application->getAvatar()->getScale();
+    float radius2 = radius * radius;
+    
+    float lX = radius * sin((newULeft - 0.5f) * _textureFov);
+    float rX = radius * sin((newURight - 0.5f) * _textureFov);
+    float bY = radius * sin((newVBottom - 0.5f) * _textureFov);
+    float tY = radius * sin((newVTop - 0.5f) * _textureFov);
+    
+    float blZ, tlZ, brZ, trZ;
+    
+    float dist;
+    float discriminant;
+    
+    //Bottom Left
+    dist = sqrt(lX * lX + bY * bY);
+    discriminant = radius2 - dist * dist;
+    if (discriminant > 0) {
+        blZ = sqrt(discriminant);
+    } else {
+        blZ = 0;
     }
-    return _framebufferObject;
+    //Top Left
+    dist = sqrt(lX * lX + tY * tY);
+    discriminant = radius2 - dist * dist;
+    if (discriminant > 0) {
+        tlZ = sqrt(discriminant);
+    } else {
+        tlZ = 0;
+    }
+    //Bottom Right
+    dist = sqrt(rX * rX + bY * bY);
+    discriminant = radius2 - dist * dist;
+    if (discriminant > 0) {
+        brZ = sqrt(discriminant);
+    } else {
+        brZ = 0;
+    }
+    //Top Right
+    dist = sqrt(rX * rX + tY * tY);
+    discriminant = radius2 - dist * dist;
+    if (discriminant > 0) {
+        trZ = sqrt(discriminant);
+    } else {
+        trZ = 0;
+    }
+    
+    if (showBorder) {
+        glDisable(GL_TEXTURE_2D);
+        glLineWidth(1.0f);
+        //Outer Line
+        glBegin(GL_LINE_STRIP);
+        glColor4f(1.0f, 0.0f, 0.0f, _alpha);
+        
+        glVertex3f(lX, tY, -tlZ);
+        glVertex3f(rX, tY, -trZ);
+        glVertex3f(rX, bY, -brZ);
+        glVertex3f(lX, bY, -blZ);
+        glVertex3f(lX, tY, -tlZ);
+        
+        glEnd();
+        glEnable(GL_TEXTURE_2D);
+    }
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+    
+    glBegin(GL_QUADS);
+    
+    glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(lX, tY, -tlZ);
+    glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(rX, tY, -trZ);
+    glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(rX, bY, -brZ);
+    glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(lX, bY, -blZ);
+    
+    glEnd();
+    
+}
+
+ApplicationOverlay::TexturedHemisphere::TexturedHemisphere() :
+    _vertices(0),
+    _indices(0),
+    _framebufferObject(NULL),
+    _vbo(0, 0) {
+}
+
+ApplicationOverlay::TexturedHemisphere::~TexturedHemisphere() {
+    cleanupVBO();
+    if (_framebufferObject != NULL) {
+        delete _framebufferObject;
+    }
+}
+
+void ApplicationOverlay::TexturedHemisphere::bind() {
+    if (_framebufferObject != NULL) {
+        _framebufferObject->bind();
+    }
+}
+
+void ApplicationOverlay::TexturedHemisphere::release() {
+    if (_framebufferObject != NULL) {
+        _framebufferObject->release();
+    }
+}
+
+void ApplicationOverlay::TexturedHemisphere::buildVBO(const float fov,
+                                                      const float aspectRatio,
+                                                      const int slices,
+                                                      const int stacks) {
+    if (fov >= PI) {
+        qDebug() << "TexturedHemisphere::buildVBO(): FOV greater or equal than Pi will create issues";
+    }
+    // Cleanup old VBO if necessary
+    cleanupVBO();
+    
+    //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
+    
+    // Compute number of vertices needed
+    _vertices = slices * stacks;
+    
+    // Compute vertices positions and texture UV coordinate
+    TextureVertex* vertexData = new TextureVertex[_vertices];
+    TextureVertex* vertexPtr = &vertexData[0];
+    for (int i = 0; i < stacks; i++) {
+        float stacksRatio = (float)i / (float)stacks; // First stack is 0.0f, last stack is 1.0f
+        // abs(phi) <= fov / 2.0f
+        float phi = fov * (stacksRatio - 0.5f);
+        
+        for (int j = 0; j < slices; j++) {
+            float slicesRatio = (float)j / (float)slices; // First slice is 0.0f, last slice is 1.0f
+            // abs(theta) <= fov * aspectRatio / 2.0f
+            float theta = fov * aspectRatio * (slicesRatio - 0.5f);
+            
+            vertexPtr->position.x = -sinf(theta);
+            vertexPtr->position.y = sinf(phi);
+            vertexPtr->position.z = cosf(theta);
+            vertexPtr->uv.x = slicesRatio;
+            vertexPtr->uv.y = 1.0f - stacksRatio;
+            vertexPtr++;
+        }
+    }
+    // Create and write to buffer
+    glGenBuffers(1, &_vbo.first);
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo.first);
+    static const int BYTES_PER_VERTEX = sizeof(TextureVertex);
+    glBufferData(GL_ARRAY_BUFFER, _vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+    delete[] vertexData;
+    
+    
+    // Compute number of indices needed
+    static const int VERTEX_PER_TRANGLE = 3;
+    static const int TRIANGLE_PER_RECTANGLE = 2;
+    int numberOfRectangles = (slices - 1) * (stacks - 1);
+    _indices = numberOfRectangles * TRIANGLE_PER_RECTANGLE * VERTEX_PER_TRANGLE;
+    
+    // Compute indices order
+    GLushort* indexData = new GLushort[_indices];
+    GLushort* indexPtr = indexData;
+    for (int i = 0; i < stacks - 1; i++) {
+        for (int j = 0; j < slices - 1; j++) {
+            GLushort bottomLeftIndex = i * slices + j;
+            GLushort bottomRightIndex = bottomLeftIndex + 1;
+            GLushort topLeftIndex = bottomLeftIndex + slices;
+            GLushort topRightIndex = topLeftIndex + 1;
+            
+            *(indexPtr++) = topLeftIndex;
+            *(indexPtr++) = bottomLeftIndex;
+            *(indexPtr++) = topRightIndex;
+            
+            *(indexPtr++) = topRightIndex;
+            *(indexPtr++) = bottomLeftIndex;
+            *(indexPtr++) = bottomRightIndex;
+        }
+    }
+    // Create and write to buffer
+    glGenBuffers(1, &_vbo.second);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo.second);
+    static const int BYTES_PER_INDEX = sizeof(GLushort);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+    delete[] indexData;
+}
+
+void ApplicationOverlay::TexturedHemisphere::cleanupVBO() {
+    if (_vbo.first != 0) {
+        glDeleteBuffers(1, &_vbo.first);
+        _vbo.first = 0;
+    }
+    if (_vbo.second != 0) {
+        glDeleteBuffers(1, &_vbo.second);
+        _vbo.second = 0;
+    }
+}
+
+void ApplicationOverlay::TexturedHemisphere::buildFramebufferObject(const QSize& size) {
+    if (_framebufferObject != NULL) {
+        delete _framebufferObject;
+    }
+    
+    _framebufferObject = new QOpenGLFramebufferObject(size);
+    glBindTexture(GL_TEXTURE_2D, _framebufferObject->texture());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    GLfloat borderColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+//Renders a hemisphere with texture coordinates.
+void ApplicationOverlay::TexturedHemisphere::render(const glm::quat& orientation, const glm::vec3& position, const float scale) {
+    if (_framebufferObject == NULL || _vbo.first == 0 || _vbo.second == 0) {
+        qDebug() << "TexturedHemisphere::render(): Incorrect initialisation";
+        return;
+    }
+    
+    _framebufferObject->bind();
+    glBindBuffer(GL_ARRAY_BUFFER, _vbo.first);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vbo.second);
+    
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    static const int STRIDE = sizeof(TextureVertex);
+    static const void* VERTEX_POINTER = 0;
+    static const void* TEX_COORD_POINTER = (void*)sizeof(glm::vec3);
+    glVertexPointer(3, GL_FLOAT, STRIDE, VERTEX_POINTER);
+    glTexCoordPointer(2, GL_FLOAT, STRIDE, TEX_COORD_POINTER);
+    
+    glPushMatrix(); {
+        glTranslatef(position.x, position.y, position.z);
+        glm::mat4 rotation = glm::toMat4(orientation);
+        glMultMatrixf(&rotation[0][0]);
+        glScalef(scale, scale, scale);
+        
+        glDrawRangeElements(GL_TRIANGLES, 0, _vertices - 1, _indices, GL_UNSIGNED_SHORT, 0);
+    } glPopMatrix();
+    
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    
+    _framebufferObject->release();
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
