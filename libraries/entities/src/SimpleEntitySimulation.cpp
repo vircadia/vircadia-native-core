@@ -154,9 +154,9 @@ void SimpleEntitySimulation::updateMortalEntities(quint64 now, QSet<EntityItem*>
             item_itr = _mortalEntities.erase(item_itr);
             entity->setSimulationState(EntityItem::Static);
         } else {
-            // check to see if this entity is no longer moving
             EntityItem::SimulationState newState = entity->computeSimulationState();
             if (newState != EntityItem::Mortal) {
+                // check to see if this entity is moving
                 if (newState == EntityItem::Moving) {
                     entity->update(now);
                     _movingEntities.push_back(entity);

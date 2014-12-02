@@ -20,6 +20,8 @@
 
 #include <BulletDynamics/Dynamics/btDiscreteDynamicsWorld.h>
 
+class EntityTree;
+
 ATTRIBUTE_ALIGNED16(class) ThreadSafeDynamicsWorld : public btDiscreteDynamicsWorld
 {
 public:
@@ -29,16 +31,15 @@ public:
             btDispatcher* dispatcher,
             btBroadphaseInterface* pairCache,
             btConstraintSolver* constraintSolver,
-            btCollisionConfiguration* collisionConfiguration);
+            btCollisionConfiguration* collisionConfiguration,
+            EntityTree* entities);
 
-    // virtual overrides of btDiscreteDynamicsWorld
+    // virtual overrides from btDiscreteDynamicsWorld
     int stepSimulation( btScalar timeStep, int maxSubSteps=1, btScalar fixedTimeStep=btScalar(1.)/btScalar(60.));
     void synchronizeMotionStates();
 
-    /// \return true if lock succeeds
-    virtual bool tryLock() = 0;
-
-    virtual void unlock() = 0;
+private:
+    EntityTree* _entities;
 };
 
 #endif // hifi_ThreadSafeDynamicsWorld_h

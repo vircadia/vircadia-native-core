@@ -17,7 +17,6 @@
 #ifdef USE_BULLET_PHYSICS
 #include "CustomMotionState.h"
 #else // USE_BULLET_PHYSICS
-
 // CustomMotionState stubbery
 class CustomMotionState {
 public:

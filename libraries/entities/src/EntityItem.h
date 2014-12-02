@@ -35,8 +35,6 @@ class EntityTreeElementExtraEncodeData;
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
 
-class EntityMotionState;
-
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
 /// one directly, instead you must only construct one of it's derived classes with additional features.
@@ -303,9 +301,10 @@ public:
     void clearUpdateFlags() { _updateFlags = 0; }
 
     void* getPhysicsInfo() const { return _physicsInfo; }
+    void setPhysicsInfo(void* data) { _physicsInfo = data; }
     SimulationState getSimulationState() const { return _simulationState; }
-    
     void setSimulationState(SimulationState state) { _simulationState = state; }
+    
 protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
@@ -349,8 +348,8 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
-    void* _physicsInfo;
-    SimulationState _simulationState;   // only set by EntityTree
+    void* _physicsInfo; // only set by EntitySimulation
+    SimulationState _simulationState; // only set by EntitySimulation
 
     // UpdateFlags are set whenever a property changes that requires the change to be communicated to other
     // data structures.  It is the responsibility of the EntityTree to relay changes entity and clear flags.

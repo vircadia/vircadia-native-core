@@ -504,7 +504,7 @@ private:
     ViewFrustum _sharedVoxelSystemViewFrustum;
 
 #ifdef USE_BULLET_PHYSICS
-    ThreadSafePhysicsEngine _physicsEngine;
+    PhysicsEngine _physicsEngine;
 #endif // USE_BULLET_PHYSICS
 
     EntityTreeRenderer _entities;

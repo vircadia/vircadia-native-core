@@ -32,30 +32,52 @@ const uint32_t PHYSICS_UPDATE_EASY = PHYSICS_UPDATE_POSITION | PHYSICS_UPDATE_VE
 
 #ifdef USE_BULLET_PHYSICS
 
+#include <QSet>
 #include <btBulletDynamicsCommon.h>
+
+#include <EntityItem.h>
+#include <EntitySimulation.h>
 
 #include "BulletUtil.h"
 #include "CustomMotionState.h"
 #include "PositionHashKey.h"
 #include "ShapeManager.h"
+#include "ThreadSafeDynamicsWorld.h"
 #include "VoxelObject.h"
 
 const float HALF_SIMULATION_EXTENT = 512.0f; // meters
 
-class PhysicsEngine {
+class PhysicsEngine : public EntitySimulation {
 public:
 
-    PhysicsEngine(const glm::vec3& offset)
-        :   _collisionConfig(NULL), 
-            _collisionDispatcher(NULL), 
-            _broadphaseFilter(NULL), 
-            _constraintSolver(NULL), 
-            _dynamicsWorld(NULL),
-            _originOffset(offset),
-            _voxels() {
-    }
+    PhysicsEngine(const glm::vec3& offset);
 
     ~PhysicsEngine();
+
+    // override from EntitySimulation
+    /// \param tree pointer to EntityTree which is stored internally
+    void setEntityTree(EntityTree* tree);
+
+    // override from EntitySimulation
+    /// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
+    void updateEntities(QSet<EntityItem*>& entitiesToDelete);
+
+    // override from EntitySimulation
+    /// \param entity pointer to EntityItem to add to the simulation
+    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list
+    void addEntity(EntityItem* entity);
+
+    // override from EntitySimulation
+    /// \param entity pointer to EntityItem to removed from the simulation
+    /// \sideeffect the EntityItem::_simulationState member may be updated to indicate non-membership to internal list
+    void removeEntity(EntityItem* entity);
+
+    // override from EntitySimulation
+    /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
+    void entityChanged(EntityItem* entity);
+
+    // override from EntitySimulation
+    void clearEntities();
 
     virtual void init();
 
@@ -99,12 +121,16 @@ protected:
     btCollisionDispatcher* _collisionDispatcher;
     btBroadphaseInterface* _broadphaseFilter;
     btSequentialImpulseConstraintSolver* _constraintSolver;
-    btDiscreteDynamicsWorld* _dynamicsWorld;
+    ThreadSafeDynamicsWorld* _dynamicsWorld;
     ShapeManager _shapeManager;
 
 private:
     glm::vec3 _originOffset;
     btHashMap<PositionHashKey, VoxelObject> _voxels;
+
+    // EntitySimulation stuff
+    QSet<EntityItem*> _changedEntities;
+    QSet<EntityItem*> _mortalEntities;
 };
 
 #else // USE_BULLET_PHYSICS

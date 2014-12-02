@@ -12,19 +12,116 @@
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
 
+#include "EntityMotionState.h"
 #include "ShapeInfoUtil.h"
+#include "ThreadSafeDynamicsWorld.h"
+
+class EntityTree;
+
+PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
+    :   _collisionConfig(NULL), 
+        _collisionDispatcher(NULL), 
+        _broadphaseFilter(NULL), 
+        _constraintSolver(NULL), 
+        _dynamicsWorld(NULL),
+        _originOffset(offset),
+        _voxels() {
+}
 
 PhysicsEngine::~PhysicsEngine() {
 }
 
+/// \param tree pointer to EntityTree which is stored internally
+void PhysicsEngine::setEntityTree(EntityTree* tree) {
+    assert(_entityTree == NULL);
+    assert(tree);
+    _entityTree = tree;
+}
+
+/// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
+void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
+    // relay changes
+    QSet<EntityItem*>::iterator item_itr = _changedEntities.begin();
+    while (item_itr != _changedEntities.end()) {
+        EntityItem* entity = *item_itr;
+        void* physicsInfo = entity->getPhysicsInfo();
+        if (physicsInfo) {
+            CustomMotionState* motionState = static_cast<CustomMotionState*>(physicsInfo);
+            updateObject(motionState, entity->getUpdateFlags());
+        }
+        entity->clearUpdateFlags();
+        // TODO: implement this
+        ++item_itr;
+    } 
+
+    // hunt for entities who have expired
+    // TODO: make EntityItems use an expiry to make this work faster.
+    item_itr = _mortalEntities.begin();
+    while (item_itr != _mortalEntities.end()) {
+        EntityItem* entity = *item_itr;
+        // always check to see if the lifetime has expired, for immortal entities this is always false
+        if (entity->lifetimeHasExpired()) {
+            qDebug() << "Lifetime has expired for entity:" << entity->getEntityItemID();
+            entitiesToDelete.insert(entity);
+            // remove entity from the list
+            item_itr = _mortalEntities.erase(item_itr);
+        } else if (entity->isImmortal()) {
+            // remove entity from the list
+            item_itr = _mortalEntities.erase(item_itr);
+        } else {
+            ++item_itr;
+        }
+    }
+    // TODO: check for entities that have exited the world boundaries
+}
+
+/// \param entity pointer to EntityItem to add to the simulation
+/// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list
+void PhysicsEngine::addEntity(EntityItem* entity) {
+    assert(entity);
+    void* physicsInfo = entity->getPhysicsInfo();
+    if (!physicsInfo) {
+        EntityMotionState* motionState = new EntityMotionState(entity);
+        entity->setPhysicsInfo(static_cast<void*>(motionState));
+        if (entity->isMortal()) {
+            _mortalEntities.insert(entity);
+        }
+    }
+}
+
+/// \param entity pointer to EntityItem to removed from the simulation
+/// \sideeffect the EntityItem::_simulationState member may be updated to indicate non-membership to internal list
+void PhysicsEngine::removeEntity(EntityItem* entity) {
+    assert(entity);
+    void* physicsInfo = entity->getPhysicsInfo();
+    if (physicsInfo) {
+        CustomMotionState* motionState = static_cast<CustomMotionState*>(physicsInfo);
+        removeObject(motionState);
+        entity->setPhysicsInfo(NULL);
+    }
+    _mortalEntities.remove(entity);
+}
+
+/// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
+void PhysicsEngine::entityChanged(EntityItem* entity) {
+    _changedEntities.insert(entity);
+}
+
+void PhysicsEngine::clearEntities() {
+    // For now we assume this would only be called on shutdown in which case we can just let the memory get lost.
+}
+
 // virtual
 void PhysicsEngine::init() {
+    // _entityTree should be set prior to the init() call
+    assert(_entityTree);
+
     if (!_dynamicsWorld) {
         _collisionConfig = new btDefaultCollisionConfiguration();
         _collisionDispatcher = new btCollisionDispatcher(_collisionConfig);
         _broadphaseFilter = new btDbvtBroadphase();
         _constraintSolver = new btSequentialImpulseConstraintSolver;
-        _dynamicsWorld = new btDiscreteDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig);
+        _dynamicsWorld = new ThreadSafeDynamicsWorld(_collisionDispatcher, _broadphaseFilter, _constraintSolver, _collisionConfig, _entityTree);
 
         // default gravity of the world is zero, so each object must specify its own gravity
         // TODO: set up gravity zones

@@ -12,20 +12,6 @@
 #ifndef hifi_Physics_h
 #define hifi_Physics_h
 
-#include <PhysicsEngine.h>
-
-class EntityTree;
-
-class ThreadSafePhysicsEngine : public PhysicsEngine {
-public:
-    ThreadSafePhysicsEngine(const glm::vec3& offset);
-
-    // virtual override from PhysicsEngine
-    void init() { assert(false); } // call initSafe() instead
-
-    void initSafe(EntityTree* entities);
-};
-
 void applyStaticFriction(float deltaTime, glm::vec3& velocity, float maxVelocity, float strength);
 void applyDamping(float deltaTime, glm::vec3& velocity, float linearStrength, float squaredStrength);
 

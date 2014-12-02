@@ -15,21 +15,25 @@
  * Copied and modified from btDiscreteDynamicsWorld.cpp by AndrewMeadows on 2014.11.12.
  * */
 
+#include <EntityTree.h>
+
 #include "ThreadSafeDynamicsWorld.h"
 
 ThreadSafeDynamicsWorld::ThreadSafeDynamicsWorld(
         btDispatcher* dispatcher,
         btBroadphaseInterface* pairCache,
         btConstraintSolver* constraintSolver,
-        btCollisionConfiguration* collisionConfiguration)
+        btCollisionConfiguration* collisionConfiguration,
+        EntityTree* entities)
     :   btDiscreteDynamicsWorld(dispatcher, pairCache, constraintSolver, collisionConfiguration) {
+    assert(entities);
+    _entities = entities;
 }
 
 void ThreadSafeDynamicsWorld::synchronizeMotionStates() {
-    if (tryLock()) {
-        btDiscreteDynamicsWorld::synchronizeMotionStates();
-        unlock();
-    }
+    _entities->lockForWrite();
+    btDiscreteDynamicsWorld::synchronizeMotionStates();
+    _entities->unlock();
 }
 
 int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps, btScalar fixedTimeStep) {
@@ -77,6 +81,8 @@ int	ThreadSafeDynamicsWorld::stepSimulation( btScalar timeStep, int maxSubSteps,
 		}
 	}
 
+    // We only sync motion states once at the end of all substeps.  
+    // This is to avoid placing multiple, repeated thread locks on _entities.
     synchronizeMotionStates();
 	clearForces();
 	return subSteps;

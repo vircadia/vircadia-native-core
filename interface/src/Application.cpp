@@ -2021,8 +2021,10 @@ void Application::init() {
     connect(_myAvatar, &MyAvatar::transformChanged, this, &Application::updateMyAvatarTransform);
 
 #ifdef USE_BULLET_PHYSICS
-//    _physicsEngine.initSafe(_entities.getTree());
-//    _entities.getTree()->setSimulation(&_physicsEngine);
+    EntityTree* tree = _entities.getTree();
+    _physicsEngine.setEntityTree(tree);
+    tree->setSimulation(&_physicsEngine);
+    _physicsEngine.init();
 #endif // USE_BULLET_PHYSICS
 }
 
