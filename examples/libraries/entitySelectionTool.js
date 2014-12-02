@@ -347,6 +347,8 @@ SelectionDisplay = (function () {
                     lineWidth: 1.0,
                 });
 
+    var selectionBoxes = [];
+
     var rotationDegreesDisplay = Overlays.addOverlay("text3d", {
                     position: { x:0, y: 0, z: 0},
                     text: "",
@@ -691,6 +693,9 @@ SelectionDisplay = (function () {
     that.cleanup = function () {
         for (var i = 0; i < allOverlays.length; i++) {
             Overlays.deleteOverlay(allOverlays[i]);
+        }
+        for (var i = 0; i < selectionBoxes.length; i++) {
+            Overlays.deleteOverlay(selectionBoxes[i]);
         }
     };
 
@@ -1134,6 +1139,33 @@ SelectionDisplay = (function () {
             visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
         });
 
+        // Create more selection box overlays if we don't have enough
+        var overlaysNeeded = selectionManager.selections.length - selectionBoxes.length;
+        for (var i = 0; i < overlaysNeeded; i++) {
+            selectionBoxes.push(
+                Overlays.addOverlay("cube", {
+                    position: { x: 0, y: 0, z: 0 },
+                    size: 1,
+                    color: { red: 255, green: 153, blue: 0 },
+                    alpha: 1,
+                    solid: false,
+                    visible: false,
+                    dashed: false,
+                    lineWidth: 1.0,
+                    ignoreRayIntersection: true,
+                }));
+        }
+
+        for (var i = 0; i < selectionManager.selections.length; i++) {
+            var properties = Entities.getEntityProperties(selectionManager.selections[i]);
+            Overlays.editOverlay(selectionBoxes[i], {
+                position: properties.position,
+                rotation: properties.rotation,
+                dimensions: properties.dimensions,
+                visible: true,
+            });
+        }
+
         Overlays.editOverlay(grabberEdgeTR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTR });
         Overlays.editOverlay(grabberEdgeTL, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTL });
         Overlays.editOverlay(grabberEdgeTF, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTF });
@@ -1156,6 +1188,10 @@ SelectionDisplay = (function () {
         var length = allOverlays.length;
         for (var i = 0; i < length; i++) {
             Overlays.editOverlay(allOverlays[i], { visible: isVisible });
+        }
+        length = selectionBoxes.length;
+        for (var i = 0; i < length; i++) {
+            Overlays.editOverlay(selectionBoxes[i], { visible: isVisible });
         }
     };
 
