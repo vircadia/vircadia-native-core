@@ -392,6 +392,9 @@ private slots:
     void timer();
     void idle();
     void aboutToQuit();
+    
+    void handleScriptEngineLoaded(const QUrl& scriptURL);
+    void handleScriptLoadError(const QUrl& scriptURL);
 
     void connectedToDomain(const QString& hostname);
 
