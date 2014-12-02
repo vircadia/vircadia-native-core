@@ -2084,12 +2084,6 @@ void Application::updateMouseRay() {
         _mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), _mouseRayDirection) +
             _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), _mouseRayDirection));
     }
-
-    // tell my avatar if the mouse is being pressed...
-    _myAvatar->setMousePressed(_mousePressed);
-
-    // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position
-    _myAvatar->setMouseRay(_mouseRayOrigin, _mouseRayDirection);
 }
 
 void Application::updateFaceshift() {
