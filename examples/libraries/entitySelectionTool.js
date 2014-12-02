@@ -236,9 +236,6 @@ SelectionDisplay = (function () {
     var innerSnapAngle = 22.5; // the angle which we snap to on the inner rotation tool
     var innerRadius;
     var outerRadius;
-    var yawOffset = 0;
-    var pitchOffset = 0;
-    var rollOffset = 0;
     var yawHandleRotation;
     var pitchHandleRotation;
     var rollHandleRotation;
@@ -791,10 +788,6 @@ SelectionDisplay = (function () {
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 0 });
 
-                yawOffset = 90;
-                pitchOffset = 0;
-                rollOffset = 0;
-
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 pitchNormal  = { x: 1, y: 0, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
@@ -825,10 +818,6 @@ SelectionDisplay = (function () {
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 0, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
-
-                yawOffset = 0;
-                pitchOffset = 180;
-                rollOffset = 90;
 
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 pitchNormal = { x: 1, y: 0, z: 0 };
@@ -864,10 +853,6 @@ SelectionDisplay = (function () {
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 90 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
 
-                yawOffset = 180;
-                pitchOffset = 90;
-                rollOffset = 180;
-
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 pitchNormal = { x: 1, y: 0, z: 0 };
                 rollNormal  = { x: 0, y: 0, z: 1 };
@@ -896,10 +881,6 @@ SelectionDisplay = (function () {
                 yawHandleRotation = Quat.fromVec3Degrees({ x: 270, y: 270, z: 0 });
                 pitchHandleRotation = Quat.fromVec3Degrees({ x: 180, y: 270, z: 0 });
                 rollHandleRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
-
-                yawOffset = 270;
-                pitchOffset = 180;
-                rollOffset = 180;
 
                 yawNormal   = { x: 0, y: 1, z: 0 };
                 rollNormal = { x: 0, y: 0, z: 1 };
