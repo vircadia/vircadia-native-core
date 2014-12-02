@@ -100,7 +100,16 @@ void ToolWindow::onChildVisibilityUpdated(bool visible) {
 }
 
 void ToolWindow::addDockWidget(Qt::DockWidgetArea area, QDockWidget* dockWidget) {
+    QList<QDockWidget*> dockWidgets = findChildren<QDockWidget*>();
+
     QMainWindow::addDockWidget(area, dockWidget);
+
+    // We want to force tabbing, so retabify all of our widgets.
+    QDockWidget* lastDockWidget = dockWidget;
+    foreach (QDockWidget* nextDockWidget, dockWidgets) {
+        tabifyDockWidget(lastDockWidget, nextDockWidget);
+        lastDockWidget = nextDockWidget;
+    }
 
     connect(dockWidget, &QDockWidget::visibilityChanged, this, &ToolWindow::onChildVisibilityUpdated);
 }
