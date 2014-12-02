@@ -348,6 +348,7 @@ SelectionDisplay = (function () {
                     visible: false,
                     isFacingAvatar: true,
                     drawInFront: true,
+                    ignoreRayIntersection: true,
                     dimensions: { x: 0, y: 0 },
                     lineHeight: 0.0,
                     topMargin: 0,
@@ -1638,7 +1639,6 @@ SelectionDisplay = (function () {
 
             Overlays.editOverlay(rotationDegreesDisplay, {
                 visible: true,
-                ignoreRayIntersection: true,
             });
 
             updateRotationDegreesOverlay(0, yawHandleRotation, yawCenter);
@@ -1776,7 +1776,6 @@ SelectionDisplay = (function () {
 
             Overlays.editOverlay(rotationDegreesDisplay, {
                 visible: true,
-                ignoreRayIntersection: true,
             });
 
             updateRotationDegreesOverlay(0, pitchHandleRotation, pitchCenter);
@@ -1914,7 +1913,6 @@ SelectionDisplay = (function () {
 
             Overlays.editOverlay(rotationDegreesDisplay, {
                 visible: true,
-                ignoreRayIntersection: true,
             });
 
             updateRotationDegreesOverlay(0, rollHandleRotation, rollCenter);
