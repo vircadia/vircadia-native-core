@@ -1471,6 +1471,132 @@ bool HeightfieldNode::findRayIntersection(const glm::vec3& origin, const glm::ve
     return false;
 }
 
+HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const glm::vec3& radius,
+        const SharedObjectPointer& material, const QColor& color) {
+    if (!isLeaf()) {
+        HeightfieldNode* newNode = this;
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            HeightfieldNode* newChild = _children[i]->paintMaterial(position * glm::vec3(2.0f, 1.0f, 2.0f) -
+                glm::vec3(i & X_MAXIMUM_FLAG ? 1.0f : 0.0f, 0.0f, i & Y_MAXIMUM_FLAG ? 1.0f : 0.0f),
+                radius * glm::vec3(2.0f, 1.0f, 2.0f), material, color);
+            if (_children[i] != newChild) {
+                if (newNode == this) {
+                    newNode = new HeightfieldNode(*this);
+                }
+                newNode->setChild(i, HeightfieldNodePointer(newChild));
+            }
+        }
+        if (newNode != this) {
+            newNode->mergeChildren(false, true);
+        }
+        return newNode;
+    }
+    if (!_height || position.x + radius.x < 0.0f || position.z + radius.z < 0.0f ||
+            position.x - radius.x > 1.0f || position.z - radius.z > 1.0f) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    int baseWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
+    int baseHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
+    HeightfieldNode* newNode = new HeightfieldNode(*this);
+    
+    int colorWidth = baseWidth, colorHeight = baseHeight;
+    QByteArray colorContents;
+    if (_color) {
+        colorWidth = _color->getWidth();
+        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
+        colorContents = _color->getContents();
+        
+    } else {
+        colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFF); 
+    }
+    
+    int materialWidth = baseWidth, materialHeight = baseHeight;
+    QByteArray materialContents;
+    QVector<SharedObjectPointer> materials;
+    if (_material) {
+        materialWidth = _material->getWidth();
+        materialHeight = _material->getContents().size() / materialWidth;
+        materialContents = _material->getContents();
+        materials = _material->getMaterials();
+        
+    } else {
+        materialContents = QByteArray(baseWidth * baseHeight, 0);
+    }
+    
+    int highestX = colorWidth - 1;
+    int highestZ = colorHeight - 1;
+    glm::vec3 scale((float)highestX, 1.0f, (float)highestZ);
+    glm::vec3 center = position * scale;
+    
+    glm::vec3 extents = radius * scale;
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // paint all points within the radius
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    int stride = colorWidth * DataBlock::COLOR_BYTES;
+    uchar* lineDest = (uchar*)colorContents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
+    float squaredRadius = extents.x * extents.x;
+    float multiplierZ = extents.x / extents.z;
+    char red = color.red(), green = color.green(), blue = color.blue();
+    bool changed = false;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        uchar* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            if (dx * dx + dz * dz <= squaredRadius) {
+                dest[0] = red;
+                dest[1] = green;
+                dest[2] = blue;
+                changed = true;
+            }
+        }
+        lineDest += stride;
+    }
+    if (changed) {
+        newNode->setColor(HeightfieldColorPointer(new HeightfieldColor(colorWidth, colorContents)));
+    }
+    
+    highestX = materialWidth - 1;
+    highestZ = materialHeight - 1;
+    scale = glm::vec3((float)highestX, 1.0f, (float)highestZ);
+    center = position * scale;
+    
+    extents = radius * scale;
+    start = glm::floor(center - extents);
+    end = glm::ceil(center + extents);
+     
+    // paint all points within the radius
+    z = qMax(start.z, 0.0f);
+    startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    lineDest = (uchar*)materialContents.data() + (int)z * materialWidth + (int)startX;
+    squaredRadius = extents.x * extents.x;
+    multiplierZ = extents.x / extents.z;
+    uchar materialIndex = getMaterialIndex(material, materials, materialContents);
+    changed = false;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        uchar* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            if (dx * dx + dz * dz <= squaredRadius) {
+                *dest = materialIndex;
+                changed = true;
+            }
+        }
+        lineDest += materialWidth;
+    }
+    if (changed) {
+        clearUnusedMaterials(materials, materialContents);
+        newNode->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
+            materialContents, materials)));
+    }
+    
+    return newNode;
+}
+
 void HeightfieldNode::read(HeightfieldStreamState& state) {
     clearChildren();
     
@@ -1718,7 +1844,7 @@ void HeightfieldNode::clearChildren() {
     }
 }
 
-void HeightfieldNode::mergeChildren() {
+void HeightfieldNode::mergeChildren(bool height, bool colorMaterial) {
     if (isLeaf()) {
         return;
     }
@@ -1751,7 +1877,7 @@ void HeightfieldNode::mergeChildren() {
             materialHeight = qMax(materialHeight, childMaterialHeight);
         }
     }
-    if (heightWidth > 0) {
+    if (heightWidth > 0 && height) {
         QVector<quint16> heightContents(heightWidth * heightHeight);
         for (int i = 0; i < CHILD_COUNT; i++) {
             HeightfieldHeightPointer childHeight = _children[i]->getHeight();
@@ -1780,8 +1906,11 @@ void HeightfieldNode::mergeChildren() {
         }
         _height = new HeightfieldHeight(heightWidth, heightContents);
         
-    } else {
+    } else if (height) {
         _height.reset();
+    }
+    if (!colorMaterial) {
+        return;
     }
     if (colorWidth > 0) {
         QByteArray colorContents(colorWidth * colorHeight * DataBlock::COLOR_BYTES, 0);
@@ -1947,107 +2076,14 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
 Spanner* Heightfield::paintMaterial(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& color) {
-    if (!_height) {
+    glm::vec3 inverseScale(1.0f / getScale(), 1.0f, 1.0f / getScale() * _aspectZ);
+    HeightfieldNode* newRoot = _root->paintMaterial(glm::inverse(getRotation()) * (position - getTranslation()) *
+        inverseScale, radius * inverseScale, material, color);
+    if (_root == newRoot) {
         return this;
     }
-    int heightWidth = _height->getWidth();
-    int heightHeight = _height->getContents().size() / heightWidth;
-    int baseWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
-    int baseHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
     Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
-    
-    int colorWidth = baseWidth, colorHeight = baseHeight;
-    QByteArray colorContents;
-    if (_color) {
-        colorWidth = _color->getWidth();
-        colorHeight = _color->getContents().size() / (colorWidth * DataBlock::COLOR_BYTES);
-        colorContents = _color->getContents();
-        
-    } else {
-        colorContents = QByteArray(baseWidth * baseHeight * DataBlock::COLOR_BYTES, 0xFF); 
-    }
-    
-    int materialWidth = baseWidth, materialHeight = baseHeight;
-    QByteArray materialContents;
-    QVector<SharedObjectPointer> materials;
-    if (_material) {
-        materialWidth = _material->getWidth();
-        materialHeight = _material->getContents().size() / materialWidth;
-        materialContents = _material->getContents();
-        materials = _material->getMaterials();
-        
-    } else {
-        materialContents = QByteArray(baseWidth * baseHeight, 0);
-    }
-    
-    int highestX = colorWidth - 1;
-    int highestZ = colorHeight - 1;
-    glm::vec3 inverseScale(highestX / getScale(), 1.0f, highestZ / (getScale() * _aspectZ));
-    glm::vec3 center = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
-    
-    glm::vec3 extents = glm::vec3(radius, radius, radius) * inverseScale;
-    glm::vec3 start = glm::floor(center - extents);
-    glm::vec3 end = glm::ceil(center + extents);
-    
-    // paint all points within the radius
-    float z = qMax(start.z, 0.0f);
-    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
-    int stride = colorWidth * DataBlock::COLOR_BYTES;
-    uchar* lineDest = (uchar*)colorContents.data() + (int)z * stride + (int)startX * DataBlock::COLOR_BYTES;
-    float squaredRadius = extents.x * extents.x;
-    float multiplierZ = inverseScale.x / inverseScale.z;
-    char red = color.red(), green = color.green(), blue = color.blue();
-    bool changed = false;
-    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
-        uchar* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest += DataBlock::COLOR_BYTES) {
-            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
-            if (dx * dx + dz * dz <= squaredRadius) {
-                dest[0] = red;
-                dest[1] = green;
-                dest[2] = blue;
-                changed = true;
-            }
-        }
-        lineDest += stride;
-    }
-    if (changed) {
-        newHeightfield->setColor(HeightfieldColorPointer(new HeightfieldColor(colorWidth, colorContents)));
-    }
-    
-    highestX = materialWidth - 1;
-    highestZ = materialHeight - 1;
-    inverseScale = glm::vec3(highestX / getScale(), 1.0f, highestZ / (getScale() * _aspectZ));
-    center = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
-    
-    extents = glm::vec3(radius, radius, radius) * inverseScale;
-    start = glm::floor(center - extents);
-    end = glm::ceil(center + extents);
-     
-    // paint all points within the radius
-    z = qMax(start.z, 0.0f);
-    startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
-    lineDest = (uchar*)materialContents.data() + (int)z * materialWidth + (int)startX;
-    squaredRadius = extents.x * extents.x; 
-    uchar materialIndex = getMaterialIndex(material, materials, materialContents);
-    changed = false;
-    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
-        uchar* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest++) {
-            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
-            if (dx * dx + dz * dz <= squaredRadius) {
-                *dest = materialIndex;
-                changed = true;
-            }
-        }
-        lineDest += materialWidth;
-    }
-    if (changed) {
-        clearUnusedMaterials(materials, materialContents);
-        newHeightfield->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
-            materialContents, materials)));
-    }
-    
+    newHeightfield->setRoot(HeightfieldNodePointer(newRoot));
     return newHeightfield;
 }
 

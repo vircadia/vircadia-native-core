@@ -497,18 +497,27 @@ public:
     void setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
         const HeightfieldMaterialPointer& material);
     
+    void setHeight(const HeightfieldHeightPointer& height) { _height = height; }
     const HeightfieldHeightPointer& getHeight() const { return _height; }
+    
+    void setColor(const HeightfieldColorPointer& color) { _color = color; }
     const HeightfieldColorPointer& getColor() const { return _color; }
+    
+    void setMaterial(const HeightfieldMaterialPointer& material) { _material = material; }
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
     
     bool isLeaf() const;
     
+    void setChild(int index, const HeightfieldNodePointer& child) { _children[index] = child; }
     const HeightfieldNodePointer& getChild(int index) const { return _children[index]; }
     
     float getHeight(const glm::vec3& location) const;
     
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
     
+    HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
+        const QColor& color);
+        
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
     
@@ -526,7 +535,7 @@ public:
 private:
     
     void clearChildren();
-    void mergeChildren();
+    void mergeChildren(bool height = true, bool colorMaterial = true);
     
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
