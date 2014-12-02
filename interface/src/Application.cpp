@@ -895,6 +895,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Greater:
             case Qt::Key_Comma:
             case Qt::Key_Period:
+            case Qt::Key_QuoteDbl:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
                 break;
             case Qt::Key_L:
