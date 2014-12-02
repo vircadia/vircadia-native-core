@@ -10,6 +10,7 @@
 //
 
 #include <iostream>
+#include <ShapeInfoUtil.h>
 #include <ShapeManager.h>
 #include <StreamUtils.h>
 
@@ -163,7 +164,7 @@ void ShapeManagerTests::addBoxShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
@@ -183,7 +184,7 @@ void ShapeManagerTests::addSphereShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
@@ -204,7 +205,7 @@ void ShapeManagerTests::addCylinderShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {
@@ -225,7 +226,7 @@ void ShapeManagerTests::addCapsuleShape() {
     btCollisionShape* shape = shapeManager.getShape(info);
 
     ShapeInfo otherInfo;
-    otherInfo.collectInfo(shape);
+    collectInfoFromShape(shape, otherInfo);
 
     btCollisionShape* otherShape = shapeManager.getShape(otherInfo);
     if (shape != otherShape) {

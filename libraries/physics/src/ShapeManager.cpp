@@ -10,6 +10,7 @@
 //
 
 #ifdef USE_BULLET_PHYSICS
+#include "ShapeInfoUtil.h"
 #include "ShapeManager.h"
 
 ShapeManager::ShapeManager() {
@@ -32,7 +33,7 @@ btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
         shapeRef->_refCount++;
         return shapeRef->_shape;
     } else {
-        btCollisionShape* shape = info.createShape();
+        btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
         if (shape) {
             ShapeReference newRef;
             newRef._refCount = 1;

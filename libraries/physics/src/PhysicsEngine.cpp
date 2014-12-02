@@ -12,6 +12,8 @@
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
 
+#include "ShapeInfoUtil.h"
+
 PhysicsEngine::~PhysicsEngine() {
 }
 
@@ -176,7 +178,7 @@ bool PhysicsEngine::removeObject(CustomMotionState* motionState) {
     if (body) {
         const btCollisionShape* shape = body->getCollisionShape();
         ShapeInfo info;
-        info.collectInfo(shape);
+        ShapeInfoUtil::collectInfoFromShape(shape, info);
         _dynamicsWorld->removeRigidBody(body);
         _shapeManager.releaseShape(info);
         delete body;
