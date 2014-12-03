@@ -338,12 +338,12 @@ SelectionDisplay = (function () {
     var selectionBox = Overlays.addOverlay("cube", {
                     position: { x:0, y: 0, z: 0},
                     size: 1,
-                    color: { red: 60, green: 60, blue: 60},
+                    color: { red: 255, green: 0, blue: 0},
                     alpha: 1,
                     solid: false,
                     visible: false,
-                    dashed: true,
-                    lineWidth: 2.0,
+                    dashed: false,
+                    lineWidth: 1.0,
                 });
 
     var selectionBoxes = [];
