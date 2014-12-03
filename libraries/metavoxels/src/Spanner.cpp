@@ -1243,6 +1243,9 @@ bool HeightfieldNode::isLeaf() const {
 }
 
 float HeightfieldNode::getHeight(const glm::vec3& location) const {
+    if (location.x < 0.0f || location.z < 0.0f || location.x > 1.0f || location.z > 1.0f) {
+        return -FLT_MAX;
+    }
     if (!isLeaf()) {
         if (location.x < 0.5f) {
             if (location.z < 0.5f) {
@@ -1271,9 +1274,6 @@ float HeightfieldNode::getHeight(const glm::vec3& location) const {
     glm::vec3 relative = location;
     relative.x = relative.x * innerWidth + HeightfieldHeight::HEIGHT_BORDER;
     relative.z = relative.z * innerHeight + HeightfieldHeight::HEIGHT_BORDER;
-    if (relative.x < 0.0f || relative.z < 0.0f || relative.x > width - 1 || relative.z > height - 1) {
-        return -FLT_MAX;
-    }
     
     // find the bounds of the cell containing the point and the shared vertex heights
     glm::vec3 floors = glm::floor(relative);
@@ -1304,6 +1304,10 @@ float HeightfieldNode::getHeight(const glm::vec3& location) const {
 }
 
 bool HeightfieldNode::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    float boundsDistance;
+    if (!Box(glm::vec3(), glm::vec3(1.0f, 1.0f, 1.0f)).findRayIntersection(origin, direction, boundsDistance)) {
+        return false;
+    }
     if (!isLeaf()) {
         float closestDistance = FLT_MAX;
         for (int i = 0; i < CHILD_COUNT; i++) {
@@ -1334,14 +1338,7 @@ bool HeightfieldNode::findRayIntersection(const glm::vec3& origin, const glm::ve
     
     glm::vec3 scale((float)innerWidth, (float)numeric_limits<quint16>::max(), (float)innerHeight);
     glm::vec3 dir = direction * scale;
-    glm::vec3 entry = origin * scale;
-    
-    float boundsDistance;
-    if (!Box(glm::vec3(), glm::vec3((float)innerWidth, (float)numeric_limits<quint16>::max(),
-            (float)innerHeight)).findRayIntersection(entry, dir, boundsDistance)) {
-        return false;
-    }
-    entry += dir * boundsDistance;
+    glm::vec3 entry = origin * scale + dir * boundsDistance;
     
     entry.x += HeightfieldHeight::HEIGHT_BORDER;
     entry.z += HeightfieldHeight::HEIGHT_BORDER;
@@ -1473,6 +1470,10 @@ bool HeightfieldNode::findRayIntersection(const glm::vec3& origin, const glm::ve
 
 HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const glm::vec3& radius,
         const SharedObjectPointer& material, const QColor& color) {
+    if (position.x + radius.x < 0.0f || position.z + radius.z < 0.0f ||
+            position.x - radius.x > 1.0f || position.z - radius.z > 1.0f) {
+        return this;
+    }
     if (!isLeaf()) {
         HeightfieldNode* newNode = this;
         for (int i = 0; i < CHILD_COUNT; i++) {
@@ -1491,15 +1492,13 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
         }
         return newNode;
     }
-    if (!_height || position.x + radius.x < 0.0f || position.z + radius.z < 0.0f ||
-            position.x - radius.x > 1.0f || position.z - radius.z > 1.0f) {
+    if (!_height) {
         return this;
     }
     int heightWidth = _height->getWidth();
     int heightHeight = _height->getContents().size() / heightWidth;
     int baseWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
     int baseHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION + HeightfieldData::SHARED_EDGE;
-    HeightfieldNode* newNode = new HeightfieldNode(*this);
     
     int colorWidth = baseWidth, colorHeight = baseHeight;
     QByteArray colorContents;
@@ -1556,7 +1555,9 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
         }
         lineDest += stride;
     }
+    HeightfieldNode* newNode = this;    
     if (changed) {
+        newNode = new HeightfieldNode(*this);
         newNode->setColor(HeightfieldColorPointer(new HeightfieldColor(colorWidth, colorContents)));
     }
     
@@ -1589,11 +1590,161 @@ HeightfieldNode* HeightfieldNode::paintMaterial(const glm::vec3& position, const
         lineDest += materialWidth;
     }
     if (changed) {
+        if (newNode == this) {
+            newNode = new HeightfieldNode(*this);
+        }
         clearUnusedMaterials(materials, materialContents);
         newNode->setMaterial(HeightfieldMaterialPointer(new HeightfieldMaterial(materialWidth,
             materialContents, materials)));
     }
     
+    return newNode;
+}
+
+void HeightfieldNode::getRangeAfterHeightPaint(const glm::vec3& position, const glm::vec3& radius,
+        float height, int& minimum, int& maximum) const {
+    if (position.x + radius.x < 0.0f || position.z + radius.z < 0.0f ||
+            position.x - radius.x > 1.0f || position.z - radius.z > 1.0f) {
+        return;
+    }
+    if (!isLeaf()) {
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            _children[i]->getRangeAfterHeightPaint(position * glm::vec3(2.0f, 1.0f, 2.0f) -
+                glm::vec3(i & X_MAXIMUM_FLAG ? 1.0f : 0.0f, 0.0f, i & Y_MAXIMUM_FLAG ? 1.0f : 0.0f),
+                radius * glm::vec3(2.0f, 1.0f, 2.0f), height, minimum, maximum);
+        }
+        return;
+    }
+    if (!_height) {
+        return;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    QVector<quint16> contents = _height->getContents();
+    int innerWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    int highestX = heightWidth - 1;
+    int highestZ = heightHeight - 1;
+    
+    glm::vec3 scale((float)innerWidth, 1.0f, (float)innerHeight);
+    glm::vec3 center = position * scale;
+    center.x += 1.0f;
+    center.z += 1.0f;
+    
+    glm::vec3 extents = radius * scale;
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // first see if we're going to exceed the range limits
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    quint16* lineDest = contents.data() + (int)z * heightWidth + (int)startX;
+    float squaredRadius = extents.x * extents.x;
+    float squaredRadiusReciprocal = 1.0f / squaredRadius;
+    float multiplierZ = extents.x / extents.z;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        quint16* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            float distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared <= squaredRadius) {
+                // height falls off towards edges
+                int value = *dest;
+                if (value != 0) {
+                    value += height * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                    minimum = qMin(minimum, value);
+                    maximum = qMax(maximum, value);
+                }
+            }
+        }
+        lineDest += heightWidth;
+    }
+}
+
+HeightfieldNode* HeightfieldNode::paintHeight(const glm::vec3& position, const glm::vec3& radius,
+        float height, float normalizeScale, float normalizeOffset) {
+    if ((position.x + radius.x < 0.0f || position.z + radius.z < 0.0f || position.x - radius.x > 1.0f ||
+            position.z - radius.z > 1.0f) && normalizeScale == 1.0f && normalizeOffset == 0.0f) {
+        return this;
+    }
+    if (!isLeaf()) {
+        HeightfieldNode* newNode = this;
+        for (int i = 0; i < CHILD_COUNT; i++) {
+            HeightfieldNode* newChild = _children[i]->paintHeight(position * glm::vec3(2.0f, 1.0f, 2.0f) -
+                glm::vec3(i & X_MAXIMUM_FLAG ? 1.0f : 0.0f, 0.0f, i & Y_MAXIMUM_FLAG ? 1.0f : 0.0f),
+                radius * glm::vec3(2.0f, 1.0f, 2.0f), height, normalizeScale, normalizeOffset);
+            if (_children[i] != newChild) {
+                if (newNode == this) {
+                    newNode = new HeightfieldNode(*this);
+                }
+                newNode->setChild(i, HeightfieldNodePointer(newChild));
+            }
+        }
+        if (newNode != this) {
+            newNode->mergeChildren(true, false);
+        }
+        return newNode;
+    }
+    if (!_height) {
+        return this;
+    }
+    int heightWidth = _height->getWidth();
+    int heightHeight = _height->getContents().size() / heightWidth;
+    QVector<quint16> contents = _height->getContents();
+    int innerWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
+    int innerHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
+    int highestX = heightWidth - 1;
+    int highestZ = heightHeight - 1;
+    
+    glm::vec3 scale((float)innerWidth, 1.0f, (float)innerHeight);
+    glm::vec3 center = position * scale;
+    center.x += 1.0f;
+    center.z += 1.0f;
+    
+    glm::vec3 extents = radius * scale;
+    glm::vec3 start = glm::floor(center - extents);
+    glm::vec3 end = glm::ceil(center + extents);
+    
+    // renormalize if necessary
+    bool changed = false;
+    if (normalizeScale != 1.0f || normalizeOffset != 0.0f) {
+        changed = true;
+        for (quint16* dest = contents.data(), *end = contents.data() + contents.size(); dest != end; dest++) {
+            int value = *dest;
+            if (value != 0) {
+                *dest = (value + normalizeOffset) * normalizeScale;
+            }
+        }
+    }
+    
+    // now apply the actual change
+    float z = qMax(start.z, 0.0f);
+    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
+    quint16* lineDest = contents.data() + (int)z * heightWidth + (int)startX;
+    float squaredRadius = extents.x * extents.x;
+    float squaredRadiusReciprocal = 1.0f / squaredRadius;
+    float multiplierZ = extents.x / extents.z;
+    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
+        quint16* dest = lineDest;
+        for (float x = startX; x <= endX; x += 1.0f, dest++) {
+            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
+            float distanceSquared = dx * dx + dz * dz;
+            if (distanceSquared <= squaredRadius) {
+                // height falls off towards edges
+                int value = *dest;
+                if (value != 0) {
+                    *dest = value + height * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
+                    changed = true;
+                }
+            }
+        }
+        lineDest += heightWidth;
+    }
+    if (!changed) {
+        return this;
+    }
+    HeightfieldNode* newNode = new HeightfieldNode(*this);
+    newNode->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, contents)));
     return newNode;
 }
 
@@ -2088,7 +2239,7 @@ bool Heightfield::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
 
 Spanner* Heightfield::paintMaterial(const glm::vec3& position, float radius,
         const SharedObjectPointer& material, const QColor& color) {
-    glm::vec3 inverseScale(1.0f / getScale(), 1.0f, 1.0f / getScale() * _aspectZ);
+    glm::vec3 inverseScale(1.0f / getScale(), 1.0f, 1.0f / (getScale() * _aspectZ));
     HeightfieldNode* newRoot = _root->paintMaterial(glm::inverse(getRotation()) * (position - getTranslation()) *
         inverseScale, radius * inverseScale, material, color);
     if (_root == newRoot) {
@@ -2100,94 +2251,29 @@ Spanner* Heightfield::paintMaterial(const glm::vec3& position, float radius,
 }
 
 Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float height) {
-    if (!_height) {
-        return this;
-    }
-    int heightWidth = _height->getWidth();
-    int heightHeight = _height->getContents().size() / heightWidth;
-    QVector<quint16> contents = _height->getContents();
-    int innerWidth = heightWidth - HeightfieldHeight::HEIGHT_EXTENSION;
-    int innerHeight = heightHeight - HeightfieldHeight::HEIGHT_EXTENSION;
-    int highestX = heightWidth - 1;
-    int highestZ = heightHeight - 1;
-    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
-    
-    glm::vec3 inverseScale(innerWidth / getScale(), 1.0f, innerHeight / (getScale() * _aspectZ));
-    glm::vec3 center = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
-    center.x += 1.0f;
-    center.z += 1.0f;
-    
-    glm::vec3 extents = glm::vec3(radius, radius, radius) * inverseScale;
-    glm::vec3 start = glm::floor(center - extents);
-    glm::vec3 end = glm::ceil(center + extents);
-    
     // first see if we're going to exceed the range limits
-    float z = qMax(start.z, 0.0f);
-    float startX = qMax(start.x, 0.0f), endX = qMin(end.x, (float)highestX);
-    quint16* lineDest = contents.data() + (int)z * heightWidth + (int)startX;
-    float squaredRadius = extents.x * extents.x;
-    float squaredRadiusReciprocal = 1.0f / squaredRadius;
-    float scaledHeight = height * numeric_limits<quint16>::max() / (getScale() * _aspectY);
-    float multiplierZ = inverseScale.x / inverseScale.z;
+    glm::vec3 inverseScale(1.0f / getScale(), 1.0f, 1.0f / (getScale() * _aspectZ));
+    glm::vec3 relativePosition = glm::inverse(getRotation()) * (position - getTranslation()) * inverseScale;
+    glm::vec3 relativeRadius = radius * inverseScale;
     int minimumValue = 1, maximumValue = numeric_limits<quint16>::max();
-    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
-        quint16* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest++) {
-            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
-            float distanceSquared = dx * dx + dz * dz;
-            if (distanceSquared <= squaredRadius) {
-                // height falls off towards edges
-                int value = *dest;
-                if (value != 0) {
-                    value += scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
-                    minimumValue = qMin(minimumValue, value);
-                    maximumValue = qMax(maximumValue, value);
-                }
-            }
-        }
-        lineDest += heightWidth;
-    }
-    
+    _root->getRangeAfterHeightPaint(relativePosition, relativeRadius,
+        height * numeric_limits<quint16>::max() / (getScale() * _aspectY), minimumValue, maximumValue);
+
     // renormalize if necessary
+    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+    float normalizeScale = 1.0f, normalizeOffset = 0.0f;
     if (minimumValue < 1 || maximumValue > numeric_limits<quint16>::max()) {
-        float scale = (numeric_limits<quint16>::max() - 1.0f) / (maximumValue - minimumValue);
-        float offset = 1.0f - minimumValue;
-        newHeightfield->setAspectY(_aspectY / scale);
+        normalizeScale = (numeric_limits<quint16>::max() - 1.0f) / (maximumValue - minimumValue);
+        normalizeOffset = 1.0f - minimumValue;
+        newHeightfield->setAspectY(_aspectY / normalizeScale);
         newHeightfield->setTranslation(getTranslation() - getRotation() *
-            glm::vec3(0.0f, offset * _aspectY * getScale() / (numeric_limits<quint16>::max() - 1), 0.0f));
-        for (quint16* dest = contents.data(), *end = contents.data() + contents.size(); dest != end; dest++) {
-            int value = *dest;
-            if (value != 0) {
-                *dest = (value + offset) * scale;
-            }
-        }
+            glm::vec3(0.0f, normalizeOffset * _aspectY * getScale() / (numeric_limits<quint16>::max() - 1), 0.0f));
     }
     
     // now apply the actual change
-    z = qMax(start.z, 0.0f);
-    lineDest = contents.data() + (int)z * heightWidth + (int)startX;
-    scaledHeight = height * numeric_limits<quint16>::max() / (getScale() * newHeightfield->getAspectY());
-    bool changed = false;
-    for (float endZ = qMin(end.z, (float)highestZ); z <= endZ; z += 1.0f) {
-        quint16* dest = lineDest;
-        for (float x = startX; x <= endX; x += 1.0f, dest++) {
-            float dx = x - center.x, dz = (z - center.z) * multiplierZ;
-            float distanceSquared = dx * dx + dz * dz;
-            if (distanceSquared <= squaredRadius) {
-                // height falls off towards edges
-                int value = *dest;
-                if (value != 0) {
-                    *dest = value + scaledHeight * (squaredRadius - distanceSquared) * squaredRadiusReciprocal;
-                    changed = true;
-                }
-            }
-        }
-        lineDest += heightWidth;
-    }
-    if (changed) {
-        newHeightfield->setHeight(HeightfieldHeightPointer(new HeightfieldHeight(heightWidth, contents)));
-    }
-    
+    newHeightfield->setRoot(HeightfieldNodePointer(_root->paintHeight(relativePosition, relativeRadius,
+        height * numeric_limits<quint16>::max() / (getScale() * newHeightfield->getAspectY()),
+        normalizeScale, normalizeOffset)));
     return newHeightfield;
 }
 

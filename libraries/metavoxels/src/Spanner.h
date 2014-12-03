@@ -517,6 +517,12 @@ public:
     
     HeightfieldNode* paintMaterial(const glm::vec3& position, const glm::vec3& radius, const SharedObjectPointer& material,
         const QColor& color);
+    
+    void getRangeAfterHeightPaint(const glm::vec3& position, const glm::vec3& radius,
+        float height, int& minimum, int& maximum) const;
+    
+    HeightfieldNode* paintHeight(const glm::vec3& position, const glm::vec3& radius, float height,
+        float normalizeScale, float normalizeOffset);
         
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
