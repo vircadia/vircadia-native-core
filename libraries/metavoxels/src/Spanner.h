@@ -29,6 +29,7 @@ class Spanner : public SharedObject {
     Q_PROPERTY(Box bounds MEMBER _bounds WRITE setBounds NOTIFY boundsChanged DESIGNABLE false)
     Q_PROPERTY(float placementGranularity MEMBER _placementGranularity DESIGNABLE false)
     Q_PROPERTY(float voxelizationGranularity MEMBER _voxelizationGranularity DESIGNABLE false)
+    Q_PROPERTY(bool willBeVoxelized MEMBER _willBeVoxelized DESIGNABLE false)
     
 public:
     
@@ -48,6 +49,9 @@ public:
     
     void setMerged(bool merged) { _merged = merged; }
     bool isMerged() const { return _merged; }
+    
+    void setWillBeVoxelized(bool willBeVoxelized) { _willBeVoxelized = willBeVoxelized; }
+    bool getWillBeVoxelized() const { return _willBeVoxelized; }
     
     /// Checks whether we've visited this object on the current traversal.  If we have, returns false.
     /// If we haven't, sets the last visit identifier and returns true.
@@ -118,6 +122,7 @@ private:
     float _placementGranularity;
     float _voxelizationGranularity;
     bool _merged;
+    bool _willBeVoxelized;
     QHash<QThread*, int> _lastVisits; ///< last visit identifiers for each thread
     QMutex _lastVisitsMutex;
     

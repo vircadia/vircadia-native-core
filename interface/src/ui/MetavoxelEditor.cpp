@@ -1014,6 +1014,7 @@ QColor VoxelMaterialSpannerTool::getColor() {
 }
 
 void VoxelMaterialSpannerTool::applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) {
+    static_cast<Spanner*>(spanner.data())->setWillBeVoxelized(true);
     MetavoxelEditMessage message = { QVariant::fromValue(VoxelMaterialSpannerEdit(spanner,
         _materialControl->getMaterial(), _materialControl->getColor())) };
     Application::getInstance()->getMetavoxels()->applyEdit(message, true);

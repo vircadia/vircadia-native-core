@@ -61,7 +61,8 @@ Spanner::Spanner() :
     _renderer(NULL),
     _placementGranularity(DEFAULT_PLACEMENT_GRANULARITY),
     _voxelizationGranularity(DEFAULT_VOXELIZATION_GRANULARITY),
-    _merged(false) {
+    _merged(false),
+    _willBeVoxelized(false) {
 }
 
 void Spanner::setBounds(const Box& bounds) {
@@ -2542,6 +2543,9 @@ MetavoxelLOD Heightfield::transformLOD(const MetavoxelLOD& lod) const {
 
 SharedObject* Heightfield::clone(bool withID, SharedObject* target) const {
     Heightfield* newHeightfield = static_cast<Heightfield*>(Spanner::clone(withID, target));
+    newHeightfield->setHeight(_height);
+    newHeightfield->setColor(_color);
+    newHeightfield->setMaterial(_material);
     newHeightfield->setRoot(_root);
     return newHeightfield;
 }
@@ -2920,6 +2924,10 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
 }
 
 void Heightfield::writeExtra(Bitstream& out) const {
+    if (getWillBeVoxelized()) {
+        out << _height << _color << _material;
+        return;
+    }
     MetavoxelLOD lod;
     if (out.getContext()) {
         lod = transformLOD(static_cast<MetavoxelStreamBase*>(out.getContext())->lod);
@@ -2930,6 +2938,10 @@ void Heightfield::writeExtra(Bitstream& out) const {
 }
 
 void Heightfield::readExtra(Bitstream& in) {
+    if (getWillBeVoxelized()) {
+        in >> _height >> _color >> _material;
+        return;
+    }
     MetavoxelLOD lod;
     if (in.getContext()) {
         lod = transformLOD(static_cast<MetavoxelStreamBase*>(in.getContext())->lod);
