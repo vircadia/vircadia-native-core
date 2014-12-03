@@ -1135,14 +1135,22 @@ SelectionDisplay = (function () {
                 }));
         }
 
-        for (var i = 0; i < selectionManager.selections.length; i++) {
-            var properties = Entities.getEntityProperties(selectionManager.selections[i]);
-            Overlays.editOverlay(selectionBoxes[i], {
-                position: properties.position,
-                rotation: properties.rotation,
-                dimensions: properties.dimensions,
-                visible: true,
-            });
+        var i = 0;
+        // Only show individual selections boxes if there is more than 1 selection
+        if (selectionManager.selections.length > 1) {
+            for (; i < selectionManager.selections.length; i++) {
+                var properties = Entities.getEntityProperties(selectionManager.selections[i]);
+                Overlays.editOverlay(selectionBoxes[i], {
+                    position: properties.position,
+                    rotation: properties.rotation,
+                    dimensions: properties.dimensions,
+                    visible: true,
+                });
+            }
+        }
+        // Hide any remaining selection boxes
+        for (; i < selectionBoxes.length; i++) {
+            Overlays.editOverlay(selectionBoxes[i], { visible: false });
         }
 
         Overlays.editOverlay(grabberEdgeTR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: EdgeTR });
