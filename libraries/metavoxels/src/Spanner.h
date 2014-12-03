@@ -524,6 +524,9 @@ public:
     HeightfieldNode* paintHeight(const glm::vec3& position, const glm::vec3& radius, float height,
         float normalizeScale, float normalizeOffset);
         
+    HeightfieldNode* clearAndFetchHeight(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale,
+        const Box& bounds, SharedObjectPointer& heightfield);
+        
     void read(HeightfieldStreamState& state);
     void write(HeightfieldStreamState& state) const;
     
@@ -542,6 +545,9 @@ private:
     
     void clearChildren();
     void mergeChildren(bool height = true, bool colorMaterial = true);
+    
+    QRgb getColorAt(const glm::vec3& location) const;
+    int getMaterialAt(const glm::vec3& location) const;
     
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
