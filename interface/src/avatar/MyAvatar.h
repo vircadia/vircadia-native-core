@@ -200,8 +200,7 @@ protected:
     virtual void renderAttachments(RenderMode renderMode);
     
 private:
-    float _bodyPitchDelta;  // degrees
-    float _bodyRollDelta;   // degrees
+    float _turningKeyPressTime;
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 

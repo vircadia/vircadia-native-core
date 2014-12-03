@@ -781,8 +781,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         addEntityItem(entityItem); // add this new entity to this elements entities
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
-                        _myTree->updateEntityState(entityItem);
-                        _myTree->emitAddingEntity(entityItemID); // we just added an entity
+                        _myTree->postAddEntity(entityItem);
                     }
                 }
                 // Move the buffer forward to read more entities

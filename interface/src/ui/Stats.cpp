@@ -461,10 +461,10 @@ void Stats::display(
         if (_metavoxelSendTotal > 0 || _metavoxelReceiveTotal > 0) {
             stringstream reliableStats;
             if (_metavoxelSendTotal > 0) {
-                reliableStats << "Upload: " << (_metavoxelSendProgress * 100 / _metavoxelSendTotal) << "%  ";
+                reliableStats << "Upload: " << (_metavoxelSendProgress * 100LL / _metavoxelSendTotal) << "%  ";
             }
             if (_metavoxelReceiveTotal > 0) {
-                reliableStats << "Download: " << (_metavoxelReceiveProgress * 100 / _metavoxelReceiveTotal) << "%";
+                reliableStats << "Download: " << (_metavoxelReceiveProgress * 100LL / _metavoxelReceiveTotal) << "%";
             }
             verticalOffset += STATS_PELS_PER_LINE;
             drawText(horizontalOffset, verticalOffset, scale, rotation, font, reliableStats.str().c_str(), color);

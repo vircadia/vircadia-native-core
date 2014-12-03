@@ -442,6 +442,7 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
     saveSettings();
@@ -1977,7 +1978,9 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+    EntityTree* entityTree = _entities.getTree();
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_audio, &_avatarManager);
+    entityTree->setSimulation(&_entityCollisionSystem);
 
     // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
@@ -2322,11 +2325,12 @@ void Application::update(float deltaTime) {
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
+        // NOTE: the _entities.update() call below will wait for lock 
+        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
         _entities.update(); // update the models...
-        {
-            PerformanceTimer perfTimer("collisions");
-            _entityCollisionSystem.update(); // collide the entities...
-        }
+        // The _entityCollisionSystem.updateCollisions() call below merely tries for lock,
+        // and on failure it skips collision detection.
+        _entityCollisionSystem.updateCollisions(); // collide the entities...
     }
 
     {
@@ -4037,20 +4041,20 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     return scriptEngine;
 }
 
-void Application::handleScriptEngineLoaded(const QUrl& scriptURL) {
+void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
     
-    _scriptEnginesHash.insertMulti(scriptURL.toString(), scriptEngine);
+    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    UserActivityLogger::getInstance().loadedScript(scriptURL.toString());
+    UserActivityLogger::getInstance().loadedScript(scriptFilename);
     
     // register our application services and set it off on its own thread
     registerScriptEngineWithApplicationServices(scriptEngine);
 }
 
-void Application::handleScriptLoadError(const QUrl& scriptURL) {
+void Application::handleScriptLoadError(const QString& scriptFilename) {
     qDebug() << "Application::loadScript(), script failed to load...";
-    QMessageBox::warning(getWindow(), "Error Loading Script", scriptURL.toString() + " failed to load.");
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {
