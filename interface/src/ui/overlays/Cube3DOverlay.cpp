@@ -19,7 +19,12 @@
 #include "Cube3DOverlay.h"
 #include "renderer/GlowEffect.h"
 
-Cube3DOverlay::Cube3DOverlay() {
+Cube3DOverlay::Cube3DOverlay() : _borderSize(0) {
+}
+
+Cube3DOverlay::Cube3DOverlay(const Cube3DOverlay* cube3DOverlay) :
+    Volume3DOverlay(cube3DOverlay)
+{
 }
 
 Cube3DOverlay::~Cube3DOverlay() {
@@ -58,8 +63,27 @@ void Cube3DOverlay::render(RenderArgs* args) {
             glm::vec3 positionToCenter = center - position;
             glTranslatef(positionToCenter.x, positionToCenter.y, positionToCenter.z);
             if (_isSolid) {
-                glScalef(dimensions.x, dimensions.y, dimensions.z);
-                Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+                if (_borderSize > 0) {
+                    // Draw a cube at a larger size behind the main cube, creating
+                    // a border effect.
+                    // Disable writing to the depth mask so that the "border" cube will not
+                    // occlude the main cube.  This means the border could be covered by
+                    // overlays that are further back and drawn later, but this is good
+                    // enough for the use-case.
+                    glDepthMask(GL_FALSE);
+                    glPushMatrix();
+                        glColor4f(1.0f, 1.0f, 1.0f, alpha);
+                        glScalef(dimensions.x * _borderSize, dimensions.y * _borderSize, dimensions.z * _borderSize);
+                        Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+                    glPopMatrix();
+                    glDepthMask(GL_TRUE);
+                }
+
+                glPushMatrix();
+                    glColor4f(color.red / MAX_COLOR, color.green / MAX_COLOR, color.blue / MAX_COLOR, alpha);
+                    glScalef(dimensions.x, dimensions.y, dimensions.z);
+                    Application::getInstance()->getDeferredLightingEffect()->renderSolidCube(1.0f);
+                glPopMatrix();
             } else {
                 glLineWidth(_lineWidth);
 
@@ -101,4 +125,27 @@ void Cube3DOverlay::render(RenderArgs* args) {
     if (glower) {
         delete glower;
     }
+}
+
+Cube3DOverlay* Cube3DOverlay::createClone() const {
+    return new Cube3DOverlay(this);
+}
+
+void Cube3DOverlay::setProperties(const QScriptValue& properties) {
+    Volume3DOverlay::setProperties(properties);
+
+    QScriptValue borderSize = properties.property("borderSize");
+
+    if (borderSize.isValid()) {
+        float value = borderSize.toVariant().toFloat();
+        setBorderSize(value);
+    }
+}
+
+QScriptValue Cube3DOverlay::getProperty(const QString& property) {
+    if (property == "borderSize") {
+        return _borderSize;
+    }
+
+    return Volume3DOverlay::getProperty(property);
 }

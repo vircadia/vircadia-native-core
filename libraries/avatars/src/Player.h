@@ -44,8 +44,8 @@ public slots:
     void loadRecording(RecordingPointer recording);
     void play();
     
-    void setCurrentFrame(unsigned int currentFrame);
-    void setCurrentTime(unsigned int currentTime);
+    void setCurrentFrame(int currentFrame);
+    void setCurrentTime(int currentTime);
 
     void setVolume(float volume);
     void setAudioOffset(int audioOffset);

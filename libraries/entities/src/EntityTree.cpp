@@ -40,8 +40,8 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     _entityToElementMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
     _movingEntities.clear();
-    _changingEntities.clear();
     _mortalEntities.clear();
+    _changedEntities.clear();
 }
 
 bool EntityTree::handlesEditPacketType(PacketType packetType) const {
@@ -80,7 +80,7 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     EntityItemID entityID = entityItem->getEntityItemID();
     EntityTreeElement* containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qDebug() << "UNEXPECTED!!!! don't call addEntityItem() on existing entity items. entityID=" << entityID;
+        qDebug() << "UNEXPECTED!!!! don't call addEntityItem() on existing EntityItems. entityID=" << entityID;
         return;
     }
 
@@ -89,7 +89,7 @@ void EntityTree::addEntityItem(EntityItem* entityItem) {
     recurseTreeWithOperator(&theOperator);
 
     // check to see if we need to simulate this entity..
-    changeEntityState(entityItem, EntityItem::Static, entityItem->getSimulationState());
+    updateEntityState(entityItem);
 
     _isDirty = true;
 }
@@ -123,14 +123,19 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         }
     } else {
         // check to see if we need to simulate this entity...
-        EntityItem::SimulationState oldState = existingEntity->getSimulationState();
+        QString entityScriptBefore = existingEntity->getScript();
     
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
 
-        EntityItem::SimulationState newState = existingEntity->getSimulationState();
-        changeEntityState(existingEntity, oldState, newState);
+        updateEntityState(existingEntity);
+
+        QString entityScriptAfter = existingEntity->getScript();
+        if (entityScriptBefore != entityScriptAfter) {
+            emitEntityScriptChanging(entityID); // the entity script has changed
+        }
+
     }
     
     containingElement = getContainingElement(entityID);
@@ -168,6 +173,7 @@ EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItem
     if (result) {
         // this does the actual adding of the entity
         addEntityItem(result);
+        emitAddingEntity(entityID);
     }
     return result;
 }
@@ -182,6 +188,14 @@ void EntityTree::trackDeletedEntity(const EntityItemID& entityID) {
         _recentlyDeletedEntityItemIDs.insert(deletedAt, entityID.id);
         _recentlyDeletedEntitiesLock.unlock();
     }
+}
+
+void EntityTree::emitAddingEntity(const EntityItemID& entityItemID) {
+    emit addingEntity(entityItemID);
+}
+
+void EntityTree::emitEntityScriptChanging(const EntityItemID& entityItemID) {
+    emit entityScriptChanging(entityItemID);
 }
 
 void EntityTree::deleteEntity(const EntityItemID& entityID) {
@@ -213,10 +227,6 @@ void EntityTree::removeEntityFromSimulationLists(const EntityItemID& entityID) {
         // make sure to remove it from any of our simulation lists
         EntityItem::SimulationState theState = theEntity->getSimulationState();
         switch (theState) {
-            case EntityItem::Changing:
-                _changingEntities.removeAll(theEntity);
-                break;
-
             case EntityItem::Moving:
                 _movingEntities.removeAll(theEntity);
                 break;
@@ -228,6 +238,7 @@ void EntityTree::removeEntityFromSimulationLists(const EntityItemID& entityID) {
             default:
                 break;
         }
+        _changedEntities.remove(theEntity);
     }
 }
 
@@ -290,6 +301,7 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
     EntityItemID  creatorTokenVersion = searchEntityID.convertToCreatorTokenVersion();
     EntityItemID  knownIDVersion = searchEntityID.convertToKnownIDVersion();
 
+
     // First look for and find the "viewed version" of this entity... it's possible we got
     // the known ID version sent to us between us creating our local version, and getting this
     // remapping message. If this happened, we actually want to find and delete that version of
@@ -310,6 +322,10 @@ void EntityTree::handleAddEntityResponse(const QByteArray& packet) {
             creatorTokenContainingElement->updateEntityItemID(creatorTokenVersion, knownIDVersion);
             setContainingElement(creatorTokenVersion, NULL);
             setContainingElement(knownIDVersion, creatorTokenContainingElement);
+            
+            // because the ID of the entity is switching, we need to emit these signals for any 
+            // listeners who care about the changing of IDs
+            emit changingEntityID(creatorTokenVersion, knownIDVersion);
         }
     }
     unlock();
@@ -497,7 +513,7 @@ int EntityTree::processEditPacketData(PacketType packetType, const unsigned char
                     // search for the entity by EntityItemID
                     EntityItem* existingEntity = findEntityByEntityItemID(entityItemID);
                     
-                    // if the entityItem exists, then update it
+                    // if the EntityItem exists, then update it
                     if (existingEntity) {
                         updateEntity(entityItemID, properties);
                         existingEntity->markAsChangedOnServer();
@@ -559,15 +575,42 @@ void EntityTree::releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncod
     extraEncodeData->clear();
 }
 
-void EntityTree::changeEntityState(EntityItem* const entity, 
-                        EntityItem::SimulationState oldState, EntityItem::SimulationState newState) {
+void EntityTree::updateEntityState(EntityItem* entity) {
+    EntityItem::SimulationState oldState = entity->getSimulationState();
+    EntityItem::SimulationState newState = entity->computeSimulationState();
+    if (newState != oldState) {
+        switch (oldState) {
+            case EntityItem::Moving:
+                _movingEntities.removeAll(entity);
+                break;
+    
+            case EntityItem::Mortal:
+                _mortalEntities.removeAll(entity);
+                break;
+    
+            default:
+                break;
+        }
+    
+        switch (newState) {
+            case EntityItem::Moving:
+                _movingEntities.push_back(entity);
+                break;
+    
+            case EntityItem::Mortal:
+                _mortalEntities.push_back(entity);
+                break;
+    
+            default:
+                break;
+        }
+        entity->setSimulationState(newState);
+    }
+}
 
-    // TODO: can we short circuit this if the state isn't changing?
+void EntityTree::clearEntityState(EntityItem* entity) {
+    EntityItem::SimulationState oldState = entity->getSimulationState();
     switch (oldState) {
-        case EntityItem::Changing:
-            _changingEntities.removeAll(entity);
-            break;
-
         case EntityItem::Moving:
             _movingEntities.removeAll(entity);
             break;
@@ -579,24 +622,11 @@ void EntityTree::changeEntityState(EntityItem* const entity,
         default:
             break;
     }
+    entity->setSimulationState(EntityItem::Static);
+}
 
-
-    switch (newState) {
-        case EntityItem::Changing:
-            _changingEntities.push_back(entity);
-            break;
-
-        case EntityItem::Moving:
-            _movingEntities.push_back(entity);
-            break;
-
-        case EntityItem::Mortal:
-            _mortalEntities.push_back(entity);
-            break;
-
-        default:
-            break;
-    }
+void EntityTree::entityChanged(EntityItem* entity) {
+    _changedEntities.insert(entity);
 }
 
 void EntityTree::update() {
@@ -612,7 +642,7 @@ void EntityTree::update() {
     lockForWrite();
     quint64 now = usecTimestampNow();
     QSet<EntityItemID> entitiesToDelete;
-    updateChangingEntities(now, entitiesToDelete);
+    updateChangedEntities(now, entitiesToDelete);
     updateMovingEntities(now, entitiesToDelete);
     updateMortalEntities(now, entitiesToDelete);
 
@@ -622,67 +652,39 @@ void EntityTree::update() {
     unlock();
 }
 
-void EntityTree::updateChangingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
-    QSet<EntityItem*> entitiesBecomingStatic;
-    QSet<EntityItem*> entitiesBecomingMortal;
-    QSet<EntityItem*> entitiesBecomingMoving;
-
-    // TODO: switch these to iterators so we can remove items that get deleted
-    for (int i = 0; i < _changingEntities.size(); i++) {
-        EntityItem* thisEntity = _changingEntities[i];
-        thisEntity->update(now);
-        // always check to see if the lifetime has expired, for immortal entities this is always false
+void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
+    foreach (EntityItem* thisEntity, _changedEntities) {
+        // check to see if the lifetime has expired, for immortal entities this is always false
         if (thisEntity->lifetimeHasExpired()) {
             qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
             entitiesToDelete << thisEntity->getEntityItemID();
-            entitiesBecomingStatic << thisEntity;
+            clearEntityState(thisEntity);
         } else {
-            // check to see if this entity is no longer moving
-            EntityItem::SimulationState newState = thisEntity->getSimulationState();
-
-            if (newState == EntityItem::Static) {
-                entitiesBecomingStatic << thisEntity;
-            } else if (newState == EntityItem::Mortal) {
-                entitiesBecomingMortal << thisEntity;
-            } else if (newState == EntityItem::Moving) {
-                entitiesBecomingMoving << thisEntity;
-            }
+            updateEntityState(thisEntity);
         }
+        thisEntity->clearUpdateFlags();
     }
-
-    // change state for any entities that were changing but are now either static, mortal, or moving
-    foreach(EntityItem* entity, entitiesBecomingStatic) {
-        changeEntityState(entity, EntityItem::Changing, EntityItem::Static);
-    }
-    foreach(EntityItem* entity, entitiesBecomingMortal) {
-        changeEntityState(entity, EntityItem::Changing, EntityItem::Mortal);
-    }
-    foreach(EntityItem* entity, entitiesBecomingMoving) {
-        changeEntityState(entity, EntityItem::Changing, EntityItem::Moving);
-    }
+    _changedEntities.clear();
 }
 
 void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
     PerformanceTimer perfTimer("updateMovingEntities");
     if (_movingEntities.size() > 0) {
         MovingEntitiesOperator moveOperator(this);
-
-        QSet<EntityItem*> entitiesBecomingStatic;
-        QSet<EntityItem*> entitiesBecomingMortal;
-        QSet<EntityItem*> entitiesBecomingChanging;
-        
         {
             PerformanceTimer perfTimer("_movingEntities");
 
-            // TODO: switch these to iterators so we can remove items that get deleted
-            for (int i = 0; i < _movingEntities.size(); i++) {
-                EntityItem* thisEntity = _movingEntities[i];
+            QList<EntityItem*>::iterator item_itr = _movingEntities.begin();
+            while (item_itr != _movingEntities.end()) {
+                EntityItem* thisEntity = *item_itr;
 
                 // always check to see if the lifetime has expired, for immortal entities this is always false
                 if (thisEntity->lifetimeHasExpired()) {
                     qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
                     entitiesToDelete << thisEntity->getEntityItemID();
-                    entitiesBecomingStatic << thisEntity;
+                    // remove thisEntity from the list
+                    item_itr = _movingEntities.erase(item_itr);
+                    thisEntity->setSimulationState(EntityItem::Static);
                 } else {
                     AACube oldCube = thisEntity->getMaximumAACube();
                     thisEntity->update(now);
@@ -693,18 +695,21 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
                     if (!domainBounds.touches(newCube)) {
                         qDebug() << "Entity " << thisEntity->getEntityItemID() << " moved out of domain bounds.";
                         entitiesToDelete << thisEntity->getEntityItemID();
-                        entitiesBecomingStatic << thisEntity;
+                        // remove thisEntity from the list
+                        item_itr = _movingEntities.erase(item_itr);
+                        thisEntity->setSimulationState(EntityItem::Static);
                     } else {
                         moveOperator.addEntityToMoveList(thisEntity, oldCube, newCube);
-
-                        // check to see if this entity is no longer moving
-                        EntityItem::SimulationState newState = thisEntity->getSimulationState();
-                        if (newState == EntityItem::Changing) {
-                            entitiesBecomingChanging << thisEntity;
-                        } else if (newState == EntityItem::Mortal) {
-                            entitiesBecomingMortal << thisEntity;
-                        } else if (newState == EntityItem::Static) {
-                            entitiesBecomingStatic << thisEntity;
+                        EntityItem::SimulationState newState = thisEntity->computeSimulationState();
+                        if (newState != EntityItem::Moving) {
+                            if (newState == EntityItem::Mortal) {
+                                _mortalEntities.push_back(thisEntity);
+                            }
+                            // remove thisEntity from the list
+                            item_itr = _movingEntities.erase(item_itr);
+                            thisEntity->setSimulationState(newState);
+                        } else {
+                            ++item_itr;
                         }
                     }
                 }
@@ -714,57 +719,35 @@ void EntityTree::updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesT
             PerformanceTimer perfTimer("recurseTreeWithOperator");
             recurseTreeWithOperator(&moveOperator);
         }
-
-        // change state for any entities that were moving but are now either static, mortal, or changing
-        foreach(EntityItem* entity, entitiesBecomingStatic) {
-            changeEntityState(entity, EntityItem::Moving, EntityItem::Static);
-        }
-        foreach(EntityItem* entity, entitiesBecomingMortal) {
-            changeEntityState(entity, EntityItem::Moving, EntityItem::Mortal);
-        }
-        foreach(EntityItem* entity, entitiesBecomingChanging) {
-            changeEntityState(entity, EntityItem::Moving, EntityItem::Changing);
-        }
     }
 }
 
 void EntityTree::updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete) {
-    QSet<EntityItem*> entitiesBecomingStatic;
-    QSet<EntityItem*> entitiesBecomingChanging;
-    QSet<EntityItem*> entitiesBecomingMoving;
-
-    // TODO: switch these to iterators so we can remove items that get deleted
-    for (int i = 0; i < _mortalEntities.size(); i++) {
-        EntityItem* thisEntity = _mortalEntities[i];
+    QList<EntityItem*>::iterator item_itr = _mortalEntities.begin();
+    while (item_itr != _mortalEntities.end()) {
+        EntityItem* thisEntity = *item_itr;
         thisEntity->update(now);
         // always check to see if the lifetime has expired, for immortal entities this is always false
         if (thisEntity->lifetimeHasExpired()) {
             qDebug() << "Lifetime has expired for entity:" << thisEntity->getEntityItemID();
             entitiesToDelete << thisEntity->getEntityItemID();
-            entitiesBecomingStatic << thisEntity;
+            // remove thisEntity from the list
+            item_itr = _mortalEntities.erase(item_itr);
+            thisEntity->setSimulationState(EntityItem::Static);
         } else {
             // check to see if this entity is no longer moving
-            EntityItem::SimulationState newState = thisEntity->getSimulationState();
-
-            if (newState == EntityItem::Static) {
-                entitiesBecomingStatic << thisEntity;
-            } else if (newState == EntityItem::Changing) {
-                entitiesBecomingChanging << thisEntity;
-            } else if (newState == EntityItem::Moving) {
-                entitiesBecomingMoving << thisEntity;
+            EntityItem::SimulationState newState = thisEntity->computeSimulationState();
+            if (newState != EntityItem::Mortal) {
+                if (newState == EntityItem::Moving) {
+                    _movingEntities.push_back(thisEntity);
+                }
+                // remove thisEntity from the list
+                item_itr = _mortalEntities.erase(item_itr);
+                thisEntity->setSimulationState(newState);
+            } else {
+                ++item_itr;
             }
         }
-    }
-
-    // change state for any entities that were mortal but are now either static, changing, or moving
-    foreach(EntityItem* entity, entitiesBecomingStatic) {
-        changeEntityState(entity, EntityItem::Mortal, EntityItem::Static);
-    }
-    foreach(EntityItem* entity, entitiesBecomingChanging) {
-        changeEntityState(entity, EntityItem::Mortal, EntityItem::Changing);
-    }
-    foreach(EntityItem* entity, entitiesBecomingMoving) {
-        changeEntityState(entity, EntityItem::Mortal, EntityItem::Moving);
     }
 }
 
@@ -981,7 +964,6 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
     return processedBytes;
 }
 
-
 EntityTreeElement* EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
     // TODO: do we need to make this thread safe? Or is it acceptable as is
     if (_entityToElementMap.contains(entityItemID)) {
@@ -1069,7 +1051,6 @@ bool DebugOperator::preRecursion(OctreeElement* element) {
 }
 
 void EntityTree::dumpTree() {
-    // First, look for the existing entity in the tree..
     DebugOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }
@@ -1087,7 +1068,6 @@ bool PruneOperator::postRecursion(OctreeElement* element) {
 }
 
 void EntityTree::pruneTree() {
-    // First, look for the existing entity in the tree..
     PruneOperator theOperator;
     recurseTreeWithOperator(&theOperator);
 }

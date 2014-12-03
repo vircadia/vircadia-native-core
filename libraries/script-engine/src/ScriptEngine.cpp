@@ -27,7 +27,6 @@
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
-#include <Sound.h>
 #include <UUID.h>
 #include <VoxelConstants.h>
 #include <VoxelDetail.h>
@@ -47,14 +46,6 @@
 VoxelsScriptingInterface ScriptEngine::_voxelsScriptingInterface;
 EntityScriptingInterface ScriptEngine::_entityScriptingInterface;
 
-static QScriptValue soundConstructor(QScriptContext* context, QScriptEngine* engine) {
-    QUrl soundURL = QUrl(context->argument(0).toString());
-    bool isStereo = context->argument(1).toBool();
-    QScriptValue soundScriptValue = engine->newQObject(new Sound(soundURL, isStereo), QScriptEngine::ScriptOwnership);
-
-    return soundScriptValue;
-}
-
 static QScriptValue debugPrint(QScriptContext* context, QScriptEngine* engine){
     qDebug() << "script:print()<<" << context->argument(0).toString();
     QString message = context->argument(0).toString()
@@ -72,14 +63,6 @@ QScriptValue avatarDataToScriptValue(QScriptEngine* engine, AvatarData* const &i
 
 void avatarDataFromScriptValue(const QScriptValue &object, AvatarData* &out) {
     out = qobject_cast<AvatarData*>(object.toQObject());
-}
-
-QScriptValue injectorToScriptValue(QScriptEngine* engine, AudioInjector* const &in) {
-    return engine->newQObject(in);
-}
-
-void injectorFromScriptValue(const QScriptValue &object, AudioInjector* &out) {
-    out = qobject_cast<AudioInjector*>(object.toQObject());
 }
 
 QScriptValue inputControllerToScriptValue(QScriptEngine *engine, AbstractInputController* const &in) {
@@ -115,71 +98,6 @@ ScriptEngine::ScriptEngine(const QString& scriptContents, const QString& fileNam
     _isUserLoaded(false),
     _arrayBufferClass(new ArrayBufferClass(this))
 {
-}
-
-ScriptEngine::ScriptEngine(const QUrl& scriptURL,
-                           AbstractControllerScriptingInterface* controllerScriptingInterface)  :
-    _scriptContents(),
-    _isFinished(false),
-    _isRunning(false),
-    _isInitialized(false),
-    _isAvatar(false),
-    _avatarIdentityTimer(NULL),
-    _avatarBillboardTimer(NULL),
-    _timerFunctionMap(),
-    _isListeningToAudioStream(false),
-    _avatarSound(NULL),
-    _numAvatarSoundSentBytes(0),
-    _controllerScriptingInterface(controllerScriptingInterface),
-    _avatarData(NULL),
-    _scriptName(),
-    _fileNameString(),
-    _quatLibrary(),
-    _vec3Library(),
-    _uuidLibrary(),
-    _animationCache(this),
-    _isUserLoaded(false),
-    _arrayBufferClass(new ArrayBufferClass(this))
-{
-    QString scriptURLString = scriptURL.toString();
-    _fileNameString = scriptURLString;
-
-    QUrl url(scriptURL);
-    
-    // if the scheme length is one or lower, maybe they typed in a file, let's try
-    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
-    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
-        url = QUrl::fromLocalFile(scriptURLString);
-    }
-
-    // ok, let's see if it's valid... and if so, load it
-    if (url.isValid()) {
-        if (url.scheme() == "file") {
-            QString fileName = url.toLocalFile();
-            QFile scriptFile(fileName);
-            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "Loading file:" << fileName;
-                QTextStream in(&scriptFile);
-                _scriptContents = in.readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << fileName;
-                emit errorMessage("ERROR Loading file:" + fileName);
-            }
-        } else {
-            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
-            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
-            qDebug() << "Downloading script at" << url;
-            QEventLoop loop;
-            QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-            loop.exec();
-            if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
-                _scriptContents = reply->readAll();
-            } else {
-                qDebug() << "ERROR Loading file:" << url.toString();
-                emit errorMessage("ERROR Loading file:" + url.toString());
-            }
-        }
-    }
 }
 
 void ScriptEngine::setIsAvatar(bool isAvatar) {
@@ -234,7 +152,55 @@ bool ScriptEngine::setScriptContents(const QString& scriptContents, const QStrin
     return true;
 }
 
-Q_SCRIPT_DECLARE_QMETAOBJECT(AudioInjectorOptions, QObject*)
+void ScriptEngine::loadURL(const QUrl& scriptURL) {
+    if (_isRunning) {
+        return;
+    }
+
+    _fileNameString = scriptURL.toString();
+    
+    QUrl url(scriptURL);
+    
+    // if the scheme length is one or lower, maybe they typed in a file, let's try
+    const int WINDOWS_DRIVE_LETTER_SIZE = 1;
+    if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
+        url = QUrl::fromLocalFile(_fileNameString);
+    }
+    
+    // ok, let's see if it's valid... and if so, load it
+    if (url.isValid()) {
+        if (url.scheme() == "file") {
+            _fileNameString = url.toLocalFile();
+            QFile scriptFile(_fileNameString);
+            if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
+                qDebug() << "ScriptEngine loading file:" << _fileNameString;
+                QTextStream in(&scriptFile);
+                _scriptContents = in.readAll();
+                emit scriptLoaded(_fileNameString);
+            } else {
+                qDebug() << "ERROR Loading file:" << _fileNameString;
+                emit errorLoadingScript(_fileNameString);
+            }
+        } else {
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkReply* reply = networkAccessManager.get(QNetworkRequest(url));
+            connect(reply, &QNetworkReply::finished, this, &ScriptEngine::handleScriptDownload);
+        }
+    }
+}
+
+void ScriptEngine::handleScriptDownload() {
+    QNetworkReply* reply = qobject_cast<QNetworkReply*>(sender());
+    
+    if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
+        _scriptContents = reply->readAll();
+        emit scriptLoaded(_fileNameString);
+    } else {
+        qDebug() << "ERROR Loading file:" << reply->url().toString();
+        emit errorLoadingScript(_fileNameString);
+    }
+}
+
 Q_SCRIPT_DECLARE_QMETAOBJECT(LocalVoxels, QString)
 
 void ScriptEngine::init() {
@@ -254,6 +220,7 @@ void ScriptEngine::init() {
     registerMenuItemProperties(this);
     registerAnimationTypes(this);
     registerAvatarTypes(this);
+    registerAudioMetaTypes(this);
     Bitstream::registerTypes(this);
 
     qScriptRegisterMetaType(this, EntityItemPropertiesToScriptValue, EntityItemPropertiesFromScriptValue);
@@ -270,13 +237,6 @@ void ScriptEngine::init() {
 
     QScriptValue printConstructorValue = newFunction(debugPrint);
     globalObject().setProperty("print", printConstructorValue);
-
-    QScriptValue soundConstructorValue = newFunction(soundConstructor);
-    QScriptValue soundMetaObject = newQMetaObject(&Sound::staticMetaObject, soundConstructorValue);
-    globalObject().setProperty("Sound", soundMetaObject);
-
-    QScriptValue injectionOptionValue = scriptValueFromQMetaObject<AudioInjectorOptions>();
-    globalObject().setProperty("AudioInjectionOptions", injectionOptionValue);
 
     QScriptValue localVoxelsValue = scriptValueFromQMetaObject<LocalVoxels>();
     globalObject().setProperty("LocalVoxels", localVoxelsValue);
@@ -320,6 +280,11 @@ QScriptValue ScriptEngine::registerGlobalObject(const QString& name, QObject* ob
         return value;
     }
     return QScriptValue::NullValue;
+}
+
+void ScriptEngine::registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments) {
+    QScriptValue scriptFun = newFunction(fun, numArguments);
+    globalObject().setProperty(name, scriptFun);
 }
 
 void ScriptEngine::registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
@@ -636,7 +601,7 @@ void ScriptEngine::stopTimer(QTimer *timer) {
     }
 }
 
-QUrl ScriptEngine::resolveInclude(const QString& include) const {
+QUrl ScriptEngine::resolvePath(const QString& include) const {
     // first lets check to see if it's already a full URL
     QUrl url(include);
     if (!url.scheme().isEmpty()) {
@@ -662,7 +627,7 @@ void ScriptEngine::print(const QString& message) {
 }
 
 void ScriptEngine::include(const QString& includeFile) {
-    QUrl url = resolveInclude(includeFile);
+    QUrl url = resolvePath(includeFile);
     QString includeContents;
 
     if (url.scheme() == "http" || url.scheme() == "https" || url.scheme() == "ftp") {
@@ -700,7 +665,7 @@ void ScriptEngine::include(const QString& includeFile) {
 }
 
 void ScriptEngine::load(const QString& loadFile) {
-    QUrl url = resolveInclude(loadFile);
+    QUrl url = resolvePath(loadFile);
     emit loadScript(url.toString(), false);
 }
 

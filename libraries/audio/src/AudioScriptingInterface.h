@@ -18,8 +18,6 @@
 #include "AudioInjector.h"
 #include "Sound.h"
 
-const AudioInjectorOptions DEFAULT_INJECTOR_OPTIONS;
-
 class AudioScriptingInterface : public QObject {
     Q_OBJECT
 public:
@@ -27,22 +25,28 @@ public:
     
     void stopAllInjectors();
     
-    void setLocalLoopbackInterface(AbstractAudioInterface* audioInterface) { _localLoopbackInterface = audioInterface; }
+    void setLocalAudioInterface(AbstractAudioInterface* audioInterface) { _localAudioInterface = audioInterface; }
 public slots:
 
     static float getLoudness(AudioInjector* injector);
 
-    void playLocalSound(Sound *sound, const AudioInjectorOptions* injectorOptions = NULL);
-    AudioInjector* playSound(Sound* sound, const AudioInjectorOptions* injectorOptions = NULL);
+    AudioInjector* playSound(Sound* sound, const AudioInjectorOptions& injectorOptions = AudioInjectorOptions());
     
     void stopInjector(AudioInjector* injector);
     bool isInjectorPlaying(AudioInjector* injector);
     
     void injectorStopped();
     
+signals:
+    void mutedByMixer();
+    void environmentMuted();
+    
 private:
     AudioScriptingInterface();
     QList< QPointer<AudioInjector> > _activeInjectors;
-    AbstractAudioInterface* _localLoopbackInterface;
+    AbstractAudioInterface* _localAudioInterface;
 };
+
+void registerAudioMetaTypes(QScriptEngine* engine);
+
 #endif // hifi_AudioScriptingInterface_h

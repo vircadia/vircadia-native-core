@@ -28,6 +28,7 @@ const float EntityItem::DEFAULT_GLOW_LEVEL = 0.0f;
 const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
+const QString EntityItem::DEFAULT_USER_DATA = QString("");
 const float EntityItem::DEFAULT_DAMPING = 0.5f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
@@ -71,6 +72,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _gravity = DEFAULT_GRAVITY;
     _damping = DEFAULT_DAMPING;
     _lifetime = DEFAULT_LIFETIME;
+    _userData = DEFAULT_USER_DATA;
     _registrationPoint = DEFAULT_REGISTRATION_POINT;
     _angularVelocity = DEFAULT_ANGULAR_VELOCITY;
     _angularDamping = DEFAULT_ANGULAR_DAMPING;
@@ -88,8 +90,10 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = 0;
+    _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
+    _simulationState = EntityItem::Static;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -99,9 +103,11 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEditedFromRemoteInRemoteTime = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
+    _updateFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
+    _simulationState = EntityItem::Static;
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -123,6 +129,7 @@ EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& param
     requestedProperties += PROP_IGNORE_FOR_COLLISIONS;
     requestedProperties += PROP_COLLISIONS_WILL_MOVE;
     requestedProperties += PROP_LOCKED;
+    requestedProperties += PROP_USER_DATA;
     
     return requestedProperties;
 }
@@ -239,6 +246,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
         APPEND_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, appendValue, getIgnoreForCollisions());
         APPEND_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, appendValue, getCollisionsWillMove());
         APPEND_ENTITY_PROPERTY(PROP_LOCKED, appendValue, getLocked());
+        APPEND_ENTITY_PROPERTY(PROP_USER_DATA, appendValue, getUserData());
 
         appendSubclassData(packetData, params, entityTreeElementExtraEncodeData,
                                 requestedProperties,
@@ -400,7 +408,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "      fromSameServerEdit=" << fromSameServerEdit;
         }
 
-        bool ignoreServerPacket = false; // assume we're use this server packet
+        bool ignoreServerPacket = false; // assume we'll use this server packet
         
         // If this packet is from the same server edit as the last packet we accepted from the server
         // we probably want to use it.
@@ -459,7 +467,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         dataAt += propertyFlags.getEncodedLength();
         bytesRead += propertyFlags.getEncodedLength();
         
-        READ_ENTITY_PROPERTY(PROP_POSITION, glm::vec3, _position);
+        READ_ENTITY_PROPERTY_SETTER(PROP_POSITION, glm::vec3, updatePosition);
 
         // Old bitstreams had PROP_RADIUS, new bitstreams have PROP_DIMENSIONS
         if (args.bitstreamVersion < VERSION_ENTITIES_SUPPORT_DIMENSIONS) {
@@ -478,7 +486,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
 
             }
         } else {
-            READ_ENTITY_PROPERTY(PROP_DIMENSIONS, glm::vec3, _dimensions);
+            READ_ENTITY_PROPERTY_SETTER(PROP_DIMENSIONS, glm::vec3, setDimensions);
             if (wantDebug) {
                 qDebug() << "    readEntityDataFromBuffer() NEW FORMAT... look for PROP_DIMENSIONS";
             }
@@ -488,20 +496,21 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             qDebug() << "    readEntityDataFromBuffer() _dimensions:" << getDimensionsInMeters() << " in meters";
         }
                 
-        READ_ENTITY_PROPERTY_QUAT(PROP_ROTATION, _rotation);
-        READ_ENTITY_PROPERTY(PROP_MASS, float, _mass);
-        READ_ENTITY_PROPERTY(PROP_VELOCITY, glm::vec3, _velocity);
-        READ_ENTITY_PROPERTY(PROP_GRAVITY, glm::vec3, _gravity);
+        READ_ENTITY_PROPERTY_QUAT_SETTER(PROP_ROTATION, updateRotation);
+        READ_ENTITY_PROPERTY_SETTER(PROP_MASS, float, updateMass);
+        READ_ENTITY_PROPERTY_SETTER(PROP_VELOCITY, glm::vec3, updateVelocity);
+        READ_ENTITY_PROPERTY_SETTER(PROP_GRAVITY, glm::vec3, updateGravity);
         READ_ENTITY_PROPERTY(PROP_DAMPING, float, _damping);
-        READ_ENTITY_PROPERTY(PROP_LIFETIME, float, _lifetime);
+        READ_ENTITY_PROPERTY_SETTER(PROP_LIFETIME, float, updateLifetime);
         READ_ENTITY_PROPERTY_STRING(PROP_SCRIPT,setScript);
         READ_ENTITY_PROPERTY(PROP_REGISTRATION_POINT, glm::vec3, _registrationPoint);
-        READ_ENTITY_PROPERTY(PROP_ANGULAR_VELOCITY, glm::vec3, _angularVelocity);
+        READ_ENTITY_PROPERTY_SETTER(PROP_ANGULAR_VELOCITY, glm::vec3, updateAngularVelocity);
         READ_ENTITY_PROPERTY(PROP_ANGULAR_DAMPING, float, _angularDamping);
         READ_ENTITY_PROPERTY(PROP_VISIBLE, bool, _visible);
-        READ_ENTITY_PROPERTY(PROP_IGNORE_FOR_COLLISIONS, bool, _ignoreForCollisions);
-        READ_ENTITY_PROPERTY(PROP_COLLISIONS_WILL_MOVE, bool, _collisionsWillMove);
+        READ_ENTITY_PROPERTY_SETTER(PROP_IGNORE_FOR_COLLISIONS, bool, updateIgnoreForCollisions);
+        READ_ENTITY_PROPERTY_SETTER(PROP_COLLISIONS_WILL_MOVE, bool, updateCollisionsWillMove);
         READ_ENTITY_PROPERTY(PROP_LOCKED, bool, _locked);
+        READ_ENTITY_PROPERTY_STRING(PROP_USER_DATA,setUserData);
 
         if (wantDebug) {
             qDebug() << "    readEntityDataFromBuffer() _registrationPoint:" << _registrationPoint;
@@ -710,12 +719,9 @@ void EntityItem::update(const quint64& updateTime) {
     }
 }
 
-EntityItem::SimulationState EntityItem::getSimulationState() const {
-    if (hasVelocity() || (hasGravity() && !isRestingOnSurface())) {
+EntityItem::SimulationState EntityItem::computeSimulationState() const {
+    if (hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity()) {
         return EntityItem::Moving;
-    }
-    if (hasAngularVelocity()) {
-        return EntityItem::Changing;
     }
     if (isMortal()) {
         return EntityItem::Mortal;
@@ -725,11 +731,6 @@ EntityItem::SimulationState EntityItem::getSimulationState() const {
 
 bool EntityItem::lifetimeHasExpired() const { 
     return isMortal() && (getAge() > getLifetime()); 
-}
-
-
-void EntityItem::copyChangedProperties(const EntityItem& other) {
-    *this = other;
 }
 
 EntityItemProperties EntityItem::getProperties() const {
@@ -758,6 +759,7 @@ EntityItemProperties EntityItem::getProperties() const {
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(ignoreForCollisions, getIgnoreForCollisions);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(collisionsWillMove, getCollisionsWillMove);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(locked, getLocked);
+    COPY_ENTITY_PROPERTY_TO_PROPERTIES(userData, getUserData);
 
     properties._defaultSettings = false;
     
@@ -794,6 +796,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
     if (somethingChanged) {
         somethingChangedNotification(); // notify derived classes that something has changed
@@ -939,6 +942,113 @@ void EntityItem::recalculateCollisionShape() {
     entityAACube.scale(TREE_SCALE); // scale to meters
     _collisionShape.setTranslation(entityAACube.calcCenter());
     _collisionShape.setScale(entityAACube.getScale());
+}
+
+void EntityItem::updatePosition(const glm::vec3& value) { 
+    if (_position != value) {
+        _position = value; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updatePositionInMeters(const glm::vec3& value) { 
+    glm::vec3 position = glm::clamp(value / (float) TREE_SCALE, 0.0f, 1.0f);
+    if (_position != position) {
+        _position = position;
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updateDimensions(const glm::vec3& value) { 
+    if (_dimensions != value) {
+        _dimensions = value; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_SHAPE;
+    }
+}
+
+void EntityItem::updateDimensionsInMeters(const glm::vec3& value) { 
+    glm::vec3 dimensions = value / (float) TREE_SCALE;
+    if (_dimensions != dimensions) {
+        _dimensions = dimensions; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_SHAPE;
+    }
+}
+
+void EntityItem::updateRotation(const glm::quat& rotation) { 
+    if (_rotation != rotation) {
+        _rotation = rotation; 
+        recalculateCollisionShape();
+        _updateFlags |= EntityItem::UPDATE_POSITION;
+    }
+}
+
+void EntityItem::updateMass(float value) {
+    if (_mass != value) {
+        _mass = value;
+        _updateFlags |= EntityItem::UPDATE_MASS;
+    }
+}
+
+void EntityItem::updateVelocity(const glm::vec3& value) { 
+    if (_velocity != value) {
+        _velocity = value;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateVelocityInMeters(const glm::vec3& value) { 
+    glm::vec3 velocity = value / (float) TREE_SCALE; 
+    if (_velocity != velocity) {
+        _velocity = velocity;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateGravity(const glm::vec3& value) { 
+    if (_gravity != value) {
+        _gravity = value; 
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateGravityInMeters(const glm::vec3& value) { 
+    glm::vec3 gravity = value / (float) TREE_SCALE;
+    if (_gravity != gravity) {
+        _gravity = gravity;
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
+    if (_angularVelocity != value) {
+        _angularVelocity = value; 
+        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+    }
+}
+
+void EntityItem::updateIgnoreForCollisions(bool value) { 
+    if (_ignoreForCollisions != value) {
+        _ignoreForCollisions = value; 
+        _updateFlags |= EntityItem::UPDATE_COLLISION_GROUP;
+    }
+}
+
+void EntityItem::updateCollisionsWillMove(bool value) { 
+    if (_collisionsWillMove != value) {
+        _collisionsWillMove = value; 
+        _updateFlags |= EntityItem::UPDATE_MOTION_TYPE;
+    }
+}
+
+void EntityItem::updateLifetime(float value) {
+    if (_lifetime != value) {
+        _lifetime = value;
+        _updateFlags |= EntityItem::UPDATE_LIFETIME;
+    }
 }
 
 

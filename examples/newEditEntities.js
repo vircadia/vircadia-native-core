@@ -35,7 +35,14 @@ var entityPropertyDialogBox = EntityPropertyDialogBox;
 Script.include("libraries/entityCameraTool.js");
 var cameraManager = new CameraManager();
 
-selectionManager.setEventListener(selectionDisplay.updateHandles);
+Script.include("libraries/gridTool.js");
+var grid = Grid();
+gridTool = GridTool({ horizontalGrid: grid });
+
+Script.include("libraries/entityList.js");
+var entityListTool = EntityListTool();
+
+selectionManager.addEventListener(selectionDisplay.updateHandles);
 
 var windowDimensions = Controller.getViewportDimensions();
 var toolIconUrl = HIFI_PUBLIC_BUCKET + "images/tools/";
@@ -50,6 +57,15 @@ var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
 var DEFAULT_DIMENSION = 0.20;
+var DEFAULT_TEXT_DIMENSION_X = 1.0;
+var DEFAULT_TEXT_DIMENSION_Y = 1.0;
+var DEFAULT_TEXT_DIMENSION_Z = 0.01;
+
+var DEFAULT_DIMENSIONS = {
+    x: DEFAULT_DIMENSION,
+    y: DEFAULT_DIMENSION,
+    z: DEFAULT_DIMENSION
+};
 
 var MENU_INSPECT_TOOL_ENABLED = "Inspect Tool";
 var MENU_EASE_ON_FOCUS = "Ease Orientation on Focus";
@@ -80,15 +96,16 @@ var toolBar = (function () {
         newCubeButton,
         newSphereButton,
         newLightButton,
+        newTextButton,
         browseModelsButton,
         loadURLMenuItem,
         loadFileMenuItem,
-        menuItemWidth = 125,
+        menuItemWidth,
         menuItemOffset,
         menuItemHeight,
         menuItemMargin = 5,
         menuTextColor = { red: 255, green: 255, blue: 255 },
-        menuBackgoundColor = { red: 18, green: 66, blue: 66 };
+        menuBackgroundColor = { red: 18, green: 66, blue: 66 };
 
     function initialize() {
         toolBar = new ToolBar(0, 0, ToolBar.VERTICAL);
@@ -125,9 +142,8 @@ var toolBar = (function () {
         loadURLMenuItem = Overlays.addOverlay("text", {
             x: newModelButton.x - menuItemWidth,
             y: newModelButton.y + menuItemOffset,
-            width: menuItemWidth,
             height: menuItemHeight,
-            backgroundColor: menuBackgoundColor,
+            backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
@@ -137,14 +153,18 @@ var toolBar = (function () {
         loadFileMenuItem = Overlays.addOverlay("text", {
             x: newModelButton.x - menuItemWidth,
             y: newModelButton.y + menuItemOffset + menuItemHeight,
-            width: menuItemWidth,
             height: menuItemHeight,
-            backgroundColor: menuBackgoundColor,
+            backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
             visible: false
         });
+
+        menuItemWidth = Math.max(Overlays.textWidth(loadURLMenuItem, "Model URL"),
+            Overlays.textWidth(loadFileMenuItem, "Model File")) + 20;
+        Overlays.editOverlay(loadURLMenuItem, { width: menuItemWidth });
+        Overlays.editOverlay(loadFileMenuItem, { width: menuItemWidth });
 
         newCubeButton = toolBar.addTool({
             imageURL: toolIconUrl + "add-cube.svg",
@@ -166,6 +186,16 @@ var toolBar = (function () {
 
         newLightButton = toolBar.addTool({
             imageURL: toolIconUrl + "light.svg",
+            subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
+            width: toolWidth,
+            height: toolHeight,
+            alpha: 0.9,
+            visible: true
+        });
+
+        newTextButton = toolBar.addTool({
+            //imageURL: toolIconUrl + "add-text.svg",
+            imageURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/images/tools/add-text.svg", // temporarily
             subImage: { x: 0, y: Tool.IMAGE_WIDTH, width: Tool.IMAGE_WIDTH, height: Tool.IMAGE_HEIGHT },
             width: toolWidth,
             height: toolHeight,
@@ -196,8 +226,8 @@ var toolBar = (function () {
         if (position.x > 0 && position.y > 0 && position.z > 0) {
             var entityId = Entities.addEntity({
                 type: "Model",
-                position: position,
-                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                dimensions: DEFAULT_DIMENSIONS,
                 modelURL: url
             });
             print("Model added: " + url);
@@ -262,10 +292,18 @@ var toolBar = (function () {
         if (activeButton === toolBar.clicked(clickedOverlay)) {
             isActive = !isActive;
             if (!isActive) {
+                entityListTool.setVisible(false);
+                gridTool.setVisible(false);
+                grid.setEnabled(false);
+                propertiesTool.setVisible(false);
                 selectionManager.clearSelections();
                 cameraManager.disable();
             } else {
                 cameraManager.enable();
+                entityListTool.setVisible(true);
+                gridTool.setVisible(true);
+                grid.setEnabled(true);
+                propertiesTool.setVisible(true);
             }
             return true;
         }
@@ -313,8 +351,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 Entities.addEntity({
                                 type: "Box",
-                                position: position,
-                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 color: { red: 255, green: 0, blue: 0 }
 
                                 });
@@ -330,8 +368,8 @@ var toolBar = (function () {
             if (position.x > 0 && position.y > 0 && position.z > 0) {
                 Entities.addEntity({
                                 type: "Sphere",
-                                position: position,
-                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 color: { red: 255, green: 0, blue: 0 }
                                 });
             } else {
@@ -344,10 +382,10 @@ var toolBar = (function () {
             var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
 
             if (position.x > 0 && position.y > 0 && position.z > 0) {
-                Entities.addEntity({ 
+                Entities.addEntity({
                                 type: "Light",
-                                position: position,
-                                dimensions: { x: DEFAULT_DIMENSION, y: DEFAULT_DIMENSION, z: DEFAULT_DIMENSION },
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
                                 isSpotlight: false,
                                 diffuseColor: { red: 255, green: 255, blue: 255 },
                                 ambientColor: { red: 255, green: 255, blue: 255 },
@@ -365,6 +403,24 @@ var toolBar = (function () {
             return true;
         }
 
+        if (newTextButton === toolBar.clicked(clickedOverlay)) {
+            var position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getFront(MyAvatar.orientation), SPAWN_DISTANCE));
+
+            if (position.x > 0 && position.y > 0 && position.z > 0) {
+                Entities.addEntity({ 
+                                type: "Text",
+                                position: grid.snapToSurface(grid.snapToGrid(position, false, DEFAULT_DIMENSIONS), DEFAULT_DIMENSIONS),
+                                dimensions: DEFAULT_DIMENSIONS,
+                                backgroundColor: { red: 0, green: 0, blue: 0 },
+                                textColor: { red: 255, green: 255, blue: 255 },
+                                text: "some text",
+                                lineHight: "0.1"
+                                });
+            } else {
+                print("Can't create box: Text would be out of bounds.");
+            }
+            return true;
+        }
 
 
         return false;
@@ -597,8 +653,6 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "File", menuItemName: "Import Models", shortcutKey: "CTRL+META+I", afterItem: "Export Models" });
     Menu.addMenuItem({ menuName: "Developer", menuItemName: "Debug Ryans Rotation Problems", isCheckable: true });
 
-    Menu.addMenuItem({ menuName: "View", menuItemName: MENU_INSPECT_TOOL_ENABLED, afterItem: "Edit Entities Help...",
-                       isCheckable: true, isChecked: Settings.getValue(SETTING_INSPECT_TOOL_ENABLED) == "true" });
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
 }
@@ -699,7 +753,7 @@ function handeMenuEvent(menuItem) {
             var selectedModel = form[0].value;
             if (form[1].value == "Properties") {
                 editModelID = selectedModel;
-                showPropertiesForm(editModelID);
+                entityPropertyDialogBox.openDialog(editModelID);
             } else if (form[1].value == "Delete") {
                 Entities.deleteEntity(selectedModel);
             } else if (form[1].value == "Teleport") {
@@ -759,25 +813,32 @@ Controller.keyReleaseEvent.connect(function (event) {
         if (isActive) {
             cameraManager.enable();
         }
+    } else if (event.text == 'g') {
+        if (isActive && selectionManager.hasSelection()) {
+            var newPosition = selectionManager.worldPosition;
+            newPosition = Vec3.subtract(newPosition, { x: 0, y: selectionManager.worldDimensions.y * 0.5, z: 0 });
+            grid.setPosition(newPosition);
+        }
     } else if (isActive) {
         var delta = null;
+        var increment = event.isShifted ? grid.getMajorIncrement() : grid.getMinorIncrement();
 
         if (event.text == 'UP') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: 1, z: 0 };
+                delta = { x: 0, y: increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: -1 };
+                delta = { x: 0, y: 0, z: -increment };
             }
         } else if (event.text == 'DOWN') {
             if (event.isControl || event.isAlt) {
-                delta = { x: 0, y: -1, z: 0 };
+                delta = { x: 0, y: -increment, z: 0 };
             } else {
-                delta = { x: 0, y: 0, z: 1 };
+                delta = { x: 0, y: 0, z: increment };
             }
         } else if (event.text == 'LEFT') {
-            delta = { x: -1, y: 0, z: 0 };
+            delta = { x: -increment, y: 0, z: 0 };
         } else if (event.text == 'RIGHT') {
-            delta = { x: 1, y: 0, z: 0 };
+            delta = { x: increment, y: 0, z: 0 };
         }
 
         if (delta != null) {
@@ -885,3 +946,43 @@ function pushCommandForSelections(createdEntityData, deletedEntityData) {
     }
     UndoStack.pushCommand(applyEntityProperties, undoData, applyEntityProperties, redoData);
 }
+
+PropertiesTool = function(opts) {
+    var that = {};
+
+    var url = Script.resolvePath('html/entityProperties.html');
+    var webView = new WebWindow('Entity Properties', url, 200, 280);
+
+    var visible = false;
+
+    webView.setVisible(visible);
+
+    that.setVisible = function(newVisible) {
+        visible = newVisible;
+        webView.setVisible(visible);
+    };
+
+    selectionManager.addEventListener(function() {
+        data = {
+            type: 'update',
+        };
+        if (selectionManager.hasSelection()) {
+            data.properties = Entities.getEntityProperties(selectionManager.selections[0]);
+        }
+        webView.eventBridge.emitScriptEvent(JSON.stringify(data));
+    });
+
+    webView.eventBridge.webEventReceived.connect(function(data) {
+        print(data);
+        data = JSON.parse(data);
+        if (data.type == "update") {
+            Entities.editEntity(selectionManager.selections[0], data.properties);
+            selectionManager._update();
+        }
+    });
+
+    return that;
+};
+
+propertiesTool = PropertiesTool();
+

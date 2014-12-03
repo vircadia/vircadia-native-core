@@ -24,6 +24,7 @@ class Text3DOverlay : public Planar3DOverlay {
     
 public:
     Text3DOverlay();
+    Text3DOverlay(const Text3DOverlay* text3DOverlay);
     ~Text3DOverlay();
     virtual void render(RenderArgs* args);
 
@@ -47,6 +48,11 @@ public:
     void setIsFacingAvatar(bool isFacingAvatar) { _isFacingAvatar = isFacingAvatar; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
+
+    float textWidth(const QString& text) const;  // Meters
+
+    virtual Text3DOverlay* createClone() const;
 
 private:
     void enableClipPlane(GLenum plane, float x, float y, float z, float w);

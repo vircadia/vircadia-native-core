@@ -97,6 +97,7 @@ Menu::Menu() :
     _jsConsole(NULL),
     _octreeStatsDialog(NULL),
     _lodToolsDialog(NULL),
+    _hmdToolsDialog(NULL),
     _newLocationDialog(NULL),
     _userLocationsDialog(NULL),
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -248,6 +249,12 @@ Menu::Menu() :
 #endif
 
     addActionToQMenuAndActionHash(toolsMenu,
+                                  MenuOption::ToolWindow,
+                                  Qt::CTRL | Qt::ALT | Qt::Key_T,
+                                  this,
+                                  SLOT(toggleToolWindow()));
+
+    addActionToQMenuAndActionHash(toolsMenu,
                                   MenuOption::Console,
                                   Qt::CTRL | Qt::ALT | Qt::Key_J,
                                   this,
@@ -291,6 +298,8 @@ Menu::Menu() :
             avatar, SLOT(updateMotionBehavior()));
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::StandOnNearbyFloors, 0, true,
             avatar, SLOT(updateMotionBehavior()));
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::ShiftHipsForIdleAnimations, 0, false,
+            avatar, SLOT(updateMotionBehavior()));
 
     QMenu* collisionsMenu = avatarMenu->addMenu("Collide With...");
     addCheckableActionToQMenuAndActionHash(collisionsMenu, MenuOption::CollideAsRagdoll, 0, false, 
@@ -326,6 +335,12 @@ Menu::Menu() :
                                             appInstance, SLOT(cameraMenuChanged()));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::UserInterface, Qt::Key_Slash, true);
 
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HMDTools, Qt::META | Qt::Key_H,
+                                           false,
+                                           this,
+                                           SLOT(hmdTools(bool)));
+
+
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::EnableVRMode, 0,
                                            false,
                                            appInstance,
@@ -348,7 +363,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::OffAxisProjection, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::TurnWithHead, 0, false);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
 
 
@@ -386,7 +400,7 @@ Menu::Menu() :
 
 #if defined(Q_OS_MAC)
 #else
-        QAction* vsyncAction = addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
+        addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderTargetFramerateVSyncOn, 0, true, this, SLOT(changeVSync()));
 #endif
     }
 
@@ -431,18 +445,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderBoundingCollisionShapes);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderLookAtVectors, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderFocusIndicator, 0, false);
-    
-    QMenu* entitiesDebugMenu = developerMenu->addMenu("Entities");
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelBounds, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementProxy, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisplayModelElementChildProxies, 0, false);
-    addCheckableActionToQMenuAndActionHash(entitiesDebugMenu, MenuOption::DisableLightEntities, 0, false);
 
-    QMenu* entityCullingMenu = entitiesDebugMenu->addMenu("Culling");
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullOutOfViewMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontCullTooSmallMeshParts, 0, false);
-    addCheckableActionToQMenuAndActionHash(entityCullingMenu, MenuOption::DontReduceMaterialSwitches, 0, false);
-    
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxels");
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
@@ -452,7 +455,7 @@ Menu::Menu() :
     QMenu* metavoxelOptionsMenu = developerMenu->addMenu("Metavoxels");
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::DisplayHermiteData, 0, false,
         Application::getInstance()->getMetavoxels(), SLOT(refreshVoxelData()));
-    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderHeightfields, 0, true);
+    addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderSpanners, 0, true);
     addCheckableActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::RenderDualContourSurfaces, 0, true);
     addActionToQMenuAndActionHash(metavoxelOptionsMenu, MenuOption::NetworkSimulator, 0, this,
         SLOT(showMetavoxelNetworkSimulator()));
@@ -533,47 +536,6 @@ Menu::Menu() :
                                            appInstance->getAudio(),
                                            SLOT(toggleAudioNoiseReduction()));
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioFilter,
-                                           0,
-                                           false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleAudioFilter()));
-
-    QMenu* audioFilterMenu = audioDebugMenu->addMenu("Audio Filter");
-    addDisabledActionAndSeparator(audioFilterMenu, "Filter Response");
-    {
-        QAction *flat = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterFlat,
-                                                                        0,
-                                                                        true,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterFlat()));
-
-        QAction *trebleCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterTrebleCut,
-                                                                        0,
-                                                                        false,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterTrebleCut()));
-
-        QAction *bassCut = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterBassCut,
-                                                                        0,
-                                                                        false,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterBassCut()));
-
-        QAction *smiley = addCheckableActionToQMenuAndActionHash(audioFilterMenu, MenuOption::AudioFilterSmiley,
-                                                                        0,
-                                                                        false,
-                                                                        appInstance->getAudio(),
-                                                                        SLOT(selectAudioFilterSmiley()));
-
-
-        QActionGroup* audioFilterGroup = new QActionGroup(audioFilterMenu);
-        audioFilterGroup->addAction(flat);
-        audioFilterGroup->addAction(trebleCut);
-        audioFilterGroup->addAction(bassCut);
-        audioFilterGroup->addAction(smiley);
-    }
-
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio);
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::StereoAudio, 0, false,
@@ -613,17 +575,16 @@ Menu::Menu() :
         audioSourceGroup->addAction(sine440);
     }
 
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScope,
+    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScope,
                                            Qt::CTRL | Qt::Key_P, false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScope()));
-    addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioScopePause,
+    addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopePause,
                                            Qt::CTRL | Qt::SHIFT | Qt::Key_P ,
                                            false,
                                            appInstance->getAudio(),
                                            SLOT(toggleScopePause()));
-
-    QMenu* audioScopeMenu = audioDebugMenu->addMenu("Audio Scope");
     addDisabledActionAndSeparator(audioScopeMenu, "Display Frames");
     {
         QAction *fiveFrames = addCheckableActionToQMenuAndActionHash(audioScopeMenu, MenuOption::AudioScopeFiveFrames,
@@ -650,58 +611,6 @@ Menu::Menu() :
         audioScopeFramesGroup->addAction(fiftyFrames);
     }
 
-    QMenu* spatialAudioMenu = audioDebugMenu->addMenu("Spatial Audio");
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessing,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_M,
-                                           false,
-                                           appInstance->getAudio(),
-                                           SLOT(toggleAudioSpatialProcessing()));
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingIncludeOriginal,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_O,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSeparateEars,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_E,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingPreDelay,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_D,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingStereoSource,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_S,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingHeadOriented,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_H,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingWithDiffusions,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_W,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingRenderPaths,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_R,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingSlightlyRandomSurfaces,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_X,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingProcessLocalAudio,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_A,
-                                           true);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingDontDistanceAttenuate,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_Y,
-                                           false);
-
-    addCheckableActionToQMenuAndActionHash(spatialAudioMenu, MenuOption::AudioSpatialProcessingAlternateDistanceAttenuate,
-                                           Qt::CTRL | Qt::SHIFT | Qt::Key_U,
-                                           false);
-
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::AudioStats,
                                             Qt::CTRL | Qt::Key_A,
                                             false,
@@ -717,7 +626,6 @@ Menu::Menu() :
     connect(appInstance->getAudio(), SIGNAL(muteToggled()), this, SLOT(audioMuteToggled()));
 
     QMenu* experimentalOptionsMenu = developerMenu->addMenu("Experimental");
-    addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::BuckyBalls, 0, false);
     addCheckableActionToQMenuAndActionHash(experimentalOptionsMenu, MenuOption::StringHair, 0, false);
 
     addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel,
@@ -735,6 +643,10 @@ Menu::Menu() :
 Menu::~Menu() {
     bandwidthDetailsClosed();
     octreeStatsDetailsClosed();
+    if (_hmdToolsDialog) {
+        delete _hmdToolsDialog;
+        _hmdToolsDialog = NULL;
+    }
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -1461,6 +1373,11 @@ void Menu::toggleConsole() {
     _jsConsole->setVisible(!_jsConsole->isVisible());
 }
 
+void Menu::toggleToolWindow() {
+    QMainWindow* toolWindow = Application::getInstance()->getToolWindow();
+    toolWindow->setVisible(!toolWindow->isVisible());
+}
+
 void Menu::audioMuteToggled() {
     QAction *muteAction = _actionHash.value(MenuOption::MuteAudio);
     if (muteAction) {
@@ -1670,6 +1587,25 @@ void Menu::lodToolsClosed() {
         delete _lodToolsDialog;
         _lodToolsDialog = NULL;
     }
+}
+
+void Menu::hmdTools(bool showTools) {
+    if (showTools) {
+        if (!_hmdToolsDialog) {
+            _hmdToolsDialog = new HMDToolsDialog(Application::getInstance()->getGLWidget());
+            connect(_hmdToolsDialog, SIGNAL(closed()), SLOT(hmdToolsClosed()));
+        }
+        _hmdToolsDialog->show();
+        _hmdToolsDialog->raise();
+    } else {
+        hmdToolsClosed();
+    }
+    Application::getInstance()->getWindow()->activateWindow();
+}
+
+void Menu::hmdToolsClosed() {
+    Menu::getInstance()->getActionForOption(MenuOption::HMDTools)->setChecked(false);
+    _hmdToolsDialog->hide();
 }
 
 void Menu::cycleFrustumRenderMode() {

@@ -28,12 +28,12 @@
 #include "EntityItemProperties.h" 
 #include "EntityTypes.h"
 
+class EntityTree;
 class EntityTreeElement;
 class EntityTreeElementExtraEncodeData;
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() { };
-
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
 /// to all other entity types. In particular: postion, size, rotation, age, lifetime, velocity, gravity. You can not instantiate
@@ -41,6 +41,17 @@ class EntityTreeElementExtraEncodeData;
 class EntityItem  {
 
 public:
+    enum EntityUpdateFlags {
+        UPDATE_POSITION = 0x0001,
+        UPDATE_VELOCITY = 0x0002,
+        UPDATE_MASS = 0x0004,
+        UPDATE_COLLISION_GROUP = 0x0008,
+        UPDATE_MOTION_TYPE = 0x0010,
+        UPDATE_SHAPE = 0x0020,
+        UPDATE_LIFETIME = 0x0040
+        //UPDATE_APPEARANCE = 0x8000,
+    };
+
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
     
     EntityItem(const EntityItemID& entityItemID);
@@ -59,10 +70,10 @@ public:
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
     
-    /// returns true is something changed
+    /// returns true if something changed
     virtual bool setProperties(const EntityItemProperties& properties, bool forceCopy = false);
 
-    /// override this in your derived class if you'd like to be informed when something about the state of the entity
+    /// Override this in your derived class if you'd like to be informed when something about the state of the entity
     /// has changed. This will be called with properties change or when new data is loaded from a stream
     virtual void somethingChangedNotification() { }
 
@@ -115,15 +126,14 @@ public:
     typedef enum SimulationState_t {
         Static,
         Mortal,
-        Changing,
         Moving
     } SimulationState;
     
-    virtual SimulationState getSimulationState() const;
-    virtual void debugDump() const;
+    // computes the SimulationState that the entity SHOULD be in.  
+    // Use getSimulationState() to find the state under which it is currently categorized.
+    virtual SimulationState computeSimulationState() const; 
 
-    // similar to assignment/copy, but it handles keeping lifetime accurate
-    void copyChangedProperties(const EntityItem& other);
+    virtual void debugDump() const;
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
@@ -145,14 +155,14 @@ public:
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; ; recalculateCollisionShape(); }
+    void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
 
     static const glm::quat DEFAULT_ROTATION;
     const glm::quat& getRotation() const { return _rotation; }
-    void setRotation(const glm::quat& rotation) { _rotation = rotation; ; recalculateCollisionShape(); }
+    void setRotation(const glm::quat& rotation) { _rotation = rotation; recalculateCollisionShape(); }
 
     static const float DEFAULT_GLOW_LEVEL;
     float getGlowLevel() const { return _glowLevel; }
@@ -169,7 +179,7 @@ public:
     static const glm::vec3 DEFAULT_VELOCITY;
     static const glm::vec3 NO_VELOCITY;
     static const float EPSILON_VELOCITY_LENGTH;
-    const glm::vec3 getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
+    const glm::vec3& getVelocity() const { return _velocity; } /// velocity in domain scale units (0.0-1.0) per second
     glm::vec3 getVelocityInMeters() const { return _velocity * (float) TREE_SCALE; } /// get velocity in meters
     void setVelocity(const glm::vec3& value) { _velocity = value; } /// velocity in domain scale units (0.0-1.0) per second
     void setVelocityInMeters(const glm::vec3& value) { _velocity = value / (float) TREE_SCALE; } /// velocity in meters
@@ -252,14 +262,47 @@ public:
     bool getLocked() const { return _locked; }
     void setLocked(bool value) { _locked = value; }
     
+    static const QString DEFAULT_USER_DATA;
+    const QString& getUserData() const { return _userData; }
+    void setUserData(const QString& value) { _userData = value; }
+    
     // TODO: We need to get rid of these users of getRadius()... 
     float getRadius() const;
     
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+
+    // updateFoo() methods to be used when changes need to be accumulated in the _updateFlags
+    void updatePosition(const glm::vec3& value);
+    void updatePositionInMeters(const glm::vec3& value);
+    void updateDimensions(const glm::vec3& value);
+    void updateDimensionsInMeters(const glm::vec3& value);
+    void updateRotation(const glm::quat& rotation);
+    void updateMass(float value);
+    void updateVelocity(const glm::vec3& value);
+    void updateVelocityInMeters(const glm::vec3& value);
+    void updateGravity(const glm::vec3& value);
+    void updateGravityInMeters(const glm::vec3& value);
+    void updateAngularVelocity(const glm::vec3& value);
+    void updateIgnoreForCollisions(bool value);
+    void updateCollisionsWillMove(bool value);
+    void updateLifetime(float value);
+
+    uint32_t getUpdateFlags() const { return _updateFlags; }
+    void clearUpdateFlags() { _updateFlags = 0; }
+
+#ifdef USE_BULLET_PHYSICS
+    EntityMotionState* getMotionState() const { return _motionState; }
+    virtual EntityMotionState* createMotionState() { return NULL; }
+    void destroyMotionState();
+#endif // USE_BULLET_PHYSICS
+    SimulationState getSimulationState() const { return _simulationState; }
     
 protected:
+    friend class EntityTree;
+    void setSimulationState(SimulationState state) { _simulationState = state; }
+
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();
 
@@ -292,6 +335,7 @@ protected:
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
     bool _locked;
+    QString _userData;
     
     // NOTE: Radius support is obsolete, but these private helper functions are available for this class to 
     //       parse old data streams
@@ -300,6 +344,11 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+    SimulationState _simulationState;   // only set by EntityTree
+
+    // UpdateFlags are set whenever a property changes that requires the change to be communicated to other
+    // data structures.  It is the responsibility of the EntityTree to relay changes entity and clear flags.
+    uint32_t _updateFlags;
 };
 
 

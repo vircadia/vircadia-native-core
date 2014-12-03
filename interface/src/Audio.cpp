@@ -32,18 +32,20 @@
 #include <QtMultimedia/QAudioOutput>
 #include <QSvgRenderer>
 
+#include <glm/glm.hpp>
+
+#include <AudioInjector.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include <StdDev.h>
+#include <StDev.h>
 #include <UUID.h>
-#include <glm/glm.hpp>
-
-#include "Audio.h"
 
 #include "Menu.h"
 #include "Util.h"
 #include "PositionalAudioStream.h"
+
+#include "Audio.h"
 
 static const float AUDIO_CALLBACK_MSECS = (float) NETWORK_BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
@@ -97,6 +99,10 @@ Audio::Audio(QObject* parent) :
     _muted(false),
     _reverb(false),
     _reverbOptions(&_scriptReverbOptions),
+    _gverbLocal(NULL),
+    _gverb(NULL),
+    _iconColor(1.0f),
+    _iconPulseTimeReference(usecTimestampNow()),
     _processSpatialAudio(false),
     _spatialAudioStart(0),
     _spatialAudioFinish(0),
@@ -109,7 +115,6 @@ Audio::Audio(QObject* parent) :
     _samplesPerScope(NETWORK_SAMPLES_PER_FRAME * _framesPerScope),
     _noiseSourceEnabled(false),
     _toneSourceEnabled(true),
-    _peqEnabled(false),
     _scopeInput(0),
     _scopeOutputLeft(0),
     _scopeOutputRight(0),
@@ -147,7 +152,6 @@ void Audio::init(QGLWidget *parent) {
 void Audio::reset() {
     _receivedAudioStream.reset();
     resetStats();
-    _peq.reset();
     _noiseSource.reset();
     _toneSource.reset();
     _sourceGain.reset();
@@ -451,7 +455,6 @@ void Audio::start() {
     }
 
     _inputFrameBuffer.initialize( _inputFormat.channelCount(), _audioInput->bufferSize() * 8 );
-    _peq.initialize( _inputFormat.sampleRate() ); 
     _inputGain.initialize();
     _sourceGain.initialize();
     _noiseSource.initialize();
@@ -463,7 +466,6 @@ void Audio::start() {
 void Audio::stop() {
 
     _inputFrameBuffer.finalize();
-    _peq.finalize();
     _inputGain.finalize();
     _sourceGain.finalize();
     _noiseSource.finalize();
@@ -499,18 +501,56 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
 
 void Audio::initGverb() {
     // Initialize a new gverb instance
+    _gverbLocal = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
+                            _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
+                            _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
+                            _reverbOptions->getTailLevel());
     _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
                        _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
                        _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
                        _reverbOptions->getTailLevel());
-
+    
     // Configure the instance (these functions are not super well named - they actually set several internal variables)
+    gverb_set_roomsize(_gverbLocal, _reverbOptions->getRoomSize());
+    gverb_set_revtime(_gverbLocal, _reverbOptions->getReverbTime());
+    gverb_set_damping(_gverbLocal, _reverbOptions->getDamping());
+    gverb_set_inputbandwidth(_gverbLocal, _reverbOptions->getInputBandwidth());
+    gverb_set_earlylevel(_gverbLocal, DB_CO(_reverbOptions->getEarlyLevel()));
+    gverb_set_taillevel(_gverbLocal, DB_CO(_reverbOptions->getTailLevel()));
+    
     gverb_set_roomsize(_gverb, _reverbOptions->getRoomSize());
     gverb_set_revtime(_gverb, _reverbOptions->getReverbTime());
     gverb_set_damping(_gverb, _reverbOptions->getDamping());
     gverb_set_inputbandwidth(_gverb, _reverbOptions->getInputBandwidth());
     gverb_set_earlylevel(_gverb, DB_CO(_reverbOptions->getEarlyLevel()));
     gverb_set_taillevel(_gverb, DB_CO(_reverbOptions->getTailLevel()));
+}
+
+void Audio::updateGverbOptions() {
+    bool reverbChanged = false;
+    if (_receivedAudioStream.hasReverb()) {
+        
+        if (_zoneReverbOptions.getReverbTime() != _receivedAudioStream.getRevebTime()) {
+            _zoneReverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
+            reverbChanged = true;
+        }
+        if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
+            _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
+            reverbChanged = true;
+        }
+        
+        if (_reverbOptions != &_zoneReverbOptions) {
+            _reverbOptions = &_zoneReverbOptions;
+            reverbChanged = true;
+        }
+    } else if (_reverbOptions != &_scriptReverbOptions) {
+        _reverbOptions = &_scriptReverbOptions;
+        reverbChanged = true;
+    }
+    
+    if (reverbChanged) {
+        initGverb();
+    }
 }
 
 void Audio::setReverbOptions(const AudioEffectOptions* options) {
@@ -533,30 +573,73 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
     }
 }
 
-void Audio::addReverb(int16_t* samplesData, int numSamples, QAudioFormat& audioFormat) {
-    float dryFraction = DB_CO(_reverbOptions->getDryLevel());
+void Audio::addReverb(ty_gverb* gverb, int16_t* samplesData, int numSamples, QAudioFormat& audioFormat, bool noEcho) {
     float wetFraction = DB_CO(_reverbOptions->getWetLevel());
+    float dryFraction = (noEcho) ? 0.0f : (1.0f - wetFraction);
     
     float lValue,rValue;
     for (int sample = 0; sample < numSamples; sample += audioFormat.channelCount()) {
         // Run GVerb
         float value = (float)samplesData[sample];
-        gverb_do(_gverb, value, &lValue, &rValue);
+        gverb_do(gverb, value, &lValue, &rValue);
 
         // Mix, accounting for clipping, the left and right channels. Ignore the rest.
-        for (unsigned int j = sample; j < sample + audioFormat.channelCount(); j++) {
+        for (int j = sample; j < sample + audioFormat.channelCount(); j++) {
             if (j == sample) {
                 // left channel
-                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction), -32768, 32767);
+                int lResult = glm::clamp((int)(samplesData[j] * dryFraction + lValue * wetFraction),
+                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)lResult;
             } else if (j == (sample + 1)) {
                 // right channel
-                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction), -32768, 32767);
+                int rResult = glm::clamp((int)(samplesData[j] * dryFraction + rValue * wetFraction),
+                                         MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
                 samplesData[j] = (int16_t)rResult;
             } else {
                 // ignore channels above 2
             }
         }
+    }
+}
+
+void Audio::handleLocalEchoAndReverb(QByteArray& inputByteArray) {
+    bool hasEcho = Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio);
+    // If there is server echo, reverb will be applied to the recieved audio stream so no need to have it here.
+    bool hasLocalReverb = (_reverb || _receivedAudioStream.hasReverb()) &&
+                          !Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio);
+    if (_muted || !_audioOutput || (!hasEcho && !hasLocalReverb)) {
+        return;
+    }
+    
+    // if this person wants local loopback add that to the locally injected audio
+    // if there is reverb apply it to local audio and substract the origin samples
+    
+    if (!_loopbackOutputDevice && _loopbackAudioOutput) {
+        // we didn't have the loopback output device going so set that up now
+        _loopbackOutputDevice = _loopbackAudioOutput->start();
+    }
+    
+    QByteArray loopBackByteArray(inputByteArray);
+    if (_inputFormat != _outputFormat) {
+        float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate()) *
+                                           (_outputFormat.channelCount() / _inputFormat.channelCount());
+        loopBackByteArray.resize(inputByteArray.size() * loopbackOutputToInputRatio);
+        loopBackByteArray.fill(0);
+        linearResampling(reinterpret_cast<int16_t*>(inputByteArray.data()),
+                         reinterpret_cast<int16_t*>(loopBackByteArray.data()),
+                         inputByteArray.size() / sizeof(int16_t), loopBackByteArray.size() / sizeof(int16_t),
+                         _inputFormat, _outputFormat);
+    }
+    
+    if (hasLocalReverb) {
+        int16_t* loopbackSamples = reinterpret_cast<int16_t*>(loopBackByteArray.data());
+        int numLoopbackSamples = loopBackByteArray.size() / sizeof(int16_t);
+        updateGverbOptions();
+        addReverb(_gverbLocal, loopbackSamples, numLoopbackSamples, _outputFormat, !hasEcho);
+    }
+    
+    if (_loopbackOutputDevice) {
+        _loopbackOutputDevice->write(loopBackByteArray);
     }
 }
 
@@ -577,7 +660,7 @@ void Audio::handleAudioInput() {
 
     QByteArray inputByteArray = _inputDevice->readAll();
 
-    if (!_muted && (_audioSourceInjectEnabled || _peqEnabled)) {
+    if (!_muted && _audioSourceInjectEnabled) {
         
         int16_t* inputFrameData = (int16_t*)inputByteArray.data();
         const uint32_t inputFrameCount = inputByteArray.size() / sizeof(int16_t);
@@ -598,40 +681,10 @@ void Audio::handleAudioInput() {
             }
             _sourceGain.render(_inputFrameBuffer); // post gain
         }
-        if (_peqEnabled) {
-            _peq.render(_inputFrameBuffer); // 3-band parametric eq
-        }
-
         _inputFrameBuffer.copyFrames(1, inputFrameCount, inputFrameData, true /*copy out*/);
     }
-        
-    if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio) && !_muted && _audioOutput) {
-        // if this person wants local loopback add that to the locally injected audio
-
-        if (!_loopbackOutputDevice && _loopbackAudioOutput) {
-            // we didn't have the loopback output device going so set that up now
-            _loopbackOutputDevice = _loopbackAudioOutput->start();
-        }
-        
-        if (_inputFormat == _outputFormat) {
-            if (_loopbackOutputDevice) {
-                _loopbackOutputDevice->write(inputByteArray);
-            }
-        } else {
-            float loopbackOutputToInputRatio = (_outputFormat.sampleRate() / (float) _inputFormat.sampleRate())
-                * (_outputFormat.channelCount() / _inputFormat.channelCount());
-
-            QByteArray loopBackByteArray(inputByteArray.size() * loopbackOutputToInputRatio, 0);
-
-            linearResampling((int16_t*) inputByteArray.data(), (int16_t*) loopBackByteArray.data(),
-                             inputByteArray.size() / sizeof(int16_t),
-                             loopBackByteArray.size() / sizeof(int16_t), _inputFormat, _outputFormat);
-
-            if (_loopbackOutputDevice) {
-                _loopbackOutputDevice->write(loopBackByteArray);
-            }
-        }
-    }
+    
+    handleLocalEchoAndReverb(inputByteArray);
 
     _inputRingBuffer.writeData(inputByteArray.data(), inputByteArray.size());
     
@@ -936,7 +989,8 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         QByteArray buffer = inputBuffer;
 
         // Accumulate direct transmission of audio from sender to receiver
-        if (Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)) {
+        bool includeOriginal = true; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessingIncludeOriginal)
+        if (includeOriginal) {
             emit preProcessOriginalInboundAudio(sampleTime, buffer, _desiredOutputFormat);
             addSpatialAudioToBuffer(sampleTime, buffer, numNetworkOutputSamples);
         }
@@ -968,31 +1022,8 @@ void Audio::processReceivedSamples(const QByteArray& inputBuffer, QByteArray& ou
         _desiredOutputFormat, _outputFormat);
     
     if(_reverb || _receivedAudioStream.hasReverb()) {
-        bool reverbChanged = false;
-        if (_receivedAudioStream.hasReverb()) {
-            
-            if (_zoneReverbOptions.getReverbTime() != _receivedAudioStream.getRevebTime()) {
-                _zoneReverbOptions.setReverbTime(_receivedAudioStream.getRevebTime());
-                reverbChanged = true;
-            }
-            if (_zoneReverbOptions.getWetLevel() != _receivedAudioStream.getWetLevel()) {
-                _zoneReverbOptions.setWetLevel(_receivedAudioStream.getWetLevel());
-                reverbChanged = true;
-            }
-            
-            if (_reverbOptions != &_zoneReverbOptions) {
-                _reverbOptions = &_zoneReverbOptions;
-                reverbChanged = true;
-            }
-        } else if (_reverbOptions != &_scriptReverbOptions) {
-            _reverbOptions = &_scriptReverbOptions;
-            reverbChanged = true;
-        }
-        
-        if (reverbChanged) {
-            initGverb();
-        }
-        addReverb((int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
+        updateGverbOptions();
+        addReverb(_gverb, (int16_t*)outputBuffer.data(), numDeviceOutputSamples, _outputFormat);
     }
 }
 
@@ -1234,7 +1265,8 @@ void Audio::selectAudioSourceSine440() {
 }
 
 void Audio::toggleAudioSpatialProcessing() {
-    _processSpatialAudio = !_processSpatialAudio;
+    // spatial audio disabled for now
+    _processSpatialAudio = false; //!_processSpatialAudio;
     if (_processSpatialAudio) {
         _spatialAudioStart = 0;
         _spatialAudioFinish = 0;
@@ -1331,22 +1363,29 @@ void Audio::startDrumSound(float volume, float frequency, float duration, float 
     _drumSoundSample = 0;
 }
 
-void Audio::handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& injectorOptions) {
-    if (audioByteArray.size() > 0) {
-        QAudioFormat localFormat = _outputFormat;
+bool Audio::outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector) {
+    if (injector->getLocalBuffer()) {
+        QAudioFormat localFormat = _desiredOutputFormat;
+        localFormat.setChannelCount(isStereo ? 2 : 1);
         
-        if (!injectorOptions.isStereo()) {
-            localFormat.setChannelCount(1);
-        }
+        QAudioOutput* localOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName),
+                                                     localFormat, this);
+        localOutput->setVolume(volume);
         
-        QAudioOutput* localSoundOutput = new QAudioOutput(getNamedAudioDeviceForMode(QAudio::AudioOutput, _outputAudioDeviceName), localFormat, this);
+        // move the localOutput to the same thread as the local injector buffer
+        localOutput->moveToThread(injector->getLocalBuffer()->thread());
         
-        QIODevice* localIODevice = localSoundOutput->start();
-        qDebug() << "Writing" << audioByteArray.size() << "to" << localIODevice;
-        localIODevice->write(audioByteArray);
-    } else {
-        qDebug() << "Audio::handleAudioByteArray called with an empty byte array. Sound is likely still downloading.";
+        // have it be cleaned up when that thread is done
+        connect(injector->thread(), &QThread::finished, localOutput, &QAudioOutput::stop);
+        connect(injector->thread(), &QThread::finished, localOutput, &QAudioOutput::deleteLater);
+        
+        qDebug() << "Starting QAudioOutput for local injector" << localOutput;
+        
+        localOutput->start(injector->getLocalBuffer());
+        return localOutput->state() == QAudio::ActiveState;
     }
+    
+    return false;
 }
 
 void Audio::renderToolBox(int x, int y, bool boxed) {
@@ -1390,53 +1429,42 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
     _iconBounds = QRect(x, y, MUTE_ICON_SIZE, MUTE_ICON_SIZE);
     if (!_muted) {
         glBindTexture(GL_TEXTURE_2D, _micTextureId);
+        _iconColor = 1.0f;
     } else {
         glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        
+        // Make muted icon pulsate
+        static const float PULSE_MIN = 0.4f;
+        static const float PULSE_MAX = 1.0f;
+        static const float PULSE_FREQUENCY = 1.0f; // in Hz
+        qint64 now = usecTimestampNow();
+        if (now - _iconPulseTimeReference > USECS_PER_SECOND) {
+            // Prevents t from getting too big, which would diminish glm::cos precision
+            _iconPulseTimeReference = now - ((now - _iconPulseTimeReference) % USECS_PER_SECOND);
+        }
+        float t = (float)(now - _iconPulseTimeReference) / (float)USECS_PER_SECOND;
+        float pulseFactor = (glm::cos(t * PULSE_FREQUENCY * 2.0f * PI) + 1.0f) / 2.0f;
+        _iconColor = PULSE_MIN + (PULSE_MAX - PULSE_MIN) * pulseFactor;
     }
 
-    glColor3f(1,1,1);
+    glColor3f(_iconColor, _iconColor, _iconColor);
     glBegin(GL_QUADS);
 
-    glTexCoord2f(1, 1);
+    glTexCoord2f(1.0f, 1.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.top());
 
-    glTexCoord2f(0, 1);
+    glTexCoord2f(0.0f, 1.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.top());
 
-    glTexCoord2f(0, 0);
+    glTexCoord2f(0.0f, 0.0f);
     glVertex2f(_iconBounds.right(), _iconBounds.bottom());
 
-    glTexCoord2f(1, 0);
+    glTexCoord2f(1.0f, 0.0f);
     glVertex2f(_iconBounds.left(), _iconBounds.bottom());
 
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
-}
-
-void Audio::toggleAudioFilter() {
-    _peqEnabled = !_peqEnabled;
-}
-
-void Audio::selectAudioFilterFlat() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterFlat)) {
-        _peq.loadProfile(0);
-    }
-}
-void Audio::selectAudioFilterTrebleCut() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterTrebleCut)) {
-        _peq.loadProfile(1);
-    }
-}
-void Audio::selectAudioFilterBassCut() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterBassCut)) {
-        _peq.loadProfile(2);
-    }
-}
-void Audio::selectAudioFilterSmiley() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AudioFilterSmiley)) {
-        _peq.loadProfile(3);
-    }
 }
 
 void Audio::toggleScope() {

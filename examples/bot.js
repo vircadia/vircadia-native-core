@@ -228,6 +228,6 @@ function loadSounds() {
   var SOUND_BASE_URL = HIFI_PUBLIC_BUCKET + "sounds/Cocktail+Party+Snippets/Raws/";
   
   for (var i = 0; i < sound_filenames.length; i++) {
-      sounds.push(new Sound(SOUND_BASE_URL + sound_filenames[i]));
+      sounds.push(SoundCache.getSound(SOUND_BASE_URL + sound_filenames[i]));
   }
 }

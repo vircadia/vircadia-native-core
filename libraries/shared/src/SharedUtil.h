@@ -34,20 +34,29 @@ struct xColor {
     unsigned char blue;
 };
 
+inline QDebug& operator<<(QDebug& dbg, const xColor& c) {
+    dbg.nospace() << "{type='xColor'"
+        ", red=" << c.red <<
+        ", green=" << c.green <<
+        ", blue=" << c.blue <<
+        "}";
+    return dbg;
+}
+
 static const float ZERO             = 0.0f;
 static const float ONE              = 1.0f;
 static const float ONE_HALF			= 0.5f;
 static const float ONE_THIRD        = 0.333333f;
 
 static const float PI                 = 3.14159265358979f;
-static const float TWO_PI             = 2.f * PI;
+static const float TWO_PI             = 2.0f * PI;
 static const float PI_OVER_TWO        = ONE_HALF * PI;
 static const float RADIANS_PER_DEGREE = PI / 180.0f;
 static const float DEGREES_PER_RADIAN = 180.0f / PI;
 
 static const float EPSILON          = 0.000001f;	//smallish positive number - used as margin of error for some computations
-static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.f);
-static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.f);
+static const float SQUARE_ROOT_OF_2 = (float)sqrt(2.0f);
+static const float SQUARE_ROOT_OF_3 = (float)sqrt(3.0f);
 static const float METERS_PER_DECIMETER  = 0.1f;
 static const float METERS_PER_CENTIMETER = 0.01f;
 static const float METERS_PER_MILLIMETER = 0.001f;
@@ -58,7 +67,7 @@ static const quint64 USECS_PER_SECOND = USECS_PER_MSEC * MSECS_PER_SECOND;
 
 const int BITS_IN_BYTE  = 8;
 
-quint64 usecTimestampNow();
+quint64 usecTimestampNow(bool wantDebug = false);
 void usecTimestampNowForceClockSkew(int clockSkew);
 
 float randFloat();
@@ -122,6 +131,6 @@ bool isNaN(float value);
 
 QString formatUsecTime(float usecs, int prec = 3);
 QString formatSecondsElapsed(float seconds);
-
+bool similarStrings(const QString& stringA, const QString& stringB);
 
 #endif // hifi_SharedUtil_h

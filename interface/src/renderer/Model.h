@@ -16,10 +16,12 @@
 #include <QObject>
 #include <QUrl>
 
+#include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
 #include <PhysicsEntity.h>
 
+#include "AnimationHandle.h"
 #include "GeometryCache.h"
 #include "InterfaceConfig.h"
 #include "JointState.h"
@@ -28,19 +30,13 @@
 
 class QScriptEngine;
 
-class AnimationHandle;
 class Shape;
-class RenderArgs;
+#include "RenderArgs.h"
 class ViewFrustum;
 
-typedef QSharedPointer<AnimationHandle> AnimationHandlePointer;
-typedef QWeakPointer<AnimationHandle> WeakAnimationHandlePointer;
-
-namespace gpu {
-    class Batch;
-}
 
 #include "gpu/Stream.h"
+#include "gpu/Batch.h"
 
 /// A generic 3D model displaying geometry loaded from a URL.
 class Model : public QObject, public PhysicsEntity {
@@ -93,6 +89,11 @@ public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    
+    // Scene rendering support
+    static void startScene(RenderArgs::RenderSide renderSide);
+    bool renderInScene(float alpha = 1.0f, RenderArgs* args = NULL);
+    static void endScene(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
 
     /// Sets the URL of the model to render.
     /// \param fallback the URL of a fallback model to render if the requested model fails to load
@@ -259,14 +260,13 @@ protected:
     /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
-
+    
 private:
     
     friend class AnimationHandle;
     
     void applyNextGeometry();
     void deleteGeometry();
-    int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
     QVector<JointState> createJointStates(const FBXGeometry& geometry);
     void initJointTransforms();
     
@@ -283,7 +283,9 @@ private:
     QUrl _url;
 
     gpu::Buffers _blendedVertexBuffers;
-    
+    std::vector<Transform> _transforms;
+    gpu::Batch _renderBatch;
+
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     
     QVector<Model*> _attachments;
@@ -301,7 +303,12 @@ private:
     static ProgramObject _specularMapProgram;
     static ProgramObject _normalSpecularMapProgram;
     static ProgramObject _translucentProgram;
-    
+
+    static ProgramObject _lightmapProgram;
+    static ProgramObject _lightmapNormalMapProgram;
+    static ProgramObject _lightmapSpecularMapProgram;
+    static ProgramObject _lightmapNormalSpecularMapProgram;
+
     static ProgramObject _shadowProgram;
     
     static ProgramObject _skinProgram;
@@ -309,7 +316,7 @@ private:
     static ProgramObject _skinSpecularMapProgram;
     static ProgramObject _skinNormalSpecularMapProgram;
     static ProgramObject _skinTranslucentProgram;
-    
+
     static ProgramObject _skinShadowProgram;
     
     static int _normalMapTangentLocation;
@@ -319,6 +326,10 @@ private:
     public:
         int tangent;
         int alphaThreshold;
+        int texcoordMatrices;
+        int specularTextureUnit;
+        int emissiveTextureUnit;
+        int emissiveParams;
     };
     
     static Locations _locations;
@@ -326,6 +337,11 @@ private:
     static Locations _specularMapLocations;
     static Locations _normalSpecularMapLocations;
     static Locations _translucentLocations;
+
+    static Locations _lightmapLocations;
+    static Locations _lightmapNormalMapLocations;
+    static Locations _lightmapSpecularMapLocations;
+    static Locations _lightmapNormalSpecularMapLocations;
     
     static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
         
@@ -333,7 +349,7 @@ private:
     public:
         int clusterMatrices;
         int clusterIndices;
-        int clusterWeights;    
+        int clusterWeights;
     };
     
     static SkinLocations _skinLocations;
@@ -342,7 +358,7 @@ private:
     static SkinLocations _skinNormalSpecularMapLocations;    
     static SkinLocations _skinShadowLocations;
     static SkinLocations _skinTranslucentLocations;
-        
+
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 
     QVector<AABox> _calculatedMeshBoxes;
@@ -374,6 +390,11 @@ private:
     QMap<QString, int> _unsortedMeshesOpaqueTangentsSpecularSkinned;
     QMap<QString, int> _unsortedMeshesOpaqueSpecularSkinned;
 
+    QMap<QString, int> _unsortedMeshesOpaqueLightmap;
+    QMap<QString, int> _unsortedMeshesOpaqueLightmapTangents;
+    QMap<QString, int> _unsortedMeshesOpaqueLightmapTangentsSpecular;
+    QMap<QString, int> _unsortedMeshesOpaqueLightmapSpecular;
+
     QVector<int> _meshesTranslucent;
     QVector<int> _meshesTranslucentTangents;
     QVector<int> _meshesTranslucentTangentsSpecular;
@@ -394,91 +415,43 @@ private:
     QVector<int> _meshesOpaqueTangentsSpecularSkinned;
     QVector<int> _meshesOpaqueSpecularSkinned;
 
+    QVector<int> _meshesOpaqueLightmap;
+    QVector<int> _meshesOpaqueLightmapTangents;
+    QVector<int> _meshesOpaqueLightmapTangentsSpecular;
+    QVector<int> _meshesOpaqueLightmapSpecular;
+
+
+    // Scene rendering support
+    static QVector<Model*> _modelsInScene;
+    static gpu::Batch _sceneRenderBatch;
+
+    static void endSceneSimple(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    static void endSceneSplitPass(RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+
+    // helper functions used by render() or renderInScene()
+    void renderSetup(RenderArgs* args);
+    bool renderCore(float alpha, RenderMode mode, RenderArgs* args);
+    int renderMeshes(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold, 
+                        bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args = NULL);
+    void setupBatchTransform(gpu::Batch& batch);
+    QVector<int>* pickMeshList(bool translucent, float alphaThreshold, bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned);
+
+    int renderMeshesFromList(QVector<int>& list, gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                                        RenderArgs* args, Locations* locations, SkinLocations* skinLocations);
+
+    static void pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args,
+                            Locations*& locations, SkinLocations*& skinLocations);
+
+    static int renderMeshesForModelsInScene(gpu::Batch& batch, RenderMode mode, bool translucent, float alphaThreshold,
+                            bool hasLightmap, bool hasTangents, bool hasSpecular, bool isSkinned, RenderArgs* args);
+
+
 };
 
 Q_DECLARE_METATYPE(QPointer<Model>)
 Q_DECLARE_METATYPE(QWeakPointer<NetworkGeometry>)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 
-/// Represents a handle to a model animation.
-class AnimationHandle : public QObject {
-    Q_OBJECT
-    
-public:
-
-    void setRole(const QString& role) { _role = role; }
-    const QString& getRole() const { return _role; }
-
-    void setURL(const QUrl& url);
-    const QUrl& getURL() const { return _url; }
-    
-    void setFPS(float fps) { _fps = fps; }
-    float getFPS() const { return _fps; }
-
-    void setPriority(float priority);
-    float getPriority() const { return _priority; }
-    
-    void setLoop(bool loop) { _loop = loop; }
-    bool getLoop() const { return _loop; }
-    
-    void setHold(bool hold) { _hold = hold; }
-    bool getHold() const { return _hold; }
-    
-    void setStartAutomatically(bool startAutomatically);
-    bool getStartAutomatically() const { return _startAutomatically; }
-    
-    void setFirstFrame(float firstFrame) { _firstFrame = firstFrame; }
-    float getFirstFrame() const { return _firstFrame; }
-    
-    void setLastFrame(float lastFrame) { _lastFrame = lastFrame; }
-    float getLastFrame() const { return _lastFrame; }
-    
-    void setMaskedJoints(const QStringList& maskedJoints);
-    const QStringList& getMaskedJoints() const { return _maskedJoints; }
-    
-    void setRunning(bool running);
-    bool isRunning() const { return _running; }
-
-    void setFrameIndex(float frameIndex) { _frameIndex = glm::clamp(_frameIndex, _firstFrame, _lastFrame); }
-    float getFrameIndex() const { return _frameIndex; }
-
-    AnimationDetails getAnimationDetails() const;
-
-signals:
-    
-    void runningChanged(bool running);
-
-public slots:
-
-    void start() { setRunning(true); }
-    void stop() { setRunning(false); }
-    
-private:
-
-    friend class Model;
-
-    AnimationHandle(Model* model);
-        
-    void simulate(float deltaTime);
-    void applyFrame(float frameIndex);
-    void replaceMatchingPriorities(float newPriority);
-    
-    Model* _model;
-    WeakAnimationHandlePointer _self;
-    AnimationPointer _animation;
-    QString _role;
-    QUrl _url;
-    float _fps;
-    float _priority;
-    bool _loop;
-    bool _hold;
-    bool _startAutomatically;
-    float _firstFrame;
-    float _lastFrame;
-    QStringList _maskedJoints;
-    bool _running;
-    QVector<int> _jointMappings;
-    float _frameIndex;
-};
 
 #endif // hifi_Model_h

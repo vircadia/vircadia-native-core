@@ -23,7 +23,11 @@
 
 #include "renderer/ProgramObject.h"
 
+class HeightfieldBaseLayerBatch;
+class HeightfieldSplatBatch;
 class Model;
+class VoxelBatch;
+class VoxelSplatBatch;
 
 /// Renders a metavoxel tree.
 class MetavoxelSystem : public MetavoxelClientManager {
@@ -54,7 +58,6 @@ public:
     void setNetworkSimulation(const NetworkSimulation& simulation);
     NetworkSimulation getNetworkSimulation();
     
-    const AttributePointer& getPointBufferAttribute() { return _pointBufferAttribute; }
     const AttributePointer& getHeightfieldBufferAttribute() { return _heightfieldBufferAttribute; }
     const AttributePointer& getVoxelBufferAttribute() { return _voxelBufferAttribute; }
     
@@ -65,11 +68,7 @@ public:
 
     void renderVoxelCursor(const glm::vec3& position, float radius);
 
-    bool findFirstRayHeightfieldIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
-
     bool findFirstRayVoxelIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance);
-
-    Q_INVOKABLE float getHeightfieldHeight(const glm::vec3& location);
 
     Q_INVOKABLE void paintHeightfieldColor(const glm::vec3& position, float radius, const QColor& color);
 
@@ -82,9 +81,13 @@ public:
     Q_INVOKABLE void setVoxelColor(const SharedObjectPointer& spanner, const QColor& color);
         
     Q_INVOKABLE void setVoxelMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material);
-        
-    Q_INVOKABLE void deleteTextures(int heightID, int colorID, int textureID);
-
+    
+    void addHeightfieldBaseBatch(const HeightfieldBaseLayerBatch& batch) { _heightfieldBaseBatches.append(batch); }
+    void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }
+    
+    void addVoxelBaseBatch(const VoxelBatch& batch) { _voxelBaseBatches.append(batch); }
+    void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
+    
 signals:
 
     void rendering();
@@ -103,7 +106,6 @@ private:
     
     void guideToAugmented(MetavoxelVisitor& visitor, bool render = false);
     
-    AttributePointer _pointBufferAttribute;
     AttributePointer _heightfieldBufferAttribute;
     AttributePointer _voxelBufferAttribute;
     
@@ -113,6 +115,100 @@ private:
     
     NetworkSimulation _networkSimulation;
     QReadWriteLock _networkSimulationLock;
+    
+    QVector<HeightfieldBaseLayerBatch> _heightfieldBaseBatches;
+    QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
+    QVector<VoxelBatch> _voxelBaseBatches;
+    QVector<VoxelSplatBatch> _voxelSplatBatches;
+    
+    ProgramObject _baseHeightfieldProgram;
+    int _baseHeightScaleLocation;
+    int _baseColorScaleLocation;
+    
+    class SplatLocations {
+    public:
+        int heightScale;
+        int textureScale;
+        int splatTextureOffset;
+        int splatTextureScalesS;
+        int splatTextureScalesT;
+        int textureValueMinima;
+        int textureValueMaxima;
+        int materials;
+        int materialWeights;
+    };
+    
+    ProgramObject _splatHeightfieldProgram;
+    SplatLocations _splatHeightfieldLocations;
+    
+    int _splatHeightScaleLocation;
+    int _splatTextureScaleLocation;
+    int _splatTextureOffsetLocation;
+    int _splatTextureScalesSLocation;
+    int _splatTextureScalesTLocation;
+    int _splatTextureValueMinimaLocation;
+    int _splatTextureValueMaximaLocation;
+    
+    ProgramObject _heightfieldCursorProgram;
+    
+    ProgramObject _baseVoxelProgram;
+    ProgramObject _splatVoxelProgram;
+    SplatLocations _splatVoxelLocations;
+    
+    ProgramObject _voxelCursorProgram;
+    
+    static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
+};
+
+/// Base class for heightfield batches.
+class HeightfieldBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    QOpenGLBuffer* indexBuffer;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
+    int vertexCount;
+    int indexCount;
+    GLuint heightTextureID;
+    glm::vec4 heightScale;
+};
+
+/// A batch containing a heightfield base layer. 
+class HeightfieldBaseLayerBatch : public HeightfieldBatch {
+public:
+    GLuint colorTextureID;
+    glm::vec2 colorScale;
+};
+
+/// A batch containing a heightfield splat.
+class HeightfieldSplatBatch : public HeightfieldBatch {
+public:
+    GLuint materialTextureID;
+    glm::vec2 textureScale;
+    glm::vec2 splatTextureOffset;
+    int splatTextureIDs[4];
+    glm::vec4 splatTextureScalesS;
+    glm::vec4 splatTextureScalesT;
+    int materialIndex;
+};
+
+/// Base class for voxel batches.
+class VoxelBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    QOpenGLBuffer* indexBuffer;
+    int vertexCount;
+    int indexCount;
+};
+
+/// A batch containing a voxel splat.
+class VoxelSplatBatch : public VoxelBatch {
+public:
+    int splatTextureIDs[4];
+    glm::vec4 splatTextureScalesS;
+    glm::vec4 splatTextureScalesT;
+    int materialIndex;
 };
 
 /// Generic abstract base class for objects that handle a signal.
@@ -123,18 +219,6 @@ public slots:
     
     virtual void handle() = 0;
 };
-
-/// Describes contents of a point in a point buffer.
-class BufferPoint {
-public:
-    glm::vec4 vertex;
-    quint8 color[3];
-    quint8 normal[3];
-};
-
-typedef QVector<BufferPoint> BufferPointVector;
-
-Q_DECLARE_METATYPE(BufferPointVector)
 
 /// Simple throttle for limiting bandwidth on a per-second basis.
 class Throttle {
@@ -203,107 +287,6 @@ public:
 
 typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
 
-/// Contains the information necessary to render a group of points.
-class PointBuffer : public BufferData {
-public:
-
-    PointBuffer(const BufferPointVector& points);
-
-    virtual void render(bool cursor = false);
-
-private:
-    
-    BufferPointVector _points;
-    QOpenGLBuffer _buffer;
-    int _pointCount;
-};
-
-/// Contains the information necessary to render a heightfield block.
-class HeightfieldBuffer : public BufferData {
-public:
-    
-    static const int HEIGHT_BORDER;
-    static const int SHARED_EDGE;
-    static const int HEIGHT_EXTENSION;
-    
-    HeightfieldBuffer(const glm::vec3& translation, float scale, const QByteArray& height,
-        const QByteArray& color, const QByteArray& material = QByteArray(),
-        const QVector<SharedObjectPointer>& materials = QVector<SharedObjectPointer>());
-    ~HeightfieldBuffer();
-    
-    const glm::vec3& getTranslation() const { return _translation; }
-    float getScale() const { return _scale; }
-    
-    const Box& getHeightBounds() const { return _heightBounds; }
-    const Box& getColorBounds() const { return _colorBounds; }
-    const Box& getMaterialBounds() const { return _materialBounds; }
-    
-    QByteArray& getHeight() { return _height; }
-    const QByteArray& getHeight() const { return _height; }
-    
-    QByteArray& getColor() { return _color; }
-    const QByteArray& getColor() const { return _color; }
-    
-    QByteArray& getMaterial() { return _material; }
-    const QByteArray& getMaterial() const { return _material; }
-    
-    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
-    const QVector<SharedObjectPointer>& getMaterials() const { return _materials; }
-    
-    QByteArray getUnextendedHeight() const;
-    QByteArray getUnextendedColor(int x = 0, int y = 0) const;
-    
-    int getHeightSize() const { return _heightSize; }
-    float getHeightIncrement() const { return _heightIncrement; }
-    
-    int getColorSize() const { return _colorSize; }
-    float getColorIncrement() const { return _colorIncrement; }
-    
-    int getMaterialSize() const { return _materialSize; }
-    float getMaterialIncrement() const { return _materialIncrement; }
-    
-    virtual void render(bool cursor = false);
-
-private:
-    
-    glm::vec3 _translation;
-    float _scale;
-    Box _heightBounds;
-    Box _colorBounds;
-    Box _materialBounds;
-    QByteArray _height;
-    QByteArray _color;
-    QByteArray _material;
-    QVector<SharedObjectPointer> _materials;
-    GLuint _heightTextureID;
-    GLuint _colorTextureID;
-    GLuint _materialTextureID;
-    QVector<NetworkTexturePointer> _networkTextures;
-    int _heightSize;
-    float _heightIncrement;
-    int _colorSize;
-    float _colorIncrement;
-    int _materialSize;
-    float _materialIncrement;
-    
-    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
-    static QHash<int, BufferPair> _bufferPairs;
-};
-
-/// Convenience class for rendering a preview of a heightfield.
-class HeightfieldPreview {
-public:
-    
-    void setBuffers(const QVector<BufferDataPointer>& buffers) { _buffers = buffers; }
-    const QVector<BufferDataPointer>& getBuffers() const { return _buffers; }
-    
-    void render(const glm::vec3& translation, float scale) const;
-    
-private:
-    
-    QVector<BufferDataPointer> _buffers;
-};
-
 /// Describes contents of a vertex in a voxel buffer.
 class VoxelPoint {
 public:
@@ -316,12 +299,27 @@ public:
     void setNormal(const glm::vec3& normal);
 };
 
+/// A container for a coordinate within a voxel block.
+class VoxelCoord {
+public:
+    QRgb encoded;
+    
+    VoxelCoord(QRgb encoded) : encoded(encoded) { }
+    
+    bool operator==(const VoxelCoord& other) const { return encoded == other.encoded; }
+};
+
+inline uint qHash(const VoxelCoord& coord, uint seed) {
+    // multiply by prime numbers greater than the possible size
+    return qHash(qRed(coord.encoded) + 257 * (qGreen(coord.encoded) + 263 * qBlue(coord.encoded)), seed);
+}
+
 /// Contains the information necessary to render a voxel block.
 class VoxelBuffer : public BufferData {
 public:
     
     VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>& indices, const QVector<glm::vec3>& hermite,
-        const QMultiHash<QRgb, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
+        const QMultiHash<VoxelCoord, int>& quadIndices, int size, const QVector<SharedObjectPointer>& materials =
             QVector<SharedObjectPointer>());
 
     /// Finds the first intersection between the described ray and the voxel data.
@@ -336,7 +334,7 @@ private:
     QVector<VoxelPoint> _vertices;
     QVector<int> _indices;
     QVector<glm::vec3> _hermite;
-    QMultiHash<QRgb, int> _quadIndices;
+    QMultiHash<VoxelCoord, int> _quadIndices;
     int _size;
     int _vertexCount;
     int _indexCount;
@@ -367,120 +365,37 @@ class DefaultMetavoxelRendererImplementation : public MetavoxelRendererImplement
 
 public:
     
-    static void init();
-
-    static ProgramObject& getPointProgram() { return _pointProgram; }
-    static int getPointScaleLocation() { return _pointScaleLocation; }
-    
-    static ProgramObject& getBaseHeightfieldProgram() { return _baseHeightfieldProgram; }
-    static int getBaseHeightScaleLocation() { return _baseHeightScaleLocation; }
-    static int getBaseColorScaleLocation() { return _baseColorScaleLocation; }
-    
-    class SplatLocations {
-    public:
-        int heightScale;
-        int textureScale;
-        int splatTextureOffset;
-        int splatTextureScalesS;
-        int splatTextureScalesT;
-        int textureValueMinima;
-        int textureValueMaxima;
-        int materials;
-        int materialWeights;
-    };
-    
-    static ProgramObject& getSplatHeightfieldProgram() { return _splatHeightfieldProgram; }
-    static const SplatLocations& getSplatHeightfieldLocations() { return _splatHeightfieldLocations; }
-    
-    static ProgramObject& getHeightfieldCursorProgram() { return _heightfieldCursorProgram; }
-    
-    static ProgramObject& getBaseVoxelProgram() { return _baseVoxelProgram; }
-    
-    static ProgramObject& getSplatVoxelProgram() { return _splatVoxelProgram; }
-    static const SplatLocations& getSplatVoxelLocations() { return _splatVoxelLocations; }
-    
-    static ProgramObject& getVoxelCursorProgram() { return _voxelCursorProgram; }
-    
     Q_INVOKABLE DefaultMetavoxelRendererImplementation();
     
     virtual void augment(MetavoxelData& data, const MetavoxelData& previous, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void simulate(MetavoxelData& data, float deltaTime, MetavoxelInfo& info, const MetavoxelLOD& lod);
     virtual void render(MetavoxelData& data, MetavoxelInfo& info, const MetavoxelLOD& lod);
-
-private:
-
-    static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
-    
-    static ProgramObject _pointProgram;
-    static int _pointScaleLocation;
-    
-    static ProgramObject _baseHeightfieldProgram;
-    static int _baseHeightScaleLocation;
-    static int _baseColorScaleLocation;
-    
-    static ProgramObject _splatHeightfieldProgram;
-    static SplatLocations _splatHeightfieldLocations;
-    
-    static int _splatHeightScaleLocation;
-    static int _splatTextureScaleLocation;
-    static int _splatTextureOffsetLocation;
-    static int _splatTextureScalesSLocation;
-    static int _splatTextureScalesTLocation;
-    static int _splatTextureValueMinimaLocation;
-    static int _splatTextureValueMaximaLocation;
-    
-    static ProgramObject _heightfieldCursorProgram;
-    
-    static ProgramObject _baseVoxelProgram;
-    static ProgramObject _splatVoxelProgram;
-    static SplatLocations _splatVoxelLocations;
-    
-    static ProgramObject _voxelCursorProgram;
-};
-
-/// Base class for spanner renderers; provides clipping.
-class ClippedRenderer : public SpannerRenderer {
-    Q_OBJECT
-
-public:
-    
-    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
-    
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode) = 0;
 };
 
 /// Renders spheres.
-class SphereRenderer : public ClippedRenderer {
+class SphereRenderer : public SpannerRenderer {
     Q_OBJECT
 
 public:
     
     Q_INVOKABLE SphereRenderer();
     
-    virtual void render(const glm::vec4& color, Mode mode, const glm::vec3& clipMinimum, float clipSize);
-    
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
 };
 
 /// Renders cuboids.
-class CuboidRenderer : public ClippedRenderer {
+class CuboidRenderer : public SpannerRenderer {
     Q_OBJECT
 
 public:
     
     Q_INVOKABLE CuboidRenderer();
     
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
 };
 
 /// Renders static models.
-class StaticModelRenderer : public ClippedRenderer {
+class StaticModelRenderer : public SpannerRenderer {
     Q_OBJECT
 
 public:
@@ -489,12 +404,8 @@ public:
     
     virtual void init(Spanner* spanner);
     virtual void simulate(float deltaTime);
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& clipMinimum, float clipSize, float& distance) const;
-
-protected:
-
-    virtual void renderUnclipped(const glm::vec4& color, Mode mode);
+    virtual void render(bool cursor = false);
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
 
 private slots:
 
@@ -506,6 +417,36 @@ private slots:
 private:
     
     Model* _model;
+};
+
+/// Renders heightfields.
+class HeightfieldRenderer : public SpannerRenderer {
+    Q_OBJECT
+
+public:
+    
+    Q_INVOKABLE HeightfieldRenderer();
+    virtual ~HeightfieldRenderer();
+    
+    virtual void init(Spanner* spanner);
+    virtual void render(bool cursor = false);
+
+private slots:
+
+    void applyHeight(const HeightfieldHeightPointer& height);
+    void applyColor(const HeightfieldColorPointer& color);
+    void applyMaterial(const HeightfieldMaterialPointer& material);
+
+private:
+    
+    GLuint _heightTextureID;
+    GLuint _colorTextureID;
+    GLuint _materialTextureID;
+    QVector<NetworkTexturePointer> _networkTextures;
+    
+    typedef QPair<int, int> IntPair;
+    typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;    
+    static QHash<IntPair, BufferPair> _bufferPairs;
 };
 
 #endif // hifi_MetavoxelSystem_h

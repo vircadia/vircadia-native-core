@@ -34,6 +34,10 @@ WindowScriptingInterface::WindowScriptingInterface() :
 {
 }
 
+WebWindowClass* WindowScriptingInterface::doCreateWebWindow(const QString& title, const QString& url, int width, int height) {
+    return new WebWindowClass(title, url, width, height);
+}
+
 QScriptValue WindowScriptingInterface::hasFocus() {
     return Application::getInstance()->getGLWidget()->hasFocus();
 }
@@ -248,6 +252,7 @@ QScriptValue WindowScriptingInterface::doPeekNonBlockingFormResult(QScriptValue 
     int e = -1;
     int d = -1;
     int c = -1;
+    int h = -1;
     for (int i = 0; i < _form.property("length").toInt32(); ++i) {
         QScriptValue item = _form.property(i);
         QScriptValue value = item.property("value");
@@ -270,6 +275,11 @@ QScriptValue WindowScriptingInterface::doPeekNonBlockingFormResult(QScriptValue 
                 item.property("options").property(_combos.at(c)->currentIndex()) :
                 array.engine()->undefinedValue()
             );
+            _form.setProperty(i, item);
+        } else if (item.property("type").toString() == "checkbox") {
+            h++;
+            value = _checks.at(h)->checkState() == Qt::Checked;
+            item.setProperty("value", value);
             _form.setProperty(i, item);
         } else {
             e += 1;
@@ -305,6 +315,7 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
         int e = -1;
         int d = -1;
         int c = -1;
+        int h = -1;
         for (int i = 0; i < _form.property("length").toInt32(); ++i) {
             QScriptValue item = _form.property(i);
             QScriptValue value = item.property("value");
@@ -327,6 +338,11 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
                     item.property("options").property(_combos.at(c)->currentIndex()) :
                     array.engine()->undefinedValue()
                 );
+                _form.setProperty(i, item);
+            } else if (item.property("type").toString() == "checkbox") {
+                h++;
+                value = _checks.at(h)->checkState() == Qt::Checked;
+                item.setProperty("value", value);
                 _form.setProperty(i, item);
             } else {
                 e += 1;
@@ -358,6 +374,7 @@ QScriptValue WindowScriptingInterface::doGetNonBlockingFormResult(QScriptValue a
     _edits.clear();
     _directories.clear();
     _combos.clear();
+    _checks.clear();
     
     array = _form;
     return (_formResult == QDialog::Accepted);    
@@ -383,6 +400,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
         int e = -1;
         int d = -1;
         int c = -1;
+        int h = -1;
         for (int i = 0; i < form.property("length").toInt32(); ++i) {
             QScriptValue item = form.property(i);
             QScriptValue value = item.property("value");
@@ -405,6 +423,11 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
                     item.property("options").property(_combos.at(c)->currentIndex()) :
                     form.engine()->undefinedValue()
                 );
+                form.setProperty(i, item);
+            } else if (item.property("type").toString() == "checkbox") {
+                h++;
+                value = _checks.at(h)->checkState() == Qt::Checked;
+                item.setProperty("value", value);
                 form.setProperty(i, item);
             } else {
                 e += 1;
@@ -432,6 +455,7 @@ QScriptValue WindowScriptingInterface::showForm(const QString& title, QScriptVal
     
     delete editDialog;
     _combos.clear();
+    _checks.clear();
     _edits.clear();
     _directories.clear();
     return (result == QDialog::Accepted);
@@ -518,6 +542,12 @@ QDialog* WindowScriptingInterface::createForm(const QString& title, QScriptValue
             }
             _combos.push_back(combo);
             formLayout->addRow(new QLabel(item.property("label").toString()), combo);
+        } else if (item.property("type").toString() == "checkbox") {
+            QCheckBox* check = new QCheckBox();
+            check->setTristate(false);
+            check->setCheckState(item.property("value").toString() == "true" ? Qt::Checked : Qt::Unchecked);
+            _checks.push_back(check);
+            formLayout->addRow(new QLabel(item.property("label").toString()), check);
         } else {
             QLineEdit* edit = new QLineEdit(item.property("value").toString());
             edit->setMinimumWidth(200);

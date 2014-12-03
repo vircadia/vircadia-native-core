@@ -162,11 +162,18 @@ protected:
     bool _wantPersist;
     bool _debugSending;
     bool _debugReceiving;
+    bool _debugTimestampNow;
     bool _verboseDebug;
     JurisdictionMap* _jurisdiction;
     JurisdictionSender* _jurisdictionSender;
     OctreeInboundPacketProcessor* _octreeInboundPacketProcessor;
     OctreePersistThread* _persistThread;
+    
+    int _persistInterval;
+    bool _wantBackup;
+    QString _backupExtensionFormat;
+    int _backupInterval;
+    int _maxBackupVersions;
 
     static OctreeServer* _instance;
 

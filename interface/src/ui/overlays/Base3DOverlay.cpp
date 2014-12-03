@@ -27,7 +27,19 @@ Base3DOverlay::Base3DOverlay() :
     _rotation(),
     _isSolid(DEFAULT_IS_SOLID),
     _isDashedLine(DEFAULT_IS_DASHED_LINE),
-    _ignoreRayIntersection(false)
+    _ignoreRayIntersection(false),
+    _drawInFront(false)
+{
+}
+
+Base3DOverlay::Base3DOverlay(const Base3DOverlay* base3DOverlay) :
+    Overlay(base3DOverlay),
+    _position(base3DOverlay->_position),
+    _lineWidth(base3DOverlay->_lineWidth),
+    _rotation(base3DOverlay->_rotation),
+    _isSolid(base3DOverlay->_isSolid),
+    _isDashedLine(base3DOverlay->_isDashedLine),
+    _ignoreRayIntersection(base3DOverlay->_ignoreRayIntersection)
 {
 }
 
@@ -36,6 +48,13 @@ Base3DOverlay::~Base3DOverlay() {
 
 void Base3DOverlay::setProperties(const QScriptValue& properties) {
     Overlay::setProperties(properties);
+
+    QScriptValue drawInFront = properties.property("drawInFront");
+
+    if (drawInFront.isValid()) {
+        bool value = drawInFront.toVariant().toBool();
+        setDrawInFront(value);
+    }
 
     QScriptValue position = properties.property("position");
 
@@ -118,6 +137,35 @@ void Base3DOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue Base3DOverlay::getProperty(const QString& property) {
+    if (property == "position" || property == "start" || property == "p1" || property == "point") {
+        return vec3toScriptValue(_scriptEngine, _position);
+    }
+    if (property == "lineWidth") {
+        return _lineWidth;
+    }
+    if (property == "rotation") {
+        return quatToScriptValue(_scriptEngine, _rotation);
+    }
+    if (property == "isSolid" || property == "isFilled" || property == "solid" || property == "filed") {
+        return _isSolid;
+    }
+    if (property == "isWire" || property == "wire") {
+        return !_isSolid;
+    }
+    if (property == "isDashedLine" || property == "dashed") {
+        return _isDashedLine;
+    }
+    if (property == "ignoreRayIntersection") {
+        return _ignoreRayIntersection;
+    }
+    if (property == "drawInFront") {
+        return _drawInFront;
+    }
+
+    return Overlay::getProperty(property);
+}
+
 bool Base3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                                         float& distance, BoxFace& face) const {
     return false;
@@ -152,8 +200,4 @@ void Base3DOverlay::drawDashedLine(const glm::vec3& start, const glm::vec3& end)
     glVertex3f(end.x, end.y, end.z);
 
     glEnd();
-
 }
-
-
-

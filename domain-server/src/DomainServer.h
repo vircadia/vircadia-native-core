@@ -154,6 +154,8 @@ private:
     QString _automaticNetworkingSetting;
     
     DomainServerSettingsManager _settingsManager;
+    
+    HifiSockAddr _iceServerSocket;
 };
 
 

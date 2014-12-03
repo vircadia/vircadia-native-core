@@ -210,8 +210,15 @@ bool LimitedNodeList::packetVersionAndHashMatch(const QByteArray& packet) {
             if (hashFromPacketHeader(packet) == hashForPacketAndConnectionUUID(packet, sendingNode->getConnectionSecret())) {
                 return true;
             } else {
-                qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
+                static QMultiMap<QUuid, PacketType> hashDebugSuppressMap;
+                
+                QUuid senderUUID = uuidFromPacketHeader(packet);
+                if (!hashDebugSuppressMap.contains(senderUUID, checkType)) {
+                    qDebug() << "Packet hash mismatch on" << checkType << "- Sender"
                     << uuidFromPacketHeader(packet);
+                    
+                    hashDebugSuppressMap.insert(senderUUID, checkType);
+                }
             }
         } else {
             static QString repeatedMessage

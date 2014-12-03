@@ -17,12 +17,16 @@ var leapHands = (function () {
         LEAP_ON_HMD_MENU_ITEM = "Leap Motion on HMD",
         LEAP_OFFSET = 0.019,  // Thickness of Leap Motion plus HMD clip
         HMD_OFFSET = 0.070,  // Eyeballs to front surface of Oculus DK2  TODO: Confirm and make depend on device and eye relief
+        hasHandAndWristJoints,
+        handToWristOffset = [],  // For avatars without a wrist joint we control an estimate of a proper hand joint position
+        HAND_OFFSET = 0.4,  // Relative distance of wrist to hand versus wrist to index finger knuckle
         hands,
         wrists,
         NUM_HANDS = 2,  // 0 = left; 1 = right
         fingers,
         NUM_FINGERS = 5,  // 0 = thumb; ...; 4 = pinky
         THUMB = 0,
+        MIDDLE_FINGER = 2,
         NUM_FINGER_JOINTS = 3,  // 0 = metacarpal(hand)-proximal(finger) joint; ...; 2 = intermediate-distal joint
         MAX_HAND_INACTIVE_COUNT = 20,
         calibrationStatus,
@@ -123,30 +127,41 @@ var leapHands = (function () {
 
     function finishCalibration() {
         var avatarPosition,
-            avatarOrientation,
-            avatarHandPosition,
+            handPosition,
+            middleFingerPosition,
             leapHandHeight,
             h;
 
-        if (hands[0].controller.isActive() && hands[1].controller.isActive()) {
-            leapHandHeight = (hands[0].controller.getAbsTranslation().y + hands[1].controller.getAbsTranslation().y) / 2.0;
-        } else {
-            calibrationStatus = UNCALIBRATED;
-            return;
+        if (!isOnHMD) {
+            if (hands[0].controller.isActive() && hands[1].controller.isActive()) {
+                leapHandHeight = (hands[0].controller.getAbsTranslation().y + hands[1].controller.getAbsTranslation().y) / 2.0;
+            } else {
+                calibrationStatus = UNCALIBRATED;
+                return;
+            }
         }
 
         avatarPosition = MyAvatar.position;
-        avatarOrientation = MyAvatar.orientation;
 
         for (h = 0; h < NUM_HANDS; h += 1) {
-            avatarHandPosition = MyAvatar.getJointPosition(hands[h].jointName);
-            hands[h].zeroPosition = {
-                x: avatarHandPosition.x - avatarPosition.x,
-                y: avatarHandPosition.y - avatarPosition.y,
-                z: avatarPosition.z - avatarHandPosition.z
-            };
-            hands[h].zeroPosition = Vec3.multiplyQbyV(MyAvatar.orientation, hands[h].zeroPosition);
-            hands[h].zeroPosition.y = hands[h].zeroPosition.y - leapHandHeight;
+            handPosition = MyAvatar.getJointPosition(hands[h].jointName);
+            if (!hasHandAndWristJoints) {
+                middleFingerPosition = MyAvatar.getJointPosition(fingers[h][MIDDLE_FINGER][0].jointName);
+                handToWristOffset[h] = Vec3.multiply(Vec3.subtract(handPosition, middleFingerPosition), 1.0 - HAND_OFFSET);
+            }
+
+            if (isOnHMD) {
+                // Offset of Leap Motion origin from physical eye position
+                hands[h].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
+            } else {
+                hands[h].zeroPosition = {
+                    x: handPosition.x - avatarPosition.x,
+                    y: handPosition.y - avatarPosition.y,
+                    z: avatarPosition.z - handPosition.z
+                };
+                hands[h].zeroPosition = Vec3.multiplyQbyV(MyAvatar.orientation, hands[h].zeroPosition);
+                hands[h].zeroPosition.y = hands[h].zeroPosition.y - leapHandHeight;
+            }
         }
 
         MyAvatar.clearJointData("LeftHand");
@@ -161,12 +176,21 @@ var leapHands = (function () {
     }
 
     function calibrate() {
+        var jointNames,
+            i;
 
         calibrationStatus = CALIBRATING;
 
         avatarScale = MyAvatar.scale;
         avatarFaceModelURL = MyAvatar.faceModelURL;
         avatarSkeletonModelURL = MyAvatar.skeletonModelURL;
+
+        // Does this skeleton have both wrist and hand joints?
+        hasHandAndWristJoints = false;
+        jointNames = MyAvatar.getJointNames();
+        for (i = 0; i < jointNames.length; i += 1) {
+            hasHandAndWristJoints = hasHandAndWristJoints || jointNames[i].toLowerCase() === "leftwrist";
+        }
 
         // Set avatar arms vertical, forearms horizontal, as "zero" position for calibration
         MyAvatar.setJointData("LeftArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, -90.0));
@@ -175,6 +199,7 @@ var leapHands = (function () {
         MyAvatar.setJointData("RightArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 90.0));
         MyAvatar.setJointData("RightForeArm", Quat.fromPitchYawRollDegrees(90.0, 0.0, 180.0));
         MyAvatar.setJointData("RightHand", Quat.fromPitchYawRollRadians(0.0, 0.0, 0.0));
+
 
         // Wait for arms to assume their positions before calculating
         Script.setTimeout(finishCalibration, CALIBRATION_TIME);
@@ -195,36 +220,33 @@ var leapHands = (function () {
 
     function setIsOnHMD() {
         isOnHMD = Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM);
-        if (isOnHMD) {
-            print("Leap Motion: Is on HMD");
-
-            // Offset of Leap Motion origin from physical eye position
-            hands[0].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
-            hands[1].zeroPosition = { x: 0.0, y: 0.0, z: HMD_OFFSET + LEAP_OFFSET };
-
-            calibrationStatus = CALIBRATED;
-        } else {
-            print("Leap Motion: Is on desk");
-            calibrationStatus = UNCALIBRATED;
-        }
+        print("Leap Motion: " + (isOnHMD ? "Is on HMD" : "Is on desk"));
     }
 
     function checkSettings() {
-        // There is no "scale changed" event so we need check periodically.
-        if (!isOnHMD && calibrationStatus > UNCALIBRATED && (MyAvatar.scale !== avatarScale
+        if (calibrationStatus > UNCALIBRATED && (MyAvatar.scale !== avatarScale
             || MyAvatar.faceModelURL !== avatarFaceModelURL
-            || MyAvatar.skeletonModelURL !== avatarSkeletonModelURL)) {
-            print("Leap Motion: Recalibrate because avatar body or scale changed");
+            || MyAvatar.skeletonModelURL !== avatarSkeletonModelURL
+            || Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM) !== isOnHMD)) {
+            print("Leap Motion: Recalibrate...");
             calibrationStatus = UNCALIBRATED;
-        }
 
-        // There is a "menu changed" event but we may as well check here.
-        if (isOnHMD !== Menu.isOptionChecked(LEAP_ON_HMD_MENU_ITEM)) {
             setIsOnHMD();
         }
     }
 
     function setUp() {
+
+        wrists = [
+            {
+                jointName: "LeftWrist",
+                controller: Controller.createInputController("Spatial", "joint_L_wrist")
+            },
+            {
+                jointName: "RightWrist",
+                controller: Controller.createInputController("Spatial", "joint_R_wrist")
+            }
+        ];
 
         hands = [
             {
@@ -237,11 +259,6 @@ var leapHands = (function () {
                 controller: Controller.createInputController("Spatial", "joint_R_hand"),
                 inactiveCount: 0
             }
-        ];
-
-        wrists = [
-            { controller: Controller.createInputController("Spatial", "joint_L_wrist") },
-            { controller: Controller.createInputController("Spatial", "joint_R_wrist") }
         ];
 
         // The Leap controller's first joint is the hand-metacarpal joint but this joint's data is not used because it's too
@@ -306,6 +323,8 @@ var leapHands = (function () {
         setIsOnHMD();
 
         settingsTimer = Script.setInterval(checkSettings, 2000);
+
+        calibrationStatus = UNCALIBRATED;
     }
 
     function moveHands() {
@@ -314,6 +333,7 @@ var leapHands = (function () {
             j,
             side,
             handOffset,
+            wristOffset,
             handRotation,
             locRotation,
             cameraOrientation,
@@ -330,10 +350,18 @@ var leapHands = (function () {
                 }
 
                 // Hand position ...
+                handOffset = hands[h].controller.getAbsTranslation();
+                handRotation = hands[h].controller.getAbsRotation();
+
                 if (isOnHMD) {
 
+                    // Adjust to control wrist position if "hand" joint is at wrist ...
+                    if (!hasHandAndWristJoints) {
+                        wristOffset = Vec3.multiplyQbyV(handRotation, handToWristOffset[h]);
+                        handOffset = Vec3.sum(handOffset, wristOffset);
+                    }
+
                     // Hand offset in camera coordinates ...
-                    handOffset = hands[h].controller.getAbsTranslation();
                     handOffset = {
                         x: hands[h].zeroPosition.x - handOffset.x,
                         y: hands[h].zeroPosition.y - handOffset.z,
@@ -353,7 +381,6 @@ var leapHands = (function () {
                     handOffset.x = -handOffset.x;
 
                     // Hand rotation in camera coordinates ...
-                    handRotation = wrists[h].controller.getAbsRotation();
                     handRotation = {
                         x: handRotation.z,
                         y: handRotation.y,
@@ -361,6 +388,7 @@ var leapHands = (function () {
                         w: handRotation.w
                     };
 
+                    // Hand rotation in avatar coordinates ...
                     if (h === 0) {
                         handRotation.x = -handRotation.x;
                         handRotation = Quat.multiply(Quat.angleAxis(90.0, { x: 1, y: 0, z: 0 }), handRotation);
@@ -371,7 +399,6 @@ var leapHands = (function () {
                         handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 0, z: 1 }), handRotation);
                     }
 
-                    // Hand rotation in avatar coordinates ...
                     cameraOrientation.x = -cameraOrientation.x;
                     cameraOrientation.z = -cameraOrientation.z;
                     handRotation = Quat.multiply(cameraOrientation, handRotation);
@@ -379,14 +406,20 @@ var leapHands = (function () {
 
                 } else {
 
-                    handOffset = hands[h].controller.getAbsTranslation();
+                    // Adjust to control wrist position if "hand" joint is at wrist ...
+                    if (!hasHandAndWristJoints) {
+                        wristOffset = Vec3.multiplyQbyV(handRotation, handToWristOffset[h]);
+                        handOffset = Vec3.sum(handOffset, wristOffset);
+                    }
+
+                    // Hand offset in camera coordinates ...
                     handOffset = {
                         x: -handOffset.x,
                         y: hands[h].zeroPosition.y + handOffset.y,
                         z: hands[h].zeroPosition.z - handOffset.z
                     };
 
-                    handRotation = wrists[h].controller.getAbsRotation();
+                    // Hand rotation in camera coordinates ...
                     handRotation = {
                         x: handRotation.z,
                         y: handRotation.y,
@@ -394,6 +427,7 @@ var leapHands = (function () {
                         w: handRotation.w
                     };
 
+                    // Hand rotation in avatar coordinates ...
                     if (h === 0) {
                         handRotation.x = -handRotation.x;
                         handRotation = Quat.multiply(Quat.angleAxis(-90.0, { x: 0, y: 1, z: 0 }),
@@ -405,9 +439,10 @@ var leapHands = (function () {
                     }
                 }
 
+                // Set hand position and orientation ...
                 MyAvatar.setJointModelPositionAndOrientation(hands[h].jointName, handOffset, handRotation, true);
 
-                // Finger joints ...
+                // Set finger joints ...
                 for (i = 0; i < NUM_FINGERS; i += 1) {
                     for (j = 0; j < NUM_FINGER_JOINTS; j += 1) {
                         if (fingers[h][i][j].controller !== null) {
@@ -436,17 +471,20 @@ var leapHands = (function () {
 
             } else {
 
-                hands[h].inactiveCount += 1;
+                if (hands[h].inactiveCount < MAX_HAND_INACTIVE_COUNT) {
 
-                if (hands[h].inactiveCount === MAX_HAND_INACTIVE_COUNT) {
-                    if (h === 0) {
-                        MyAvatar.clearJointData("LeftHand");
-                        MyAvatar.clearJointData("LeftForeArm");
-                        MyAvatar.clearJointData("LeftArm");
-                    } else {
-                        MyAvatar.clearJointData("RightHand");
-                        MyAvatar.clearJointData("RightForeArm");
-                        MyAvatar.clearJointData("RightArm");
+                    hands[h].inactiveCount += 1;
+
+                    if (hands[h].inactiveCount === MAX_HAND_INACTIVE_COUNT) {
+                        if (h === 0) {
+                            MyAvatar.clearJointData("LeftHand");
+                            MyAvatar.clearJointData("LeftForeArm");
+                            MyAvatar.clearJointData("LeftArm");
+                        } else {
+                            MyAvatar.clearJointData("RightHand");
+                            MyAvatar.clearJointData("RightForeArm");
+                            MyAvatar.clearJointData("RightArm");
+                        }
                     }
                 }
             }

@@ -1,0 +1,132 @@
+* {
+}
+
+body {
+    margin: 0;
+    padding: 0;
+
+    background-color: #efefef;
+    font-family: Sans-Serif;
+    font-size: 12px;
+
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+input {
+    line-height: 2;
+}
+
+.input-left {
+    display: inline-block;
+    width: 20px;
+}
+
+.color-box {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 1px solid black;
+    margin: 2px;
+    cursor: pointer;
+}
+
+.color-box.highlight {
+    width: 18px;
+    height: 18px;
+    border: 2px solid black;
+}
+
+.section-header {
+    background: #AAA;
+    border-bottom: 1px solid #CCC;
+    background-color: #333333;
+    color: #999;
+    padding: 4px;
+}
+
+.section-header label {
+    font-weight: bold;
+}
+
+.multi-property-section {
+}
+.property-section {
+    display: block;
+    margin: 10 10;
+    height: 30px;
+}
+
+.property-section label {
+    font-weight: bold;
+    vertical-align: middle;
+}
+
+.property-section span {
+    float: right;
+}
+
+.grid-section {
+    border-top: 1px solid #DDD;
+    background-color: #efefef;
+}
+
+input[type=button] {
+    cursor: pointer;
+    background-color: #608e96;
+    border-color: #608e96;
+    border-radius: 5px;
+    padding: 5px 10px;
+    border: 0;
+    color: #fff;
+    font-weight: bold;
+    margin: 0 2px;
+    margin-top: 5px;
+    font-size: .9em;
+}
+
+input.coord {
+    width: 6em;
+    height: 2em;
+}
+
+table#entity-table {
+    border-collapse: collapse;
+    font-family: Sans-Serif;
+    font-size: 12px;
+    width: 100%;
+}
+
+#entity-table tr {
+    cursor: pointer;
+}
+
+tr.selected {
+    background-color: #AAA;
+}
+
+#entity-table th {
+    background-color: #333;
+    color: #fff;
+    border: 0px black solid;
+    text-align: left;
+    word-wrap: nowrap;
+    white-space: nowrap;
+}
+
+#entity-table td {
+    border: 0px black solid;
+    word-wrap: nowrap;
+    white-space: nowrap;
+}
+
+th#entity-type {
+    width: 60px;
+}
+
+th#entity-url {
+}

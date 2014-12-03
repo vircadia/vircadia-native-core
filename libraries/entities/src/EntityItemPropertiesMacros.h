@@ -40,6 +40,18 @@
             }                                                   \
         }
 
+#define READ_ENTITY_PROPERTY_SETTER(P,T,M)                      \
+        if (propertyFlags.getHasProperty(P)) {                  \
+            T fromBuffer;                                       \
+            memcpy(&fromBuffer, dataAt, sizeof(fromBuffer));    \
+            dataAt += sizeof(fromBuffer);                       \
+            bytesRead += sizeof(fromBuffer);                    \
+            if (overwriteLocalData) {                           \
+                M(fromBuffer);                                  \
+            }                                                   \
+        }
+
+
 #define READ_ENTITY_PROPERTY_QUAT(P,M)                                      \
         if (propertyFlags.getHasProperty(P)) {                              \
             glm::quat fromBuffer;                                           \
@@ -48,6 +60,17 @@
             bytesRead += bytes;                                             \
             if (overwriteLocalData) {                                       \
                 M = fromBuffer;                                             \
+            }                                                               \
+        }
+
+#define READ_ENTITY_PROPERTY_QUAT_SETTER(P,M)                               \
+        if (propertyFlags.getHasProperty(P)) {                              \
+            glm::quat fromBuffer;                                           \
+            int bytes = unpackOrientationQuatFromBytes(dataAt, fromBuffer); \
+            dataAt += bytes;                                                \
+            bytesRead += bytes;                                             \
+            if (overwriteLocalData) {                                       \
+                M(fromBuffer);                                              \
             }                                                               \
         }
 
@@ -248,6 +271,46 @@
             }                                           \
         }                                               \
     }
+    
+#define CONSTRUCT_PROPERTY(n, V)        \
+    _##n(V),                            \
+    _##n##Changed(false)
+
+#define DEFINE_PROPERTY(P, N, n, T)        \
+    public: \
+        T get##N() const { return _##n; } \
+        void set##N(T value) { _##n = value; _##n##Changed = true; } \
+        bool n##Changed() const { return _##n##Changed; } \
+    private: \
+        T _##n; \
+        bool _##n##Changed;
+
+#define DEFINE_PROPERTY_REF(P, N, n, T)        \
+    public: \
+        const T& get##N() const { return _##n; } \
+        void set##N(const T& value) { _##n = value; _##n##Changed = true; } \
+        bool n##Changed() const { return _##n##Changed; } \
+    private: \
+        T _##n; \
+        bool _##n##Changed;
+
+#define DEFINE_PROPERTY_REF_WITH_SETTER(P, N, n, T)        \
+    public: \
+        const T& get##N() const { return _##n; } \
+        void set##N(const T& value); \
+        bool n##Changed() const; \
+    private: \
+        T _##n; \
+        bool _##n##Changed;
+
+#define DEFINE_PROPERTY_REF_WITH_SETTER_AND_GETTER(P, N, n, T)        \
+    public: \
+        T get##N() const; \
+        void set##N(const T& value); \
+        bool n##Changed() const; \
+    private: \
+        T _##n; \
+        bool _##n##Changed;
 
 
 

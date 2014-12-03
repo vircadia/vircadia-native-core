@@ -11,15 +11,20 @@
 
 #include "AudioScriptingInterface.h"
 
+void registerAudioMetaTypes(QScriptEngine* engine) {
+    qScriptRegisterMetaType(engine, injectorOptionsToScriptValue, injectorOptionsFromScriptValue);
+    qScriptRegisterMetaType(engine, soundToScriptValue, soundFromScriptValue);
+}
+
 AudioScriptingInterface& AudioScriptingInterface::getInstance() {
     static AudioScriptingInterface staticInstance;
     return staticInstance;
 }
 
 AudioScriptingInterface::AudioScriptingInterface() :
-    _localLoopbackInterface(NULL)
+    _localAudioInterface(NULL)
 {
-    qRegisterMetaType<AudioInjectorOptions>("AudioInjectorOptions");
+    
 }
 
 void AudioScriptingInterface::stopAllInjectors() {
@@ -37,43 +42,37 @@ void AudioScriptingInterface::stopAllInjectors() {
     }
 }
 
-void AudioScriptingInterface::playLocalSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
-    if (sound->isStereo()) {
-        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
+AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions& injectorOptions) {
+    if (sound) {
+        // stereo option isn't set from script, this comes from sound metadata or filename
+        AudioInjectorOptions optionsCopy = injectorOptions;
+        optionsCopy.stereo = sound->isStereo();
+        
+        AudioInjector* injector = new AudioInjector(sound, optionsCopy);
+        injector->setLocalAudioInterface(_localAudioInterface);
+        
+        QThread* injectorThread = new QThread();
+        
+        injector->moveToThread(injectorThread);
+        
+        // start injecting when the injector thread starts
+        connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
+        
+        // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
+        connect(injector, &AudioInjector::finished, injector, &AudioInjector::deleteLater);
+        connect(injector, &AudioInjector::finished, injectorThread, &QThread::quit);
+        connect(injector, &AudioInjector::finished, this, &AudioScriptingInterface::injectorStopped);
+        connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
+        
+        injectorThread->start();
+        
+        _activeInjectors.append(QPointer<AudioInjector>(injector));
+        
+        return injector;
+    } else {
+        qDebug() << "AudioScriptingInterface::playSound called with null Sound object.";
+        return NULL;
     }
-    
-    // assume that localAudioInterface could be on a separate thread, use Qt::AutoConnection to handle properly
-    QMetaObject::invokeMethod(_localLoopbackInterface, "handleAudioByteArray",
-                              Qt::AutoConnection,
-                              Q_ARG(QByteArray, sound->getByteArray()),
-                              Q_ARG(const AudioInjectorOptions&, *injectorOptions));
-}
-
-AudioInjector* AudioScriptingInterface::playSound(Sound* sound, const AudioInjectorOptions* injectorOptions) {
-    
-    if (sound->isStereo()) {
-        const_cast<AudioInjectorOptions*>(injectorOptions)->setIsStereo(true);
-    }
-    AudioInjector* injector = new AudioInjector(sound, *injectorOptions);
-    
-    QThread* injectorThread = new QThread();
-    
-    injector->moveToThread(injectorThread);
-    
-    // start injecting when the injector thread starts
-    connect(injectorThread, &QThread::started, injector, &AudioInjector::injectAudio);
-    
-    // connect the right slots and signals so that the AudioInjector is killed once the injection is complete
-    connect(injector, &AudioInjector::finished, injector, &AudioInjector::deleteLater);
-    connect(injector, &AudioInjector::finished, injectorThread, &QThread::quit);
-    connect(injector, &AudioInjector::finished, this, &AudioScriptingInterface::injectorStopped);
-    connect(injectorThread, &QThread::finished, injectorThread, &QThread::deleteLater);
-    
-    injectorThread->start();
-    
-    _activeInjectors.append(QPointer<AudioInjector>(injector));
-    
-    return injector;
 }
 
 void AudioScriptingInterface::stopInjector(AudioInjector* injector) {

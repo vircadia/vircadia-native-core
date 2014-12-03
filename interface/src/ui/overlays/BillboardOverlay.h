@@ -22,7 +22,8 @@ class BillboardOverlay : public Base3DOverlay {
     Q_OBJECT
 public:
     BillboardOverlay();
-    
+    BillboardOverlay(const BillboardOverlay* billboardOverlay);
+
     virtual void render(RenderArgs* args);
 
     // setters
@@ -32,9 +33,12 @@ public:
 
     virtual void setProperties(const QScriptValue& properties);
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
+    virtual QScriptValue getProperty(const QString& property);
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
     
+    virtual BillboardOverlay* createClone() const;
+
 private slots:
     void replyFinished();
 

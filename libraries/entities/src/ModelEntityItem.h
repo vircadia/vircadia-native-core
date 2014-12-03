@@ -12,6 +12,8 @@
 #ifndef hifi_ModelEntityItem_h
 #define hifi_ModelEntityItem_h
 
+#include <AnimationLoop.h>
+
 #include "EntityItem.h" 
 
 class ModelEntityItem : public EntityItem {
@@ -44,7 +46,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual void update(const quint64& now);
-    virtual SimulationState getSimulationState() const;
+    virtual SimulationState computeSimulationState() const;
     virtual void debugDump() const;
 
 
@@ -73,21 +75,38 @@ public:
     void setModelURL(const QString& url) { _modelURL = url; }
     void setAnimationURL(const QString& url) { _animationURL = url; }
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
-    void setAnimationFrameIndex(float value) { _animationFrameIndex = value; }
+    void setAnimationFrameIndex(float value) { _animationLoop.setFrameIndex(value); }
+    void setAnimationSettings(const QString& value);
 
     static const bool DEFAULT_ANIMATION_IS_PLAYING;
-    void setAnimationIsPlaying(bool value) { _animationIsPlaying = value; }
+    void setAnimationIsPlaying(bool value) { _animationLoop.setRunning(value); }
 
     static const float DEFAULT_ANIMATION_FPS;
-    void setAnimationFPS(float value) { _animationFPS = value; }
+    void setAnimationFPS(float value) { _animationLoop.setFPS(value); }
+
+    void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
+    bool getAnimationLoop() const { return _animationLoop.getLoop(); }
+    
+    void setAnimationHold(bool hold) { _animationLoop.setHold(hold); }
+    bool getAnimationHold() const { return _animationLoop.getHold(); }
+    
+    void setAnimationStartAutomatically(bool startAutomatically) { _animationLoop.setStartAutomatically(startAutomatically); }
+    bool getAnimationStartAutomatically() const { return _animationLoop.getStartAutomatically(); }
+    
+    void setAnimationFirstFrame(float firstFrame) { _animationLoop.setFirstFrame(firstFrame); }
+    float getAnimationFirstFrame() const { return _animationLoop.getFirstFrame(); }
+    
+    void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
+    float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
     
     void mapJoints(const QStringList& modelJointNames);
     QVector<glm::quat> getAnimationFrame();
     bool jointsMapped() const { return _jointMappingCompleted; }
     
-    bool getAnimationIsPlaying() const { return _animationIsPlaying; }
-    float getAnimationFrameIndex() const { return _animationFrameIndex; }
-    float getAnimationFPS() const { return _animationFPS; }
+    bool getAnimationIsPlaying() const { return _animationLoop.isRunning(); }
+    float getAnimationFrameIndex() const { return _animationLoop.getFrameIndex(); }
+    float getAnimationFPS() const { return _animationLoop.getFPS(); }
+    QString getAnimationSettings() const;
 
     static const QString DEFAULT_TEXTURES;
     const QString& getTextures() const { return _textures; }
@@ -106,9 +125,8 @@ protected:
 
     quint64 _lastAnimated;
     QString _animationURL;
-    float _animationFrameIndex; // we keep this as a float and round to int only when we need the exact index
-    bool _animationIsPlaying;
-    float _animationFPS;
+    AnimationLoop _animationLoop;
+    QString _animationSettings;
     QString _textures;
 
     // used on client side

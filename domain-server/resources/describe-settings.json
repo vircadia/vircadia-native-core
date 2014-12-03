@@ -167,7 +167,7 @@
         "name": "reverb",
         "type": "table",
         "label": "Reverb Settings",
-        "help": "In this table you can set custom reverb values for each audio zones",
+        "help": "In this table you can set reverb levels for audio zones.  For a medium-sized (e.g., 100 square meter) meeting room, try a decay time of around 1.5 seconds and a wet level of -10 db. For an airplane hangar or cathedral, try a decay time of 4 seconds and a wet level of -5 db.",
         "numbered": true,
         "columns": [
           {
@@ -277,6 +277,60 @@
     "assignment-types": [6],
     "settings": [
       {
+        "name": "persistFilename",
+        "label": "Persistant Filename",
+        "help": "the filename for your entities",
+        "placeholder": "resources/models.svo",
+        "default": "resources/models.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistInterval",
+        "label": "Persist Interval",
+        "help": "Interval between persist checks in msecs.",
+        "placeholder": "30000",
+        "default": "30000",
+        "advanced": true
+      },
+      {
+        "name": "NoPersist",
+        "type": "checkbox",
+        "help": "Don't persist your entities to a file.",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "backupExtensionFormat",
+        "label": "Backup File Extension Format:",
+        "help": "Format used to create the extension for the backup of your persisted entities. Use a format with %N to get rolling. Or use date formatting like %Y-%m-%d.%H:%M:%S.%z",
+        "placeholder": ".backup.%N",
+        "default": ".backup.%N",
+        "advanced": true
+      },
+      {
+        "name": "backupInterval",
+        "label": "Backup Interval",
+        "help": "Interval between backup checks in msecs.",
+        "placeholder": "1800000",
+        "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "maxBackupVersions",
+        "label": "Max Rolled Backup Versions",
+        "help": "If your backup extension format uses 'rolling', how many versions do you want us to keep?",
+        "placeholder": "5",
+        "default": "5",
+        "advanced": true
+      },
+      {
+        "name": "NoBackup",
+        "type": "checkbox",
+        "help": "Don't regularly backup your persisted entities to a backup file.",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "statusHost",
         "label": "Status Hostname",
         "help": "host name or IP address of the server for accessing the status page",
@@ -314,6 +368,13 @@
         "advanced": true
       },
       {
+        "name": "debugTimestampNow",
+        "type": "checkbox",
+        "help": "extra debugging for usecTimestampNow() function",
+        "default": false,
+        "advanced": true
+      },
+      {
         "name": "clockSkew",
         "label": "Clock Skew",
         "help": "Number of msecs to skew the server clock by to test clock skew",
@@ -330,7 +391,52 @@
     "label": "Voxel Server Settings",
     "assignment-types": [3],
     "settings": [
-
+      {
+        "name": "persistFilename",
+        "label": "Persistant Filename",
+        "help": "the filename for your voxels",
+        "placeholder": "resources/voxels.svo",
+        "default": "resources/voxels.svo",
+        "advanced": true
+      },
+      {
+        "name": "persistInterval",
+        "label": "Persist Interval",
+        "help": "Interval between persist checks in msecs.",
+        "placeholder": "30000",
+        "default": "30000",
+        "advanced": true
+      },
+      {
+        "name": "NoPersist",
+        "type": "checkbox",
+        "help": "Don't persist your voxels to a file.",
+        "default": false,
+        "advanced": true
+      },
+      {
+        "name": "backupExtensionFormat",
+        "label": "Backup File Extension Format:",
+        "help": "Format used to create the extension for the backup of your persisted voxels.",
+        "placeholder": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "default": ".backup.%Y-%m-%d.%H:%M:%S.%z",
+        "advanced": true
+      },
+      {
+        "name": "backupInterval",
+        "label": "Backup Interval",
+        "help": "Interval between backup checks in msecs.",
+        "placeholder": "1800000",
+        "default": "1800000",
+        "advanced": true
+      },
+      {
+        "name": "NoBackup",
+        "type": "checkbox",
+        "help": "Don't regularly backup your persisted voxels to a backup file.",
+        "default": false,
+        "advanced": true
+      },
       {
         "name": "statusHost",
         "label": "Status Hostname",

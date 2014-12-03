@@ -130,22 +130,22 @@ void OctreeStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Voxels Rendered    
     label = _labels[_voxelsRendered];
-    statsValue << "Max: " << voxels->getMaxVoxels() / 1000.f << "K " << 
-        "Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K " <<
-        "ReadBuffer: " << voxels->getVoxelsRendered() / 1000.f << "K " <<
-        "Changed: " << voxels->getVoxelsUpdated() / 1000.f << "K ";
+    statsValue << "Max: " << voxels->getMaxVoxels() / 1000.0f << "K " << 
+        "Drawn: " << voxels->getVoxelsWritten() / 1000.0f << "K " <<
+        "Abandoned: " << voxels->getAbandonedVoxels() / 1000.0f << "K " <<
+        "ReadBuffer: " << voxels->getVoxelsRendered() / 1000.0f << "K " <<
+        "Changed: " << voxels->getVoxelsUpdated() / 1000.0f << "K ";
     label->setText(statsValue.str().c_str());
 
     // Voxels Memory Usage
     label = _labels[_localVoxelsMemory];
     statsValue.str("");
     statsValue << 
-        "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.f << "MB "
-        "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
-        "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
+        "Elements RAM: " << OctreeElement::getTotalMemoryUsage() / 1000000.0f << "MB "
+        "Geometry RAM: " << voxels->getVoxelMemoryUsageRAM() / 1000000.0f << "MB " <<
+        "VBO: " << voxels->getVoxelMemoryUsageVBO() / 1000000.0f << "MB ";
     if (voxels->hasVoxelMemoryUsageGPU()) {
-        statsValue << "GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
+        statsValue << "GPU: " << voxels->getVoxelMemoryUsageGPU() / 1000000.0f << "MB ";
     }
     label->setText(statsValue.str().c_str());
 

@@ -33,6 +33,22 @@ Circle3DOverlay::Circle3DOverlay() :
     _minorTickMarksColor.red = _minorTickMarksColor.green = _minorTickMarksColor.blue = (unsigned char)0;
 }
 
+Circle3DOverlay::Circle3DOverlay(const Circle3DOverlay* circle3DOverlay) :
+    Planar3DOverlay(circle3DOverlay),
+    _startAt(circle3DOverlay->_startAt),
+    _endAt(circle3DOverlay->_endAt),
+    _outerRadius(circle3DOverlay->_outerRadius),
+    _innerRadius(circle3DOverlay->_innerRadius),
+    _hasTickMarks(circle3DOverlay->_hasTickMarks),
+    _majorTickMarksAngle(circle3DOverlay->_majorTickMarksAngle),
+    _minorTickMarksAngle(circle3DOverlay->_minorTickMarksAngle),
+    _majorTickMarksLength(circle3DOverlay->_majorTickMarksLength),
+    _minorTickMarksLength(circle3DOverlay->_minorTickMarksLength),
+    _majorTickMarksColor(circle3DOverlay->_majorTickMarksColor),
+    _minorTickMarksColor(circle3DOverlay->_minorTickMarksColor)
+{
+}
+
 Circle3DOverlay::~Circle3DOverlay() {
 }
 
@@ -299,6 +315,45 @@ void Circle3DOverlay::setProperties(const QScriptValue &properties) {
     }
 }
 
+QScriptValue Circle3DOverlay::getProperty(const QString& property) {
+    if (property == "startAt") {
+        return _startAt;
+    }
+    if (property == "endAt") {
+        return _endAt;
+    }
+    if (property == "outerRadius") {
+        return _outerRadius;
+    }
+    if (property == "innerRadius") {
+        return _innerRadius;
+    }
+    if (property == "hasTickMarks") {
+        return _hasTickMarks;
+    }
+    if (property == "majorTickMarksAngle") {
+        return _majorTickMarksAngle;
+    }
+    if (property == "minorTickMarksAngle") {
+        return _minorTickMarksAngle;
+    }
+    if (property == "majorTickMarksLength") {
+        return _majorTickMarksLength;
+    }
+    if (property == "minorTickMarksLength") {
+        return _minorTickMarksLength;
+    }
+    if (property == "majorTickMarksColor") {
+        return xColorToScriptValue(_scriptEngine, _majorTickMarksColor);
+    }
+    if (property == "minorTickMarksColor") {
+        return xColorToScriptValue(_scriptEngine, _minorTickMarksColor);
+    }
+
+    return Planar3DOverlay::getProperty(property);
+}
+
+
 bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin, 
                                 const glm::vec3& direction, float& distance, BoxFace& face) const {
 
@@ -319,9 +374,6 @@ bool Circle3DOverlay::findRayIntersection(const glm::vec3& origin,
     return intersects;
 }
 
-
-
-
-
-
-
+Circle3DOverlay* Circle3DOverlay::createClone() const {
+    return new Circle3DOverlay(this);
+}

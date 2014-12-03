@@ -296,7 +296,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             float y = (float)i / (stacks - 1);
             
             for (int j = 0; j <= slices; j++) {
-                float theta = 3.f * PI_OVER_TWO + PI * (float)j / (float)slices;
+                float theta = 3.0f * PI_OVER_TWO + PI * (float)j / (float)slices;
 
                 //normals
                 *(vertex++) = sinf(theta);
@@ -547,7 +547,8 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
     Resource(url, delayLoad),
     _mapping(mapping),
     _textureBase(textureBase.isValid() ? textureBase : url),
-    _fallback(fallback) {
+    _fallback(fallback)
+{
     
     if (url.isEmpty()) {
         // make the minimal amount of dummy geometry to satisfy Model
@@ -562,6 +563,8 @@ NetworkGeometry::NetworkGeometry(const QUrl& url, const QSharedPointer<NetworkGe
         _geometry.leftHandJointIndex = -1;
         _geometry.rightHandJointIndex = -1;
     }
+        
+    connect(this, &Resource::loaded, this, &NetworkGeometry::replaceTexturesWithPendingChanges);
 }
 
 bool NetworkGeometry::isLoadedWithTextures() const {
@@ -572,7 +575,8 @@ bool NetworkGeometry::isLoadedWithTextures() const {
         foreach (const NetworkMeshPart& part, mesh.parts) {
             if ((part.diffuseTexture && !part.diffuseTexture->isLoaded()) ||
                     (part.normalTexture && !part.normalTexture->isLoaded()) ||
-                    (part.specularTexture && !part.specularTexture->isLoaded())) {
+                    (part.specularTexture && !part.specularTexture->isLoaded()) ||
+                    (part.emissiveTexture && !part.emissiveTexture->isLoaded())) {
                 return false;
             }
         }
@@ -665,6 +669,9 @@ void NetworkGeometry::setLoadPriority(const QPointer<QObject>& owner, float prio
             if (part.specularTexture) {
                 part.specularTexture->setLoadPriority(owner, priority);
             }
+            if (part.emissiveTexture) {
+                part.emissiveTexture->setLoadPriority(owner, priority);
+            }
         }
     }
 }
@@ -684,6 +691,9 @@ void NetworkGeometry::setLoadPriorities(const QHash<QPointer<QObject>, float>& p
             }
             if (part.specularTexture) {
                 part.specularTexture->setLoadPriorities(priorities);
+            }
+            if (part.emissiveTexture) {
+                part.emissiveTexture->setLoadPriorities(priorities);
             }
         }
     }
@@ -705,32 +715,45 @@ void NetworkGeometry::clearLoadPriority(const QPointer<QObject>& owner) {
             if (part.specularTexture) {
                 part.specularTexture->clearLoadPriority(owner);
             }
+            if (part.emissiveTexture) {
+                part.emissiveTexture->clearLoadPriority(owner);
+            }
         }
     }
 }
 
 void NetworkGeometry::setTextureWithNameToURL(const QString& name, const QUrl& url) {
-    for (int i = 0; i < _meshes.size(); i++) {
-        NetworkMesh& mesh = _meshes[i];
-        for (int j = 0; j < mesh.parts.size(); j++) {
-            NetworkMeshPart& part = mesh.parts[j];
-            
-            QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
-            if (part.diffuseTextureName == name) {
-                part.diffuseTexture =
+    if (_meshes.size() > 0) {
+        for (int i = 0; i < _meshes.size(); i++) {
+            NetworkMesh& mesh = _meshes[i];
+            for (int j = 0; j < mesh.parts.size(); j++) {
+                NetworkMeshPart& part = mesh.parts[j];
+                
+                QSharedPointer<NetworkTexture> matchingTexture = QSharedPointer<NetworkTexture>();
+                if (part.diffuseTextureName == name) {
+                    part.diffuseTexture =
                     Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
                                                                               _geometry.meshes[i].isEye, QByteArray());
-                part.diffuseTexture->setLoadPriorities(_loadPriorities);
-            } else if (part.normalTextureName == name) {
-                part.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
-                                                                                               false, QByteArray());
-                part.normalTexture->setLoadPriorities(_loadPriorities);
-            } else if (part.specularTextureName == name) {
-                part.specularTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
-                                                                                                 false, QByteArray());
-                part.specularTexture->setLoadPriorities(_loadPriorities);
+                    part.diffuseTexture->setLoadPriorities(_loadPriorities);
+                } else if (part.normalTextureName == name) {
+                    part.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                                                                                                   false, QByteArray());
+                    part.normalTexture->setLoadPriorities(_loadPriorities);
+                } else if (part.specularTextureName == name) {
+                    part.specularTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                                                                                                     false, QByteArray());
+                    part.specularTexture->setLoadPriorities(_loadPriorities);
+                } else if (part.emissiveTextureName == name) {
+                    part.emissiveTexture = Application::getInstance()->getTextureCache()->getTexture(url, DEFAULT_TEXTURE,
+                                                                                                     false, QByteArray());
+                    part.emissiveTexture->setLoadPriorities(_loadPriorities);
+                }
             }
         }
+    } else {
+        qDebug() << "Adding a name url pair to pending" << name << url;
+        // we don't have meshes downloaded yet, so hold this texture as pending
+        _pendingTextureChanges.insert(name, url);
     }
 }
 
@@ -755,9 +778,23 @@ QStringList NetworkGeometry::getTextureNames() const {
                 QString textureURL = part.specularTexture->getURL().toString();
                 result << part.specularTextureName + ":" + textureURL;
             }
+
+            if (!part.emissiveTextureName.isEmpty()) {
+                QString textureURL = part.emissiveTexture->getURL().toString();
+                result << part.emissiveTextureName + ":" + textureURL;
+            }
         }
     }
     return result;
+}
+
+void NetworkGeometry::replaceTexturesWithPendingChanges() {
+    QHash<QString, QUrl>::Iterator it = _pendingTextureChanges.begin();
+    
+    while (it != _pendingTextureChanges.end()) {
+        setTextureWithNameToURL(it.key(), it.value());
+        it = _pendingTextureChanges.erase(it);
+    }
 }
 
 /// Reads geometry in a worker thread.
@@ -792,8 +829,27 @@ void GeometryReader::run() {
         return;
     }
     try {
-        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&,
-            _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
+        std::string urlname = _url.path().toLower().toStdString();
+        FBXGeometry fbxgeo;
+        if (_url.path().toLower().endsWith(".svo")) {
+            fbxgeo = readSVO(_reply->readAll());
+        } else {
+            bool grabLightmaps = true;
+            float lightmapLevel = 1.0f;
+            // HACK: For monday 12/01/2014 we need to kill lighmaps loading in starchamber...
+            if (_url.path().toLower().endsWith("loungev4_11-18.fbx")) {
+                grabLightmaps = false;
+            } else if (_url.path().toLower().endsWith("apt8_reboot.fbx")) {
+                lightmapLevel = 4.0f;
+            } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
+                lightmapLevel = 3.5f;
+            }
+            fbxgeo = readFBX(_reply->readAll(), _mapping, grabLightmaps, lightmapLevel);
+        }
+        QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
+
+
+      //      _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
@@ -807,6 +863,7 @@ void NetworkGeometry::init() {
     _geometry = FBXGeometry();
     _meshes.clear();
     _lods.clear();
+    _pendingTextureChanges.clear();
     _request.setUrl(_url);
     Resource::init();
 }
@@ -892,6 +949,13 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 networkPart.specularTextureName = part.specularTexture.name;
                 networkPart.specularTexture->setLoadPriorities(_loadPriorities);
             }
+            if (!part.emissiveTexture.filename.isEmpty()) {
+                networkPart.emissiveTexture = Application::getInstance()->getTextureCache()->getTexture(
+                    _textureBase.resolved(QUrl(part.emissiveTexture.filename)), EMISSIVE_TEXTURE,
+                    false, part.emissiveTexture.content);
+                networkPart.emissiveTextureName = part.emissiveTexture.name;
+                networkPart.emissiveTexture->setLoadPriorities(_loadPriorities);
+            }
             networkMesh.parts.append(networkPart);
                         
             totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
@@ -919,11 +983,11 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
                 int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
                 int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
-                int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+                int texCoords1Offset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
+                int clusterIndicesOffset = texCoords1Offset + mesh.texCoords1.size() * sizeof(glm::vec2);
                 int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
 
                 networkMesh._vertexBuffer->resize(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
-                //networkMesh.vertexBuffer.allocate(clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4));
 
                 networkMesh._vertexBuffer->setSubData(0, mesh.vertices.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.vertices.constData());
                 networkMesh._vertexBuffer->setSubData(normalsOffset, mesh.normals.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.normals.constData());
@@ -932,6 +996,8 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 networkMesh._vertexBuffer->setSubData(colorsOffset, mesh.colors.size() * sizeof(glm::vec3), (gpu::Resource::Byte*) mesh.colors.constData());
                 networkMesh._vertexBuffer->setSubData(texCoordsOffset,
                     mesh.texCoords.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords.constData());
+                networkMesh._vertexBuffer->setSubData(texCoords1Offset,
+                    mesh.texCoords1.size() * sizeof(glm::vec2), (gpu::Resource::Byte*) mesh.texCoords1.constData());
                 networkMesh._vertexBuffer->setSubData(clusterIndicesOffset,
                     mesh.clusterIndices.size() * sizeof(glm::vec4), (gpu::Resource::Byte*) mesh.clusterIndices.constData());
                 networkMesh._vertexBuffer->setSubData(clusterWeightsOffset,
@@ -944,6 +1010,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.tangents.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, tangentsOffset, sizeof(glm::vec3));
                 if (mesh.colors.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, colorsOffset, sizeof(glm::vec3));
                 if (mesh.texCoords.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoordsOffset, sizeof(glm::vec2));
+                if (mesh.texCoords1.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, texCoords1Offset, sizeof(glm::vec2));
                 if (mesh.clusterIndices.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterIndicesOffset, sizeof(glm::vec4));
                 if (mesh.clusterWeights.size()) networkMesh._vertexStream->addBuffer(networkMesh._vertexBuffer, clusterWeightsOffset, sizeof(glm::vec4));
 
@@ -954,6 +1021,7 @@ void NetworkGeometry::setGeometry(const FBXGeometry& geometry) {
                 if (mesh.tangents.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TANGENT, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ));
                 if (mesh.colors.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::COLOR, channelNum++, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB));
                 if (mesh.texCoords.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
+                if (mesh.texCoords1.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::TEXCOORD1, channelNum++, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV));
                 if (mesh.clusterIndices.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_INDEX, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
                 if (mesh.clusterWeights.size()) networkMesh._vertexFormat->setAttribute(gpu::Stream::SKIN_CLUSTER_WEIGHT, channelNum++, gpu::Element(gpu::VEC4, gpu::NFLOAT, gpu::XYZW));
             }

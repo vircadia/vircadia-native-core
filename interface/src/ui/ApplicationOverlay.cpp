@@ -571,8 +571,6 @@ void ApplicationOverlay::renderControllerPointers() {
     static quint64 pressedTime[NUMBER_OF_MAGNIFIERS] = { 0ULL, 0ULL, 0ULL };
     static bool isPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
     static bool stateWhenPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
-    static bool triggerPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
-    static bool bumperPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -611,30 +609,6 @@ void ApplicationOverlay::renderControllerPointers() {
             if (usecTimestampNow() < pressedTime[index] + MAX_BUTTON_PRESS_TIME) {
                 _magActive[index] = !stateWhenPressed[index];
             }
-        }
-
-        //Check for UI active toggle
-        if (palmData->getTrigger() == 1.0f) {
-            if (!triggerPressed[index]) {
-                if (bumperPressed[index]) {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface,
-                                                            !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
-                }
-                triggerPressed[index] = true;
-            }
-        } else {
-            triggerPressed[index] = false;
-        }
-        if ((controllerButtons & BUTTON_FWD)) {
-            if (!bumperPressed[index]) {
-                if (triggerPressed[index]) {
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::UserInterface,
-                                                            !Menu::getInstance()->isOptionChecked(MenuOption::UserInterface));
-                }
-                bumperPressed[index] = true;
-            }
-        } else {
-            bumperPressed[index] = false;
         }
 
         //if we have the oculus, we should make the cursor smaller since it will be
@@ -984,7 +958,10 @@ void ApplicationOverlay::renderAudioMeter() {
     const int AUDIO_METER_X = MIRROR_VIEW_LEFT_PADDING + MUTE_ICON_SIZE + AUDIO_METER_INSET + AUDIO_METER_GAP;
 
     int audioMeterY;
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    bool smallMirrorVisible = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && !OculusManager::isConnected();
+    bool boxed = smallMirrorVisible &&
+        !Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
+    if (boxed) {
         audioMeterY = MIRROR_VIEW_HEIGHT + AUDIO_METER_GAP + MUTE_ICON_PADDING;
     } else {
         audioMeterY = AUDIO_METER_GAP + MUTE_ICON_PADDING;
@@ -997,34 +974,32 @@ void ApplicationOverlay::renderAudioMeter() {
     const float AUDIO_RED_START = 0.80 * AUDIO_METER_SCALE_WIDTH;
     const float CLIPPING_INDICATOR_TIME = 1.0f;
     const float AUDIO_METER_AVERAGING = 0.5;
-    const float LOG2 = log(2.f);
-    const float METER_LOUDNESS_SCALE = 2.8f / 5.f;
-    const float LOG2_LOUDNESS_FLOOR = 11.f;
-    float audioLevel = 0.f;
-    float loudness = audio->getLastInputLoudness() + 1.f;
+    const float LOG2 = log(2.0f);
+    const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
+    const float LOG2_LOUDNESS_FLOOR = 11.0f;
+    float audioLevel = 0.0f;
+    float loudness = audio->getLastInputLoudness() + 1.0f;
 
-    _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.f - AUDIO_METER_AVERAGING) * loudness;
+    _trailingAudioLoudness = AUDIO_METER_AVERAGING * _trailingAudioLoudness + (1.0f - AUDIO_METER_AVERAGING) * loudness;
     float log2loudness = log(_trailingAudioLoudness) / LOG2;
 
     if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
         audioLevel = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
     } else {
-        audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.f)) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
+        audioLevel = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE * AUDIO_METER_SCALE_WIDTH;
     }
     if (audioLevel > AUDIO_METER_SCALE_WIDTH) {
         audioLevel = AUDIO_METER_SCALE_WIDTH;
     }
-    bool isClipping = ((audio->getTimeSinceLastClip() > 0.f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
+    bool isClipping = ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME));
 
-    if ((audio->getTimeSinceLastClip() > 0.f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
+    if ((audio->getTimeSinceLastClip() > 0.0f) && (audio->getTimeSinceLastClip() < CLIPPING_INDICATOR_TIME)) {
         const float MAX_MAGNITUDE = 0.7f;
         float magnitude = MAX_MAGNITUDE * (1 - audio->getTimeSinceLastClip() / CLIPPING_INDICATOR_TIME);
         renderCollisionOverlay(glWidget->width(), glWidget->height(), magnitude, 1.0f);
     }
 
-    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP,
-                         audioMeterY,
-                         Menu::getInstance()->isOptionChecked(MenuOption::Mirror));
+    audio->renderToolBox(MIRROR_VIEW_LEFT_PADDING + AUDIO_METER_GAP, audioMeterY, boxed);
 
     audio->renderScope(glWidget->width(), glWidget->height());
 

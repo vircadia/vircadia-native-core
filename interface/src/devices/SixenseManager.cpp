@@ -241,16 +241,16 @@ void SixenseManager::update(float deltaTime) {
             // Transform the measured position into body frame.
             glm::vec3 neck = _neckBase;
             // Zeroing y component of the "neck" effectively raises the measured position a little bit.
-            neck.y = 0.f;
+            neck.y = 0.0f;
             position = _orbRotation * (position - neck);
             
             //  Rotation of Palm
             glm::quat rotation(data->rot_quat[3], -data->rot_quat[0], data->rot_quat[1], -data->rot_quat[2]);
-            rotation = glm::angleAxis(PI, glm::vec3(0.f, 1.f, 0.f)) * _orbRotation * rotation;
+            rotation = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f)) * _orbRotation * rotation;
             
             //  Compute current velocity from position change
             glm::vec3 rawVelocity;
-            if (deltaTime > 0.f) {
+            if (deltaTime > 0.0f) {
                 rawVelocity = (position - palm->getRawPosition()) / deltaTime;
             } else {
                 rawVelocity = glm::vec3(0.0f);
@@ -287,10 +287,10 @@ void SixenseManager::update(float deltaTime) {
             const glm::vec3 FINGER_VECTOR(0.0f, 0.0f, FINGER_LENGTH);
             const glm::vec3 newTipPosition = position + rotation * FINGER_VECTOR;
             glm::vec3 oldTipPosition = palm->getTipRawPosition();
-            if (deltaTime > 0.f) {
+            if (deltaTime > 0.0f) {
                 palm->setTipVelocity((newTipPosition - oldTipPosition) / deltaTime);
             } else {
-                palm->setTipVelocity(glm::vec3(0.f));
+                palm->setTipVelocity(glm::vec3(0.0f));
             }
             palm->setTipPosition(newTipPosition);
         }
@@ -348,7 +348,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
                 // to also handle the case where left and right controllers have been reversed.
                 _neckBase = 0.5f * (_reachLeft + _reachRight); // neck is midway between right and left reaches
                 glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
-                glm::vec3 yAxis(0.f, 1.f, 0.f);
+                glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
                 glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
                 xAxis = glm::normalize(glm::cross(yAxis, zAxis));
                 _orbRotation = glm::inverse(glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
@@ -405,7 +405,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         } else if (now > _lockExpiry) {
             // lock has expired so clamp the data and move on
             _lockExpiry = now + LOCK_DURATION;
-            _lastDistance = 0.f;
+            _lastDistance = 0.0f;
             _reachUp = 0.5f * (_reachLeft + _reachRight);
             _calibrationState = CALIBRATION_STATE_Y;
             qDebug("success: sixense calibration: left");
@@ -424,7 +424,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
             if (_lastDistance > MINIMUM_ARM_REACH) {
                 // lock has expired so clamp the data and move on
                 _reachForward = _reachUp;
-                _lastDistance = 0.f;
+                _lastDistance = 0.0f;
                 _lockExpiry = now + LOCK_DURATION;
                 _calibrationState = CALIBRATION_STATE_Z;
                 qDebug("success: sixense calibration: up");
@@ -435,7 +435,7 @@ void SixenseManager::updateCalibration(const sixenseControllerData* controllers)
         glm::vec3 xAxis = glm::normalize(_reachRight - _reachLeft);
         glm::vec3 torso = 0.5f * (_reachLeft + _reachRight);
         //glm::vec3 yAxis = glm::normalize(_reachUp - torso);
-        glm::vec3 yAxis(0.f, 1.f, 0.f);
+        glm::vec3 yAxis(0.0f, 1.0f, 0.0f);
         glm::vec3 zAxis = glm::normalize(glm::cross(xAxis, yAxis));
 
         glm::vec3 averagePosition = 0.5f * (_averageLeft + _averageRight);
@@ -477,7 +477,8 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
         triggerButton = Qt::LeftButton;
     }
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::SixenseLasers) 
+        || Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         pos = application->getApplicationOverlay().getPalmClickLocation(palm);
     } else {
         // Get directon relative to avatar orientation

@@ -15,6 +15,9 @@
 
 #include "Vec3.h"
 
+glm::vec3 Vec3::reflect(const glm::vec3& v1, const glm::vec3& v2) {
+    return glm::reflect(v1, v2);
+}
 glm::vec3 Vec3::cross(const glm::vec3& v1, const glm::vec3& v2) {
     return glm::cross(v1,v2);
 }

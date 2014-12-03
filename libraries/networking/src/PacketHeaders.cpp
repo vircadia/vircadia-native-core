@@ -75,13 +75,13 @@ PacketVersion versionForPacketType(PacketType type) {
             return 1;
         case PacketTypeEntityAddOrEdit:
         case PacketTypeEntityData:
-            return VERSION_ENTITIES_SUPPORT_DIMENSIONS;
+            return VERSION_ENTITIES_HAVE_USER_DATA;
         case PacketTypeEntityErase:
             return 2;
         case PacketTypeAudioStreamStats:
             return 1;
         case PacketTypeMetavoxelData:
-            return 8;
+            return 9;
         case PacketTypeVoxelData:
             return VERSION_VOXELS_HAS_FILE_BREAKS;
         default:

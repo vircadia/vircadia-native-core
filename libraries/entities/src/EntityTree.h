@@ -12,6 +12,8 @@
 #ifndef hifi_EntityTree_h
 #define hifi_EntityTree_h
 
+#include <QSet>
+
 #include <Octree.h>
 #include "EntityTreeElement.h"
 
@@ -135,19 +137,27 @@ public:
 
     void sendEntities(EntityEditPacketSender* packetSender, EntityTree* localTree, float x, float y, float z);
 
-    void changeEntityState(EntityItem* const entity, 
-                EntityItem::SimulationState oldState, EntityItem::SimulationState newState);
+    void updateEntityState(EntityItem* entity);
+    void clearEntityState(EntityItem* entity);
+
+    void entityChanged(EntityItem* entity);
 
     void trackDeletedEntity(const EntityItemID& entityID);
+
+    void emitAddingEntity(const EntityItemID& entityItemID);
+    void emitEntityScriptChanging(const EntityItemID& entityItemID);
 
     QList<EntityItem*>& getMovingEntities() { return _movingEntities; }
     
 signals:
     void deletingEntity(const EntityItemID& entityID);
+    void addingEntity(const EntityItemID& entityID);
+    void entityScriptChanging(const EntityItemID& entityItemID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
 
 private:
 
-    void updateChangingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
+    void updateChangedEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
     void updateMovingEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
     void updateMortalEntities(quint64 now, QSet<EntityItemID>& entitiesToDelete);
 
@@ -167,9 +177,10 @@ private:
 
     QHash<EntityItemID, EntityTreeElement*> _entityToElementMap;
 
-    QList<EntityItem*> _movingEntities; // entities that are moving as part of update
-    QList<EntityItem*> _changingEntities; // entities that are changing (like animating), but not moving
-    QList<EntityItem*> _mortalEntities; // entities that are mortal (have lifetime), but not moving or changing
+    QList<EntityItem*> _movingEntities; // entities that need to be updated
+    QList<EntityItem*> _mortalEntities; // entities that need to be checked for expiry
+
+    QSet<EntityItem*> _changedEntities; // entities that have changed in the last frame
 };
 
 #endif // hifi_EntityTree_h

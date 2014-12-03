@@ -17,6 +17,8 @@
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
 const float DEFAULT_MARGIN = 0.1f;
+const int FIXED_FONT_POINT_SIZE = 40;
+const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
@@ -26,6 +28,19 @@ Text3DOverlay::Text3DOverlay() :
     _rightMargin(DEFAULT_MARGIN),
     _bottomMargin(DEFAULT_MARGIN),
     _isFacingAvatar(false)
+{
+}
+
+Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
+    Planar3DOverlay(text3DOverlay),
+    _text(text3DOverlay->_text),
+    _backgroundColor(text3DOverlay->_backgroundColor),
+    _lineHeight(text3DOverlay->_lineHeight),
+    _leftMargin(text3DOverlay->_leftMargin),
+    _topMargin(text3DOverlay->_topMargin),
+    _rightMargin(text3DOverlay->_rightMargin),
+    _bottomMargin(text3DOverlay->_bottomMargin),
+    _isFacingAvatar(text3DOverlay->_isFacingAvatar)
 {
 }
 
@@ -60,13 +75,14 @@ void Text3DOverlay::render(RenderArgs* args) {
     glPushMatrix(); {
         glTranslatef(_position.x, _position.y, _position.z);
         glm::quat rotation;
+        
         if (_isFacingAvatar) {
             // rotate about vertical to face the camera
             rotation = Application::getInstance()->getCamera()->getRotation();
-            rotation *= glm::angleAxis(glm::pi<float>(), glm::vec3(0.0f, 1.0f, 0.0f));
         } else {
             rotation = getRotation();
         }
+        
         glm::vec3 axis = glm::axis(rotation);
         glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
 
@@ -87,11 +103,10 @@ void Text3DOverlay::render(RenderArgs* args) {
             glVertex3f(-halfDimensions.x, halfDimensions.y, SLIGHTLY_BEHIND);
         glEnd();
         
-        const int FIXED_FONT_POINT_SIZE = 40;
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
+        // Same font properties as textWidth()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
-        float LINE_SCALE_RATIO = 1.2f;
         float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
         
         float scaleFactor =  (maxHeight / FIXED_FONT_SCALING_RATIO) * _lineHeight; 
@@ -112,7 +127,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {
-            textRenderer->draw(0, lineOffset, qPrintable(thisLine));
+            textRenderer->draw(0, lineOffset, qPrintable(thisLine), alpha);
             lineOffset += maxHeight;
         }
 
@@ -171,12 +186,50 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
         setBottomMargin(properties.property("bottomMargin").toVariant().toFloat());
     }
 
-
     QScriptValue isFacingAvatarValue = properties.property("isFacingAvatar");
     if (isFacingAvatarValue.isValid()) {
         _isFacingAvatar = isFacingAvatarValue.toVariant().toBool();
     }
 
+}
+
+QScriptValue Text3DOverlay::getProperty(const QString& property) {
+    if (property == "text") {
+        return _text;
+    }
+    if (property == "backgroundColor") {
+        return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "lineHeight") {
+        return _lineHeight;
+    }
+    if (property == "leftMargin") {
+        return _leftMargin;
+    }
+    if (property == "topMargin") {
+        return _topMargin;
+    }
+    if (property == "rightMargin") {
+        return _rightMargin;
+    }
+    if (property == "bottomMargin") {
+        return _bottomMargin;
+    }
+    if (property == "isFacingAvatar") {
+        return _isFacingAvatar;
+    }
+    return Planar3DOverlay::getProperty(property);
+}
+
+Text3DOverlay* Text3DOverlay::createClone() const {
+    return new Text3DOverlay(this);;
+}
+
+float Text3DOverlay::textWidth(const QString& text) const {
+    QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
+    QFontMetrics fontMetrics(font);
+    float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
+    return scaleFactor * (float)fontMetrics.width(qPrintable(text));
 }
 
 

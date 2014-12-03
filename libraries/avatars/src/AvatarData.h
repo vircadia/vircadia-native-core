@@ -83,7 +83,7 @@ const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 const int IS_CHAT_CIRCLING_ENABLED = 5; // 6th bit
 const int HAS_REFERENTIAL = 6; // 7th bit
 
-static const float MAX_AVATAR_SCALE = 1000.f;
+static const float MAX_AVATAR_SCALE = 1000.0f;
 static const float MIN_AVATAR_SCALE = .005f;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
@@ -91,8 +91,8 @@ const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 const int AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS = 1000;
 const int AVATAR_BILLBOARD_PACKET_SEND_INTERVAL_MSECS = 5000;
 
-const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_head.fst");
-const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/meshes/defaultAvatar_body.fst");
+const QUrl DEFAULT_HEAD_MODEL_URL = QUrl("http://public.highfidelity.io/models/heads/defaultAvatar_head.fst");
+const QUrl DEFAULT_BODY_MODEL_URL = QUrl("http://public.highfidelity.io/models/skeletons/defaultAvatar_body.fst");
 
 enum KeyState {
     NO_KEY_DOWN = 0,
@@ -281,7 +281,7 @@ public:
     
     QElapsedTimer& getLastUpdateTimer() { return _lastUpdateTimer; }
      
-    virtual float getBoundingRadius() const { return 1.f; }
+    virtual float getBoundingRadius() const { return 1.0f; }
     
     const Referential* getReferential() const { return _referential; }
 

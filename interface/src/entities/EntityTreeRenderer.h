@@ -56,7 +56,8 @@ public:
     void processEraseMessage(const QByteArray& dataByteArray, const SharedNodePointer& sourceNode);
 
     virtual void init();
-    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE);
+    virtual void render(RenderArgs::RenderMode renderMode = RenderArgs::DEFAULT_RENDER_MODE, 
+                                        RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     virtual const FBXGeometry* getGeometryForEntity(const EntityItem* entityItem);
     virtual const Model* getModelForEntityItem(const EntityItem* entityItem);
@@ -104,8 +105,13 @@ signals:
 
 public slots:
     void deletingEntity(const EntityItemID& entityID);
+    void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
+    void entitySciptChanging(const EntityItemID& entityID);
     
 private:
+    void checkAndCallPreload(const EntityItemID& entityID);
+    void checkAndCallUnload(const EntityItemID& entityID);
+
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
     PickRay computePickRay(float x, float y);
@@ -124,10 +130,15 @@ private:
 
     QScriptValue loadEntityScript(EntityItem* entity);
     QScriptValue loadEntityScript(const EntityItemID& entityItemID);
+    QScriptValue getPreviouslyLoadedEntityScript(const EntityItemID& entityItemID);
     QString loadScriptContents(const QString& scriptMaybeURLorText);
     QScriptValueList createMouseEventArgs(const EntityItemID& entityID, QMouseEvent* event, unsigned int deviceID);
+    QScriptValueList createMouseEventArgs(const EntityItemID& entityID, const MouseEvent& mouseEvent);
     
     QHash<EntityItemID, EntityScriptDetails> _entityScripts;
+
+    bool _lastMouseEventValid;
+    MouseEvent _lastMouseEvent;
 };
 
 #endif // hifi_EntityTreeRenderer_h

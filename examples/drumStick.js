@@ -28,8 +28,8 @@ function vMinus(a, b) {
 
 //  First, load two percussion sounds to be used on the sticks
 
-var drum1 = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomHi.raw");
-var drum2 = new Sound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomLo.raw");
+var drum1 = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomHi.raw");
+var drum2 = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Drums/RackTomLo.raw");
 
 //  State Machine:
 //  0 = not triggered 
@@ -63,8 +63,9 @@ function checkSticks(deltaTime) {
 			//   Waiting for change in velocity direction or slowing to trigger drum sound
 			if ((palmVelocity.y > 0.0) || (speed < STOP_SPEED)) {
 				state[palm] = 0;
-				var options = new AudioInjectionOptions();
-				options.position = Controller.getSpatialControlPosition(palm * 2 + 1);
+        
+        		var options = { position: Controller.getSpatialControlPosition(palm * 2 + 1) };
+        
 				if (strokeSpeed[palm] > 1.0) { strokeSpeed[palm] = 1.0; }
 				options.volume = strokeSpeed[palm];
 

@@ -24,10 +24,12 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::GLBackend::do_drawIndexedInstanced),
 
     (&::gpu::GLBackend::do_setInputFormat),
-
     (&::gpu::GLBackend::do_setInputBuffer),
-
     (&::gpu::GLBackend::do_setIndexBuffer),
+
+    (&::gpu::GLBackend::do_setModelTransform),
+    (&::gpu::GLBackend::do_setViewTransform),
+    (&::gpu::GLBackend::do_setProjectionTransform),
 
     (&::gpu::GLBackend::do_glEnable),
     (&::gpu::GLBackend::do_glDisable),
@@ -51,6 +53,7 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::GLBackend::do_glUseProgram),
     (&::gpu::GLBackend::do_glUniform1f),
+    (&::gpu::GLBackend::do_glUniform2f),
     (&::gpu::GLBackend::do_glUniformMatrix4fv),
 
     (&::gpu::GLBackend::do_glMatrixMode),
@@ -111,18 +114,8 @@ static const GLenum _elementTypeToGLType[NUM_TYPES]= {
 
 
 GLBackend::GLBackend() :
-
-    _inputFormat(0),
-    _inputAttributeActivation(0),
-    _needInputFormatUpdate(true),
-
-    _inputBuffersState(0),
-    _inputBuffers(_inputBuffersState.size(), BufferPointer(0)),
-    _inputBufferOffsets(_inputBuffersState.size(), 0),
-    _inputBufferStrides(_inputBuffersState.size(), 0),
-
-    _indexBuffer(0),
-    _indexBufferOffset(0)
+    _input(),
+    _transform()
 {
 
 }
@@ -138,7 +131,7 @@ void GLBackend::renderBatch(Batch& batch) {
 
     GLBackend backend;
 
-    for (int i = 0; i < numCommands; i++) {
+    for (unsigned int i = 0; i < numCommands; i++) {
         CommandCall call = _commandCalls[(*command)];
         (backend.*(call))(batch, *offset);
         command++;
@@ -183,6 +176,7 @@ void GLBackend::checkGLError() {
 
 void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
     updateInput();
+    updateTransform();
 
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
@@ -195,15 +189,16 @@ void GLBackend::do_draw(Batch& batch, uint32 paramOffset) {
 
 void GLBackend::do_drawIndexed(Batch& batch, uint32 paramOffset) {
     updateInput();
+    updateTransform();
 
     Primitive primitiveType = (Primitive)batch._params[paramOffset + 2]._uint;
     GLenum mode = _primitiveToGLmode[primitiveType];
     uint32 numIndices = batch._params[paramOffset + 1]._uint;
     uint32 startIndex = batch._params[paramOffset + 0]._uint;
 
-    GLenum glType = _elementTypeToGLType[_indexBufferType];
+    GLenum glType = _elementTypeToGLType[_input._indexBufferType];
 
-    glDrawElements(mode, numIndices, glType, (GLvoid*)(startIndex + _indexBufferOffset));
+    glDrawElements(mode, numIndices, glType, reinterpret_cast<GLvoid*>(startIndex + _input._indexBufferOffset));
     CHECK_GL_ERROR();
 }
 
@@ -218,9 +213,9 @@ void GLBackend::do_drawIndexedInstanced(Batch& batch, uint32 paramOffset) {
 void GLBackend::do_setInputFormat(Batch& batch, uint32 paramOffset) {
     Stream::FormatPointer format = batch._streamFormats.get(batch._params[paramOffset]._uint);
 
-    if (format != _inputFormat) {
-        _inputFormat = format;
-        _needInputFormatUpdate = true;
+    if (format != _input._format) {
+        _input._format = format;
+        _input._invalidFormat = true;
     }
 }
 
@@ -231,10 +226,10 @@ void GLBackend::do_setInputBuffer(Batch& batch, uint32 paramOffset) {
     uint32 channel = batch._params[paramOffset + 3]._uint;
 
     if (channel < getNumInputBuffers()) {
-        _inputBuffers[channel] = buffer;
-        _inputBufferOffsets[channel] = offset;
-        _inputBufferStrides[channel] = stride;
-        _inputBuffersState.set(channel);
+        _input._buffers[channel] = buffer;
+        _input._bufferOffsets[channel] = offset;
+        _input._bufferStrides[channel] = stride;
+        _input._buffersState.set(channel);
     }
 }
 
@@ -250,14 +245,14 @@ static const GLenum attributeSlotToClassicAttribName[NUM_CLASSIC_ATTRIBS] = {
 #endif
 
 void GLBackend::updateInput() {
-    if (_needInputFormatUpdate || _inputBuffersState.any()) {
+    if (_input._invalidFormat || _input._buffersState.any()) {
 
-        if (_needInputFormatUpdate) {
-            InputActivationCache newActivation;
+        if (_input._invalidFormat) {
+            InputStageState::ActivationCache newActivation;
 
             // Check expected activation
-            if (_inputFormat) {
-                const Stream::Format::AttributeMap& attributes = _inputFormat->getAttributes();
+            if (_input._format) {
+                const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
                 for (Stream::Format::AttributeMap::const_iterator it = attributes.begin(); it != attributes.end(); it++) {
                     const Stream::Attribute& attrib = (*it).second;
                     newActivation.set(attrib._slot);
@@ -265,9 +260,9 @@ void GLBackend::updateInput() {
             }
 
             // Manage Activation what was and what is expected now
-            for (int i = 0; i < newActivation.size(); i++) {
+            for (unsigned int i = 0; i < newActivation.size(); i++) {
                 bool newState = newActivation[i];
-                if (newState != _inputAttributeActivation[i]) {
+                if (newState != _input._attributeActivation[i]) {
 #if defined(SUPPORT_LEGACY_OPENGL)
                     if (i < NUM_CLASSIC_ATTRIBS) {
                         if (newState) {
@@ -288,33 +283,33 @@ void GLBackend::updateInput() {
                     }
                     CHECK_GL_ERROR();
 
-                    _inputAttributeActivation.flip(i);
+                    _input._attributeActivation.flip(i);
                 }
             }
         }
 
         // now we need to bind the buffers and assign the attrib pointers
-        if (_inputFormat) {
-            const Buffers& buffers = _inputBuffers;
-            const Offsets& offsets = _inputBufferOffsets;
-            const Offsets& strides = _inputBufferStrides;
+        if (_input._format) {
+            const Buffers& buffers = _input._buffers;
+            const Offsets& offsets = _input._bufferOffsets;
+            const Offsets& strides = _input._bufferStrides;
 
-            const Stream::Format::AttributeMap& attributes = _inputFormat->getAttributes();
+            const Stream::Format::AttributeMap& attributes = _input._format->getAttributes();
 
-            for (Stream::Format::ChannelMap::const_iterator channelIt = _inputFormat->getChannels().begin();
-                    channelIt != _inputFormat->getChannels().end();
+            for (Stream::Format::ChannelMap::const_iterator channelIt = _input._format->getChannels().begin();
+                    channelIt != _input._format->getChannels().end();
                     channelIt++) {
                 const Stream::Format::ChannelMap::value_type::second_type& channel = (*channelIt).second;
                 if ((*channelIt).first < buffers.size()) {
                     int bufferNum = (*channelIt).first;
 
-                    if (_inputBuffersState.test(bufferNum) || _needInputFormatUpdate) {
+                    if (_input._buffersState.test(bufferNum) || _input._invalidFormat) {
                         GLuint vbo = gpu::GLBackend::getBufferID((*buffers[bufferNum]));
                         glBindBuffer(GL_ARRAY_BUFFER, vbo);
                         CHECK_GL_ERROR();
-                        _inputBuffersState[bufferNum] = false;
+                        _input._buffersState[bufferNum] = false;
 
-                        for (int i = 0; i < channel._slots.size(); i++) {
+                        for (unsigned int i = 0; i < channel._slots.size(); i++) {
                             const Stream::Attribute& attrib = attributes.at(channel._slots[i]);
                             GLuint slot = attrib._slot;
                             GLuint count = attrib._element.getDimensionCount();
@@ -325,16 +320,16 @@ void GLBackend::updateInput() {
                             if (slot < NUM_CLASSIC_ATTRIBS) {
                                 switch (slot) {
                                 case Stream::POSITION:
-                                    glVertexPointer(count, type, stride, (GLvoid*)pointer);
+                                    glVertexPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
                                     break;
                                 case Stream::NORMAL:
-                                    glNormalPointer(type, stride, (GLvoid*)pointer);
+                                    glNormalPointer(type, stride, reinterpret_cast<GLvoid*>(pointer));
                                     break;
                                 case Stream::COLOR:
-                                    glColorPointer(count, type, stride, (GLvoid*)pointer);
+                                    glColorPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer));
                                     break;
                                 case Stream::TEXCOORD:
-                                    glTexCoordPointer(count, type, stride, (GLvoid*)pointer); 
+                                    glTexCoordPointer(count, type, stride, reinterpret_cast<GLvoid*>(pointer)); 
                                     break;
                                 };
                             } else {
@@ -342,7 +337,8 @@ void GLBackend::updateInput() {
                             {
                             #endif
                                 GLboolean isNormalized = attrib._element.isNormalized();
-                                glVertexAttribPointer(slot, count, type, isNormalized, stride, (GLvoid*)pointer);
+                                glVertexAttribPointer(slot, count, type, isNormalized, stride,
+                                    reinterpret_cast<GLvoid*>(pointer));
                             }
                             CHECK_GL_ERROR();
                         }
@@ -351,7 +347,7 @@ void GLBackend::updateInput() {
             }
         }
         // everything format related should be in sync now
-        _needInputFormatUpdate = false;
+        _input._invalidFormat = false;
     }
 
 /* TODO: Fancy version GL4.4
@@ -412,16 +408,80 @@ void GLBackend::updateInput() {
 
 
 void GLBackend::do_setIndexBuffer(Batch& batch, uint32 paramOffset) {
-    _indexBufferType = (Type) batch._params[paramOffset + 2]._uint;
+    _input._indexBufferType = (Type) batch._params[paramOffset + 2]._uint;
     BufferPointer indexBuffer = batch._buffers.get(batch._params[paramOffset + 1]._uint);
-    _indexBufferOffset = batch._params[paramOffset + 0]._uint;
-    _indexBuffer = indexBuffer;
+    _input._indexBufferOffset = batch._params[paramOffset + 0]._uint;
+    _input._indexBuffer = indexBuffer;
     if (indexBuffer) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, getBufferID(*indexBuffer));
     } else {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
     CHECK_GL_ERROR();
+}
+
+// Transform Stage
+
+void GLBackend::do_setModelTransform(Batch& batch, uint32 paramOffset) {
+    _transform._model = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidModel = true;
+}
+
+void GLBackend::do_setViewTransform(Batch& batch, uint32 paramOffset) {
+    _transform._view = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidView = true;
+}
+
+void GLBackend::do_setProjectionTransform(Batch& batch, uint32 paramOffset) {
+    _transform._projection = batch._transforms.get(batch._params[paramOffset]._uint);
+    _transform._invalidProj = true;
+}
+
+void GLBackend::updateTransform() {
+    if (_transform._invalidProj) {
+        // TODO: implement the projection matrix assignment to gl state
+    /*    if (_transform._lastMode != GL_PROJECTION) {
+            glMatrixMode(GL_PROJECTION);
+            _transform._lastMode = GL_PROJECTION;
+        }
+        CHECK_GL_ERROR();*/
+        _transform._invalidProj;
+    }
+
+    if (_transform._invalidModel || _transform._invalidView) {
+        if (!_transform._model.isIdentity()) {
+            if (_transform._lastMode != GL_MODELVIEW) {
+                glMatrixMode(GL_MODELVIEW);
+                _transform._lastMode = GL_MODELVIEW;
+            }
+            Transform::Mat4 modelView;
+            if (!_transform._view.isIdentity()) {
+                Transform mvx;
+                Transform::inverseMult(mvx, _transform._view, _transform._model);
+                mvx.getMatrix(modelView);
+            } else {
+                _transform._model.getMatrix(modelView);
+            }
+            glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+        } else {
+            if (!_transform._view.isIdentity()) {
+                if (_transform._lastMode != GL_MODELVIEW) {
+                    glMatrixMode(GL_MODELVIEW);
+                    _transform._lastMode = GL_MODELVIEW;
+                }
+                Transform::Mat4 modelView;
+                _transform._view.getInverseMatrix(modelView);
+                glLoadMatrixf(reinterpret_cast< const GLfloat* >(&modelView));
+            } else {
+                // TODO: eventually do something about the matrix when neither view nor model is specified?
+                // glLoadIdentity();
+            }
+        }
+        CHECK_GL_ERROR();
+
+        _transform._invalidModel = false;
+        _transform._invalidView = false;
+    }
 }
 
 // TODO: As long as we have gl calls explicitely issued from interface
@@ -628,6 +688,23 @@ void Batch::_glUniform1f(GLint location, GLfloat v0) {
 void GLBackend::do_glUniform1f(Batch& batch, uint32 paramOffset) {
     glUniform1f(
         batch._params[paramOffset + 1]._int,
+        batch._params[paramOffset + 0]._float);
+    CHECK_GL_ERROR();
+}
+
+void Batch::_glUniform2f(GLint location, GLfloat v0, GLfloat v1) {
+    ADD_COMMAND_GL(glUniform2f);
+
+    _params.push_back(v1);
+    _params.push_back(v0);
+    _params.push_back(location);
+
+    DO_IT_NOW(_glUniform2f, 1);
+}
+void GLBackend::do_glUniform2f(Batch& batch, uint32 paramOffset) {
+    glUniform2f(
+        batch._params[paramOffset + 2]._int,
+        batch._params[paramOffset + 1]._float,
         batch._params[paramOffset + 0]._float);
     CHECK_GL_ERROR();
 }

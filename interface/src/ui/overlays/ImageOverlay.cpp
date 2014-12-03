@@ -27,6 +27,18 @@ ImageOverlay::ImageOverlay() :
     _isLoaded = false;
 }
 
+ImageOverlay::ImageOverlay(const ImageOverlay* imageOverlay) :
+    Overlay2D(imageOverlay),
+    _imageURL(imageOverlay->_imageURL),
+    _textureImage(imageOverlay->_textureImage),
+    _textureID(0),
+    _fromImage(),
+    _renderImage(imageOverlay->_renderImage),
+    _textureBound(false),
+    _wantClipFromImage(false)
+{
+}
+
 ImageOverlay::~ImageOverlay() {
     if (_parent && _textureID) {
         // do we need to call this?
@@ -151,4 +163,16 @@ void ImageOverlay::setProperties(const QScriptValue& properties) {
     }
 }
 
+QScriptValue ImageOverlay::getProperty(const QString& property) {
+    if (property == "subImage") {
+        return qRectToScriptValue(_scriptEngine, _fromImage);
+    }
+    if (property == "imageURL") {
+        return _imageURL.toString();
+    }
 
+    return Overlay2D::getProperty(property);
+}
+ImageOverlay* ImageOverlay::createClone() const {
+    return new ImageOverlay(this);
+}

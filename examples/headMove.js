@@ -19,6 +19,7 @@ var warpPosition = { x: 0, y: 0, z: 0 };
 
 var hipsToEyes;
 var restoreCountdownTimer;
+var headTurningTimer = 0.0;
 
 //  Overlays to show target location 
 
@@ -70,16 +71,12 @@ function activateWarp() {
 
 var WATCH_AVATAR_DISTANCE = 2.5;
 
-var sound = new Sound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
+var sound = SoundCache.getSound("http://public.highfidelity.io/sounds/Footsteps/FootstepW2Right-12db.wav");
 function playSound() {
-    var options = new AudioInjectionOptions();
-    var position = MyAvatar.position; 
-    options.position = position;
-    options.volume = 1.0;
-    Audio.playSound(sound, options);
+    Audio.playSound(sound, {
+      position: MyAvatar.position
+    });
 }
-
-
 
 function pullBack() {
     saveCameraState();
@@ -93,6 +90,7 @@ var WARP_SMOOTHING = 0.90;
 var WARP_START_TIME = 0.25;
 var WARP_START_DISTANCE = 2.5;
 var WARP_SENSITIVITY = 0.15;
+var MAX_WARP_DISTANCE = 25.0;
 
 var fixedHeight = true;
 
@@ -109,7 +107,7 @@ function updateWarp() {
     willMove = (keyDownTime > WARP_START_TIME);
 
     if (willMove) {
-        var distance = Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE;
+        var distance = Math.min(Math.exp(deltaPitch * WARP_SENSITIVITY) * WARP_START_DISTANCE, MAX_WARP_DISTANCE);
         var warpDirection = Vec3.normalize({ x: look.x, y: (fixedHeight ? 0 : look.y), z: look.z });
         var startPosition = (watchAvatar ? Camera.getPosition(): MyAvatar.getEyePosition());
         warpPosition = Vec3.mix(Vec3.sum(startPosition, Vec3.multiply(warpDirection, distance)), warpPosition, WARP_SMOOTHING);
@@ -117,7 +115,7 @@ function updateWarp() {
 
     var cameraPosition;
 
-    if (!watchAvatar && willMove) {
+    if (!watchAvatar && willMove && (distance < WARP_START_DISTANCE * 0.5)) {
         pullBack();
         watchAvatar = true;
     }
@@ -170,6 +168,20 @@ function update(deltaTime) {
             watchAvatar = false; 
             restoreCountDownTimer = 0.0;
         }
+    }
+    var HEAD_TURN_TIME = 0.10;
+    var HEAD_TURN_DEGREES = 4.0; 
+    var HEAD_TURN_START_ANGLE = 45.0;
+    var currentYaw = MyAvatar.getHeadFinalYaw();
+    if (Math.abs(currentYaw) > HEAD_TURN_START_ANGLE) {
+        headTurningTimer += deltaTime;
+        if (headTurningTimer > HEAD_TURN_TIME) {
+            headTurningTimer = 0.0;
+            MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, (currentYaw > 0) ? HEAD_TURN_DEGREES: -HEAD_TURN_DEGREES, 0), 
+                                                 MyAvatar.orientation);
+        }
+    } else {
+        headTurningTimer = 0.0;
     }
 }
 

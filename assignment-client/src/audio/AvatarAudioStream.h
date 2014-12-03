@@ -19,7 +19,7 @@
 class AvatarAudioStream : public PositionalAudioStream {
 public:
     AvatarAudioStream(bool isStereo, const InboundAudioStream::Settings& settings);
-
+    
 private:
     // disallow copying of AvatarAudioStream objects
     AvatarAudioStream(const AvatarAudioStream&);

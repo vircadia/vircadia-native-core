@@ -65,6 +65,7 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <ResourceCache.h>
+#include <SoundCache.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -92,6 +93,7 @@
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
+#include "scripting/WebWindowClass.h"
 
 #include "ui/DataWebDialog.h"
 #include "ui/InfoView.h"
@@ -108,7 +110,8 @@ static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored
 
-const unsigned MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
+
+const qint64 MAXIMUM_CACHE_SIZE = 10737418240;  // 10GB
 
 static QTimer* idleTimer = NULL;
 
@@ -121,7 +124,7 @@ void messageHandler(QtMsgType type, const QMessageLogContext& context, const QSt
     QString logMessage = LogHandler::getInstance().printMessage((LogMsgType) type, context, message);
     
     if (!logMessage.isEmpty()) {
-        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage));
+        Application::getInstance()->getLogger()->addMessage(qPrintable(logMessage + "\n"));
     }
 }
 
@@ -158,6 +161,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _lastQueriedViewFrustum(),
         _lastQueriedTime(usecTimestampNow()),
         _mirrorViewRect(QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT)),
+        _viewTransform(),
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
@@ -369,6 +373,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
 
+    _toolWindow = new ToolWindow();
+    _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
+    _toolWindow->setWindowTitle("Tools");
+
     // initialization continues in initializeGL when OpenGL context is ready
 
     // Tell our voxel edit sender about our known jurisdictions
@@ -417,7 +425,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _trayIcon->show();
     
     // set the local loopback interface for local sounds from audio scripts
-    AudioScriptingInterface::getInstance().setLocalLoopbackInterface(&_audio);
+    AudioScriptingInterface::getInstance().setLocalAudioInterface(&_audio);
     
 #ifdef HAVE_RTMIDI
     // setup the MIDIManager
@@ -430,6 +438,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 
 void Application::aboutToQuit() {
     _aboutToQuit = true;
+    setFullscreen(false); // if you exit while in full screen, you'll get bad behavior when you restart.
 }
 
 Application::~Application() {
@@ -453,22 +462,21 @@ Application::~Application() {
     // ask the datagram processing thread to quit and wait until it is done
     _nodeThread->quit();
     _nodeThread->wait();
+    
+    // kill any audio injectors that are still around
+    AudioScriptingInterface::getInstance().stopAllInjectors();
 
     // stop the audio process
     QMetaObject::invokeMethod(&_audio, "stop");
-
+    
     // ask the audio thread to quit and wait until it is done
     _audio.thread()->quit();
     _audio.thread()->wait();
-
-    // kill any audio injectors that are still around
-    AudioScriptingInterface::getInstance().stopAllInjectors();
     
     _octreeProcessor.terminate();
     _voxelHideShowThread.terminate();
     _voxelEditSender.terminate();
     _entityEditSender.terminate();
-
 
     VoxelTreeElement::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     Menu::getInstance()->deleteLater();
@@ -597,7 +605,7 @@ void Application::initializeGL() {
     }
 
     // update before the first render
-    update(1.f / _fps);
+    update(1.0f / _fps);
 
     InfoView::showFirstTime(INFO_HELP_PATH);
 }
@@ -643,25 +651,16 @@ void Application::paintGL() {
         }
 
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        //Only behave like a true mirror when in the OR
-        if (OculusManager::isConnected()) {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                   glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        } else {
-            _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
-            _myCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                  glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
-                                  (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
-                                  glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
-        }
+        _myCamera.setRotation(_myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
+        _myCamera.setPosition(_myAvatar->getDefaultEyePosition() +
+                              glm::vec3(0, _raiseMirror * _myAvatar->getScale(), 0) +
+                              (_myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, _rotateMirror, 0.0f))) *
+                               glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror);
     }
 
     // Update camera position
     if (!OculusManager::isConnected()) {
-        _myCamera.update(1.f / _fps);
+        _myCamera.update(1.0f / _fps);
     }
 
     // Note: whichCamera is used to pick between the normal camera myCamera for our
@@ -686,7 +685,7 @@ void Application::paintGL() {
         
         _viewFrustumOffsetCamera.setRotation(_myCamera.getRotation() * frustumRotation);
         
-        _viewFrustumOffsetCamera.update(1.f/_fps);
+        _viewFrustumOffsetCamera.update(1.0f/_fps);
         whichCamera = &_viewFrustumOffsetCamera;
     }
 
@@ -705,7 +704,7 @@ void Application::paintGL() {
         } else {
             OculusManager::display(_myAvatar->getWorldAlignedOrientation(), _myAvatar->getDefaultEyePosition(), *whichCamera);
         }
-        _myCamera.update(1.f / _fps);
+        _myCamera.update(1.0f / _fps);
 
     } else if (TV3DManager::isConnected()) {
        
@@ -724,11 +723,11 @@ void Application::paintGL() {
         displaySide(*whichCamera);
         glPopMatrix();
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            renderRearViewMirror(_mirrorViewRect);
-
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             _rearMirrorTools->render(true);
+        
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            renderRearViewMirror(_mirrorViewRect);       
         }
 
         _glowEffect.render();
@@ -786,7 +785,7 @@ void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum)
     // Tell our viewFrustum about this change, using the application camera
     if (updateViewFrustum) {
         loadViewFrustum(camera, _viewFrustum);
-        computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+        _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
 
         // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
         // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
@@ -843,7 +842,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toString());
         }
         
         return false;
@@ -911,7 +910,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                if (!_myAvatar->getDriveKeys(UP)) {
                     _myAvatar->jump();
                 }
-                _myAvatar->setDriveKeys(UP, 1.f);
+                _myAvatar->setDriveKeys(UP, 1.0f);
                 break;
 
             case Qt::Key_Asterisk:
@@ -920,14 +919,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_C:
             case Qt::Key_PageDown:
-                _myAvatar->setDriveKeys(DOWN, 1.f);
+                _myAvatar->setDriveKeys(DOWN, 1.0f);
                 break;
 
             case Qt::Key_W:
                 if (isOption && !isShifted && !isMeta) {
                     Menu::getInstance()->triggerOption(MenuOption::Wireframe);
                 } else {
-                    _myAvatar->setDriveKeys(FWD, 1.f);
+                    _myAvatar->setDriveKeys(FWD, 1.0f);
                 }
                 break;
 
@@ -939,7 +938,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else if (!isOption && !isShifted && isMeta) {
                     takeSnapshot();
                 } else {
-                    _myAvatar->setDriveKeys(BACK, 1.f);
+                    _myAvatar->setDriveKeys(BACK, 1.0f);
                 }
                 break;
 
@@ -957,13 +956,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
                 } else {
-                    _myAvatar->setDriveKeys(ROT_LEFT, 1.f);
+                    _myAvatar->setDriveKeys(ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_D:
                 if (!isMeta) {
-                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.f);
+                    _myAvatar->setDriveKeys(ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -991,7 +990,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _raiseMirror += 0.05f;
                     }
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? UP : FWD, 1.0f);
                 }
                 break;
 
@@ -1003,23 +1002,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                         _raiseMirror -= 0.05f;
                     }
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? DOWN : BACK, 1.0f);
                 }
                 break;
 
             case Qt::Key_Left:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror += PI / 20.f;
+                    _rotateMirror += PI / 20.0f;
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1.0f);
                 }
                 break;
 
             case Qt::Key_Right:
                 if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                    _rotateMirror -= PI / 20.f;
+                    _rotateMirror -= PI / 20.0f;
                 } else {
-                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.f);
+                    _myAvatar->setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1.0f);
                 }
                 break;
 
@@ -1170,48 +1169,48 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
     switch (event->key()) {
         case Qt::Key_E:
         case Qt::Key_PageUp:
-            _myAvatar->setDriveKeys(UP, 0.f);
+            _myAvatar->setDriveKeys(UP, 0.0f);
             break;
 
         case Qt::Key_C:
         case Qt::Key_PageDown:
-            _myAvatar->setDriveKeys(DOWN, 0.f);
+            _myAvatar->setDriveKeys(DOWN, 0.0f);
             break;
 
         case Qt::Key_W:
-            _myAvatar->setDriveKeys(FWD, 0.f);
+            _myAvatar->setDriveKeys(FWD, 0.0f);
             break;
 
         case Qt::Key_S:
-            _myAvatar->setDriveKeys(BACK, 0.f);
+            _myAvatar->setDriveKeys(BACK, 0.0f);
             break;
 
         case Qt::Key_A:
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
             break;
 
         case Qt::Key_D:
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
             break;
 
         case Qt::Key_Up:
-            _myAvatar->setDriveKeys(FWD, 0.f);
-            _myAvatar->setDriveKeys(UP, 0.f);
+            _myAvatar->setDriveKeys(FWD, 0.0f);
+            _myAvatar->setDriveKeys(UP, 0.0f);
             break;
 
         case Qt::Key_Down:
-            _myAvatar->setDriveKeys(BACK, 0.f);
-            _myAvatar->setDriveKeys(DOWN, 0.f);
+            _myAvatar->setDriveKeys(BACK, 0.0f);
+            _myAvatar->setDriveKeys(DOWN, 0.0f);
             break;
 
         case Qt::Key_Left:
-            _myAvatar->setDriveKeys(LEFT, 0.f);
-            _myAvatar->setDriveKeys(ROT_LEFT, 0.f);
+            _myAvatar->setDriveKeys(LEFT, 0.0f);
+            _myAvatar->setDriveKeys(ROT_LEFT, 0.0f);
             break;
 
         case Qt::Key_Right:
-            _myAvatar->setDriveKeys(RIGHT, 0.f);
-            _myAvatar->setDriveKeys(ROT_RIGHT, 0.f);
+            _myAvatar->setDriveKeys(RIGHT, 0.0f);
+            _myAvatar->setDriveKeys(ROT_RIGHT, 0.0f);
             break;
         case Qt::Key_Control:
         case Qt::Key_Shift:
@@ -1515,7 +1514,7 @@ void Application::idle() {
             PerformanceTimer perfTimer("update");
             PerformanceWarning warn(showWarnings, "Application::idle()... update()");
             const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-            update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
+            update(glm::clamp((float)timeSinceLastUpdate / 1000.0f, 0.0f, BIGGEST_DELTA_TIME_SECS));
         }
         {
             PerformanceTimer perfTimer("updateGL");
@@ -1534,11 +1533,6 @@ void Application::idle() {
                 _idleLoopStdev.reset();
             }
 
-            if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-                PerformanceTimer perfTimer("buckyBalls");
-                _buckyBalls.simulate(timeSinceLastUpdate / 1000.f, Application::getInstance()->getAvatar()->getHandData());
-            }
-
             // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
             idleTimer->start(2);
             
@@ -1553,6 +1547,8 @@ void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
+        Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
+        Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
         glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
             <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
             && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
@@ -1564,6 +1560,10 @@ void Application::checkBandwidthMeterClick() {
 }
 
 void Application::setFullscreen(bool fullscreen) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Fullscreen) != fullscreen) {
+        Menu::getInstance()->getActionForOption(MenuOption::Fullscreen)->setChecked(fullscreen);
+    }
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)) {
         if (fullscreen) {
             // Menu show() after hide() doesn't work with Rift VR display so set height instead.
@@ -1574,6 +1574,9 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
+    if (!_aboutToQuit) {
+        _window->show();
+    }
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -1581,6 +1584,10 @@ void Application::setEnable3DTVMode(bool enable3DTVMode) {
 }
 
 void Application::setEnableVRMode(bool enableVRMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode) != enableVRMode) {
+        Menu::getInstance()->getActionForOption(MenuOption::EnableVRMode)->setChecked(enableVRMode);
+    }
+
     if (enableVRMode) {
         if (!OculusManager::isConnected()) {
             // attempt to reconnect the Oculus manager - it's possible this was a workaround
@@ -1591,6 +1598,11 @@ void Application::setEnableVRMode(bool enableVRMode) {
         OculusManager::recalibrate();
     } else {
         OculusManager::abandonCalibration();
+        
+        _mirrorCamera.setHmdPosition(glm::vec3());
+        _mirrorCamera.setHmdRotation(glm::quat());
+        _myCamera.setHmdPosition(glm::vec3());
+        _myCamera.setHmdRotation(glm::quat());
     }
     
     resizeGL(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight());
@@ -1649,8 +1661,8 @@ void Application::makeVoxel(glm::vec3 position,
    }
 
 glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
-    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.f) * TREE_SCALE,
-        (mouseVoxel.z + mouseVoxel.s / 2.f) * TREE_SCALE);
+    return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.0f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.0f) * TREE_SCALE,
+        (mouseVoxel.z + mouseVoxel.s / 2.0f) * TREE_SCALE);
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -1863,7 +1875,7 @@ void Application::init() {
                                                         3.0f * TREE_SCALE / 2.0f));
     _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
     _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
-    _sharedVoxelSystemViewFrustum.setFieldOfView(90.f);
+    _sharedVoxelSystemViewFrustum.setFieldOfView(90.0f);
     _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
     _sharedVoxelSystemViewFrustum.calculate();
     _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
@@ -1922,11 +1934,14 @@ void Application::init() {
         // check if we have a URL in settings to load to jump back to
         // we load this separate from the other settings so we don't double lookup a URL
         QSettings* interfaceSettings = lockSettings();
-        QUrl addressURL = interfaceSettings->value(SETTINGS_ADDRESS_KEY).toUrl();
+        QVariant addressVariant = interfaceSettings->value(SETTINGS_ADDRESS_KEY);
         
-        AddressManager::getInstance().handleLookupString(addressURL.toString());
+        QString addressString = addressVariant.isNull()
+            ? DEFAULT_HIFI_ADDRESS : addressVariant.toUrl().toString();
         
         unlockSettings();
+        
+        AddressManager::getInstance().handleLookupString(addressString);
     }
     
     qDebug() << "Loaded settings";
@@ -2009,25 +2024,17 @@ void Application::init() {
 
 void Application::closeMirrorView() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);
     }
 }
 
 void Application::restoreMirrorView() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
 
 void Application::shrinkMirrorView() {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
-    }
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
@@ -2164,7 +2171,7 @@ void Application::updateMyAvatarLookAtPosition() {
         } else {
             //  I am not looking at anyone else, so just look forward
             lookAtSpot = _myAvatar->getHead()->getEyePosition() +
-                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.f, 0.f, -TREE_SCALE));
+                (_myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
         }
     }
     //
@@ -2318,7 +2325,7 @@ void Application::update(float deltaTime) {
     updateDialogs(deltaTime); // update various stats dialogs if present
     updateCursor(deltaTime); // Handle cursor updates
 
-    {
+    if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
         _entities.update(); // update the models...
         {
@@ -2675,6 +2682,14 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
     });
 }
 
+bool Application::isHMDMode() const {
+    if (OculusManager::isConnected()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 /////////////////////////////////////////////////////////////////////////////////////
 // loadViewFrustum()
 //
@@ -2811,6 +2826,8 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
+        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
+        // setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
@@ -2828,7 +2845,12 @@ void Application::updateShadowMap() {
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D(RenderArgs::SHADOW_RENDER_MODE);
+            _overlays.render3D(false, RenderArgs::SHADOW_RENDER_MODE);
+        }
+
+        {
+            PerformanceTimer perfTimer("3dOverlaysFront");
+            _overlays.render3D(true, RenderArgs::SHADOW_RENDER_MODE);
         }
 
         glDisable(GL_POLYGON_OFFSET_FILL);
@@ -2883,7 +2905,7 @@ QImage Application::renderAvatarBillboard() {
     return image;
 }
 
-void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
+void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderArgs::RenderSide renderSide) {
     PROFILE_RANGE(__FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -2917,6 +2939,26 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     // store view matrix without translation, which we'll use for precision-sensitive objects
     updateUntranslatedViewMatrix(-whichCamera.getPosition());
+
+    // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+    // the viewTransofmr object is updatded with the correct values and saved,
+    // this is what is used for rendering the Entities and avatars
+    Transform viewTransform;
+    viewTransform.setTranslation(whichCamera.getPosition());
+    viewTransform.setRotation(rotation);
+    viewTransform.postTranslate(eyeOffsetPos);
+    viewTransform.postRotate(eyeOffsetOrient);
+    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
+         viewTransform.setScale(Transform::Vec3(-1.0f, 1.0f, 1.0f));
+    }
+    if (renderSide != RenderArgs::MONO) {
+        glm::mat4 invView = glm::inverse(_untranslatedViewMatrix);
+        
+        viewTransform.evalFromRawMatrix(invView);
+        viewTransform.preTranslate(_viewMatrixTranslation);
+    }
+    
+    setViewTransform(viewTransform);
 
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
@@ -2996,13 +3038,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             _audioReflector.render();
         }
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::BuckyBalls)) {
-            PerformanceTimer perfTimer("buckyBalls");
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                "Application::displaySide() ... bucky balls...");
-            _buckyBalls.render();
-        }
-
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -3024,13 +3059,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             PerformanceTimer perfTimer("entities");
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                 "Application::displaySide() ... entities...");
-            _entities.render();
+            _entities.render(RenderArgs::DEFAULT_RENDER_MODE, renderSide);
         }
 
         // render JS/scriptable overlays
         {
             PerformanceTimer perfTimer("3dOverlays");
-            _overlays.render3D();
+            _overlays.render3D(false);
         }
 
         // render the ambient occlusion effect if enabled
@@ -3042,13 +3077,16 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
+
+
     bool mirrorMode = (whichCamera.getMode() == CAMERA_MODE_MIRROR);
     {
         PerformanceTimer perfTimer("avatars");
         _avatarManager.renderAvatars(mirrorMode ? Avatar::MIRROR_RENDER_MODE : Avatar::NORMAL_RENDER_MODE,
             false, selfAvatarOnly);   
     }
-    
+
+
     {
         PROFILE_RANGE("DeferredLighting"); 
         PerformanceTimer perfTimer("lighting");
@@ -3107,15 +3145,26 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             emit renderingInWorldInterface();
         }
     }
-    
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::Wireframe)) {
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    }
+
+    // Render 3D overlays that should be drawn in front
+    {
+        PerformanceTimer perfTimer("3dOverlaysFront");
+        glClear(GL_DEPTH_BUFFER_BIT);
+        _overlays.render3D(true);
     }
 }
 
 void Application::updateUntranslatedViewMatrix(const glm::vec3& viewMatrixTranslation) {
     glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
     _viewMatrixTranslation = viewMatrixTranslation;
+}
+
+void Application::setViewTransform(const Transform& view) {
+    _viewTransform = view;
 }
 
 void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
@@ -3181,12 +3230,12 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
     if (billboard) {
         _mirrorCamera.setFieldOfView(BILLBOARD_FIELD_OF_VIEW);  // degees
         _mirrorCamera.setPosition(_myAvatar->getPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * BILLBOARD_DISTANCE * _myAvatar->getScale());
 
     } else if (_rearMirrorTools->getZoomLevel() == BODY) {
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
         _mirrorCamera.setPosition(_myAvatar->getChestPosition() +
-                                  _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
+                                  _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_BODY_DISTANCE * _myAvatar->getScale());
 
     } else { // HEAD zoom level
         _mirrorCamera.setFieldOfView(MIRROR_FIELD_OF_VIEW);     // degrees
@@ -3194,11 +3243,11 @@ void Application::renderRearViewMirror(const QRect& region, bool billboard) {
             // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
             // face/body so that the average eye position lies at the origin
             eyeRelativeCamera = true;
-            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+            _mirrorCamera.setPosition(_myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
 
         } else {
             _mirrorCamera.setPosition(_myAvatar->getHead()->getEyePosition() +
-                                      _myAvatar->getOrientation() * glm::vec3(0.f, 0.f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
+                                      _myAvatar->getOrientation() * glm::vec3(0.0f, 0.0f, -1.0f) * MIRROR_REARVIEW_DISTANCE * _myAvatar->getScale());
         }
     }
     _mirrorCamera.setAspectRatio((float)region.width() / region.height());
@@ -3465,7 +3514,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
     }
 }
 
-
 void Application::resetSensors() {
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
@@ -3479,7 +3527,11 @@ void Application::resetSensors() {
     _prioVR.reset();
     //_leapmotion.reset();
 
-    QCursor::setPos(_mouseX, _mouseY);
+    QScreen* currentScreen = _window->windowHandle()->screen();
+    QWindow* mainWindow = _window->windowHandle();
+    QPoint windowCenter = mainWindow->geometry().center();
+    QCursor::setPos(currentScreen, windowCenter);
+    
     _myAvatar->reset();
 
     QMetaObject::invokeMethod(&_audio, "reset", Qt::QueuedConnection);
@@ -3898,7 +3950,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, SIGNAL(loadScript(const QString&, bool)), this, SLOT(loadScript(const QString&, bool)));
 
     scriptEngine->registerGlobalObject("Overlays", &_overlays);
-    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, RayToOverlayIntersectionResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, OverlayPropertyResultToScriptValue, OverlayPropertyResultFromScriptValue);
+    qScriptRegisterMetaType(scriptEngine, RayToOverlayIntersectionResultToScriptValue, 
+                            RayToOverlayIntersectionResultFromScriptValue);
 
     QScriptValue windowValue = scriptEngine->registerGlobalObject("Window", WindowScriptingInterface::getInstance());
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
@@ -3906,11 +3960,14 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     // register `location` on the global object.
     scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
                                        LocationScriptingInterface::locationSetter);
+
+    scriptEngine->registerFunction("WebWindow", WebWindowClass::constructor, 1);
     
     scriptEngine->registerGlobalObject("Menu", MenuScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
+    scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
     scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
@@ -3959,26 +4016,23 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         return _scriptEnginesHash[scriptURLString];
     }
 
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
+    ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     scriptEngine->setUserLoaded(isUserLoaded);
     
-    registerScriptEngineWithApplicationServices(scriptEngine);
+    if (scriptFilename.isNull()) {
+        // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
+        // doesn't just get an empty script engine)
+        
+        // we can complete setup now since there isn't a script we have to load
+        registerScriptEngineWithApplicationServices(scriptEngine);
+    } else {
+        // connect to the appropriate signals of this script engine
+        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
+        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
+        
+        // get the script engine object to load the script at the designated script URL
+        scriptEngine->loadURL(scriptUrl);
+    }
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {
@@ -3987,6 +4041,22 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
+    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    
+    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    UserActivityLogger::getInstance().loadedScript(scriptFilename);
+    
+    // register our application services and set it off on its own thread
+    registerScriptEngineWithApplicationServices(scriptEngine);
+}
+
+void Application::handleScriptLoadError(const QString& scriptFilename) {
+    qDebug() << "Application::loadScript(), script failed to load...";
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {
@@ -4189,7 +4259,7 @@ void Application::toggleLogDialog() {
 }
 
 void Application::initAvatarAndViewFrustum() {
-    updateMyAvatar(0.f);
+    updateMyAvatar(0.0f);
 }
 
 void Application::checkVersion() {
@@ -4315,8 +4385,6 @@ bool Application::isVSyncOn() const {
     if (wglewGetExtension("WGL_EXT_swap_control")) {
         int swapInterval = wglGetSwapIntervalEXT();
         return (swapInterval > 0);
-    } else {
-        return true;
     }
 #elif defined(Q_OS_LINUX)
     // TODO: write the poper code for linux
@@ -4327,10 +4395,9 @@ bool Application::isVSyncOn() const {
     } else {
         return true;
     }
-    */
-#else
-    return true;
+    */    
 #endif
+    return true;
 }
 
 bool Application::isVSyncEditable() const {
@@ -4345,7 +4412,6 @@ bool Application::isVSyncEditable() const {
         return true;
     }
     */
-#else
 #endif
     return false;
 }
@@ -4367,7 +4433,7 @@ unsigned int Application::getRenderTargetFramerate() const {
 
 float Application::getRenderResolutionScale() const {
     if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionOne)) {
-        return 1.f;
+        return 1.0f;
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionTwoThird)) {
         return 0.666f;
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionHalf)) {
@@ -4377,6 +4443,6 @@ float Application::getRenderResolutionScale() const {
     } else if (Menu::getInstance()->isOptionChecked(MenuOption::RenderResolutionQuarter)) {
         return 0.25f;
     } else {
-        return 1.f;
+        return 1.0f;
     }
 }

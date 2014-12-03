@@ -14,9 +14,14 @@
 
 #include "OculusManager.h"
 
+#include <QDesktopWidget>
+#include <QGuiApplication>
 #include <QOpenGLFramebufferObject>
+#include <QScreen>
 
 #include <glm/glm.hpp>
+
+#include <SharedUtil.h>
 #include <UserActivityLogger.h>
 
 #include "Application.h"
@@ -56,7 +61,7 @@ Camera* OculusManager::_camera = NULL;
 int OculusManager::_activeEyeIndex = -1;
 
 float OculusManager::CALIBRATION_DELTA_MINIMUM_LENGTH = 0.02f;
-float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.f * RADIANS_PER_DEGREE;
+float OculusManager::CALIBRATION_DELTA_MINIMUM_ANGLE = 5.0f * RADIANS_PER_DEGREE;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_LENGTH = 0.01f;
 float OculusManager::CALIBRATION_ZERO_MAXIMUM_ANGLE = 2.0f * RADIANS_PER_DEGREE;
 quint64 OculusManager::CALIBRATION_ZERO_HOLD_TIME = 3000000; // usec
@@ -75,9 +80,7 @@ glm::vec3 OculusManager::_rightEyePosition = glm::vec3();
 void OculusManager::connect() {
 #ifdef HAVE_LIBOVR
     _calibrationState = UNCALIBRATED;
-
     qDebug() << "Oculus SDK" << OVR_VERSION_STRING;
-
     ovr_Initialize();
 
     _ovrHmd = ovrHmd_Create(0);
@@ -86,6 +89,7 @@ void OculusManager::connect() {
             UserActivityLogger::getInstance().connectedDevice("hmd", "oculus");
         }
         _isConnected = true;
+        
 #if defined(__APPLE__) || defined(_WIN32)
         _eyeFov[0] = _ovrHmd->DefaultEyeFov[0];
         _eyeFov[1] = _ovrHmd->DefaultEyeFov[1];
@@ -196,7 +200,7 @@ void OculusManager::positionCalibrationBillboard(Text3DOverlay* billboard) {
     headOrientation.z = 0;
     glm::normalize(headOrientation);
     billboard->setPosition(Application::getInstance()->getAvatar()->getHeadPosition()
-        + headOrientation * glm::vec3(0.f, 0.f, -CALIBRATION_MESSAGE_DISTANCE));
+        + headOrientation * glm::vec3(0.0f, 0.0f, -CALIBRATION_MESSAGE_DISTANCE));
     billboard->setRotation(headOrientation);
 }
 #endif
@@ -504,10 +508,12 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
             (bodyOrientation * glm::quat(orientation.x, orientation.y, orientation.z, orientation.w) *
              glm::vec3(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z));
         
+        RenderArgs::RenderSide renderSide = RenderArgs::STEREO_LEFT;
         if (eyeIndex == 0) {
             _leftEyePosition = thisEyePosition;
         } else {
             _rightEyePosition = thisEyePosition;
+            renderSide = RenderArgs::STEREO_RIGHT;
         }
 
         _camera->update(1.0f / Application::getInstance()->getFps());
@@ -522,11 +528,15 @@ void OculusManager::display(const glm::quat &bodyOrientation, const glm::vec3 &p
         glViewport(_eyeRenderViewport[eye].Pos.x, _eyeRenderViewport[eye].Pos.y,
                    _eyeRenderViewport[eye].Size.w, _eyeRenderViewport[eye].Size.h);
 
+      
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
+      
+        // HACK: instead of passing the stereo eye offset directly in the matrix, pass it in the camera offset
+        //glTranslatef(_eyeRenderDesc[eye].ViewAdjust.x, _eyeRenderDesc[eye].ViewAdjust.y, _eyeRenderDesc[eye].ViewAdjust.z);
         
-        Application::getInstance()->displaySide(*_camera);
+        _camera->setEyeOffsetPosition(glm::vec3(-_eyeRenderDesc[eye].ViewAdjust.x, -_eyeRenderDesc[eye].ViewAdjust.y, -_eyeRenderDesc[eye].ViewAdjust.z));
+        Application::getInstance()->displaySide(*_camera, false, RenderArgs::MONO);
 
         applicationOverlay.displayOverlayTextureOculus(*_camera);
         _activeEyeIndex = -1;
@@ -709,3 +719,59 @@ void OculusManager::overrideOffAxisFrustum(float& left, float& right, float& bot
     }
 #endif
 }
+
+int OculusManager::getHMDScreen() {
+    int hmdScreenIndex = -1; // unknown
+#ifdef HAVE_LIBOVR
+    // TODO: it might be smarter to handle multiple HMDs connected in this case. but for now,
+    // we will simply assume the initialization code that set up _ovrHmd picked the best hmd
+
+    if (_ovrHmd) {
+        QString productNameFromOVR = _ovrHmd->ProductName;
+
+        int hmdWidth = _ovrHmd->Resolution.w;
+        int hmdHeight = _ovrHmd->Resolution.h;
+        int hmdAtX = _ovrHmd->WindowsPos.x;
+        int hmdAtY = _ovrHmd->WindowsPos.y;
+
+        // we will score the likelihood that each screen is a match based on the following
+        // rubrik of potential matching features
+        const int EXACT_NAME_MATCH = 100;
+        const int SIMILAR_NAMES = 10;
+        const int EXACT_LOCATION_MATCH = 50;
+        const int EXACT_RESOLUTION_MATCH = 25;
+        
+        int bestMatchScore = 0;
+
+        // look at the display list and see if we can find the best match
+        QDesktopWidget* desktop = QApplication::desktop();
+        int screenNumber = 0;
+        foreach (QScreen* screen, QGuiApplication::screens()) {
+            QString screenName = screen->name();
+            QRect screenRect = desktop->screenGeometry(screenNumber);
+            
+            int screenScore = 0;
+            if (screenName == productNameFromOVR) {
+                screenScore += EXACT_NAME_MATCH;
+            }
+            if (similarStrings(screenName, productNameFromOVR)) {
+                screenScore += SIMILAR_NAMES;
+            }
+            if (hmdWidth == screenRect.width() && hmdHeight == screenRect.height()) {
+                screenScore += EXACT_RESOLUTION_MATCH;
+            }
+            if (hmdAtX == screenRect.x() && hmdAtY == screenRect.y()) {
+                screenScore += EXACT_LOCATION_MATCH;
+            }
+            if (screenScore > bestMatchScore) {
+                bestMatchScore = screenScore;
+                hmdScreenIndex = screenNumber;
+            }
+
+            screenNumber++;
+        }
+    }
+#endif
+    return hmdScreenIndex;
+}
+

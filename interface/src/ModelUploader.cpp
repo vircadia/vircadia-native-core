@@ -157,7 +157,7 @@ bool ModelUploader::zip() {
     
     // mixamo/autodesk defaults
     if (!mapping.contains(SCALE_FIELD)) {
-        mapping.insert(SCALE_FIELD, 15.0);
+        mapping.insert(SCALE_FIELD, 1.0);
     }
     QVariantHash joints = mapping.value(JOINT_FIELD).toHash();
     if (!joints.contains("jointEyeLeft")) {
@@ -521,6 +521,14 @@ bool ModelUploader::addTextures(const QString& texdir, const FBXGeometry& geomet
                     return false;
                 }
                 _textureFilenames.insert(part.specularTexture.filename);
+            }
+            if (!part.emissiveTexture.filename.isEmpty() && part.emissiveTexture.content.isEmpty() &&
+                    !_textureFilenames.contains(part.emissiveTexture.filename)) {
+                if (!addPart(texdir + "/" + part.emissiveTexture.filename,
+                             QString("texture%1").arg(++_texturesCount), true)) {
+                    return false;
+                }
+                _textureFilenames.insert(part.emissiveTexture.filename);
             }
         }
     }

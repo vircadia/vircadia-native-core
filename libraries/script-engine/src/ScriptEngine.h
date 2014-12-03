@@ -40,9 +40,6 @@ const unsigned int SCRIPT_DATA_CALLBACK_USECS = floor(((1.0 / 60.0f) * 1000 * 10
 class ScriptEngine : public QScriptEngine {
     Q_OBJECT
 public:
-    ScriptEngine(const QUrl& scriptURL,
-                 AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
-
     ScriptEngine(const QString& scriptContents = NO_SCRIPT,
                  const QString& fileNameString = QString(""),
                  AbstractControllerScriptingInterface* controllerScriptingInterface = NULL);
@@ -65,6 +62,7 @@ public:
     QScriptValue registerGlobalObject(const QString& name, QObject* object); /// registers a global object by name
     void registerGetterSetter(const QString& name, QScriptEngine::FunctionSignature getter,
                               QScriptEngine::FunctionSignature setter, QScriptValue object = QScriptValue::NullValue);
+    void registerFunction(const QString& name, QScriptEngine::FunctionSignature fun, int numArguments = -1);
 
     Q_INVOKABLE void setIsAvatar(bool isAvatar);
     bool isAvatar() const { return _isAvatar; }
@@ -93,6 +91,7 @@ public:
     bool isUserLoaded() const { return _isUserLoaded; }
 
 public slots:
+    void loadURL(const QUrl& scriptURL);
     void stop();
 
     QScriptValue evaluate(const QString& program, const QString& fileName = QString(), int lineNumber = 1);
@@ -103,10 +102,13 @@ public slots:
     void include(const QString& includeFile);
     void load(const QString& loadfile);
     void print(const QString& message);
+    QUrl resolvePath(const QString& path) const;
 
     void nodeKilled(SharedNodePointer node);
 
 signals:
+    void scriptLoaded(const QString& scriptFilename);
+    void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
     void finished(const QString& fileNameString);
@@ -131,7 +133,6 @@ protected:
     int _numAvatarSoundSentBytes;
 
 private:
-    QUrl resolveInclude(const QString& include) const;
     void sendAvatarIdentityPacket();
     void sendAvatarBillboardPacket();
 
@@ -154,6 +155,8 @@ private:
     ArrayBufferClass* _arrayBufferClass;
 
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
+private slots:
+    void handleScriptDownload();
 };
 
 #endif // hifi_ScriptEngine_h

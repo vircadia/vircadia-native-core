@@ -17,6 +17,8 @@
 #include "ShutdownEventListener.h"
 #include "ThreadedAssignment.h"
 
+class QSharedMemory;
+
 class AssignmentClient : public QCoreApplication {
     Q_OBJECT
 public:
@@ -34,6 +36,8 @@ private:
     static SharedAssignmentPointer _currentAssignment;
     ShutdownEventListener _shutdownEventListener;
     QString _assignmentServerHostname;
+    HifiSockAddr _assignmentServerSocket;
+    QSharedMemory* _localASPortSharedMem;
 };
 
 #endif // hifi_AssignmentClient_h

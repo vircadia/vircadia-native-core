@@ -621,7 +621,7 @@ void EntityTreeElement::getEntities(const AACube& box, QVector<EntityItem*>& fou
         // NOTE: we actually do cube-cube collision queries here, which is sloppy but good enough for now
         // TODO: decide whether to replace entityCube-cube query with sphere-cube (requires a square root
         // but will be slightly more accurate).
-        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.f * radius);
+        entityCube.setBox(entity->getPosition() - glm::vec3(radius), 2.0f * radius);
         if (entityCube.touches(box)) {
             foundEntities.push_back(entity);
         }
@@ -726,7 +726,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     entityItemID = EntityItemID::readEntityItemIDFromBuffer(dataAt, bytesLeftToRead);
                     entityItem = _myTree->findEntityByEntityItemID(entityItemID);
                 }
-                
+
                 // If the item already exists in our tree, we want do the following...
                 // 1) allow the existing item to read from the databuffer
                 // 2) check to see if after reading the item, the containing element is still correct, fix it if needed
@@ -734,13 +734,13 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 // TODO: Do we need to also do this?
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
+                    QString entityScriptBefore = entityItem->getScript();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
-                    EntityItem::SimulationState oldState = entityItem->getSimulationState();
+
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                    EntityItem::SimulationState newState = entityItem->getSimulationState();
-                    if (oldState != newState) {
-                        _myTree->changeEntityState(entityItem, oldState, newState);
+                    if (entityItem->getUpdateFlags()) {
+                        _myTree->entityChanged(entityItem);
                     }
                     bool bestFitAfter = bestFitEntityBounds(entityItem);
 
@@ -755,6 +755,12 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             }
                         }
                     }
+
+                    QString entityScriptAfter = entityItem->getScript();
+                    if (entityScriptBefore != entityScriptAfter) {
+                        _myTree->emitEntityScriptChanging(entityItemID); // the entity script has changed
+                    }
+
                 } else {
                     entityItem = EntityTypes::constructEntityItem(dataAt, bytesLeftToRead, args);
                     if (entityItem) {
@@ -762,8 +768,8 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         addEntityItem(entityItem); // add this new entity to this elements entities
                         entityItemID = entityItem->getEntityItemID();
                         _myTree->setContainingElement(entityItemID, this);
-                        EntityItem::SimulationState newState = entityItem->getSimulationState();
-                        _myTree->changeEntityState(entityItem, EntityItem::Static, newState);
+                        _myTree->updateEntityState(entityItem);
+                        _myTree->emitAddingEntity(entityItemID); // we just added an entity
                     }
                 }
                 // Move the buffer forward to read more entities

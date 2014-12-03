@@ -22,6 +22,12 @@
 Overlay2D::Overlay2D() {
 }
 
+Overlay2D::Overlay2D(const Overlay2D* overlay2D) :
+    Overlay(overlay2D),
+    _bounds(overlay2D->_bounds)
+{
+}
+
 Overlay2D::~Overlay2D() {
 }
 
@@ -63,4 +69,24 @@ void Overlay2D::setProperties(const QScriptValue& properties) {
         setBounds(newBounds);
         //qDebug() << "set bounds to " << getBounds();
     }
+}
+
+QScriptValue Overlay2D::getProperty(const QString& property) {
+    if (property == "bounds") {
+        return qRectToScriptValue(_scriptEngine, _bounds);
+    }
+    if (property == "x") {
+        return _bounds.x();
+    }
+    if (property == "y") {
+        return _bounds.y();
+    }
+    if (property == "width") {
+        return _bounds.width();
+    }
+    if (property == "height") {
+        return _bounds.height();
+    }
+
+    return Overlay::getProperty(property);
 }

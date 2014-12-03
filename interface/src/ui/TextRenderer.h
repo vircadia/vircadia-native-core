@@ -35,7 +35,13 @@ const char SOLID_BLOCK_CHAR = 127;
 #define MONO_FONT_FAMILY "Courier"
 
 // the Inconsolata font family
+#ifdef Q_OS_WIN
+#define INCONSOLATA_FONT_FAMILY "Fixedsys"
+#define INCONSOLATA_FONT_WEIGHT QFont::Normal
+#else
 #define INCONSOLATA_FONT_FAMILY "Inconsolata"
+#define INCONSOLATA_FONT_WEIGHT QFont::Bold
+#endif
 
 class Glyph;
 
@@ -63,7 +69,7 @@ public:
     int calculateHeight(const char* str);
 
     // also returns the height of the tallest character
-    int draw(int x, int y, const char* str);
+    int draw(int x, int y, const char* str, float alpha = 1.0f);
     
     int computeWidth(char ch);
     int computeWidth(const char* str);

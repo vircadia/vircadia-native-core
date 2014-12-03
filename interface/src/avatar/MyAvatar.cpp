@@ -39,6 +39,7 @@
 #include "Recorder.h"
 #include "devices/Faceshift.h"
 #include "devices/OculusManager.h"
+#include "renderer/AnimationHandle.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
@@ -49,7 +50,7 @@ const float PITCH_SPEED = 100.0f; // degrees/sec
 const float COLLISION_RADIUS_SCALAR = 1.2f; // pertains to avatar-to-avatar collisions
 const float COLLISION_RADIUS_SCALE = 0.125f;
 
-const float MAX_WALKING_SPEED = 4.5f;
+const float MAX_WALKING_SPEED = 2.5f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // keyboard motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f; // speed is set to zero below this
 
@@ -67,8 +68,7 @@ const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 MyAvatar::MyAvatar() :
 	Avatar(),
     _mousePressed(false),
-    _bodyPitchDelta(0.0f),
-    _bodyRollDelta(0.0f),
+    _turningKeyPressTime(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _shouldJump(false),
@@ -88,6 +88,7 @@ MyAvatar::MyAvatar() :
     _billboardValid(false),
     _physicsSimulation(),
     _voxelShapeManager(),
+    _feetTouchFloor(true),
     _isLookingAtLeftEye(true)
 {
     ShapeCollider::initDispatchTable();
@@ -114,7 +115,7 @@ QByteArray MyAvatar::toByteArray() {
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
         // fake the avatar position that is sent up to the AvatarMixer
         glm::vec3 oldPosition = _position;
-        _position += _skeletonOffset;
+        _position = getSkeletonPosition();
         QByteArray array = AvatarData::toByteArray();
         // copy the correct position back
         _position = oldPosition;
@@ -131,8 +132,8 @@ void MyAvatar::reset() {
     setThrust(glm::vec3(0.0f));
     //  Reset the pitch and roll components of the avatar's orientation, preserve yaw direction
     glm::vec3 eulers = safeEulerAngles(getOrientation());
-    eulers.x = 0.f;
-    eulers.z = 0.f;
+    eulers.x = 0.0f;
+    eulers.z = 0.0f;
     setOrientation(glm::quat(eulers));
 }
 
@@ -144,11 +145,6 @@ void MyAvatar::update(float deltaTime) {
     Head* head = getHead();
     head->relaxLean(deltaTime);
     updateFromTrackers(deltaTime);
-    if (Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
-        // Faceshift drive is enabled, set the avatar drive based on the head position
-        moveWithLean();
-    }
-    
     //  Get audio loudness data from audio input device
     Audio* audio = Application::getInstance()->getAudio();
     head->setAudioLoudness(audio->getLastInputLoudness());
@@ -159,6 +155,9 @@ void MyAvatar::update(float deltaTime) {
     }
 
     simulate(deltaTime);
+    if (_feetTouchFloor) {
+        _skeletonModel.updateStandingFoot();
+    }
 }
 
 void MyAvatar::simulate(float deltaTime) {
@@ -367,42 +366,21 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
     const float TORSO_LENGTH = 0.5f;
     glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
     const float MAX_LEAN = 45.0f;
+
+    // Invert left/right lean when in mirror mode
+    // NOTE: this is kinda a hack, it's the same hack we use to make the head tilt. But it's not really a mirror
+    // it just makes you feel like you're looking in a mirror because the body movements of the avatar appear to
+    // match your body movements.
+    if (OculusManager::isConnected() && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
+        relativePosition.x = -relativePosition.x;
+    }
+
     head->setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
     head->setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
 }
 
-void MyAvatar::moveWithLean() {
-    //  Move with Lean by applying thrust proportional to leaning
-    Head* head = getHead();
-    glm::quat orientation = head->getCameraOrientation();
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    float leanForward = head->getLeanForward();
-    float leanSideways = head->getLeanSideways();
-
-    //  Degrees of 'dead zone' when leaning, and amount of acceleration to apply to lean angle
-    const float LEAN_FWD_DEAD_ZONE = 15.0f;
-    const float LEAN_SIDEWAYS_DEAD_ZONE = 10.0f;
-    const float LEAN_FWD_THRUST_SCALE = 4.0f;
-    const float LEAN_SIDEWAYS_THRUST_SCALE = 3.0f;
-
-    if (fabs(leanForward) > LEAN_FWD_DEAD_ZONE) {
-        if (leanForward > 0.0f) {
-            addThrust(front * -(leanForward - LEAN_FWD_DEAD_ZONE) * LEAN_FWD_THRUST_SCALE);
-        } else {
-            addThrust(front * -(leanForward + LEAN_FWD_DEAD_ZONE) * LEAN_FWD_THRUST_SCALE);
-        }
-    }
-    if (fabs(leanSideways) > LEAN_SIDEWAYS_DEAD_ZONE) {
-        if (leanSideways > 0.0f) {
-            addThrust(right * -(leanSideways - LEAN_SIDEWAYS_DEAD_ZONE) * LEAN_SIDEWAYS_THRUST_SCALE);
-        } else {
-            addThrust(right * -(leanSideways + LEAN_SIDEWAYS_DEAD_ZONE) * LEAN_SIDEWAYS_THRUST_SCALE);
-        }
-    }
-}
 
 void MyAvatar::renderDebugBodyPoints() {
     glm::vec3 torsoPosition(getPosition());
@@ -959,15 +937,20 @@ void MyAvatar::updateLookAtTargetAvatar() {
     }
     glm::vec3 lookForward = faceRotation * IDENTITY_FRONT;
     glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
-    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.f;
+    
+    float smallestAngleTo = glm::radians(Application::getInstance()->getCamera()->getFieldOfView()) / 2.0f;
+    const float KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR = 1.3f;
+    const float GREATEST_LOOKING_AT_DISTANCE = 10.0f;
     
     int howManyLookingAtMe = 0;
     foreach (const AvatarSharedPointer& avatarPointer, Application::getInstance()->getAvatarManager().getAvatarHash()) {
         Avatar* avatar = static_cast<Avatar*>(avatarPointer.data());
+        bool isCurrentTarget = avatar->getIsLookAtTarget();
+        float distanceTo = glm::length(avatar->getHead()->getEyePosition() - cameraPosition);
         avatar->setIsLookAtTarget(false);
-        if (!avatar->isMyAvatar() && avatar->isInitialized()) {
+        if (!avatar->isMyAvatar() && avatar->isInitialized() && (distanceTo < GREATEST_LOOKING_AT_DISTANCE * getScale())) {
             float angleTo = glm::angle(lookForward, glm::normalize(avatar->getHead()->getEyePosition() - cameraPosition));
-            if (angleTo < smallestAngleTo) {
+            if (angleTo < (smallestAngleTo * (isCurrentTarget ? KEEP_LOOKING_AT_CURRENT_ANGLE_FACTOR : 1.0f))) {
                 _lookAtTargetAvatar = avatarPointer;
                 _targetAvatarPosition = avatarPointer->getPosition();
                 smallestAngleTo = angleTo;
@@ -1068,7 +1051,14 @@ void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) 
 glm::vec3 MyAvatar::getSkeletonPosition() const {
     CameraMode mode = Application::getInstance()->getCamera()->getMode();
     if (mode == CAMERA_MODE_THIRD_PERSON || mode == CAMERA_MODE_INDEPENDENT) {
-        return Avatar::getSkeletonPosition();
+        // The avatar is rotated PI about the yAxis, so we have to correct for it 
+        // to get the skeleton offset contribution in the world-frame.
+        const glm::quat FLIP = glm::angleAxis(PI, glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::vec3 skeletonOffset = _skeletonOffset;
+        if (_feetTouchFloor) {
+            skeletonOffset += _skeletonModel.getStandingOffset();
+        }
+        return _position + getOrientation() * FLIP * skeletonOffset;
     }
     return Avatar::getPosition();
 }
@@ -1178,26 +1168,41 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Gather rotation information from keyboard
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    const float TIME_BETWEEN_HMD_TURNS = 0.5f;
+    const float HMD_TURN_DEGREES = 22.5f;
+    if (!OculusManager::isConnected()) {
+        //  Smoothly rotate body with arrow keys if not in HMD
+        _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+        _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    } else {
+        //  Jump turns if in HMD
+        if (_driveKeys[ROT_RIGHT] || _driveKeys[ROT_LEFT]) {
+            if (_turningKeyPressTime == 0.0f) {
+                setOrientation(getOrientation() *
+                               glm::quat(glm::radians(glm::vec3(0.f, _driveKeys[ROT_LEFT] ? HMD_TURN_DEGREES : -HMD_TURN_DEGREES, 0.0f))));
+            }
+            _turningKeyPressTime += deltaTime;
+            if (_turningKeyPressTime > TIME_BETWEEN_HMD_TURNS) {
+                _turningKeyPressTime = 0.0f;
+            }
+        } else {
+            _turningKeyPressTime = 0.0f;
+        }
+    }
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
-    // update body yaw by body yaw delta
-    glm::quat orientation = getOrientation() * glm::quat(glm::radians(
-                glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
+    // update body orientation by movement inputs
+    setOrientation(getOrientation() *
+                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime)));
 
     // decay body rotation momentum
     const float BODY_SPIN_FRICTION = 7.5f;
     float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
     if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyPitchDelta *= bodySpinMomentum;
     _bodyYawDelta *= bodySpinMomentum;
-    _bodyRollDelta *= bodySpinMomentum;
 
     float MINIMUM_ROTATION_RATE = 2.0f;
     if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
-    if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.0f; }
-    if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.0f; }
 
     if (OculusManager::isConnected()) {
         // these angles will be in radians
@@ -1210,8 +1215,11 @@ void MyAvatar::updateOrientation(float deltaTime) {
         
         // Record the angular velocity
         Head* head = getHead();
-        glm::vec3 angularVelocity(yaw - head->getBaseYaw(), pitch - head->getBasePitch(), roll - head->getBaseRoll());
-        head->setAngularVelocity(angularVelocity);
+        if (deltaTime > 0.0f) {
+            glm::vec3 angularVelocity(pitch - head->getBasePitch(), yaw - head->getBaseYaw(), roll - head->getBaseRoll());
+            angularVelocity *= 1.0f / deltaTime;
+            head->setAngularVelocity(angularVelocity);
+        }
         
         //Invert yaw and roll when in mirror mode
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
@@ -1226,8 +1234,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         
     }
 
-    // update the euler angles
-    setOrientation(orientation);
 }
 
 glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool hasFloor) {
@@ -1973,6 +1979,7 @@ void MyAvatar::updateMotionBehavior() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
+    _feetTouchFloor = menu->isOptionChecked(MenuOption::ShiftHipsForIdleAnimations);
 }
 
 void MyAvatar::onToggleRagdoll() {

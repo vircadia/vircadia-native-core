@@ -47,6 +47,13 @@ UpdateEntityOperator::UpdateEntityOperator(EntityTree* tree,
     // the getMaximumAACube is the relaxed form.
     _oldEntityCube = _existingEntity->getMaximumAACube();
     _oldEntityBox = _oldEntityCube.clamp(0.0f, 1.0f); // clamp to domain bounds
+
+    // If the old properties doesn't contain the properties required to calculate a bounding box,
+    // get them from the existing entity. Registration point is required to correctly calculate
+    // the bounding box.
+    if (!_properties.registrationPointChanged()) {
+        _properties.setRegistrationPoint(_existingEntity->getRegistrationPoint());
+    }
     
     // If the new properties has position OR dimension changes, but not both, we need to
     // get the old property value and set it in our properties in order for our bounds

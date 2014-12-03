@@ -26,8 +26,6 @@
 #include "AudioSourceTone.h"
 #include "AudioSourceNoise.h"
 #include "AudioGain.h"
-#include "AudioFilter.h"
-#include "AudioFilterBank.h"
 
 #include <QAudio>
 #include <QAudioInput>
@@ -40,17 +38,24 @@
 #include <QByteArray>
 
 #include <AbstractAudioInterface.h>
-#include <StdDev.h>
+#include <StDev.h>
 
 #include "MixedProcessedAudioStream.h"
 #include "AudioEffectOptions.h"
 #include <AudioRingBuffer.h>
-#include <StdDev.h>
+#include <StDev.h>
 
+#ifdef _WIN32
+#pragma warning( push )
+#pragma warning( disable : 4305 )
+#endif
 extern "C" {
     #include <gverb.h>
     #include <gverbdsp.h>
 }
+#ifdef _WIN32
+#pragma warning( pop )
+#endif
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -81,7 +86,7 @@ public:
     // setup for audio I/O
     Audio(QObject* parent = 0);
 
-    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.f); }
+    float getLastInputLoudness() const { return glm::max(_lastInputLoudness - _noiseGateMeasuredFloor, 0.0f); }
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
@@ -149,13 +154,8 @@ public slots:
     void addLastFrameRepeatedWithFadeToScope(int samplesPerChannel);
     void addStereoSamplesToScope(const QByteArray& samples);
     void processReceivedSamples(const QByteArray& inputBuffer, QByteArray& outputBuffer);
-    void toggleAudioFilter();
-    void selectAudioFilterFlat();
-    void selectAudioFilterTrebleCut();
-    void selectAudioFilterBassCut();
-    void selectAudioFilterSmiley();
 
-    virtual void handleAudioByteArray(const QByteArray& audioByteArray, const AudioInjectorOptions& options);
+    virtual bool outputLocalInjector(bool isStereo, qreal volume, AudioInjector* injector);
 
     void sendDownstreamAudioStatsPacket();
 
@@ -179,11 +179,8 @@ signals:
     void preProcessOriginalInboundAudio(unsigned int sampleTime, QByteArray& samples, const QAudioFormat& format);
     void processInboundAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
     void processLocalAudio(unsigned int sampleTime, const QByteArray& samples, const QAudioFormat& format);
-
 private:
     void outputFormatChanged();
-
-private:
 
     QByteArray firstInputFrame;
     QAudioInput* _audioInput;
@@ -248,15 +245,14 @@ private:
     AudioEffectOptions _scriptReverbOptions;
     AudioEffectOptions _zoneReverbOptions;
     AudioEffectOptions* _reverbOptions;
-    ty_gverb *_gverb;
+    ty_gverb* _gverbLocal;
+    ty_gverb* _gverb;
     GLuint _micTextureId;
     GLuint _muteTextureId;
     GLuint _boxTextureId;
     QRect _iconBounds;
-    
-    /// Audio callback in class context.
-    inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-    
+    float _iconColor;
+    qint64 _iconPulseTimeReference;
     
     bool _processSpatialAudio; /// Process received audio by spatial audio hooks
     unsigned int _spatialAudioStart; /// Start of spatial audio interval (in sample rate time base)
@@ -270,8 +266,11 @@ private:
 
     // Adds Reverb
     void initGverb();
-    void addReverb(int16_t* samples, int numSamples, QAudioFormat& format);
+    void updateGverbOptions();
+    void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
 
+    void handleLocalEchoAndReverb(QByteArray& inputByteArray);
+    
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* monoInput, int numSamples);
 
@@ -333,9 +332,6 @@ private:
     bool _toneSourceEnabled;
     AudioSourceTone _toneSource;
     
-    // Multi-band parametric EQ
-    bool _peqEnabled;
-    AudioFilterPEQ3m _peq;
     
     QMutex _guard;
     QByteArray* _scopeInput;

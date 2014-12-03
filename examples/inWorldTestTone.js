@@ -13,17 +13,15 @@
 
 Script.include("libraries/globals.js");
 
-var sound = new Sound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
+var sound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/220Sine.wav");
 
 var soundPlaying = false;
 
 function update(deltaTime) {
     if (!Audio.isInjectorPlaying(soundPlaying)) {
-        var options = new AudioInjectionOptions();
-        options.position = { x:0, y:0, z:0 };
-        options.volume = 1.0;
-        options.loop = true;
-        soundPlaying = Audio.playSound(sound, options);
+        soundPlaying = Audio.playSound(sound, {
+          loop: true
+        });
         print("Started sound loop");
     } 
 }

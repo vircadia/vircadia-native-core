@@ -18,6 +18,7 @@ class Line3DOverlay : public Base3DOverlay {
     
 public:
     Line3DOverlay();
+    Line3DOverlay(const Line3DOverlay* line3DOverlay);
     ~Line3DOverlay();
     virtual void render(RenderArgs* args);
 
@@ -28,6 +29,9 @@ public:
     void setEnd(const glm::vec3& end) { _end = end; }
 
     virtual void setProperties(const QScriptValue& properties);
+    virtual QScriptValue getProperty(const QString& property);
+
+    virtual Line3DOverlay* createClone() const;
 
 protected:
     glm::vec3 _end;

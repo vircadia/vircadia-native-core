@@ -43,7 +43,6 @@
 #include "MainWindow.h"
 #include "Audio.h"
 #include "AudioReflector.h"
-#include "BuckyBalls.h"
 #include "Camera.h"
 #include "DatagramProcessor.h"
 #include "Environment.h"
@@ -72,6 +71,7 @@
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
+#include "ui/HMDToolsDialog.h"
 #include "ui/ModelsBrowser.h"
 #include "ui/NodeBounds.h"
 #include "ui/OctreeStatsDialog.h"
@@ -83,6 +83,7 @@
 #include "ui/overlays/Overlays.h"
 #include "ui/ApplicationOverlay.h"
 #include "ui/RunningScriptsWidget.h"
+#include "ui/ToolWindow.h"
 #include "ui/VoxelImportDialog.h"
 #include "voxels/VoxelFade.h"
 #include "voxels/VoxelHideShowThread.h"
@@ -115,15 +116,15 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 
 static const float BILLBOARD_FIELD_OF_VIEW = 30.0f; // degrees
-static const float BILLBOARD_DISTANCE = 5.0f;       // meters
+static const float BILLBOARD_DISTANCE = 5.56f;       // meters
 
 static const int MIRROR_VIEW_TOP_PADDING = 5;
 static const int MIRROR_VIEW_LEFT_PADDING = 10;
 static const int MIRROR_VIEW_WIDTH = 265;
 static const int MIRROR_VIEW_HEIGHT = 215;
-static const float MIRROR_FULLSCREEN_DISTANCE = 0.35f;
-static const float MIRROR_REARVIEW_DISTANCE = 0.65f;
-static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.3f;
+static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
+static const float MIRROR_REARVIEW_DISTANCE = 0.722f;
+static const float MIRROR_REARVIEW_BODY_DISTANCE = 2.56f;
 static const float MIRROR_FIELD_OF_VIEW = 30.0f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
@@ -233,6 +234,9 @@ public:
     const glm::vec3& getViewMatrixTranslation() const { return _viewMatrixTranslation; }
     void setViewMatrixTranslation(const glm::vec3& translation) { _viewMatrixTranslation = translation; }
 
+    const Transform& getViewTransform() const { return _viewTransform; }
+    void setViewTransform(const Transform& view);
+
     /// if you need to access the application settings, use lockSettings()/unlockSettings()
     QSettings* lockSettings() { _settingsMutex.lock(); return _settings; }
     void unlockSettings() { _settingsMutex.unlock(); }
@@ -243,6 +247,8 @@ public:
     NodeToOctreeSceneStats* getOcteeSceneStats() { return &_octreeServerSceneStats; }
     void lockOctreeSceneStats() { _octreeSceneStatsLock.lockForRead(); }
     void unlockOctreeSceneStats() { _octreeSceneStatsLock.unlock(); }
+
+    ToolWindow* getToolWindow() { return _toolWindow ; }
 
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     AnimationCache* getAnimationCache() { return &_animationCache; }
@@ -260,7 +266,7 @@ public:
 
     QImage renderAvatarBillboard();
 
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
+    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false, RenderArgs::RenderSide renderSide = RenderArgs::MONO);
 
     /// Stores the current modelview matrix as the untranslated view matrix to use for transforms and the supplied vector as
     /// the view matrix translation.
@@ -310,6 +316,11 @@ public:
 
 
     void registerScriptEngineWithApplicationServices(ScriptEngine* scriptEngine);
+
+    // the isHMDmode is true whenever we use the interface from an HMD and not a standard flat display
+    // rendering of several elements depend on that
+    // TODO: carry that information on the Camera as a setting
+    bool isHMDMode() const;
 
 signals:
 
@@ -382,9 +393,13 @@ private slots:
     void timer();
     void idle();
     void aboutToQuit();
+    
+    void handleScriptEngineLoaded(const QString& scriptFilename);
+    void handleScriptLoadError(const QString& scriptFilename);
 
     void connectedToDomain(const QString& hostname);
 
+    friend class HMDToolsDialog;
     void setFullscreen(bool fullscreen);
     void setEnable3DTVMode(bool enable3DTVMode);
     void setEnableVRMode(bool enableVRMode);
@@ -457,6 +472,8 @@ private:
     MainWindow* _window;
     GLCanvas* _glWidget; // our GLCanvas has a couple extra features
 
+    ToolWindow* _toolWindow;
+
     BandwidthMeter _bandwidthMeter;
 
     QThread* _nodeThread;
@@ -480,8 +497,6 @@ private:
     QElapsedTimer _lastTimeUpdated;
     bool _justStarted;
     Stars _stars;
-
-    BuckyBalls _buckyBalls;
 
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
@@ -526,6 +541,7 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
 
+    Transform _viewTransform;
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
     glm::mat4 _projectionMatrix;

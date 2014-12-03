@@ -47,7 +47,6 @@ public:
     void update(float deltaTime);
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
-    void moveWithLean();
 
     void render(const glm::vec3& cameraPosition, RenderMode renderMode = NORMAL_RENDER_MODE, bool postLighting = false);
     void renderBody(RenderMode renderMode, bool postLighting, float glowLevel = 0.0f);
@@ -102,7 +101,7 @@ public:
     //  Set what driving keys are being pressed to control thrust levels
     void clearDriveKeys();
     void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
-    bool getDriveKeys(int key) { return _driveKeys[key] != 0.f; };
+    bool getDriveKeys(int key) { return _driveKeys[key] != 0.0f; };
     void jump() { _shouldJump = true; };
     
     bool isMyAvatar() { return true; }
@@ -205,8 +204,7 @@ protected:
     
 private:
     bool _mousePressed;
-    float _bodyPitchDelta;  // degrees
-    float _bodyRollDelta;   // degrees
+    float _turningKeyPressTime;
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
@@ -236,6 +234,7 @@ private:
     PhysicsSimulation _physicsSimulation;
     VoxelShapeManager _voxelShapeManager;
     
+    bool _feetTouchFloor;
     bool _isLookingAtLeftEye;
 
     RecorderPointer _recorder;

@@ -34,8 +34,7 @@ void FaceModel::simulate(float deltaTime, bool fullUpdate) {
         neckParentRotation = owningAvatar->getOrientation();
     }
     setRotation(neckParentRotation);
-    const float MODEL_SCALE = 0.0006f;
-    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale() * MODEL_SCALE);
+    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale());
     
     setPupilDilation(_owningHead->getPupilDilation());
     setBlendshapeCoefficients(_owningHead->getBlendshapeCoefficients());

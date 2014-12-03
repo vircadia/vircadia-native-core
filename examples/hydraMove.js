@@ -245,10 +245,12 @@ function handleGrabBehavior(deltaTime) {
 }
 
 // Update for joysticks and move button
+var THRUST_DEAD_ZONE = 0.1;
+var ROTATE_DEAD_ZONE = 0.1;
 function flyWithHydra(deltaTime) {
     var thrustJoystickPosition = Controller.getJoystickPosition(THRUST_CONTROLLER);
     
-    if (thrustJoystickPosition.x != 0 || thrustJoystickPosition.y != 0) {
+    if (Math.abs(thrustJoystickPosition.x) > THRUST_DEAD_ZONE || Math.abs(thrustJoystickPosition.y) > THRUST_DEAD_ZONE) {
         if (thrustMultiplier < MAX_THRUST_MULTIPLIER) {
             thrustMultiplier *= 1 + (deltaTime * THRUST_INCREASE_RATE);
         }
@@ -270,7 +272,7 @@ function flyWithHydra(deltaTime) {
 
     // View Controller
     var viewJoystickPosition = Controller.getJoystickPosition(VIEW_CONTROLLER);
-    if (viewJoystickPosition.x != 0 || viewJoystickPosition.y != 0) {
+    if (Math.abs(viewJoystickPosition.x) > ROTATE_DEAD_ZONE || Math.abs(viewJoystickPosition.y) > ROTATE_DEAD_ZONE) {
 
         // change the body yaw based on our x controller
         var orientation = MyAvatar.orientation;

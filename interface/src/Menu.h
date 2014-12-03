@@ -76,6 +76,7 @@ class QSettings;
 class AnimationsDialog;
 class AttachmentsDialog;
 class BandwidthDialog;
+class HMDToolsDialog;
 class LodToolsDialog;
 class MetavoxelEditor;
 class MetavoxelNetworkSimulator;
@@ -120,6 +121,7 @@ public:
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     OctreeStatsDialog* getOctreeStatsDialog() const { return _octreeStatsDialog; }
     LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
+    HMDToolsDialog* getHMDToolsDialog() const { return _hmdToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
@@ -183,6 +185,7 @@ public slots:
     void bandwidthDetails();
     void octreeStatsDetails();
     void lodTools();
+    void hmdTools(bool showTools);
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
@@ -217,6 +220,7 @@ private slots:
     void bandwidthDetailsClosed();
     void octreeStatsDetailsClosed();
     void lodToolsClosed();
+    void hmdToolsClosed();
     void cycleFrustumRenderMode();
     void runTests();
     void showMetavoxelEditor();
@@ -224,6 +228,7 @@ private slots:
     void showScriptEditor();
     void showChat();
     void toggleConsole();
+    void toggleToolWindow();
     void toggleChat();
     void audioMuteToggled();
     void displayNameLocationResponse(const QString& errorString);
@@ -283,6 +288,7 @@ private:
     QDialog* _jsConsole;
     OctreeStatsDialog* _octreeStatsDialog;
     LodToolsDialog* _lodToolsDialog;
+    HMDToolsDialog* _hmdToolsDialog;
     QPointer<DataWebDialog> _newLocationDialog;
     QPointer<DataWebDialog> _userLocationsDialog;
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
@@ -331,32 +337,15 @@ namespace MenuOption {
     const QString Animations = "Animations...";
     const QString Atmosphere = "Atmosphere";
     const QString Attachments = "Attachments...";
-    const QString AudioFilter = "Audio Filter Bank";
-    const QString AudioFilterFlat = "Flat Response";
-    const QString AudioFilterTrebleCut= "Treble Cut";
-    const QString AudioFilterBassCut = "Bass Cut";
-    const QString AudioFilterSmiley = "Smiley Curve";
     const QString AudioNoiseReduction = "Audio Noise Reduction";
-    const QString AudioScope = "Audio Scope";
+    const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
     const QString AudioScopeFrames = "Display Frames";
-    const QString AudioScopePause = "Pause Audio Scope";
+    const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStats = "Audio Stats";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioSpatialProcessingAlternateDistanceAttenuate = "Alternate distance attenuation";
-    const QString AudioSpatialProcessing = "Audio Spatial Processing";
-    const QString AudioSpatialProcessingDontDistanceAttenuate = "Don't calculate distance attenuation";
-    const QString AudioSpatialProcessingHeadOriented = "Head Oriented";
-    const QString AudioSpatialProcessingIncludeOriginal = "Includes Network Original";
-    const QString AudioSpatialProcessingPreDelay = "Add Pre-Delay";
-    const QString AudioSpatialProcessingProcessLocalAudio = "Process Local Audio";
-    const QString AudioSpatialProcessingRenderPaths = "Render Paths";
-    const QString AudioSpatialProcessingSeparateEars = "Separate Ears";
-    const QString AudioSpatialProcessingSlightlyRandomSurfaces = "Slightly Random Surfaces";
-    const QString AudioSpatialProcessingStereoSource = "Stereo Source";
-    const QString AudioSpatialProcessingWithDiffusions = "With Diffusions";
     const QString AudioSourceInject = "Generated Audio";
     const QString AudioSourcePinkNoise = "Pink Noise";
     const QString AudioSourceSine440 = "Sine 440hz";
@@ -364,7 +353,6 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString BlueSpeechSphere = "Blue Sphere While Speaking";
-    const QString BuckyBalls = "Bucky Balls";
     const QString CascadedShadows = "Cascaded";
     const QString Chat = "Chat...";
     const QString ChatCircling = "Chat Circling";
@@ -378,6 +366,7 @@ namespace MenuOption {
     const QString DontCullOutOfViewMeshParts = "Don't Cull Out Of View Mesh Parts";
     const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
     const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
+    const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -416,6 +405,7 @@ namespace MenuOption {
     const QString NamesAboveHeads = "Names Above Heads";
     const QString GoToUser = "Go To User";
     const QString HeadMouse = "Head Mouse";
+    const QString HMDTools = "HMD Tools";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IncreaseVoxelSize = "Increase Voxel Size";
     const QString KeyboardMotorControl = "Enable Keyboard Motor Control";
@@ -430,7 +420,6 @@ namespace MenuOption {
     const QString MetavoxelEditor = "Metavoxel Editor...";
     const QString Metavoxels = "Metavoxels";
     const QString Mirror = "Mirror";
-    const QString MoveWithLean = "Move with Lean";
     const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MyLocations = "My Locations...";
@@ -451,9 +440,9 @@ namespace MenuOption {
     const QString RenderDualContourSurfaces = "Render Dual Contour Surfaces";
     const QString RenderFocusIndicator = "Show Eye Focus";
     const QString RenderHeadCollisionShapes = "Show Head Collision Shapes";
-    const QString RenderHeightfields = "Render Heightfields";
     const QString RenderLookAtVectors = "Show Look-at Vectors";
     const QString RenderSkeletonCollisionShapes = "Show Skeleton Collision Shapes";
+    const QString RenderSpanners = "Render Spanners";
     const QString RenderTargetFramerate = "Framerate";
     const QString RenderTargetFramerateUnlimited = "Unlimited";
     const QString RenderTargetFramerate60 = "60";
@@ -484,6 +473,7 @@ namespace MenuOption {
     const QString SixenseMouseInput = "Enable Sixense Mouse Input";
     const QString SixenseLasers = "Enable Sixense UI Lasers";
     const QString StandOnNearbyFloors = "Stand on nearby floors";
+    const QString ShiftHipsForIdleAnimations = "Shift hips for idle animations";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString StereoAudio = "Stereo Audio";
@@ -491,6 +481,7 @@ namespace MenuOption {
     const QString StringHair = "String Hair";
     const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString TestPing = "Test Ping";
+    const QString ToolWindow = "Tool Window";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString TurnWithHead = "Turn using Head";
     const QString UploadAttachment = "Upload Attachment Model";
