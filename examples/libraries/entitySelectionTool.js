@@ -2053,7 +2053,7 @@ SelectionDisplay = (function () {
     that.checkMove = function() {
         if (SelectionManager.hasSelection() &&
             (!Vec3.equal(Camera.getPosition(), lastCameraPosition) || !Quat.equal(Camera.getOrientation(), lastCameraOrientation))){
-            that.select(selectionManager.selections[0], false, false);
+            that.updateRotationHandles();
         }
     };
 
