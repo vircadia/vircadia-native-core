@@ -1574,7 +1574,9 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
-    _window->show();
+    if (!_aboutToQuit) {
+        _window->show();
+    }
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -4040,20 +4042,20 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     return scriptEngine;
 }
 
-void Application::handleScriptEngineLoaded(const QUrl& scriptURL) {
+void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
     ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
     
-    _scriptEnginesHash.insertMulti(scriptURL.toString(), scriptEngine);
+    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
     _runningScriptsWidget->setRunningScripts(getRunningScripts());
-    UserActivityLogger::getInstance().loadedScript(scriptURL.toString());
+    UserActivityLogger::getInstance().loadedScript(scriptFilename);
     
     // register our application services and set it off on its own thread
     registerScriptEngineWithApplicationServices(scriptEngine);
 }
 
-void Application::handleScriptLoadError(const QUrl& scriptURL) {
+void Application::handleScriptLoadError(const QString& scriptFilename) {
     qDebug() << "Application::loadScript(), script failed to load...";
-    QMessageBox::warning(getWindow(), "Error Loading Script", scriptURL.toString() + " failed to load.");
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {

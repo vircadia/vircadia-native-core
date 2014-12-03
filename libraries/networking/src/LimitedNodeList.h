@@ -105,6 +105,7 @@ public:
                                            const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket);
     
     const HifiSockAddr& getLocalSockAddr() const { return _localSockAddr; }
+    const HifiSockAddr& getSTUNSockAddr() const { return _stunSockAddr; }
 
     void processNodeData(const HifiSockAddr& senderSockAddr, const QByteArray& packet);
     void processKillNode(const QByteArray& datagram);
