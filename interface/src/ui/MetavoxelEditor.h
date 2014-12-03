@@ -326,6 +326,7 @@ protected:
     QDoubleSpinBox* _radius;
     
     glm::vec3 _position;
+    bool _positionValid;
 };
 
 /// Allows raising or lowering parts of the heightfield.
@@ -456,6 +457,7 @@ protected:
     QDoubleSpinBox* _radius;
     
     glm::vec3 _position;
+    bool _positionValid;
 };
 
 /// Allows texturing parts of the voxel field.
