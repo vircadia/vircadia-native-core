@@ -292,16 +292,10 @@ public:
     uint32_t getUpdateFlags() const { return _updateFlags; }
     void clearUpdateFlags() { _updateFlags = 0; }
 
-#ifdef USE_BULLET_PHYSICS
-    EntityMotionState* getMotionState() const { return _motionState; }
-    virtual EntityMotionState* createMotionState() { return NULL; }
-    void destroyMotionState();
-#endif // USE_BULLET_PHYSICS
     SimulationState getSimulationState() const { return _simulationState; }
     
-protected:
-    friend class EntityTree;
     void setSimulationState(SimulationState state) { _simulationState = state; }
+protected:
 
     virtual void initFromEntityItemID(const EntityItemID& entityItemID); // maybe useful to allow subclasses to init
     virtual void recalculateCollisionShape();
