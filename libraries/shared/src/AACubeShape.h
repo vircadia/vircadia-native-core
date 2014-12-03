@@ -1,6 +1,6 @@
 //
 //  AACubeShape.h
-//  libraries/physics/src
+//  libraries/shared/src
 //
 //  Created by Andrew Meadows on 2014.08.22
 //  Copyright 2014 High Fidelity, Inc.

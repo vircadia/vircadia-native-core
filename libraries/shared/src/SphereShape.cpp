@@ -1,6 +1,6 @@
 //
 //  SphereShape.cpp
-//  libraries/physics/src
+//  libraries/shared/src
 //
 //  Created by Andrew Meadows on 2014.06.17
 //  Copyright 2014 High Fidelity, Inc.
