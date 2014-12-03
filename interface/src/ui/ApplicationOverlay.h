@@ -54,10 +54,12 @@ private:
         
         void bind();
         void release();
+        void bindTexture();
+        void releaseTexture();
         
+        void buildFramebufferObject();
         void buildVBO(const float fov, const float aspectRatio, const int slices, const int stacks);
-        void buildFramebufferObject(const QSize& size);
-        void render(const glm::quat& orientation, const glm::vec3& position, const float scale);
+        void render();
         
     private:
         void cleanupVBO();
@@ -68,10 +70,6 @@ private:
         VerticesIndices _vbo;
     };
     
-    VerticesIndices* makeTexturedHemiphereVBO(float fov, float aspectRatio, int slices, int stacks);
-    void renderTexturedHemisphere(ApplicationOverlay::VerticesIndices* vbo, int vertices, int indices);
-    QOpenGLFramebufferObject* newFramebufferObject(QSize& size);
-    
     void renderPointers();
     void renderControllerPointers();
     void renderPointersOculus(const glm::vec3& eyePos);
@@ -81,10 +79,10 @@ private:
     void renderDomainConnectionStatusBorder();
 
     TexturedHemisphere _overlays;
-    TexturedHemisphere _reticule;
     
     float _trailingAudioLoudness;
     float _textureFov;
+    float _textureAspectRatio;
     
     enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS };
     bool _reticleActive[NUMBER_OF_MAGNIFIERS];
