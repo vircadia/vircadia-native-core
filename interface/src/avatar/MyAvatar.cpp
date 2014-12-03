@@ -68,8 +68,7 @@ const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 MyAvatar::MyAvatar() :
 	Avatar(),
     _mousePressed(false),
-    _bodyPitchDelta(0.0f),
-    _bodyRollDelta(0.0f),
+    _turningKeyPressTime(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _shouldJump(false),
@@ -1169,26 +1168,41 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Gather rotation information from keyboard
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    const float TIME_BETWEEN_HMD_TURNS = 0.5f;
+    const float HMD_TURN_DEGREES = 22.5f;
+    if (!OculusManager::isConnected()) {
+        //  Smoothly rotate body with arrow keys if not in HMD
+        _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+        _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    } else {
+        //  Jump turns if in HMD
+        if (_driveKeys[ROT_RIGHT] || _driveKeys[ROT_LEFT]) {
+            if (_turningKeyPressTime == 0.0f) {
+                setOrientation(getOrientation() *
+                               glm::quat(glm::radians(glm::vec3(0.f, _driveKeys[ROT_LEFT] ? HMD_TURN_DEGREES : -HMD_TURN_DEGREES, 0.0f))));
+            }
+            _turningKeyPressTime += deltaTime;
+            if (_turningKeyPressTime > TIME_BETWEEN_HMD_TURNS) {
+                _turningKeyPressTime = 0.0f;
+            }
+        } else {
+            _turningKeyPressTime = 0.0f;
+        }
+    }
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
-    // update body yaw by body yaw delta
-    glm::quat orientation = getOrientation() * glm::quat(glm::radians(
-                glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
+    // update body orientation by movement inputs
+    setOrientation(getOrientation() *
+                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime)));
 
     // decay body rotation momentum
     const float BODY_SPIN_FRICTION = 7.5f;
     float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
     if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyPitchDelta *= bodySpinMomentum;
     _bodyYawDelta *= bodySpinMomentum;
-    _bodyRollDelta *= bodySpinMomentum;
 
     float MINIMUM_ROTATION_RATE = 2.0f;
     if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
-    if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.0f; }
-    if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.0f; }
 
     if (OculusManager::isConnected()) {
         // these angles will be in radians
@@ -1201,8 +1215,11 @@ void MyAvatar::updateOrientation(float deltaTime) {
         
         // Record the angular velocity
         Head* head = getHead();
-        glm::vec3 angularVelocity(yaw - head->getBaseYaw(), pitch - head->getBasePitch(), roll - head->getBaseRoll());
-        head->setAngularVelocity(angularVelocity);
+        if (deltaTime > 0.0f) {
+            glm::vec3 angularVelocity(pitch - head->getBasePitch(), yaw - head->getBaseYaw(), roll - head->getBaseRoll());
+            angularVelocity *= 1.0f / deltaTime;
+            head->setAngularVelocity(angularVelocity);
+        }
         
         //Invert yaw and roll when in mirror mode
         if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_MIRROR) {
@@ -1217,8 +1234,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         
     }
 
-    // update the euler angles
-    setOrientation(orientation);
 }
 
 glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool hasFloor) {

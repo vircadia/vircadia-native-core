@@ -204,8 +204,7 @@ protected:
     
 private:
     bool _mousePressed;
-    float _bodyPitchDelta;  // degrees
-    float _bodyRollDelta;   // degrees
+    float _turningKeyPressTime;
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
 
