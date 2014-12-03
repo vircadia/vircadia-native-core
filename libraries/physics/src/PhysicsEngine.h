@@ -39,7 +39,7 @@ const uint32_t PHYSICS_UPDATE_EASY = PHYSICS_UPDATE_POSITION | PHYSICS_UPDATE_VE
 #include <EntitySimulation.h>
 
 #include "BulletUtil.h"
-#include "CustomMotionState.h"
+#include "ObjectMotionState.h"
 #include "PositionHashKey.h"
 #include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
@@ -101,20 +101,20 @@ public:
 
     /// \param motionState pointer to Object's MotionState
     /// \return true if Object added
-    bool addObject(CustomMotionState* motionState);
+    bool addObject(ObjectMotionState* motionState);
 
     /// \param motionState pointer to Object's MotionState
     /// \return true if Object removed
-    bool removeObject(CustomMotionState* motionState);
+    bool removeObject(ObjectMotionState* motionState);
 
     /// \param motionState pointer to Object's MotionState
     /// \param flags set of bits indicating what categories of properties need to be updated
     /// \return true if entity updated
-    bool updateObject(CustomMotionState* motionState, uint32_t flags);
+    bool updateObject(ObjectMotionState* motionState, uint32_t flags);
 
 protected:
-    void updateObjectHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
-    void updateObjectEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags);
+    void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
+    void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
 
     btClock _clock;
     btDefaultCollisionConfiguration* _collisionConfig;

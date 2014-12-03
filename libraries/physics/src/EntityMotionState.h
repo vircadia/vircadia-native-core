@@ -15,10 +15,10 @@
 #include <AACube.h>
 
 #ifdef USE_BULLET_PHYSICS
-#include "CustomMotionState.h"
+#include "ObjectMotionState.h"
 #else // USE_BULLET_PHYSICS
-// CustomMotionState stubbery
-class CustomMotionState {
+// ObjectMotionState stubbery
+class ObjectMotionState {
 public:
     bool _foo;
 };
@@ -26,7 +26,7 @@ public:
 
 class EntityItem;
 
-class EntityMotionState : public CustomMotionState {
+class EntityMotionState : public ObjectMotionState {
 public:
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();

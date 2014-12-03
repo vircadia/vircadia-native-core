@@ -46,7 +46,7 @@ void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
         EntityItem* entity = *item_itr;
         void* physicsInfo = entity->getPhysicsInfo();
         if (physicsInfo) {
-            CustomMotionState* motionState = static_cast<CustomMotionState*>(physicsInfo);
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
             updateObject(motionState, entity->getUpdateFlags());
         }
         entity->clearUpdateFlags();
@@ -103,7 +103,7 @@ void PhysicsEngine::removeEntity(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
-        CustomMotionState* motionState = static_cast<CustomMotionState*>(physicsInfo);
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
         removeObject(motionState);
         entity->setPhysicsInfo(NULL);
     }
@@ -122,7 +122,7 @@ void PhysicsEngine::clearEntities() {
     for (entityItr = _entities.begin(); entityItr != _entities.end(); ++entityItr) {
         void* physicsInfo = (*entityItr)->getPhysicsInfo();
         if (physicsInfo) {
-            CustomMotionState* motionState = static_cast<CustomMotionState*>(physicsInfo);
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
             removeObject(motionState);
         }
     }
@@ -242,7 +242,7 @@ bool PhysicsEngine::removeVoxel(const glm::vec3& position, float scale) {
 // CF_DISABLE_VISUALIZE_OBJECT = 32, //disable debug drawing
 // CF_DISABLE_SPU_COLLISION_PROCESSING = 64//disable parallel/SPU processing
 
-bool PhysicsEngine::addObject(CustomMotionState* motionState) {
+bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
     assert(motionState);
     ShapeInfo info;
     motionState->computeShapeInfo(info);
@@ -289,7 +289,7 @@ bool PhysicsEngine::addObject(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsEngine::removeObject(CustomMotionState* motionState) {
+bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
     assert(motionState);
     btRigidBody* body = motionState->_body;
     if (body) {
@@ -305,7 +305,7 @@ bool PhysicsEngine::removeObject(CustomMotionState* motionState) {
     return false;
 }
 
-bool PhysicsEngine::updateObject(CustomMotionState* motionState, uint32_t flags) {
+bool PhysicsEngine::updateObject(ObjectMotionState* motionState, uint32_t flags) {
     btRigidBody* body = motionState->_body;
     if (!body) {
         return false;
@@ -322,7 +322,7 @@ bool PhysicsEngine::updateObject(CustomMotionState* motionState, uint32_t flags)
 }
 
 // private
-void PhysicsEngine::updateObjectHard(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
+void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
     MotionType newType = motionState->getMotionType();
 
     // pull body out of physics engine
@@ -398,7 +398,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, CustomMotionState* motio
 }
 
 // private
-void PhysicsEngine::updateObjectEasy(btRigidBody* body, CustomMotionState* motionState, uint32_t flags) {
+void PhysicsEngine::updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
     if (flags & PHYSICS_UPDATE_POSITION) {
         btTransform transform;
         motionState->getWorldTransform(transform);
