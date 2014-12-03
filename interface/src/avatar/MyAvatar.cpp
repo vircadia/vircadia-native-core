@@ -69,8 +69,6 @@ MyAvatar::MyAvatar() :
 	Avatar(),
     _mousePressed(false),
     _turningKeyPressTime(0.0f),
-    _bodyPitchDelta(0.0f),
-    _bodyRollDelta(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _shouldJump(false),
@@ -1193,22 +1191,18 @@ void MyAvatar::updateOrientation(float deltaTime) {
     }
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
-    // update body yaw by body yaw delta
-    glm::quat orientation = getOrientation() * glm::quat(glm::radians(
-                glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
+    // update body orientation by movement inputs
+    setOrientation(getOrientation() *
+                   glm::quat(glm::radians(glm::vec3(0.0f, _bodyYawDelta, 0.0f) * deltaTime)));
 
     // decay body rotation momentum
     const float BODY_SPIN_FRICTION = 7.5f;
     float bodySpinMomentum = 1.0f - BODY_SPIN_FRICTION * deltaTime;
     if (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
-    _bodyPitchDelta *= bodySpinMomentum;
     _bodyYawDelta *= bodySpinMomentum;
-    _bodyRollDelta *= bodySpinMomentum;
 
     float MINIMUM_ROTATION_RATE = 2.0f;
     if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.0f; }
-    if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.0f; }
-    if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.0f; }
 
     if (OculusManager::isConnected()) {
         // these angles will be in radians
@@ -1237,8 +1231,6 @@ void MyAvatar::updateOrientation(float deltaTime) {
         
     }
 
-    // update the euler angles
-    setOrientation(orientation);
 }
 
 glm::vec3 MyAvatar::applyKeyboardMotor(float deltaTime, const glm::vec3& localVelocity, bool hasFloor) {
