@@ -1276,6 +1276,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 #endif
     FBXGeometry geometry;
     float unitScaleFactor = 1.0f;
+    glm::vec3 ambientColor;
     foreach (const FBXNode& child, node.children) {
     
         if (child.name == "FBXHeaderExtension") {
@@ -1302,10 +1303,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
         } else if (child.name == "GlobalSettings") {
             foreach (const FBXNode& object, child.children) {
                 if (object.name == "Properties70") {
+                    QString propertyName = "P";
+                    int index = 4;
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "P" && subobject.properties.size() >= 5 &&
-                                subobject.properties.at(0) == "UnitScaleFactor") {
-                            unitScaleFactor = subobject.properties.at(4).toFloat();
+                        if (subobject.name == propertyName) {
+                            std::string subpropName = subobject.properties.at(0).toString().toStdString();
+                            if (subpropName == "UnitScaleFactor") {
+                                unitScaleFactor = subobject.properties.at(index).toFloat();
+                            } else if (subpropName == "AmbientColor") {
+                                ambientColor = getVec3(subobject.properties, index);
+                            }
                         }
                     }
                 }
