@@ -12,7 +12,6 @@
 #include <math.h>
 
 #include "SharedUtil.h" // for MILLIMETERS_PER_METER
-#include "StreamUtils.h" // adebug
 
 //#include "DoubleHashKey.h"
 #include "ShapeInfo.h"
