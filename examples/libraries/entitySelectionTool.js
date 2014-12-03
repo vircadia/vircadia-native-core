@@ -946,23 +946,6 @@ SelectionDisplay = (function () {
         var dimensions = selectionManager.worldDimensions;
         var position = selectionManager.worldPosition;
 
-        Overlays.editOverlay(baseOfEntityProjectionOverlay, 
-                            { 
-                                visible: mode != "ROTATE_YAW" && mode != "ROTATE_PITCH" && mode != "ROTATE_ROLL",
-                                solid: true,
-                                // lineWidth: 2.0,
-                                position: {
-                                    x: position.x,
-                                    y: grid.getOrigin().y,
-                                    z: position.z
-                                },
-                                dimensions: {
-                                    x: dimensions.x,
-                                    y: dimensions.z
-                                },
-                                rotation: rotation,
-                            });
-
                             
         Overlays.editOverlay(rotateOverlayTarget, { visible: rotationOverlaysVisible });
         Overlays.editOverlay(rotateZeroOverlay, { visible: rotationOverlaysVisible });
@@ -998,7 +981,6 @@ SelectionDisplay = (function () {
             that.setOverlaysVisible(false);
             return;
         }
-
 
         that.updateRotationHandles();
         that.highlightSelectable();
@@ -1182,6 +1164,23 @@ SelectionDisplay = (function () {
         var grabberMoveUpOffset = 0.1;
         grabberMoveUpPosition = { x: position.x, y: position.y + worldTop + grabberMoveUpOffset, z: position.z }
         Overlays.editOverlay(grabberMoveUp, { visible: activeTool == null || mode == "TRANSLATE_UP_DOWN" });
+
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, {
+            visible: mode != "ROTATE_YAW" && mode != "ROTATE_PITCH" && mode != "ROTATE_ROLL",
+            solid: true,
+            position: {
+                x: selectionManager.worldPosition.x,
+                y: grid.getOrigin().y,
+                z: selectionManager.worldPosition.z
+            },
+            dimensions: {
+                x: selectionManager.worldDimensions.x,
+                y: selectionManager.worldDimensions.z
+            },
+            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+        });
+
+
     };
 
     that.setOverlaysVisible = function(isVisible) {
