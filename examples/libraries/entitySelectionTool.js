@@ -1297,10 +1297,17 @@ SelectionDisplay = (function () {
     };
     
     var lastXYPick = null
+    var upDownPickNormal = null;
     addGrabberTool(grabberMoveUp, {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event) {
-            lastXYPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, Quat.getFront(lastCameraOrientation));
+            pickRay = Camera.computePickRay(event.x, event.y);
+
+            upDownPickNormal = Quat.getFront(lastCameraOrientation);
+            // Remove y component so the y-axis lies along the plane we picking on - this will
+            // give movements that follow the mouse.
+            upDownPickNormal.y = 0;
+            lastXYPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
 
             SelectionManager.saveProperties();
 
@@ -1328,11 +1335,9 @@ SelectionDisplay = (function () {
             pickRay = Camera.computePickRay(event.x, event.y);
 
             // translate mode left/right based on view toward entity
-            var newIntersection = rayPlaneIntersection(pickRay,
-                                                       SelectionManager.worldPosition,
-                                                       Quat.getFront(lastCameraOrientation));
+            var newIntersection = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
 
-            var vector = Vec3.subtract(newIntersection, lastPlaneIntersection);
+            var vector = Vec3.subtract(newIntersection, lastXYPick);
             vector = grid.snapToGrid(vector);
             
             // we only care about the Y axis
