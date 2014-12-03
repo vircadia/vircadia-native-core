@@ -51,8 +51,8 @@ var toolWidth = 50;
 
 var MIN_ANGULAR_SIZE = 2;
 var MAX_ANGULAR_SIZE = 45;
-var allowLargeModels = false;
-var allowSmallModels = false;
+var allowLargeModels = true;
+var allowSmallModels = true;
 var wantEntityGlow = false;
 
 var SPAWN_DISTANCE = 1;
@@ -476,7 +476,6 @@ function findClickedEntity(event) {
         var identify = Entities.identifyEntity(foundEntity);
         if (!identify.isKnownID) {
             print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
-            selectionManager.clearSelections();
             return null;
         }
         foundEntity = identify;
@@ -485,74 +484,18 @@ function findClickedEntity(event) {
     return { pickRay: pickRay, entityID: foundEntity };
 }
 
+var mouseHasMovedSincePress = false;
 
 function mousePressEvent(event) {
+    mouseHasMovedSincePress = false;
+
     if (toolBar.mousePressEvent(event) || progressDialog.mousePressEvent(event)) {
         return;
     }
     if (isActive) {
-        var entitySelected = false;
         if (cameraManager.mousePressEvent(event) || selectionDisplay.mousePressEvent(event)) {
             // Event handled; do nothing.
             return;
-        } else {
-            var result = findClickedEntity(event);
-            if (result === null) {
-                selectionManager.clearSelections();
-                return;
-            }
-            var pickRay = result.pickRay;
-            var foundEntity = result.entityID;
-
-            var properties = Entities.getEntityProperties(foundEntity);
-            if (isLocked(properties)) {
-                print("Model locked " + properties.id);
-            } else {
-                var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-                print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
-                //                P         P - Model
-                //               /|         A - Palm
-                //              / | d       B - unit vector toward tip
-                //             /  |         X - base of the perpendicular line
-                //            A---X----->B  d - distance fom axis
-                //              x           x - distance from A
-                //
-                //            |X-A| = (P-A).B
-                //            X == A + ((P-A).B)B
-                //            d = |P-X|
-
-                var A = pickRay.origin;
-                var B = Vec3.normalize(pickRay.direction);
-                var P = properties.position;
-
-                var x = Vec3.dot(Vec3.subtract(P, A), B);
-                var X = Vec3.sum(A, Vec3.multiply(B, x));
-                var d = Vec3.length(Vec3.subtract(P, X));
-                var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
-
-                var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
-
-                var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
-                                && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
-
-                if (0 < x && sizeOK) {
-                    entitySelected = true;
-                    selectedEntityID = foundEntity;
-                    orientation = MyAvatar.orientation;
-                    intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
-
-                    if (!event.isShifted) {
-                        selectionManager.clearSelections();
-                    }
-                    selectionManager.addEntity(foundEntity);
-
-                    print("Model selected: " + foundEntity.id);
-                }
-            }
-        }
-        if (entitySelected) {
-            selectionDisplay.select(selectedEntityID, event);
         }
     } else if (Menu.isOptionChecked(MENU_INSPECT_TOOL_ENABLED)) {
         var result = findClickedEntity(event);
@@ -572,6 +515,7 @@ function mousePressEvent(event) {
 var highlightedEntityID = { isKnownID: false };
 
 function mouseMoveEvent(event) {
+    mouseHasMovedSincePress = true;
     if (isActive) {
         // allow the selectionDisplay and cameraManager to handle the event first, if it doesn't handle it, then do our own thing
         if (selectionDisplay.mouseMoveEvent(event) || cameraManager.mouseMoveEvent(event)) {
@@ -615,6 +559,72 @@ function mouseReleaseEvent(event) {
     }
 
     cameraManager.mouseReleaseEvent(event);
+
+    if (!mouseHasMovedSincePress) {
+        mouseClickEvent(event);
+    }
+}
+
+function mouseClickEvent(event) {
+    var result = findClickedEntity(event);
+    if (result === null) {
+        if (!event.isShifted) {
+            selectionManager.clearSelections();
+        }
+        return;
+    }
+    var pickRay = result.pickRay;
+    var foundEntity = result.entityID;
+
+    var properties = Entities.getEntityProperties(foundEntity);
+    if (isLocked(properties)) {
+        print("Model locked " + properties.id);
+    } else {
+        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+        print("Checking properties: " + properties.id + " " + properties.isKnownID + " - Half Diagonal:" + halfDiagonal);
+        //                P         P - Model
+        //               /|         A - Palm
+        //              / | d       B - unit vector toward tip
+        //             /  |         X - base of the perpendicular line
+        //            A---X----->B  d - distance fom axis
+        //              x           x - distance from A
+        //
+        //            |X-A| = (P-A).B
+        //            X == A + ((P-A).B)B
+        //            d = |P-X|
+
+        var A = pickRay.origin;
+        var B = Vec3.normalize(pickRay.direction);
+        var P = properties.position;
+
+        var x = Vec3.dot(Vec3.subtract(P, A), B);
+        var X = Vec3.sum(A, Vec3.multiply(B, x));
+        var d = Vec3.length(Vec3.subtract(P, X));
+        var halfDiagonal = Vec3.length(properties.dimensions) / 2.0;
+
+        var angularSize = 2 * Math.atan(halfDiagonal / Vec3.distance(Camera.getPosition(), properties.position)) * 180 / 3.14;
+
+        var sizeOK = (allowLargeModels || angularSize < MAX_ANGULAR_SIZE)
+                        && (allowSmallModels || angularSize > MIN_ANGULAR_SIZE);
+
+        if (0 < x && sizeOK) {
+            entitySelected = true;
+            selectedEntityID = foundEntity;
+            orientation = MyAvatar.orientation;
+            intersection = rayPlaneIntersection(pickRay, P, Quat.getFront(orientation));
+
+            if (!event.isShifted) {
+                selectionManager.clearSelections();
+            }
+
+            var toggle = event.isShifted;
+            selectionManager.addEntity(foundEntity, toggle);
+
+            print("Model selected: " + foundEntity.id);
+            selectionDisplay.select(selectedEntityID, event);
+        }
+    }
 }
 
 Controller.mousePressEvent.connect(mousePressEvent);
@@ -644,9 +654,9 @@ function setupModelMenus() {
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
-                        afterItem: "Paste Models", isCheckable: true });
+                        afterItem: "Paste Models", isCheckable: true, isChecked: true });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S",
-                        afterItem: "Allow Select Large Models", isCheckable: true });
+                        afterItem: "Allow Select Large Models", isCheckable: true, isChecked: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
