@@ -22,6 +22,7 @@
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
+#include <ShapeInfo.h>
 #include <VoxelDetail.h>
 
 #include "EntityItemID.h" 
@@ -279,6 +280,7 @@ public:
     void applyHardCollision(const CollisionInfo& collisionInfo);
     virtual const Shape& getCollisionShapeInMeters() const { return _collisionShape; }
     virtual bool contains(const glm::vec3& point) const { return getAABox().contains(point); }
+    virtual void computeShapeInfo(ShapeInfo& info) const;
 
     // updateFoo() methods to be used when changes need to be accumulated in the _updateFlags
     void updatePosition(const glm::vec3& value);
@@ -348,6 +350,9 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
+
+    // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
+    // to a non-NULL value when the EntityItem has a representation in the physics engine.
     void* _physicsInfo; // only set by EntitySimulation
     SimulationState _simulationState; // only set by EntitySimulation
 

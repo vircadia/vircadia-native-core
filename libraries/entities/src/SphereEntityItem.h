@@ -55,6 +55,8 @@ public:
     
     // TODO: implement proper contains for 3D ellipsoid
     //virtual bool contains(const glm::vec3& point) const;
+
+    void computeShapeInfo(ShapeInfo& info) const;
     
 protected:
     virtual void recalculateCollisionShape();

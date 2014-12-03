@@ -946,6 +946,10 @@ float EntityItem::getRadius() const {
     return radius;
 }
 
+void EntityItem::computeShapeInfo(ShapeInfo& info) const {
+    info.clear();
+}
+
 void EntityItem::recalculateCollisionShape() {
     AACube entityAACube = getMinimumAACube();
     entityAACube.scale(TREE_SCALE); // scale to meters

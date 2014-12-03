@@ -107,9 +107,7 @@ void EntityMotionState::applyGravity() const {
 }
 
 void EntityMotionState::computeShapeInfo(ShapeInfo& info) {
-    // HACK: for now we make everything a box.
-    glm::vec3 halfExtents = 0.5f * _entity->getDimensionsInMeters();
-    info.setBox(halfExtents);
+    _entity->computeShapeInfo(info);
 }
 
 void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {

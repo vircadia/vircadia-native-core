@@ -50,6 +50,8 @@ public:
         _color[GREEN_INDEX] = value.green;
         _color[BLUE_INDEX] = value.blue;
     }
+    
+    void computeShapeInfo(ShapeInfo& info) const;
 
 protected:
     rgbColor _color;

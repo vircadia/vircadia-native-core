@@ -96,16 +96,8 @@ void BoxEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBitst
     APPEND_ENTITY_PROPERTY(PROP_COLOR, appendColor, getColor());
 }
 
-/*
-#ifdef USE_BULLET_PHYSICS
-EntityMotionState* BoxEntityItem::createMotionState() {
-    if (!_motionState) {
-        _motionState = new EntityMotionState(this);
-        glm::vec3 extents = getDimensionsInMeters();
-        _motionState->setVolume(extents.x * extents.y * extents.z);
-    }
-    return _motionState;
+void BoxEntityItem::computeShapeInfo(ShapeInfo& info) const {
+    glm::vec3 halfExtents = 0.5f * getDimensionsInMeters();
+    info.setBox(halfExtents);
 }
-#endif // USE_BULLET_PHYSICS
-*/
 
