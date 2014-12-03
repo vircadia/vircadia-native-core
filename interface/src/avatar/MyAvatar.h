@@ -204,6 +204,7 @@ protected:
     
 private:
     bool _mousePressed;
+    float _turningKeyPressTime;
     float _bodyPitchDelta;  // degrees
     float _bodyRollDelta;   // degrees
     glm::vec3 _gravity;

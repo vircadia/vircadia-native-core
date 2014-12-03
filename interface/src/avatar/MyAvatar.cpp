@@ -68,6 +68,7 @@ const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 MyAvatar::MyAvatar() :
 	Avatar(),
     _mousePressed(false),
+    _turningKeyPressTime(0.0f),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
@@ -1169,8 +1170,27 @@ bool MyAvatar::shouldRenderHead(const glm::vec3& cameraPosition, RenderMode rend
 
 void MyAvatar::updateOrientation(float deltaTime) {
     //  Gather rotation information from keyboard
-    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
-    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    const float TIME_BETWEEN_HMD_TURNS = 0.5f;
+    const float HMD_TURN_DEGREES = 22.5f;
+    if (!OculusManager::isConnected()) {
+        //  Smoothly rotate body with arrow keys if not in HMD
+        _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_SPEED * deltaTime;
+        _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_SPEED * deltaTime;
+    } else {
+        //  Jump turns if in HMD
+        if (_driveKeys[ROT_RIGHT] || _driveKeys[ROT_LEFT]) {
+            if (_turningKeyPressTime == 0.0f) {
+                setOrientation(getOrientation() *
+                               glm::quat(glm::radians(glm::vec3(0.f, _driveKeys[ROT_LEFT] ? HMD_TURN_DEGREES : -HMD_TURN_DEGREES, 0.0f))));
+            }
+            _turningKeyPressTime += deltaTime;
+            if (_turningKeyPressTime > TIME_BETWEEN_HMD_TURNS) {
+                _turningKeyPressTime = 0.0f;
+            }
+        } else {
+            _turningKeyPressTime = 0.0f;
+        }
+    }
     getHead()->setBasePitch(getHead()->getBasePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_SPEED * deltaTime);
 
     // update body yaw by body yaw delta
