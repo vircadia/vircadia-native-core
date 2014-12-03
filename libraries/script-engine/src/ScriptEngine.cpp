@@ -156,31 +156,30 @@ void ScriptEngine::loadURL(const QUrl& scriptURL) {
     if (_isRunning) {
         return;
     }
-    
-    QString scriptURLString = scriptURL.toString();
-    _fileNameString = scriptURLString;
+
+    _fileNameString = scriptURL.toString();
     
     QUrl url(scriptURL);
     
     // if the scheme length is one or lower, maybe they typed in a file, let's try
     const int WINDOWS_DRIVE_LETTER_SIZE = 1;
     if (url.scheme().size() <= WINDOWS_DRIVE_LETTER_SIZE) {
-        url = QUrl::fromLocalFile(scriptURLString);
+        url = QUrl::fromLocalFile(_fileNameString);
     }
     
     // ok, let's see if it's valid... and if so, load it
     if (url.isValid()) {
         if (url.scheme() == "file") {
-            QString fileName = url.toLocalFile();
-            QFile scriptFile(fileName);
+            _fileNameString = url.toLocalFile();
+            QFile scriptFile(_fileNameString);
             if (scriptFile.open(QFile::ReadOnly | QFile::Text)) {
-                qDebug() << "Loading file:" << fileName;
+                qDebug() << "ScriptEngine loading file:" << _fileNameString;
                 QTextStream in(&scriptFile);
                 _scriptContents = in.readAll();
-                emit scriptLoaded(url);
+                emit scriptLoaded(_fileNameString);
             } else {
-                qDebug() << "ERROR Loading file:" << fileName;
-                emit errorLoadingScript(url);
+                qDebug() << "ERROR Loading file:" << _fileNameString;
+                emit errorLoadingScript(_fileNameString);
             }
         } else {
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
@@ -195,10 +194,10 @@ void ScriptEngine::handleScriptDownload() {
     
     if (reply->error() == QNetworkReply::NoError && reply->attribute(QNetworkRequest::HttpStatusCodeAttribute) == 200) {
         _scriptContents = reply->readAll();
-        emit scriptLoaded(reply->url());
+        emit scriptLoaded(_fileNameString);
     } else {
         qDebug() << "ERROR Loading file:" << reply->url().toString();
-        emit errorLoadingScript(reply->url());
+        emit errorLoadingScript(_fileNameString);
     }
 }
 
