@@ -32,7 +32,7 @@
 
 
 // TOOL: Uncomment the following line to enable the filtering of all the unkwnon fields of a node so we can break point easily while loading a model with problems...
-//#define DEBUG_FBXREADER
+#define DEBUG_FBXREADER
 
 using namespace std;
 
@@ -1194,6 +1194,8 @@ int matchTextureUVSetToAttributeChannel(const std::string& texUVSetName, const Q
     }
 }
 
+
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping, bool loadLightmaps, float lightmapLevel) {
     QHash<QString, ExtractedMesh> meshes;
     QHash<QString, QString> modelIDsToNames;
@@ -1632,9 +1634,39 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                     materials.insert(material.id, material);
 
                 } else if (object.name == "NodeAttribute") {
+                    std::string attributetype;
+                    const FBXNode* prop70Node = 0;
                     foreach (const FBXNode& subobject, object.children) {
+                        
                         if (subobject.name == "TypeFlags") {
                             typeFlags.insert(getID(object.properties), subobject.properties.at(0).toString());
+                            attributetype = subobject.properties.at(0).toString().toStdString();
+                        } else if (subobject.name == "Properties70") {
+                            prop70Node = &subobject;
+                        }
+                    }
+
+                    if (!attributetype.empty()) {
+                        if (attributetype == "Light") {
+                            if (prop70Node) {
+                                foreach (const FBXNode& property, prop70Node->children) {
+                                    int valIndex = 4;
+                                    if (property.name == "P") {
+                                        std::string propname = property.properties.at(0).toString().toStdString();
+                                        if (propname == "LightType") {
+                                            std::string type = property.properties.at(valIndex).toString().toStdString();
+                                        } else if (propname == "Intensity") {
+                                            float intensity = property.properties.at(valIndex).value<double>();
+                                        }
+#if defined(DEBUG_FBXREADER)
+                                        else {
+                                            if (propname == "EmissiveFactor") {
+                                            }
+                                        }
+#endif
+                                    }
+                                }
+                            }
                         }
                     }
                 } else if (object.name == "Deformer") {
@@ -1674,7 +1706,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         }
                     }
                     animationCurves.insert(getID(object.properties), curve);
+                
                 }
+#if defined(DEBUG_FBXREADER)
+                 else {
+                    std::string objectname = object.name.data();
+                    if ( objectname == "Pose"
+                        || objectname == "AnimationStack"
+                        || objectname == "AnimationLayer"
+                        || objectname == "AnimationCurveNode") {
+                    } else {
+                        unknown++;
+                    }
+                } 
+#endif
             }
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {
@@ -1726,6 +1771,25 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 }
             }
         }
+#if defined(DEBUG_FBXREADER)
+        else {
+            std::string objectname = child.name.data();
+            if ( objectname == "Pose"
+                || objectname == "CreationTime"
+                || objectname == "FileId"
+                || objectname == "Creator"
+                || objectname == "Documents"
+                || objectname == "References"
+                || objectname == "Definitions"
+                || objectname == "Takes"
+                || objectname == "AnimationStack"
+                || objectname == "AnimationLayer"
+                || objectname == "AnimationCurveNode") {
+            } else {
+                unknown++;
+            }
+        } 
+#endif
     }
 
     // assign the blendshapes to their corresponding meshes
