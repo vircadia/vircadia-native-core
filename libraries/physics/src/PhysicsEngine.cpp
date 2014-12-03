@@ -52,6 +52,7 @@ void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
         entity->clearUpdateFlags();
         ++item_itr;
     } 
+    _changedEntities.clear();
 
     // hunt for entities who have expired
     // TODO: make EntityItems use an expiry to make this work faster.
@@ -64,6 +65,7 @@ void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
             entitiesToDelete.insert(entity);
             // remove entity from the list
             item_itr = _mortalEntities.erase(item_itr);
+            _entities.remove(entity);
         } else if (entity->isImmortal()) {
             // remove entity from the list
             item_itr = _mortalEntities.erase(item_itr);
@@ -80,6 +82,8 @@ void PhysicsEngine::addEntity(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (!physicsInfo) {
+        assert(!_entities.contains(entity));
+        _entities.insert(entity);
         if (entity->isMortal()) {
             _mortalEntities.insert(entity);
         }
@@ -103,6 +107,7 @@ void PhysicsEngine::removeEntity(EntityItem* entity) {
         removeObject(motionState);
         entity->setPhysicsInfo(NULL);
     }
+    _entities.remove(entity);
     _mortalEntities.remove(entity);
 }
 
@@ -113,6 +118,17 @@ void PhysicsEngine::entityChanged(EntityItem* entity) {
 
 void PhysicsEngine::clearEntities() {
     // For now we assume this would only be called on shutdown in which case we can just let the memory get lost.
+    QSet<EntityItem*>::const_iterator entityItr = _entities.begin();
+    for (entityItr = _entities.begin(); entityItr != _entities.end(); ++entityItr) {
+        void* physicsInfo = (*entityItr)->getPhysicsInfo();
+        if (physicsInfo) {
+            CustomMotionState* motionState = static_cast<CustomMotionState*>(physicsInfo);
+            removeObject(motionState);
+        }
+    }
+    _entities.clear();
+    _changedEntities.clear();
+    _mortalEntities.clear();
 }
 
 // virtual
@@ -356,8 +372,7 @@ void PhysicsEngine::updateObjectHard(btRigidBody* body, CustomMotionState* motio
                 body->setMassProps(mass, inertia);
                 body->updateInertiaTensor();
             }
-            bool forceActivation = true;
-            body->activate(forceActivation);
+            body->forceActivationState(ACTIVE_TAG);
             break;
         }
         default: {

@@ -129,6 +129,7 @@ private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
 
     // EntitySimulation stuff
+    QSet<EntityItem*> _entities;
     QSet<EntityItem*> _changedEntities;
     QSet<EntityItem*> _mortalEntities;
 };
