@@ -37,6 +37,8 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _shutdownEventListener(this),
@@ -52,7 +54,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
-    _settingsManager()
+    _settingsManager(),
+    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
 {
     LogUtils::init();
 
@@ -346,6 +349,9 @@ void DomainServer::setupAutomaticNetworking() {
     QTimer* dynamicIPTimer = new QTimer(this);
     connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
     
+    _automaticNetworkingSetting =
+        _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
+    
     if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
         dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
         
@@ -354,9 +360,17 @@ void DomainServer::setupAutomaticNetworking() {
         connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
         iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
         
-        // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
+        // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
         connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
         connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        
+        // attempt to update our public socket now, this will send a heartbeat once we get public socket
+        requestCurrentPublicSocketViaSTUN();
+        
+        // in case the STUN lookup is still happening we should re-request a public socket once we get that address
+        connect(&nodeList->getSTUNSockAddr(), &HifiSockAddr::lookupCompleted,
+                this, &DomainServer::requestCurrentPublicSocketViaSTUN);
+        
     }
     
     if (!didSetupAccountManagerWithAccessToken()) {
@@ -365,9 +379,6 @@ void DomainServer::setupAutomaticNetworking() {
         
         return;
     }
-    
-    _automaticNetworkingSetting =
-        _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
     
     if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
         _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
@@ -383,14 +394,13 @@ void DomainServer::setupAutomaticNetworking() {
                 
                 // send public socket changes to the data server so nodes can find us at our new IP
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+                
+                // attempt to update our sockets now
+                requestCurrentPublicSocketViaSTUN();
             } else {
                 // send our heartbeat to data server so it knows what our network settings are
                 sendHeartbeatToDataServer();
             }
-            
-            // attempt to update our sockets now
-            requestCurrentPublicSocketViaSTUN();
-            
         } else {
             qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
             << "Please add an ID to your config file or via the web interface.";
@@ -1167,8 +1177,7 @@ void DomainServer::performICEUpdates() {
 }
 
 void DomainServer::sendHeartbeatToIceServer() {
-    static HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
-    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
+    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
 void DomainServer::sendICEPingPackets() {
