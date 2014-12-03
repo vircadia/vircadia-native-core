@@ -235,7 +235,6 @@ SelectionDisplay = (function () {
     var overlayNames = new Array();
     var lastCameraPosition = Camera.getPosition();
     var lastCameraOrientation = Camera.getOrientation();
-    var lastPlaneIntersection;
 
     var handleHoverColor = { red: 224, green: 67, blue: 36 };
     var handleHoverAlpha = 1.0;
@@ -721,13 +720,11 @@ SelectionDisplay = (function () {
 
         if (event !== false) {
             pickRay = Camera.computePickRay(event.x, event.y);
-            lastPlaneIntersection = rayPlaneIntersection(pickRay, properties.position, Quat.getFront(lastCameraOrientation));
 
             var wantDebug = false;
             if (wantDebug) {
                 print("select() with EVENT...... ");
                 print("                event.y:" + event.y);
-                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                 Vec3.print("       current position:", properties.position);
             }
             
@@ -1285,7 +1282,6 @@ SelectionDisplay = (function () {
 
                 if (wantDebug) {
                     print("translateXZ... ");
-                    Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                     Vec3.print("                 vector:", vector);
                     Vec3.print("            newPosition:", properties.position);
                     Vec3.print("            newPosition:", newPosition);
@@ -1348,7 +1344,6 @@ SelectionDisplay = (function () {
             if (wantDebug) {
                 print("translateUpDown... ");
                 print("                event.y:" + event.y);
-                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                 Vec3.print("        newIntersection:", newIntersection);
                 Vec3.print("                 vector:", vector);
                 Vec3.print("            newPosition:", newPosition);
@@ -1561,7 +1556,6 @@ SelectionDisplay = (function () {
             var wantDebug = false;
             if (wantDebug) {
                 print(stretchMode);
-                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
                 Vec3.print("        newIntersection:", newIntersection);
                 Vec3.print("                 vector:", vector);
                 Vec3.print("           oldPOS:", oldPOS);
@@ -2310,11 +2304,8 @@ SelectionDisplay = (function () {
 
         if (somethingClicked) {
             pickRay = Camera.computePickRay(event.x, event.y);
-            lastPlaneIntersection = rayPlaneIntersection(pickRay, selectionManager.worldPosition, 
-                                                            Quat.getFront(lastCameraOrientation));
             if (wantDebug) {
-                     print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                Vec3.print("  lastPlaneIntersection:", lastPlaneIntersection);
+                 print("mousePressEvent()...... " + overlayNames[result.overlayID]);
             }
         }
 
