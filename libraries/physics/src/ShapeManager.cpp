@@ -10,6 +10,9 @@
 //
 
 #ifdef USE_BULLET_PHYSICS
+
+#include <glm/gtx/norm.hpp>
+
 #include "ShapeInfoUtil.h"
 #include "ShapeManager.h"
 
@@ -25,23 +28,28 @@ ShapeManager::~ShapeManager() {
     _shapeMap.clear();
 }
 
-
 btCollisionShape* ShapeManager::getShape(const ShapeInfo& info) {
+    // Very small or large objects are not supported.
+    float diagonal = glm::length2(info.getBoundingBoxDiagonal());
+    const float MIN_SHAPE_DIAGONAL_SQUARED = 3.0e-4f; // 1 cm cube
+    const float MAX_SHAPE_DIAGONAL_SQUARED = 3.0e4f;  // 100 m cube
+    if (diagonal < MIN_SHAPE_DIAGONAL_SQUARED || diagonal > MAX_SHAPE_DIAGONAL_SQUARED) {
+        return NULL;
+    }
     DoubleHashKey key = ShapeInfoUtil::computeHash(info);
     ShapeReference* shapeRef = _shapeMap.find(key);
     if (shapeRef) {
         shapeRef->_refCount++;
         return shapeRef->_shape;
-    } else {
-        btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
-        if (shape) {
-            ShapeReference newRef;
-            newRef._refCount = 1;
-            newRef._shape = shape;
-            _shapeMap.insert(key, newRef);
-        }
-        return shape;
     }
+    btCollisionShape* shape = ShapeInfoUtil::createShapeFromInfo(info);
+    if (shape) {
+        ShapeReference newRef;
+        newRef._refCount = 1;
+        newRef._shape = shape;
+        _shapeMap.insert(key, newRef);
+    }
+    return shape;
 }
 
 bool ShapeManager::releaseShape(const ShapeInfo& info) {

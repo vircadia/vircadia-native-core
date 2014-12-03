@@ -57,87 +57,70 @@ int ShapeInfoUtil::fromBulletShapeType(int bulletShapeType) {
 }
 
 void ShapeInfoUtil::collectInfoFromShape(const btCollisionShape* shape, ShapeInfo& info) {
-    info._data.clear();
     if (shape) {
-        info._type = ShapeInfoUtil::fromBulletShapeType(shape->getShapeType());
-        switch(info._type) {
-            case BOX_SHAPE:
-            {
+        int type = ShapeInfoUtil::fromBulletShapeType(shape->getShapeType());
+        switch(type) {
+            case BOX_SHAPE: {
                 const btBoxShape* boxShape = static_cast<const btBoxShape*>(shape);
                 glm::vec3 halfExtents;
                 bulletToGLM(boxShape->getHalfExtentsWithMargin(), halfExtents);
-                info._data.push_back(halfExtents);
+                info.setBox(halfExtents);
             }
             break;
-            case SPHERE_SHAPE:
-            {
+            case SPHERE_SHAPE: {
                 const btSphereShape* sphereShape = static_cast<const btSphereShape*>(shape);
-                glm::vec3 data;
-                bulletToGLM(btVector3(0.0f, 0.0f, sphereShape->getRadius()), data);
-                info._data.push_back(data);
+                info.setSphere(sphereShape->getRadius());
             }
             break;
-            case CYLINDER_SHAPE:
-            {
+            case CYLINDER_SHAPE: {
+                // NOTE: we only support cylinders along yAxis
                 const btCylinderShape* cylinderShape = static_cast<const btCylinderShape*>(shape);
-                glm::vec3 halfExtents;
-                bulletToGLM(cylinderShape->getHalfExtentsWithMargin(), halfExtents);
-                info._data.push_back(halfExtents);
+                btVector3 halfExtents = cylinderShape->getHalfExtentsWithMargin();
+                info.setCylinder(halfExtents.getX(), halfExtents.getY());
             }
             break;
-            case CAPSULE_SHAPE:
-            {
+            case CAPSULE_SHAPE: {
+                // NOTE: we only support capsules along yAxis
                 const btCapsuleShape* capsuleShape = static_cast<const btCapsuleShape*>(shape);
-                glm::vec3 data;
-                bulletToGLM(btVector3(capsuleShape->getRadius(), capsuleShape->getHalfHeight(), 0.0f), data);
-                info._data.push_back(data);
-                // NOTE: we only support capsules with axis along yAxis
+                info.setCapsule(capsuleShape->getRadius(), capsuleShape->getHalfHeight());
             }
             break;
             default:
-                info._type = INVALID_SHAPE;
+                info.clear();
             break;
         }
     } else {
-        info._type = INVALID_SHAPE;
+        info.clear();
     }
 }
 
 btCollisionShape* ShapeInfoUtil::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
-    int numData = info._data.size();
-    switch(info._type) {
+    const QVector<glm::vec3>& data = info.getData();
+    switch(info.getType()) {
         case BOX_SHAPE: {
-            if (numData > 0) {
-                btVector3 halfExtents;
-                glmToBullet(info._data[0], halfExtents);
-                shape = new btBoxShape(halfExtents);
-            }
+            btVector3 halfExtents;
+            glmToBullet(data[0], halfExtents);
+            shape = new btBoxShape(halfExtents);
         }
         break;
         case SPHERE_SHAPE: {
-            if (numData > 0) {
-                float radius = info._data[0].z;
-                shape = new btSphereShape(radius);
-            }
+            float radius = data[0].z;
+            shape = new btSphereShape(radius);
         }
         break;
         case CYLINDER_SHAPE: {
-            if (numData > 0) {
-                btVector3 halfExtents;
-                glmToBullet(info._data[0], halfExtents);
-                // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
-                // halfExtents = btVector3(radius, halfHeight, unused)
-                shape = new btCylinderShape(halfExtents);
-            }
+            btVector3 halfExtents;
+            glmToBullet(data[0], halfExtents);
+            // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
+            // halfExtents = btVector3(radius, halfHeight, unused)
+            shape = new btCylinderShape(halfExtents);
         }
         break;
         case CAPSULE_SHAPE: {
-            if (numData > 0) {
-                float radius = info._data[0].x;
-                float height = 2.0f * info._data[0].y;
-                shape = new btCapsuleShape(radius, height);
-            }
+            float radius = data[0].x;
+            float height = 2.0f * data[0].y;
+            shape = new btCapsuleShape(radius, height);
         }
         break;
     }
@@ -150,12 +133,13 @@ DoubleHashKey ShapeInfoUtil::computeHash(const ShapeInfo& info) {
     // scramble the bits of the type
     // TODO?: provide lookup table for hash of info._type rather than recompute?
     int primeIndex = 0;
-    unsigned int hash = DoubleHashKey::hashFunction((unsigned int)info._type, primeIndex++);
+    unsigned int hash = DoubleHashKey::hashFunction((unsigned int)info.getType(), primeIndex++);
+    const QVector<glm::vec3>& data = info.getData();
 
     glm::vec3 tmpData;
-    int numData = info._data.size();
+    int numData = data.size();
     for (int i = 0; i < numData; ++i) {
-        tmpData = info._data[i];
+        tmpData = data[i];
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()
@@ -169,10 +153,10 @@ DoubleHashKey ShapeInfoUtil::computeHash(const ShapeInfo& info) {
     // compute hash2
     // scramble the bits of the type
     // TODO?: provide lookup table for hash2 of info._type rather than recompute?
-    hash = DoubleHashKey::hashFunction2((unsigned int)info._type);
+    hash = DoubleHashKey::hashFunction2((unsigned int)info.getType());
 
     for (int i = 0; i < numData; ++i) {
-        tmpData = info._data[i];
+        tmpData = data[i];
         for (int j = 0; j < 3; ++j) {
             // NOTE: 0.49f is used to bump the float up almost half a millimeter
             // so the cast to int produces a round() effect rather than a floor()

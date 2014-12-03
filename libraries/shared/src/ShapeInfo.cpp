@@ -16,6 +16,11 @@
 //#include "DoubleHashKey.h"
 #include "ShapeInfo.h"
 
+void ShapeInfo::clear() {
+    _type = INVALID_SHAPE;
+    _data.clear();
+}
+
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _type = BOX_SHAPE;
     _data.clear();
@@ -25,19 +30,31 @@ void ShapeInfo::setBox(const glm::vec3& halfExtents) {
 void ShapeInfo::setSphere(float radius) {
     _type = SPHERE_SHAPE;
     _data.clear();
-    _data.push_back(glm::vec3(0.0f, 0.0f, radius));
+    _data.push_back(glm::vec3(radius));
 }
 
-void ShapeInfo::setCylinder(float radius, float height) {
+void ShapeInfo::setCylinder(float radius, float halfHeight) {
     _type = CYLINDER_SHAPE;
     _data.clear();
     // NOTE: default cylinder has (UpAxis = 1) axis along yAxis and radius stored in X
-    _data.push_back(glm::vec3(radius, 0.5f * height, radius));
+    _data.push_back(glm::vec3(radius, halfHeight, radius));
 }
 
-void ShapeInfo::setCapsule(float radius, float height) {
+void ShapeInfo::setCapsule(float radius, float halfHeight) {
     _type = CAPSULE_SHAPE;
     _data.clear();
-    _data.push_back(glm::vec3(radius, 0.5f * height, 0.0f));
+    _data.push_back(glm::vec3(radius, halfHeight, radius));
 }
 
+glm::vec3 ShapeInfo::getBoundingBoxDiagonal() const {
+    switch(_type) {
+        case BOX_SHAPE:
+        case SPHERE_SHAPE:
+        case CYLINDER_SHAPE:
+        case CAPSULE_SHAPE:
+            return 2.0f * _data[0];
+        default:
+            break;
+    }
+    return glm::vec3(0.0f);
+}

@@ -21,11 +21,19 @@ class ShapeInfo {
 public:
     ShapeInfo() : _type(INVALID_SHAPE) {}
 
+    void clear();
+
     void setBox(const glm::vec3& halfExtents);
     void setSphere(float radius);
-    void setCylinder(float radius, float height);
-    void setCapsule(float radius, float height);
+    void setCylinder(float radius, float halfHeight);
+    void setCapsule(float radius, float halfHeight);
 
+    const int getType() const { return _type; }
+    const QVector<glm::vec3>& getData() const { return _data; }
+
+    glm::vec3 getBoundingBoxDiagonal() const;
+
+protected:
     int _type;
     QVector<glm::vec3> _data;
 };
