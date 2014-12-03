@@ -14,7 +14,7 @@
 #include "PositionHashKey.h"
 
 // static 
-int PositionHashKey::computeHash(const glm::vec3& center) {
+int computeHash(const glm::vec3& center) {
     // NOTE: 0.49f is used to bump the float up almost half a millimeter
     // so the cast to int produces a round() effect rather than a floor()
     int hash = DoubleHashKey::hashFunction((int)(center.x * MILLIMETERS_PER_METER + copysignf(1.0f, center.x) * 0.49f), 0);
@@ -23,7 +23,7 @@ int PositionHashKey::computeHash(const glm::vec3& center) {
 }
 
 // static 
-int PositionHashKey::computeHash2(const glm::vec3& center) {
+int computeHash2(const glm::vec3& center) {
     // NOTE: 0.49f is used to bump the float up almost half a millimeter
     // so the cast to int produces a round() effect rather than a floor()
     int hash = DoubleHashKey::hashFunction2((int)(center.x * MILLIMETERS_PER_METER + copysignf(1.0f, center.x) * 0.49f));
@@ -32,6 +32,6 @@ int PositionHashKey::computeHash2(const glm::vec3& center) {
 }
 
 PositionHashKey::PositionHashKey(glm::vec3 center) : DoubleHashKey() {
-    _hash = PositionHashKey::computeHash(center);
-    _hash2 = PositionHashKey::computeHash2(center);
+    _hash = computeHash(center);
+    _hash2 = computeHash2(center);
 }

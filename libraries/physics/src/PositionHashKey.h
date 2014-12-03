@@ -20,8 +20,6 @@
 
 class PositionHashKey : public DoubleHashKey {
 public:
-    static int computeHash(const glm::vec3& center);
-    static int computeHash2(const glm::vec3& center);
     PositionHashKey(glm::vec3 center);
 };
 
