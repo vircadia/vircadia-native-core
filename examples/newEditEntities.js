@@ -476,7 +476,6 @@ function findClickedEntity(event) {
         var identify = Entities.identifyEntity(foundEntity);
         if (!identify.isKnownID) {
             print("Unknown ID " + identify.id + " (update loop " + foundEntity.id + ")");
-            selectionManager.clearSelections();
             return null;
         }
         foundEntity = identify;
