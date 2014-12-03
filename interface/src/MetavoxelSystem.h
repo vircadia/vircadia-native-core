@@ -26,6 +26,7 @@
 class HeightfieldBaseLayerBatch;
 class HeightfieldRendererNode;
 class HeightfieldSplatBatch;
+class HermiteBatch;
 class Model;
 class VoxelBatch;
 class VoxelSplatBatch;
@@ -89,6 +90,8 @@ public:
     void addVoxelBaseBatch(const VoxelBatch& batch) { _voxelBaseBatches.append(batch); }
     void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
     
+    void addHermiteBatch(const HermiteBatch& batch) { _hermiteBatches.append(batch); }
+    
 signals:
 
     void rendering();
@@ -121,6 +124,7 @@ private:
     QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
     QVector<VoxelBatch> _voxelBaseBatches;
     QVector<VoxelSplatBatch> _voxelSplatBatches;
+    QVector<HermiteBatch> _hermiteBatches;
     
     ProgramObject _baseHeightfieldProgram;
     int _baseHeightScaleLocation;
@@ -210,6 +214,13 @@ public:
     glm::vec4 splatTextureScalesS;
     glm::vec4 splatTextureScalesT;
     int materialIndex;
+};
+
+/// A batch containing Hermite data for debugging.
+class HermiteBatch {
+public:
+    QOpenGLBuffer* vertexBuffer;
+    int vertexCount;
 };
 
 /// Generic abstract base class for objects that handle a signal.

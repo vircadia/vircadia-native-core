@@ -461,6 +461,34 @@ void MetavoxelSystem::render() {
         _voxelBaseBatches.clear();
     }
     
+    if (!_hermiteBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        
+        glEnableClientState(GL_VERTEX_ARRAY);
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        
+        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
+        
+        foreach (const HermiteBatch& batch, _hermiteBatches) {
+            batch.vertexBuffer->bind();
+            
+            glVertexPointer(3, GL_FLOAT, 0, 0);
+            
+            glDrawArrays(GL_LINES, 0, batch.vertexCount);
+            
+            batch.vertexBuffer->release();
+        }
+        
+        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+    }
+    _hermiteBatches.clear();
+    
     // give external parties a chance to join in
     emit rendering();
 }
@@ -1229,31 +1257,18 @@ void VoxelBuffer::render(bool cursor) {
         }
     }
     
-    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+    if (_hermiteCount > 0) {
         if (!_hermiteBuffer.isCreated()) {
             _hermiteBuffer.create();
             _hermiteBuffer.bind();
-            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));
+            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));    
+            _hermiteBuffer.release();
             _hermite.clear();
-        
-        } else {
-            _hermiteBuffer.bind();
         }
-        
-        glVertexPointer(3, GL_FLOAT, 0, 0);
-        
-        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().bind();
-        
-        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        
-        glLineWidth(1.0f);
-        
-        glDrawArrays(GL_LINES, 0, _hermiteCount);
-        
-        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().release();
-        
-        _hermiteBuffer.release();
+        HermiteBatch hermiteBatch;
+        hermiteBatch.vertexBuffer = &_hermiteBuffer;
+        hermiteBatch.vertexCount = _hermiteCount;
+        Application::getInstance()->getMetavoxels()->addHermiteBatch(hermiteBatch);
     }
 }
 
