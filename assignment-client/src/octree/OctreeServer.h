@@ -62,7 +62,6 @@ public:
 
     // Subclasses must implement these methods
     virtual OctreeQueryNode* createOctreeQueryNode() = 0;
-    virtual Octree* createTree() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual const char* getMyServerName() const = 0;
@@ -132,6 +131,7 @@ public slots:
     void readPendingDatagram(const QByteArray& receivedPacket, const HifiSockAddr& senderSockAddr);
 
 protected:
+    virtual Octree* createTree() = 0;
     bool readOptionBool(const QString& optionName, const QJsonObject& settingsSectionObject, bool& result);
     bool readOptionInt(const QString& optionName, const QJsonObject& settingsSectionObject, int& result);
     bool readOptionString(const QString& optionName, const QJsonObject& settingsSectionObject, QString& result);
