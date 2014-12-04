@@ -1016,7 +1016,8 @@ SelectionDisplay = (function () {
             z: dimensions.z * registrationPoint.z,
         };
 
-        center = getRelativeCenterPosition(position, dimensions, registrationPoint);
+        // Center of entity, relative to registration point
+        center = getRelativeCenterPosition(dimensions, registrationPoint);
 
         // Distances in world coordinates relative to the registration point
         var left = -registrationPointDimensions.x;
