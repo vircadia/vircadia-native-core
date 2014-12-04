@@ -218,6 +218,17 @@ function normalizeDegrees(degrees) {
     return degrees;
 }
 
+// Return the enter position of an entity relative to it's registrationPoint
+// A registration point of (0.5, 0.5, 0.5) will have an offset of (0, 0, 0)
+// A registration point of (1.0, 1.0, 1.0) will have an offset of (-dimensions.x / 2, -dimensions.y / 2, -dimensions.z / 2)
+function getRelativeCenterPosition(dimensions, registrationPoint) {
+    return {
+        x: -dimensions.x * (registrationPoint.x - 0.5),
+        y: -dimensions.y * (registrationPoint.y - 0.5),
+        z: -dimensions.z * (registrationPoint.z - 0.5),
+    }
+}
+
 SelectionDisplay = (function () {
     var that = {};
     
@@ -1005,12 +1016,7 @@ SelectionDisplay = (function () {
             z: dimensions.z * registrationPoint.z,
         };
 
-        // Center of entity, relative to registration point
-        var center = {
-            x: dimensions.x / 2 - registrationPointDimensions.x,
-            y: dimensions.y / 2 - registrationPointDimensions.y,
-            z: dimensions.z / 2 - registrationPointDimensions.z,
-        };
+        center = getRelativeCenterPosition(position, dimensions, registrationPoint);
 
         // Distances in world coordinates relative to the registration point
         var left = -registrationPointDimensions.x;
