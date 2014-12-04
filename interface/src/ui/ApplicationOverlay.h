@@ -15,9 +15,9 @@
 class Overlays;
 class QOpenGLFramebufferObject;
 
-const float MAGNIFY_WIDTH = 160.0f;
-const float MAGNIFY_HEIGHT = 80.0f;
-const float MAGNIFY_MULT = 4.0f;
+const float MAGNIFY_WIDTH = 220.0f;
+const float MAGNIFY_HEIGHT = 100.0f;
+const float MAGNIFY_MULT = 2.0f;
 
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
