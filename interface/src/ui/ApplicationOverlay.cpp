@@ -161,23 +161,21 @@ void ApplicationOverlay::displayOverlayTexture() {
 }
 
 void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
-    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    static const float MOUSE_PITCH_RANGE = 1.0f * PI;
+    static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
 
-    //invert y direction
-    y = 1.0 - y;
-
-    //Get position on hemisphere UI
-    x = sin((x - 0.5f) * _textureFov);
-    y = sin((y - 0.5f) * _textureFov);
-
-    float dist = sqrt(x * x + y * y);
-    float z = -sqrt(1.0f - dist * dist);
-
-    glm::vec3 relativePosition = myAvatar->getDefaultEyePosition() +
-        glm::normalize(myAvatar->getOrientation() * glm::vec3(x, y, z));
+    const MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    const GLCanvas* glWidget = Application::getInstance()->getGLWidget();
+    const int widgetWidth = glWidget->width();
+    const int widgetHeight = glWidget->height();
+    
+    const float pitch = -(y / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
+    const float yaw = -(x / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
+    const glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
+    const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
 
     //Rotate the UI pick ray by the avatar orientation
-    direction = glm::normalize(relativePosition - Application::getInstance()->getCamera()->getPosition());
+    direction = myAvatar->getOrientation() * localDirection;
 }
 
 // Calculates the click location on the screen by taking into account any
