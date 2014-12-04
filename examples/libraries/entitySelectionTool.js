@@ -1428,6 +1428,8 @@ SelectionDisplay = (function () {
         var initialDimensions = null;
         var initialIntersection = null;
         var initialProperties = null;
+        var registrationPoint = null;
+        var deltaPivot = null;
         var pickRayPosition = null;
         var rotation = null;
 
@@ -1440,18 +1442,29 @@ SelectionDisplay = (function () {
                 rotation = SelectionManager.localRotation;
                 initialPosition = SelectionManager.localPosition;
                 initialDimensions = SelectionManager.localDimensions;
+                registrationPoint = SelectionManager.localRegistrationPoint;
             } else {
                 rotation = SelectionManager.worldRotation;
                 initialPosition = SelectionManager.worldPosition;
                 initialDimensions = SelectionManager.worldDimensions;
+                registrationPoint = SelectionManager.worldRegistrationPoint;
             }
 
-            var scaledOffset = {
-                x: initialDimensions.x * offset.x * 0.5,
-                y: initialDimensions.y * offset.y * 0.5,
-                z: initialDimensions.z * offset.z * 0.5,
-            };
-            pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffset));
+            // Modify range of registrationPoint to be [-0.5, 0.5]
+            var centeredRP = Vec3.subtract(registrationPoint, { x: 0.5, y: 0.5, z: 0.5 });
+
+            // Scale pivot to be in the same range as registrationPoint
+            var scaledPivot = Vec3.multiply(0.5, pivot)
+            deltaPivot = Vec3.subtract(centeredRP, scaledPivot);
+
+            var scaledOffset = Vec3.multiply(0.5, offset);
+
+            // Offset from the registration point
+            offsetRP = Vec3.subtract(scaledOffset, centeredRP);
+
+            // Scaled offset in world coordinates
+            var scaledOffsetWorld = vec3Mult(initialDimensions, offsetRP);
+            pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
 
             if (numDimensions == 1 && mask.x) {
                 var start = Vec3.multiplyQbyV(rotation, { x: -10000, y: 0, z: 0 });
@@ -1578,8 +1591,7 @@ SelectionDisplay = (function () {
             newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
             newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
             
-            var p = Vec3.multiply(0.5, pivot);
-            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(p, changeInDimensions));
+            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(deltaPivot, changeInDimensions));
             var newPosition = Vec3.sum(initialPosition, changeInPosition);
             
             for (var i = 0; i < SelectionManager.selections.length; i++) {
@@ -1617,20 +1629,19 @@ SelectionDisplay = (function () {
 
     function addStretchTool(overlay, mode, pivot, direction, offset) {
         if (!pivot) {
-            pivot = Vec3.multiply(-1, direction);
-            pivot.y = direction.y;
+            pivot = direction;
         }
         var tool = makeStretchTool(mode, direction, pivot, offset);
 
         addGrabberTool(overlay, tool);
     }
 
-    addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
-    addStretchTool(grabberFAR, "STRETCH_FAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 });
-    addStretchTool(grabberTOP, "STRETCH_TOP", { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 });
-    addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
-    addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
-    addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
+    addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
+    addStretchTool(grabberFAR, "STRETCH_FAR", { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 });
+    addStretchTool(grabberTOP, "STRETCH_TOP", { x: 0, y: -1, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 });
+    addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: 1, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
+    addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: -1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: 1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
 
     addStretchTool(grabberLBN, "STRETCH_LBN", null, {x: 1, y: 0, z: 1}, { x: -1, y: -1, z: -1 });
     addStretchTool(grabberRBN, "STRETCH_RBN", null, {x: -1, y: 0, z: 1}, { x: 1, y: -1, z: -1 });
