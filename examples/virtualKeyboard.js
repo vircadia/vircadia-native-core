@@ -34,7 +34,7 @@ const CURSOR_HEIGHT = 33.9;
 
 // VIEW_ANGLE can be adjusted to your likings, the smaller the faster movement.
 // Try setting it to 60 if it goes too fast for you.
-const VIEW_ANGLE = 30.0;
+const VIEW_ANGLE = 40.0;
 const VIEW_ANGLE_BY_TWO = VIEW_ANGLE / 2;
 
 const SPAWN_DISTANCE = 1;
