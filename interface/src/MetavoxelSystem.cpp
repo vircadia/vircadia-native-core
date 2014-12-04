@@ -578,6 +578,12 @@ void MetavoxelSystem::setVoxelMaterial(const SharedObjectPointer& spanner, const
     applyMaterialEdit(edit, true);
 }
 
+void MetavoxelSystem::deleteTextures(int heightTextureID, int colorTextureID, int materialTextureID) const {
+    glDeleteTextures(1, (const GLuint*)&heightTextureID);
+    glDeleteTextures(1, (const GLuint*)&colorTextureID);
+    glDeleteTextures(1, (const GLuint*)&materialTextureID);
+}
+
 class SpannerRenderVisitor : public SpannerVisitor {
 public:
     
@@ -2090,48 +2096,10 @@ void StaticModelRenderer::applyURL(const QUrl& url) {
 HeightfieldRenderer::HeightfieldRenderer() {
 }
 
-void HeightfieldRenderer::init(Spanner* spanner) {
-    SpannerRenderer::init(spanner);
-    
-    Heightfield* heightfield = static_cast<Heightfield*>(spanner);
-    connect(heightfield, &Heightfield::rootChanged, this, &HeightfieldRenderer::updateRoot);
-    updateRoot();
-}
-
-void HeightfieldRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
-    Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
-    _root->render(heightfield, heightfield->transformLOD(lod), glm::vec2(), 1.0f, contained, cursor);
-}
-
-void HeightfieldRenderer::updateRoot() {
-    Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
-    _root = new HeightfieldRendererNode(heightfield->getRoot());
-}
-
-HeightfieldRendererNode::HeightfieldRendererNode(const HeightfieldNodePointer& heightfieldNode) :
-    _heightfieldNode(heightfieldNode),
-    _heightTextureID(0),
-    _colorTextureID(0),
-    _materialTextureID(0) {
-    
-    for (int i = 0; i < CHILD_COUNT; i++) {
-        HeightfieldNodePointer child = heightfieldNode->getChild(i);
-        if (child) {
-            _children[i] = new HeightfieldRendererNode(child);
-        }    
-    }
-}
-
-HeightfieldRendererNode::~HeightfieldRendererNode() {
-    glDeleteTextures(1, &_heightTextureID);
-    glDeleteTextures(1, &_colorTextureID);
-    glDeleteTextures(1, &_materialTextureID);
-}
-
 const int X_MAXIMUM_FLAG = 1;
 const int Y_MAXIMUM_FLAG = 2;
 
-void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLOD& lod,
+static void renderNode(const HeightfieldNodePointer& node, Heightfield* heightfield, const MetavoxelLOD& lod,
         const glm::vec2& minimum, float size, bool contained, bool cursor) {
     const glm::quat& rotation = heightfield->getRotation();
     glm::vec3 scale(heightfield->getScale() * size, heightfield->getScale() * heightfield->getAspectY(),
@@ -2148,19 +2116,44 @@ void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLO
             contained = true;
         }
     }
-    if (!isLeaf() && lod.shouldSubdivide(minimum, size)) {
+    if (!node->isLeaf() && lod.shouldSubdivide(minimum, size)) {
         float nextSize = size * 0.5f;
-        for (int i = 0; i < CHILD_COUNT; i++) {
-            _children[i]->render(heightfield, lod, minimum + glm::vec2(i & X_MAXIMUM_FLAG ? nextSize : 0.0f,
+        for (int i = 0; i < HeightfieldNode::CHILD_COUNT; i++) {
+            renderNode(node->getChild(i), heightfield, lod, minimum + glm::vec2(i & X_MAXIMUM_FLAG ? nextSize : 0.0f,
                 i & Y_MAXIMUM_FLAG ? nextSize : 0.0f), nextSize, contained, cursor);
         }
         return;
     }
-    if (!_heightfieldNode->getHeight()) {
+    HeightfieldNodeRenderer* renderer = static_cast<HeightfieldNodeRenderer*>(node->getRenderer());
+    if (!renderer) {
+        node->setRenderer(renderer = new HeightfieldNodeRenderer());
+    }
+    renderer->render(node, translation, rotation, scale, cursor);
+}
+
+void HeightfieldRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
+    Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
+    renderNode(heightfield->getRoot(), heightfield, heightfield->transformLOD(lod), glm::vec2(), 1.0f, contained, cursor);
+}
+
+HeightfieldNodeRenderer::HeightfieldNodeRenderer() :
+    _heightTextureID(0),
+    _colorTextureID(0),
+    _materialTextureID(0) {
+}
+
+HeightfieldNodeRenderer::~HeightfieldNodeRenderer() {
+    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteTextures", Q_ARG(int, _heightTextureID),
+        Q_ARG(int, _colorTextureID), Q_ARG(int, _materialTextureID));
+}
+
+void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
+        const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
+    if (!node->getHeight()) {
         return;
     }
-    int width = _heightfieldNode->getHeight()->getWidth();
-    int height = _heightfieldNode->getHeight()->getContents().size() / width;
+    int width = node->getHeight()->getWidth();
+    int height = node->getHeight()->getContents().size() / width;
     int innerWidth = width - 2 * HeightfieldHeight::HEIGHT_BORDER;
     int innerHeight = height - 2 * HeightfieldHeight::HEIGHT_BORDER;
     int vertexCount = width * height;
@@ -2225,7 +2218,7 @@ void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLO
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        const QVector<quint16>& heightContents = _heightfieldNode->getHeight()->getContents();
+        const QVector<quint16>& heightContents = node->getHeight()->getContents();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
             GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
     
@@ -2234,10 +2227,10 @@ void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLO
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        if (_heightfieldNode->getColor()) {
-            const QByteArray& contents = _heightfieldNode->getColor()->getContents();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, _heightfieldNode->getColor()->getWidth(),
-                contents.size() / (_heightfieldNode->getColor()->getWidth() * DataBlock::COLOR_BYTES),
+        if (node->getColor()) {
+            const QByteArray& contents = node->getColor()->getContents();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, node->getColor()->getWidth(),
+                contents.size() / (node->getColor()->getWidth() * DataBlock::COLOR_BYTES),
                 0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
             
         } else {
@@ -2251,13 +2244,13 @@ void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLO
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        if (_heightfieldNode->getMaterial()) {
-            const QByteArray& contents = _heightfieldNode->getMaterial()->getContents();
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, _heightfieldNode->getMaterial()->getWidth(),
-                contents.size() / _heightfieldNode->getMaterial()->getWidth(),
+        if (node->getMaterial()) {
+            const QByteArray& contents = node->getMaterial()->getContents();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, node->getMaterial()->getWidth(),
+                contents.size() / node->getMaterial()->getWidth(),
                 0, GL_RED, GL_UNSIGNED_BYTE, contents.constData());
                 
-            const QVector<SharedObjectPointer>& materials = _heightfieldNode->getMaterial()->getMaterials();
+            const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
             _networkTextures.resize(materials.size());
             for (int i = 0; i < materials.size(); i++) {
                 const SharedObjectPointer& material = materials.at(i);
@@ -2330,7 +2323,7 @@ void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLO
             glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
             glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);
         
-        const QVector<SharedObjectPointer>& materials = _heightfieldNode->getMaterial()->getMaterials();
+        const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
         for (int i = 0; i < materials.size(); i += SPLAT_COUNT) {
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 int index = i + j;
@@ -2355,14 +2348,5 @@ void HeightfieldRendererNode::render(Heightfield* heightfield, const MetavoxelLO
     }
 }
 
-bool HeightfieldRendererNode::isLeaf() const {
-    for (int i = 0; i < CHILD_COUNT; i++) {
-        if (_children[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
-QHash<HeightfieldRendererNode::IntPair, HeightfieldRendererNode::BufferPair> HeightfieldRendererNode::_bufferPairs;
+QHash<HeightfieldNodeRenderer::IntPair, HeightfieldNodeRenderer::BufferPair> HeightfieldNodeRenderer::_bufferPairs;
 

@@ -17,6 +17,8 @@
 #include "AttributeRegistry.h"
 #include "MetavoxelUtil.h"
 
+class AbstractHeightfieldNodeRenderer;
+class Heightfield;
 class HeightfieldColor;
 class HeightfieldHeight;
 class HeightfieldMaterial;
@@ -499,6 +501,10 @@ public:
         const HeightfieldColorPointer& color = HeightfieldColorPointer(),
         const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer());
     
+    HeightfieldNode(const HeightfieldNode& other);
+    
+    ~HeightfieldNode();
+    
     void setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
         const HeightfieldMaterialPointer& material);
     
@@ -510,6 +516,9 @@ public:
     
     void setMaterial(const HeightfieldMaterialPointer& material) { _material = material; }
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
+    
+    void setRenderer(AbstractHeightfieldNodeRenderer* renderer) { _renderer = renderer; }
+    AbstractHeightfieldNodeRenderer* getRenderer() const { return _renderer; }
     
     bool isLeaf() const;
     
@@ -559,6 +568,15 @@ private:
     HeightfieldMaterialPointer _material;
     
     HeightfieldNodePointer _children[CHILD_COUNT];
+    
+    AbstractHeightfieldNodeRenderer* _renderer;
+};
+
+/// Base class for heightfield node rendering.
+class AbstractHeightfieldNodeRenderer {
+public:
+    
+    virtual ~AbstractHeightfieldNodeRenderer();
 };
 
 /// A heightfield represented as a spanner.

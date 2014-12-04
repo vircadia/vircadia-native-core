@@ -1143,7 +1143,23 @@ HeightfieldNode::HeightfieldNode(const HeightfieldHeightPointer& height, const H
         const HeightfieldMaterialPointer& material) :
     _height(height),
     _color(color),
-    _material(material) {
+    _material(material),
+    _renderer(NULL) {
+}
+
+HeightfieldNode::HeightfieldNode(const HeightfieldNode& other) :
+    _height(other.getHeight()),
+    _color(other.getColor()),
+    _material(other.getMaterial()),
+    _renderer(NULL) {
+    
+    for (int i = 0; i < CHILD_COUNT; i++) {
+        _children[i] = other.getChild(i);
+    }
+}
+
+HeightfieldNode::~HeightfieldNode() {
+    delete _renderer;
 }
 
 const int HEIGHT_LEAF_SIZE = 256 + HeightfieldHeight::HEIGHT_EXTENSION;
@@ -2477,6 +2493,9 @@ int HeightfieldNode::getMaterialAt(const glm::vec3& location) const {
     
     glm::vec3 relative = location * glm::vec3((float)innerWidth, 1.0f, (float)innerHeight);
     return src[(int)glm::round(relative.z) * width + (int)glm::round(relative.x)];
+}
+
+AbstractHeightfieldNodeRenderer::~AbstractHeightfieldNodeRenderer() {
 }
 
 Heightfield::Heightfield() :

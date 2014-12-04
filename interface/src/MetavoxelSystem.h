@@ -24,7 +24,6 @@
 #include "renderer/ProgramObject.h"
 
 class HeightfieldBaseLayerBatch;
-class HeightfieldRendererNode;
 class HeightfieldSplatBatch;
 class HermiteBatch;
 class Model;
@@ -91,7 +90,9 @@ public:
     void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
     
     void addHermiteBatch(const HermiteBatch& batch) { _hermiteBatches.append(batch); }
-    
+
+    Q_INVOKABLE void deleteTextures(int heightTextureID, int colorTextureID, int materialTextureID) const;
+        
 signals:
 
     void rendering();
@@ -431,8 +432,6 @@ private:
     Model* _model;
 };
 
-typedef QExplicitlySharedDataPointer<HeightfieldRendererNode> HeightfieldRendererNodePointer;
-
 /// Renders heightfields.
 class HeightfieldRenderer : public SpannerRenderer {
     Q_OBJECT
@@ -441,38 +440,21 @@ public:
     
     Q_INVOKABLE HeightfieldRenderer();
     
-    virtual void init(Spanner* spanner);
     virtual void render(const MetavoxelLOD& lod = MetavoxelLOD(), bool contained = false, bool cursor = false);
-
-private slots:
-
-    void updateRoot();
-
-private:
-    
-    HeightfieldRendererNodePointer _root;
 };
 
-/// A node in the heightfield renderer quadtree.
-class HeightfieldRendererNode : public QSharedData {
+/// Renders a single quadtree node.
+class HeightfieldNodeRenderer : public AbstractHeightfieldNodeRenderer {
 public:
     
-    static const int CHILD_COUNT = 4;
+    HeightfieldNodeRenderer();
+    virtual ~HeightfieldNodeRenderer();
     
-    HeightfieldRendererNode(const HeightfieldNodePointer& heightfieldNode);
-    virtual ~HeightfieldRendererNode();
-    
-    void render(Heightfield* heightfield, const MetavoxelLOD& lod, const glm::vec2& minimum, float size,
-        bool contained, bool cursor = false);
+    void render(const HeightfieldNodePointer& node, const glm::vec3& translation,
+        const glm::quat& rotation, const glm::vec3& scale, bool cursor);
     
 private:
 
-    bool isLeaf() const;
-
-    HeightfieldNodePointer _heightfieldNode;
-
-    HeightfieldRendererNodePointer _children[CHILD_COUNT];
-    
     GLuint _heightTextureID;
     GLuint _colorTextureID;
     GLuint _materialTextureID;
