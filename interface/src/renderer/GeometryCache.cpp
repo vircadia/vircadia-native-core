@@ -832,7 +832,6 @@ void GeometryReader::run() {
         if (!_reply) {
             throw QString("Reply is NULL ?!");
         }
-        QString urlnameQ = _url.path().toLower();
         std::string urlname = _url.path().toLower().toStdString();
         bool urlValid = true;
         urlValid &= !urlname.empty();
@@ -841,8 +840,7 @@ void GeometryReader::run() {
                     || _url.path().toLower().endsWith(".svo");
 
         if (urlValid) {
-            QString urlnameQ = _url.path().toLower();
-            std::string urlnameQstd = urlnameQ.toStdString();
+            // Let's read the binaries from the network
             QByteArray fileBinary = _reply->readAll();
             if (fileBinary.isEmpty() || fileBinary.isNull()) {
                 throw QString("Read File binary is empty?!");
@@ -868,8 +866,7 @@ void GeometryReader::run() {
         } else {
             throw QString("url is invalid");
         }
-      //      _url.path().toLower().endsWith(".svo") ? readSVO(_reply->readAll()) : readFBX(_reply->readAll(), _mapping)));
-        
+
     } catch (const QString& error) {
         qDebug() << "Error reading " << _url << ": " << error;
         QMetaObject::invokeMethod(geometry.data(), "finishedLoading", Q_ARG(bool, false));
