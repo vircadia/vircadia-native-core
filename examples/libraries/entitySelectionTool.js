@@ -985,26 +985,40 @@ SelectionDisplay = (function () {
         that.updateRotationHandles();
         that.highlightSelectable();
 
-        var rotation, dimensions, position;
+        var rotation, dimensions, position, registrationPoint;
 
         if (spaceMode == SPACE_LOCAL) {
             rotation = SelectionManager.localRotation;
             dimensions = SelectionManager.localDimensions;
             position = SelectionManager.localPosition;
+            registrationPoint = SelectionManager.localRegistrationPoint;
         } else {
             rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
             dimensions = SelectionManager.worldDimensions;
             position = SelectionManager.worldPosition;
+            registrationPoint = SelectionManager.worldRegistrationPoint;
         }
 
-        var halfDimensions = Vec3.multiply(0.5, dimensions);
+        var registrationPointDimensions = {
+            x: dimensions.x * registrationPoint.x,
+            y: dimensions.y * registrationPoint.y,
+            z: dimensions.z * registrationPoint.z,
+        };
 
-        var left = -halfDimensions.x;
-        var right = halfDimensions.x;
-        var top = halfDimensions.y;
-        var bottom = -halfDimensions.y;
-        var front = far = halfDimensions.z;
-        var near = -halfDimensions.z;
+        // Center of entity, relative to registration point
+        var center = {
+            x: dimensions.x / 2 - registrationPointDimensions.x,
+            y: dimensions.y / 2 - registrationPointDimensions.y,
+            z: dimensions.z / 2 - registrationPointDimensions.z,
+        };
+
+        // Distances in world coordinates relative to the registration point
+        var left = -registrationPointDimensions.x;
+        var right = dimensions.x - registrationPointDimensions.x;
+        var bottom = -registrationPointDimensions.y;
+        var top = dimensions.y - registrationPointDimensions.y;
+        var near = -registrationPointDimensions.z;
+        var front = far = dimensions.z - registrationPointDimensions.z;
 
         var worldTop = SelectionManager.worldDimensions.y / 2;
 
@@ -1017,25 +1031,25 @@ SelectionDisplay = (function () {
         var LTF = { x: left, y: top, z: far };
         var RTF = { x: right, y: top, z: far };
 
-        var TOP = { x: 0, y: top, z: 0 };
-        var BOTTOM = { x: 0, y: bottom, z: 0 };
-        var LEFT = { x: left, y: 0, z: 0 };
-        var RIGHT = { x: right, y: 0, z: 0 };
-        var NEAR = { x: 0, y: 0, z: near };
-        var FAR = { x: 0, y: 0, z: far };
+        var TOP = { x: center.x, y: top, z: center.z };
+        var BOTTOM = { x: center.x, y: bottom, z: center.z };
+        var LEFT = { x: left, y: center.y, z: center.z };
+        var RIGHT = { x: right, y: center.y, z: center.z };
+        var NEAR = { x: center.x, y: center.y, z: near };
+        var FAR = { x: center.x, y: center.y, z: far };
 
-        var EdgeTR = { x: right, y: top, z: 0 };
-        var EdgeTL = { x: left, y: top, z: 0 };
-        var EdgeTF = { x: 0, y: top, z: front };
-        var EdgeTN = { x: 0, y: top, z: near };
-        var EdgeBR = { x: right, y: bottom, z: 0 };
-        var EdgeBL = { x: left, y: bottom, z: 0 };
-        var EdgeBF = { x: 0, y: bottom, z: front };
-        var EdgeBN = { x: 0, y: bottom, z: near };
-        var EdgeNR = { x: right, y: 0, z: near };
-        var EdgeNL = { x: left, y: 0, z: near };
-        var EdgeFR = { x: right, y: 0, z: front };
-        var EdgeFL = { x: left, y: 0, z: front };
+        var EdgeTR = { x: right, y: top, z: center.z };
+        var EdgeTL = { x: left, y: top, z: center.z };
+        var EdgeTF = { x: center.x, y: top, z: front };
+        var EdgeTN = { x: center.x, y: top, z: near };
+        var EdgeBR = { x: right, y: bottom, z: center.z };
+        var EdgeBL = { x: left, y: bottom, z: center.z };
+        var EdgeBF = { x: center.x, y: bottom, z: front };
+        var EdgeBN = { x: center.x, y: bottom, z: near };
+        var EdgeNR = { x: right, y: center.y, z: near };
+        var EdgeNL = { x: left, y: center.y, z: near };
+        var EdgeFR = { x: right, y: center.y, z: front };
+        var EdgeFL = { x: left, y: center.y, z: front };
 
         LBN = Vec3.multiplyQbyV(rotation, LBN);
         RBN = Vec3.multiplyQbyV(rotation, RBN);
@@ -1114,8 +1128,10 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(grabberNEAR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: NEAR });
         Overlays.editOverlay(grabberFAR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: FAR });
 
+        var boxPosition = Vec3.multiplyQbyV(rotation, center);
+        boxPosition = Vec3.sum(position, boxPosition);
         Overlays.editOverlay(selectionBox, {
-            position: position,
+            position: boxPosition,
             dimensions: dimensions,
             rotation: rotation,
             visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
@@ -1143,8 +1159,17 @@ SelectionDisplay = (function () {
         if (selectionManager.selections.length > 1) {
             for (; i < selectionManager.selections.length; i++) {
                 var properties = Entities.getEntityProperties(selectionManager.selections[i]);
+
+                // Adjust overlay position to take registrationPoint into account
+                // centeredRP = registrationPoint with range [-0.5, 0.5]
+                var centeredRP = Vec3.subtract(properties.registrationPoint, { x: 0.5, y: 0.5, z: 0.5 });
+                var offset = vec3Mult(properties.dimensions, centeredRP);
+                offset = Vec3.multiply(-1, offset);
+                offset = Vec3.multiplyQbyV(properties.rotation, offset);
+                var boxPosition = Vec3.sum(properties.position, offset);
+
                 Overlays.editOverlay(selectionBoxes[i], {
-                    position: properties.position,
+                    position: boxPosition,
                     rotation: properties.rotation,
                     dimensions: properties.dimensions,
                     visible: true,
