@@ -147,22 +147,21 @@ void PhysicsEngine::init() {
         // TODO: set up gravity zones
         _dynamicsWorld->setGravity(btVector3(0.0f, 0.0f, 0.0f));
         
-        // GROUND HACK: In the meantime we add a big planar floor to catch falling objects
-        // NOTE: we don't care about memory leaking groundShape and groundObject --> 
-        // they'll exist until the executable exits.
-        const float halfSide = 200.0f;
-        const float halfHeight = 1.0f;
-
-        btCollisionShape* groundShape = new btBoxShape(btVector3(halfSide, halfHeight, halfSide));
+        // GROUND HACK: add a big planar floor (and walls for testing) to catch falling objects
         btTransform groundTransform;
         groundTransform.setIdentity();
-        groundTransform.setOrigin(btVector3(halfSide, -halfHeight, halfSide));
+        for (int i = 0; i < 3; ++i) {
+            btVector3 normal(0.0f, 0.0f, 0.0f);
+            normal[i] = 1.0f;
+            btCollisionShape* plane = new btStaticPlaneShape(normal, 0.0f);
 
-        btCollisionObject* groundObject = new btCollisionObject();
-        groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
-        groundObject->setCollisionShape(groundShape);
-        groundObject->setWorldTransform(groundTransform);
-        _dynamicsWorld->addCollisionObject(groundObject);
+            btCollisionObject* groundObject = new btCollisionObject();
+            groundObject->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
+            groundObject->setCollisionShape(plane);
+
+            groundObject->setWorldTransform(groundTransform);
+            _dynamicsWorld->addCollisionObject(groundObject);
+        }
     }
 }
 
