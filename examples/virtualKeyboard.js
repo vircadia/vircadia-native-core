@@ -56,6 +56,7 @@ const TEXT_MARGIN_BOTTOM = 0.17;
 var windowDimensions = Controller.getViewportDimensions();
 var cursor = null;
 var keyboard = new Keyboard();
+var textFontSize = 9;
 var text = null;
 var textText = "";
 var textSizeMeasureOverlay = Overlays.addOverlay("text3d", {visible: false});
@@ -65,15 +66,39 @@ function appendChar(char) {
     updateTextOverlay();
     Overlays.editOverlay(text, {text: textText});
 }
+
 function deleteChar() {
     if (textText.length > 0) {
         textText = textText.substring(0, textText.length - 1);
         updateTextOverlay();
     }
 }
+
 function updateTextOverlay() {
-    Overlays.editOverlay(text, {text: textText});
+    var textwidth = Overlays.textWidth(text, textText);
+    var textLines = textText.split("\n");
+    var maxLineWidth = 0;
+    for (textLine in textLines) {
+        var lineWidth = Overlays.textWidth(text, textLines[textLine]);
+        if (lineWidth > maxLineWidth) {
+            maxLineWidth = lineWidth;
+        }
+    }
+    var suggestedFontSize = (windowDimensions.x / maxLineWidth) * textFontSize * 0.90;
+    var maxFontSize = 240 / textLines.length;
+    textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
+    var topMargin = (250 - (textFontSize * textLines.length)) / 2;
+    Overlays.editOverlay(text, {text: textText, font: {size: textFontSize}, topMargin: topMargin});
+    var maxLineWidth = 0;
+    for (textLine in textLines) {
+        var lineWidth = Overlays.textWidth(text, textLines[textLine]);
+        if (lineWidth > maxLineWidth) {
+            maxLineWidth = lineWidth;
+        }
+    }
+    Overlays.editOverlay(text, {leftMargin: (windowDimensions.x - maxLineWidth) / 2});
 }
+
 keyboard.onKeyPress = function(event) {
     if (event.event == 'keypress') {
         appendChar(event.char);
@@ -141,12 +166,13 @@ keyboard.onFullyLoaded = function() {
          height: 250,
          backgroundColor: { red: 255, green: 255, blue: 255},
          color: { red: 0, green: 0, blue: 0},
-         topMargin: 10,
-         leftMargin: 8,
-         font: {size: 28},
+         topMargin: 5,
+         leftMargin: 0,
+         font: {size: textFontSize},
          text: "",
          alpha: 0.8
     });
+    updateTextOverlay();
     // the cursor is being loaded after the keyboard, else it will be on the background of the keyboard 
     cursor = new Cursor();
     cursor.onUpdate = function(position) {
