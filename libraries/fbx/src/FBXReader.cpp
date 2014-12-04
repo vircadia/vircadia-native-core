@@ -1781,7 +1781,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                         QString parentID = getID(connection.properties, 2);
                         ooChildToParent.insert(childID, parentID);
                         if (!hifiGlobalNodeID.isEmpty() && (parentID == hifiGlobalNodeID)) {
-                            auto lit = lights.find(childID.toStdString());
+                            std::map< std::string, FBXLight >::iterator lit = lights.find(childID.toStdString());
                             if (lit != lights.end()) {
                                 lightmapLevel = (*lit).second.intensity;
                                 if (lightmapLevel <= 0.0f) {
@@ -1856,8 +1856,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
     // TODO: check if is code is needed
     if (!lights.empty()) {
         if (hifiGlobalNodeID.isEmpty()) {
-            auto l = (*lights.begin());
-            lightmapLevel = (l.second).intensity;
+            std::map< std::string, FBXLight >::iterator l = lights.begin();
+            lightmapLevel = (*l).second.intensity;
         }
     }
 
