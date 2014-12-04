@@ -64,7 +64,7 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
     MyAvatar* myAvatar = application->getAvatar();
     
     _textureFov = glm::radians(Menu::getInstance()->getOculusUIAngularSize());
-    _textureAspectRatio = application->getGLWidget()->getDeviceWidth() / application->getGLWidget()->getDeviceHeight();
+    _textureAspectRatio = (float)application->getGLWidget()->getDeviceWidth() / (float)application->getGLWidget()->getDeviceHeight();
 
     //Handle fading and deactivation/activation of UI
     if (Menu::getInstance()->isOptionChecked(MenuOption::UserInterface)) {
@@ -403,7 +403,18 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
         
-        _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
+        
+        static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
+        static QSize size;
+        if (textureFOV != _textureFov ||
+            textureAspectRatio != _textureAspectRatio ||
+            size != application->getGLWidget()->getDeviceSize()) {
+            textureFOV = _textureFov;
+            textureAspectRatio = _textureAspectRatio;
+            size = application->getGLWidget()->getDeviceSize();
+                
+            _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
+        }
         _overlays.render();
         
         renderPointersOculus(myAvatar->getDefaultEyePosition());
@@ -805,8 +816,8 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
         static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
         float pitch = -(mouseY / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
         float yaw = -(mouseX / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
-        
         glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
+        
         renderReticule(orientation, _alpha);
     }
 
@@ -1124,13 +1135,13 @@ void ApplicationOverlay::TexturedHemisphere::buildVBO(const float fov,
     TextureVertex* vertexData = new TextureVertex[_vertices];
     TextureVertex* vertexPtr = &vertexData[0];
     for (int i = 0; i < stacks; i++) {
-        float stacksRatio = (float)i / (float)stacks; // First stack is 0.0f, last stack is 1.0f
-        // abs(phi) <= fov / 2.0f
+        float stacksRatio = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
+        // abs(theta) <= fov / 2.0f
         float theta = PI_OVER_TWO - fov * (stacksRatio - 0.5f);
         
         for (int j = 0; j < slices; j++) {
-            float slicesRatio = (float)j / (float)slices; // First slice is 0.0f, last slice is 1.0f
-            // abs(theta) <= fov * aspectRatio / 2.0f
+            float slicesRatio = (float)j / (float)(slices - 1); // First slice is 0.0f, last slice is 1.0f
+            // abs(phi) <= fov * aspectRatio / 2.0f
             float phi = fov * aspectRatio * (slicesRatio - 0.5f);
             
             vertexPtr->position = getPoint(1.0f, theta, phi);
