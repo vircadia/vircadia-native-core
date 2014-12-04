@@ -172,6 +172,13 @@ public:
     Transform transform;
     float intensity;
     glm::vec3 color;
+
+    FBXLight() :
+        name(),
+        transform(),
+        intensity(1.0f),
+        color(1.0f)
+    {}
 };
 
 Q_DECLARE_METATYPE(FBXAnimationFrame)

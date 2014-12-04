@@ -1200,11 +1200,11 @@ FBXLight extractLight(const FBXNode& object) {
     FBXLight light;
 
     foreach (const FBXNode& subobject, object.children) {
-        std::string childname = subobject.name;
+        std::string childname = QString(subobject.name).toStdString();
         if (subobject.name == "Properties70") {
             foreach (const FBXNode& property, subobject.children) {
                 int valIndex = 4;
-                std::string propName = property.name;
+                std::string propName = QString(property.name).toStdString();
                 if (property.name == "P") {
                     std::string propname = property.properties.at(0).toString().toStdString();
                     if (propname == "Intensity") {
@@ -1784,6 +1784,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                             auto lit = lights.find(childID.toStdString());
                             if (lit != lights.end()) {
                                 lightmapLevel = (*lit).second.intensity;
+                                if (lightmapLevel <= 0.0f) {
+                                    loadLightmaps = false;
+                                }
                             }
                         }
                     }
@@ -2094,7 +2097,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                 emissiveParams.y = lightmapLevel;
                 QString emissiveTextureID = emissiveTextures.value(childID);
                 QString ambientTextureID = ambientTextures.value(childID);
-                if (!emissiveTextureID.isNull() || !ambientTextureID.isNull()) {
+                if (loadLightmaps && (!emissiveTextureID.isNull() || !ambientTextureID.isNull())) {
 
                     if (!emissiveTextureID.isNull()) {
                         emissiveTexture = getTexture(emissiveTextureID, textureNames, textureFilenames, textureContent, textureParams);
