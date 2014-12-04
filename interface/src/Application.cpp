@@ -442,6 +442,7 @@ void Application::aboutToQuit() {
 }
 
 Application::~Application() {
+    _entities.getTree()->setSimulation(NULL);
     qInstallMessageHandler(NULL);
     
     saveSettings();
@@ -842,7 +843,7 @@ bool Application::event(QEvent* event) {
         QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
         
         if (!fileEvent->url().isEmpty()) {
-            AddressManager::getInstance().handleLookupString(fileEvent->url().toLocalFile());
+            AddressManager::getInstance().handleLookupString(fileEvent->url().toString());
         }
         
         return false;
@@ -1574,7 +1575,9 @@ void Application::setFullscreen(bool fullscreen) {
     }
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
-    _window->show();
+    if (!_aboutToQuit) {
+        _window->show();
+    }
 }
 
 void Application::setEnable3DTVMode(bool enable3DTVMode) {
@@ -1974,7 +1977,9 @@ void Application::init() {
     _entities.init();
     _entities.setViewFrustum(getViewFrustum());
 
-    _entityCollisionSystem.init(&_entityEditSender, _entities.getTree(), _voxels.getTree(), &_audio, &_avatarManager);
+    EntityTree* entityTree = _entities.getTree();
+    _entityCollisionSystem.init(&_entityEditSender, entityTree, _voxels.getTree(), &_audio, &_avatarManager);
+    entityTree->setSimulation(&_entityCollisionSystem);
 
     // connect the _entityCollisionSystem to our script engine's EntityScriptingInterface
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
@@ -2325,11 +2330,12 @@ void Application::update(float deltaTime) {
 
     if (!_aboutToQuit) {
         PerformanceTimer perfTimer("entities");
+        // NOTE: the _entities.update() call below will wait for lock 
+        // and will simulate entity motion (the EntityTree has been given an EntitySimulation).  
         _entities.update(); // update the models...
-        {
-            PerformanceTimer perfTimer("collisions");
-            _entityCollisionSystem.update(); // collide the entities...
-        }
+        // The _entityCollisionSystem.updateCollisions() call below merely tries for lock,
+        // and on failure it skips collision detection.
+        _entityCollisionSystem.updateCollisions(); // collide the entities...
     }
 
     {
@@ -4013,26 +4019,23 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
         return _scriptEnginesHash[scriptURLString];
     }
 
-    ScriptEngine* scriptEngine;
-    if (scriptFilename.isNull()) {
-        scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
-    } else {
-        // start the script on a new thread...
-        scriptEngine = new ScriptEngine(scriptUrl, &_controllerScriptingInterface);
-
-        if (!scriptEngine->hasScript()) {
-            qDebug() << "Application::loadScript(), script failed to load...";
-            QMessageBox::warning(getWindow(), "Error Loading Script", scriptURLString + " failed to load.");
-            return NULL;
-        }
-
-        _scriptEnginesHash.insertMulti(scriptURLString, scriptEngine);
-        _runningScriptsWidget->setRunningScripts(getRunningScripts());
-        UserActivityLogger::getInstance().loadedScript(scriptURLString);
-    }
+    ScriptEngine* scriptEngine = new ScriptEngine(NO_SCRIPT, "", &_controllerScriptingInterface);
     scriptEngine->setUserLoaded(isUserLoaded);
     
-    registerScriptEngineWithApplicationServices(scriptEngine);
+    if (scriptFilename.isNull()) {
+        // this had better be the script editor (we should de-couple so somebody who thinks they are loading a script
+        // doesn't just get an empty script engine)
+        
+        // we can complete setup now since there isn't a script we have to load
+        registerScriptEngineWithApplicationServices(scriptEngine);
+    } else {
+        // connect to the appropriate signals of this script engine
+        connect(scriptEngine, &ScriptEngine::scriptLoaded, this, &Application::handleScriptEngineLoaded);
+        connect(scriptEngine, &ScriptEngine::errorLoadingScript, this, &Application::handleScriptLoadError);
+        
+        // get the script engine object to load the script at the designated script URL
+        scriptEngine->loadURL(scriptUrl);
+    }
 
     // restore the main window's active state
     if (activateMainWindow && !loadScriptFromEditor) {
@@ -4041,6 +4044,22 @@ ScriptEngine* Application::loadScript(const QString& scriptFilename, bool isUser
     bumpSettings();
 
     return scriptEngine;
+}
+
+void Application::handleScriptEngineLoaded(const QString& scriptFilename) {
+    ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(sender());
+    
+    _scriptEnginesHash.insertMulti(scriptFilename, scriptEngine);
+    _runningScriptsWidget->setRunningScripts(getRunningScripts());
+    UserActivityLogger::getInstance().loadedScript(scriptFilename);
+    
+    // register our application services and set it off on its own thread
+    registerScriptEngineWithApplicationServices(scriptEngine);
+}
+
+void Application::handleScriptLoadError(const QString& scriptFilename) {
+    qDebug() << "Application::loadScript(), script failed to load...";
+    QMessageBox::warning(getWindow(), "Error Loading Script", scriptFilename + " failed to load.");
 }
 
 void Application::scriptFinished(const QString& scriptName) {

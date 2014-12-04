@@ -1438,7 +1438,7 @@ void Audio::renderToolBox(int x, int y, bool boxed) {
         static const float PULSE_MAX = 1.0f;
         static const float PULSE_FREQUENCY = 1.0f; // in Hz
         qint64 now = usecTimestampNow();
-        if (now - _iconPulseTimeReference > USECS_PER_SECOND) {
+        if (now - _iconPulseTimeReference > (qint64)USECS_PER_SECOND) {
             // Prevents t from getting too big, which would diminish glm::cos precision
             _iconPulseTimeReference = now - ((now - _iconPulseTimeReference) % USECS_PER_SECOND);
         }

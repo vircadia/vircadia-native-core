@@ -35,7 +35,6 @@ public:
     OctreeRenderer();
     virtual ~OctreeRenderer();
 
-    virtual Octree* createTree() = 0;
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
@@ -81,6 +80,8 @@ public:
     int getOpaqueMeshPartsRendered() const { return _opaqueMeshPartsRendered; }
 
 protected:
+    virtual Octree* createTree() = 0;
+
     Octree* _tree;
     bool _managedTree;
     ViewFrustum* _viewFrustum;

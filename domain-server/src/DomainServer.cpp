@@ -37,6 +37,8 @@
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
+const QString ICE_SERVER_DEFAULT_HOSTNAME = "ice.highfidelity.io";
+
 DomainServer::DomainServer(int argc, char* argv[]) :
     QCoreApplication(argc, argv),
     _shutdownEventListener(this),
@@ -52,7 +54,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _webAuthenticationStateSet(),
     _cookieSessionHash(),
     _automaticNetworkingSetting(),
-    _settingsManager()
+    _settingsManager(),
+    _iceServerSocket(ICE_SERVER_DEFAULT_HOSTNAME, ICE_SERVER_DEFAULT_PORT)
 {
     LogUtils::init();
 
@@ -337,57 +340,67 @@ bool DomainServer::optionallySetupAssignmentPayment() {
 
 void DomainServer::setupAutomaticNetworking() {
     
-    if (!didSetupAccountManagerWithAccessToken()) {
-        qDebug() << "Cannot setup domain-server automatic networking without an access token.";
-        qDebug() << "Please add an access token to your config file or via the web interface.";
-        
-        return;
-    }
+    LimitedNodeList* nodeList = LimitedNodeList::getInstance();
+    
+    const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
+    const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
+
+    // setup our timer to check our IP via stun every X seconds
+    QTimer* dynamicIPTimer = new QTimer(this);
+    connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
     
     _automaticNetworkingSetting =
         _settingsManager.valueOrDefaultValueForKeyPath(METAVERSE_AUTOMATIC_NETWORKING_KEY_PATH).toString();
     
+    if (_automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
+        dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
+        
+        // setup a timer to heartbeat with the ice-server every so often
+        QTimer* iceHeartbeatTimer = new QTimer(this);
+        connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
+        iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
+        
+        // call our sendHeartbeatToIceServer immediately anytime a local or public socket changes
+        connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
+        
+        // attempt to update our public socket now, this will send a heartbeat once we get public socket
+        requestCurrentPublicSocketViaSTUN();
+        
+        // in case the STUN lookup is still happening we should re-request a public socket once we get that address
+        connect(&nodeList->getSTUNSockAddr(), &HifiSockAddr::lookupCompleted,
+                this, &DomainServer::requestCurrentPublicSocketViaSTUN);
+        
+    }
+    
+    if (!didSetupAccountManagerWithAccessToken()) {
+        qDebug() << "Cannot send heartbeat to data server without an access token.";
+        qDebug() << "Add an access token to your config file or via the web interface.";
+        
+        return;
+    }
+    
     if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE ||
         _automaticNetworkingSetting == FULL_AUTOMATIC_NETWORKING_VALUE) {
         
-        LimitedNodeList* nodeList = LimitedNodeList::getInstance();
         const QUuid& domainID = nodeList->getSessionUUID();
         
         if (!domainID.isNull()) {
             qDebug() << "domain-server" << _automaticNetworkingSetting << "automatic networking enabled for ID"
                 << uuidStringWithoutCurlyBraces(domainID) << "via" << _oauthProviderURL.toString();
             
-            const int STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS = 30 * 1000;
-            const int STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS = 10 * 1000;
-            
-            // setup our timer to check our IP via stun every X seconds
-            QTimer* dynamicIPTimer = new QTimer(this);
-            connect(dynamicIPTimer, &QTimer::timeout, this, &DomainServer::requestCurrentPublicSocketViaSTUN);
-            
             if (_automaticNetworkingSetting == IP_ONLY_AUTOMATIC_NETWORKING_VALUE) {
                 dynamicIPTimer->start(STUN_IP_ADDRESS_CHECK_INTERVAL_MSECS);
                 
                 // send public socket changes to the data server so nodes can find us at our new IP
                 connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::performIPAddressUpdate);
+                
+                // attempt to update our sockets now
+                requestCurrentPublicSocketViaSTUN();
             } else {
-                dynamicIPTimer->start(STUN_REFLEXIVE_KEEPALIVE_INTERVAL_MSECS);
-                
-                // setup a timer to heartbeat with the ice-server every so often
-                QTimer* iceHeartbeatTimer = new QTimer(this);
-                connect(iceHeartbeatTimer, &QTimer::timeout, this, &DomainServer::performICEUpdates);
-                iceHeartbeatTimer->start(ICE_HEARBEAT_INTERVAL_MSECS);
-                
-                // call our sendHeartbeaToIceServer immediately anytime a local or public socket changes
-                connect(nodeList, &LimitedNodeList::localSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-                connect(nodeList, &LimitedNodeList::publicSockAddrChanged, this, &DomainServer::sendHeartbeatToIceServer);
-                
                 // send our heartbeat to data server so it knows what our network settings are
                 sendHeartbeatToDataServer();
             }
-            
-            // attempt to update our sockets now
-            requestCurrentPublicSocketViaSTUN();
-            
         } else {
             qDebug() << "Cannot enable domain-server automatic networking without a domain ID."
             << "Please add an ID to your config file or via the web interface.";
@@ -1164,8 +1177,7 @@ void DomainServer::performICEUpdates() {
 }
 
 void DomainServer::sendHeartbeatToIceServer() {
-    static HifiSockAddr ICE_SERVER_SOCK_ADDR = HifiSockAddr("ice.highfidelity.io", ICE_SERVER_DEFAULT_PORT);
-    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(ICE_SERVER_SOCK_ADDR);
+    LimitedNodeList::getInstance()->sendHeartbeatToIceServer(_iceServerSocket);
 }
 
 void DomainServer::sendICEPingPackets() {

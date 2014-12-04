@@ -30,8 +30,8 @@
 #include <QUndoStack>
 #include <QSystemTrayIcon>
 
-#include <EntityEditPacketSender.h>
 #include <EntityCollisionSystem.h>
+#include <EntityEditPacketSender.h>
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -393,6 +393,9 @@ private slots:
     void timer();
     void idle();
     void aboutToQuit();
+    
+    void handleScriptEngineLoaded(const QString& scriptFilename);
+    void handleScriptLoadError(const QString& scriptFilename);
 
     void connectedToDomain(const QString& hostname);
 

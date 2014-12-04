@@ -40,7 +40,6 @@ public:
     EntityTreeRenderer(bool wantScripts);
     virtual ~EntityTreeRenderer();
 
-    virtual Octree* createTree() { return new EntityTree(true); }
     virtual char getMyNodeType() const { return NodeType::EntityServer; }
     virtual PacketType getMyQueryMessageType() const { return PacketTypeEntityQuery; }
     virtual PacketType getExpectedPacketType() const { return PacketTypeEntityData; }
@@ -108,6 +107,9 @@ public slots:
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);
     
+protected:
+    virtual Octree* createTree() { return new EntityTree(true); }
+
 private:
     void checkAndCallPreload(const EntityItemID& entityID);
     void checkAndCallUnload(const EntityItemID& entityID);

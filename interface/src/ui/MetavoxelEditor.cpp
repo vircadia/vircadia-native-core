@@ -884,7 +884,8 @@ void ImportHeightfieldTool::updateSpanner() {
 }
 
 HeightfieldBrushTool::HeightfieldBrushTool(MetavoxelEditor* editor, const QString& name) :
-    MetavoxelTool(editor, name, false) {
+    MetavoxelTool(editor, name, false),
+    _positionValid(false) {
     
     QWidget* widget = new QWidget();
     widget->setLayout(_form = new QFormLayout());
@@ -911,8 +912,10 @@ void HeightfieldBrushTool::render() {
     
     float distance;
     if (!Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(origin, direction, distance)) {
+        _positionValid = false;
         return;
     }
+    _positionValid = true;
     Application::getInstance()->getMetavoxels()->renderHeightfieldCursor(
         _position = origin + distance * direction, _radius->value());
 }
@@ -924,7 +927,7 @@ bool HeightfieldBrushTool::eventFilter(QObject* watched, QEvent* event) {
         _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
         return true;
     
-    } else if (event->type() == QEvent::MouseButtonPress) {
+    } else if (event->type() == QEvent::MouseButtonPress && _positionValid) {
         MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
         Application::getInstance()->getMetavoxels()->applyEdit(message, true);
         return true;
@@ -1103,7 +1106,8 @@ void VoxelMaterialSpannerTool::applyEdit(const AttributePointer& attribute, cons
 }
 
 VoxelBrushTool::VoxelBrushTool(MetavoxelEditor* editor, const QString& name) :
-    MetavoxelTool(editor, name, false, true) {
+    MetavoxelTool(editor, name, false, true),
+    _positionValid(false) {
     
     QWidget* widget = new QWidget();
     widget->setLayout(_form = new QFormLayout());
@@ -1132,8 +1136,10 @@ void VoxelBrushTool::render() {
     if (!(Application::getInstance()->getMetavoxels()->findFirstRayHeightfieldIntersection(
                 origin, direction, heightfieldDistance) |
             Application::getInstance()->getMetavoxels()->findFirstRayVoxelIntersection(origin, direction, voxelDistance))) {
+        _positionValid = false;
         return;
     }
+    _positionValid = true;
     Application::getInstance()->getMetavoxels()->renderVoxelCursor(
         _position = origin + qMin(heightfieldDistance, voxelDistance) * direction, _radius->value());
 }
@@ -1145,7 +1151,7 @@ bool VoxelBrushTool::eventFilter(QObject* watched, QEvent* event) {
         _radius->setValue(_radius->value() * glm::pow(2.0f, angle * ANGLE_SCALE));
         return true;
     
-    } else if (event->type() == QEvent::MouseButtonPress) {
+    } else if (event->type() == QEvent::MouseButtonPress && _positionValid) {
         MetavoxelEditMessage message = { createEdit(static_cast<QMouseEvent*>(event)->button() == Qt::RightButton) };
         Application::getInstance()->getMetavoxels()->applyEdit(message, true);
         return true;
