@@ -1786,17 +1786,27 @@ SelectionDisplay = (function () {
                 }
 
                 var yawChange = Quat.fromVec3Degrees({ x: 0, y: angleFromZero, z: 0 });
+
+                // Entities should only reposition if we are rotating multiple selections around
+                // the selections center point.  Otherwise, the rotation will be around the entities
+                // registration point which does not need repositioning.
+                var reposition = SelectionManager.selections.length > 1;
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
                     var properties = Entities.getEntityProperties(entityID);
                     var initialProperties = SelectionManager.savedProperties[entityID.id];
-                    var dPos = Vec3.subtract(initialProperties.position, initialPosition);
-                    dPos = Vec3.multiplyQbyV(yawChange, dPos);
 
-                    Entities.editEntity(entityID, {
-                        position: Vec3.sum(initialPosition, dPos),
+                    var newProperties = {
                         rotation: Quat.multiply(yawChange, initialProperties.rotation),
-                    });
+                    };
+
+                    if (reposition) {
+                        var dPos = Vec3.subtract(initialProperties.position, initialPosition);
+                        dPos = Vec3.multiplyQbyV(yawChange, dPos);
+                        newProperties.position = Vec3.sum(initialPosition, dPos);
+                    }
+
+                    Entities.editEntity(entityID, newProperties);
                 }
 
                 updateRotationDegreesOverlay(angleFromZero, yawHandleRotation, yawCenter);
