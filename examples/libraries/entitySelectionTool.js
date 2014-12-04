@@ -33,10 +33,12 @@ SelectionManager = (function() {
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.localPosition = { x: 0, y: 0, z: 0 };
     that.localDimensions = { x: 0, y: 0, z: 0 };
+    that.localRegistrationPoint = { x: 0.5, y: 0.5, z: 0.5 };
 
     that.worldRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.worldPosition = { x: 0, y: 0, z: 0 };
     that.worldDimensions = { x: 0, y: 0, z: 0 };
+    that.worldRegistrationPoint = { x: 0.5, y: 0.5, z: 0.5 };
     that.centerPosition = { x: 0, y: 0, z: 0 };
 
     that.saveProperties = function() {
@@ -153,6 +155,7 @@ SelectionManager = (function() {
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
             that.localRotation = properties.rotation;
+            that.localRegistrationPoint = properties.registrationPoint;
 
             that.worldDimensions = properties.boundingBox.dimensions;
             that.worldPosition = properties.boundingBox.center;
