@@ -640,6 +640,7 @@ Controller.mouseReleaseEvent.connect(mouseReleaseEvent);
 // exists. If it doesn't they add it. If it does they don't. They also only delete the menu item if they were the one that
 // added it.
 var modelMenuAddedDelete = false;
+var originalLightsArePickable = Entities.getLightsArePickable();
 function setupModelMenus() {
     print("setupModelMenus()");
     // adj our menuitems
@@ -657,10 +658,12 @@ function setupModelMenus() {
 
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Model List...", afterItem: "Models" });
     Menu.addMenuItem({ menuName: "Edit", menuItemName: "Paste Models", shortcutKey: "CTRL+META+V", afterItem: "Edit Properties..." });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Large Models", shortcutKey: "CTRL+META+L",
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Large Models", shortcutKey: "CTRL+META+L", 
                         afterItem: "Paste Models", isCheckable: true, isChecked: true });
-    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Select Small Models", shortcutKey: "CTRL+META+S",
-                        afterItem: "Allow Select Large Models", isCheckable: true, isChecked: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Small Models", shortcutKey: "CTRL+META+S", 
+                        afterItem: "Allow Selecting of Large Models", isCheckable: true, isChecked: true });
+    Menu.addMenuItem({ menuName: "Edit", menuItemName: "Allow Selecting of Lights", shortcutKey: "CTRL+SHIFT+META+L", 
+                        afterItem: "Allow Selecting of Small Models", isCheckable: true });
 
     Menu.addMenuItem({ menuName: "File", menuItemName: "Models", isSeparator: true, beforeItem: "Settings" });
     Menu.addMenuItem({ menuName: "File", menuItemName: "Export Models", shortcutKey: "CTRL+META+E", afterItem: "Models" });
@@ -669,6 +672,8 @@ function setupModelMenus() {
 
     Menu.addMenuItem({ menuName: "View", menuItemName: MENU_EASE_ON_FOCUS, afterItem: MENU_INSPECT_TOOL_ENABLED,
                        isCheckable: true, isChecked: Settings.getValue(SETTING_EASE_ON_FOCUS) == "true" });
+
+    Entities.setLightsArePickable(false);
 }
 
 setupModelMenus(); // do this when first running our script.
@@ -683,8 +688,9 @@ function cleanupModelMenus() {
 
     Menu.removeMenuItem("Edit", "Model List...");
     Menu.removeMenuItem("Edit", "Paste Models");
-    Menu.removeMenuItem("Edit", "Allow Select Large Models");
-    Menu.removeMenuItem("Edit", "Allow Select Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Large Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Small Models");
+    Menu.removeMenuItem("Edit", "Allow Selecting of Lights");
 
     Menu.removeSeparator("File", "Models");
     Menu.removeMenuItem("File", "Export Models");
@@ -708,6 +714,7 @@ Script.scriptEnding.connect(function() {
     if (exportMenu) {
         exportMenu.close();
     }
+    Entities.setLightsArePickable(originalLightsArePickable);
 });
 
 // Do some stuff regularly, like check for placement of various overlays
@@ -718,10 +725,12 @@ Script.update.connect(function (deltaTime) {
 });
 
 function handeMenuEvent(menuItem) {
-    if (menuItem == "Allow Select Small Models") {
-        allowSmallModels = Menu.isOptionChecked("Allow Select Small Models");
-    } else if (menuItem == "Allow Select Large Models") {
-        allowLargeModels = Menu.isOptionChecked("Allow Select Large Models");
+    if (menuItem == "Allow Selecting of Small Models") {
+        allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
+    } else if (menuItem == "Allow Selecting of Large Models") {
+        allowLargeModels = Menu.isOptionChecked("Allow Selecting of Large Models");
+    } else if (menuItem == "Allow Selecting of Lights") {
+        Entities.setLightsArePickable(Menu.isOptionChecked("Allow Selecting of Lights"));
     } else if (menuItem == "Delete") {
         if (SelectionManager.hasSelection()) {
             print("  Delete Entities");

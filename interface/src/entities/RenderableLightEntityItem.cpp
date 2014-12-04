@@ -90,3 +90,14 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
         glPopMatrix();
     }
 };
+
+bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) const {
+                         
+    // TODO: this isn't really correct because we don't know if we actually live in the main tree of the applications's
+    // EntityTreeRenderer. But we probably do. Technically we could be on the clipboard and someone might be trying to
+    // use the ray intersection API there. Anyway... if you ever try to do ray intersection testing off of trees other
+    // than the main tree of the main entity renderer, then you'll need to fix this mechanism.
+    return Application::getInstance()->getEntities()->getTree()->getLightsArePickable();
+}
