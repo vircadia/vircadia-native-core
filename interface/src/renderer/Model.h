@@ -86,7 +86,7 @@ public:
     void reset();
     virtual void simulate(float deltaTime, bool fullUpdate = true);
     
-    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
+    enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, SELECT_RENDER_MODE };
     
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
     
@@ -318,6 +318,8 @@ private:
     static ProgramObject _skinTranslucentProgram;
 
     static ProgramObject _skinShadowProgram;
+
+    static ProgramObject _selectProgram;
     
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
@@ -343,6 +345,8 @@ private:
     static Locations _lightmapSpecularMapLocations;
     static Locations _lightmapNormalSpecularMapLocations;
     
+    static Locations _selectLocations;
+
     static void initProgram(ProgramObject& program, Locations& locations, int specularTextureUnit = 1);
         
     class SkinLocations : public Locations {

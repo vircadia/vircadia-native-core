@@ -28,6 +28,9 @@
 #include <ModelEntityItem.h>
 #include <BoxEntityItem.h>
 
+#include <QOpenGLFramebufferObject>
+#include <QRgb>
+
 class RenderableModelEntityItem : public ModelEntityItem  {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -51,6 +54,11 @@ public:
     virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
 
     virtual void render(RenderArgs* args);
+    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject) const;
+
     Model* getModel(EntityTreeRenderer* renderer);
 private:
     void remapTextures();
@@ -63,6 +71,9 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
+
+    float depthOfRayIntersection(const glm::vec3& entityFrameOrigin, const glm::vec3& entityFrameDirection) const;
+
 };
 
 #endif // hifi_RenderableModelEntityItem_h
