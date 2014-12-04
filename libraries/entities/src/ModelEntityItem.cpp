@@ -374,17 +374,9 @@ bool ModelEntityItem::isAnimatingSomething() const {
 }
 
 EntityItem::SimulationState ModelEntityItem::computeSimulationState() const {
-    EntityItem::SimulationState baseClassState = EntityItem::computeSimulationState();
-    
-    // if the base class is static, then consider our animation state, and upgrade to changing if
-    // we are animating. If the base class has a higher simulation state than static, then
-    // use the base class state.
-    if (baseClassState == EntityItem::Static) {
-        if (isAnimatingSomething()) {
-            return EntityItem::Moving;
-        }
-    }
-    return baseClassState;
+    // if we're animating then we need to have update() periodically called on this entity
+    // which means we need to categorized as Moving
+    return isAnimatingSomething() ?  EntityItem::Moving : EntityItem::computeSimulationState();
 }
 
 void ModelEntityItem::update(const quint64& updateTime) {
