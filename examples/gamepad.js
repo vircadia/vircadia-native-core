@@ -18,6 +18,8 @@ var AXIS_ROTATE = Joysticks.AXIS_RIGHT_X;
 
 var BUTTON_SPRINT = Joysticks.BUTTON_LEFT_STICK;
 
+var BUTTON_TOGGLE_MIRROR = Joysticks.BUTTON_FACE_LEFT;
+
 var BUTTON_TURN_AROUND = Joysticks.BUTTON_RIGHT_STICK;
 
 var BUTTON_FLY_UP = Joysticks.BUTTON_RIGHT_SHOULDER;
@@ -48,6 +50,10 @@ var WARP_PICK_MAX_DISTANCE = 100;
 
 var flyDownButtonState = false;
 var flyUpButtonState = false;
+
+// When toggling to mirror mode, this stores the mode the user was previously in
+// so it can be toggled back to.
+var toggledFromCameraMode = 'first person';
 
 // Current move direction, axis aligned - that is, looking down and moving forward
 // will not move you into the ground, but instead will keep you on the horizontal plane.
@@ -179,6 +185,16 @@ function reportButtonValue(button, newValue, oldValue) {
         }
     } else if (button == BUTTON_SPRINT) {
         sprintButtonState = newValue;
+    } else if (button == BUTTON_TOGGLE_MIRROR) {
+        if (newValue) {
+            var currentMode = Camera.mode;
+            if (currentMode == "mirror") {
+                Camera.mode = toggledFromCameraMode;
+            } else {
+                toggledFromCameraMode = currentMode;
+                Camera.mode = "mirror";
+            }
+        }
     } else if (newValue) {
         var direction = null;
 
