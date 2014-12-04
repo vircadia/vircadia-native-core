@@ -22,7 +22,6 @@ const float MAGNIFY_MULT = 2.0f;
 // Handles the drawing of the overlays to the screen
 class ApplicationOverlay {
 public:
-
     ApplicationOverlay();
     ~ApplicationOverlay();
 
@@ -30,14 +29,10 @@ public:
     void displayOverlayTexture();
     void displayOverlayTextureOculus(Camera& whichCamera);
     void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
+    
     void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
-    void getClickLocation(int &x, int &y) const;
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
-
-
-    // Getters
-    float getAlpha() const { return _alpha; }
   
 private:
     // Interleaved vertex data
@@ -70,31 +65,30 @@ private:
         VerticesIndices _vbo;
     };
     
-    void renderPointers();
+    void renderPointers();;
+    void renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const;
+    
     void renderControllerPointers();
     void renderPointersOculus(const glm::vec3& eyePos);
-    void renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const;
+    
     void renderAudioMeter();
     void renderStatsAndLogs();
     void renderDomainConnectionStatusBorder();
 
     TexturedHemisphere _overlays;
     
-    float _trailingAudioLoudness;
     float _textureFov;
     float _textureAspectRatio;
     
-    enum MagnifyDevices { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_MAGNIFIERS };
-    bool _reticleActive[NUMBER_OF_MAGNIFIERS];
-    int _mouseX[NUMBER_OF_MAGNIFIERS];
-    int _mouseY[NUMBER_OF_MAGNIFIERS];
-    bool _magActive[NUMBER_OF_MAGNIFIERS];
-    int _magX[NUMBER_OF_MAGNIFIERS];
-    int _magY[NUMBER_OF_MAGNIFIERS];
-    float _magSizeMult[NUMBER_OF_MAGNIFIERS];
+    enum Reticules { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICULES };
+    bool _reticleActive[NUMBER_OF_RETICULES];
+    glm::vec2 _reticulePosition[NUMBER_OF_RETICULES];
+    bool _magActive[NUMBER_OF_RETICULES];
+    float _magSizeMult[NUMBER_OF_RETICULES];
     
     float _alpha;
     float _oculusUIRadius;
+    float _trailingAudioLoudness;
 
     GLuint _crosshairTexture;
 };

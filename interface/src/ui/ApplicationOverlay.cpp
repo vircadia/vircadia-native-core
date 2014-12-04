@@ -30,14 +30,98 @@ const quint64 MSECS_TO_USECS = 1000ULL;
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
+static const float MOUSE_PITCH_RANGE = 1.0f * PI;
+static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
+
 const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
+
 
 // Return a point's coordinates on a sphere from it's polar (theta) and azimutal (phi) angles.
 glm::vec3 getPoint(float radius, float theta, float phi) {
     return glm::vec3(radius * glm::sin(theta) * glm::sin(phi),
                      radius * glm::cos(theta),
                      radius * glm::sin(theta) * (-glm::cos(phi)));
+}
+
+//Checks if the given ray intersects the sphere at the origin. result will store a multiplier that should
+//be multiplied by dir and added to origin to get the location of the collision
+bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, float* result)
+{
+    //Source: http://wiki.cgsociety.org/index.php/Ray_Sphere_Intersection
+    
+    //Compute A, B and C coefficients
+    float a = glm::dot(dir, dir);
+    float b = 2 * glm::dot(dir, origin);
+    float c = glm::dot(origin, origin) - (r * r);
+    
+    //Find discriminant
+    float disc = b * b - 4 * a * c;
+    
+    // if discriminant is negative there are no real roots, so return
+    // false as ray misses sphere
+    if (disc < 0) {
+        return false;
+    }
+    
+    // compute q as described above
+    float distSqrt = sqrtf(disc);
+    float q;
+    if (b < 0) {
+        q = (-b - distSqrt) / 2.0;
+    } else {
+        q = (-b + distSqrt) / 2.0;
+    }
+    
+    // compute t0 and t1
+    float t0 = q / a;
+    float t1 = c / q;
+    
+    // make sure t0 is smaller than t1
+    if (t0 > t1) {
+        // if t0 is bigger than t1 swap them around
+        float temp = t0;
+        t0 = t1;
+        t1 = temp;
+    }
+    
+    // if t1 is less than zero, the object is in the ray's negative direction
+    // and consequently the ray misses the sphere
+    if (t1 < 0) {
+        return false;
+    }
+    
+    // if t0 is less than zero, the intersection point is at t1
+    if (t0 < 0) {
+        *result = t1;
+        return true;
+    } else { // else the intersection point is at t0
+        *result = t0;
+        return true;
+    }
+}
+
+void renderReticule(glm::quat orientation, float alpha) {
+    const float reticleSize = TWO_PI / 80.0f;
+    
+    glm::vec3 topLeft = getPoint(1.0f, PI_OVER_TWO + reticleSize / 2.0f, - reticleSize / 2.0f);
+    glm::vec3 topRight = getPoint(1.0f, PI_OVER_TWO + reticleSize / 2.0f, + reticleSize / 2.0f);
+    glm::vec3 bottomLeft = getPoint(1.0f, PI_OVER_TWO - reticleSize / 2.0f, - reticleSize / 2.0f);
+    glm::vec3 bottomRight = getPoint(1.0f, PI_OVER_TWO - reticleSize / 2.0f, + reticleSize / 2.0f);
+    
+    glPushMatrix(); {
+        glm::vec3 axis = glm::axis(orientation);
+        glRotatef(glm::degrees(glm::angle(orientation)), axis.x, axis.y, axis.z);
+        
+        glBegin(GL_QUADS); {
+            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha);
+            
+            glTexCoord2f(0.0f, 0.0f); glVertex3f(topLeft.x, topLeft.y, topLeft.z);
+            glTexCoord2f(1.0f, 0.0f); glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
+            glTexCoord2f(1.0f, 1.0f); glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
+            glTexCoord2f(0.0f, 1.0f); glVertex3f(topRight.x, topRight.y, topRight.z);
+        } glEnd();
+    } glPopMatrix();
 }
 
 ApplicationOverlay::ApplicationOverlay() :
@@ -125,152 +209,241 @@ void ApplicationOverlay::renderOverlay(bool renderToTexture) {
 
 // Draws the FBO texture for the screen
 void ApplicationOverlay::displayOverlayTexture() {
-
     if (_alpha == 0.0f) {
         return;
     }
-
-    Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
-
+    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
 
     glEnable(GL_TEXTURE_2D);
     glActiveTexture(GL_TEXTURE0);
     _overlays.bindTexture();
 
     glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-
-    glLoadIdentity();
-    gluOrtho2D(0, glWidget->getDeviceWidth(), glWidget->getDeviceHeight(), 0);
-    glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_BLEND);
-
-    glBegin(GL_QUADS);
-    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-    glTexCoord2f(0, 0); glVertex2i(0, glWidget->getDeviceHeight());
-    glTexCoord2f(1, 0); glVertex2i(glWidget->getDeviceWidth(), glWidget->getDeviceHeight());
-    glTexCoord2f(1, 1); glVertex2i(glWidget->getDeviceWidth(), 0);
-    glTexCoord2f(0, 1); glVertex2i(0, 0);
-    glEnd();
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-
-    glPopMatrix();
+    glPushMatrix(); {
+        glLoadIdentity();
+        gluOrtho2D(0, glWidget->getDeviceWidth(), glWidget->getDeviceHeight(), 0);
+        glDisable(GL_DEPTH_TEST);
+        glDisable(GL_LIGHTING);
+        glEnable(GL_BLEND);
+        
+        glBegin(GL_QUADS); {
+            glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+            glTexCoord2f(0, 0); glVertex2i(0, glWidget->getDeviceHeight());
+            glTexCoord2f(1, 0); glVertex2i(glWidget->getDeviceWidth(), glWidget->getDeviceHeight());
+            glTexCoord2f(1, 1); glVertex2i(glWidget->getDeviceWidth(), 0);
+            glTexCoord2f(0, 1); glVertex2i(0, 0);
+        } glEnd();
+    } glPopMatrix();
+    
     glDisable(GL_TEXTURE_2D);
 }
 
-void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
-    static const float MOUSE_PITCH_RANGE = 1.0f * PI;
-    static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
-
-    const MyAvatar* myAvatar = Application::getInstance()->getAvatar();
-    const GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
+// Draws the FBO texture for Oculus rift.
+void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
+    if (_alpha == 0.0f) {
+        return;
+    }
+    glEnable(GL_TEXTURE_2D);
+    glActiveTexture(GL_TEXTURE0);
+    _overlays.bindTexture();
     
-    const float pitch = -(y / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
-    const float yaw = -(x / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_ALPHA_TEST);
+    glAlphaFunc(GL_GREATER, 0.01f);
+    
+    
+    //Update and draw the magnifiers
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    const glm::quat& orientation = myAvatar->getOrientation();
+    const glm::vec3& position = myAvatar->getDefaultEyePosition();
+    const float scale = myAvatar->getScale() * _oculusUIRadius;
+    
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix(); {
+        glTranslatef(position.x, position.y, position.z);
+        glm::mat4 rotation = glm::toMat4(orientation);
+        glMultMatrixf(&rotation[0][0]);
+        glScalef(scale, scale, scale);
+        for (int i = 0; i < NUMBER_OF_RETICULES; i++) {
+            
+            if (_magActive[i]) {
+                _magSizeMult[i] += MAG_SPEED;
+                if (_magSizeMult[i] > 1.0f) {
+                    _magSizeMult[i] = 1.0f;
+                }
+            } else {
+                _magSizeMult[i] -= MAG_SPEED;
+                if (_magSizeMult[i] < 0.0f) {
+                    _magSizeMult[i] = 0.0f;
+                }
+            }
+            
+            if (_magSizeMult[i] > 0.0f) {
+                //Render magnifier, but dont show border for mouse magnifier
+                float pitch = -(_reticulePosition[MOUSE].y / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
+                float yaw = -(_reticulePosition[MOUSE].x / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
+                float projection =
+                
+                renderMagnifier(_reticulePosition[i], _magSizeMult[i], i != MOUSE);
+            }
+        }
+        
+        glDepthMask(GL_FALSE);
+        glDisable(GL_ALPHA_TEST);
+        
+        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+
+        
+        static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
+        if (textureFOV != _textureFov ||
+            textureAspectRatio != _textureAspectRatio) {
+            textureFOV = _textureFov;
+            textureAspectRatio = _textureAspectRatio;
+            
+            _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
+        }
+        _overlays.render();
+        renderPointersOculus(myAvatar->getDefaultEyePosition());
+        
+        glDepthMask(GL_TRUE);
+        _overlays.releaseTexture();
+        glDisable(GL_TEXTURE_2D);
+        
+        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+        glEnable(GL_LIGHTING);
+    } glPopMatrix();
+}
+
+// Draws the FBO texture for 3DTV.
+void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov) {
+    if (_alpha == 0.0f) {
+        return;
+    }
+    
+    Application* application = Application::getInstance();
+    
+    MyAvatar* myAvatar = application->getAvatar();
+    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
+    
+    glActiveTexture(GL_TEXTURE0);
+    
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    _overlays.bindTexture();
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+    glEnable(GL_TEXTURE_2D);
+    
+    glMatrixMode(GL_MODELVIEW);
+    
+    glPushMatrix();
+    glLoadIdentity();
+    // Transform to world space
+    glm::quat rotation = whichCamera.getRotation();
+    glm::vec3 axis2 = glm::axis(rotation);
+    glRotatef(-glm::degrees(glm::angle(rotation)), axis2.x, axis2.y, axis2.z);
+    glTranslatef(viewMatrixTranslation.x, viewMatrixTranslation.y, viewMatrixTranslation.z);
+    
+    // Translate to the front of the camera
+    glm::vec3 pos = whichCamera.getPosition();
+    glm::quat rot = myAvatar->getOrientation();
+    glm::vec3 axis = glm::axis(rot);
+    
+    glTranslatef(pos.x, pos.y, pos.z);
+    glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+    
+    //Render
+    const GLfloat distance = 1.0f;
+    
+    const GLfloat halfQuadHeight = distance * tan(fov);
+    const GLfloat halfQuadWidth = halfQuadHeight * aspectRatio;
+    const GLfloat quadWidth = halfQuadWidth * 2.0f;
+    const GLfloat quadHeight = halfQuadHeight * 2.0f;
+    
+    GLfloat x = -halfQuadWidth;
+    GLfloat y = -halfQuadHeight;
+    glDisable(GL_DEPTH_TEST);
+    
+    glBegin(GL_QUADS);
+    
+    glTexCoord2f(0.0f, 1.0f); glVertex3f(x, y + quadHeight, -distance);
+    glTexCoord2f(1.0f, 1.0f); glVertex3f(x + quadWidth, y + quadHeight, -distance);
+    glTexCoord2f(1.0f, 0.0f); glVertex3f(x + quadWidth, y, -distance);
+    glTexCoord2f(0.0f, 0.0f); glVertex3f(x, y, -distance);
+    
+    glEnd();
+    
+    if (_crosshairTexture == 0) {
+        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
+    }
+    
+    //draw the mouse pointer
+    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
+    
+    const float reticleSize = 40.0f / application->getGLWidget()->width() * quadWidth;
+    x -= reticleSize / 2.0f;
+    y += reticleSize / 2.0f;
+    const float mouseX = (application->getMouseX() / (float)application->getGLWidget()->width()) * quadWidth;
+    const float mouseY = (1.0 - (application->getMouseY() / (float)application->getGLWidget()->height())) * quadHeight;
+    
+    glBegin(GL_QUADS);
+    
+    glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
+    
+    glTexCoord2d(0.0f, 0.0f); glVertex3f(x + mouseX, y + mouseY, -distance);
+    glTexCoord2d(1.0f, 0.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY, -distance);
+    glTexCoord2d(1.0f, 1.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance);
+    glTexCoord2d(0.0f, 1.0f); glVertex3f(x + mouseX, y + mouseY - reticleSize, -distance);
+    
+    glEnd();
+    
+    glEnable(GL_DEPTH_TEST);
+    
+    glPopMatrix();
+    
+    glDepthMask(GL_TRUE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+    
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glEnable(GL_LIGHTING);
+    
+    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+
+
+
+
+void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
+    const float pitch = (0.5f - y) * MOUSE_PITCH_RANGE;
+    const float yaw = (0.5f - x) * MOUSE_YAW_RANGE;
     const glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
     const glm::vec3 localDirection = orientation * IDENTITY_FRONT;
 
     //Rotate the UI pick ray by the avatar orientation
+    const MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     direction = myAvatar->getOrientation() * localDirection;
-}
-
-// Calculates the click location on the screen by taking into account any
-// opened magnification windows.
-void ApplicationOverlay::getClickLocation(int &x, int &y) const {
-    int dx;
-    int dy;
-    const float xRange = MAGNIFY_WIDTH * MAGNIFY_MULT / 2.0f;
-    const float yRange = MAGNIFY_HEIGHT * MAGNIFY_MULT / 2.0f;
-
-    //Loop through all magnification windows
-    for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
-        if (_magActive[i]) {
-            dx = x - _magX[i];
-            dy = y - _magY[i];
-            //Check to see if they clicked inside a mag window
-            if (abs(dx) <= xRange && abs(dy) <= yRange) {
-                //Move the click to the actual UI location by inverting the magnification
-                x = dx / MAGNIFY_MULT + _magX[i];
-                y = dy / MAGNIFY_MULT + _magY[i];
-                return;
-            }
-        }
-    }
-}
-
-//Checks if the given ray intersects the sphere at the origin. result will store a multiplier that should
-//be multiplied by dir and added to origin to get the location of the collision
-bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, float* result)
-{
-    //Source: http://wiki.cgsociety.org/index.php/Ray_Sphere_Intersection
-
-    //Compute A, B and C coefficients
-    float a = glm::dot(dir, dir);
-    float b = 2 * glm::dot(dir, origin);
-    float c = glm::dot(origin, origin) - (r * r);
-
-    //Find discriminant
-    float disc = b * b - 4 * a * c;
-
-    // if discriminant is negative there are no real roots, so return 
-    // false as ray misses sphere
-    if (disc < 0) {
-        return false;
-    }
-
-    // compute q as described above
-    float distSqrt = sqrtf(disc);
-    float q;
-    if (b < 0) {
-        q = (-b - distSqrt) / 2.0;
-    } else {
-        q = (-b + distSqrt) / 2.0;
-    }
-
-    // compute t0 and t1
-    float t0 = q / a;
-    float t1 = c / q;
-
-    // make sure t0 is smaller than t1
-    if (t0 > t1) {
-        // if t0 is bigger than t1 swap them around
-        float temp = t0;
-        t0 = t1;
-        t1 = temp;
-    }
-
-    // if t1 is less than zero, the object is in the ray's negative direction
-    // and consequently the ray misses the sphere
-    if (t1 < 0) {
-        return false;
-    }
-
-    // if t0 is less than zero, the intersection point is at t1
-    if (t0 < 0) {
-        *result = t1;
-        return true;
-    } else { // else the intersection point is at t0
-        *result = t0;
-        return true;
-    }
 }
 
 //Caculate the click location using one of the sixense controllers. Scale is not applied
 QPoint ApplicationOverlay::getPalmClickLocation(const PalmData *palm) const {
-
     Application* application = Application::getInstance();
     GLCanvas* glWidget = application->getGLWidget();
     MyAvatar* myAvatar = application->getAvatar();
 
     glm::vec3 tip = myAvatar->getLaserPointerTipPosition(palm);
     glm::vec3 eyePos = myAvatar->getHead()->getEyePosition();
-    glm::quat orientation = glm::inverse(myAvatar->getOrientation());
-    glm::vec3 dir = orientation * glm::normalize(application->getCamera()->getPosition() - tip); //direction of ray goes towards camera
-    glm::vec3 tipPos = orientation * (tip - eyePos);
+    glm::quat invOrientation = glm::inverse(myAvatar->getOrientation());
+    //direction of ray goes towards camera
+    glm::vec3 dir = invOrientation * glm::normalize(application->getCamera()->getPosition() - tip);
+    glm::vec3 tipPos = invOrientation * (tip - eyePos);
 
     QPoint rv;
 
@@ -336,196 +509,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     return false;
 }
 
-// Draws the FBO texture for Oculus rift.
-void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
 
-    if (_alpha == 0.0f) {
-        return;
-    }
-
-    Application* application = Application::getInstance();
-
-    MyAvatar* myAvatar = application->getAvatar();
-
-    glActiveTexture(GL_TEXTURE0);
-   
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_TEXTURE_2D);
-
-    _overlays.bindTexture();
-
-    glMatrixMode(GL_MODELVIEW);
-
-    glDepthMask(GL_TRUE);
-    
-    glEnable(GL_ALPHA_TEST);
-    glAlphaFunc(GL_GREATER, 0.01f);
-
-    //Update and draw the magnifiers
-
-    const glm::quat& orientation = myAvatar->getOrientation();
-    const glm::vec3& position = myAvatar->getDefaultEyePosition();
-    const float scale = myAvatar->getScale() * _oculusUIRadius;
-    
-    
-    glPushMatrix(); {
-        glTranslatef(position.x, position.y, position.z);
-        glm::mat4 rotation = glm::toMat4(orientation);
-        glMultMatrixf(&rotation[0][0]);
-        glScalef(scale, scale, scale);
-        for (int i = 0; i < NUMBER_OF_MAGNIFIERS; i++) {
-            
-            if (_magActive[i]) {
-                _magSizeMult[i] += MAG_SPEED;
-                if (_magSizeMult[i] > 1.0f) {
-                    _magSizeMult[i] = 1.0f;
-                }
-            } else {
-                _magSizeMult[i] -= MAG_SPEED;
-                if (_magSizeMult[i] < 0.0f) {
-                    _magSizeMult[i] = 0.0f;
-                }
-            }
-            
-            if (_magSizeMult[i] > 0.0f) {
-                //Render magnifier, but dont show border for mouse magnifier
-                renderMagnifier(_magX[i], _magY[i], _magSizeMult[i], i != MOUSE);
-            }
-        }
-        
-        glDepthMask(GL_FALSE);
-        glDisable(GL_ALPHA_TEST);
-        
-        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-        
-        
-        static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
-        static QSize size;
-        if (textureFOV != _textureFov ||
-            textureAspectRatio != _textureAspectRatio ||
-            size != application->getGLWidget()->getDeviceSize()) {
-            textureFOV = _textureFov;
-            textureAspectRatio = _textureAspectRatio;
-            size = application->getGLWidget()->getDeviceSize();
-                
-            _overlays.buildVBO(_textureFov, _textureAspectRatio, 80, 80);
-        }
-        _overlays.render();
-        
-        renderPointersOculus(myAvatar->getDefaultEyePosition());
-        
-        glDepthMask(GL_TRUE);
-        _overlays.releaseTexture();
-        glDisable(GL_TEXTURE_2D);
-        
-        glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-        glEnable(GL_LIGHTING);
-        
-        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    } glPopMatrix();
-}
-
-// Draws the FBO texture for 3DTV.
-void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov) {
-    if (_alpha == 0.0f) {
-        return;
-    }
-
-    Application* application = Application::getInstance();
-
-    MyAvatar* myAvatar = application->getAvatar();
-    const glm::vec3& viewMatrixTranslation = application->getViewMatrixTranslation();
-
-    glActiveTexture(GL_TEXTURE0);
-
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    _overlays.bindTexture();
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
-    glEnable(GL_TEXTURE_2D);
-
-    glMatrixMode(GL_MODELVIEW);
-
-    glPushMatrix();
-    glLoadIdentity();
-    // Transform to world space
-    glm::quat rotation = whichCamera.getRotation();
-    glm::vec3 axis2 = glm::axis(rotation);
-    glRotatef(-glm::degrees(glm::angle(rotation)), axis2.x, axis2.y, axis2.z);
-    glTranslatef(viewMatrixTranslation.x, viewMatrixTranslation.y, viewMatrixTranslation.z);
-
-    // Translate to the front of the camera
-    glm::vec3 pos = whichCamera.getPosition();
-    glm::quat rot = myAvatar->getOrientation();
-    glm::vec3 axis = glm::axis(rot);
-
-    glTranslatef(pos.x, pos.y, pos.z);
-    glRotatef(glm::degrees(glm::angle(rot)), axis.x, axis.y, axis.z);
-
-    glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-
-    //Render
-    const GLfloat distance = 1.0f;
-
-    const GLfloat halfQuadHeight = distance * tan(fov);
-    const GLfloat halfQuadWidth = halfQuadHeight * aspectRatio;
-    const GLfloat quadWidth = halfQuadWidth * 2.0f;
-    const GLfloat quadHeight = halfQuadHeight * 2.0f;
-
-    GLfloat x = -halfQuadWidth;
-    GLfloat y = -halfQuadHeight;
-    glDisable(GL_DEPTH_TEST);
-
-    glBegin(GL_QUADS);
-
-    glTexCoord2f(0.0f, 1.0f); glVertex3f(x, y + quadHeight, -distance);
-    glTexCoord2f(1.0f, 1.0f); glVertex3f(x + quadWidth, y + quadHeight, -distance);
-    glTexCoord2f(1.0f, 0.0f); glVertex3f(x + quadWidth, y, -distance);
-    glTexCoord2f(0.0f, 0.0f); glVertex3f(x, y, -distance);
-
-    glEnd();
-
-    if (_crosshairTexture == 0) {
-        _crosshairTexture = Application::getInstance()->getGLWidget()->bindTexture(QImage(Application::resourcesPath() + "images/sixense-reticle.png"));
-    }
-
-    //draw the mouse pointer
-    glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
-
-    const float reticleSize = 40.0f / application->getGLWidget()->width() * quadWidth;
-    x -= reticleSize / 2.0f;
-    y += reticleSize / 2.0f;
-    const float mouseX = (application->getMouseX() / (float)application->getGLWidget()->width()) * quadWidth;
-    const float mouseY = (1.0 - (application->getMouseY() / (float)application->getGLWidget()->height())) * quadHeight;
-
-    glBegin(GL_QUADS);
-
-    glColor3f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2]);
-
-    glTexCoord2d(0.0f, 0.0f); glVertex3f(x + mouseX, y + mouseY, -distance);
-    glTexCoord2d(1.0f, 0.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY, -distance);
-    glTexCoord2d(1.0f, 1.0f); glVertex3f(x + mouseX + reticleSize, y + mouseY - reticleSize, -distance);
-    glTexCoord2d(0.0f, 1.0f); glVertex3f(x + mouseX, y + mouseY - reticleSize, -distance);
-
-    glEnd();
-
-    glEnable(GL_DEPTH_TEST);
-
-    glPopMatrix();
-
-    glDepthMask(GL_TRUE);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glDisable(GL_TEXTURE_2D);
-
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
-    glEnable(GL_LIGHTING);
-
-    glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-}
 
 //Renders optional pointers
 void ApplicationOverlay::renderPointers() {
@@ -544,10 +528,7 @@ void ApplicationOverlay::renderPointers() {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
-        _mouseX[MOUSE] = application->getMouseX();
-        _mouseY[MOUSE] = application->getMouseY();
-        _magX[MOUSE] = _mouseX[MOUSE];
-        _magY[MOUSE] = _mouseY[MOUSE];
+        _reticulePosition[MOUSE] = glm::vec2(application->getMouseX(), application->getMouseY());
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         
@@ -567,9 +548,9 @@ void ApplicationOverlay::renderControllerPointers() {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
-    static quint64 pressedTime[NUMBER_OF_MAGNIFIERS] = { 0ULL, 0ULL, 0ULL };
-    static bool isPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
-    static bool stateWhenPressed[NUMBER_OF_MAGNIFIERS] = { false, false, false };
+    static quint64 pressedTime[NUMBER_OF_RETICULES] = { 0ULL, 0ULL, 0ULL };
+    static bool isPressed[NUMBER_OF_RETICULES] = { false, false, false };
+    static bool stateWhenPressed[NUMBER_OF_RETICULES] = { false, false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -616,14 +597,11 @@ void ApplicationOverlay::renderControllerPointers() {
 
             QPoint point = getPalmClickLocation(palmData);
 
-            _mouseX[index] = point.x();
-            _mouseY[index] = point.y();
+            _reticulePosition[index] = glm::vec2(point.x(), point.y());
 
             //When button 2 is pressed we drag the mag window
             if (isPressed[index]) {
                 _magActive[index] = true;
-                _magX[index] = point.x();
-                _magY[index] = point.y();
             }
 
             // If oculus is enabled, we draw the crosshairs later
@@ -674,30 +652,6 @@ void ApplicationOverlay::renderControllerPointers() {
 
         glEnd();
     }
-}
-
-
-void renderReticule(glm::quat orientation, float alpha) {
-    const float reticleSize = TWO_PI / 80.0f;
-    
-    glm::vec3 topLeft = getPoint(1.0f, PI_OVER_TWO + reticleSize / 2.0f, - reticleSize / 2.0f);
-    glm::vec3 topRight = getPoint(1.0f, PI_OVER_TWO + reticleSize / 2.0f, + reticleSize / 2.0f);
-    glm::vec3 bottomLeft = getPoint(1.0f, PI_OVER_TWO - reticleSize / 2.0f, - reticleSize / 2.0f);
-    glm::vec3 bottomRight = getPoint(1.0f, PI_OVER_TWO - reticleSize / 2.0f, + reticleSize / 2.0f);
-    
-    glPushMatrix(); {
-        glm::vec3 axis = glm::axis(orientation);
-        glRotatef(glm::degrees(glm::angle(orientation)), axis.x, axis.y, axis.z);
-        
-        glBegin(GL_QUADS); {
-            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], alpha);
-            
-            glTexCoord2f(0.0f, 0.0f); glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-            glTexCoord2f(1.0f, 0.0f); glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
-            glTexCoord2f(1.0f, 1.0f); glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
-            glTexCoord2f(0.0f, 1.0f); glVertex3f(topRight.x, topRight.y, topRight.z);
-        } glEnd();
-    } glPopMatrix();
 }
 
 void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
@@ -781,13 +735,8 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
     //Mouse Pointer
     if (_reticleActive[MOUSE]) {
-        float mouseX = (float)_mouseX[MOUSE];
-        float mouseY = (float)_mouseY[MOUSE];
-        
-        static const float MOUSE_PITCH_RANGE = 1.0f * PI;
-        static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
-        float pitch = -(mouseY / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
-        float yaw = -(mouseX / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
+        float pitch = -(_reticulePosition[MOUSE].y / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
+        float yaw = -(_reticulePosition[MOUSE].x / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
         glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
         
         renderReticule(orientation, _alpha);
@@ -795,6 +744,76 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
     glEnable(GL_DEPTH_TEST);
 }
+
+//Renders a small magnification of the currently bound texture at the coordinates
+void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool showBorder) const {
+    Application* application = Application::getInstance();
+    GLCanvas* glWidget = application->getGLWidget();
+    
+    const int widgetWidth = glWidget->width();
+    const int widgetHeight = glWidget->height();
+    
+    if (magPos.x < 0 || magPos.x > widgetWidth || magPos.y < 0 || magPos.y > widgetHeight) {
+        return;
+    }
+    
+    const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
+    const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
+    // Magnification Texture Coordinates
+    float magnifyULeft = (magPos.x - halfWidth) / (float)widgetWidth;
+    float magnifyURight = (magPos.x + halfWidth) / (float)widgetWidth;
+    float magnifyVBottom = 1.0f - (magPos.y - halfHeight) / (float)widgetHeight;
+    float magnifyVTop = 1.0f - (magPos.y + halfHeight) / (float)widgetHeight;
+    
+    const float newHalfWidth = halfWidth * MAGNIFY_MULT;
+    const float newHalfHeight = halfHeight * MAGNIFY_MULT;
+    //Get new UV coordinates from our magnification window
+    float newULeft = (magPos.x - newHalfWidth) / (float)widgetWidth;
+    float newURight = (magPos.x + newHalfWidth) / (float)widgetWidth;
+    float newVBottom = 1.0f - (magPos.y - newHalfHeight) / (float)widgetHeight;
+    float newVTop = 1.0f - (magPos.y + newHalfHeight) / (float)widgetHeight;
+    
+    // Find spherical coordinates from newUV, fov and aspect ratio
+    float radius = _oculusUIRadius * application->getAvatar()->getScale();
+    const float leftPhi = (newULeft - 0.5f) * _textureFov * _textureAspectRatio;
+    const float rightPhi = (newURight - 0.5f) * _textureFov * _textureAspectRatio;
+    const float bottomTheta = PI_OVER_TWO - (newVBottom - 0.5f) * _textureFov;
+    const float topTheta = PI_OVER_TWO - (newVTop - 0.5f) * _textureFov;
+    
+    glm::vec3 bottomLeft = getPoint(radius, bottomTheta, leftPhi);
+    glm::vec3 bottomRight = getPoint(radius, bottomTheta, rightPhi);
+    glm::vec3 topLeft = getPoint(radius, topTheta, leftPhi);
+    glm::vec3 topRight = getPoint(radius, topTheta, rightPhi);
+    
+    glPushMatrix(); {
+        if (showBorder) {
+            glDisable(GL_TEXTURE_2D);
+            glLineWidth(1.0f);
+            //Outer Line
+            glBegin(GL_LINE_STRIP); {
+                glColor4f(1.0f, 0.0f, 0.0f, _alpha);
+                
+                glVertex3f(topLeft.x, topLeft.y, topLeft.z);
+                glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
+                glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
+                glVertex3f(topRight.x, topRight.y, topRight.z);
+                glVertex3f(topLeft.x, topLeft.y, topLeft.z);
+            } glEnd();
+            
+            glEnable(GL_TEXTURE_2D);
+        }
+        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
+        
+        glBegin(GL_QUADS); {
+            glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
+            glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
+            glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(topRight.x, topRight.y, topRight.z);
+            glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(topLeft.x, topLeft.y, topLeft.z);
+        } glEnd();
+    } glPopMatrix();
+}
+
+
 
 void ApplicationOverlay::renderAudioMeter() {
 
@@ -993,70 +1012,7 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
     }
 }
 
-//Renders a small magnification of the currently bound texture at the coordinates
-void ApplicationOverlay::renderMagnifier(int mouseX, int mouseY, float sizeMult, bool showBorder) const {
-    Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
-    
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
-    
-    const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
-    const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
-    // Magnification Texture Coordinates
-    float magnifyULeft = (mouseX - halfWidth) / (float)widgetWidth;
-    float magnifyURight = (mouseX + halfWidth) / (float)widgetWidth;
-    float magnifyVBottom = 1.0f - (mouseY - halfHeight) / (float)widgetHeight;
-    float magnifyVTop = 1.0f - (mouseY + halfHeight) / (float)widgetHeight;
-    
-    
-    const float newHalfWidth = halfWidth * MAGNIFY_MULT;
-    const float newHalfHeight = halfHeight * MAGNIFY_MULT;
-    //Get new UV coordinates from our magnification window
-    float newULeft = (mouseX - newHalfWidth) / (float)widgetWidth;
-    float newURight = (mouseX + newHalfWidth) / (float)widgetWidth;
-    float newVBottom = 1.0f - (mouseY - newHalfHeight) / (float)widgetHeight;
-    float newVTop = 1.0f - (mouseY + newHalfHeight) / (float)widgetHeight;
-    
-    // Find spherical coordinates from newUV, fov and aspect ratio
-    float radius = _oculusUIRadius * application->getAvatar()->getScale();
-    const float leftPhi = (newULeft - 0.5f) * _textureFov * _textureAspectRatio;
-    const float rightPhi = (newURight - 0.5f) * _textureFov * _textureAspectRatio;
-    const float bottomTheta = PI_OVER_TWO - (newVBottom - 0.5f) * _textureFov;
-    const float topTheta = PI_OVER_TWO - (newVTop - 0.5f) * _textureFov;
-    
-    glm::vec3 bottomLeft = getPoint(radius, bottomTheta, leftPhi);
-    glm::vec3 bottomRight = getPoint(radius, bottomTheta, rightPhi);
-    glm::vec3 topLeft = getPoint(radius, topTheta, leftPhi);
-    glm::vec3 topRight = getPoint(radius, topTheta, rightPhi);
-    
-    glPushMatrix(); {
-        if (showBorder) {
-            glDisable(GL_TEXTURE_2D);
-            glLineWidth(1.0f);
-            //Outer Line
-            glBegin(GL_LINE_STRIP); {
-                glColor4f(1.0f, 0.0f, 0.0f, _alpha);
-        
-                glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-                glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
-                glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
-                glVertex3f(topRight.x, topRight.y, topRight.z);
-                glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-            } glEnd();
-            
-            glEnable(GL_TEXTURE_2D);
-        }
-        glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-        
-        glBegin(GL_QUADS); {
-            glTexCoord2f(magnifyULeft, magnifyVBottom); glVertex3f(bottomLeft.x, bottomLeft.y, bottomLeft.z);
-            glTexCoord2f(magnifyURight, magnifyVBottom); glVertex3f(bottomRight.x, bottomRight.y, bottomRight.z);
-            glTexCoord2f(magnifyURight, magnifyVTop); glVertex3f(topRight.x, topRight.y, topRight.z);
-            glTexCoord2f(magnifyULeft, magnifyVTop); glVertex3f(topLeft.x, topLeft.y, topLeft.z);
-        } glEnd();
-    } glPopMatrix();
-}
+
 
 ApplicationOverlay::TexturedHemisphere::TexturedHemisphere() :
     _vertices(0),
