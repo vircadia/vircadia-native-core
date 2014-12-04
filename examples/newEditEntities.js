@@ -566,6 +566,10 @@ function mouseReleaseEvent(event) {
 }
 
 function mouseClickEvent(event) {
+    if (!isActive) {
+        return;
+    }
+
     var result = findClickedEntity(event);
     if (result === null) {
         if (!event.isShifted) {
