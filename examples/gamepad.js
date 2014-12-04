@@ -188,12 +188,12 @@ function reportButtonValue(button, newValue, oldValue) {
     } else if (button == BUTTON_TOGGLE_MIRROR) {
         if (newValue) {
             var currentMode = Camera.mode;
-            if (currentMode == "mirror") {
-                Camera.mode = toggledFromCameraMode;
-            } else {
+            if (currentMode != "mirror") {
                 toggledFromCameraMode = currentMode;
-                Camera.mode = "mirror";
             }
+            Camera.mode = "mirror";
+        } else {
+            Camera.mode = toggledFromCameraMode;
         }
     } else if (newValue) {
         var direction = null;
