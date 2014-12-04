@@ -33,10 +33,12 @@ SelectionManager = (function() {
     that.localRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.localPosition = { x: 0, y: 0, z: 0 };
     that.localDimensions = { x: 0, y: 0, z: 0 };
+    that.localRegistrationPoint = { x: 0.5, y: 0.5, z: 0.5 };
 
     that.worldRotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
     that.worldPosition = { x: 0, y: 0, z: 0 };
     that.worldDimensions = { x: 0, y: 0, z: 0 };
+    that.worldRegistrationPoint = { x: 0.5, y: 0.5, z: 0.5 };
     that.centerPosition = { x: 0, y: 0, z: 0 };
 
     that.saveProperties = function() {
@@ -153,6 +155,7 @@ SelectionManager = (function() {
             that.localDimensions = properties.dimensions;
             that.localPosition = properties.position;
             that.localRotation = properties.rotation;
+            that.localRegistrationPoint = properties.registrationPoint;
 
             that.worldDimensions = properties.boundingBox.dimensions;
             that.worldPosition = properties.boundingBox.center;
@@ -213,6 +216,17 @@ function normalizeDegrees(degrees) {
     while (degrees > 180) degrees -= 360;
     while (degrees <= -180) degrees += 360;
     return degrees;
+}
+
+// Return the enter position of an entity relative to it's registrationPoint
+// A registration point of (0.5, 0.5, 0.5) will have an offset of (0, 0, 0)
+// A registration point of (1.0, 1.0, 1.0) will have an offset of (-dimensions.x / 2, -dimensions.y / 2, -dimensions.z / 2)
+function getRelativeCenterPosition(dimensions, registrationPoint) {
+    return {
+        x: -dimensions.x * (registrationPoint.x - 0.5),
+        y: -dimensions.y * (registrationPoint.y - 0.5),
+        z: -dimensions.z * (registrationPoint.z - 0.5),
+    }
 }
 
 SelectionDisplay = (function () {
@@ -982,26 +996,36 @@ SelectionDisplay = (function () {
         that.updateRotationHandles();
         that.highlightSelectable();
 
-        var rotation, dimensions, position;
+        var rotation, dimensions, position, registrationPoint;
 
         if (spaceMode == SPACE_LOCAL) {
             rotation = SelectionManager.localRotation;
             dimensions = SelectionManager.localDimensions;
             position = SelectionManager.localPosition;
+            registrationPoint = SelectionManager.localRegistrationPoint;
         } else {
             rotation = Quat.fromPitchYawRollDegrees(0, 0, 0);
             dimensions = SelectionManager.worldDimensions;
             position = SelectionManager.worldPosition;
+            registrationPoint = SelectionManager.worldRegistrationPoint;
         }
 
-        var halfDimensions = Vec3.multiply(0.5, dimensions);
+        var registrationPointDimensions = {
+            x: dimensions.x * registrationPoint.x,
+            y: dimensions.y * registrationPoint.y,
+            z: dimensions.z * registrationPoint.z,
+        };
 
-        var left = -halfDimensions.x;
-        var right = halfDimensions.x;
-        var top = halfDimensions.y;
-        var bottom = -halfDimensions.y;
-        var front = far = halfDimensions.z;
-        var near = -halfDimensions.z;
+        // Center of entity, relative to registration point
+        center = getRelativeCenterPosition(dimensions, registrationPoint);
+
+        // Distances in world coordinates relative to the registration point
+        var left = -registrationPointDimensions.x;
+        var right = dimensions.x - registrationPointDimensions.x;
+        var bottom = -registrationPointDimensions.y;
+        var top = dimensions.y - registrationPointDimensions.y;
+        var near = -registrationPointDimensions.z;
+        var front = far = dimensions.z - registrationPointDimensions.z;
 
         var worldTop = SelectionManager.worldDimensions.y / 2;
 
@@ -1014,25 +1038,25 @@ SelectionDisplay = (function () {
         var LTF = { x: left, y: top, z: far };
         var RTF = { x: right, y: top, z: far };
 
-        var TOP = { x: 0, y: top, z: 0 };
-        var BOTTOM = { x: 0, y: bottom, z: 0 };
-        var LEFT = { x: left, y: 0, z: 0 };
-        var RIGHT = { x: right, y: 0, z: 0 };
-        var NEAR = { x: 0, y: 0, z: near };
-        var FAR = { x: 0, y: 0, z: far };
+        var TOP = { x: center.x, y: top, z: center.z };
+        var BOTTOM = { x: center.x, y: bottom, z: center.z };
+        var LEFT = { x: left, y: center.y, z: center.z };
+        var RIGHT = { x: right, y: center.y, z: center.z };
+        var NEAR = { x: center.x, y: center.y, z: near };
+        var FAR = { x: center.x, y: center.y, z: far };
 
-        var EdgeTR = { x: right, y: top, z: 0 };
-        var EdgeTL = { x: left, y: top, z: 0 };
-        var EdgeTF = { x: 0, y: top, z: front };
-        var EdgeTN = { x: 0, y: top, z: near };
-        var EdgeBR = { x: right, y: bottom, z: 0 };
-        var EdgeBL = { x: left, y: bottom, z: 0 };
-        var EdgeBF = { x: 0, y: bottom, z: front };
-        var EdgeBN = { x: 0, y: bottom, z: near };
-        var EdgeNR = { x: right, y: 0, z: near };
-        var EdgeNL = { x: left, y: 0, z: near };
-        var EdgeFR = { x: right, y: 0, z: front };
-        var EdgeFL = { x: left, y: 0, z: front };
+        var EdgeTR = { x: right, y: top, z: center.z };
+        var EdgeTL = { x: left, y: top, z: center.z };
+        var EdgeTF = { x: center.x, y: top, z: front };
+        var EdgeTN = { x: center.x, y: top, z: near };
+        var EdgeBR = { x: right, y: bottom, z: center.z };
+        var EdgeBL = { x: left, y: bottom, z: center.z };
+        var EdgeBF = { x: center.x, y: bottom, z: front };
+        var EdgeBN = { x: center.x, y: bottom, z: near };
+        var EdgeNR = { x: right, y: center.y, z: near };
+        var EdgeNL = { x: left, y: center.y, z: near };
+        var EdgeFR = { x: right, y: center.y, z: front };
+        var EdgeFL = { x: left, y: center.y, z: front };
 
         LBN = Vec3.multiplyQbyV(rotation, LBN);
         RBN = Vec3.multiplyQbyV(rotation, RBN);
@@ -1111,8 +1135,10 @@ SelectionDisplay = (function () {
         Overlays.editOverlay(grabberNEAR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: NEAR });
         Overlays.editOverlay(grabberFAR, { visible: extendedStretchHandlesVisible, rotation: rotation, position: FAR });
 
+        var boxPosition = Vec3.multiplyQbyV(rotation, center);
+        boxPosition = Vec3.sum(position, boxPosition);
         Overlays.editOverlay(selectionBox, {
-            position: position,
+            position: boxPosition,
             dimensions: dimensions,
             rotation: rotation,
             visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
@@ -1140,8 +1166,17 @@ SelectionDisplay = (function () {
         if (selectionManager.selections.length > 1) {
             for (; i < selectionManager.selections.length; i++) {
                 var properties = Entities.getEntityProperties(selectionManager.selections[i]);
+
+                // Adjust overlay position to take registrationPoint into account
+                // centeredRP = registrationPoint with range [-0.5, 0.5]
+                var centeredRP = Vec3.subtract(properties.registrationPoint, { x: 0.5, y: 0.5, z: 0.5 });
+                var offset = vec3Mult(properties.dimensions, centeredRP);
+                offset = Vec3.multiply(-1, offset);
+                offset = Vec3.multiplyQbyV(properties.rotation, offset);
+                var boxPosition = Vec3.sum(properties.position, offset);
+
                 Overlays.editOverlay(selectionBoxes[i], {
-                    position: properties.position,
+                    position: boxPosition,
                     rotation: properties.rotation,
                     dimensions: properties.dimensions,
                     visible: true,
@@ -1400,6 +1435,8 @@ SelectionDisplay = (function () {
         var initialDimensions = null;
         var initialIntersection = null;
         var initialProperties = null;
+        var registrationPoint = null;
+        var deltaPivot = null;
         var pickRayPosition = null;
         var rotation = null;
 
@@ -1412,18 +1449,29 @@ SelectionDisplay = (function () {
                 rotation = SelectionManager.localRotation;
                 initialPosition = SelectionManager.localPosition;
                 initialDimensions = SelectionManager.localDimensions;
+                registrationPoint = SelectionManager.localRegistrationPoint;
             } else {
                 rotation = SelectionManager.worldRotation;
                 initialPosition = SelectionManager.worldPosition;
                 initialDimensions = SelectionManager.worldDimensions;
+                registrationPoint = SelectionManager.worldRegistrationPoint;
             }
 
-            var scaledOffset = {
-                x: initialDimensions.x * offset.x * 0.5,
-                y: initialDimensions.y * offset.y * 0.5,
-                z: initialDimensions.z * offset.z * 0.5,
-            };
-            pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffset));
+            // Modify range of registrationPoint to be [-0.5, 0.5]
+            var centeredRP = Vec3.subtract(registrationPoint, { x: 0.5, y: 0.5, z: 0.5 });
+
+            // Scale pivot to be in the same range as registrationPoint
+            var scaledPivot = Vec3.multiply(0.5, pivot)
+            deltaPivot = Vec3.subtract(centeredRP, scaledPivot);
+
+            var scaledOffset = Vec3.multiply(0.5, offset);
+
+            // Offset from the registration point
+            offsetRP = Vec3.subtract(scaledOffset, centeredRP);
+
+            // Scaled offset in world coordinates
+            var scaledOffsetWorld = vec3Mult(initialDimensions, offsetRP);
+            pickRayPosition = Vec3.sum(initialPosition, Vec3.multiplyQbyV(rotation, scaledOffsetWorld));
 
             if (numDimensions == 1 && mask.x) {
                 var start = Vec3.multiplyQbyV(rotation, { x: -10000, y: 0, z: 0 });
@@ -1550,8 +1598,7 @@ SelectionDisplay = (function () {
             newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
             newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
             
-            var p = Vec3.multiply(0.5, pivot);
-            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(p, changeInDimensions));
+            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(deltaPivot, changeInDimensions));
             var newPosition = Vec3.sum(initialPosition, changeInPosition);
             
             for (var i = 0; i < SelectionManager.selections.length; i++) {
@@ -1589,20 +1636,19 @@ SelectionDisplay = (function () {
 
     function addStretchTool(overlay, mode, pivot, direction, offset) {
         if (!pivot) {
-            pivot = Vec3.multiply(-1, direction);
-            pivot.y = direction.y;
+            pivot = direction;
         }
         var tool = makeStretchTool(mode, direction, pivot, offset);
 
         addGrabberTool(overlay, tool);
     }
 
-    addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
-    addStretchTool(grabberFAR, "STRETCH_FAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 });
-    addStretchTool(grabberTOP, "STRETCH_TOP", { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 });
-    addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
-    addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
-    addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
+    addStretchTool(grabberNEAR, "STRETCH_NEAR", { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: 1 }, { x: 0, y: 0, z: -1 });
+    addStretchTool(grabberFAR, "STRETCH_FAR", { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: -1 }, { x: 0, y: 0, z: 1 });
+    addStretchTool(grabberTOP, "STRETCH_TOP", { x: 0, y: -1, z: 0 }, { x: 0, y: -1, z: 0 }, { x: 0, y: 1, z: 0 });
+    addStretchTool(grabberBOTTOM, "STRETCH_BOTTOM", { x: 0, y: 1, z: 0 }, { x: 0, y: 1, z: 0 }, { x: 0, y: -1, z: 0 });
+    addStretchTool(grabberRIGHT, "STRETCH_RIGHT", { x: -1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 });
+    addStretchTool(grabberLEFT, "STRETCH_LEFT", { x: 1, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: -1, y: 0, z: 0 });
 
     addStretchTool(grabberLBN, "STRETCH_LBN", null, {x: 1, y: 0, z: 1}, { x: -1, y: -1, z: -1 });
     addStretchTool(grabberRBN, "STRETCH_RBN", null, {x: -1, y: 0, z: 1}, { x: 1, y: -1, z: -1 });
