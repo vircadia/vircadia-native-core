@@ -608,22 +608,27 @@ static int getHeightfieldSize(int size) {
 void HeightfieldHeightEditor::select() {
     QSettings settings;
     QString result = QFileDialog::getOpenFileName(this, "Select Height Image", settings.value("heightDir").toString(),
-        "Images (*.png *.jpg *.bmp *.raw)");
+        "Images (*.png *.jpg *.bmp *.raw *.mdr)");
     if (result.isNull()) {
         return;
     }
     settings.setValue("heightDir", QFileInfo(result).path());
     const quint16 CONVERSION_OFFSET = 1;
-    if (result.toLower().endsWith(".raw")) {
+    QString lowerResult = result.toLower();
+    bool isMDR = lowerResult.endsWith(".mdr");
+    if (lowerResult.endsWith(".raw") || isMDR) {
         QFile input(result);
         input.open(QIODevice::ReadOnly);
         QDataStream in(&input);
         in.setByteOrder(QDataStream::LittleEndian);
-        QVector<quint16> rawContents;
-        while (!in.atEnd()) {
-            quint16 height;
-            in >> height;
-            rawContents.append(height);
+        if (isMDR) {
+            const int MDR_HEADER_SIZE = 1024;
+            input.seek(MDR_HEADER_SIZE);
+        }
+        int available = input.bytesAvailable() / sizeof(quint16);
+        QVector<quint16> rawContents(available);
+        for (quint16* height = rawContents.data(), *end = height + available; height != end; height++) {
+            in >> *height;
         }
         if (rawContents.isEmpty()) {
             QMessageBox::warning(this, "Invalid Image", "The selected image could not be read.");
