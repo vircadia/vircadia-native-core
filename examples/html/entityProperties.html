@@ -163,99 +163,99 @@
                                 disableChildren(document.getElementById("properties"), 'input');
                                 elLocked.removeAttribute('disabled');
                             } else {
-                                enableChildren(document.getElementById("properties"), 'input');
+                                enableChildren(document.getElementById("properties-table"), 'input');
+                            }
 
-                                elVisible.checked = properties.visible;
+                            elVisible.checked = properties.visible;
 
-                                elPositionX.value = properties.position.x.toFixed(2);
-                                elPositionY.value = properties.position.y.toFixed(2);
-                                elPositionZ.value = properties.position.z.toFixed(2);
+                            elPositionX.value = properties.position.x.toFixed(2);
+                            elPositionY.value = properties.position.y.toFixed(2);
+                            elPositionZ.value = properties.position.z.toFixed(2);
 
-                                elDimensionsX.value = properties.dimensions.x.toFixed(2);
-                                elDimensionsY.value = properties.dimensions.y.toFixed(2);
-                                elDimensionsZ.value = properties.dimensions.z.toFixed(2);
+                            elDimensionsX.value = properties.dimensions.x.toFixed(2);
+                            elDimensionsY.value = properties.dimensions.y.toFixed(2);
+                            elDimensionsZ.value = properties.dimensions.z.toFixed(2);
 
-                                elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
-                                elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
-                                elRegistrationZ.value = properties.registrationPoint.z.toFixed(2);
+                            elRegistrationX.value = properties.registrationPoint.x.toFixed(2);
+                            elRegistrationY.value = properties.registrationPoint.y.toFixed(2);
+                            elRegistrationZ.value = properties.registrationPoint.z.toFixed(2);
 
-                                elLinearVelocityX.value = properties.velocity.x.toFixed(2);
-                                elLinearVelocityY.value = properties.velocity.y.toFixed(2);
-                                elLinearVelocityZ.value = properties.velocity.z.toFixed(2);
-                                elLinearDamping.value = properties.damping.toFixed(2);
+                            elLinearVelocityX.value = properties.velocity.x.toFixed(2);
+                            elLinearVelocityY.value = properties.velocity.y.toFixed(2);
+                            elLinearVelocityZ.value = properties.velocity.z.toFixed(2);
+                            elLinearDamping.value = properties.damping.toFixed(2);
 
-                                elAngularVelocityX.value = properties.angularVelocity.x.toFixed(2);
-                                elAngularVelocityY.value = properties.angularVelocity.y.toFixed(2);
-                                elAngularVelocityZ.value = properties.angularVelocity.z.toFixed(2);
-                                elAngularDamping.value = properties.angularDamping.toFixed(2);
+                            elAngularVelocityX.value = properties.angularVelocity.x.toFixed(2);
+                            elAngularVelocityY.value = properties.angularVelocity.y.toFixed(2);
+                            elAngularVelocityZ.value = properties.angularVelocity.z.toFixed(2);
+                            elAngularDamping.value = properties.angularDamping.toFixed(2);
 
-                                elGravityX.value = properties.gravity.x.toFixed(2);
-                                elGravityY.value = properties.gravity.y.toFixed(2);
-                                elGravityZ.value = properties.gravity.z.toFixed(2);
+                            elGravityX.value = properties.gravity.x.toFixed(2);
+                            elGravityY.value = properties.gravity.y.toFixed(2);
+                            elGravityZ.value = properties.gravity.z.toFixed(2);
 
-                                elMass.value = properties.mass.toFixed(2);
-                                elIgnoreForCollisions.checked = properties.ignoreForCollisions;
-                                elCollisionsWillMove.checked = properties.collisionsWillMove;
-                                elLifetime.value = properties.lifetime;
+                            elMass.value = properties.mass.toFixed(2);
+                            elIgnoreForCollisions.checked = properties.ignoreForCollisions;
+                            elCollisionsWillMove.checked = properties.collisionsWillMove;
+                            elLifetime.value = properties.lifetime;
 
-                                if (properties.type != "Box") {
-                                    elBoxSection.style.display = 'none';
-                                } else {
-                                    elBoxSection.style.display = 'block';
+                            if (properties.type != "Box") {
+                                elBoxSection.style.display = 'none';
+                            } else {
+                                elBoxSection.style.display = 'block';
 
-                                    elBoxColorRed.value = properties.color.red;
-                                    elBoxColorGreen.value = properties.color.green;
-                                    elBoxColorBlue.value = properties.color.blue;
-                                }
+                                elBoxColorRed.value = properties.color.red;
+                                elBoxColorGreen.value = properties.color.green;
+                                elBoxColorBlue.value = properties.color.blue;
+                            }
 
-                                if (properties.type != "Model") {
-                                    elModelSection.style.display = 'none';
-                                } else {
-                                    elModelSection.style.display = 'block';
-                                    elModelURL.value = properties.modelURL; 
-                                    elModelAnimationURL.value = properties.animationURL;
-                                    elModelAnimationPlaying.checked = properties.animationIsPlaying;
-                                    elModelAnimationFPS.value = properties.animationFPS;
-                                }
+                            if (properties.type != "Model") {
+                                elModelSection.style.display = 'none';
+                            } else {
+                                elModelSection.style.display = 'block';
+                                elModelURL.value = properties.modelURL;
+                                elModelAnimationURL.value = properties.animationURL;
+                                elModelAnimationPlaying.checked = properties.animationIsPlaying;
+                                elModelAnimationFPS.value = properties.animationFPS;
+                            }
 
-                                if (properties.type != "Text") {
-                                    elTextSection.style.display = 'none';
-                                } else {
-                                    elTextSection.style.display = 'block';
+                            if (properties.type != "Text") {
+                                elTextSection.style.display = 'none';
+                            } else {
+                                elTextSection.style.display = 'block';
 
-                                    elTextText.value = properties.text; 
-                                    elTextLineHeight.value = properties.lineHeight;
-                                    elTextTextColorRed.value = properties.textColor.red;
-                                    elTextTextColorGreen.value = properties.textColor.green;
-                                    elTextTextColorBlue.value = properties.textColor.blue;
-                                    elTextBackgroundColorRed.value = properties.backgroundColor.red;
-                                    elTextBackgroundColorGreen.value = properties.backgroundColor.green;
-                                    elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
-                                }
+                                elTextText.value = properties.text;
+                                elTextLineHeight.value = properties.lineHeight;
+                                elTextTextColorRed.value = properties.textColor.red;
+                                elTextTextColorGreen.value = properties.textColor.green;
+                                elTextTextColorBlue.value = properties.textColor.blue;
+                                elTextBackgroundColorRed.value = properties.backgroundColor.red;
+                                elTextBackgroundColorGreen.value = properties.backgroundColor.green;
+                                elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
+                            }
 
-                                if (properties.type != "Light") {
-                                    elLightSection.style.display = 'none';
-                                } else {
-                                    elLightSection.style.display = 'block';
+                            if (properties.type != "Light") {
+                                elLightSection.style.display = 'none';
+                            } else {
+                                elLightSection.style.display = 'block';
 
-                                    elLightDiffuseRed.value = properties.diffuseColor.red;
-                                    elLightDiffuseGreen.value = properties.diffuseColor.green;
-                                    elLightDiffuseBlue.value = properties.diffuseColor.blue;
+                                elLightDiffuseRed.value = properties.diffuseColor.red;
+                                elLightDiffuseGreen.value = properties.diffuseColor.green;
+                                elLightDiffuseBlue.value = properties.diffuseColor.blue;
 
-                                    elLightAmbientRed.value = properties.ambientColor.red;
-                                    elLightAmbientGreen.value = properties.ambientColor.green;
-                                    elLightAmbientBlue.value = properties.ambientColor.blue;
+                                elLightAmbientRed.value = properties.ambientColor.red;
+                                elLightAmbientGreen.value = properties.ambientColor.green;
+                                elLightAmbientBlue.value = properties.ambientColor.blue;
 
-                                    elLightSpecularRed.value = properties.specularColor.red;
-                                    elLightSpecularGreen.value = properties.specularColor.green;
-                                    elLightSpecularBlue.value = properties.specularColor.blue;
+                                elLightSpecularRed.value = properties.specularColor.red;
+                                elLightSpecularGreen.value = properties.specularColor.green;
+                                elLightSpecularBlue.value = properties.specularColor.blue;
 
-                                    elLightConstantAttenuation.value = properties.constantAttenuation;
-                                    elLightLinearAttenuation.value = properties.linearAttenuation;
-                                    elLightQuadraticAttenuation.value = properties.quadraticAttenuation;
-                                    elLightExponent.value = properties.exponent;
-                                    elLightCutoff.value = properties.cutoff;
-                                }
+                                elLightConstantAttenuation.value = properties.constantAttenuation;
+                                elLightLinearAttenuation.value = properties.linearAttenuation;
+                                elLightQuadraticAttenuation.value = properties.quadraticAttenuation;
+                                elLightExponent.value = properties.exponent;
+                                elLightCutoff.value = properties.cutoff;
                             }
                         }
                     }
