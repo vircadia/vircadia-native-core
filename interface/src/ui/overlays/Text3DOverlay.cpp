@@ -91,8 +91,8 @@ void Text3DOverlay::render(RenderArgs* args) {
 
         const float MAX_COLOR = 255.0f;
         xColor backgroundColor = getBackgroundColor();
-        float alpha = getAlpha();
-        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
+        glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+            getBackgroundAlpha());
 
         glm::vec2 dimensions = getDimensions();
         glm::vec2 halfDimensions = dimensions * 0.5f;
@@ -127,6 +127,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         enableClipPlane(GL_CLIP_PLANE3, 0.0f, 1.0f, 0.0f, -clipMinimum.y);
     
         glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
+        float alpha = getAlpha();
         QStringList lines = _text.split("\n");
         int lineOffset = maxHeight;
         foreach(QString thisLine, lines) {

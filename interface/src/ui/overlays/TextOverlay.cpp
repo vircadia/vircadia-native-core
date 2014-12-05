@@ -65,11 +65,10 @@ void TextOverlay::render(RenderArgs* args) {
         return; // do nothing if we're not visible
     }
 
-
     const float MAX_COLOR = 255.0f;
     xColor backgroundColor = getBackgroundColor();
-    float alpha = getAlpha();
-    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, alpha);
+    glColor4f(backgroundColor.red / MAX_COLOR, backgroundColor.green / MAX_COLOR, backgroundColor.blue / MAX_COLOR, 
+        getBackgroundAlpha());
 
     glBegin(GL_QUADS);
         glVertex2f(_bounds.left(), _bounds.top());
@@ -87,6 +86,7 @@ void TextOverlay::render(RenderArgs* args) {
     int y = _bounds.top() + _topMargin + topAdjust;
     
     glColor3f(_color.red / MAX_COLOR, _color.green / MAX_COLOR, _color.blue / MAX_COLOR);
+    float alpha = getAlpha();
     QStringList lines = _text.split("\n");
     int lineOffset = 0;
     foreach(QString thisLine, lines) {
