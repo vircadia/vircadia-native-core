@@ -8,16 +8,10 @@ include_glm()
 link_hifi_libraries(shared)
 if (APPLE)
   # link in required OS X frameworks and include the right GL headers
-  find_library(CoreFoundation CoreFoundation)
   find_library(OpenGL OpenGL)
 
-  target_link_libraries(${TARGET_NAME} ${CoreFoundation} ${OpenGL})
+  target_link_libraries(${TARGET_NAME} ${OpenGL})
     
-  # install command for OS X bundle
-  INSTALL(TARGETS ${TARGET_NAME}
-    BUNDLE DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-    RUNTIME DESTINATION "${CMAKE_CURRENT_BINARY_DIR}/install" COMPONENT Runtime
-  )
 else (APPLE)
   find_package(OpenGL REQUIRED)
   

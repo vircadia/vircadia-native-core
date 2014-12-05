@@ -14,7 +14,8 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 
-#if defined(APPLE)
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
 #include <OpenGL/glext.h>
 
 #elif defined(UNIX)
