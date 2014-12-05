@@ -445,7 +445,6 @@ void GLBackend::updateTransform() {
             _transform._lastMode = GL_PROJECTION;
         }
         CHECK_GL_ERROR();*/
-        _transform._invalidProj;
     }
 
     if (_transform._invalidModel || _transform._invalidView) {

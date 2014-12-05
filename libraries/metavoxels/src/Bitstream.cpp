@@ -151,6 +151,7 @@ Bitstream::Bitstream(QDataStream& underlying, MetadataType metadataType, Generic
     _position(0),
     _metadataType(metadataType),
     _genericsMode(genericsMode),
+    _context(NULL),
     _objectStreamerStreamer(*this),
     _typeStreamerStreamer(*this),
     _attributeStreamer(*this),
@@ -266,7 +267,9 @@ Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
         _typeStreamerStreamer.getAndResetTransientValues(),
         _attributeStreamer.getAndResetTransientValues(),
         _scriptStringStreamer.getAndResetTransientValues(),
-        _sharedObjectStreamer.getAndResetTransientValues() };
+        _sharedObjectStreamer.getAndResetTransientValues(),
+        _subdividedObjects };
+    _subdividedObjects.clear();
     return mappings;
 }
 
@@ -289,6 +292,16 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
         }
         reference = it.value();
         _weakSharedObjectHash.remove(it.value()->getRemoteID());
+    }
+    foreach (const SharedObjectPointer& object, mappings.subdividedObjects) {
+        QPointer<SharedObject>& reference = _sharedObjectReferences[object->getRemoteOriginID()];
+        if (reference && reference != object) {
+            int id = _sharedObjectStreamer.removePersistentValue(reference.data());
+            if (id != 0) {
+                _sharedObjectStreamer.insertPersistentValue(id, object);
+            }
+        }
+        reference = object;
     }
 }
 
@@ -1155,6 +1168,16 @@ Bitstream& Bitstream::operator<(const ObjectStreamer* streamer) {
     return *this;
 }
 
+static MappedObjectStreamer* createMappedObjectStreamer(const QMetaObject* metaObject,
+        const QVector<StreamerPropertyPair>& properties) {
+    for (const QMetaObject* super = metaObject; super; super = super->superClass()) {
+        if (super == &SharedObject::staticMetaObject) {
+            return new SharedObjectStreamer(metaObject, properties);
+        }
+    }
+    return new MappedObjectStreamer(metaObject, properties);    
+}
+
 Bitstream& Bitstream::operator>(ObjectStreamerPointer& streamer) {
     QByteArray className;
     *this >> className;
@@ -1230,7 +1253,7 @@ Bitstream& Bitstream::operator>(ObjectStreamerPointer& streamer) {
     } else if (metaObject) {
         const QVector<StreamerPropertyPair>& localProperties = streamer->getProperties();
         if (localProperties.size() != properties.size()) {
-            streamer = ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties));
+            streamer = ObjectStreamerPointer(createMappedObjectStreamer(metaObject, properties));
             return *this;
         }
         for (int i = 0; i < localProperties.size(); i++) {
@@ -1238,13 +1261,13 @@ Bitstream& Bitstream::operator>(ObjectStreamerPointer& streamer) {
             const StreamerPropertyPair& localProperty = localProperties.at(i);
             if (property.first != localProperty.first ||
                     property.second.propertyIndex() != localProperty.second.propertyIndex()) {
-                streamer = ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties));
+                streamer = ObjectStreamerPointer(createMappedObjectStreamer(metaObject, properties));
                 return *this;
             }
         }
         return *this;
     }
-    streamer = ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties));
+    streamer = ObjectStreamerPointer(createMappedObjectStreamer(metaObject, properties));
     return *this;
 }
 
@@ -1670,7 +1693,7 @@ QHash<const QMetaObject*, const ObjectStreamer*> Bitstream::createObjectStreamer
                 properties.append(StreamerPropertyPair(streamer->getSelf(), property));
             }
         }
-        ObjectStreamerPointer streamer = ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties));
+        ObjectStreamerPointer streamer = ObjectStreamerPointer(createMappedObjectStreamer(metaObject, properties));
         streamer->_self = streamer;
         objectStreamers.insert(metaObject, streamer.data());
     }
@@ -2121,7 +2144,7 @@ JSONReader::JSONReader(const QJsonDocument& document, Bitstream::GenericsMode ge
         if (matches) {
             _objectStreamers.insert(name, baseStreamer->getSelf());
         } else {
-            _objectStreamers.insert(name, ObjectStreamerPointer(new MappedObjectStreamer(metaObject, properties)));
+            _objectStreamers.insert(name, ObjectStreamerPointer(createMappedObjectStreamer(metaObject, properties)));
         }
     }
     
@@ -2434,6 +2457,32 @@ QObject* MappedObjectStreamer::readRawDelta(Bitstream& in, const QObject* refere
         }
     }
     return object;
+}
+
+SharedObjectStreamer::SharedObjectStreamer(const QMetaObject* metaObject, const QVector<StreamerPropertyPair>& properties) :
+    MappedObjectStreamer(metaObject, properties) {
+}
+
+void SharedObjectStreamer::write(Bitstream& out, const QObject* object) const {
+    MappedObjectStreamer::write(out, object);
+    static_cast<const SharedObject*>(object)->writeExtra(out);
+}
+
+void SharedObjectStreamer::writeRawDelta(Bitstream& out, const QObject* object, const QObject* reference) const {
+    MappedObjectStreamer::writeRawDelta(out, object, reference);
+    static_cast<const SharedObject*>(object)->writeExtraDelta(out, static_cast<const SharedObject*>(reference));
+}
+
+QObject* SharedObjectStreamer::read(Bitstream& in, QObject* object) const {
+    QObject* result = MappedObjectStreamer::read(in, object);
+    static_cast<SharedObject*>(result)->readExtra(in);
+    return result;
+}
+
+QObject* SharedObjectStreamer::readRawDelta(Bitstream& in, const QObject* reference, QObject* object) const {
+    QObject* result = MappedObjectStreamer::readRawDelta(in, reference, object);
+    static_cast<SharedObject*>(result)->readExtraDelta(in, static_cast<const SharedObject*>(reference));
+    return result;
 }
 
 GenericObjectStreamer::GenericObjectStreamer(const QByteArray& name, const QVector<StreamerNamePair>& properties,

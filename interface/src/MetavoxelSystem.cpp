@@ -461,6 +461,34 @@ void MetavoxelSystem::render() {
         _voxelBaseBatches.clear();
     }
     
+    if (!_hermiteBatches.isEmpty() && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, true);
+        
+        glEnableClientState(GL_VERTEX_ARRAY);
+        
+        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+        glNormal3f(0.0f, 1.0f, 0.0f);
+        
+        Application::getInstance()->getDeferredLightingEffect()->bindSimpleProgram();
+        
+        foreach (const HermiteBatch& batch, _hermiteBatches) {
+            batch.vertexBuffer->bind();
+            
+            glVertexPointer(3, GL_FLOAT, 0, 0);
+            
+            glDrawArrays(GL_LINES, 0, batch.vertexCount);
+            
+            batch.vertexBuffer->release();
+        }
+        
+        Application::getInstance()->getDeferredLightingEffect()->releaseSimpleProgram();
+        
+        glDisableClientState(GL_VERTEX_ARRAY);
+        
+        Application::getInstance()->getTextureCache()->setPrimaryDrawBuffers(true, false);
+    }
+    _hermiteBatches.clear();
+    
     // give external parties a chance to join in
     emit rendering();
 }
@@ -550,10 +578,53 @@ void MetavoxelSystem::setVoxelMaterial(const SharedObjectPointer& spanner, const
     applyMaterialEdit(edit, true);
 }
 
-class SpannerCursorRenderVisitor : public SpannerVisitor {
+void MetavoxelSystem::deleteTextures(int heightTextureID, int colorTextureID, int materialTextureID) const {
+    glDeleteTextures(1, (const GLuint*)&heightTextureID);
+    glDeleteTextures(1, (const GLuint*)&colorTextureID);
+    glDeleteTextures(1, (const GLuint*)&materialTextureID);
+}
+
+class SpannerRenderVisitor : public SpannerVisitor {
 public:
     
-    SpannerCursorRenderVisitor(const Box& bounds);
+    SpannerRenderVisitor(const MetavoxelLOD& lod);
+    
+    virtual int visit(MetavoxelInfo& info);
+    virtual bool visit(Spanner* spanner);
+
+protected:
+    
+    int _containmentDepth;
+};
+
+SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
+    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
+        QVector<AttributePointer>(), QVector<AttributePointer>(), lod,
+        encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _containmentDepth(INT_MAX) {
+}
+
+int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
+    if (_containmentDepth >= _depth) {
+        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            info.getBounds());
+        if (intersection == Frustum::NO_INTERSECTION) {
+            return STOP_RECURSION;
+        }
+        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
+    }
+    return SpannerVisitor::visit(info);
+}
+
+bool SpannerRenderVisitor::visit(Spanner* spanner) {
+    spanner->getRenderer()->render(_lod, _containmentDepth <= _depth);
+    return true;
+}
+
+class SpannerCursorRenderVisitor : public SpannerRenderVisitor {
+public:
+    
+    SpannerCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds);
     
     virtual bool visit(Spanner* spanner);
     
@@ -564,20 +635,20 @@ private:
     Box _bounds;
 };
 
-SpannerCursorRenderVisitor::SpannerCursorRenderVisitor(const Box& bounds) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute()),
+SpannerCursorRenderVisitor::SpannerCursorRenderVisitor(const MetavoxelLOD& lod, const Box& bounds) :
+    SpannerRenderVisitor(lod),
     _bounds(bounds) {
 }
 
 bool SpannerCursorRenderVisitor::visit(Spanner* spanner) {
     if (spanner->isHeightfield()) {
-        spanner->getRenderer()->render(true);
+         spanner->getRenderer()->render(_lod, _containmentDepth <= _depth, true);
     }
     return true;
 }
 
 int SpannerCursorRenderVisitor::visit(MetavoxelInfo& info) {
-    return info.getBounds().intersects(_bounds) ? SpannerVisitor::visit(info) : STOP_RECURSION;
+    return info.getBounds().intersects(_bounds) ? SpannerRenderVisitor::visit(info) : STOP_RECURSION;
 }
 
 void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float radius) {
@@ -604,7 +675,7 @@ void MetavoxelSystem::renderHeightfieldCursor(const glm::vec3& position, float r
     glActiveTexture(GL_TEXTURE0);
     
     glm::vec3 extents(radius, radius, radius);
-    SpannerCursorRenderVisitor visitor(Box(position - extents, position + extents));
+    SpannerCursorRenderVisitor visitor(getLOD(), Box(position - extents, position + extents));
     guide(visitor);
     
     _heightfieldCursorProgram.release();
@@ -678,7 +749,7 @@ void MetavoxelSystem::renderVoxelCursor(const glm::vec3& position, float radius)
     
     _heightfieldCursorProgram.bind();
     
-    SpannerCursorRenderVisitor spannerVisitor(bounds);
+    SpannerCursorRenderVisitor spannerVisitor(getLOD(), bounds);
     guide(spannerVisitor);
     
     _heightfieldCursorProgram.release();
@@ -1192,31 +1263,18 @@ void VoxelBuffer::render(bool cursor) {
         }
     }
     
-    if (_hermiteCount > 0 && Menu::getInstance()->isOptionChecked(MenuOption::DisplayHermiteData)) {
+    if (_hermiteCount > 0) {
         if (!_hermiteBuffer.isCreated()) {
             _hermiteBuffer.create();
             _hermiteBuffer.bind();
-            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));
+            _hermiteBuffer.allocate(_hermite.constData(), _hermite.size() * sizeof(glm::vec3));    
+            _hermiteBuffer.release();
             _hermite.clear();
-        
-        } else {
-            _hermiteBuffer.bind();
         }
-        
-        glVertexPointer(3, GL_FLOAT, 0, 0);
-        
-        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().bind();
-        
-        glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-        glNormal3f(0.0f, 1.0f, 0.0f);
-        
-        glLineWidth(1.0f);
-        
-        glDrawArrays(GL_LINES, 0, _hermiteCount);
-        
-        Application::getInstance()->getDeferredLightingEffect()->getSimpleProgram().release();
-        
-        _hermiteBuffer.release();
+        HermiteBatch hermiteBatch;
+        hermiteBatch.vertexBuffer = &_hermiteBuffer;
+        hermiteBatch.vertexCount = _hermiteCount;
+        Application::getInstance()->getMetavoxels()->addHermiteBatch(hermiteBatch);
     }
 }
 
@@ -1880,43 +1938,6 @@ void DefaultMetavoxelRendererImplementation::simulate(MetavoxelData& data, float
     data.guide(spannerSimulateVisitor);
 }
 
-class SpannerRenderVisitor : public SpannerVisitor {
-public:
-    
-    SpannerRenderVisitor(const MetavoxelLOD& lod);
-    
-    virtual int visit(MetavoxelInfo& info);
-    virtual bool visit(Spanner* spanner);
-
-private:
-    
-    int _containmentDepth;
-};
-
-SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
-    SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
-        QVector<AttributePointer>(), QVector<AttributePointer>(), lod,
-        encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
-    _containmentDepth(INT_MAX) {
-}
-
-int SpannerRenderVisitor::visit(MetavoxelInfo& info) {
-    if (_containmentDepth >= _depth) {
-        Frustum::IntersectionType intersection = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
-            info.getBounds());
-        if (intersection == Frustum::NO_INTERSECTION) {
-            return STOP_RECURSION;
-        }
-        _containmentDepth = (intersection == Frustum::CONTAINS_INTERSECTION) ? _depth : INT_MAX;
-    }
-    return SpannerVisitor::visit(info);
-}
-
-bool SpannerRenderVisitor::visit(Spanner* spanner) {
-    spanner->getRenderer()->render();
-    return true;
-}
-
 class BufferRenderVisitor : public MetavoxelVisitor {
 public:
     
@@ -1970,7 +1991,7 @@ SphereRenderer::SphereRenderer() {
 }
 
 
-void SphereRenderer::render(bool cursor) {
+void SphereRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Sphere* sphere = static_cast<Sphere*>(_spanner);
     const QColor& color = sphere->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF());
@@ -1990,7 +2011,7 @@ void SphereRenderer::render(bool cursor) {
 CuboidRenderer::CuboidRenderer() {
 }
 
-void CuboidRenderer::render(bool cursor) {
+void CuboidRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     Cuboid* cuboid = static_cast<Cuboid*>(_spanner);
     const QColor& color = cuboid->getColor();
     glColor4f(color.redF(), color.greenF(), color.blueF(), color.alphaF());
@@ -2041,7 +2062,7 @@ void StaticModelRenderer::simulate(float deltaTime) {
     _model->simulate(deltaTime);
 }
 
-void StaticModelRenderer::render(bool cursor) {
+void StaticModelRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
     _model->render();
 }
 
@@ -2073,57 +2094,66 @@ void StaticModelRenderer::applyURL(const QUrl& url) {
 }
 
 HeightfieldRenderer::HeightfieldRenderer() {
-    glGenTextures(1, &_heightTextureID);
-    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        
-    glGenTextures(1, &_colorTextureID);
-    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    
-    glGenTextures(1, &_materialTextureID);
-    glBindTexture(GL_TEXTURE_2D, _materialTextureID);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-HeightfieldRenderer::~HeightfieldRenderer() {
-    glDeleteTextures(1, &_heightTextureID);
-    glDeleteTextures(1, &_colorTextureID);
-    glDeleteTextures(1, &_materialTextureID);
-}
+const int X_MAXIMUM_FLAG = 1;
+const int Y_MAXIMUM_FLAG = 2;
 
-void HeightfieldRenderer::init(Spanner* spanner) {
-    SpannerRenderer::init(spanner);
-    
-    Heightfield* heightfield = static_cast<Heightfield*>(spanner);
-    applyHeight(heightfield->getHeight());
-    applyColor(heightfield->getColor());
-    applyMaterial(heightfield->getMaterial());
-    
-    connect(heightfield, &Heightfield::heightChanged, this, &HeightfieldRenderer::applyHeight);
-    connect(heightfield, &Heightfield::colorChanged, this, &HeightfieldRenderer::applyColor);
-    connect(heightfield, &Heightfield::materialChanged, this, &HeightfieldRenderer::applyMaterial);
-}
-
-void HeightfieldRenderer::render(bool cursor) {
-    // create the buffer objects lazily
-    Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
-    if (!heightfield->getHeight()) {
+static void renderNode(const HeightfieldNodePointer& node, Heightfield* heightfield, const MetavoxelLOD& lod,
+        const glm::vec2& minimum, float size, bool contained, bool cursor) {
+    const glm::quat& rotation = heightfield->getRotation();
+    glm::vec3 scale(heightfield->getScale() * size, heightfield->getScale() * heightfield->getAspectY(),
+        heightfield->getScale() * heightfield->getAspectZ() * size);
+    glm::vec3 translation = heightfield->getTranslation() + rotation * glm::vec3(minimum.x * heightfield->getScale(),
+        0.0f, minimum.y * heightfield->getScale() * heightfield->getAspectZ());
+    if (!contained) {
+        Frustum::IntersectionType type = Application::getInstance()->getMetavoxels()->getFrustum().getIntersectionType(
+            glm::translate(translation) * glm::mat4_cast(rotation) * Box(glm::vec3(), scale));
+        if (type == Frustum::NO_INTERSECTION) {
+            return;
+        }
+        if (type == Frustum::CONTAINS_INTERSECTION) {
+            contained = true;
+        }
+    }
+    if (!node->isLeaf() && lod.shouldSubdivide(minimum, size)) {
+        float nextSize = size * 0.5f;
+        for (int i = 0; i < HeightfieldNode::CHILD_COUNT; i++) {
+            renderNode(node->getChild(i), heightfield, lod, minimum + glm::vec2(i & X_MAXIMUM_FLAG ? nextSize : 0.0f,
+                i & Y_MAXIMUM_FLAG ? nextSize : 0.0f), nextSize, contained, cursor);
+        }
         return;
     }
-    int width = heightfield->getHeight()->getWidth();
-    int height = heightfield->getHeight()->getContents().size() / width;
-    
+    HeightfieldNodeRenderer* renderer = static_cast<HeightfieldNodeRenderer*>(node->getRenderer());
+    if (!renderer) {
+        node->setRenderer(renderer = new HeightfieldNodeRenderer());
+    }
+    renderer->render(node, translation, rotation, scale, cursor);
+}
+
+void HeightfieldRenderer::render(const MetavoxelLOD& lod, bool contained, bool cursor) {
+    Heightfield* heightfield = static_cast<Heightfield*>(_spanner);
+    renderNode(heightfield->getRoot(), heightfield, heightfield->transformLOD(lod), glm::vec2(), 1.0f, contained, cursor);
+}
+
+HeightfieldNodeRenderer::HeightfieldNodeRenderer() :
+    _heightTextureID(0),
+    _colorTextureID(0),
+    _materialTextureID(0) {
+}
+
+HeightfieldNodeRenderer::~HeightfieldNodeRenderer() {
+    QMetaObject::invokeMethod(Application::getInstance()->getMetavoxels(), "deleteTextures", Q_ARG(int, _heightTextureID),
+        Q_ARG(int, _colorTextureID), Q_ARG(int, _materialTextureID));
+}
+
+void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const glm::vec3& translation,
+        const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
+    if (!node->getHeight()) {
+        return;
+    }
+    int width = node->getHeight()->getWidth();
+    int height = node->getHeight()->getContents().size() / width;
     int innerWidth = width - 2 * HeightfieldHeight::HEIGHT_BORDER;
     int innerHeight = height - 2 * HeightfieldHeight::HEIGHT_BORDER;
     int vertexCount = width * height;
@@ -2180,17 +2210,71 @@ void HeightfieldRenderer::render(bool cursor) {
         bufferPair.second.allocate(indices.constData(), indexCount * sizeof(int));
         bufferPair.second.release();
     }
+    if (_heightTextureID == 0) {
+        glGenTextures(1, &_heightTextureID);
+        glBindTexture(GL_TEXTURE_2D, _heightTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        const QVector<quint16>& heightContents = node->getHeight()->getContents();
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
+            GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
     
-    float xScale = heightfield->getScale(), zScale = xScale * heightfield->getAspectZ();
+        glGenTextures(1, &_colorTextureID);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (node->getColor()) {
+            const QByteArray& contents = node->getColor()->getContents();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, node->getColor()->getWidth(),
+                contents.size() / (node->getColor()->getWidth() * DataBlock::COLOR_BYTES),
+                0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
+            
+        } else {
+            const quint8 WHITE_COLOR[] = { 255, 255, 255 };
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
+        }
+        
+        glGenTextures(1, &_materialTextureID);
+        glBindTexture(GL_TEXTURE_2D, _materialTextureID);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        if (node->getMaterial()) {
+            const QByteArray& contents = node->getMaterial()->getContents();
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, node->getMaterial()->getWidth(),
+                contents.size() / node->getMaterial()->getWidth(),
+                0, GL_RED, GL_UNSIGNED_BYTE, contents.constData());
+                
+            const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
+            _networkTextures.resize(materials.size());
+            for (int i = 0; i < materials.size(); i++) {
+                const SharedObjectPointer& material = materials.at(i);
+                if (material) {
+                    _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
+                        static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
+                }
+            }
+        } else {
+            const quint8 ZERO_VALUE = 0;
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
+        }
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    
     if (cursor) {
         bufferPair.first.bind();
         bufferPair.second.bind();
     
         glPushMatrix();
-        glTranslatef(heightfield->getTranslation().x, heightfield->getTranslation().y, heightfield->getTranslation().z);
-        glm::vec3 axis = glm::axis(heightfield->getRotation());
-        glRotatef(glm::degrees(glm::angle(heightfield->getRotation())), axis.x, axis.y, axis.z);
-        glScalef(xScale, xScale * heightfield->getAspectY(), zScale);
+        glTranslatef(translation.x, translation.y, translation.z);
+        glm::vec3 axis = glm::axis(rotation);
+        glRotatef(glm::degrees(glm::angle(rotation)), axis.x, axis.y, axis.z);
+        glScalef(scale.x, scale.y, scale.z);
         
         HeightfieldPoint* point = 0;
         glVertexPointer(3, GL_FLOAT, sizeof(HeightfieldPoint), &point->vertex);
@@ -2208,13 +2292,12 @@ void HeightfieldRenderer::render(bool cursor) {
         bufferPair.second.release();
         return;
     }
-    
     HeightfieldBaseLayerBatch baseBatch;
     baseBatch.vertexBuffer = &bufferPair.first;
     baseBatch.indexBuffer = &bufferPair.second;
-    baseBatch.translation = heightfield->getTranslation();
-    baseBatch.rotation = heightfield->getRotation();
-    baseBatch.scale = glm::vec3(xScale, xScale * heightfield->getAspectY(), zScale);
+    baseBatch.translation = translation;
+    baseBatch.rotation = rotation;
+    baseBatch.scale = scale;
     baseBatch.vertexCount = vertexCount;
     baseBatch.indexCount = indexCount;
     baseBatch.heightTextureID = _heightTextureID;
@@ -2223,13 +2306,13 @@ void HeightfieldRenderer::render(bool cursor) {
     baseBatch.colorScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
     Application::getInstance()->getMetavoxels()->addHeightfieldBaseBatch(baseBatch);    
     
-    if (heightfield->getMaterial() && !_networkTextures.isEmpty()) {
+    if (!_networkTextures.isEmpty()) {
         HeightfieldSplatBatch splatBatch;
         splatBatch.vertexBuffer = &bufferPair.first;
         splatBatch.indexBuffer = &bufferPair.second;
-        splatBatch.translation = heightfield->getTranslation();
-        splatBatch.rotation = heightfield->getRotation();
-        splatBatch.scale = glm::vec3(xScale, xScale * heightfield->getAspectY(), zScale);
+        splatBatch.translation = translation;
+        splatBatch.rotation = rotation;
+        splatBatch.scale = scale;
         splatBatch.vertexCount = vertexCount;
         splatBatch.indexCount = indexCount;
         splatBatch.heightTextureID = _heightTextureID;
@@ -2237,10 +2320,10 @@ void HeightfieldRenderer::render(bool cursor) {
         splatBatch.materialTextureID = _materialTextureID;
         splatBatch.textureScale = glm::vec2((float)width / innerWidth, (float)height / innerHeight);
         splatBatch.splatTextureOffset = glm::vec2(
-            glm::dot(heightfield->getTranslation(), heightfield->getRotation() * glm::vec3(1.0f, 0.0f, 0.0f)) / xScale,
-            glm::dot(heightfield->getTranslation(), heightfield->getRotation() * glm::vec3(0.0f, 0.0f, 1.0f)) / zScale);
+            glm::dot(translation, rotation * glm::vec3(1.0f, 0.0f, 0.0f)) / scale.x,
+            glm::dot(translation, rotation * glm::vec3(0.0f, 0.0f, 1.0f)) / scale.z);
         
-        const QVector<SharedObjectPointer>& materials = heightfield->getMaterial()->getMaterials();
+        const QVector<SharedObjectPointer>& materials = node->getMaterial()->getMaterials();
         for (int i = 0; i < materials.size(); i += SPLAT_COUNT) {
             for (int j = 0; j < SPLAT_COUNT; j++) {
                 int index = i + j;
@@ -2248,8 +2331,8 @@ void HeightfieldRenderer::render(bool cursor) {
                     const NetworkTexturePointer& texture = _networkTextures.at(index);
                     if (texture) {
                         MaterialObject* material = static_cast<MaterialObject*>(materials.at(index).data());
-                        splatBatch.splatTextureScalesS[j] = xScale / material->getScaleS();
-                        splatBatch.splatTextureScalesT[j] = zScale / material->getScaleT();
+                        splatBatch.splatTextureScalesS[j] = scale.x / material->getScaleS();
+                        splatBatch.splatTextureScalesT[j] = scale.z / material->getScaleT();
                         splatBatch.splatTextureIDs[j] = texture->getID();
                         
                     } else {
@@ -2265,62 +2348,5 @@ void HeightfieldRenderer::render(bool cursor) {
     }
 }
 
-void HeightfieldRenderer::applyHeight(const HeightfieldHeightPointer& height) {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, _heightTextureID);
-    if (height) {
-        const QVector<quint16>& contents = height->getContents();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, height->getWidth(), contents.size() / height->getWidth(), 0,
-            GL_RED, GL_UNSIGNED_SHORT, contents.constData());
-        
-    } else {
-        const quint16 ZERO_VALUE = 0;
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, 1, 1, 0, GL_RED, GL_UNSIGNED_SHORT, &ZERO_VALUE);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void HeightfieldRenderer::applyColor(const HeightfieldColorPointer& color) {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-    if (color) {
-        const QByteArray& contents = color->getContents();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, color->getWidth(),
-            contents.size() / (color->getWidth() * DataBlock::COLOR_BYTES), 0, GL_RGB, GL_UNSIGNED_BYTE, contents.constData());
-        
-    } else {
-        const quint8 WHITE_COLOR[] = { 255, 255, 255 };
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, 1, 1, 0, GL_RGB, GL_UNSIGNED_BYTE, WHITE_COLOR);
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void HeightfieldRenderer::applyMaterial(const HeightfieldMaterialPointer& material) {
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glBindTexture(GL_TEXTURE_2D, _materialTextureID);
-    if (material) {
-        const QByteArray& contents = material->getContents();
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, material->getWidth(), contents.size() / material->getWidth(), 0,
-            GL_RED, GL_UNSIGNED_BYTE, contents.constData());
-            
-        const QVector<SharedObjectPointer>& materials = material->getMaterials();
-        _networkTextures.resize(materials.size());
-        for (int i = 0; i < materials.size(); i++) {
-            const SharedObjectPointer& material = materials.at(i);
-            if (material) {
-                _networkTextures[i] = Application::getInstance()->getTextureCache()->getTexture(
-                    static_cast<MaterialObject*>(material.data())->getDiffuse(), SPLAT_TEXTURE);
-            } else {
-                _networkTextures[i].clear();
-            }
-        }
-    } else {
-        const quint8 ZERO_VALUE = 0;
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
-        _networkTextures.clear();
-    }
-    glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-QHash<HeightfieldRenderer::IntPair, HeightfieldRenderer::BufferPair> HeightfieldRenderer::_bufferPairs;
+QHash<HeightfieldNodeRenderer::IntPair, HeightfieldNodeRenderer::BufferPair> HeightfieldNodeRenderer::_bufferPairs;
 
