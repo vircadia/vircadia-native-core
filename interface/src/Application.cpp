@@ -1131,7 +1131,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
+                                                   _myCamera.computeViewPickRay(0.5f, 0.5f));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1222,7 +1222,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
+                HFActionEvent endActionEvent(HFActionEvent::endType(), _myCamera.computeViewPickRay(0.5f, 0.5f));
                 sendEvent(this, &endActionEvent);
             }
             
@@ -1253,7 +1253,6 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-
     bool showMouse = true;
 
     // Used by application overlay to determine how to draw cursor(s)
@@ -2079,8 +2078,10 @@ void Application::updateMouseRay() {
         x = _mouseX / (float)_glWidget->width();
         y = _mouseY / (float)_glWidget->height();
     }
-    _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
-
+    PickRay pickRay = _myCamera.computeViewPickRay(x, y);
+    _mouseRayOrigin = pickRay.origin;
+    _mouseRayDirection = pickRay.direction;
+    
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         glm::vec3 mouseRayOffset = _mouseRayOrigin - _viewFrustum.getPosition();

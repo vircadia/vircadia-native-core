@@ -30,18 +30,19 @@ const quint64 MSECS_TO_USECS = 1000ULL;
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
 
-static const float MOUSE_PITCH_RANGE = 1.0f * PI;
-static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
 
 const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
 const float CONNECTION_STATUS_BORDER_LINE_WIDTH = 4.0f;
 
+static const float MOUSE_PITCH_RANGE = 1.0f * PI;
+static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
 
-// Return a point's coordinates on a sphere from it's polar (theta) and azimutal (phi) angles.
-glm::vec3 getPoint(float radius, float theta, float phi) {
-    return glm::vec3(radius * glm::sin(theta) * glm::sin(phi),
-                     radius * glm::cos(theta),
-                     radius * glm::sin(theta) * (-glm::cos(phi)));
+
+// Return a point's coordinates on a sphere from pitch and yaw
+glm::vec3 getPoint(float yaw, float pitch) {
+    return glm::vec3(glm::cos(-pitch) * (-glm::sin(yaw)),
+                     glm::sin(-pitch),
+                     glm::cos(-pitch) * (-glm::cos(yaw)));
 }
 
 //Checks if the given ray intersects the sphere at the origin. result will store a multiplier that should
@@ -104,10 +105,10 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 void renderReticule(glm::quat orientation, float alpha) {
     const float reticleSize = TWO_PI / 80.0f;
     
-    glm::vec3 topLeft = getPoint(1.0f, PI_OVER_TWO + reticleSize / 2.0f, - reticleSize / 2.0f);
-    glm::vec3 topRight = getPoint(1.0f, PI_OVER_TWO + reticleSize / 2.0f, + reticleSize / 2.0f);
-    glm::vec3 bottomLeft = getPoint(1.0f, PI_OVER_TWO - reticleSize / 2.0f, - reticleSize / 2.0f);
-    glm::vec3 bottomRight = getPoint(1.0f, PI_OVER_TWO - reticleSize / 2.0f, + reticleSize / 2.0f);
+    glm::vec3 topLeft = getPoint(reticleSize / 2.0f, -reticleSize / 2.0f);
+    glm::vec3 topRight = getPoint(-reticleSize / 2.0f, -reticleSize / 2.0f);
+    glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
+    glm::vec3 bottomRight = getPoint(-reticleSize / 2.0f, reticleSize / 2.0f);
     
     glPushMatrix(); {
         glm::vec3 axis = glm::axis(orientation);
@@ -284,11 +285,9 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             
             if (_magSizeMult[i] > 0.0f) {
                 //Render magnifier, but dont show border for mouse magnifier
-                float pitch = -(_reticulePosition[MOUSE].y / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
-                float yaw = -(_reticulePosition[MOUSE].x / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
-                float projection =
+                glm::vec2 projection = screenToOverlay(_reticulePosition[i]);
                 
-                renderMagnifier(_reticulePosition[i], _magSizeMult[i], i != MOUSE);
+                renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
             }
         }
         
@@ -296,7 +295,6 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         glDisable(GL_ALPHA_TEST);
         
         glColor4f(1.0f, 1.0f, 1.0f, _alpha);
-
         
         static float textureFOV = 0.0f, textureAspectRatio = 1.0f;
         if (textureFOV != _textureFov ||
@@ -417,11 +415,7 @@ void ApplicationOverlay::displayOverlayTexture3DTV(Camera& whichCamera, float as
     glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-
-
-
-
-void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direction) const {
+void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
     const float pitch = (0.5f - y) * MOUSE_PITCH_RANGE;
     const float yaw = (0.5f - x) * MOUSE_YAW_RANGE;
     const glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
@@ -429,6 +423,7 @@ void ApplicationOverlay::computeOculusPickRay(float x, float y, glm::vec3& direc
 
     //Rotate the UI pick ray by the avatar orientation
     const MyAvatar* myAvatar = Application::getInstance()->getAvatar();
+    origin = myAvatar->getDefaultEyePosition();
     direction = myAvatar->getOrientation() * localDirection;
 }
 
@@ -497,7 +492,7 @@ bool ApplicationOverlay::calculateRayUICollisionPoint(const glm::vec3& position,
     
     glm::quat orientation = myAvatar->getOrientation();
 
-    glm::vec3 relativePosition = orientation * (position - myAvatar->getHead()->getEyePosition());
+    glm::vec3 relativePosition = orientation * (position - myAvatar->getDefaultEyePosition());
     glm::vec3 relativeDirection = orientation * direction;
 
     float t;
@@ -655,10 +650,6 @@ void ApplicationOverlay::renderControllerPointers() {
 }
 
 void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
-    GLCanvas* glWidget = Application::getInstance()->getGLWidget();
-    const int widgetWidth = glWidget->width();
-    const int widgetHeight = glWidget->height();
-    
     glBindTexture(GL_TEXTURE_2D, _crosshairTexture);
     glDisable(GL_DEPTH_TEST);
     glMatrixMode(GL_MODELVIEW);
@@ -735,10 +726,8 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
     //Mouse Pointer
     if (_reticleActive[MOUSE]) {
-        float pitch = -(_reticulePosition[MOUSE].y / widgetHeight - 0.5f) * MOUSE_PITCH_RANGE;
-        float yaw = -(_reticulePosition[MOUSE].x / widgetWidth - 0.5f) * MOUSE_YAW_RANGE;
-        glm::quat orientation(glm::vec3(pitch, yaw, 0.0f));
-        
+        glm::vec2 projection = screenToSpherical(_reticulePosition[MOUSE]);
+        glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
         renderReticule(orientation, _alpha);
     }
 
@@ -753,37 +742,26 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
     const int widgetWidth = glWidget->width();
     const int widgetHeight = glWidget->height();
     
-    if (magPos.x < 0 || magPos.x > widgetWidth || magPos.y < 0 || magPos.y > widgetHeight) {
-        return;
-    }
-    
     const float halfWidth = (MAGNIFY_WIDTH / _textureAspectRatio) * sizeMult / 2.0f;
     const float halfHeight = MAGNIFY_HEIGHT * sizeMult / 2.0f;
     // Magnification Texture Coordinates
-    float magnifyULeft = (magPos.x - halfWidth) / (float)widgetWidth;
-    float magnifyURight = (magPos.x + halfWidth) / (float)widgetWidth;
-    float magnifyVBottom = 1.0f - (magPos.y - halfHeight) / (float)widgetHeight;
-    float magnifyVTop = 1.0f - (magPos.y + halfHeight) / (float)widgetHeight;
+    const float magnifyULeft = (magPos.x - halfWidth) / (float)widgetWidth;
+    const float magnifyURight = (magPos.x + halfWidth) / (float)widgetWidth;
+    const float magnifyVTop = 1.0f - (magPos.y - halfHeight) / (float)widgetHeight;
+    const float magnifyVBottom = 1.0f - (magPos.y + halfHeight) / (float)widgetHeight;
     
     const float newHalfWidth = halfWidth * MAGNIFY_MULT;
     const float newHalfHeight = halfHeight * MAGNIFY_MULT;
-    //Get new UV coordinates from our magnification window
-    float newULeft = (magPos.x - newHalfWidth) / (float)widgetWidth;
-    float newURight = (magPos.x + newHalfWidth) / (float)widgetWidth;
-    float newVBottom = 1.0f - (magPos.y - newHalfHeight) / (float)widgetHeight;
-    float newVTop = 1.0f - (magPos.y + newHalfHeight) / (float)widgetHeight;
+    //Get yaw / pitch value for the corners
+    const glm::vec2 topLeftYawPitch = overlayToSpherical(glm::vec2(magPos.x - newHalfWidth,
+                                                                   magPos.y - newHalfHeight));
+    const glm::vec2 bottomRightYawPitch = overlayToSpherical(glm::vec2(magPos.x + newHalfWidth,
+                                                                       magPos.y + newHalfHeight));
     
-    // Find spherical coordinates from newUV, fov and aspect ratio
-    float radius = _oculusUIRadius * application->getAvatar()->getScale();
-    const float leftPhi = (newULeft - 0.5f) * _textureFov * _textureAspectRatio;
-    const float rightPhi = (newURight - 0.5f) * _textureFov * _textureAspectRatio;
-    const float bottomTheta = PI_OVER_TWO - (newVBottom - 0.5f) * _textureFov;
-    const float topTheta = PI_OVER_TWO - (newVTop - 0.5f) * _textureFov;
-    
-    glm::vec3 bottomLeft = getPoint(radius, bottomTheta, leftPhi);
-    glm::vec3 bottomRight = getPoint(radius, bottomTheta, rightPhi);
-    glm::vec3 topLeft = getPoint(radius, topTheta, leftPhi);
-    glm::vec3 topRight = getPoint(radius, topTheta, rightPhi);
+    const glm::vec3 bottomLeft = getPoint(topLeftYawPitch.x, bottomRightYawPitch.y);
+    const glm::vec3 bottomRight = getPoint(bottomRightYawPitch.x, bottomRightYawPitch.y);
+    const glm::vec3 topLeft = getPoint(topLeftYawPitch.x, topLeftYawPitch.y);
+    const glm::vec3 topRight = getPoint(bottomRightYawPitch.x, topLeftYawPitch.y);
     
     glPushMatrix(); {
         if (showBorder) {
@@ -1065,14 +1043,14 @@ void ApplicationOverlay::TexturedHemisphere::buildVBO(const float fov,
     for (int i = 0; i < stacks; i++) {
         float stacksRatio = (float)i / (float)(stacks - 1); // First stack is 0.0f, last stack is 1.0f
         // abs(theta) <= fov / 2.0f
-        float theta = PI_OVER_TWO - fov * (stacksRatio - 0.5f);
+        float pitch = -fov * (stacksRatio - 0.5f);
         
         for (int j = 0; j < slices; j++) {
             float slicesRatio = (float)j / (float)(slices - 1); // First slice is 0.0f, last slice is 1.0f
             // abs(phi) <= fov * aspectRatio / 2.0f
-            float phi = fov * aspectRatio * (slicesRatio - 0.5f);
+            float yaw = -fov * aspectRatio * (slicesRatio - 0.5f);
             
-            vertexPtr->position = getPoint(1.0f, theta, phi);
+            vertexPtr->position = getPoint(yaw, pitch);
             vertexPtr->uv.x = slicesRatio;
             vertexPtr->uv.y = stacksRatio;
             vertexPtr++;
@@ -1180,3 +1158,43 @@ void ApplicationOverlay::TexturedHemisphere::render() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
+
+glm::vec2 ApplicationOverlay::screenToSpherical(glm::vec2 screenPos) const {
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    float yaw = -(screenPos.x / screenSize.width() - 0.5f) * MOUSE_YAW_RANGE;
+    float pitch = (screenPos.y / screenSize.height() - 0.5f) * MOUSE_PITCH_RANGE;
+    
+    return glm::vec2(yaw, pitch);
+}
+
+glm::vec2 ApplicationOverlay::sphericalToScreen(glm::vec2 sphericalPos) const {
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    float x = (-sphericalPos.x / MOUSE_YAW_RANGE + 0.5f) * screenSize.width();
+    float y = (sphericalPos.y / MOUSE_PITCH_RANGE + 0.5f) * screenSize.height();
+    
+    return glm::vec2(x, y);
+}
+
+glm::vec2 ApplicationOverlay::sphericalToOverlay(glm::vec2 sphericalPos) const {
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    float x = (-sphericalPos.x / (_textureFov * _textureAspectRatio) + 0.5f) * screenSize.width();
+    float y = (sphericalPos.y / _textureFov + 0.5f) * screenSize.height();
+    
+    return glm::vec2(x, y);
+}
+
+glm::vec2 ApplicationOverlay::overlayToSpherical(glm::vec2 overlayPos) const {
+    QSize screenSize = Application::getInstance()->getGLWidget()->getDeviceSize();
+    float yaw = -(overlayPos.x / screenSize.width() - 0.5f) * _textureFov * _textureAspectRatio;
+    float pitch = (overlayPos.y / screenSize.height() - 0.5f) * _textureFov;
+    
+    return glm::vec2(yaw, pitch);
+}
+
+glm::vec2 ApplicationOverlay::screenToOverlay(glm::vec2 screenPos) const {
+    return sphericalToOverlay(screenToSpherical(screenPos));
+}
+
+glm::vec2 ApplicationOverlay::overlayToScreen(glm::vec2 overlayPos) const {
+    return sphericalToScreen(overlayToSpherical(overlayPos));
+}

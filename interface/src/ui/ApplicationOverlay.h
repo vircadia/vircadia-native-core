@@ -30,10 +30,17 @@ public:
     void displayOverlayTextureOculus(Camera& whichCamera);
     void displayOverlayTexture3DTV(Camera& whichCamera, float aspectRatio, float fov);
     
-    void computeOculusPickRay(float x, float y, glm::vec3& direction) const;
+    void computeOculusPickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
     QPoint getPalmClickLocation(const PalmData *palm) const;
     bool calculateRayUICollisionPoint(const glm::vec3& position, const glm::vec3& direction, glm::vec3& result) const;
-  
+    
+    glm::vec2 screenToSpherical(glm::vec2 screenPos) const;
+    glm::vec2 sphericalToScreen(glm::vec2 sphericalPos) const;
+    glm::vec2 sphericalToOverlay(glm::vec2 sphericalPos) const;
+    glm::vec2 overlayToSpherical(glm::vec2 overlayPos) const;
+    glm::vec2 screenToOverlay(glm::vec2 screenPos) const;
+    glm::vec2 overlayToScreen(glm::vec2 overlayPos) const;
+    
 private:
     // Interleaved vertex data
     struct TextureVertex {

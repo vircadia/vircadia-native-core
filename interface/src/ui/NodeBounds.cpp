@@ -38,12 +38,7 @@ void NodeBounds::draw() {
     // Compute ray to find selected nodes later on.  We can't use the pre-computed ray in Application because it centers
     // itself after the cursor disappears.
     Application* application = Application::getInstance();
-    GLCanvas* glWidget = application->getGLWidget();
-    float mouseX = application->getMouseX() / (float)glWidget->width();
-    float mouseY = application->getMouseY() / (float)glWidget->height();
-    glm::vec3 mouseRayOrigin;
-    glm::vec3 mouseRayDirection;
-    application->getViewFrustum()->computePickRay(mouseX, mouseY, mouseRayOrigin, mouseRayDirection);
+    PickRay pickRay = application->getCamera()->computeViewPickRay(application->getMouseX(), application->getMouseY());
 
     // Variables to keep track of the selected node and properties to draw the cube later if needed
     Node* selectedNode = NULL;
@@ -106,8 +101,8 @@ void NodeBounds::draw() {
 
                 float distance;
                 BoxFace face;
-                bool inside = serverBounds.contains(mouseRayOrigin);
-                bool colliding = serverBounds.findRayIntersection(mouseRayOrigin, mouseRayDirection, distance, face);
+                bool inside = serverBounds.contains(pickRay.origin);
+                bool colliding = serverBounds.findRayIntersection(pickRay.origin, pickRay.direction, distance, face);
 
                 // If the camera is inside a node it will be "selected" if you don't have your cursor over another node
                 // that you aren't inside.
