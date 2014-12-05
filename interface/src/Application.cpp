@@ -896,6 +896,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Greater:
             case Qt::Key_Comma:
             case Qt::Key_Period:
+            case Qt::Key_QuoteDbl:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
                 break;
             case Qt::Key_L:
@@ -2089,12 +2090,6 @@ void Application::updateMouseRay() {
         _mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), _mouseRayDirection) +
             _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), _mouseRayDirection));
     }
-
-    // tell my avatar if the mouse is being pressed...
-    _myAvatar->setMousePressed(_mousePressed);
-
-    // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position
-    _myAvatar->setMouseRay(_mouseRayOrigin, _mouseRayDirection);
 }
 
 void Application::updateFaceshift() {
@@ -2915,7 +2910,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     // transform by eye offset
 
     // load the view frustum
-    loadViewFrustum(whichCamera, _displayViewFrustum);
+    loadViewFrustum(whichCamera, _viewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -3189,7 +3184,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
     // allow 3DTV/Oculus to override parameters from camera
-    _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     if (OculusManager::isConnected()) {
         OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     

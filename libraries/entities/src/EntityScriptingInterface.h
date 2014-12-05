@@ -96,6 +96,8 @@ public slots:
     /// order to return an accurate result
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray);
 
+    Q_INVOKABLE void setLightsArePickable(bool value);
+    Q_INVOKABLE bool getLightsArePickable() const;
 
     Q_INVOKABLE void dumpTree() const;
 

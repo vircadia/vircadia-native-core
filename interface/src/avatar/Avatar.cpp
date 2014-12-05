@@ -66,8 +66,6 @@ Avatar::Avatar() :
     _leanScale(0.5f),
     _scale(1.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
-    _mouseRayOrigin(0.0f, 0.0f, 0.0f),
-    _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _moving(false),
     _collisionGroups(0),
     _initialized(false),
@@ -248,11 +246,6 @@ void Avatar::measureMotionDerivatives(float deltaTime) {
     _angularVelocity = safeEulerAngles(delta) * invDeltaTime;
     _angularAcceleration = (_angularVelocity - _lastAngularVelocity) * invDeltaTime;
     _lastOrientation = getOrientation();
-}
-
-void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
-    _mouseRayOrigin = origin;
-    _mouseRayDirection = direction;
 }
 
 enum TextRendererType {

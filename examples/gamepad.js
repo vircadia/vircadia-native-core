@@ -24,7 +24,7 @@ var BUTTON_TURN_AROUND = Joysticks.BUTTON_RIGHT_STICK;
 
 var BUTTON_FLY_UP = Joysticks.BUTTON_RIGHT_SHOULDER;
 var BUTTON_FLY_DOWN = Joysticks.BUTTON_LEFT_SHOULDER;
-var BUTTON_WARP = Joysticks.BUTTON_FACE_RIGHT;
+var BUTTON_WARP = null; // Disable for now
 
 var BUTTON_WARP_FORWARD = Joysticks.BUTTON_DPAD_UP;
 var BUTTON_WARP_BACKWARD = Joysticks.BUTTON_DPAD_DOWN;
@@ -188,12 +188,12 @@ function reportButtonValue(button, newValue, oldValue) {
     } else if (button == BUTTON_TOGGLE_MIRROR) {
         if (newValue) {
             var currentMode = Camera.mode;
-            if (currentMode == "mirror") {
-                Camera.mode = toggledFromCameraMode;
-            } else {
+            if (currentMode != "mirror") {
                 toggledFromCameraMode = currentMode;
-                Camera.mode = "mirror";
             }
+            Camera.mode = "mirror";
+        } else {
+            Camera.mode = toggledFromCameraMode;
         }
     } else if (newValue) {
         var direction = null;
