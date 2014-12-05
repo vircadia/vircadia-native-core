@@ -192,7 +192,7 @@ static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / EIGHT_BIT_MAXIMUM;
 
 void MetavoxelSystem::render() {
     // update the frustum
-    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
         viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
@@ -1896,7 +1896,7 @@ private:
 SpannerRenderVisitor::SpannerRenderVisitor(const MetavoxelLOD& lod) :
     SpannerVisitor(QVector<AttributePointer>() << AttributeRegistry::getInstance()->getSpannersAttribute(),
         QVector<AttributePointer>(), QVector<AttributePointer>(), lod,
-        encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+        encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
@@ -1932,7 +1932,7 @@ private:
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 
