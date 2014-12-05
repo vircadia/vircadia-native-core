@@ -11,6 +11,7 @@
 #include <limits>
 #include <typeinfo>
 #include <Application.h>
+#include <devices/OculusManager.h>
 #include <Menu.h>
 #include <QScriptValueIterator>
 
@@ -244,6 +245,11 @@ void Overlays::deleteOverlay(unsigned int id) {
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
+    glm::vec2 pointCpy = point;
+    if (OculusManager::isConnected()) {
+        pointCpy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+    }
+    
     QReadLocker lock(&_lock);
     QMapIterator<unsigned int, Overlay*> i(_overlays2D);
     i.toBack();
@@ -251,7 +257,8 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         i.previous();
         unsigned int thisID = i.key();
         Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
-        if (thisOverlay->getVisible() && thisOverlay->isLoaded() && thisOverlay->getBounds().contains(point.x, point.y, false)) {
+        if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+            thisOverlay->getBounds().contains(pointCpy.x, pointCpy.y, false)) {
             return thisID;
         }
     }

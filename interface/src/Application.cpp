@@ -1288,7 +1288,6 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-
     if (!_aboutToQuit) {
         _entities.mousePressEvent(event, deviceID);
     }
