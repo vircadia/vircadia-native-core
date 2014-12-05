@@ -239,39 +239,44 @@ void DatagramSequencer::receivedDatagram(const QByteArray& datagram) {
         _sendRecords.erase(_sendRecords.begin(), it + 1);
     }
     
-    // alert external parties so that they can read the middle
-    emit readyToRead(_inputStream);
-    
-    // read and dispatch the high-priority messages
-    int highPriorityMessageCount;
-    _inputStream >> highPriorityMessageCount;
-    int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
-    for (int i = 0; i < highPriorityMessageCount; i++) {
-        QVariant data;
-        _inputStream >> data;
-        if (i >= _receivedHighPriorityMessages) {
-            emit receivedHighPriorityMessage(data);
+    try {
+        // alert external parties so that they can read the middle
+        emit readyToRead(_inputStream);
+        
+        // read and dispatch the high-priority messages
+        int highPriorityMessageCount;
+        _inputStream >> highPriorityMessageCount;
+        int newHighPriorityMessages = highPriorityMessageCount - _receivedHighPriorityMessages;
+        for (int i = 0; i < highPriorityMessageCount; i++) {
+            QVariant data;
+            _inputStream >> data;
+            if (i >= _receivedHighPriorityMessages) {
+                emit receivedHighPriorityMessage(data);
+            }
         }
-    }
-    _receivedHighPriorityMessages = highPriorityMessageCount;
+        _receivedHighPriorityMessages = highPriorityMessageCount;
+        
+        // read the reliable data, if any
+        quint32 reliableChannels;
+        _incomingPacketStream >> reliableChannels;
+        for (quint32 i = 0; i < reliableChannels; i++) {
+            quint32 channelIndex;
+            _incomingPacketStream >> channelIndex;
+            getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
+        }
+        
+        // record the receipt
+        ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
+        _receiveRecords.append(record);
+        
+        emit receiveRecorded();
     
-    // read the reliable data, if any
-    quint32 reliableChannels;
-    _incomingPacketStream >> reliableChannels;
-    for (quint32 i = 0; i < reliableChannels; i++) {
-        quint32 channelIndex;
-        _incomingPacketStream >> channelIndex;
-        getReliableInputChannel(channelIndex)->readData(_incomingPacketStream);
+    } catch (const BitstreamException& e) {
+        qWarning() << "Error reading datagram:" << e.getDescription();
     }
     
     _incomingPacketStream.device()->seek(0);
-    _inputStream.reset();
-    
-    // record the receipt
-    ReceiveRecord record = { _incomingPacketNumber, _inputStream.getAndResetReadMappings(), newHighPriorityMessages };
-    _receiveRecords.append(record);
-    
-    emit receiveRecorded();
+    _inputStream.reset();    
 }
 
 void DatagramSequencer::sendClearSharedObjectMessage(int id) {

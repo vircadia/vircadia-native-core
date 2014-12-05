@@ -2954,7 +2954,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     // transform by eye offset
 
     // load the view frustum
-    loadViewFrustum(whichCamera, _viewFrustum);
+    loadViewFrustum(whichCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -3228,7 +3228,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
     // allow 3DTV/Oculus to override parameters from camera
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     if (OculusManager::isConnected()) {
         OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
