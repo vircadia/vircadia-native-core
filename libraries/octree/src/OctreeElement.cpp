@@ -1343,9 +1343,12 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     float distanceToElementDetails = distance;
     BoxFace localFace;
 
+    AACube debugCube = cube;
+    debugCube.scale((float)TREE_SCALE);
+
     qDebug() << "OctreeElement::findRayIntersection()....";
     qDebug() << "   origin:" << origin;
-    qDebug() << "   checking element:" << cube;
+    qDebug() << "   checking element:" << debugCube << "in meters";
     qDebug() << "   distance:" << distance;
 
     // if the ray doesn't intersect with our cube, we can stop searching!
@@ -1359,6 +1362,7 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     // by default, we only allow intersections with leaves with content
     if (!canRayIntersect()) {
+        qDebug() << "   NOT canRayIntersect() -- no point in calling detailed...";
         return false; // we don't intersect with non-leaves, and we keep searching
     }
 
@@ -1367,9 +1371,10 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
 
     // if the distance to the element cube is not less than the current best distance, then it's not possible
     // for any details inside the cube to be closer so we don't need to consider them.
-    if (distanceToElementCube < distance) {
+    if (cube.contains(origin) || distanceToElementCube < distance) {
 
         qDebug() << "   distanceToElementCube < distance:" << (distanceToElementCube < distance);
+        qDebug() << "   cube.contains(origin):" << (cube.contains(origin));
         qDebug() << "   continue.... call... findDetailedRayIntersection()...";
         //qDebug() << "   distanceToElementCube < distance -- continue.... call... findDetailedRayIntersection()...";
 
@@ -1403,6 +1408,7 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
         if (intersectedObject) {
             *intersectedObject = this;
         }
+        qDebug() << "   OctreeElement::findDetailedRayIntersection().... hasContent() -- done searching...";
         keepSearching = false;
         return true; // we did intersect
     }

@@ -478,10 +478,19 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                          void** intersectedObject, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
+
+    qDebug() << "EntityTreeElement::findDetailedRayIntersection()....";
+    qDebug() << "   origin:" << origin;
+    qDebug() << "   distance:" << distance;
+    qDebug() << "   number of entities:" << _entityItems->size();
+    int entityNumber = 0;
     
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     bool somethingIntersected = false;
+    
+    //float bestEntityDistance = distance;
+    
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
         
@@ -489,8 +498,15 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         float localDistance;
         BoxFace localFace;
 
+        qDebug() << "EntityTreeElement::findDetailedRayIntersection()....";
+        qDebug() << "   checking entity[" << entityNumber << "]:" << entity->getEntityItemID() << "-" << qPrintable(EntityTypes::getEntityTypeName(entity->getType()));
+        qDebug() << "   checking the AABox:" << entityBox;
+
         // if the ray doesn't intersect with our cube, we can stop searching!
         if (entityBox.findRayIntersection(origin, direction, localDistance, localFace)) {
+
+            qDebug() << "   AABox for entity intersects!";
+            qDebug() << "   localDistance:" << localDistance;
 
             // extents is the entity relative, scaled, centered extents of the entity
             glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
@@ -509,12 +525,10 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
 
             // we can use the AABox's ray intersection by mapping our origin and direction into the entity frame
             // and testing intersection there.
-            qDebug() << "EntityTreeElement::findDetailedRayIntersection()....";
-            qDebug() << "   origin:" << origin;
-            qDebug() << "   checking entity:" << entity->getEntityItemID() << "-" << qPrintable(EntityTypes::getEntityTypeName(entity->getType()));
-            qDebug() << "   distance:" << distance;
+            qDebug() << "   checking the entityFrameBox:" << entityFrameBox;
             
             if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance, localFace)) {
+                qDebug() << "   entityFrameBox intersects!";
                 qDebug() << "   localDistance:" << localDistance;
 
                 if (localDistance < distance) {
@@ -559,7 +573,11 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         }
         
         ++entityItr;
+        entityNumber++;
     }
+    
+    qDebug() << "   EntityTreeElement::findDetailedRayIntersection().... returning somethingIntersected:" << somethingIntersected << "keepSearching:" << keepSearching;
+    
     return somethingIntersected;
 }
 
