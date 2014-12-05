@@ -11,6 +11,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+var gamepads = {};
+
 var debug = false;
 var willMove = false;
 
@@ -19,7 +21,6 @@ var warpPosition = { x: 0, y: 0, z: 0 };
 
 var hipsToEyes;
 var restoreCountdownTimer;
-var headTurningTimer = 0.0;
 
 //  Overlays to show target location 
 
@@ -60,13 +61,6 @@ function saveCameraState() {
 
 function restoreCameraState() {
     Camera.mode = oldMode;
-}
-
-function activateWarp() {
-    if (warpActive) return;
-    warpActive = true;
-
-    updateWarp();
 }
 
 var WATCH_AVATAR_DISTANCE = 2.5;
@@ -132,6 +126,22 @@ function updateWarp() {
     });
 }
 
+function activateWarp() {
+    if (warpActive) return;
+    warpActive = true;
+    movingWithHead = true;
+    hipsToEyes = MyAvatar.getEyePosition().y - MyAvatar.position.y;
+    headStartPosition = MyAvatar.getTrackedHeadPosition();
+    headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
+    headStartFinalPitch = MyAvatar.getHeadFinalPitch();
+    headStartRoll = MyAvatar.getHeadFinalRoll();
+    headStartYaw = MyAvatar.getHeadFinalYaw();
+    deltaYaw = 0.0;
+    warpPosition = MyAvatar.position;
+    warpPosition.y += hipsToEyes; 
+    updateWarp();
+}
+
 function finishWarp() {
     if (!warpActive) return;
     warpActive = false;
@@ -152,6 +162,9 @@ function finishWarp() {
         cameraPosition = Vec3.subtract(MyAvatar.position, Vec3.multiplyQbyV(Camera.getOrientation(), { x: 0, y: -hipsToEyes, z: -hipsToEyes * WATCH_AVATAR_DISTANCE }));
         Camera.setPosition(cameraPosition);
         playSound();
+        if (watchAvatar) {
+            restoreCountdownTimer = RESTORE_TIME;
+        }
     } 
 }
 
@@ -169,35 +182,11 @@ function update(deltaTime) {
             restoreCountDownTimer = 0.0;
         }
     }
-    var HEAD_TURN_TIME = 0.10;
-    var HEAD_TURN_DEGREES = 4.0; 
-    var HEAD_TURN_START_ANGLE = 45.0;
-    var currentYaw = MyAvatar.getHeadFinalYaw();
-    if (Math.abs(currentYaw) > HEAD_TURN_START_ANGLE) {
-        headTurningTimer += deltaTime;
-        if (headTurningTimer > HEAD_TURN_TIME) {
-            headTurningTimer = 0.0;
-            MyAvatar.orientation = Quat.multiply(Quat.fromPitchYawRollDegrees(0, (currentYaw > 0) ? HEAD_TURN_DEGREES: -HEAD_TURN_DEGREES, 0), 
-                                                 MyAvatar.orientation);
-        }
-    } else {
-        headTurningTimer = 0.0;
-    }
 }
 
 Controller.keyPressEvent.connect(function(event) {
     if (event.text == "SPACE" && !event.isAutoRepeat && !movingWithHead) {
         keyDownTime = 0.0;
-        movingWithHead = true;
-        hipsToEyes = MyAvatar.getEyePosition().y - MyAvatar.position.y;
-        headStartPosition = MyAvatar.getTrackedHeadPosition();
-        headStartDeltaPitch = MyAvatar.getHeadDeltaPitch();
-        headStartFinalPitch = MyAvatar.getHeadFinalPitch();
-        headStartRoll = MyAvatar.getHeadFinalRoll();
-        headStartYaw = MyAvatar.getHeadFinalYaw();
-        deltaYaw = 0.0;
-        warpPosition = MyAvatar.position;
-        warpPosition.y += hipsToEyes; 
         activateWarp();
     }
 });
@@ -223,11 +212,40 @@ Controller.keyReleaseEvent.connect(function(event) {
         }
         timeSinceLastUp = 0.0;
         finishWarp();
-        if (watchAvatar) {
-            restoreCountdownTimer = RESTORE_TIME;
-        }
     }
 });
 
+function reportButtonValue(button, newValue, oldValue) {
+    if (button == Joysticks.BUTTON_FACE_RIGHT) {
+        if (newValue) {
+            activateWarp();
+        } else {
+            finishWarp();
+        }
+    }
+}
+
 Script.update.connect(update);
+
+function addJoystick(gamepad) {
+    gamepad.buttonStateChanged.connect(reportButtonValue);
+
+    gamepads[gamepad.instanceId] = gamepad;
+
+    print("Added gamepad: " + gamepad.name + " (" + gamepad.instanceId + ")");
+}
+
+function removeJoystick(gamepad) {
+    delete gamepads[gamepad.instanceId]
+
+    print("Removed gamepad: " + gamepad.name + " (" + gamepad.instanceId + ")");
+}
+
+var allJoysticks = Joysticks.getAllJoysticks();
+for (var i = 0; i < allJoysticks.length; i++) {
+    addJoystick(allJoysticks[i]);
+}
+
+Joysticks.joystickAdded.connect(addJoystick);
+Joysticks.joystickRemoved.connect(removeJoystick);
 
