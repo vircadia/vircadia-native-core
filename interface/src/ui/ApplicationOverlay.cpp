@@ -39,7 +39,7 @@ static const float MOUSE_PITCH_RANGE = 1.0f * PI;
 static const float MOUSE_YAW_RANGE = 0.5f * TWO_PI;
 
 
-// Return a point's coordinates on a sphere from pitch and yaw
+// Return a point's cartesian coordinates on a sphere from pitch and yaw
 glm::vec3 getPoint(float yaw, float pitch) {
     return glm::vec3(glm::cos(-pitch) * (-glm::sin(yaw)),
                      glm::sin(-pitch),
