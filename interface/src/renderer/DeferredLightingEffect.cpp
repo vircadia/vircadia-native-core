@@ -232,8 +232,8 @@ void DeferredLightingEffect::render() {
     // enlarge the scales slightly to account for tesselation
     const float SCALE_EXPANSION = 0.05f;
     
-    const glm::vec3& eyePoint = Application::getInstance()->getViewFrustum()->getPosition();
-    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getViewFrustum()->getNearTopLeft());
+    const glm::vec3& eyePoint = Application::getInstance()->getDisplayViewFrustum()->getPosition();
+    float nearRadius = glm::distance(eyePoint, Application::getInstance()->getDisplayViewFrustum()->getNearTopLeft());
     
     if (!_pointLights.isEmpty()) {
         _pointLight.bind();
