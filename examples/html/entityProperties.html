@@ -103,6 +103,7 @@
             var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
             var elLifetime = document.getElementById("property-lifetime");
+            var elScriptURL = document.getElementById("property-script-url");
 
             var elBoxSections = document.querySelectorAll(".box-section");
             var elBoxColorRed = document.getElementById("property-box-red");
@@ -198,6 +199,7 @@
                             elIgnoreForCollisions.checked = properties.ignoreForCollisions;
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
                             elLifetime.value = properties.lifetime;
+                            elScriptURL.value = properties.script;
 
                             if (properties.type != "Box") {
                                 for (var i = 0; i < elBoxSections.length; i++) {
@@ -324,6 +326,7 @@
             elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
+            elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
 
             var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
@@ -550,6 +553,11 @@
         </tr>
 
         <tr>
+            <td class="label">Script URL</td>
+            <td>
+                <input id="property-script-url"></input>
+            </td>
+        </tr>
 
 
         <tr class="box-section">
