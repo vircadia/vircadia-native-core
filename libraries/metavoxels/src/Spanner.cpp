@@ -1127,7 +1127,6 @@ bool HeightfieldStreamState::becameSubdividedOrCollapsed() const {
 
 const int X_MAXIMUM_FLAG = 1;
 const int Y_MAXIMUM_FLAG = 2;
-const int MAXIMUM_FLAG_MASK = X_MAXIMUM_FLAG | Y_MAXIMUM_FLAG;
 
 static glm::vec2 getNextMinimum(const glm::vec2& minimum, float nextSize, int index) {
     return minimum + glm::vec2(
