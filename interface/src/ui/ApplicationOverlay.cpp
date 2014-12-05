@@ -29,6 +29,7 @@ const quint64 MSECS_TO_USECS = 1000ULL;
 
 const float WHITE_TEXT[] = { 0.93f, 0.93f, 0.93f };
 const float RETICLE_COLOR[] = { 0.0f, 198.0f / 255.0f, 244.0f / 255.0f };
+const float reticleSize = TWO_PI / 100.0f;
 
 
 const float CONNECTION_STATUS_BORDER_COLOR[] = { 1.0f, 0.0f, 0.0f };
@@ -103,8 +104,6 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
 }
 
 void renderReticule(glm::quat orientation, float alpha) {
-    const float reticleSize = TWO_PI / 80.0f;
-    
     glm::vec3 topLeft = getPoint(reticleSize / 2.0f, -reticleSize / 2.0f);
     glm::vec3 topRight = getPoint(-reticleSize / 2.0f, -reticleSize / 2.0f);
     glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
@@ -523,7 +522,7 @@ void ApplicationOverlay::renderPointers() {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
-        _reticulePosition[MOUSE] = glm::vec2(application->getTrueMouseX(), application->getTrueMouseY());
+        _reticulePosition[MOUSE] = glm::vec2(application->getMouseX(), application->getMouseY());
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         
@@ -658,70 +657,17 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
     MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     for (int i = 0; i < (int)myAvatar->getHand()->getNumPalms(); i++) {
 
-//        PalmData& palm = myAvatar->getHand()->getPalms()[i];
-//        if (palm.isActive()) {
-//            glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
-//            glm::vec3 tipPos = (tip - eyePos);
-//                
-//            float length = glm::length(eyePos - tip);
-//            float size = 0.03f * length;
-//
-//            glm::vec3 up = glm::vec3(0.0, 1.0, 0.0) * size;
-//            glm::vec3 right = glm::vec3(1.0, 0.0, 0.0) * size;
-//
-//            cursorVerts[0] = -right + up;
-//            cursorVerts[1] = right + up;
-//            cursorVerts[2] = right - up;
-//            cursorVerts[3] = -right - up;
-//
-//            glPushMatrix();
-//
-//            // objToCamProj is the vector in world coordinates from the 
-//            // local origin to the camera projected in the XZ plane
-//            glm::vec3 cursorToCameraXZ(-tipPos.x, 0, -tipPos.z);
-//            cursorToCameraXZ = glm::normalize(cursorToCameraXZ);
-//
-//            //Translate the cursor to the tip of the oculus ray
-//            glTranslatef(tip.x, tip.y, tip.z);
-//
-//            glm::vec3 direction(0, 0, 1);
-//            // easy fix to determine wether the angle is negative or positive
-//            // for positive angles upAux will be a vector pointing in the 
-//            // positive y direction, otherwise upAux will point downwards
-//            // effectively reversing the rotation.
-//            glm::vec3 upAux = glm::cross(direction, cursorToCameraXZ);
-//
-//            // compute the angle
-//            float angleCosine = glm::dot(direction, cursorToCameraXZ);
-//
-//            //Rotate in XZ direction
-//            glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, upAux[0], upAux[1], upAux[2]);
-//
-//            glm::vec3 cursorToCamera = glm::normalize(-tipPos);
-//
-//            // Compute the angle between cursorToCameraXZ and cursorToCamera, 
-//            angleCosine = glm::dot(cursorToCameraXZ, cursorToCamera);
-//
-//            //Rotate in Y direction
-//            if (cursorToCamera.y < 0) {
-//                glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, 1, 0, 0);
-//            } else {
-//                glRotatef(acos(angleCosine) * DEGREES_PER_RADIAN, -1, 0, 0);
-//            }
-//
-//            glBegin(GL_QUADS);
-//
-//            glColor4f(RETICLE_COLOR[0], RETICLE_COLOR[1], RETICLE_COLOR[2], _alpha);
-//
-//            glTexCoord2f(0.0f, 0.0f); glVertex3f(cursorVerts[0].x, cursorVerts[0].y, cursorVerts[0].z);
-//            glTexCoord2f(1.0f, 0.0f); glVertex3f(cursorVerts[1].x, cursorVerts[1].y, cursorVerts[1].z);
-//            glTexCoord2f(1.0f, 1.0f); glVertex3f(cursorVerts[2].x, cursorVerts[2].y, cursorVerts[2].z);
-//            glTexCoord2f(0.0f, 1.0f); glVertex3f(cursorVerts[3].x, cursorVerts[3].y, cursorVerts[3].z);
-//
-//            glEnd();
-//
-//            glPopMatrix();
-//        } 
+        PalmData& palm = myAvatar->getHand()->getPalms()[i];
+        if (palm.isActive()) {
+            glm::vec3 tip = myAvatar->getLaserPointerTipPosition(&palm);
+            glm::vec3 tipDirection = glm::normalize(glm::inverse(myAvatar->getOrientation()) * (tip - eyePos));
+            float pitch = -glm::asin(tipDirection.y);
+            float yawSign = glm::sign(-tipDirection.x);
+            float yaw = glm::acos(-tipDirection.z) *
+                        ((yawSign == 0.0f) ? 1.0f : yawSign);
+            glm::quat orientation = glm::quat(glm::vec3(pitch, yaw, 0.0f));
+            renderReticule(orientation, _alpha);
+        } 
     }
 
     //Mouse Pointer
@@ -790,8 +736,6 @@ void ApplicationOverlay::renderMagnifier(glm::vec2 magPos, float sizeMult, bool 
         } glEnd();
     } glPopMatrix();
 }
-
-
 
 void ApplicationOverlay::renderAudioMeter() {
 
@@ -989,8 +933,6 @@ void ApplicationOverlay::renderDomainConnectionStatusBorder() {
         glEnd();
     }
 }
-
-
 
 ApplicationOverlay::TexturedHemisphere::TexturedHemisphere() :
     _vertices(0),
