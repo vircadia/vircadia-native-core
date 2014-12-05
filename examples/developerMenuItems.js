@@ -24,6 +24,7 @@ function setupMenus() {
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Disable Light Entities", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Don't Attempt to Reduce Material Switches", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Don't Attempt Render Entities as Scene", isCheckable: true, isChecked: false });
+        Menu.addMenuItem({ menuName: "Developer > Entities", menuItemName: "Pick Against Model Triangles", isCheckable: true, isChecked: false });
         Menu.addMenu("Developer > Entities > Culling");
         Menu.addMenuItem({ menuName: "Developer > Entities > Culling", menuItemName: "Don't Cull Out Of View Mesh Parts", isCheckable: true, isChecked: false });
         Menu.addMenuItem({ menuName: "Developer > Entities > Culling", menuItemName: "Don't Cull Too Small Mesh Parts", isCheckable: true, isChecked: false });

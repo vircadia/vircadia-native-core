@@ -19,6 +19,7 @@
 #include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
+#include <GeometryUtil.h>
 #include <PhysicsEntity.h>
 
 #include "AnimationHandle.h"
@@ -33,7 +34,6 @@ class QScriptEngine;
 class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
-
 
 #include "gpu/Stream.h"
 #include "gpu/Batch.h"
@@ -119,6 +119,9 @@ public:
     /// Returns the scaled equivalent of some extents in model space.
     Extents calculateScaledOffsetExtents(const Extents& extents) const;
 
+    /// Returns the scaled equivalent of a point in model space.
+    glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
+
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
     
@@ -194,7 +197,7 @@ public:
         { _geometry->setTextureWithNameToURL(name, url); }
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, 
-                                                float& distance, BoxFace& face, QString& extraInfo) const;
+                                                float& distance, BoxFace& face, QString& extraInfo);
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
@@ -361,8 +364,11 @@ private:
 
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 
-    QVector<AABox> _calculatedMeshBoxes;
+    QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
+    
+    QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
+    bool _calculatedMeshTrianglesValid;
 
     void recalcuateMeshBoxes();
 

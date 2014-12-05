@@ -149,6 +149,7 @@ public:
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
+    glm::mat4 modelTransform;
 
     bool isEye;
     
