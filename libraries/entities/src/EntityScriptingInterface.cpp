@@ -221,6 +221,19 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
     return result;
 }
 
+void EntityScriptingInterface::setLightsArePickable(bool value) {
+    if (_entityTree) {
+        _entityTree->setLightsArePickable(value);
+    }
+}
+
+bool EntityScriptingInterface::getLightsArePickable() const {
+    if (_entityTree) {
+        return _entityTree->getLightsArePickable();
+    }
+    return false;
+}
+
 
 RayToEntityIntersectionResult::RayToEntityIntersectionResult() : 
     intersects(false), 

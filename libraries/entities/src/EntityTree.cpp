@@ -21,6 +21,7 @@
 
 EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _simulation(NULL) {
     _rootElement = createNewElement();
+    _lightsArePickable = true; // assume they are by default
 }
 
 EntityTree::~EntityTree() {
