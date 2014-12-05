@@ -67,7 +67,6 @@ const int SCRIPTED_MOTOR_WORLD_FRAME = 2;
 
 MyAvatar::MyAvatar() :
 	Avatar(),
-    _mousePressed(false),
     _turningKeyPressTime(0.0f),
     _gravity(0.0f, 0.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),

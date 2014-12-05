@@ -511,10 +511,28 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
             // and testing intersection there.
             if (entityFrameBox.findRayIntersection(entityFrameOrigin, entityFrameDirection, localDistance, localFace)) {
                 if (localDistance < distance) {
-                    distance = localDistance;
-                    face = localFace;
-                    *intersectedObject = (void*)entity;
-                    somethingIntersected = true;
+                    // now ask the entity if we actually intersect
+                    if (entity->supportsDetailedRayIntersection()) {
+                    
+                        if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance, 
+                                                                    localFace, intersectedObject)) {
+                                                                    
+                            if (localDistance < distance) {
+                                distance = localDistance;
+                                face = localFace;
+                                *intersectedObject = (void*)entity;
+                                somethingIntersected = true;
+                            }
+                        }
+                    } else {
+                        // if the entity type doesn't support a detailed intersection, then just return the non-AABox results
+                        if (localDistance < distance) {
+                            distance = localDistance;
+                            face = localFace;
+                            *intersectedObject = (void*)entity;
+                            somethingIntersected = true;
+                        }
+                    }
                 }
             }
         }
