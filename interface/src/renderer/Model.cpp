@@ -536,6 +536,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         return intersectedSomething;
     }
 
+    qDebug() << "Model::findRayIntersectionAgainstSubMeshes()...";
+
     // extents is the entity relative, scaled, centered extents of the entity
     glm::vec3 position = _translation;
     glm::mat4 rotation = glm::mat4_cast(_rotation);
@@ -544,10 +546,13 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
+    qDebug() << "    modelExtents:" << modelExtents;
     
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
     glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the model frame of reference
     AABox overlayFrameBox(corner, dimensions);
+
+    qDebug() << "    overlayFrameBox:" << overlayFrameBox;
 
     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
@@ -560,11 +565,13 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         float distanceToSubMesh;
         BoxFace subMeshFace;
         int subMeshIndex = 0;
+        
     
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
             const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
+            qDebug() << "subMeshBox[" << subMeshIndex <<"]:" << subMeshBox;
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
                 if (distanceToSubMesh < bestDistance) {
                     bestDistance = distanceToSubMesh;

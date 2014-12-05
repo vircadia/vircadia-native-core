@@ -71,9 +71,6 @@ private:
     QString _currentTextures;
     QStringList _originalTextures;
     bool _originalTexturesRead;
-
-    float depthOfRayIntersection(const glm::vec3& entityFrameOrigin, const glm::vec3& entityFrameDirection) const;
-
 };
 
 #endif // hifi_RenderableModelEntityItem_h
