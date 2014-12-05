@@ -384,7 +384,7 @@ public:
 
     /// Determines the number of bytes uploaded towards the currently pending message.
     /// \return true if there is a message pending, in which case the sent and total arguments will be set
-    bool getMessageSendProgress(int& sent, int& total) const;
+    bool getMessageSendProgress(int& sent, int& total);
 
     /// Determines the number of bytes downloaded towards the currently pending message.
     /// \return true if there is a message pending, in which case the received and total arguments will be set
@@ -416,6 +416,8 @@ private:
     
     void readData(QDataStream& in);
     
+    void pruneOutgoingMessageStats();
+    
     int _index;
     bool _output;
     CircularBuffer _buffer;
@@ -430,6 +432,10 @@ private:
     SpanList _acknowledged;
     bool _messagesEnabled;
     int _messageLengthPlaceholder; ///< the location in the buffer of the message length for the current message
+    
+    typedef QPair<int, int> OffsetSizePair;
+    QVector<OffsetSizePair> _outgoingMessageStats;
+    
     int _messageReceivedOffset; ///< when reached, indicates that the most recent sent message has been received
     int _messageSize; ///< the size of the most recent sent message; only valid when _messageReceivedOffset has been set
 };

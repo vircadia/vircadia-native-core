@@ -707,8 +707,9 @@ void ReliableChannel::endMessage() {
     
     quint32 length = _buffer.pos() - _messageLengthPlaceholder;
     _buffer.writeBytes(_messageLengthPlaceholder, sizeof(quint32), (const char*)&length);
-    _messageReceivedOffset = getBytesWritten();
-    _messageSize = length;
+
+    pruneOutgoingMessageStats();
+    _outgoingMessageStats.append(OffsetSizePair(getBytesWritten(), length));
 }
 
 void ReliableChannel::sendMessage(const QVariant& message) {
@@ -717,12 +718,14 @@ void ReliableChannel::sendMessage(const QVariant& message) {
     endMessage();
 }
 
-bool ReliableChannel::getMessageSendProgress(int& sent, int& total) const {
-    if (!_messagesEnabled || _offset >= _messageReceivedOffset) {
+bool ReliableChannel::getMessageSendProgress(int& sent, int& total) {
+    pruneOutgoingMessageStats();
+    if (!_messagesEnabled || _outgoingMessageStats.isEmpty()) {
         return false;
     }
-    sent = qMax(0, _messageSize - (_messageReceivedOffset - _offset));
-    total = _messageSize;
+    const OffsetSizePair& stat = _outgoingMessageStats.first();
+    sent = qMax(0, stat.second - (stat.first - _offset));
+    total = stat.second;
     return true;
 }
 
@@ -762,8 +765,7 @@ ReliableChannel::ReliableChannel(DatagramSequencer* sequencer, int index, bool o
     _offset(0),
     _writePosition(0),
     _writePositionResetPacketNumber(0),
-    _messagesEnabled(true),
-    _messageReceivedOffset(0) {
+    _messagesEnabled(true) {
     
     _buffer.open(output ? QIODevice::WriteOnly : QIODevice::ReadOnly);
     _dataStream.setByteOrder(QDataStream::LittleEndian);
@@ -931,6 +933,12 @@ void ReliableChannel::readData(QDataStream& in) {
     if (_buffer.pos() > 0) {
         _buffer.remove((int)_buffer.pos());
         _buffer.seek(0);
+    }
+}
+
+void ReliableChannel::pruneOutgoingMessageStats() {
+    while (!_outgoingMessageStats.isEmpty() && _offset >= _outgoingMessageStats.first().first) {
+        _outgoingMessageStats.removeFirst();
     }
 }
 
