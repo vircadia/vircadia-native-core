@@ -53,6 +53,17 @@ public:
     /// enabled or disabled as compared to the reference.
     bool becameSubdividedOrCollapsed(const glm::vec3& minimum, float size,
         const MetavoxelLOD& reference, float multiplier = 1.0f) const;
+    
+    /// Checks whether, according to this LOD, we should subdivide the described region.
+    bool shouldSubdivide(const glm::vec2& minimum, float size, float multiplier = 1.0f) const;
+    
+    /// Checks whether the node or any of the nodes underneath it have had subdivision enabled as compared to the reference.
+    bool becameSubdivided(const glm::vec2& minimum, float size, const MetavoxelLOD& reference, float multiplier = 1.0f) const;
+    
+    /// Checks whether the node or any of the nodes underneath it have had subdivision
+    /// enabled or disabled as compared to the reference.
+    bool becameSubdividedOrCollapsed(const glm::vec2& minimum, float size,
+        const MetavoxelLOD& reference, float multiplier = 1.0f) const;
 };
 
 DECLARE_STREAMABLE_METATYPE(MetavoxelLOD)
