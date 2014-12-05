@@ -85,9 +85,9 @@ function updateTextOverlay() {
         }
     }
     var suggestedFontSize = (windowDimensions.x / maxLineWidth) * textFontSize * 0.90;
-    var maxFontSize = 240 / textLines.length;
+    var maxFontSize = 190 / textLines.length;
     textFontSize = (suggestedFontSize > maxFontSize) ? maxFontSize : suggestedFontSize;
-    var topMargin = (250 - (textFontSize * textLines.length)) / 2;
+    var topMargin = (250 - (textFontSize * textLines.length)) / 4;
     Overlays.editOverlay(text, {text: textText, font: {size: textFontSize}, topMargin: topMargin});
     var maxLineWidth = 0;
     for (textLine in textLines) {
