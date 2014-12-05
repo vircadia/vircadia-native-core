@@ -46,7 +46,6 @@ public:
     glm::quat getGridRotation() const;
     
     QVariant getValue() const;
-    void detachValue();
     
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
@@ -197,7 +196,7 @@ public:
 protected:
 
     virtual QColor getColor();
-    virtual SharedObjectPointer getSpanner(bool detach = false);
+    virtual SharedObjectPointer getSpanner();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner) = 0;
 
 protected slots:
@@ -260,8 +259,6 @@ public:
     
     virtual bool appliesTo(const AttributePointer& attribute) const;
 
-    virtual void render();
-    
 protected slots:
 
     virtual void apply() = 0;
@@ -270,7 +267,7 @@ protected:
     
     QFormLayout* _form;
     Vec3Editor* _translation;
-    QDoubleSpinBox* _scale;
+    QDoubleSpinBox* _spacing;
 };
 
 /// Allows importing a heightfield.
@@ -425,7 +422,7 @@ public:
 
 protected:
 
-    virtual SharedObjectPointer getSpanner(bool detach = false);
+    virtual SharedObjectPointer getSpanner();
     virtual QColor getColor();
     virtual void applyEdit(const AttributePointer& attribute, const SharedObjectPointer& spanner);
     
