@@ -28,9 +28,6 @@
 #include <ModelEntityItem.h>
 #include <BoxEntityItem.h>
 
-#include <QOpenGLFramebufferObject>
-#include <QRgb>
-
 class RenderableModelEntityItem : public ModelEntityItem  {
 public:
     static EntityItem* factory(const EntityItemID& entityID, const EntityItemProperties& properties);

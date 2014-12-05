@@ -103,9 +103,6 @@ Model::SkinLocations Model::_skinNormalSpecularMapLocations;
 Model::SkinLocations Model::_skinShadowLocations;
 Model::SkinLocations Model::_skinTranslucentLocations;
 
-ProgramObject Model::_selectProgram;
-Model::Locations Model::_selectLocations;
-
 void Model::setScale(const glm::vec3& scale) {
     setScaleInternal(scale);
     // if anyone sets scale manually, then we are no longer scaled to fit
@@ -390,14 +387,6 @@ void Model::init() {
         _skinTranslucentProgram.link();
         
         initSkinProgram(_skinTranslucentProgram, _skinTranslucentLocations);
-        
-        
-        // select/ray picking program
-        _selectProgram.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/select.vert");
-        _selectProgram.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/select.frag");
-        _selectProgram.link();
-        initProgram(_selectProgram, _selectLocations);
-
     }
 }
 
@@ -2165,13 +2154,6 @@ void Model::pickPrograms(gpu::Batch& batch, RenderMode mode, bool translucent, f
 
     ProgramObject* activeProgram = program;
     Locations* activeLocations = locations;
-
-    // XXXBHG - hack to render yellow
-    if (mode == SELECT_RENDER_MODE) {
-        //activeProgram = &_selectProgram;
-        //activeLocations = &_selectLocations;
-        // need skin version
-    }
 
     if (isSkinned) {
         activeProgram = skinProgram;
