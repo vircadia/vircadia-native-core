@@ -835,6 +835,14 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
     const float VIEW_FRUSTUM_OFFSET_UP_DELTA = 0.05f;
 
     switch (key) {
+        case Qt::Key_QuoteDbl:
+            _viewFrustumOffset.yaw = 0.0f;
+            _viewFrustumOffset.pitch = 0.0f;
+            _viewFrustumOffset.roll = 0.0f;
+            _viewFrustumOffset.up = 0.0f;
+            _viewFrustumOffset.distance = 0.0f;
+            break;
+
         case Qt::Key_BracketLeft:
             _viewFrustumOffset.yaw -= VIEW_FRUSTUM_OFFSET_DELTA;
             break;

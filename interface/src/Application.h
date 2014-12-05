@@ -196,7 +196,6 @@ public:
     const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
-    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -518,7 +517,6 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
-    ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 

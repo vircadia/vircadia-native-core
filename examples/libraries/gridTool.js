@@ -90,7 +90,6 @@ Grid = function(opts) {
     }
 
     that.snapToSpacing = function(delta, majorOnly) {
-        print('snaptogrid? ' + snapToGrid);
         if (!snapToGrid) {
             return delta;
         }

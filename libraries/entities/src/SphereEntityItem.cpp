@@ -93,3 +93,26 @@ void SphereEntityItem::recalculateCollisionShape() {
     float largestDiameter = glm::max(dimensionsInMeters.x, dimensionsInMeters.y, dimensionsInMeters.z);
     _sphereShape.setRadius(largestDiameter / 2.0f);
 }
+
+bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                     bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                     void** intersectedObject) const {
+                     
+    // NOTE: origin and direction are in tree units. But our _sphereShape is in meters, so we need to
+    // do a little math to make these match each other.
+    RayIntersectionInfo rayInfo;
+    rayInfo._rayStart = origin * (float)TREE_SCALE;
+    rayInfo._rayDirection = direction;
+
+    // TODO: Note this is really doing ray intersections against a sphere, which is fine except in cases
+    // where our dimensions actually make us an ellipsoid. But we'll live with this for now until we
+    // get a more full fledged physics library
+    if (_sphereShape.findRayIntersection(rayInfo)) {
+        distance = rayInfo._hitDistance / (float)TREE_SCALE;
+        return true;
+    }
+    return false;                
+}
+
+
+
