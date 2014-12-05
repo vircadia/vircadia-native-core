@@ -10,9 +10,12 @@
 //
 
 
+#include <glm/gtx/transform.hpp>
+
 #include <QDebug>
 
 #include <ByteCountCoding.h>
+#include <PlaneShape.h>
 
 #include "EntityTree.h"
 #include "EntityTreeElement.h"
@@ -110,4 +113,48 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
     APPEND_ENTITY_PROPERTY(PROP_LINE_HEIGHT, appendValue, getLineHeight());
     APPEND_ENTITY_PROPERTY(PROP_TEXT_COLOR, appendColor, getTextColor());
     APPEND_ENTITY_PROPERTY(PROP_BACKGROUND_COLOR, appendColor, getBackgroundColor());
+}
+
+
+bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                     bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                     void** intersectedObject) const {
+                     
+    RayIntersectionInfo rayInfo;
+    rayInfo._rayStart = origin;
+    rayInfo._rayDirection = direction;
+    rayInfo._rayLength = std::numeric_limits<float>::max();
+
+    PlaneShape plane;
+
+    const glm::vec3 UNROTATED_NORMAL(0.0f, 0.0f, -1.0f);
+    glm::vec3 normal = _rotation * UNROTATED_NORMAL;
+    plane.setNormal(normal);
+    plane.setPoint(_position); // the position is definitely a point on our plane
+
+    bool intersects = plane.findRayIntersection(rayInfo);
+
+    if (intersects) {
+        glm::vec3 hitAt = origin + (direction * rayInfo._hitDistance);
+        // now we know the point the ray hit our plane
+
+        glm::mat4 rotation = glm::mat4_cast(getRotation());
+        glm::mat4 translation = glm::translate(getPosition());
+        glm::mat4 entityToWorldMatrix = translation * rotation;
+        glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
+
+        glm::vec3 dimensions = getDimensions();
+        glm::vec3 registrationPoint = getRegistrationPoint();
+        glm::vec3 corner = -(dimensions * registrationPoint);
+        AABox entityFrameBox(corner, dimensions);
+
+        glm::vec3 entityFrameHitAt = glm::vec3(worldToEntityMatrix * glm::vec4(hitAt, 1.0f));
+        
+        intersects = entityFrameBox.contains(entityFrameHitAt);
+    }
+
+    if (intersects) {
+        distance = rayInfo._hitDistance;
+    }
+    return intersects;
 }

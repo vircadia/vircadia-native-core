@@ -1551,7 +1551,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
 
                 } else if (object.name == "Texture") {
                     TextureParam tex;
-                    bool texparam = false;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             // trim off any path information
