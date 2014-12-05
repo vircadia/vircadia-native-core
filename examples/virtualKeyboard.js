@@ -15,14 +15,16 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+Script.include("libraries/globals.js");
+
 const KBD_UPPERCASE_DEFAULT = 0;
 const KBD_LOWERCASE_DEFAULT = 1;
 const KBD_UPPERCASE_HOVER   = 2;
 const KBD_LOWERCASE_HOVER   = 3;
 const KBD_BACKGROUND        = 4;
 
-const KEYBOARD_URL = "http://test.thoys.nl/hifi/images/virtualKeyboard/keyboard.svg";
-const CURSOR_URL = "http://test.thoys.nl/hifi/images/virtualKeyboard/cursor.svg";
+const KEYBOARD_URL = HIFI_PUBLIC_BUCKET + "images/keyboard.svg";
+const CURSOR_URL = HIFI_PUBLIC_BUCKET + "images/cursor.svg";
 
 const SPACEBAR_CHARCODE = 32;
 
