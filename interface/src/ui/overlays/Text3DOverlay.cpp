@@ -16,12 +16,14 @@
 #include "ui/TextRenderer.h"
 
 const xColor DEFAULT_BACKGROUND_COLOR = { 0, 0, 0 };
+const float DEFAULT_BACKGROUND_ALPHA = 0.7f;
 const float DEFAULT_MARGIN = 0.1f;
 const int FIXED_FONT_POINT_SIZE = 40;
 const float LINE_SCALE_RATIO = 1.2f;
 
 Text3DOverlay::Text3DOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
+    _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
     _lineHeight(0.1f),
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
@@ -35,6 +37,7 @@ Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     Planar3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
     _backgroundColor(text3DOverlay->_backgroundColor),
+    _backgroundAlpha(text3DOverlay->_backgroundAlpha),
     _lineHeight(text3DOverlay->_lineHeight),
     _leftMargin(text3DOverlay->_leftMargin),
     _topMargin(text3DOverlay->_topMargin),
@@ -166,6 +169,10 @@ void Text3DOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 
+    if (properties.property("backgroundAlpha").isValid()) {
+        _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
+    }
+
     if (properties.property("lineHeight").isValid()) {
         setLineHeight(properties.property("lineHeight").toVariant().toFloat());
     }
@@ -199,6 +206,9 @@ QScriptValue Text3DOverlay::getProperty(const QString& property) {
     }
     if (property == "backgroundColor") {
         return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "backgroundAlpha") {
+        return _backgroundAlpha;
     }
     if (property == "lineHeight") {
         return _lineHeight;

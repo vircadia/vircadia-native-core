@@ -19,6 +19,7 @@
 
 TextOverlay::TextOverlay() :
     _backgroundColor(DEFAULT_BACKGROUND_COLOR),
+    _backgroundAlpha(DEFAULT_BACKGROUND_ALPHA),
     _leftMargin(DEFAULT_MARGIN),
     _topMargin(DEFAULT_MARGIN),
     _fontSize(DEFAULT_FONTSIZE)
@@ -29,6 +30,7 @@ TextOverlay::TextOverlay(const TextOverlay* textOverlay) :
     Overlay2D(textOverlay),
     _text(textOverlay->_text),
     _backgroundColor(textOverlay->_backgroundColor),
+    _backgroundAlpha(textOverlay->_backgroundAlpha),
     _leftMargin(textOverlay->_leftMargin),
     _topMargin(textOverlay->_topMargin),
     _fontSize(textOverlay->_fontSize)
@@ -125,6 +127,10 @@ void TextOverlay::setProperties(const QScriptValue& properties) {
         }
     }
 
+    if (properties.property("backgroundAlpha").isValid()) {
+        _backgroundAlpha = properties.property("backgroundAlpha").toVariant().toFloat();
+    }
+
     if (properties.property("leftMargin").isValid()) {
         setLeftMargin(properties.property("leftMargin").toVariant().toInt());
     }
@@ -149,6 +155,9 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
     }
     if (property == "backgroundColor") {
         return xColorToScriptValue(_scriptEngine, _backgroundColor);
+    }
+    if (property == "backgroundAlpha") {
+        return _backgroundAlpha;
     }
     if (property == "leftMargin") {
         return _leftMargin;
