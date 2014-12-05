@@ -13,18 +13,13 @@
 //
 
 
-var numButterflies = 20;
+var numButterflies = 25;
 
 
 function getRandomFloat(min, max) {
     return Math.random() * (max - min) + min;
 }
 
-// Multiply vector by scalar
-function vScalarMult(v, s) {
-    var rval = { x: v.x * s, y: v.y * s, z: v.z * s };
-    return rval;
-}
 
 // Create a random vector with individual lengths between a,b
 function randVector(a, b) {
@@ -32,50 +27,36 @@ function randVector(a, b) {
     return rval;
 }
 
-// Returns a vector which is fraction of the way between a and b
-function vInterpolate(a, b, fraction) {
-    var rval = { x: a.x + (b.x - a.x) * fraction, y: a.y + (b.y - a.y) * fraction, z: a.z + (b.z - a.z) * fraction };
-    return rval;
-}
-
 var startTimeInSeconds = new Date().getTime() / 1000;
 
-var NATURAL_SIZE_OF_BUTTERFLY = { x: 1.76, y: 0.825, z: 0.20 };
-var lifeTime = 600; // lifetime of the butterflies in seconds
-var range = 3.0; // Over what distance in meters do you want the flock to fly around
+var NATURAL_SIZE_OF_BUTTERFLY = { x: 1.0, y: 0.4, z: 0.2 };
+
+var lifeTime = 3600; // One hour lifespan
+var range = 5.0; // Over what distance in meters do you want the flock to fly around
 var frame = 0;
 
-var CHANCE_OF_MOVING = 0.9;
-var BUTTERFLY_GRAVITY = 0;
-var BUTTERFLY_FLAP_SPEED = 0.5;
-var BUTTERFLY_VELOCITY = 0.55;
 var DISTANCE_IN_FRONT_OF_ME = 1.5;
 var DISTANCE_ABOVE_ME = 1.5;
-var flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
+var FIXED_LOCATION = false; 
+
+if (!FIXED_LOCATION) {
+    var flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
                         Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
-        
+} else {
+    var flockPosition = { x: 4999.6, y: 4986.5, z: 5003.5 };
+}
 
-// set these pitch, yaw, roll to the needed values to orient the model as you want it
-var	pitchInDegrees = 270.0;
-var	yawInDegrees = 0.0;
-var	rollInDegrees = 0.0;
-var	pitchInRadians = pitchInDegrees / 180.0 * Math.PI;
-var	yawInRadians = yawInDegrees / 180.0 * Math.PI;
-var	rollInRadians = rollInDegrees / 180.0 * Math.PI;
-
-var rotation = Quat.fromPitchYawRollDegrees(pitchInDegrees, yawInDegrees, rollInDegrees);//experimental
 	
 // This is our butterfly object
 function defineButterfly(entityID, targetPosition) {
     this.entityID = entityID;
-    this.previousFlapOffset = 0;
     this.targetPosition = targetPosition;
-    this.moving = false;
 }
 
 // Array of butterflies
 var butterflies = [];
+
 function addButterfly() {
     // Decide the size of butterfly 
     var color = { red: 100, green: 100, blue: 100 };
@@ -88,26 +69,24 @@ function addButterfly() {
     size = MINSIZE + Math.random() * RANGESIZE;
     
     var dimensions = Vec3.multiply(NATURAL_SIZE_OF_BUTTERFLY, (size / maxSize));
-	
-    flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(
-                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
-                        Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
-	
+		
+    var GRAVITY = -0.2;
+    var newFrameRate = 20 + Math.random() * 30;
     var properties = {
         type: "Model",
         lifetime: lifeTime,
         position: Vec3.sum(randVector(-range, range), flockPosition),
-        velocity: { x: 0, y: 0.0, z: 0 },
-        gravity: { x: 0, y: 1.0, z: 0 },
-		damping: 0.1,
+        rotation: Quat.fromPitchYawRollDegrees(-80 + Math.random() * 20, Math.random() * 360.0, 0.0),
+        velocity: { x: 0, y: 0, z: 0 },
+        gravity: { x: 0, y: GRAVITY, z: 0 },
+		damping: 0.9999,
 		dimensions: dimensions,
         color: color,
-		rotation: rotation,
 		animationURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx",
-		animationIsPlaying: true,
+        animationSettings: "{\"firstFrame\":0,\"fps\":" + newFrameRate + ",\"frameIndex\":0,\"hold\":false,\"lastFrame\":10000,\"loop\":true,\"running\":true,\"startAutomatically\":false}",
 		modelURL: "https://s3-us-west-1.amazonaws.com/highfidelity-public/models/content/butterfly/butterfly.fbx"
     };
-    butterflies.push(new defineButterfly(Entities.addEntity(properties), properties.position));
+    butterflies.push(Entities.addEntity(properties));
 }
 
 // Generate the butterflies
@@ -116,117 +95,34 @@ for (var i = 0; i < numButterflies; i++) {
 }
 
 // Main update function
-function updateButterflies(deltaTime) {
-    // Check to see if we've been running long enough that our butterflies are dead
-    var nowTimeInSeconds = new Date().getTime() / 1000;
-    if ((nowTimeInSeconds - startTimeInSeconds) >= lifeTime) {
-        Script.stop();
-        return;
-    }
-  
+function updateButterflies(deltaTime) {  
     frame++;
     // Only update every third frame because we don't need to do it too quickly
     if ((frame % 3) == 0) {
-        flockPosition = Vec3.sum(MyAvatar.position,Vec3.sum(Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_ABOVE_ME), 
-                                                            Vec3.multiply(Quat.getFront(MyAvatar.orientation), DISTANCE_IN_FRONT_OF_ME)));
-        
         // Update all the butterflies
+        var CHANCE_OF_IMPULSE = 0.04;
         for (var i = 0; i < numButterflies; i++) {
-            entityID = Entities.identifyEntity(butterflies[i].entityID);
-            butterflies[i].entityID = entityID;
-            var properties = Entities.getEntityProperties(entityID);
-			
-    		if (properties.position.y > flockPosition.y + getRandomFloat(0.0,0.3)){ //0.3  //ceiling
-                properties.gravity.y = - 3.0;
-                properties.damping.y = 1.0;
-                properties.velocity.y = 0;
-                properties.velocity.x = properties.velocity.x;
-                properties.velocity.z = properties.velocity.z;	
-                if (properties.velocity.x < 0.5){ 
-                    butterflies[i].moving = false;
-                }
-                if (properties.velocity.z < 0.5){ 
-                    butterflies[i].moving = false;
-                }				
-			}
-			
-			if (properties.velocity.y <= -0.2) {
-                properties.velocity.y = 0.22;		
-                properties.velocity.x = properties.velocity.x;
-                properties.velocity.z = properties.velocity.z;
-			}
-			
-			if (properties.position.y < flockPosition.y - getRandomFloat(0.0,0.3)) { //-0.3   // floor
-                properties.velocity.y = 0.9;
-                properties.gravity.y = - 4.0;
-                properties.velocity.x = properties.velocity.x;
-                properties.velocity.z = properties.velocity.z;
-                if (properties.velocity.x < 0.5){ 
-                    butterflies[i].moving = false;
-				}
-                if (properties.velocity.z < 0.5){ 
-                    butterflies[i].moving = false;
-				}			
-			}
-
-
-            // Begin movement by getting a target
-            if (butterflies[i].moving == false) {
-                if (Math.random() < CHANCE_OF_MOVING) {
-                    var targetPosition = Vec3.sum(randVector(-range, range), flockPosition);
-                    if (targetPosition.x < 0) {
-                        targetPosition.x = 0;
-                    }
-                    if (targetPosition.y < 0) {
-                        targetPosition.y = 0;
-                    }
-                    if (targetPosition.z < 0) {
-                        targetPosition.z = 0;
-                    }
-                    if (targetPosition.x > TREE_SCALE) {
-                        targetPosition.x = TREE_SCALE;
-                    }
-                    if (targetPosition.y > TREE_SCALE) {
-                        targetPosition.y = TREE_SCALE;
-                    }
-                    if (targetPosition.z > TREE_SCALE) {
-                        targetPosition.z = TREE_SCALE;
-                    }
-                    butterflies[i].targetPosition = targetPosition;
-                    butterflies[i].moving = true;
+            if (Math.random() < CHANCE_OF_IMPULSE) {
+                var properties = Entities.getEntityProperties(butterflies[i]);
+                if (Vec3.length(Vec3.subtract(properties.position, flockPosition)) > range) {
+                    Entities.editEntity(butterflies[i], { position: flockPosition } );
+                } else if (properties.velocity.y < 0.0) {
+                    //  If falling, Create a new direction and impulse
+                    var HORIZ_SCALE = 0.50;
+                    var VERT_SCALE = 0.50;
+                    var newHeading = Math.random() * 360.0;  
+                    var newVelocity = Vec3.multiply(HORIZ_SCALE, Quat.getFront(Quat.fromPitchYawRollDegrees(0.0, newHeading, 0.0))); 
+                    newVelocity.y = (Math.random() + 0.5) * VERT_SCALE;
+                    Entities.editEntity(butterflies[i], { rotation: Quat.fromPitchYawRollDegrees(-80 + Math.random() * 20, newHeading, (Math.random() - 0.5) * 10), 
+                                                    velocity: newVelocity } );
                 }
             }
-			  
-            // If we are moving, move towards the target
-            if (butterflies[i].moving) {	
-			
-				var	holding = properties.velocity.y;
-			
-                var desiredVelocity = Vec3.subtract(butterflies[i].targetPosition, properties.position);
-                desiredVelocity = vScalarMult(Vec3.normalize(desiredVelocity), BUTTERFLY_VELOCITY);
-		   
-				properties.velocity = vInterpolate(properties.velocity, desiredVelocity, 0.5);
-				properties.velocity.y = holding ;
-			
-			
-                // If we are near the target, we should get a new target
-                var halfLargestDimension = Vec3.length(properties.dimensions) / 2.0;
-                if (Vec3.length(Vec3.subtract(properties.position, butterflies[i].targetPosition)) < (halfLargestDimension)) {
-                    butterflies[i].moving = false;
-                }
-				
-				var yawRads = Math.atan2(properties.velocity.z, properties.velocity.x); 
-				yawRads = yawRads + Math.PI / 2.0;
-				var	newOrientation = Quat.fromPitchYawRollRadians(pitchInRadians, yawRads, rollInRadians);
-				properties.rotation = newOrientation;
-			}
-
-            // Use a cosine wave offset to make it look like its flapping.
-            var offset = Math.cos(nowTimeInSeconds * BUTTERFLY_FLAP_SPEED) * (halfLargestDimension);
-            properties.position.y = properties.position.y + (offset - butterflies[i].previousFlapOffset);
-            // Change position relative to previous offset.
-            butterflies[i].previousFlapOffset = offset;
-            Entities.editEntity(entityID, properties);
+        }
+        // Check to see if we've been running long enough that our butterflies are dead
+        var nowTimeInSeconds = new Date().getTime() / 1000;
+        if ((nowTimeInSeconds - startTimeInSeconds) >= lifeTime) {
+            Script.stop();
+            return;
         }
     }
 }
@@ -237,6 +133,6 @@ Script.update.connect(updateButterflies);
 //  Delete our little friends if script is stopped
 Script.scriptEnding.connect(function() {
     for (var i = 0; i < numButterflies; i++) {
-        Entities.deleteEntity(butterflies[i].entityID);
+        Entities.deleteEntity(butterflies[i]);
     }
 });
