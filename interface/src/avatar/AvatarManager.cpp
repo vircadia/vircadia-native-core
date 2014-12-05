@@ -87,7 +87,6 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
         if (!shouldKillAvatar(sharedAvatar)) {
             // this avatar's mixer is still around, go ahead and simulate it
             avatar->simulate(deltaTime);
-            avatar->setMouseRay(mouseOrigin, mouseDirection);
             ++avatarIterator;
         } else {
             // the mixer that owned this avatar is gone, give it to the vector of fades and kill it
