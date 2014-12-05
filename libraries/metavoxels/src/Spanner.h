@@ -642,8 +642,8 @@ public:
     virtual void readExtra(Bitstream& in);
     virtual void writeExtraDelta(Bitstream& out, const SharedObject* reference) const;
     virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
-    virtual void writeExtraSubdivision(Bitstream& out);
-    virtual SharedObject* readExtraSubdivision(Bitstream& in);
+    virtual void maybeWriteSubdivision(Bitstream& out);
+    virtual SharedObject* readSubdivision(Bitstream& in);
     
 signals:
 

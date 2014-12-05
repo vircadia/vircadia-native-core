@@ -147,11 +147,11 @@ void SharedObject::readExtraDelta(Bitstream& in, const SharedObject* reference) 
     // nothing by default
 }
 
-void SharedObject::writeExtraSubdivision(Bitstream& out) {
+void SharedObject::maybeWriteSubdivision(Bitstream& out) {
     // nothing by default
 }
 
-SharedObject* SharedObject::readExtraSubdivision(Bitstream& in) {
+SharedObject* SharedObject::readSubdivision(Bitstream& in) {
     return this;
 }
 

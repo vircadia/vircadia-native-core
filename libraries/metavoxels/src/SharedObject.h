@@ -92,12 +92,13 @@ public:
     /// Reads the delta-encoded non-property contents of this object from the specified stream.
     virtual void readExtraDelta(Bitstream& in, const SharedObject* reference);
 
-    /// Writes the subdivision of the non-property contents of this object to the specified stream.
-    virtual void writeExtraSubdivision(Bitstream& out);
+    /// Writes the subdivision of the contents of this object (preceeded by a
+    /// reference to the object itself) to the specified stream if necessary.
+    virtual void maybeWriteSubdivision(Bitstream& out);
     
-    /// Reads the subdivision of the non-property contents of this object from the specified stream.
+    /// Reads the subdivision of this object from the specified stream.
     /// \return the modified object, or this if no modification was performed
-    virtual SharedObject* readExtraSubdivision(Bitstream& in);
+    virtual SharedObject* readSubdivision(Bitstream& in);
 
 private:
     

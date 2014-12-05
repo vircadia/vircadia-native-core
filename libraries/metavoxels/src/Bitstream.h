@@ -99,9 +99,11 @@ public:
     
     int takePersistentID(P value) { return _persistentIDs.take(value); }
     
-    void removePersistentValue(V value) { int id = _valueIDs.take(value); _persistentValues.remove(id); }
+    int removePersistentValue(V value) { int id = _valueIDs.take(value); _persistentValues.remove(id); return id; }
     
     V takePersistentValue(int id) { V value = _persistentValues.take(id); _valueIDs.remove(value); return value; }
+    
+    void insertPersistentValue(int id, V value) { _valueIDs.insert(value, id); _persistentValues.insert(id, value); }
     
     void copyPersistentMappings(const RepeatedValueStreamer& other);
     void clearPersistentMappings();
@@ -289,6 +291,7 @@ public:
         QHash<int, AttributePointer> attributeValues;
         QHash<int, QScriptString> scriptStringValues;
         QHash<int, SharedObjectPointer> sharedObjectValues;
+        QVector<SharedObjectPointer> subdividedObjects;
     };
 
     /// Performs all of the various lazily initializations (of object streamers, etc.)  If multiple threads need to use
@@ -374,6 +377,9 @@ public:
     /// Resets to the initial state.
     void reset();
 
+    /// Adds a subdivided object, which will be added to the read mappings and used as a reference if persisted.
+    void addSubdividedObject(const SharedObjectPointer& object) { _subdividedObjects.append(object); }
+    
     /// Returns the set of transient mappings gathered during writing and resets them.
     WriteMappings getAndResetWriteMappings();
 
@@ -575,6 +581,8 @@ private:
     RepeatedValueStreamer<AttributePointer> _attributeStreamer;
     RepeatedValueStreamer<QScriptString> _scriptStringStreamer;
     RepeatedValueStreamer<SharedObjectPointer, SharedObject*> _sharedObjectStreamer;
+    
+    QVector<SharedObjectPointer> _subdividedObjects;
     
     WeakSharedObjectHash _sharedObjectReferences;
 

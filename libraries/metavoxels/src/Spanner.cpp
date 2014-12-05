@@ -3016,7 +3016,7 @@ void Heightfield::readExtraDelta(Bitstream& in, const SharedObject* reference) {
     }
 }
 
-void Heightfield::writeExtraSubdivision(Bitstream& out) {
+void Heightfield::maybeWriteSubdivision(Bitstream& out) {
     MetavoxelLOD lod, referenceLOD;
     if (out.getContext()) {
         MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(out.getContext());
@@ -3026,13 +3026,13 @@ void Heightfield::writeExtraSubdivision(Bitstream& out) {
     HeightfieldStreamBase base = { out, lod, referenceLOD };
     HeightfieldStreamState state = { base, glm::vec2(), 1.0f };
     
-    if (state.becameSubdivided()) {
+    if (state.becameSubdividedOrCollapsed()) {
         out << SharedObjectPointer(this);
         _root->writeSubdivision(state);
     }
 }
 
-SharedObject* Heightfield::readExtraSubdivision(Bitstream& in) {
+SharedObject* Heightfield::readSubdivision(Bitstream& in) {
     MetavoxelLOD lod, referenceLOD;
     if (in.getContext()) {
         MetavoxelStreamBase* base = static_cast<MetavoxelStreamBase*>(in.getContext());
@@ -3046,6 +3046,8 @@ SharedObject* Heightfield::readExtraSubdivision(Bitstream& in) {
         HeightfieldNodePointer root(_root->readSubdivision(state));
         if (_root != root) {
             Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+            newHeightfield->setRemoteID(getRemoteID());
+            newHeightfield->setRemoteOriginID(getRemoteOriginID());
             newHeightfield->setRoot(root);
             return newHeightfield;
         }

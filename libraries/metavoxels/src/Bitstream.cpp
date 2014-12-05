@@ -267,7 +267,9 @@ Bitstream::ReadMappings Bitstream::getAndResetReadMappings() {
         _typeStreamerStreamer.getAndResetTransientValues(),
         _attributeStreamer.getAndResetTransientValues(),
         _scriptStringStreamer.getAndResetTransientValues(),
-        _sharedObjectStreamer.getAndResetTransientValues() };
+        _sharedObjectStreamer.getAndResetTransientValues(),
+        _subdividedObjects };
+    _subdividedObjects.clear();
     return mappings;
 }
 
@@ -290,6 +292,16 @@ void Bitstream::persistReadMappings(const ReadMappings& mappings) {
         }
         reference = it.value();
         _weakSharedObjectHash.remove(it.value()->getRemoteID());
+    }
+    foreach (const SharedObjectPointer& object, mappings.subdividedObjects) {
+        QPointer<SharedObject>& reference = _sharedObjectReferences[object->getRemoteOriginID()];
+        if (reference && reference != object) {
+            int id = _sharedObjectStreamer.removePersistentValue(reference.data());
+            if (id != 0) {
+                _sharedObjectStreamer.insertPersistentValue(id, object);
+            }
+        }
+        reference = object;
     }
 }
 
