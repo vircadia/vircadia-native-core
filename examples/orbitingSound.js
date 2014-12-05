@@ -34,11 +34,7 @@ function update(deltaTime) {
     currentPosition = { x: orbitCenter.x + Math.cos(time * SPEED) * RADIUS, y: orbitCenter.y, z: orbitCenter.z + Math.sin(time * SPEED) * RADIUS };
     trailingLoudness = 0.9 * trailingLoudness + 0.1 * Audio.getLoudness(sound);
     Entities.editEntity( objectId, { position: currentPosition, color: { red: Math.min(trailingLoudness * 2000, 255), green: 0, blue: 0 } } );
-    //if (Audio.isInjectorPlaying(sound)) {
-         Audio.setInjectorOptions(sound, { position: currentPosition });
-    //} else {
-     //   sound = Audio.playSound(soundClip, { position: orbitCenter, loop: true, volume: 0.5 });
-    //}
+    Audio.setInjectorOptions(sound, { position: currentPosition });
 }
 
 Script.scriptEnding.connect(function() {
