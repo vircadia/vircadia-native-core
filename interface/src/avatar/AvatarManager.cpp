@@ -68,10 +68,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
     PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
 
     PerformanceTimer perfTimer("otherAvatars");
-    Application* applicationInstance = Application::getInstance();
-    glm::vec3 mouseOrigin = applicationInstance->getMouseRayOrigin();
-    glm::vec3 mouseDirection = applicationInstance->getMouseRayDirection();
-
+    
     // simulate avatars
     AvatarHash::iterator avatarIterator = _avatarHash.begin();
     while (avatarIterator != _avatarHash.end()) {
