@@ -245,9 +245,9 @@ void Overlays::deleteOverlay(unsigned int id) {
 }
 
 unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    glm::vec2 pointCpy = point;
+    glm::vec2 pointCopy = point;
     if (OculusManager::isConnected()) {
-        pointCpy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
+        pointCopy = Application::getInstance()->getApplicationOverlay().screenToOverlay(point);
     }
     
     QReadLocker lock(&_lock);
@@ -258,7 +258,7 @@ unsigned int Overlays::getOverlayAtPoint(const glm::vec2& point) {
         unsigned int thisID = i.key();
         Overlay2D* thisOverlay = static_cast<Overlay2D*>(i.value());
         if (thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-            thisOverlay->getBounds().contains(pointCpy.x, pointCpy.y, false)) {
+            thisOverlay->getBounds().contains(pointCopy.x, pointCopy.y, false)) {
             return thisID;
         }
     }
