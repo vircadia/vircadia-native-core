@@ -523,7 +523,7 @@ void ApplicationOverlay::renderPointers() {
         //If we are in oculus, render reticle later
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
-        _reticulePosition[MOUSE] = glm::vec2(application->getMouseX(), application->getMouseY());
+        _reticulePosition[MOUSE] = glm::vec2(application->getTrueMouseX(), application->getTrueMouseY());
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
         

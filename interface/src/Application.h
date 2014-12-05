@@ -213,8 +213,15 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    int getMouseX() const { return _mouseX; }
-    int getMouseY() const { return _mouseY; }
+    bool mouseOnScreen() const;
+    int getMouseX() const;
+    int getMouseY() const;
+    int getTrueMouseX() const { return _mouseX; }
+    int getTrueMouseY() const { return _mouseY; }
+    int getMouseDragStartedX() const;
+    int getMouseDragStartedY() const;
+    int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
+    int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }

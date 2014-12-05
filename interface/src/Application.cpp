@@ -1305,18 +1305,20 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
         if (event->button() == Qt::LeftButton) {
             _mouseX = event->x();
             _mouseY = event->y();
-            _mouseDragStartedX = _mouseX;
-            _mouseDragStartedY = _mouseY;
+            _mouseDragStartedX = getTrueMouseX();
+            _mouseDragStartedY = getTrueMouseY();
             _mousePressed = true;
-
-            if (_audio.mousePressEvent(_mouseX, _mouseY)) {
-                // stop propagation
-                return;
-            }
-
-            if (_rearMirrorTools->mousePressEvent(_mouseX, _mouseY)) {
-                // stop propagation
-                return;
+            
+            if (mouseOnScreen()) {
+                if (_audio.mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+                
+                if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
             }
             
             // nobody handled this - make it an action event on the _window object
@@ -1349,11 +1351,12 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
             _mouseY = event->y();
             _mousePressed = false;
             
-            checkBandwidthMeterClick();
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && mouseOnScreen()) {
                 // let's set horizontal offset to give stats some margin to mirror
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
-                Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
+                Stats::getInstance()->checkClick(getMouseX(), getMouseY(),
+                                                 getMouseDragStartedX(), getMouseDragStartedY(), horizontalOffset);
+                checkBandwidthMeterClick();
             }
             
             // fire an action end event
@@ -1546,13 +1549,13 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
-        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
-            <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+        glm::compMax(glm::abs(glm::ivec2(getMouseX() - getMouseDragStartedX(),
+                                         getMouseY() - getMouseDragStartedY())))
+        <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
+        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), _glWidget->width(), _glWidget->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1664,6 +1667,48 @@ void Application::makeVoxel(glm::vec3 position,
 glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
     return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.0f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.0f) * TREE_SCALE,
         (mouseVoxel.z + mouseVoxel.s / 2.0f) * TREE_SCALE);
+}
+
+bool Application::mouseOnScreen() const {
+    if (OculusManager::isConnected()) {
+        return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
+               getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
+    }
+    return true;
+}
+
+int Application::getMouseX() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
+        return pos.x;
+    }
+    return getTrueMouseX();
+}
+
+int Application::getMouseY() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
+        return pos.y;
+    }
+    return getTrueMouseY();
+}
+
+int Application::getMouseDragStartedX() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
+                                                                      getTrueMouseDragStartedY()));
+        return pos.x;
+    }
+    return getTrueMouseDragStartedX();
+}
+
+int Application::getMouseDragStartedY() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
+                                                                      getTrueMouseDragStartedY()));
+        return pos.y;
+    }
+    return getTrueMouseDragStartedY();
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -1898,7 +1943,6 @@ void Application::init() {
 
     _mouseX = _glWidget->width() / 2;
     _mouseY = _glWidget->height() / 2;
-    QCursor::setPos(_mouseX, _mouseY);
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -2076,8 +2120,8 @@ void Application::updateMouseRay() {
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->width();
-        y = _mouseY / (float)_glWidget->height();
+        x = getTrueMouseX() / (float)_glWidget->width();
+        y = getTrueMouseY() / (float)_glWidget->height();
     }
     PickRay pickRay = _myCamera.computeViewPickRay(x, y);
     _mouseRayOrigin = pickRay.origin;

@@ -38,7 +38,7 @@ void NodeBounds::draw() {
     // Compute ray to find selected nodes later on.  We can't use the pre-computed ray in Application because it centers
     // itself after the cursor disappears.
     Application* application = Application::getInstance();
-    PickRay pickRay = application->getCamera()->computeViewPickRay(application->getMouseX(), application->getMouseY());
+    PickRay pickRay = application->getCamera()->computeViewPickRay(application->getTrueMouseX(), application->getTrueMouseY());
 
     // Variables to keep track of the selected node and properties to draw the cube later if needed
     Node* selectedNode = NULL;
@@ -220,8 +220,8 @@ void NodeBounds::drawOverlay() {
         const int MOUSE_OFFSET = 10;
         const int BACKGROUND_BEVEL = 3;
 
-        int mouseX = application->getMouseX(),
-            mouseY = application->getMouseY(),
+        int mouseX = application->getTrueMouseX(),
+            mouseY = application->getTrueMouseY(),
             textWidth = widthText(TEXT_SCALE, 0, _overlayText);
         glColor4f(0.4f, 0.4f, 0.4f, 0.6f);
         renderBevelCornersRect(mouseX + MOUSE_OFFSET, mouseY - TEXT_HEIGHT - PADDING,
