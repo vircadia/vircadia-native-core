@@ -371,7 +371,7 @@ private:
     QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
     bool _calculatedMeshTrianglesValid;
 
-    void recalcuateMeshBoxes(bool pickAgainstTriangles = false);
+    void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 

@@ -207,12 +207,15 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlock
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
                                                                                     Octree::lockType lockType, 
                                                                                     bool precisionPicking) {
+
+
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElement* element;
         EntityItem* intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate);
+                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+                                                                precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();

@@ -574,6 +574,7 @@ bool Model::renderTriangleProxies() {
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                                     BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
 
+//qDebug() << "Model::findRayIntersectionAgainstSubMeshes() pickAgainstTriangles:" << pickAgainstTriangles;
     bool intersectedSomething = false;
 
     // if we aren't active, we can't ray pick yet...
@@ -640,13 +641,13 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         someTriangleHit = false;
                         //qDebug() << "    subMeshBox[" << subMeshIndex <<"] --- check triangles!!";
                         if (!_calculatedMeshTrianglesValid) {
-                            recalcuateMeshBoxes(pickAgainstTriangles);
+                            recalculateMeshBoxes(pickAgainstTriangles);
                         }
                         // check our triangles here....
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
                         int t = 0;
                         foreach (const Triangle& triangle, meshTriangles) {
-                            //qDebug() << "checking triangle["<< t <<"] :" << triangle.v0 << ", "<< triangle.v1 << ", " << triangle.v2;
+                            // qDebug() << "checking triangle["<< t <<"] :" << triangle.v0 << ", "<< triangle.v1 << ", " << triangle.v2;
                             t++;
                         
                             float thisTriangleDistance;
@@ -704,8 +705,11 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     return intersectedSomething;
 }
 
-void Model::recalcuateMeshBoxes(bool pickAgainstTriangles) {
+// TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
+void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
+    //qDebug() << "recalculateMeshBoxes() pickAgainstTriangles:" << pickAgainstTriangles;
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
+    //qDebug() << "recalculateMeshBoxes() calculatedMeshTrianglesNeeded:" << calculatedMeshTrianglesNeeded;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded) {
         PerformanceTimer perfTimer("calculatedMeshBoxes");
@@ -787,7 +791,7 @@ void Model::renderSetup(RenderArgs* args) {
     // against. We cache the results of these calculations so long as the model hasn't been
     // simulated and the mesh hasn't changed.
     if (args && !_calculatedMeshBoxesValid) {
-        recalcuateMeshBoxes();
+        recalculateMeshBoxes();
     }
     
     // set up dilated textures on first render after load/simulate
