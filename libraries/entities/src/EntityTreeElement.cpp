@@ -553,6 +553,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                                 face = localFace;
                                 *intersectedObject = (void*)entity;
                                 somethingIntersected = true;
+                            } else {
+                                qDebug() << "   localDistance >= distance... TOO FAR AWAY";
                             }
                         }
                     } else {
@@ -566,6 +568,8 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                             face = localFace;
                             *intersectedObject = (void*)entity;
                             somethingIntersected = true;
+                        } else {
+                            qDebug() << "   localDistance >= distance... TOO FAR AWAY";
                         }
                     }
                 }

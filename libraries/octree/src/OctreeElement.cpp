@@ -1391,6 +1391,10 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
                 qDebug() << "   distance:" << distance << " -- THIS ONE IS GOOD -------";
 
                 return true;
+            } else {
+                qDebug() << "   distanceToElementDetails:" << distanceToElementDetails;
+                qDebug() << "   distance:" << distance;
+                qDebug() << "   distanceToElementDetails >= distance -- THIS ONE IS NOT SELECTED even though it INTERSECTED -------";
             }
         }
     }

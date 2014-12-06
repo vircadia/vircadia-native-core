@@ -543,10 +543,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     qDebug() << "    modelExtents:" << modelExtents;
     
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = dimensions * _registrationPoint; // since we're going to do the ray picking in the model frame of reference
-    AABox overlayFrameBox(corner, dimensions);
+    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the ray picking in the model frame of reference
+    AABox modelFrameBox(corner, dimensions);
 
-    qDebug() << "    overlayFrameBox:" << overlayFrameBox;
+    qDebug() << "    modelFrameBox:" << modelFrameBox;
 
     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
@@ -555,7 +555,9 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (overlayFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+
+        qDebug() << "    modelFrameBox.findRayIntersection() HITS!!!";
 
         float bestDistance = std::numeric_limits<float>::max();
         float bestTriangleDistance = std::numeric_limits<float>::max();
@@ -566,13 +568,20 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         int subMeshIndex = 0;
 
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
+        qDebug() << "    Checking mesh boxes....";
     
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
-            qDebug() << "subMeshBox[" << subMeshIndex <<"]:" << subMeshBox;
+            qDebug() << "    subMeshBox[" << subMeshIndex <<"]:" << subMeshBox;
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
+                qDebug() << "    subMeshBox[" << subMeshIndex <<"].findRayIntersection() HITS!";
+                qDebug() << "    subMeshBox[" << subMeshIndex <<"].distanceToSubMesh:" << distanceToSubMesh;
+                qDebug() << "    bestDistance:" << bestDistance;
                 if (distanceToSubMesh < bestDistance) {
+
+                    qDebug() << "    distanceToSubMesh < bestDistance !! looks like a good match!";
 
                     if (pickAgainstTriangles) {
                         if (!_calculatedMeshTrianglesValid) {
@@ -599,6 +608,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     intersectedSomething = true;
                     face = subMeshFace;
                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                } else {
+                    qDebug() << "    distanceToSubMesh >= bestDistance !! TOO FAR AWAY!";
                 }
             }
             subMeshIndex++;
@@ -607,6 +618,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         // if we were asked to pick against triangles, and we didn't hit one, then we
         // do not consider this model to be hit at all.
         if (pickAgainstTriangles && !someTriangleHit) {
+            qDebug() << "pickAgainstTriangles && !someTriangleHit --- call it a NON-HIT!";
             intersectedSomething = false;
         }
         qDebug() << "pickAgainstTriangles:" << pickAgainstTriangles;
@@ -626,6 +638,8 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         }
         
         return intersectedSomething;
+    } else {
+        qDebug() << "modelFrameBox.findRayIntersection()... DID NOT INTERSECT...";
     }
 
     return intersectedSomething;
