@@ -77,7 +77,6 @@ function deleteChar() {
 }
 
 function updateTextOverlay() {
-    var textwidth = Overlays.textWidth(text, textText);
     var textLines = textText.split("\n");
     var maxLineWidth = 0;
     for (textLine in textLines) {
@@ -182,16 +181,16 @@ keyboard.onFullyLoaded = function() {
     };
 };
 
-function KeyboardKey(keyboard, key_properties) {
+function KeyboardKey(keyboard, keyProperties) {
     var tthis = this;
     this._focus = false;
-    this._beingpressed = false;
-    this.event = key_properties.event != undefined ?
-        key_properties.event : 'keypress';
-    this.bounds = key_properties.bounds;
-    this.states = key_properties.states;
+    this._beingPressed = false;
+    this.event = keyProperties.event != undefined ?
+        keyProperties.event : 'keypress';
+    this.bounds = keyProperties.bounds;
+    this.states = keyProperties.states;
     this.keyboard = keyboard;
-    this.key_state = key_properties.key_state != undefined ? key_properties.key_state : KBD_LOWERCASE_DEFAULT;
+    this.keyState = keyProperties.keyState != undefined ? keyProperties.keyState : KBD_LOWERCASE_DEFAULT;
     // one overlay per bound vector [this.bounds]
     this.overlays = [];
     this.getKeyEvent = function() {
@@ -217,7 +216,7 @@ function KeyboardKey(keyboard, key_properties) {
         tthis.setState(eval('KBD_' + (tthis.keyboard.shift ? 'UPPERCASE' : 'LOWERCASE') + '_' + (tthis._focus ? 'HOVER' : 'DEFAULT')));
     };
     this.updateColor = function() {
-        var colorIntensity = this._beingpressed ? 128 : 255;
+        var colorIntensity = this._beingPressed ? 128 : 255;
         for (var i = 0; i < tthis.bounds.length; i++) {
              Overlays.editOverlay(tthis.overlays[i], 
                  {color: {red: colorIntensity, green: colorIntensity, blue: colorIntensity}}
@@ -225,11 +224,11 @@ function KeyboardKey(keyboard, key_properties) {
         }
     };
     this.press = function() {
-        tthis._beingpressed = true;
+        tthis._beingPressed = true;
         tthis.updateColor();
     };
     this.release = function() {
-        tthis._beingpressed = false;
+        tthis._beingPressed = false;
         tthis.updateColor();
     };
     this.blur = function() {
@@ -241,10 +240,10 @@ function KeyboardKey(keyboard, key_properties) {
         tthis.updateState();
     };
     this.setState = function(state) {
-        tthis.key_state = state;
+        tthis.keyState = state;
         for (var i = 0; i < tthis.bounds.length; i++) {
              Overlays.editOverlay(tthis.overlays[i], {
-                 subImage: {width: tthis.bounds[i][BOUND_W], height: tthis.bounds[i][BOUND_H], x: tthis.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * tthis.key_state) + tthis.bounds[i][BOUND_Y]}
+                 subImage: {width: tthis.bounds[i][BOUND_W], height: tthis.bounds[i][BOUND_H], x: tthis.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * tthis.keyState) + tthis.bounds[i][BOUND_Y]}
              });
         }
     };
@@ -278,7 +277,7 @@ function KeyboardKey(keyboard, key_properties) {
             y: this.keyboard.getY() + this.bounds[i][BOUND_Y] * keyboard.scale,
             width: this.bounds[i][BOUND_W] * keyboard.scale,
             height: this.bounds[i][BOUND_H] * keyboard.scale,
-            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.key_state) + this.bounds[i][BOUND_Y]},
+            subImage: {width: this.bounds[i][BOUND_W], height: this.bounds[i][BOUND_H], x: this.bounds[i][BOUND_X], y: (KEYBOARD_HEIGHT * this.keyState) + this.bounds[i][BOUND_Y]},
             alpha: 1
         });
         this.overlays.push(newOverlay);
@@ -366,7 +365,7 @@ function Keyboard() {
     
     this.releaseKeys = function() {
         for (var i = 0; i < tthis.keys.length; i++) {
-             if (tthis.keys[i]._beingpressed) {
+             if (tthis.keys[i]._beingPressed) {
                  if (tthis.keys[i].event != 'shift') {
                      tthis.keys[i].release();
                  }
@@ -504,9 +503,9 @@ function Keyboard() {
         {bounds: [[899, 355, 263, 67]], event: 'submit'}
     ];
 
-    this.keyboardtextureloaded = function() {
+    this.keyboardTextureLoaded = function() {
         if (Overlays.isLoaded(tthis.background)) {
-            Script.clearInterval(tthis.keyboardtextureloaded_timer);
+            Script.clearInterval(tthis.keyboardTextureLoaded_timer);
             for (var i = 0; i < keyProperties.length; i++) {
                 tthis.keys.push(new KeyboardKey(tthis, keyProperties[i]));
             }
@@ -515,7 +514,7 @@ function Keyboard() {
             }
         }
     };
-    this.keyboardtextureloaded_timer = Script.setInterval(this.keyboardtextureloaded, 250);
+    this.keyboardTextureLoaded_timer = Script.setInterval(this.keyboardTextureLoaded, 250);
 }
 
 function Cursor() {
