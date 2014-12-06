@@ -127,6 +127,7 @@ void renderReticule(glm::quat orientation, float alpha) {
 ApplicationOverlay::ApplicationOverlay() :
     _textureFov(glm::radians(DEFAULT_OCULUS_UI_ANGULAR_SIZE)),
     _textureAspectRatio(1.0f),
+    _lastMouseMove(0),
     _alpha(1.0f),
     _oculusUIRadius(1.0f),
     _crosshairTexture(0) {
@@ -284,7 +285,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             
             if (_magSizeMult[i] > 0.0f) {
                 //Render magnifier, but dont show border for mouse magnifier
-                glm::vec2 projection = screenToOverlay(_reticulePosition[i]);
+                glm::vec2 projection = screenToOverlay(glm::vec2(_reticulePosition[MOUSE].x(),
+                                                                 _reticulePosition[MOUSE].y()));
                 
                 renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
             }
@@ -520,13 +522,30 @@ void ApplicationOverlay::renderPointers() {
     
     if (OculusManager::isConnected() && !application->getLastMouseMoveWasSimulated()) {
         //If we are in oculus, render reticle later
+        if (_lastMouseMove == 0) {
+            _lastMouseMove = usecTimestampNow();
+        }
+        QPoint position = QPoint(application->getTrueMouseX(), application->getTrueMouseY());
+        
+        static const int MAX_IDLE_TIME = 3;
+        if (_reticulePosition[MOUSE] != position) {
+            _lastMouseMove = usecTimestampNow();
+        } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
+            float pitch, yaw, roll;
+            OculusManager::getEulerAngles(yaw, pitch, roll);
+            glm::vec2 screenPos = sphericalToScreen(glm::vec2(yaw, -pitch));
+            
+            position = QPoint(screenPos.x, screenPos.y);
+            QCursor::setPos(application->getGLWidget()->mapToGlobal(position));
+        }
+        
+        _reticulePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
-        _reticulePosition[MOUSE] = glm::vec2(application->getMouseX(), application->getMouseY());
         _reticleActive[LEFT_CONTROLLER] = false;
         _reticleActive[RIGHT_CONTROLLER] = false;
-        
     } else if (application->getLastMouseMoveWasSimulated() && Menu::getInstance()->isOptionChecked(MenuOption::SixenseMouseInput)) {
+        _lastMouseMove = 0;
         //only render controller pointer if we aren't already rendering a mouse pointer
         _reticleActive[MOUSE] = false;
         _magActive[MOUSE] = false;
@@ -591,7 +610,7 @@ void ApplicationOverlay::renderControllerPointers() {
 
             QPoint point = getPalmClickLocation(palmData);
 
-            _reticulePosition[index] = glm::vec2(point.x(), point.y());
+            _reticulePosition[index] = point;
 
             //When button 2 is pressed we drag the mag window
             if (isPressed[index]) {
@@ -672,7 +691,8 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
 
     //Mouse Pointer
     if (_reticleActive[MOUSE]) {
-        glm::vec2 projection = screenToSpherical(_reticulePosition[MOUSE]);
+        glm::vec2 projection = screenToSpherical(glm::vec2(_reticulePosition[MOUSE].x(),
+                                                           _reticulePosition[MOUSE].y()));
         glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
         renderReticule(orientation, _alpha);
     }

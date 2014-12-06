@@ -96,9 +96,10 @@ private:
     
     enum Reticules { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICULES };
     bool _reticleActive[NUMBER_OF_RETICULES];
-    glm::vec2 _reticulePosition[NUMBER_OF_RETICULES];
+    QPoint _reticulePosition[NUMBER_OF_RETICULES];
     bool _magActive[NUMBER_OF_RETICULES];
     float _magSizeMult[NUMBER_OF_RETICULES];
+    quint64 _lastMouseMove;
     
     float _alpha;
     float _oculusUIRadius;
