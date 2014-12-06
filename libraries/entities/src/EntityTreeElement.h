@@ -137,7 +137,7 @@ public:
     virtual bool canRayIntersect() const { return hasEntities(); }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, float distanceToElementCube);
+                         void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
     virtual bool findSpherePenetration(const glm::vec3& center, float radius,
                         glm::vec3& penetration, void** penetratedObject) const;

@@ -640,7 +640,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         someTriangleHit = false;
                         //qDebug() << "    subMeshBox[" << subMeshIndex <<"] --- check triangles!!";
                         if (!_calculatedMeshTrianglesValid) {
-                            recalcuateMeshBoxes();
+                            recalcuateMeshBoxes(pickAgainstTriangles);
                         }
                         // check our triangles here....
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];

@@ -117,7 +117,8 @@ private:
     QList<Model*> _releasedModels;
     void renderProxies(const EntityItem* entity, RenderArgs* args);
     PickRay computePickRay(float x, float y);
-    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType);
+    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+                                                                bool precisionPicking);
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;

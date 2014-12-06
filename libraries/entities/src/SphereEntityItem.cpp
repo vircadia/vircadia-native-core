@@ -96,7 +96,7 @@ void SphereEntityItem::recalculateCollisionShape() {
 
 bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                     void** intersectedObject) const {
+                     void** intersectedObject, bool precisionPicking) const {
                      
     // NOTE: origin and direction are in tree units. But our _sphereShape is in meters, so we need to
     // do a little math to make these match each other.

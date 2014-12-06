@@ -93,7 +93,7 @@ void RenderableLightEntityItem::render(RenderArgs* args) {
 
 bool RenderableLightEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject) const {
+                         void** intersectedObject, bool precisionPicking) const {
                          
     // TODO: this isn't really correct because we don't know if we actually live in the main tree of the applications's
     // EntityTreeRenderer. But we probably do. Technically we could be on the clipboard and someone might be trying to

@@ -196,16 +196,17 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray) {
-    return findRayIntersectionWorker(ray, Octree::TryLock);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking) {
+    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray) {
-    return findRayIntersectionWorker(ray, Octree::Lock);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking) {
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
-                                                                                    Octree::lockType lockType) {
+                                                                                    Octree::lockType lockType, 
+                                                                                    bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElement* element;

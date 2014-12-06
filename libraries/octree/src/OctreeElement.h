@@ -119,11 +119,11 @@ public:
     virtual bool canRayIntersect() const { return isLeaf(); }
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              bool& keepSearching, OctreeElement*& node, float& distance, BoxFace& face, 
-                             void** intersectedObject = NULL);
+                             void** intersectedObject = NULL, bool precisionPicking = false);
 
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject, float distanceToElementCube);
+                         void** intersectedObject, bool precisionPicking, float distanceToElementCube);
 
     virtual bool findSpherePenetration(const glm::vec3& center, float radius, 
                         glm::vec3& penetration, void** penetratedObject) const;

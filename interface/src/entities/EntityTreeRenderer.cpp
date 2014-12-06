@@ -650,7 +650,8 @@ PickRay EntityTreeRenderer::computePickRay(float x, float y) {
 }
 
 
-RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType) {
+RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+                                                                                    bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTree* entityTree = static_cast<EntityTree*>(_tree);
@@ -658,7 +659,8 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
         OctreeElement* element;
         EntityItem* intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate);
+                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+                                                                precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
@@ -710,7 +712,9 @@ QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entity
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
     PickRay ray = computePickRay(event->x(), event->y());
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock);
+    
+    bool precisionPicking = !Menu::getInstance()->isOptionChecked(MenuOption::DontDoPrecisionPicking);
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
         emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
@@ -734,7 +738,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
 void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
     PickRay ray = computePickRay(event->x(), event->y());
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock);
+    bool precisionPicking = !Menu::getInstance()->isOptionChecked(MenuOption::DontDoPrecisionPicking);
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
@@ -768,7 +773,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
 
     PickRay ray = computePickRay(event->x(), event->y());
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock);
+    
+    bool precisionPicking = false; // for mouse moves we do not do precision picking
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
 

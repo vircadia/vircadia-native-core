@@ -173,10 +173,18 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     // is significantly more expensive. Is there a way to call this that doesn't cost us as much? 
                     PerformanceTimer perfTimer("model->render");
                     bool dontRenderAsScene = Menu::getInstance()->isOptionChecked(MenuOption::DontRenderEntitiesAsScene);
-                    if (dontRenderAsScene) {
-                        _model->render(alpha, modelRenderMode, args);
-                    } else {
-                        _model->renderInScene(alpha, args);
+                    bool displayModelTriangles = Menu::getInstance()->isOptionChecked(MenuOption::DisplayModelTriangles);
+                    bool rendered = false;
+                    if (displayModelTriangles) {
+                        rendered = _model->renderTriangleProxies();
+                    }
+                    
+                    if (!rendered) {
+                        if (dontRenderAsScene) {
+                            _model->render(alpha, modelRenderMode, args);
+                        } else {
+                            _model->renderInScene(alpha, args);
+                        }
                     }
                 } else {
                     // if we couldn't get a model, then just draw a cube
@@ -259,24 +267,21 @@ EntityItemProperties RenderableModelEntityItem::getProperties() const {
 
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject) const {
+                         void** intersectedObject, bool precisionPicking) const {
 
-    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection()....";
-    //qDebug() << "    this.id:" << getEntityItemID();
-    //qDebug() << "    this.modelURL:" << getModelURL();
-    //qDebug() << "    origin:" << origin;
     glm::vec3 originInMeters = origin * (float)TREE_SCALE;
-    //qDebug() << "    originInMeters:" << originInMeters;
     QString extraInfo;
     float localDistance;
     
-    bool intersectsModel = _model->findRayIntersectionAgainstSubMeshes(originInMeters, direction, localDistance, face, extraInfo);
+    qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
+    
+    bool intersectsModel = _model->findRayIntersectionAgainstSubMeshes(originInMeters, direction, 
+                                            localDistance, face, extraInfo, precisionPicking);
     
     if (intersectsModel) {
         // NOTE: findRayIntersectionAgainstSubMeshes() does work in meters, but we're expected to return
         // results in tree scale.
         distance = localDistance / (float)TREE_SCALE;
-        //qDebug() << "    --hit this mode -- returning distance:" << distance;
     }
 
     return intersectsModel; // we only got here if we intersected our non-aabox                         
