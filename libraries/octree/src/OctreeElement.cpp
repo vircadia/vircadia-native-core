@@ -1385,7 +1385,6 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
         if (intersectedObject) {
             *intersectedObject = this;
         }
-        //qDebug() << "   OctreeElement::findDetailedRayIntersection().... hasContent() -- done searching...";
         keepSearching = false;
         return true; // we did intersect
     }
