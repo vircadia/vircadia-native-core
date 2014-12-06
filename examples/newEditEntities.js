@@ -140,8 +140,6 @@ var toolBar = (function () {
         menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
 
         loadURLMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
@@ -151,8 +149,6 @@ var toolBar = (function () {
         });
 
         loadFileMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset + menuItemHeight,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
