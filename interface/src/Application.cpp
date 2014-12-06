@@ -2342,7 +2342,20 @@ void Application::update(float deltaTime) {
         _prioVR.update(deltaTime);
 
     }
-
+    
+    static QCursor cursor;
+    if (OculusManager::isConnected() &&
+        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)){
+        if (_window->cursor().shape() != Qt::BlankCursor) {
+            qDebug() << "Hiding cursor" << _window->cursor().shape();
+            cursor = _window->cursor();
+            _window->setCursor(QCursor(Qt::BlankCursor));
+        }
+    } else if(_window->cursor().shape() == Qt::BlankCursor) {
+        qDebug() << "Showing cursor" << _window->cursor().shape();
+        _window->setCursor(cursor);
+    }
+    
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
 
