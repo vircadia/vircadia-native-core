@@ -117,6 +117,7 @@ function setupToolBars() {
                                               leftMargin: TEXT_MARGIN,
                                               topMargin: TEXT_MARGIN,
                                               alpha: ALPHA_OFF,
+                                              backgroundAlpha: ALPHA_OFF,
                                               visible: true
                                               }));
 	}

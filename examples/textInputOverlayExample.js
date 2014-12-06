@@ -44,6 +44,7 @@ var inputWindow = Overlays.addOverlay("text", {
 					color: textColor,
 					backgroundColor: backColor,
 					alpha: backgroundAlpha,
+                    backgroundAlpha: backgroundAlpha,
 					topMargin: topMargin,
 					leftMargin: leftMargin,
 					font: {size: fontSize},

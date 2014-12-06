@@ -368,6 +368,7 @@ SelectionDisplay = (function () {
                     color: { red: 0, green: 0, blue: 0},
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     alpha: 0.7,
+                    backgroundAlpha: 0.7,
                     visible: false,
                     isFacingAvatar: true,
                     drawInFront: true,

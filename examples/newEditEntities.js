@@ -145,6 +145,7 @@ var toolBar = (function () {
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
@@ -154,6 +155,7 @@ var toolBar = (function () {
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
