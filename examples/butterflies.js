@@ -32,7 +32,7 @@ var startTimeInSeconds = new Date().getTime() / 1000;
 var NATURAL_SIZE_OF_BUTTERFLY = { x: 1.0, y: 0.4, z: 0.2 };
 
 var lifeTime = 3600; // One hour lifespan
-var range = 5.0; // Over what distance in meters do you want the flock to fly around
+var range = 7.0; // Over what distance in meters do you want the flock to fly around
 var frame = 0;
 
 var DISTANCE_IN_FRONT_OF_ME = 1.5;
