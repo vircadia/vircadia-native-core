@@ -1114,6 +1114,76 @@ template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const
     }
 }
 
+HeightfieldStack::HeightfieldStack(int width, const QVector<SharedObjectPointer>& materials) :
+    HeightfieldData(width),
+    _materials(materials) {
+}
+
+HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes) {
+    read(in, bytes);
+}
+
+HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes, const HeightfieldStackPointer& reference) {
+     if (!reference) {
+        read(in, bytes);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    reference->setEncodedDelta(in.readAligned(bytes));
+    in.readDelta(_materials, reference->getMaterials());
+    reference->setDeltaData(DataBlockPointer(this));
+    _width = reference->getWidth();
+}
+
+void HeightfieldStack::write(Bitstream& out) {
+    out << _materials;
+}
+
+void HeightfieldStack::writeDelta(Bitstream& out, const HeightfieldStackPointer& reference) {
+}
+
+void HeightfieldStack::read(Bitstream& in, int bytes) {
+    in >> _materials;
+}
+
+Bitstream& operator<<(Bitstream& out, const HeightfieldStackPointer& value) {
+    if (value) {
+        value->write(out);
+    } else {
+        out << 0;
+    }
+    return out;
+}
+
+Bitstream& operator>>(Bitstream& in, HeightfieldStackPointer& value) {
+    int size;
+    in >> size;
+    if (size == 0) {
+        value = HeightfieldStackPointer();
+    } else {
+        value = new HeightfieldStack(in, size);
+    }
+    return in;
+}
+
+template<> void Bitstream::writeRawDelta(const HeightfieldStackPointer& value, const HeightfieldStackPointer& reference) {
+    if (value) {
+        value->writeDelta(*this, reference);
+    } else {
+        *this << 0;
+    }    
+}
+
+template<> void Bitstream::readRawDelta(HeightfieldStackPointer& value, const HeightfieldStackPointer& reference) {
+    int size;
+    *this >> size;
+    if (size == 0) {
+        value = HeightfieldStackPointer(); 
+    } else {
+        value = new HeightfieldStack(*this, size, reference);
+    }
+}
+
 bool HeightfieldStreamState::shouldSubdivide() const {
     return base.lod.shouldSubdivide(minimum, size);
 }
@@ -1144,10 +1214,11 @@ void HeightfieldStreamState::setMinimum(const glm::vec2& lastMinimum, int index)
 }
 
 HeightfieldNode::HeightfieldNode(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
-        const HeightfieldMaterialPointer& material) :
+        const HeightfieldMaterialPointer& material, const HeightfieldStackPointer& stack) :
     _height(height),
     _color(color),
     _material(material),
+    _stack(stack),
     _renderer(NULL) {
 }
 
@@ -1155,6 +1226,7 @@ HeightfieldNode::HeightfieldNode(const HeightfieldNode& other) :
     _height(other.getHeight()),
     _color(other.getColor()),
     _material(other.getMaterial()),
+    _stack(other.getStack()),
     _renderer(NULL) {
     
     for (int i = 0; i < CHILD_COUNT; i++) {
@@ -1169,7 +1241,7 @@ HeightfieldNode::~HeightfieldNode() {
 const int HEIGHT_LEAF_SIZE = 256 + HeightfieldHeight::HEIGHT_EXTENSION;
 
 void HeightfieldNode::setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
-        const HeightfieldMaterialPointer& material) {
+        const HeightfieldMaterialPointer& material, const HeightfieldStackPointer& stack) {
     clearChildren();
     
     int heightWidth = height->getWidth();
@@ -1246,9 +1318,13 @@ void HeightfieldNode::setContents(const HeightfieldHeightPointer& height, const 
             childMaterial = new HeightfieldMaterial(childMaterialWidth, childMaterialContents, childMaterials);
         }
     
+        HeightfieldStackPointer childStack;
+        if (stack) {
+        }
+    
         _children[i] = new HeightfieldNode();
         _children[i]->setContents(HeightfieldHeightPointer(new HeightfieldHeight(childHeightWidth, childHeightContents)),
-            childColor, childMaterial);
+            childColor, childMaterial, childStack);
     }
     
     mergeChildren();
@@ -2046,13 +2122,13 @@ void HeightfieldNode::read(HeightfieldStreamState& state) {
     clearChildren();
     
     if (!state.shouldSubdivide()) {
-        state.base.stream >> _height >> _color >> _material;
+        state.base.stream >> _height >> _color >> _material >> _stack;
         return;
     }
     bool leaf;
     state.base.stream >> leaf;
     if (leaf) {
-        state.base.stream >> _height >> _color >> _material;
+        state.base.stream >> _height >> _color >> _material >> _stack;
         
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2067,13 +2143,13 @@ void HeightfieldNode::read(HeightfieldStreamState& state) {
 
 void HeightfieldNode::write(HeightfieldStreamState& state) const {
     if (!state.shouldSubdivide()) {
-        state.base.stream << _height << _color << _material;
+        state.base.stream << _height << _color << _material << _stack;
         return;
     }
     bool leaf = isLeaf();
     state.base.stream << leaf;
     if (leaf) {
-        state.base.stream << _height << _color << _material;
+        state.base.stream << _height << _color << _material << _stack;
         
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2091,6 +2167,7 @@ void HeightfieldNode::readDelta(const HeightfieldNodePointer& reference, Heightf
         state.base.stream.readDelta(_height, reference->getHeight());
         state.base.stream.readDelta(_color, reference->getColor());
         state.base.stream.readDelta(_material, reference->getMaterial());
+        state.base.stream.readDelta(_stack, reference->getStack());
         return;
     }
     bool leaf;
@@ -2099,6 +2176,7 @@ void HeightfieldNode::readDelta(const HeightfieldNodePointer& reference, Heightf
         state.base.stream.readDelta(_height, reference->getHeight());
         state.base.stream.readDelta(_color, reference->getColor());
         state.base.stream.readDelta(_material, reference->getMaterial());
+        state.base.stream.readDelta(_stack, reference->getStack());
         
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2135,6 +2213,7 @@ void HeightfieldNode::writeDelta(const HeightfieldNodePointer& reference, Height
         state.base.stream.writeDelta(_height, reference->getHeight());
         state.base.stream.writeDelta(_color, reference->getColor());
         state.base.stream.writeDelta(_material, reference->getMaterial());
+        state.base.stream.writeDelta(_stack, reference->getStack());
         return;    
     }
     bool leaf = isLeaf();
@@ -2143,6 +2222,7 @@ void HeightfieldNode::writeDelta(const HeightfieldNodePointer& reference, Height
         state.base.stream.writeDelta(_height, reference->getHeight());
         state.base.stream.writeDelta(_color, reference->getColor());
         state.base.stream.writeDelta(_material, reference->getMaterial());
+        state.base.stream.writeDelta(_material, reference->getStack());
         
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2174,10 +2254,10 @@ HeightfieldNode* HeightfieldNode::readSubdivision(HeightfieldStreamState& state)
             bool leaf;
             state.base.stream >> leaf;
             if (leaf) {
-                return isLeaf() ? this : new HeightfieldNode(_height, _color, _material);
+                return isLeaf() ? this : new HeightfieldNode(_height, _color, _material, _stack);
                 
             } else {
-                HeightfieldNode* newNode = new HeightfieldNode(_height, _color, _material);
+                HeightfieldNode* newNode = new HeightfieldNode(_height, _color, _material, _stack);
                 HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
                 for (int i = 0; i < CHILD_COUNT; i++) {
                     nextState.setMinimum(state.minimum, i);
@@ -2207,7 +2287,7 @@ HeightfieldNode* HeightfieldNode::readSubdivision(HeightfieldStreamState& state)
             return node;
         }
     } else if (!isLeaf()) {
-        return new HeightfieldNode(_height, _color, _material);
+        return new HeightfieldNode(_height, _color, _material, _stack);
     }
     return this;
 }
@@ -2243,13 +2323,13 @@ void HeightfieldNode::readSubdivided(HeightfieldStreamState& state, const Height
     
     if (!state.shouldSubdivide()) {
         // TODO: subdivision encoding
-        state.base.stream >> _height >> _color >> _material;
+        state.base.stream >> _height >> _color >> _material >> _stack;
         return;
     }
     bool leaf;
     state.base.stream >> leaf;
     if (leaf) {
-        state.base.stream >> _height >> _color >> _material;
+        state.base.stream >> _height >> _color >> _material >> _stack;
     
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2266,13 +2346,13 @@ void HeightfieldNode::writeSubdivided(HeightfieldStreamState& state, const Heigh
         const HeightfieldNode* ancestor) const {
     if (!state.shouldSubdivide()) {
         // TODO: subdivision encoding
-        state.base.stream << _height << _color << _material;
+        state.base.stream << _height << _color << _material << _stack;
         return;
     }
     bool leaf = isLeaf();
     state.base.stream << leaf;
     if (leaf) {
-        state.base.stream << _height << _color << _material;
+        state.base.stream << _height << _color << _material << _stack;
         
     } else {
         HeightfieldStreamState nextState = { state.base, glm::vec2(), state.size * 0.5f };
@@ -2516,6 +2596,7 @@ Heightfield::Heightfield() :
     connect(this, &Heightfield::heightChanged, this, &Heightfield::updateRoot);
     connect(this, &Heightfield::colorChanged, this, &Heightfield::updateRoot);
     connect(this, &Heightfield::materialChanged, this, &Heightfield::updateRoot);
+    connect(this, &Heightfield::stackChanged, this, &Heightfield::updateRoot);
     updateRoot();
 }
 
@@ -2549,9 +2630,9 @@ void Heightfield::setMaterial(const HeightfieldMaterialPointer& material) {
     }
 }
 
-void Heightfield::setRoot(const HeightfieldNodePointer& root) {
-    if (_root != root) {
-        emit rootChanged(_root = root);
+void Heightfield::setStack(const HeightfieldStackPointer& stack) {
+    if (_stack != stack) {
+        emit stackChanged(_stack = stack);
     }
 }
 
@@ -2948,7 +3029,7 @@ bool Heightfield::intersects(const glm::vec3& start, const glm::vec3& end, float
 
 void Heightfield::writeExtra(Bitstream& out) const {
     if (getWillBeVoxelized()) {
-        out << _height << _color << _material;
+        out << _height << _color << _material << _stack;
         return;
     }
     MetavoxelLOD lod;
@@ -2962,7 +3043,7 @@ void Heightfield::writeExtra(Bitstream& out) const {
 
 void Heightfield::readExtra(Bitstream& in) {
     if (getWillBeVoxelized()) {
-        in >> _height >> _color >> _material;
+        in >> _height >> _color >> _material >> _stack;
         return;
     }
     MetavoxelLOD lod;
@@ -3072,7 +3153,7 @@ void Heightfield::updateBounds() {
 void Heightfield::updateRoot() {
     HeightfieldNodePointer root(new HeightfieldNode());
     if (_height) {
-        root->setContents(_height, _color, _material);
+        root->setContents(_height, _color, _material, _stack);
     }
     setRoot(root);
 }

@@ -239,9 +239,7 @@ public:
     void writeSubdivided(MetavoxelStreamState& state, const MetavoxelStreamState& ancestorState, void* ancestorValue) const;
     
     void writeSpanners(MetavoxelStreamState& state) const;
-    void writeSpannerDelta(const MetavoxelNode& reference, MetavoxelStreamState& state) const;
-    void writeSpannerSubdivision(MetavoxelStreamState& state) const;
-
+    
     /// Increments the node's reference count.
     void incrementReferenceCount() { _referenceCount.ref(); }
 

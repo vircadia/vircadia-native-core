@@ -23,6 +23,7 @@ class HeightfieldColor;
 class HeightfieldHeight;
 class HeightfieldMaterial;
 class HeightfieldNode;
+class HeightfieldStack;
 class SpannerRenderer;
 
 /// An object that spans multiple octree cells.
@@ -466,6 +467,36 @@ Bitstream& operator>>(Bitstream& in, HeightfieldMaterialPointer& value);
 template<> void Bitstream::writeRawDelta(const HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const HeightfieldMaterialPointer& reference);
 
+typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
+
+/// A block of stack data associated with a heightfield.
+class HeightfieldStack : public HeightfieldData {
+public:
+
+    HeightfieldStack(int width, const QVector<SharedObjectPointer>& materials);
+    HeightfieldStack(Bitstream& in, int bytes);
+    HeightfieldStack(Bitstream& in, int bytes, const HeightfieldStackPointer& reference);
+    
+    QVector<SharedObjectPointer>& getMaterials() { return _materials; }
+    
+    void write(Bitstream& out);
+    void writeDelta(Bitstream& out, const HeightfieldStackPointer& reference);
+    
+private:
+    
+    void read(Bitstream& in, int bytes);
+    
+    QVector<SharedObjectPointer> _materials;
+};
+
+Q_DECLARE_METATYPE(HeightfieldStackPointer)
+
+Bitstream& operator<<(Bitstream& out, const HeightfieldStackPointer& value);
+Bitstream& operator>>(Bitstream& in, HeightfieldStackPointer& value);
+
+template<> void Bitstream::writeRawDelta(const HeightfieldStackPointer& value, const HeightfieldStackPointer& reference);
+template<> void Bitstream::readRawDelta(HeightfieldStackPointer& value, const HeightfieldStackPointer& reference);
+
 typedef QExplicitlySharedDataPointer<HeightfieldNode> HeightfieldNodePointer;
 
 /// Holds the base state used in streaming heightfield data.
@@ -499,14 +530,15 @@ public:
     
     HeightfieldNode(const HeightfieldHeightPointer& height = HeightfieldHeightPointer(),
         const HeightfieldColorPointer& color = HeightfieldColorPointer(),
-        const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer());
+        const HeightfieldMaterialPointer& material = HeightfieldMaterialPointer(),
+        const HeightfieldStackPointer& stack = HeightfieldStackPointer());
     
     HeightfieldNode(const HeightfieldNode& other);
     
     ~HeightfieldNode();
     
     void setContents(const HeightfieldHeightPointer& height, const HeightfieldColorPointer& color,
-        const HeightfieldMaterialPointer& material);
+        const HeightfieldMaterialPointer& material, const HeightfieldStackPointer& stack);
     
     void setHeight(const HeightfieldHeightPointer& height) { _height = height; }
     const HeightfieldHeightPointer& getHeight() const { return _height; }
@@ -516,6 +548,9 @@ public:
     
     void setMaterial(const HeightfieldMaterialPointer& material) { _material = material; }
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
+    
+    void setStack(const HeightfieldStackPointer& stack) { _stack = stack; }
+    const HeightfieldStackPointer& getStack() const { return _stack; }
     
     void setRenderer(AbstractHeightfieldNodeRenderer* renderer) { _renderer = renderer; }
     AbstractHeightfieldNodeRenderer* getRenderer() const { return _renderer; }
@@ -566,6 +601,7 @@ private:
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
+    HeightfieldStackPointer _stack;
     
     HeightfieldNodePointer _children[CHILD_COUNT];
     
@@ -588,8 +624,9 @@ class Heightfield : public Transformable {
     Q_PROPERTY(HeightfieldColorPointer color MEMBER _color WRITE setColor NOTIFY colorChanged STORED false)
     Q_PROPERTY(HeightfieldMaterialPointer material MEMBER _material WRITE setMaterial NOTIFY materialChanged STORED false
         DESIGNABLE false)
-    Q_PROPERTY(HeightfieldNodePointer root MEMBER _root WRITE setRoot NOTIFY rootChanged STORED false DESIGNABLE false)
-
+    Q_PROPERTY(HeightfieldStackPointer stack MEMBER _stack WRITE setStack NOTIFY stackChanged STORED false
+        DESIGNABLE false)
+        
 public:
     
     Q_INVOKABLE Heightfield();
@@ -609,7 +646,10 @@ public:
     void setMaterial(const HeightfieldMaterialPointer& material);
     const HeightfieldMaterialPointer& getMaterial() const { return _material; }
 
-    void setRoot(const HeightfieldNodePointer& root);
+    void setStack(const HeightfieldStackPointer& stack);
+    const HeightfieldStackPointer& getStack() const { return _stack; }
+    
+    void setRoot(const HeightfieldNodePointer& root) { _root = root; }
     const HeightfieldNodePointer& getRoot() const { return _root; }
 
     MetavoxelLOD transformLOD(const MetavoxelLOD& lod) const;
@@ -652,7 +692,7 @@ signals:
     void heightChanged(const HeightfieldHeightPointer& height);
     void colorChanged(const HeightfieldColorPointer& color);
     void materialChanged(const HeightfieldMaterialPointer& material);
-    void rootChanged(const HeightfieldNodePointer& root);
+    void stackChanged(const HeightfieldStackPointer& stack);
     
 protected:
     
@@ -671,6 +711,7 @@ private:
     HeightfieldHeightPointer _height;
     HeightfieldColorPointer _color;
     HeightfieldMaterialPointer _material;
+    HeightfieldStackPointer _stack;
     
     HeightfieldNodePointer _root;
 };
