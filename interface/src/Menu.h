@@ -434,7 +434,6 @@ namespace MenuOption {
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString Pair = "Pair";
     const QString PasteToVoxel = "Paste to Voxel...";
-    const QString PickAgainstModelTriangles = "Pick Against Model Triangles";
     const QString PipelineWarnings = "Log Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString Quit =  "Quit";
