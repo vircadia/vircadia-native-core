@@ -79,6 +79,7 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
+    entity->setOldMaximumAACube(entity->getMaximumAACube());
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -99,50 +100,63 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         qDebug() << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
-    
+
+    return updateEntityWithElement(existingEntity, properties, containingElement);
+}
+
+bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties) {
+    EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
+    if (!containingElement) {
+        qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
+            << entity->getEntityItemID();
+        return false;
+    }
+    return updateEntityWithElement(entity, properties, containingElement);
+}
+
+bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+        EntityTreeElement* containingElement) {
     // enforce support for locked entities. If an entity is currently locked, then the only
     // property we allow you to change is the locked property.
-    if (existingEntity->getLocked()) {
+    if (entity->getLocked()) {
         if (properties.lockedChanged()) {
             bool wantsLocked = properties.getLocked();
             if (!wantsLocked) {
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
-                UpdateEntityOperator theOperator(this, containingElement, existingEntity, tempProperties);
+                UpdateEntityOperator theOperator(this, containingElement, entity, tempProperties);
                 recurseTreeWithOperator(&theOperator);
                 _isDirty = true;
-                if (_simulation && existingEntity->getUpdateFlags() != 0) {
-                    _simulation->entityChanged(existingEntity);
-                }
             }
         }
     } else {
-        // check to see if we need to simulate this entity...
-        QString entityScriptBefore = existingEntity->getScript();
+        QString entityScriptBefore = entity->getScript();
     
-        UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
+        UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
+        entity->setOldMaximumAACube(entity->getMaximumAACube());
         _isDirty = true;
 
-        if (_simulation && existingEntity->getUpdateFlags() != 0) {
-            _simulation->entityChanged(existingEntity);
+        if (_simulation && entity->getDirtyFlags() != 0) {
+            _simulation->entityChanged(entity);
         }
 
-        QString entityScriptAfter = existingEntity->getScript();
+        QString entityScriptAfter = entity->getScript();
         if (entityScriptBefore != entityScriptAfter) {
-            emitEntityScriptChanging(entityID); // the entity script has changed
+            emit entityScriptChanging(entity->getEntityItemID()); // the entity script has changed
         }
     }
     
-    containingElement = getContainingElement(entityID);
+    // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
+    containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" << entityID;
+        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" 
+                << entity->getEntityItemID();
         return false;
     }
     
     return true;
 }
-
 
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = NULL;
@@ -572,7 +586,7 @@ void EntityTree::update() {
     if (_simulation) {
         lockForWrite();
         QSet<EntityItem*> entitiesToDelete;
-        _simulation->update(entitiesToDelete);
+        _simulation->updateEntities(entitiesToDelete);
         if (entitiesToDelete.size() > 0) {
             // translate into list of ID's
             QSet<EntityItemID> idsToDelete;

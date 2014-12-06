@@ -82,7 +82,13 @@ public:
     void postAddEntity(EntityItem* entityItem);
 
     EntityItem* addEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties);
+
+    // use this method if you have a pointer to the entity (avoid an extra entity lookup)
+    bool updateEntity(EntityItem* entity, const EntityItemProperties& properties);
+
     void deleteEntity(const EntityItemID& entityID);
     void deleteEntities(QSet<EntityItemID> entityIDs);
     void removeEntityFromSimulation(EntityItem* entity);
@@ -156,6 +162,8 @@ signals:
 
 private:
 
+    bool updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+            EntityTreeElement* containingElement);
     static bool findNearPointOperation(OctreeElement* element, void* extraData);
     static bool findInSphereOperation(OctreeElement* element, void* extraData);
     static bool findInCubeOperation(OctreeElement* element, void* extraData);

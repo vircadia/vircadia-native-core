@@ -38,11 +38,12 @@ public:
     MovingEntitiesOperator(EntityTree* tree);
     ~MovingEntitiesOperator();
 
-    void addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube);
+    void addEntityToMoveList(EntityItem* entity, const AACube& newCube);
     virtual bool preRecursion(OctreeElement* element);
     virtual bool postRecursion(OctreeElement* element);
     virtual OctreeElement* possiblyCreateChildAt(OctreeElement* element, int childIndex);
     bool hasMovingEntities() const { return _entitiesToMove.size() > 0; }
+    void finish();
 private:
     EntityTree* _tree;
     QSet<EntityToMoveDetails> _entitiesToMove;

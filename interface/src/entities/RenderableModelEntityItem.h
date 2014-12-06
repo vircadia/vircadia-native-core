@@ -52,9 +52,11 @@ public:
 
     virtual void render(RenderArgs* args);
     Model* getModel(EntityTreeRenderer* renderer);
+
+    bool needsToCallUpdate() const;
+
 private:
     void remapTextures();
-    bool needsSimulation() const;
     
     Model* _model;
     bool _needsInitialSimulation;
