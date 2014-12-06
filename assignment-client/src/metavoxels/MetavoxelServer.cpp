@@ -311,7 +311,7 @@ MetavoxelPersister::MetavoxelPersister(MetavoxelServer* server) :
 const char* SAVE_FILE = "/resources/metavoxels.dat";
 
 const int FILE_MAGIC = 0xDADAFACE;
-const int FILE_VERSION = 1;
+const int FILE_VERSION = 2;
 
 void MetavoxelPersister::load() {
     QString path = QCoreApplication::applicationDirPath() + SAVE_FILE;
