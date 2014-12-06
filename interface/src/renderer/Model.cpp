@@ -584,6 +584,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     qDebug() << "    distanceToSubMesh < bestDistance !! looks like a good match!";
 
                     if (pickAgainstTriangles) {
+                        qDebug() << "    subMeshBox[" << subMeshIndex <<"] --- check triangles!!";
                         if (!_calculatedMeshTrianglesValid) {
                             recalcuateMeshBoxes();
                         }
@@ -596,9 +597,15 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         
                             float thisTriangleDistance;
                             if (findRayTrianlgeIntersection(origin, direction, triangle, thisTriangleDistance)) {
+                                qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- HITS!!";
+                                qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] thisTriangleDistance:" << thisTriangleDistance;
+                                qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] bestTriangleDistance:" << bestTriangleDistance;
                                 if (thisTriangleDistance < bestTriangleDistance) {
                                     bestTriangleDistance = thisTriangleDistance;
                                     someTriangleHit = true;
+                                    qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- WOOT! BEST DISTANCE!";
+                                } else {
+                                    qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- not best distance???";
                                 }
                             }
                         }
@@ -610,6 +617,38 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                 } else {
                     qDebug() << "    distanceToSubMesh >= bestDistance !! TOO FAR AWAY!";
+                }
+            } else {
+                // TODO: this needs to be deleted... there shouldn't be any reason to run this here... if the mesh's bounding box
+                // doesn't intersect, then how can any of it's triangles!!!!
+            
+                qDebug() << "    subMeshBox[" << subMeshIndex <<"].findRayIntersection() MISSES???";
+                if (pickAgainstTriangles) {
+                    qDebug() << "    subMeshBox[" << subMeshIndex <<"] --- check triangles anyway!!";
+                    if (!_calculatedMeshTrianglesValid) {
+                        recalcuateMeshBoxes();
+                    }
+                    // check our triangles here....
+                    const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
+                    int t = 0;
+                    foreach (const Triangle& triangle, meshTriangles) {
+                        //qDebug() << "triangle["<< t <<"] :" << triangle.v0 << ", "<< triangle.v1 << ", " << triangle.v2;
+                        t++;
+                    
+                        float thisTriangleDistance;
+                        if (findRayTrianlgeIntersection(origin, direction, triangle, thisTriangleDistance)) {
+                            qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- HITS!!";
+                            qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] thisTriangleDistance:" << thisTriangleDistance;
+                            qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] bestTriangleDistance:" << bestTriangleDistance;
+                            if (thisTriangleDistance < bestTriangleDistance) {
+                                bestTriangleDistance = thisTriangleDistance;
+                                someTriangleHit = true;
+                                qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- WOOT! BEST DISTANCE!";
+                            } else {
+                                qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- not best distance???";
+                            }
+                        }
+                    }
                 }
             }
             subMeshIndex++;

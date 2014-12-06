@@ -262,6 +262,8 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                          void** intersectedObject) const {
 
     qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection()....";
+    qDebug() << "    this.id:" << getEntityItemID();
+    qDebug() << "    this.modelURL:" << getModelURL();
     qDebug() << "    origin:" << origin;
     glm::vec3 originInMeters = origin * (float)TREE_SCALE;
     qDebug() << "    originInMeters:" << originInMeters;
