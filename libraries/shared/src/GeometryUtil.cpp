@@ -266,7 +266,6 @@ bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direc
 	a = glm::dot(e1, h);
 
 	if (a > EPSILON && a < EPSILON) {
-	    qDebug() << "if (a > EPSILON && a < EPSILON)...";
 		return false;
 	}
 
@@ -294,7 +293,6 @@ bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direc
 		return true;
 	} else {
 	     // this means that there is a line intersection but not a ray intersection
-    	    qDebug() << "if (t <= EPSILON)...";
 		 return false;
     }
     return false;
