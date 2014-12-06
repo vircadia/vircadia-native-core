@@ -273,7 +273,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
     QString extraInfo;
     float localDistance;
     
-    qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
+    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection() precisionPicking:" << precisionPicking;
     
     bool intersectsModel = _model->findRayIntersectionAgainstSubMeshes(originInMeters, direction, 
                                             localDistance, face, extraInfo, precisionPicking);

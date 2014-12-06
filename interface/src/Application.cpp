@@ -434,23 +434,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
 #endif
 
     this->installEventFilter(this);
-
-
-
-
-    qDebug() << "------------------------------------------------------------";
-    qDebug() << " test findRayTrianlgeIntersection()....";
-    float distanceA;
-    bool testA = findRayTrianlgeIntersection(glm::vec3(0.5,0.5,1), glm::vec3(0,0,-1), glm::vec3(0,0,0), glm::vec3(1,0,0), glm::vec3(0,1,0), distanceA);
-    qDebug() << "     testA:" << testA;
-    qDebug() << "     distanceA:" << distanceA;
-
-    float distanceB;
-    bool testB = findRayTrianlgeIntersection(glm::vec3(0.5,0.5,1), glm::vec3(0,0,-1), glm::vec3(0,0,0), glm::vec3(0,1,0), glm::vec3(1,0,0), distanceB);
-    qDebug() << "     testB:" << testB;
-    qDebug() << "     distanceB:" << distanceB;
-    qDebug() << "------------------------------------------------------------";
-
 }
 
 void Application::aboutToQuit() {
