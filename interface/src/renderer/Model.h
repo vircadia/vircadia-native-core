@@ -197,8 +197,8 @@ public:
     Q_INVOKABLE void setTextureWithNameToURL(const QString& name, const QUrl& url)
         { _geometry->setTextureWithNameToURL(name, url); }
 
-    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, 
-                                                float& distance, BoxFace& face, QString& extraInfo);
+    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                                BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
@@ -371,7 +371,7 @@ private:
     QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
     bool _calculatedMeshTrianglesValid;
 
-    void recalcuateMeshBoxes();
+    void recalcuateMeshBoxes(bool pickAgainstTriangles = false);
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 

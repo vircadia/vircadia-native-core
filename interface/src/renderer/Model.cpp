@@ -571,8 +571,8 @@ bool Model::renderTriangleProxies() {
     return _calculatedMeshTrianglesValid;
 }
 
-bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, QString& extraInfo) {
+bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                                    BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
 
     bool intersectedSomething = false;
 
@@ -581,8 +581,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         return intersectedSomething;
     }
     
-    bool pickAgainstTriangles = Menu::getInstance()->isOptionChecked(MenuOption::PickAgainstModelTriangles);
-
     //qDebug() << "Model::findRayIntersectionAgainstSubMeshes()...";
     //qDebug() << "    origin:" << origin;
     //qDebug() << "    direction:" << direction;
@@ -706,13 +704,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     return intersectedSomething;
 }
 
-void Model::recalcuateMeshBoxes() {
-    bool pickAgainstTriangles = Menu::getInstance()->isOptionChecked(MenuOption::PickAgainstModelTriangles);
+void Model::recalcuateMeshBoxes(bool pickAgainstTriangles) {
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded) {
-        qDebug() << "************************************************************************************************";
-        qDebug() << "Model::recalcuateMeshBoxes() -------------------------------------------------------------------";
         PerformanceTimer perfTimer("calculatedMeshBoxes");
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
@@ -723,16 +718,9 @@ void Model::recalcuateMeshBoxes() {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
 
-            qDebug() << "mesh.meshExtents["<<i<<"]:" << mesh.meshExtents;
-            qDebug() << "scaledMeshExtents["<<i<<"]:" << scaledMeshExtents;
-
             _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
 
-            qDebug() << "_calculatedMeshBoxes["<<i<<"]:" << _calculatedMeshBoxes[i];
-
             if (pickAgainstTriangles) {
-                qDebug() << "mesh.parts.size():" << mesh.parts.size();
-                qDebug() << "---- calculating triangles for mesh parts for mesh:" << i << " ----------";
                 QVector<Triangle> thisMeshTriangles;
                 for (int j = 0; j < mesh.parts.size(); j++) {
                     const FBXMeshPart& part = mesh.parts.at(j);
@@ -742,7 +730,6 @@ void Model::recalcuateMeshBoxes() {
 
                     if (part.quadIndices.size() > 0) {
                         int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
-                        qDebug() << "numberOfQuads:" << numberOfQuads;
                         int vIndex = 0;
                         for (int q = 0; q < numberOfQuads; q++) {
                             int i0 = part.quadIndices[vIndex++];
@@ -755,18 +742,14 @@ void Model::recalcuateMeshBoxes() {
                             glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
                             glm::vec3 v3 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f)));
                         
-                            // Sam's
-                            //Triangle tri1 = { v0, v1, v3 };
-                            //Triangle tri2 = { v1, v2, v3 };
+                            // Sam's recommended triangle slices
+                            Triangle tri1 = { v0, v1, v3 };
+                            Triangle tri2 = { v1, v2, v3 };
                         
-                            // triangle 0 1 2
-                            // triangle 2 3 0
-                            Triangle tri1 = { v0, v1, v2 };
-                            Triangle tri2 = { v2, v3, v0 };
+                            // NOTE: Random guy on the internet's recommended triangle slices
+                            //Triangle tri1 = { v0, v1, v2 };
+                            //Triangle tri2 = { v2, v3, v0 };
                         
-                            //qDebug() << "quad["<< q <<"].t1 :" << v0 << ", "<< v1 << ", " << v3;
-                            //qDebug() << "quad["<< q <<"].t2 :" << v1 << ", "<< v2 << ", " << v3;
-
                             thisMeshTriangles.push_back(tri1);
                             thisMeshTriangles.push_back(tri2);
                         }
@@ -774,7 +757,6 @@ void Model::recalcuateMeshBoxes() {
 
                     if (part.triangleIndices.size() > 0) {
                         int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
-                        qDebug() << "numberOfTris:" << numberOfTris;
                         int vIndex = 0;
                         for (int t = 0; t < numberOfTris; t++) {
                             int i0 = part.triangleIndices[vIndex++];
@@ -787,17 +769,12 @@ void Model::recalcuateMeshBoxes() {
 
                             Triangle tri = { v0, v1, v2 };
 
-                            //qDebug() << "triangle["<< t <<"] :" << v0 << ", " << v1 << ", " << v2;
-
                             thisMeshTriangles.push_back(tri);
                         }
                     }
                 }
-            
                 _calculatedMeshTriangles[i] = thisMeshTriangles;
-                qDebug() << "------------------------------------------------------------------------------";
             }
-
         }
         _calculatedMeshBoxesValid = true;
         _calculatedMeshTrianglesValid = pickAgainstTriangles;
