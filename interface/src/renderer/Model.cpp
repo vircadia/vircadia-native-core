@@ -556,10 +556,8 @@ bool Model::renderTriangleProxies() {
                 glPopMatrix();
             }
 
-
             glBegin(GL_TRIANGLES);
             foreach (const Triangle& triangle, meshTriangles) {
-                //qDebug() << "triangle["<< t <<"] :" << triangle.v0 << ", "<< triangle.v1 << ", " << triangle.v2;
                 glVertex3f( triangle.v0.x,  triangle.v0.y,  triangle.v0.z); 
                 glVertex3f( triangle.v1.x,  triangle.v1.y,  triangle.v1.z); 
                 glVertex3f( triangle.v2.x,  triangle.v2.y,  triangle.v2.z); 
@@ -574,7 +572,6 @@ bool Model::renderTriangleProxies() {
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
                                                     BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
 
-//qDebug() << "Model::findRayIntersectionAgainstSubMeshes() pickAgainstTriangles:" << pickAgainstTriangles;
     bool intersectedSomething = false;
 
     // if we aren't active, we can't ray pick yet...
@@ -582,10 +579,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
         return intersectedSomething;
     }
     
-    //qDebug() << "Model::findRayIntersectionAgainstSubMeshes()...";
-    //qDebug() << "    origin:" << origin;
-    //qDebug() << "    direction:" << direction;
-
     // extents is the entity relative, scaled, centered extents of the entity
     glm::vec3 position = _translation;
     glm::mat4 rotation = glm::mat4_cast(_rotation);
@@ -594,24 +587,17 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     glm::mat4 worldToModelMatrix = glm::inverse(modelToWorldMatrix);
 
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
-    //qDebug() << "    modelExtents:" << modelExtents;
     
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
     glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the ray picking in the model frame of reference
     AABox modelFrameBox(corner, dimensions);
 
-    //qDebug() << "    modelFrameBox:" << modelFrameBox;
-
     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
-    //qDebug() << "    modelFrameOrigin:" << modelFrameOrigin;
-    //qDebug() << "    modelFrameDirection:" << modelFrameDirection;
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
     if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
-
-        //qDebug() << "    modelFrameBox.findRayIntersection() HITS!!!";
 
         float bestDistance = std::numeric_limits<float>::max();
         float bestTriangleDistance = std::numeric_limits<float>::max();
@@ -623,23 +609,13 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
-        //qDebug() << "    Checking mesh boxes....";
-
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
 
-            //qDebug() << "    subMeshBox[" << subMeshIndex <<"]:" << subMeshBox;
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
-                //qDebug() << "    subMeshBox[" << subMeshIndex <<"].findRayIntersection() HITS!";
-                //qDebug() << "    subMeshBox[" << subMeshIndex <<"].distanceToSubMesh:" << distanceToSubMesh;
-                //qDebug() << "    bestDistance:" << bestDistance;
                 if (distanceToSubMesh < bestDistance) {
-
-                    //qDebug() << "    distanceToSubMesh < bestDistance !! looks like a good match!";
-
                     if (pickAgainstTriangles) {
                         someTriangleHit = false;
-                        //qDebug() << "    subMeshBox[" << subMeshIndex <<"] --- check triangles!!";
                         if (!_calculatedMeshTrianglesValid) {
                             recalculateMeshBoxes(pickAgainstTriangles);
                         }
@@ -647,15 +623,10 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
                         int t = 0;
                         foreach (const Triangle& triangle, meshTriangles) {
-                            // qDebug() << "checking triangle["<< t <<"] :" << triangle.v0 << ", "<< triangle.v1 << ", " << triangle.v2;
                             t++;
                         
                             float thisTriangleDistance;
                             if (findRayTrianlgeIntersection(origin, direction, triangle, thisTriangleDistance)) {
-                                //qDebug() << "---- HIT triangle["<< t <<"] :" << triangle.v0 << ", "<< triangle.v1 << ", " << triangle.v2 << " -----";
-                                //qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- HITS!!";
-                                //qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] thisTriangleDistance:" << thisTriangleDistance;
-                                //qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] bestTriangleDistance:" << bestTriangleDistance;
                                 if (thisTriangleDistance < bestDistance) {
                                     bestTriangleDistance = thisTriangleDistance;
                                     someTriangleHit = true;
@@ -664,10 +635,6 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                                     intersectedSomething = true;
                                     face = subMeshFace;
                                     extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
-
-                                    //qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- WOOT! BEST DISTANCE!";
-                                } else {
-                                    //qDebug() << "    subMeshBox[" << subMeshIndex <<"].triangle[" << t <<"] --- not best distance???";
                                 }
                             }
                         }
@@ -678,28 +645,16 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                         face = subMeshFace;
                         extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
                     }
-                } else {
-                    //qDebug() << "    distanceToSubMesh >= bestDistance !! TOO FAR AWAY!";
                 }
             } 
             subMeshIndex++;
         }
 
-        //qDebug() << "pickAgainstTriangles:" << pickAgainstTriangles;
-        //qDebug() << "someTriangleHit:" << someTriangleHit;
-        //qDebug() << "bestTriangleDistance:" << bestTriangleDistance;
-        //qDebug() << "bestDistance:" << bestDistance;
-        //qDebug() << "intersectedSomething:" << intersectedSomething;
-        
         if (intersectedSomething) {
-            //qDebug() << " --- we hit this model --- ";
             distance = bestDistance;
-            //qDebug() << "distance:" << distance;
         }
         
         return intersectedSomething;
-    } else {
-        //qDebug() << "modelFrameBox.findRayIntersection()... DID NOT INTERSECT...";
     }
 
     return intersectedSomething;
@@ -707,9 +662,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
 
 // TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
 void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
-    //qDebug() << "recalculateMeshBoxes() pickAgainstTriangles:" << pickAgainstTriangles;
     bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
-    //qDebug() << "recalculateMeshBoxes() calculatedMeshTrianglesNeeded:" << calculatedMeshTrianglesNeeded;
 
     if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded) {
         PerformanceTimer perfTimer("calculatedMeshBoxes");
