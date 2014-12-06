@@ -217,8 +217,8 @@ public:
     bool mouseOnScreen() const;
     int getMouseX() const;
     int getMouseY() const;
-    int getTrueMouseX() const { return _mouseX; }
-    int getTrueMouseY() const { return _mouseY; }
+    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
+    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
     int getMouseDragStartedX() const;
     int getMouseDragStartedY() const;
     int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
@@ -563,8 +563,6 @@ private:
 
     Environment _environment;
 
-    int _mouseX;
-    int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;

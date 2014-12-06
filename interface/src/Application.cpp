@@ -165,8 +165,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
-        _mouseX(0),
-        _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
         _mouseHidden(false),
@@ -1282,9 +1280,6 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _mouseHidden = false;
         _seenMouseMove = true;
     }
-
-    _mouseX = event->x();
-    _mouseY = event->y();
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -1302,8 +1297,6 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
             _mouseDragStartedX = getTrueMouseX();
             _mouseDragStartedY = getTrueMouseY();
             _mousePressed = true;
@@ -1346,8 +1339,6 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
             _mousePressed = false;
             
             if (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && mouseOnScreen()) {
@@ -1939,9 +1930,6 @@ void Application::init() {
     _ambientOcclusionEffect.init();
     _voxelShader.init();
     _pointShader.init();
-
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
 
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
@@ -3557,9 +3545,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 }
 
 void Application::resetSensors() {
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
-
     _faceshift.reset();
     _visage.reset();
     _dde.reset();
@@ -3572,7 +3557,7 @@ void Application::resetSensors() {
     QScreen* currentScreen = _window->windowHandle()->screen();
     QWindow* mainWindow = _window->windowHandle();
     QPoint windowCenter = mainWindow->geometry().center();
-    QCursor::setPos(currentScreen, windowCenter);
+    _glWidget->cursor().setPos(currentScreen, windowCenter);
     
     _myAvatar->reset();
 
