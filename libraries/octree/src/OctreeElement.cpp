@@ -1346,23 +1346,23 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     AACube debugCube = cube;
     debugCube.scale((float)TREE_SCALE);
 
-    qDebug() << "OctreeElement::findRayIntersection()....";
-    qDebug() << "   origin:" << origin;
-    qDebug() << "   checking element:" << debugCube << "in meters";
-    qDebug() << "   distance:" << distance;
+    //qDebug() << "OctreeElement::findRayIntersection()....";
+    //qDebug() << "   origin:" << origin;
+    //qDebug() << "   checking element:" << debugCube << "in meters";
+    //qDebug() << "   distance:" << distance;
 
     // if the ray doesn't intersect with our cube, we can stop searching!
     if (!cube.findRayIntersection(origin, direction, distanceToElementCube, localFace)) {
-        qDebug() << "   didn't intersect cube... done searching...";
+        //qDebug() << "   didn't intersect cube... done searching...";
         keepSearching = false; // no point in continuing to search
         return false; // we did not intersect
     }
 
-    qDebug() << "   distanceToElementCube:" << distanceToElementCube;
+    //qDebug() << "   distanceToElementCube:" << distanceToElementCube;
 
     // by default, we only allow intersections with leaves with content
     if (!canRayIntersect()) {
-        qDebug() << "   NOT canRayIntersect() -- no point in calling detailed...";
+        //qDebug() << "   NOT canRayIntersect() -- no point in calling detailed...";
         return false; // we don't intersect with non-leaves, and we keep searching
     }
 
@@ -1373,28 +1373,28 @@ bool OctreeElement::findRayIntersection(const glm::vec3& origin, const glm::vec3
     // for any details inside the cube to be closer so we don't need to consider them.
     if (cube.contains(origin) || distanceToElementCube < distance) {
 
-        qDebug() << "   distanceToElementCube < distance:" << (distanceToElementCube < distance);
-        qDebug() << "   cube.contains(origin):" << (cube.contains(origin));
-        qDebug() << "   continue.... call... findDetailedRayIntersection()...";
+        //qDebug() << "   distanceToElementCube < distance:" << (distanceToElementCube < distance);
+        //qDebug() << "   cube.contains(origin):" << (cube.contains(origin));
+        //qDebug() << "   continue.... call... findDetailedRayIntersection()...";
         //qDebug() << "   distanceToElementCube < distance -- continue.... call... findDetailedRayIntersection()...";
 
         if (findDetailedRayIntersection(origin, direction, keepSearching,
                                         element, distanceToElementDetails, face, intersectedObject, distanceToElementCube)) {
 
-            qDebug() << "   findDetailedRayIntersection() -- intersected something";
+            //qDebug() << "   findDetailedRayIntersection() -- intersected something";
             if (distanceToElementDetails < distance) {
-                qDebug() << "   distanceToElementDetails < distance -- THIS ONE IS GOOD -------";
+                //qDebug() << "   distanceToElementDetails < distance -- THIS ONE IS GOOD -------";
 
                 distance = distanceToElementDetails;
                 face = localFace;
 
-                qDebug() << "   distance:" << distance << " -- THIS ONE IS GOOD -------";
+                //qDebug() << "   distance:" << distance << " -- THIS ONE IS GOOD -------";
 
                 return true;
             } else {
-                qDebug() << "   distanceToElementDetails:" << distanceToElementDetails;
-                qDebug() << "   distance:" << distance;
-                qDebug() << "   distanceToElementDetails >= distance -- THIS ONE IS NOT SELECTED even though it INTERSECTED -------";
+                //qDebug() << "   distanceToElementDetails:" << distanceToElementDetails;
+                //qDebug() << "   distance:" << distance;
+                //qDebug() << "   distanceToElementDetails >= distance -- THIS ONE IS NOT SELECTED even though it INTERSECTED -------";
             }
         }
     }
@@ -1412,7 +1412,7 @@ bool OctreeElement::findDetailedRayIntersection(const glm::vec3& origin, const g
         if (intersectedObject) {
             *intersectedObject = this;
         }
-        qDebug() << "   OctreeElement::findDetailedRayIntersection().... hasContent() -- done searching...";
+        //qDebug() << "   OctreeElement::findDetailedRayIntersection().... hasContent() -- done searching...";
         keepSearching = false;
         return true; // we did intersect
     }

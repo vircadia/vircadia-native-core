@@ -252,6 +252,7 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
     return true;
 }
 
+
 bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                                     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
 
@@ -264,7 +265,8 @@ bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direc
 	h = glm::cross(direction, e2);
 	a = glm::dot(e1, h);
 
-	if (a > -0.00001 && a < 0.00001) {
+	if (a > EPSILON && a < EPSILON) {
+	    qDebug() << "if (a > EPSILON && a < EPSILON)...";
 		return false;
 	}
 
@@ -287,16 +289,16 @@ bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direc
 	t = f * glm::dot(e2,q);
 
     // ray intersection
-	if (t > 0.00001) {
+	if (t > EPSILON) {
 	    distance = t;
 		return true;
 	} else {
 	     // this means that there is a line intersection but not a ray intersection
+    	    qDebug() << "if (t <= EPSILON)...";
 		 return false;
     }
     return false;
 }
-
 
 // Do line segments (r1p1.x, r1p1.y)--(r1p2.x, r1p2.y) and (r2p1.x, r2p1.y)--(r2p2.x, r2p2.y) intersect?
 // from: http://ptspts.blogspot.com/2010/06/how-to-determine-if-two-line-segments.html

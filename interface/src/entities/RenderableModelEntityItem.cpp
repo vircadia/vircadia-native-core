@@ -174,7 +174,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                     PerformanceTimer perfTimer("model->render");
                     bool dontRenderAsScene = true; // Menu::getInstance()->isOptionChecked(MenuOption::DontRenderEntitiesAsScene);
                     if (dontRenderAsScene) {
-                        _model->render(alpha, modelRenderMode, args);
+                        if (!_model->renderTriangleProxies()) {
+                            _model->render(alpha, modelRenderMode, args);
+                        }
                     } else {
                         _model->renderInScene(alpha, args);
                     }
@@ -261,12 +263,12 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject) const {
 
-    qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection()....";
-    qDebug() << "    this.id:" << getEntityItemID();
-    qDebug() << "    this.modelURL:" << getModelURL();
-    qDebug() << "    origin:" << origin;
+    //qDebug() << "RenderableModelEntityItem::findDetailedRayIntersection()....";
+    //qDebug() << "    this.id:" << getEntityItemID();
+    //qDebug() << "    this.modelURL:" << getModelURL();
+    //qDebug() << "    origin:" << origin;
     glm::vec3 originInMeters = origin * (float)TREE_SCALE;
-    qDebug() << "    originInMeters:" << originInMeters;
+    //qDebug() << "    originInMeters:" << originInMeters;
     QString extraInfo;
     float localDistance;
     
@@ -276,7 +278,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
         // NOTE: findRayIntersectionAgainstSubMeshes() does work in meters, but we're expected to return
         // results in tree scale.
         distance = localDistance / (float)TREE_SCALE;
-        qDebug() << "    --hit this mode -- returning distance:" << distance;
+        //qDebug() << "    --hit this mode -- returning distance:" << distance;
     }
 
     return intersectsModel; // we only got here if we intersected our non-aabox                         
