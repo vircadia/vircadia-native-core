@@ -61,6 +61,8 @@ public:
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject) const;
     
+    bool isCircle() const { return false && _dimensions.x == _dimensions.y && _dimensions.y == _dimensions.z; }
+    
 protected:
     virtual void recalculateCollisionShape();
 
