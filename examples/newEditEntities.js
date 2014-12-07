@@ -465,7 +465,7 @@ function rayPlaneIntersection(pickRay, point, normal) {
 function findClickedEntity(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
 
-    var foundIntersection = Entities.findRayIntersection(pickRay);
+    var foundIntersection = Entities.findRayIntersection(pickRay, true); // want precision picking
 
     if (!foundIntersection.accurate) {
         return null;

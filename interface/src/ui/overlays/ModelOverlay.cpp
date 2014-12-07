@@ -170,14 +170,14 @@ QScriptValue ModelOverlay::getProperty(const QString& property) {
 }
 
 bool ModelOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
     
     QString subMeshNameTemp;
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, subMeshNameTemp);
 }
 
 bool ModelOverlay::findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, QString& extraInfo) const {
+                                                        float& distance, BoxFace& face, QString& extraInfo) {
     
     return _model.findRayIntersectionAgainstSubMeshes(origin, direction, distance, face, extraInfo);
 }

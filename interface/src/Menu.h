@@ -367,6 +367,7 @@ namespace MenuOption {
     const QString DontCullTooSmallMeshParts = "Don't Cull Too Small Mesh Parts";
     const QString DontReduceMaterialSwitches = "Don't Attempt to Reduce Material Switches";
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
+    const QString DontDoPrecisionPicking = "Don't Do Precision Picking";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DisableActivityLogger = "Disable Activity Logger";
@@ -378,6 +379,7 @@ namespace MenuOption {
     const QString DisplayHandTargets = "Show Hand Targets";
     const QString DisplayHermiteData = "Display Hermite Data";
     const QString DisplayModelBounds = "Display Model Bounds";
+    const QString DisplayModelTriangles = "Display Model Triangles";
     const QString DisplayModelElementChildProxies = "Display Model Element Children";
     const QString DisplayModelElementProxy = "Display Model Element Bounds";
     const QString DisplayTimingDetails = "Display Timing Details";

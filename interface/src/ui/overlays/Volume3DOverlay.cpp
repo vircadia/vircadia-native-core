@@ -100,7 +100,7 @@ QScriptValue Volume3DOverlay::getProperty(const QString& property) {
 }
 
 bool Volume3DOverlay::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face) const {
+                                                        float& distance, BoxFace& face) {
 
     // extents is the entity relative, scaled, centered extents of the entity
     glm::vec3 position = getPosition();
