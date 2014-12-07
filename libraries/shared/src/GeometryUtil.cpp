@@ -252,48 +252,26 @@ bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direct
     return true;
 }
 
-
-bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direction, 
-                                    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
-
-    glm::vec3 e1, e2, h, s, q;
-	float a, f, u, v, t;
-
-	e1 = v1 - v0;
-	e2 = v2 - v0;
-
-	h = glm::cross(direction, e2);
-	a = glm::dot(e1, h);
-
-	if (a > EPSILON && a < EPSILON) {
-		return false;
-	}
-
-	f = 1/a;
-	s = origin - v0;
-	u = f * glm::dot(s,h);
-
-	if (u < 0.0 || u > 1.0) {
-		return false;
-	}
-
-	q = glm::cross(s, e1);
-	v = f * glm::dot(direction, q);
-
-	if (v < 0.0 || u + v > 1.0) {
-		return false;
-	}
-
-	// at this stage we can compute t to find out where the intersection point is on the line
-	t = f * glm::dot(e2,q);
-
-    // ray intersection
-	if (t > EPSILON) {
-	    distance = t;
-		return true;
-	} else {
-	     // this means that there is a line intersection but not a ray intersection
-		 return false;
+bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
+        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
+    glm::vec3 firstSide = v0 - v1;
+    glm::vec3 secondSide = v2 - v1;
+    glm::vec3 normal = glm::cross(secondSide, firstSide);
+    float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
+    if (dividend > 0.0f) {
+        return false; // origin below plane
+    }
+    float divisor = glm::dot(normal, direction);
+    if (divisor > -EPSILON) {
+        return false;
+    }
+    float t = dividend / divisor;
+    glm::vec3 point = origin + direction * t;
+    if (glm::dot(normal, glm::cross(point - v1, firstSide)) > 0.0f &&
+            glm::dot(normal, glm::cross(secondSide, point - v1)) > 0.0f &&
+            glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
+        distance = t;
+        return true;
     }
     return false;
 }

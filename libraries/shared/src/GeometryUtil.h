@@ -76,7 +76,7 @@ bool findRaySphereIntersection(const glm::vec3& origin, const glm::vec3& directi
 bool findRayCapsuleIntersection(const glm::vec3& origin, const glm::vec3& direction,
     const glm::vec3& start, const glm::vec3& end, float radius, float& distance);
 
-bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direction, 
+bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                                     const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance);
 
 class Triangle {
@@ -86,9 +86,9 @@ public:
     glm::vec3 v2;
 };
 
-inline bool findRayTrianlgeIntersection(const glm::vec3& origin, const glm::vec3& direction, 
+inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction, 
                                     const Triangle& triangle, float& distance) {
-    return findRayTrianlgeIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance);
+    return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance);
 }
     
 

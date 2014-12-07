@@ -626,7 +626,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
                             t++;
                         
                             float thisTriangleDistance;
-                            if (findRayTrianlgeIntersection(origin, direction, triangle, thisTriangleDistance)) {
+                            if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
                                 if (thisTriangleDistance < bestDistance) {
                                     bestTriangleDistance = thisTriangleDistance;
                                     someTriangleHit = true;
