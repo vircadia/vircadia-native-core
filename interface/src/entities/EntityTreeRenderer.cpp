@@ -635,18 +635,7 @@ void EntityTreeRenderer::deleteReleasedModels() {
 }
 
 PickRay EntityTreeRenderer::computePickRay(float x, float y) {
-    float screenWidth = Application::getInstance()->getGLWidget()->width();
-    float screenHeight = Application::getInstance()->getGLWidget()->height();
-    PickRay result;
-    if (OculusManager::isConnected()) {
-        Camera* camera = Application::getInstance()->getCamera();
-        result.origin = camera->getPosition();
-        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
-    } else {
-        ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
-        viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
-    }
-    return result;
+    return Application::getInstance()->getCamera()->computePickRay(x, y);
 }
 
 
