@@ -209,7 +209,9 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     propertiesA.setPosition(newPositionA * (float)TREE_SCALE);
                     propertiesA.setLastEdited(now);
 
-                    _entityTree->updateEntity(idA, propertiesA);
+                    // NOTE: EntityTree::updateEntity() will cause the entity to get sorted correctly in the EntitySimulation,
+                    // thereby waking up static non-moving entities.
+                    _entityTree->updateEntity(entityA, propertiesA);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idA, propertiesA);
                 }            
 
@@ -226,7 +228,9 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     propertiesB.setPosition(newPositionB * (float)TREE_SCALE);
                     propertiesB.setLastEdited(now);
 
-                    _entityTree->updateEntity(idB, propertiesB);
+                    // NOTE: EntityTree::updateEntity() will cause the entity to get sorted correctly in the EntitySimulation,
+                    // thereby waking up static non-moving entities.
+                    _entityTree->updateEntity(entityB, propertiesB);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
                 }      
             }
@@ -332,6 +336,6 @@ void EntityCollisionSystem::applyHardCollision(EntityItem* entity, const Collisi
     properties.setVelocity(velocity * (float)TREE_SCALE);
     properties.setLastEdited(usecTimestampNow());
 
-    _entityTree->updateEntity(entityItemID, properties);
+    _entityTree->updateEntity(entity, properties);
     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, entityItemID, properties);
 }

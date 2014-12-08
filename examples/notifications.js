@@ -115,6 +115,7 @@ function createNotification(text) {
         color: textColor,
         backgroundColor: backColor,
         alpha: backgroundAlpha,
+        backgroundAlpha: backgroundAlpha,
         topMargin: topMargin,
         leftMargin: leftMargin,
         font: {size: fontSize},
@@ -160,7 +161,7 @@ function fadeIn(noticeIn, buttonIn) {
     pauseTimer = Script.setInterval(function() { 
         q++;
         qFade = q / 10.0;
-        Overlays.editOverlay(noticeIn, {alpha: qFade}); 
+        Overlays.editOverlay(noticeIn, {alpha: qFade, backgroundAlpha: qFade}); 
         Overlays.editOverlay(buttonIn, {alpha: qFade});	
         if (q >= 9.0) {
             Script.clearInterval(pauseTimer);
@@ -344,7 +345,7 @@ function fadeOut(noticeOut, buttonOut, arraysOut) {
     pauseTimer = Script.setInterval(function() { 
         r--;
         rFade = r / 10.0;	
-        Overlays.editOverlay(noticeOut, {alpha: rFade}); 
+        Overlays.editOverlay(noticeOut, {alpha: rFade, backgroundAlpha: rFade}); 
         Overlays.editOverlay(buttonOut, {alpha: rFade});	
         if (r < 0) {
             dismiss(noticeOut, buttonOut, arraysOut);

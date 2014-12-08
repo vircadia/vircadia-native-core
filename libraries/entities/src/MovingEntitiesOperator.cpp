@@ -49,9 +49,10 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 }
 
 
-void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& oldCube, const AACube& newCube) {
+void MovingEntitiesOperator::addEntityToMoveList(EntityItem* entity, const AACube& newCube) {
     EntityTreeElement* oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
     AABox newCubeClamped = newCube.clamp(0.0f, 1.0f);
+    AACube oldCube = entity->getOldMaximumAACube();
     AABox oldCubeClamped = oldCube.clamp(0.0f, 1.0f);
 
     if (_wantDebug) {
@@ -289,4 +290,10 @@ OctreeElement* MovingEntitiesOperator::possiblyCreateChildAt(OctreeElement* elem
         }
     }
     return NULL; 
+}
+
+void MovingEntitiesOperator::finish() {
+    foreach(const EntityToMoveDetails& details, _entitiesToMove) {
+        details.entity->setOldMaximumAACube(details.newCube);
+    }
 }

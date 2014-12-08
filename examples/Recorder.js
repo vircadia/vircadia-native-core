@@ -115,6 +115,7 @@ function setupTimer() {
 		width: 0,
 		height: 0,
 		alpha: 1.0,
+        backgroundAlpha: 1.0,
 		visible: true
 	});
 
@@ -129,6 +130,7 @@ function setupTimer() {
                                             width: slider.w,
                                             height: slider.h,
                                             alpha: 1.0,
+                                            backgroundAlpha: 1.0,
                                             visible: true
                                             });
     slider.foreground = Overlays.addOverlay("text", {
@@ -138,6 +140,7 @@ function setupTimer() {
                                             width: slider.pos * slider.w,
                                             height: slider.h,
                                             alpha: 1.0,
+                                            backgroundAlpha: 1.0,
                                             visible: true
                                             });
 
