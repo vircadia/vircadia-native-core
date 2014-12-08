@@ -29,7 +29,7 @@ const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
 const QString EntityItem::DEFAULT_USER_DATA = QString("");
-const float EntityItem::DEFAULT_DAMPING = 0.5f;
+const float EntityItem::DEFAULT_DAMPING = 2.0f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
 const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
@@ -42,7 +42,7 @@ const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
 const glm::vec3 EntityItem::DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
 const glm::vec3 EntityItem::NO_ANGULAR_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
 const glm::vec3 EntityItem::DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
-const float EntityItem::DEFAULT_ANGULAR_DAMPING = 0.5f;
+const float EntityItem::DEFAULT_ANGULAR_DAMPING = 2.0f;
 const bool EntityItem::DEFAULT_VISIBLE = true;
 const bool EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool EntityItem::DEFAULT_COLLISIONS_WILL_MOVE = false;
@@ -155,7 +155,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     ByteCountCoded<quint32> typeCoder = getType();
     QByteArray encodedType = typeCoder;
 
-    quint64 updateDelta = getLastMoved() <= getLastEdited() ? 0 : getLastMoved() - getLastEdited();
+    quint64 updateDelta = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
@@ -632,13 +632,13 @@ void EntityItem::simulate(const quint64& now) {
             setRotation(rotation);
 
             // handle damping for angular velocity
-            if (getAngularDamping() > 0.0f) {
-                glm::vec3 dampingResistance = getAngularVelocity() * getAngularDamping();
-                glm::vec3 newAngularVelocity = getAngularVelocity() - (dampingResistance * timeElapsed);
+            float dampingTimescale = getAngularDamping();
+            if (dampingTimescale > 0.0f) {
+                float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
+                glm::vec3 newAngularVelocity = (1.0f - dampingFactor) * getAngularVelocity();
                 setAngularVelocity(newAngularVelocity);
                 if (wantDebug) {        
-                    qDebug() << "    getDamping():" << getDamping();
-                    qDebug() << "    dampingResistance:" << dampingResistance;
+                    qDebug() << "    dampingTimescale :" << dampingTimescale;
                     qDebug() << "    newAngularVelocity:" << newAngularVelocity;
                 }
             }
@@ -689,13 +689,15 @@ void EntityItem::simulate(const quint64& now) {
         }
 
         // handle damping for velocity
-        glm::vec3 dampingResistance = velocity * getDamping();
-        if (wantDebug) {        
-            qDebug() << "    getDamping():" << getDamping();
-            qDebug() << "    dampingResistance:" << dampingResistance;
-            qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
+        float dampingTimescale = getDamping();
+        if (dampingTimescale > 0.0f) {
+            float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
+            velocity *= (1.0f - dampingFactor);
+            if (wantDebug) {        
+                qDebug() << "    dampingTimescale:" << dampingTimescale;
+                qDebug() << "    newVelocity:" << velocity;
+            }
         }
-        velocity -= dampingResistance * timeElapsed;
 
         if (wantDebug) {        
             qDebug() << "    velocity AFTER dampingResistance:" << velocity;
@@ -778,23 +780,23 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         }
     }
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters); // this will call recalculate collision shape if needed
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocityInMeters);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, updateScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
@@ -1051,4 +1053,10 @@ void EntityItem::updateLifetime(float value) {
     }
 }
 
+void EntityItem::updateScript(const QString& value) { 
+    if (_script != value) {
+        _script = value; 
+        _dirtyFlags |= EntityItem::DIRTY_SCRIPT;
+    }
+}
 

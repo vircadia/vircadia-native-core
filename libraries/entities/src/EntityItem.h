@@ -48,7 +48,10 @@ public:
         DIRTY_COLLISION_GROUP = 0x0008,
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
-        DIRTY_LIFETIME = 0x0040
+        DIRTY_LIFETIME = 0x0040,
+        // add new simulation-relevant flags above
+        // all other flags below
+        DIRTY_SCRIPT = 0x8000
     };
 
     DONT_ALLOW_INSTANTIATION // This class can not be instantiated directly
@@ -292,6 +295,7 @@ public:
     void updateIgnoreForCollisions(bool value);
     void updateCollisionsWillMove(bool value);
     void updateLifetime(float value);
+    void updateScript(const QString& value);
 
     uint32_t getDirtyFlags() const { return _dirtyFlags; }
     void clearDirtyFlags(uint32_t mask = 0xffff) { _dirtyFlags &= ~mask; }
@@ -323,12 +327,12 @@ protected:
     float _mass;
     glm::vec3 _velocity;
     glm::vec3 _gravity;
-    float _damping;
+    float _damping; // timescale
     float _lifetime;
     QString _script;
     glm::vec3 _registrationPoint;
     glm::vec3 _angularVelocity;
-    float _angularDamping;
+    float _angularDamping; // timescale
     bool _visible;
     bool _ignoreForCollisions;
     bool _collisionsWillMove;
