@@ -104,15 +104,18 @@ bool SphereEntityItem::findDetailedRayIntersection(const glm::vec3& origin, cons
     glm::mat4 translation = glm::translate(getPosition());
     glm::mat4 rotation = glm::mat4_cast(getRotation());
     glm::mat4 scale = glm::scale(getDimensions());
-    glm::mat4 registration = glm::translate(glm::vec3(0.5f,0.5f,0.5f) - getRegistrationPoint());
+    glm::mat4 registration = glm::translate(glm::vec3(0.5f, 0.5f, 0.5f) - getRegistrationPoint());
     glm::mat4 entityToWorldMatrix = translation * rotation * scale * registration;
     glm::mat4 worldToEntityMatrix = glm::inverse(entityToWorldMatrix);
     glm::vec3 entityFrameOrigin = glm::vec3(worldToEntityMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 entityFrameDirection = glm::normalize(glm::vec3(worldToEntityMatrix * glm::vec4(direction, 1.0f)));
 
     float localDistance;
+    // NOTE: unit sphere has center of 0,0,0 and radius of 0.5
     if (findRaySphereIntersection(entityFrameOrigin, entityFrameDirection, glm::vec3(0.0f), 0.5f, localDistance)) {
+        // determine where on the unit sphere the hit point occured
         glm::vec3 entityFrameHitAt = entityFrameOrigin + (entityFrameDirection * localDistance);
+        // then translate back to work coordinates
         glm::vec3 hitAt = glm::vec3(entityToWorldMatrix * glm::vec4(entityFrameHitAt, 1.0f));
         distance = glm::distance(origin,hitAt);
         return true;
