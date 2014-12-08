@@ -233,7 +233,7 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
-        _tree->lockForRead();
+        _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
