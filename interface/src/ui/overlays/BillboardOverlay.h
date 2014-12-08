@@ -35,7 +35,7 @@ public:
     void setClipFromSource(const QRect& bounds) { _fromImage = bounds; }
     virtual QScriptValue getProperty(const QString& property);
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
     
     virtual BillboardOverlay* createClone() const;
 
