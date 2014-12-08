@@ -160,7 +160,7 @@ public:
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
+    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }
