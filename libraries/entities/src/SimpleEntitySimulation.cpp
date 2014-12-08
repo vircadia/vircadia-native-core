@@ -25,6 +25,7 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
         } else {
             entity->simulate(now);
             _entitiesToBeSorted.insert(entity);
+            ++itemItr;
         }
     }
 }
