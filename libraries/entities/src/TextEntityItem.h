@@ -21,6 +21,9 @@ public:
     TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
+
+    /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
+    virtual void setDimensions(const glm::vec3& value);
     
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
