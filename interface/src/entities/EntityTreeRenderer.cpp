@@ -884,3 +884,15 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
     }
 }
 
+void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
+                                                    const Collision& collision) {
+    qDebug() << "EntityTreeRenderer::entityCollisionWithVoxel()... ";
+}
+
+void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
+                                                    const Collision& collision) {
+    qDebug() << "EntityTreeRenderer::entityCollisionWithEntity()... ";
+    qDebug() << "    idA:" << idA;
+    qDebug() << "    idB:" << idB;
+}
+

@@ -70,13 +70,13 @@ void EntityCollisionSystem::checkEntity(EntityItem* entity) {
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithVoxel(EntityItem* entity, 
-                                            VoxelDetail* voxelDetails, const CollisionInfo& collision) {
+                                            VoxelDetail* voxelDetails, const Collision& collision) {
     EntityItemID entityItemID = entity->getEntityItemID();
     emit entityCollisionWithVoxel(entityItemID, *voxelDetails, collision);
 }
 
 void EntityCollisionSystem::emitGlobalEntityCollisionWithEntity(EntityItem* entityA, 
-                                            EntityItem* entityB, const CollisionInfo& collision) {
+                                            EntityItem* entityB, const Collision& collision) {
                                             
     EntityItemID idA = entityA->getEntityItemID();
     EntityItemID idB = entityB->getEntityItemID();
@@ -104,7 +104,8 @@ void EntityCollisionSystem::updateCollisionWithVoxels(EntityItem* entity) {
         // the results to systems outside of this octree reference frame.
         collisionInfo._contactPoint = (float)TREE_SCALE * (entity->getPosition() + entity->getRadius() * glm::normalize(collisionInfo._penetration));
         // let the global script run their collision scripts for Entities if they have them
-        emitGlobalEntityCollisionWithVoxel(entity, voxelDetails, collisionInfo);
+        Collision collision(collisionInfo._contactPoint, collisionInfo._penetration);
+        emitGlobalEntityCollisionWithVoxel(entity, voxelDetails, collision);
 
         // we must scale back down to the octree reference frame before updating the Entity properties
         collisionInfo._penetration /= (float)(TREE_SCALE);
@@ -169,10 +170,10 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 
                 quint64 now = usecTimestampNow();
         
-                CollisionInfo collision;
-                collision._penetration = penetration;
+                Collision collision;
+                collision.penetration = penetration;
                 // for now the contactPoint is the average between the the two paricle centers
-                collision._contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
+                collision.contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
                 emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
 
                 glm::vec3 axis = glm::normalize(penetration);

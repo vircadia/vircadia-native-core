@@ -106,6 +106,9 @@ public slots:
     void deletingEntity(const EntityItemID& entityID);
     void changingEntityID(const EntityItemID& oldEntityID, const EntityItemID& newEntityID);
     void entitySciptChanging(const EntityItemID& entityID);
+    void entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, const Collision& collision);
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
+
     
 protected:
     virtual Octree* createTree() { return new EntityTree(true); }

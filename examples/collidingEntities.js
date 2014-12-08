@@ -42,7 +42,7 @@ function draw(deltaTime) {
         var colorGreen = { red: 0, green: 255, blue: 0 };
         var startPosition = {  
             x: 2, 
-            y: 0,
+            y: 1,
             z: 2 };
         var largeRadius = 0.5;
         var verySlow = {  
@@ -55,9 +55,10 @@ function draw(deltaTime) {
             collisionsWillMove: true,
             position: startPosition, 
             dimensions: {x: largeRadius, y: largeRadius, z: largeRadius},
+            registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
             color: colorGreen, 
-            velocity: verySlow, 
-            gravity: gravity, 
+            //velocity: verySlow, 
+            //gravity: gravity, 
             damping: damping, 
             lifetime: 20
         };
@@ -71,7 +72,7 @@ function draw(deltaTime) {
 
         var center = {  
             x: 0, 
-            y: 0,
+            y: 1,
             z: 0 };
 
         var entitySize = 0.1;
@@ -97,9 +98,10 @@ function draw(deltaTime) {
                 collisionsWillMove: true,
                 position: center, 
                 dimensions: {x: entitySize, y: entitySize, z: entitySize},
+                registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
                 color: color, 
                 velocity: velocity, 
-                gravity: gravity, 
+                //gravity: gravity, 
                 damping: damping, 
                 lifetime: 20
             };
