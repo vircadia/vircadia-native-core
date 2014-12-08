@@ -150,7 +150,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
                 }
 
                 glm::quat rotation = getRotation();
-                if (needsSimulation() && _model->isActive()) {
+                if (needsToCallUpdate() && _model->isActive()) {
                     _model->setScaleToFit(true, dimensions);
                     _model->setSnapModelToRegistrationPoint(true, getRegistrationPoint());
                     _model->setRotation(rotation);
@@ -253,8 +253,8 @@ Model* RenderableModelEntityItem::getModel(EntityTreeRenderer* renderer) {
     return result;
 }
 
-bool RenderableModelEntityItem::needsSimulation() const {
-    return _needsInitialSimulation || getSimulationState() == EntityItem::Moving;
+bool RenderableModelEntityItem::needsToCallUpdate() const {
+    return _needsInitialSimulation || ModelEntityItem::needsToCallUpdate();
 }
 
 EntityItemProperties RenderableModelEntityItem::getProperties() const {
