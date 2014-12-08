@@ -886,13 +886,33 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
 
 void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
                                                     const Collision& collision) {
-    qDebug() << "EntityTreeRenderer::entityCollisionWithVoxel()... ";
+    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
+    if (entityScript.property("collisionWithVoxel").isValid()) {
+        QScriptValueList args;
+        args << entityID.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScript.property("collisionWithVoxel").call(entityScript, args);
+    }
 }
 
 void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
                                                     const Collision& collision) {
-    qDebug() << "EntityTreeRenderer::entityCollisionWithEntity()... ";
-    qDebug() << "    idA:" << idA;
-    qDebug() << "    idB:" << idB;
+    QScriptValue entityScriptA = loadEntityScript(idA);
+    if (entityScriptA.property("collisionWithEntity").isValid()) {
+        QScriptValueList args;
+        args << idA.toScriptValue(_entitiesScriptEngine);
+        args << idB.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
+    }
+
+    QScriptValue entityScriptB = loadEntityScript(idB);
+    if (entityScriptB.property("collisionWithEntity").isValid()) {
+        QScriptValueList args;
+        args << idB.toScriptValue(_entitiesScriptEngine);
+        args << idA.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
+    }
 }
 

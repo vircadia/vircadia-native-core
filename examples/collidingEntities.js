@@ -22,11 +22,6 @@ var velocity = {
   y: 0,
   z: 1 };
 
-var gravity = {  
-  x: 0, 
-  y: 0,
-  z: 0 };
-
 var damping = 0.1;
 
 var color = {  
@@ -45,25 +40,20 @@ function draw(deltaTime) {
             y: 1,
             z: 2 };
         var largeRadius = 0.5;
-        var verySlow = {  
-            x: 0.01, 
-            y: 0,
-            z: 0.01 };
 
         var properties = {
             type: "Sphere",
+            script: "file:///Users/zappoman/Development/HiFi/hifi/examples/entityScripts/changeColorOnCollision.js",
             collisionsWillMove: true,
             position: startPosition, 
             dimensions: {x: largeRadius, y: largeRadius, z: largeRadius},
             registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
             color: colorGreen, 
-            //velocity: verySlow, 
-            //gravity: gravity, 
             damping: damping, 
             lifetime: 20
         };
         
-        Entities.addEntity(properties);
+        //Entities.addEntity(properties);
         numberEntitiesAdded++;
     }
     
@@ -95,13 +85,13 @@ function draw(deltaTime) {
         if (numberEntitiesAdded <= MAX_ENTITIES) {
             var properties = {
                 type: "Sphere",
+                script: "file:///Users/zappoman/Development/HiFi/hifi/examples/entityScripts/changeColorOnCollision.js",
                 collisionsWillMove: true,
                 position: center, 
                 dimensions: {x: entitySize, y: entitySize, z: entitySize},
                 registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
                 color: color, 
                 velocity: velocity, 
-                //gravity: gravity, 
                 damping: damping, 
                 lifetime: 20
             };

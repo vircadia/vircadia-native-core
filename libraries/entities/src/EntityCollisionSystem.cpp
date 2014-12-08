@@ -54,7 +54,7 @@ void EntityCollisionSystem::updateCollisions() {
     PerformanceTimer perfTimer("collisions");
     assert(_entityTree);
     // update all Entities
-    if (_entityTree->tryLockForRead()) {
+    if (_entityTree->tryLockForWrite()) {
         foreach (EntityItem* entity, _movingEntities) {
             checkEntity(entity);
         }
