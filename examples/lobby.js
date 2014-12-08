@@ -113,6 +113,7 @@ function drawLobby() {
         text: "",
         lineHeight: lineHeight,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         ignoreRayIntersection: true,
         visible: false,
         isFacingAvatar: true
