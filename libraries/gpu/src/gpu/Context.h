@@ -12,9 +12,9 @@
 #define hifi_gpu_Context_h
 
 #include <assert.h>
-#include "InterfaceConfig.h"
+#include "GPUConfig.h"
 
-#include "gpu/Resource.h"
+#include "Resource.h"
 
 namespace gpu {
 

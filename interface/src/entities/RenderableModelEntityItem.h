@@ -51,6 +51,11 @@ public:
     virtual void somethingChangedNotification() { _needsInitialSimulation = true; }
 
     virtual void render(RenderArgs* args);
+    virtual bool supportsDetailedRayIntersection() const { return true; }
+    virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
+                         bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
+                         void** intersectedObject, bool precisionPicking) const;
+
     Model* getModel(EntityTreeRenderer* renderer);
 
     bool needsToCallUpdate() const;

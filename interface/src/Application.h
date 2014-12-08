@@ -196,6 +196,7 @@ public:
     const AudioReflector* getAudioReflector() const { return &_audioReflector; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
+    ViewFrustum* getDisplayViewFrustum() { return &_displayViewFrustum; }
     ViewFrustum* getShadowViewFrustum() { return &_shadowViewFrustum; }
     VoxelImporter* getVoxelImporter() { return &_voxelImporter; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -213,8 +214,15 @@ public:
     bool isMouseHidden() const { return _mouseHidden; }
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-    int getMouseX() const { return _mouseX; }
-    int getMouseY() const { return _mouseY; }
+    bool mouseOnScreen() const;
+    int getMouseX() const;
+    int getMouseY() const;
+    int getTrueMouseX() const { return _glWidget->mapFromGlobal(QCursor::pos()).x(); }
+    int getTrueMouseY() const { return _glWidget->mapFromGlobal(QCursor::pos()).y(); }
+    int getMouseDragStartedX() const;
+    int getMouseDragStartedY() const;
+    int getTrueMouseDragStartedX() const { return _mouseDragStartedX; }
+    int getTrueMouseDragStartedY() const { return _mouseDragStartedY; }
     bool getLastMouseMoveWasSimulated() const { return _lastMouseMoveWasSimulated;; }
     Faceshift* getFaceshift() { return &_faceshift; }
     Visage* getVisage() { return &_visage; }
@@ -517,6 +525,7 @@ private:
 
     ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
     ViewFrustum _lastQueriedViewFrustum; /// last view frustum used to query octree servers (voxels)
+    ViewFrustum _displayViewFrustum;
     ViewFrustum _shadowViewFrustum;
     quint64 _lastQueriedTime;
 
@@ -554,8 +563,6 @@ private:
 
     Environment _environment;
 
-    int _mouseX;
-    int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
     quint64 _lastMouseMove;

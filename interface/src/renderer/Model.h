@@ -19,6 +19,7 @@
 #include "Transform.h"
 #include <AABox.h>
 #include <AnimationCache.h>
+#include <GeometryUtil.h>
 #include <PhysicsEntity.h>
 
 #include "AnimationHandle.h"
@@ -33,7 +34,6 @@ class QScriptEngine;
 class Shape;
 #include "RenderArgs.h"
 class ViewFrustum;
-
 
 #include "gpu/Stream.h"
 #include "gpu/Batch.h"
@@ -89,6 +89,7 @@ public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE };
     
     bool render(float alpha = 1.0f, RenderMode mode = DEFAULT_RENDER_MODE, RenderArgs* args = NULL);
+    bool renderTriangleProxies();
     
     // Scene rendering support
     static void startScene(RenderArgs::RenderSide renderSide);
@@ -118,6 +119,9 @@ public:
 
     /// Returns the scaled equivalent of some extents in model space.
     Extents calculateScaledOffsetExtents(const Extents& extents) const;
+
+    /// Returns the scaled equivalent of a point in model space.
+    glm::vec3 calculateScaledOffsetPoint(const glm::vec3& point) const;
 
     /// Returns a reference to the shared geometry.
     const QSharedPointer<NetworkGeometry>& getGeometry() const { return _geometry; }
@@ -193,8 +197,8 @@ public:
     Q_INVOKABLE void setTextureWithNameToURL(const QString& name, const QUrl& url)
         { _geometry->setTextureWithNameToURL(name, url); }
 
-    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, 
-                                                float& distance, BoxFace& face, QString& extraInfo) const;
+    bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                                BoxFace& face, QString& extraInfo, bool pickAgainstTriangles = false);
 
 protected:
     QSharedPointer<NetworkGeometry> _geometry;
@@ -318,7 +322,7 @@ private:
     static ProgramObject _skinTranslucentProgram;
 
     static ProgramObject _skinShadowProgram;
-    
+
     static int _normalMapTangentLocation;
     static int _normalSpecularMapTangentLocation;
     
@@ -361,10 +365,13 @@ private:
 
     static void initSkinProgram(ProgramObject& program, SkinLocations& locations, int specularTextureUnit = 1);
 
-    QVector<AABox> _calculatedMeshBoxes;
+    QVector<AABox> _calculatedMeshBoxes; // world coordinate AABoxes for all sub mesh boxes
     bool _calculatedMeshBoxesValid;
+    
+    QVector< QVector<Triangle> > _calculatedMeshTriangles; // world coordinate triangles for all sub meshes
+    bool _calculatedMeshTrianglesValid;
 
-    void recalcuateMeshBoxes();
+    void recalculateMeshBoxes(bool pickAgainstTriangles = false);
 
     void segregateMeshGroups(); // used to calculate our list of translucent vs opaque meshes
 

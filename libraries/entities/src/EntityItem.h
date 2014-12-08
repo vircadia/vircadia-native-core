@@ -137,7 +137,7 @@ public:
     virtual bool supportsDetailedRayIntersection() const { return false; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject) const { return true; }
+                         void** intersectedObject, bool precisionPicking) const { return true; }
 
     // attributes applicable to all entity types
     EntityTypes::EntityType getType() const { return _type; }
@@ -159,7 +159,7 @@ public:
     float getLargestDimension() const { return glm::length(_dimensions); } /// get the largest possible dimension
 
     /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
-    void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
+    virtual void setDimensions(const glm::vec3& value) { _dimensions = value; recalculateCollisionShape(); }
 
     /// set dimensions in meter units (0.0 - TREE_SCALE) this will also reset radius appropriately
     void setDimensionsInMeters(const glm::vec3& value) { setDimensions(value / (float) TREE_SCALE); }

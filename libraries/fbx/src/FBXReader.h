@@ -149,6 +149,7 @@ public:
     QVector<FBXCluster> clusters;
 
     Extents meshExtents;
+    glm::mat4 modelTransform;
 
     bool isEye;
     
@@ -163,6 +164,22 @@ class FBXAnimationFrame {
 public:
     
     QVector<glm::quat> rotations;
+};
+
+/// A light in an FBX document.
+class FBXLight {
+public:
+    QString name;
+    Transform transform;
+    float intensity;
+    glm::vec3 color;
+
+    FBXLight() :
+        name(),
+        transform(),
+        intensity(1.0f),
+        color(1.0f)
+    {}
 };
 
 Q_DECLARE_METATYPE(FBXAnimationFrame)
