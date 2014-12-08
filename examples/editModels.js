@@ -2554,7 +2554,7 @@ function mousePressEvent(event) {
 
         var pickRay = Camera.computePickRay(event.x, event.y);
         Vec3.print("[Mouse] Looking at: ", pickRay.origin);
-        var foundIntersection = Entities.findRayIntersection(pickRay);
+        var foundIntersection = Entities.findRayIntersection(pickRay, true); // we want precision picking here
 
         if(!foundIntersection.accurate) {
             return;

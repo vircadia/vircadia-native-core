@@ -50,10 +50,10 @@ public:
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face);
 
     virtual bool findRayIntersectionExtraInfo(const glm::vec3& origin, const glm::vec3& direction, 
-                                                    float& distance, BoxFace& face, QString& extraInfo) const {
+                                                    float& distance, BoxFace& face, QString& extraInfo) {
             return findRayIntersection(origin, direction, distance, face);
     }
 

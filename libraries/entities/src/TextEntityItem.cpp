@@ -118,7 +118,7 @@ void TextEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBits
 
 bool TextEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                      bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                     void** intersectedObject) const {
+                     void** intersectedObject, bool precisionPicking) const {
                      
     RayIntersectionInfo rayInfo;
     rayInfo._rayStart = origin;

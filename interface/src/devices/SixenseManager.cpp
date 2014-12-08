@@ -540,8 +540,6 @@ void SixenseManager::emulateMouse(PalmData* palm, int index) {
     //a magnification window was clicked on
     int clickX = pos.x();
     int clickY = pos.y();
-    //Checks for magnification window click
-    application->getApplicationOverlay().getClickLocation(clickX, clickY);
     //Set pos to the new click location, which may be the same if no magnification window is open
     pos.setX(clickX);
     pos.setY(clickY);
