@@ -206,6 +206,7 @@ var progressDialog = (function () {
         height: backgroundHeight,
         imageURL: backgroundUrl,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -216,6 +217,7 @@ var progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -226,6 +228,7 @@ var progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -1169,24 +1172,22 @@ var toolBar = (function () {
         menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
 
         loadURLMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
         loadFileMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset + menuItemHeight,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
@@ -1493,6 +1494,7 @@ var ExportMenu = function (opts) {
         width: scaleViewWidth,
         height: height,
         alpha: 0.0,
+        backgroundAlpha: 0.0,
         color: { red: 255, green: 255, blue: 255 },
         text: "1"
     });
@@ -2480,6 +2482,7 @@ function Tooltip() {
         text: "",
         color: { red: 228, green: 228, blue: 228 },
         alpha: 0.8,
+        backgroundAlpha: 0.8,
         visible: false
     });
     this.show = function (doShow) {
