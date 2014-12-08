@@ -12,13 +12,13 @@
 #define hifi_gpu_Batch_h
 
 #include <assert.h>
-#include "InterfaceConfig.h"
+#include "GPUConfig.h"
 
 #include "Transform.h"
 
 #include <vector>
 
-#include "gpu/Stream.h"
+#include "Stream.h"
 
 #if defined(NSIGHT_FOUND)
     #include "nvToolsExt.h"

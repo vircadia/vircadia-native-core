@@ -19,9 +19,13 @@
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
-EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _simulation(NULL) {
+EntityTree::EntityTree(bool shouldReaverage) : 
+    Octree(shouldReaverage), 
+    _fbxService(NULL),
+    _lightsArePickable(true),
+    _simulation(NULL)
+{
     _rootElement = createNewElement();
-    _lightsArePickable = true; // assume they are by default
 }
 
 EntityTree::~EntityTree() {

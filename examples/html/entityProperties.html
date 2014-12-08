@@ -103,13 +103,14 @@
             var elIgnoreForCollisions = document.getElementById("property-ignore-for-collisions");
             var elCollisionsWillMove = document.getElementById("property-collisions-will-move");
             var elLifetime = document.getElementById("property-lifetime");
+            var elScriptURL = document.getElementById("property-script-url");
 
-            var elBoxSection = document.getElementById("box-section");
+            var elBoxSections = document.querySelectorAll(".box-section");
             var elBoxColorRed = document.getElementById("property-box-red");
             var elBoxColorGreen = document.getElementById("property-box-green");
             var elBoxColorBlue = document.getElementById("property-box-blue");
 
-            var elLightSection = document.getElementById('light-section');
+            var elLightSections = document.querySelectorAll(".light-section");
             var elLightSpotLight = document.getElementById("property-light-spot-light");
             var elLightDiffuseRed = document.getElementById("property-light-diffuse-red");
             var elLightDiffuseGreen = document.getElementById("property-light-diffuse-green");
@@ -129,14 +130,14 @@
             var elLightExponent = document.getElementById("property-light-exponent");
             var elLightCutoff = document.getElementById("property-light-cutoff");
 
-            var elModelSection = document.getElementById("model-section");
+            var elModelSections = document.querySelectorAll(".model-section");
             var elModelURL = document.getElementById("property-model-url");
             var elModelAnimationURL = document.getElementById("property-model-animation-url");
             var elModelAnimationPlaying = document.getElementById("property-model-animation-playing");
             var elModelAnimationFPS = document.getElementById("property-model-animation-fps");
             var elModelAnimationFrame = document.getElementById("property-model-animation-frame");
 
-            var elTextSection = document.getElementById("text-section");
+            var elTextSections = document.querySelectorAll(".text-section");
             var elTextText = document.getElementById("property-text-text");
             var elTextLineHeight = document.getElementById("property-text-line-height");
             var elTextTextColorRed = document.getElementById("property-text-text-color-red");
@@ -198,11 +199,16 @@
                             elIgnoreForCollisions.checked = properties.ignoreForCollisions;
                             elCollisionsWillMove.checked = properties.collisionsWillMove;
                             elLifetime.value = properties.lifetime;
+                            elScriptURL.value = properties.script;
 
                             if (properties.type != "Box") {
-                                elBoxSection.style.display = 'none';
+                                for (var i = 0; i < elBoxSections.length; i++) {
+                                    elBoxSections[i].style.display = 'none';
+                                }
                             } else {
-                                elBoxSection.style.display = 'block';
+                                for (var i = 0; i < elBoxSections.length; i++) {
+                                    elBoxSections[i].style.display = 'table-row';
+                                }
 
                                 elBoxColorRed.value = properties.color.red;
                                 elBoxColorGreen.value = properties.color.green;
@@ -210,9 +216,14 @@
                             }
 
                             if (properties.type != "Model") {
-                                elModelSection.style.display = 'none';
+                                for (var i = 0; i < elModelSections.length; i++) {
+                                    elModelSections[i].style.display = 'none';
+                                }
                             } else {
-                                elModelSection.style.display = 'block';
+                                for (var i = 0; i < elModelSections.length; i++) {
+                                    elModelSections[i].style.display = 'table-row';
+                                }
+
                                 elModelURL.value = properties.modelURL;
                                 elModelAnimationURL.value = properties.animationURL;
                                 elModelAnimationPlaying.checked = properties.animationIsPlaying;
@@ -220,9 +231,13 @@
                             }
 
                             if (properties.type != "Text") {
-                                elTextSection.style.display = 'none';
+                                for (var i = 0; i < elTextSections.length; i++) {
+                                    elTextSections[i].style.display = 'none';
+                                }
                             } else {
-                                elTextSection.style.display = 'block';
+                                for (var i = 0; i < elTextSections.length; i++) {
+                                    elTextSections[i].style.display = 'table-row';
+                                }
 
                                 elTextText.value = properties.text;
                                 elTextLineHeight.value = properties.lineHeight;
@@ -235,9 +250,13 @@
                             }
 
                             if (properties.type != "Light") {
-                                elLightSection.style.display = 'none';
+                                for (var i = 0; i < elLightSections.length; i++) {
+                                    elLightSections[i].style.display = 'none';
+                                }
                             } else {
-                                elLightSection.style.display = 'block';
+                                for (var i = 0; i < elLightSections.length; i++) {
+                                    elLightSections[i].style.display = 'table-row';
+                                }
 
                                 elLightDiffuseRed.value = properties.diffuseColor.red;
                                 elLightDiffuseGreen.value = properties.diffuseColor.green;
@@ -307,6 +326,7 @@
             elIgnoreForCollisions.addEventListener('change', createEmitCheckedPropertyUpdateFunction('ignoreForCollisions'));
             elCollisionsWillMove.addEventListener('change', createEmitCheckedPropertyUpdateFunction('collisionsWillMove'));
             elLifetime.addEventListener('change', createEmitNumberPropertyUpdateFunction('lifetime'));
+            elScriptURL.addEventListener('change', createEmitTextPropertyUpdateFunction('script'));
 
             var boxColorChangeFunction = createEmitColorPropertyUpdateFunction(
                 'color', elBoxColorRed, elBoxColorGreen, elBoxColorBlue);
@@ -437,7 +457,7 @@
             <td>
                 <input type='checkbox' id="property-visible">
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Position</td>
@@ -446,7 +466,7 @@
                 <div class="input-area">Y <input class="coord" type='number' id="property-pos-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-pos-z"></input></div>
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Registration</td>
@@ -455,55 +475,45 @@
                 <div class="input-area">Y <input class="coord" type='number' id="property-reg-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-reg-z"></input></div>
             </td>
-        <tr>
+        </tr>
 
         <tr>
-            <td class="label">Width</td>
+            <td class="label">Dimensions</td>
             <td>
-                <input class="coord" type='number' id="property-dim-x"></input>
+                <div class="input-area">X <input class="coord" type='number' id="property-dim-x"></input></div>
+                <div class="input-area">Y <input class="coord" type='number' id="property-dim-y"></input></div>
+                <div class="input-area">Z <input class="coord" type='number' id="property-dim-z"></input></div>
             </td>
-        <tr>
-        <tr>
-            <td class="label">Height</td>
-            <td>
-                <input class="coord" type='number' id="property-dim-y"></input>
-            </td>
-        <tr>
-        <tr>
-            <td class="label">Depth</td>
-            <td>
-                <input class="coord" type='number' id="property-dim-z"></input>
-            </td>
-        <tr>
+        </tr>
 
         <tr>
-            <td class="label">Linear</td>
+            <td class="label">Linear Velocity</td>
             <td>
                 <div class="input-area">X <input class="coord" type='number' id="property-lvel-x"></input></div>
                 <div class="input-area">Y <input class="coord" type='number' id="property-lvel-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-lvel-z"></input></div>
             </td>
-        <tr>
+        </tr>
         <tr>
             <td class="label">Linear Damping</td>
             <td>
                 <input class="coord" type='number' id="property-ldamping"></input>
             </td>
+        </tr>
         <tr>
-        <tr>
-            <td class="label">Angular</td>
+            <td class="label">Angular Velocity</td>
             <td>
                 <div class="input-area">Pitch <input class="coord" type='number' id="property-avel-x"></input></div>
                 <div class="input-area">Yaw <input class="coord" type='number' id="property-avel-y"></input></div>
                 <div class="input-area">Roll <input class="coord" type='number' id="property-avel-z"></input></div>
             </td>
-        <tr>
+        </tr>
         <tr>
             <td class="label">Angular Damping</td>
             <td>
                 <input class="coord" type='number' id="property-adamping"></input>
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Gravity</td>
@@ -512,168 +522,176 @@
                 <div class="input-area">Y <input class="coord" type='number' id="property-grav-y"></input></div>
                 <div class="input-area">Z <input class="coord" type='number' id="property-grav-z"></input></div>
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Mass</td>
             <td>
                 <input type='number' id="property-mass"></input>
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Ignore For Collisions</td>
             <td>
                 <input type='checkbox' id="property-ignore-for-collisions"></input>
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Collisions Will Move</td>
             <td>
                 <input type='checkbox' id="property-collisions-will-move"></input>
             </td>
-        <tr>
+        </tr>
 
         <tr>
             <td class="label">Lifetime</td>
             <td>
                 <input type='number' id="property-lifetime"></input>
             </td>
+        </tr>
+
         <tr>
+            <td class="label">Script URL</td>
+            <td>
+                <input id="property-script-url"></input>
+            </td>
+        </tr>
 
 
-        <tr>
+        <tr class="box-section">
             <td class="label">Color</td>
             <td>
-                <div class="input-area">Red <input class="coord" type='number' id="property-box-red"></input></div>
-                <div class="input-area">Green <input class="coord" type='number' id="property-box-green"></input></div>
-                <div class="input-area">Blue <input class="coord" type='number' id="property-box-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-box-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-box-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-box-blue"></input></div>
             </td>
-        <tr>
+        </tr>
 
 
 
-        <tr>
+        <tr class="model-section">
             <td class="label">Model URL</td>
             <td>
                 <input type="text" id="property-model-url"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="model-section">
             <td class="label">Animation URL</td>
             <td>
                 <input type="text" id="property-model-animation-url"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="model-section">
             <td class="label">Animation Playing</td>
             <td>
                 <input type='checkbox' id="property-model-animation-playing">
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="model-section">
             <td class="label">Animation FPS</td>
             <td>
                 <input class="coord" type='number' id="property-model-animation-fps"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="model-section">
             <td class="label">Animation Frame</td>
             <td>
                 <input class="coord" type='number' id="property-model-animation-frame"></input>
             </td>
-        <tr>
+        </tr>
 
-        <tr>
+
+        <tr class="text-section">
             <td class="label">Text</td>
             <td>
                 <input type="text" id="property-text-text"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="text-section">
             <td class="label">Line Height</td>
             <td>
                 <input class="coord" type='number' id="property-text-line-height"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="text-section">
             <td class="label">Text Color</td>
             <td>
-                <div class="input-area">Red <input class="coord" type='number' id="property-text-text-color-red"></input></div>
-                <div class="input-area">Green <input class="coord" type='number' id="property-text-text-color-green"></input></div>
-                <div class="input-area">Blue <input class="coord" type='number' id="property-text-text-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-text-text-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-text-text-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-text-text-color-blue"></input></div>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="text-section">
             <td class="label">Background Color</td>
             <td>
-                <div class="input-area">Red <input class="coord" type='number' id="property-text-background-color-red"></input></div>
-                <div class="input-area">Green <input class="coord" type='number' id="property-text-background-color-green"></input></div>
-                <div class="input-area">Blue <input class="coord" type='number' id="property-text-background-color-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-text-background-color-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-text-background-color-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-text-background-color-blue"></input></div>
             </td>
-        <tr>
+        </tr>
 
-        <tr>
+        <tr class="light-section">
             <td class="label">Spot Light</td>
             <td>
                 <input type='checkbox' id="property-light-spot-light">
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Diffuse</td>
             <td>
-                <div class="input-area">Red <input class="coord" type='number' id="property-light-diffuse-red"></input></div>
-                <div class="input-area">Green <input class="coord" type='number' id="property-light-diffuse-green"></input></div>
-                <div class="input-area">Blue <input class="coord" type='number' id="property-light-diffuse-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-light-diffuse-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-light-diffuse-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-light-diffuse-blue"></input></div>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Ambient</td>
             <td>
-                <div class="input-area">Red <input class="coord" type='number' id="property-light-ambient-red"></input></div>
-                <div class="input-area">Green <input class="coord" type='number' id="property-light-ambient-green"></input></div>
-                <div class="input-area">Blue <input class="coord" type='number' id="property-light-ambient-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-light-ambient-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-light-ambient-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-light-ambient-blue"></input></div>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Specular</td>
             <td>
-                <div class="input-area">Red <input class="coord" type='number' id="property-light-specular-red"></input></div>
-                <div class="input-area">Green <input class="coord" type='number' id="property-light-specular-green"></input></div>
-                <div class="input-area">Blue <input class="coord" type='number' id="property-light-specular-blue"></input></div>
+                <div class="input-area">R <input class="coord" type='number' id="property-light-specular-red"></input></div>
+                <div class="input-area">G <input class="coord" type='number' id="property-light-specular-green"></input></div>
+                <div class="input-area">B <input class="coord" type='number' id="property-light-specular-blue"></input></div>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Constant Attenuation</td>
             <td>
                 <input class="coord" type='number' id="property-light-constant-attenuation"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Linear Attenuation</td>
             <td>
                 <input class="coord" type='number' id="property-light-linear-attenuation"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Quadratic Attenuation</td>
             <td>
                 <input class="coord" type='number' id="property-light-quadratic-attenuation"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Exponent</td>
             <td>
                 <input class="coord" type='number' id="property-light-exponent"></input>
             </td>
-        <tr>
-        <tr>
+        </tr>
+        <tr class="light-section">
             <td class="label">Cutoff (degrees)</td>
             <td>
                 <input class="coord" type='number' id="property-light-cutoff"></input>
             </td>
-        <tr>
+        </tr>
     </table>
 
 </body>
