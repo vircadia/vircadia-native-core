@@ -103,7 +103,7 @@ bool raySphereIntersect(const glm::vec3 &dir, const glm::vec3 &origin, float r, 
     }
 }
 
-void renderReticule(glm::quat orientation, float alpha) {
+void renderReticle(glm::quat orientation, float alpha) {
     glm::vec3 topLeft = getPoint(reticleSize / 2.0f, -reticleSize / 2.0f);
     glm::vec3 topRight = getPoint(-reticleSize / 2.0f, -reticleSize / 2.0f);
     glm::vec3 bottomLeft = getPoint(reticleSize / 2.0f, reticleSize / 2.0f);
@@ -269,7 +269,7 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
         glm::mat4 rotation = glm::toMat4(orientation);
         glMultMatrixf(&rotation[0][0]);
         glScalef(scale, scale, scale);
-        for (int i = 0; i < NUMBER_OF_RETICULES; i++) {
+        for (int i = 0; i < NUMBER_OF_RETICLES; i++) {
             
             if (_magActive[i]) {
                 _magSizeMult[i] += MAG_SPEED;
@@ -285,8 +285,8 @@ void ApplicationOverlay::displayOverlayTextureOculus(Camera& whichCamera) {
             
             if (_magSizeMult[i] > 0.0f) {
                 //Render magnifier, but dont show border for mouse magnifier
-                glm::vec2 projection = screenToOverlay(glm::vec2(_reticulePosition[MOUSE].x(),
-                                                                 _reticulePosition[MOUSE].y()));
+                glm::vec2 projection = screenToOverlay(glm::vec2(_reticlePosition[MOUSE].x(),
+                                                                 _reticlePosition[MOUSE].y()));
                 
                 renderMagnifier(projection, _magSizeMult[i], i != MOUSE);
             }
@@ -528,7 +528,7 @@ void ApplicationOverlay::renderPointers() {
         QPoint position = QPoint(application->getTrueMouseX(), application->getTrueMouseY());
         
         static const int MAX_IDLE_TIME = 3;
-        if (_reticulePosition[MOUSE] != position) {
+        if (_reticlePosition[MOUSE] != position) {
             _lastMouseMove = usecTimestampNow();
         } else if (usecTimestampNow() - _lastMouseMove > MAX_IDLE_TIME * USECS_PER_SECOND) {
             float pitch, yaw, roll;
@@ -539,7 +539,7 @@ void ApplicationOverlay::renderPointers() {
             QCursor::setPos(application->getGLWidget()->mapToGlobal(position));
         }
         
-        _reticulePosition[MOUSE] = position;
+        _reticlePosition[MOUSE] = position;
         _reticleActive[MOUSE] = true;
         _magActive[MOUSE] = true;
         _reticleActive[LEFT_CONTROLLER] = false;
@@ -561,9 +561,9 @@ void ApplicationOverlay::renderControllerPointers() {
     MyAvatar* myAvatar = application->getAvatar();
 
     //Static variables used for storing controller state
-    static quint64 pressedTime[NUMBER_OF_RETICULES] = { 0ULL, 0ULL, 0ULL };
-    static bool isPressed[NUMBER_OF_RETICULES] = { false, false, false };
-    static bool stateWhenPressed[NUMBER_OF_RETICULES] = { false, false, false };
+    static quint64 pressedTime[NUMBER_OF_RETICLES] = { 0ULL, 0ULL, 0ULL };
+    static bool isPressed[NUMBER_OF_RETICLES] = { false, false, false };
+    static bool stateWhenPressed[NUMBER_OF_RETICLES] = { false, false, false };
 
     const HandData* handData = Application::getInstance()->getAvatar()->getHandData();
 
@@ -610,7 +610,7 @@ void ApplicationOverlay::renderControllerPointers() {
 
             QPoint point = getPalmClickLocation(palmData);
 
-            _reticulePosition[index] = point;
+            _reticlePosition[index] = point;
 
             //When button 2 is pressed we drag the mag window
             if (isPressed[index]) {
@@ -685,16 +685,16 @@ void ApplicationOverlay::renderPointersOculus(const glm::vec3& eyePos) {
             float yaw = glm::acos(-tipDirection.z) *
                         ((yawSign == 0.0f) ? 1.0f : yawSign);
             glm::quat orientation = glm::quat(glm::vec3(pitch, yaw, 0.0f));
-            renderReticule(orientation, _alpha);
+            renderReticle(orientation, _alpha);
         } 
     }
 
     //Mouse Pointer
     if (_reticleActive[MOUSE]) {
-        glm::vec2 projection = screenToSpherical(glm::vec2(_reticulePosition[MOUSE].x(),
-                                                           _reticulePosition[MOUSE].y()));
+        glm::vec2 projection = screenToSpherical(glm::vec2(_reticlePosition[MOUSE].x(),
+                                                           _reticlePosition[MOUSE].y()));
         glm::quat orientation(glm::vec3(-projection.y, projection.x, 0.0f));
-        renderReticule(orientation, _alpha);
+        renderReticle(orientation, _alpha);
     }
 
     glEnable(GL_DEPTH_TEST);

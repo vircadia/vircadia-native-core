@@ -94,11 +94,11 @@ private:
     float _textureFov;
     float _textureAspectRatio;
     
-    enum Reticules { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICULES };
-    bool _reticleActive[NUMBER_OF_RETICULES];
-    QPoint _reticulePosition[NUMBER_OF_RETICULES];
-    bool _magActive[NUMBER_OF_RETICULES];
-    float _magSizeMult[NUMBER_OF_RETICULES];
+    enum Reticles { MOUSE, LEFT_CONTROLLER, RIGHT_CONTROLLER, NUMBER_OF_RETICLES };
+    bool _reticleActive[NUMBER_OF_RETICLES];
+    QPoint _reticlePosition[NUMBER_OF_RETICLES];
+    bool _magActive[NUMBER_OF_RETICLES];
+    float _magSizeMult[NUMBER_OF_RETICLES];
     quint64 _lastMouseMove;
     
     float _alpha;
