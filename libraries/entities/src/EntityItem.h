@@ -130,7 +130,7 @@ public:
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
     
-    bool needsToCallUpdate() const { return false; }
+    virtual bool needsToCallUpdate() const { return false; }
 
     virtual void debugDump() const;
     
