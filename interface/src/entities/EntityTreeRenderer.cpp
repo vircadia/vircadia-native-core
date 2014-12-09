@@ -151,12 +151,19 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         return QScriptValue(); // no entity...
     }
     
+    // NOTE: we keep local variables for the entityID and the script because
+    // below in loadScriptContents() it's possible for us to execute the
+    // application event loop, which may cause our entity to be deleted on
+    // us. We don't really need access the entity after this point, can
+    // can accomplish all we need to here with just the script "text" and the ID.
     EntityItemID entityID = entity->getEntityItemID();
+    QString entityScript = entity->getScript();
+    
     if (_entityScripts.contains(entityID)) {
         EntityScriptDetails details = _entityScripts[entityID];
         
         // check to make sure our script text hasn't changed on us since we last loaded it
-        if (details.scriptText == entity->getScript()) {
+        if (details.scriptText == entityScript) {
             return details.scriptObject; // previously loaded
         }
         
@@ -164,18 +171,18 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
         // has changed and so we need to reload it.
         _entityScripts.remove(entityID);
     }
-    if (entity->getScript().isEmpty()) {
+    if (entityScript.isEmpty()) {
         return QScriptValue(); // no script
     }
     
-    QString scriptContents = loadScriptContents(entity->getScript());
+    QString scriptContents = loadScriptContents(entityScript);
     
     QScriptSyntaxCheckResult syntaxCheck = QScriptEngine::checkSyntax(scriptContents);
     if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "   " << syntaxCheck.errorMessage() << ":"
                           << syntaxCheck.errorLineNumber() << syntaxCheck.errorColumnNumber();
-        qDebug() << "    SCRIPT:" << entity->getScript();
+        qDebug() << "    SCRIPT:" << entityScript;
         return QScriptValue(); // invalid script
     }
     
@@ -184,12 +191,12 @@ QScriptValue EntityTreeRenderer::loadEntityScript(EntityItem* entity) {
     if (!entityScriptConstructor.isFunction()) {
         qDebug() << "EntityTreeRenderer::loadEntityScript() entity:" << entityID;
         qDebug() << "    NOT CONSTRUCTOR";
-        qDebug() << "    SCRIPT:" << entity->getScript();
+        qDebug() << "    SCRIPT:" << entityScript;
         return QScriptValue(); // invalid script
     }
 
     QScriptValue entityScriptObject = entityScriptConstructor.construct();
-    EntityScriptDetails newDetails = { entity->getScript(), entityScriptObject };
+    EntityScriptDetails newDetails = { entityScript, entityScriptObject };
     _entityScripts[entityID] = newDetails;
 
     return entityScriptObject; // newly constructed
