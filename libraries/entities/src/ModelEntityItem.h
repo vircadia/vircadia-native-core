@@ -75,7 +75,7 @@ public:
     void setModelURL(const QString& url) { _modelURL = url; }
     void setAnimationURL(const QString& url);
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
-    void setAnimationFrameIndex(float value) { _animationLoop.setFrameIndex(value); }
+    void setAnimationFrameIndex(float value);
     void setAnimationSettings(const QString& value);
 
     static const bool DEFAULT_ANIMATION_IS_PLAYING;

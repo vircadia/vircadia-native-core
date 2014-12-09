@@ -402,6 +402,15 @@ void ModelEntityItem::setAnimationURL(const QString& url) {
     _animationURL = url; 
 }
 
+void ModelEntityItem::setAnimationFrameIndex(float value) {
+    if (isAnimatingSomething()) {
+        qDebug() << "ModelEntityItem::setAnimationFrameIndex()";
+        qDebug() << "    value:" << value;
+        qDebug() << "    was:" << _animationLoop.getFrameIndex();
+    }
+    _animationLoop.setFrameIndex(value);
+}
+
 void ModelEntityItem::setAnimationSettings(const QString& value) { 
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
