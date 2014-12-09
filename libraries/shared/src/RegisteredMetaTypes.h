@@ -68,6 +68,8 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 class Collision {
 public:
     Collision() : contactPoint(0.0f), penetration(0.0f) { }
+    Collision(const glm::vec3& contactPoint, const glm::vec3& penetration) : 
+                        contactPoint(contactPoint), penetration(penetration) { }
     glm::vec3 contactPoint;
     glm::vec3 penetration;
 };
