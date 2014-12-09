@@ -29,7 +29,7 @@
 
 
 // the width/height of the cached glyph textures
-const int IMAGE_SIZE = 256;
+const int IMAGE_SIZE = 512;
 
 static uint qHash(const TextRenderer::Properties& key, uint seed = 0) {
     // can be switched to qHash(key.font, seed) when we require Qt 5.3+

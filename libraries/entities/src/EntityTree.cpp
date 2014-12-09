@@ -19,7 +19,12 @@
 #include "MovingEntitiesOperator.h"
 #include "UpdateEntityOperator.h"
 
-EntityTree::EntityTree(bool shouldReaverage) : Octree(shouldReaverage), _simulation(NULL) {
+EntityTree::EntityTree(bool shouldReaverage) : 
+    Octree(shouldReaverage), 
+    _fbxService(NULL),
+    _lightsArePickable(true),
+    _simulation(NULL)
+{
     _rootElement = createNewElement();
 }
 
@@ -75,6 +80,7 @@ EntityItem* EntityTree::getOrCreateEntityItem(const EntityItemID& entityID, cons
 /// Adds a new entity item to the tree
 void EntityTree::postAddEntity(EntityItem* entity) {
     assert(entity);
+    entity->setOldMaximumAACube(entity->getMaximumAACube());
     // check to see if we need to simulate this entity..
     if (_simulation) {
         _simulation->addEntity(entity);
@@ -95,53 +101,70 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
         qDebug() << "UNEXPECTED!!!! don't call updateEntity() on entity items that don't exist. entityID=" << entityID;
         return false;
     }
-    
+
+    return updateEntityWithElement(existingEntity, properties, containingElement);
+}
+
+bool EntityTree::updateEntity(EntityItem* entity, const EntityItemProperties& properties) {
+    EntityTreeElement* containingElement = getContainingElement(entity->getEntityItemID());
+    if (!containingElement) {
+        qDebug() << "UNEXPECTED!!!!  EntityTree::updateEntity() entity-->element lookup failed!!! entityID=" 
+            << entity->getEntityItemID();
+        return false;
+    }
+    return updateEntityWithElement(entity, properties, containingElement);
+}
+
+bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemProperties& properties, 
+        EntityTreeElement* containingElement) {
     // enforce support for locked entities. If an entity is currently locked, then the only
     // property we allow you to change is the locked property.
-    if (existingEntity->getLocked()) {
+    if (entity->getLocked()) {
         if (properties.lockedChanged()) {
             bool wantsLocked = properties.getLocked();
             if (!wantsLocked) {
                 EntityItemProperties tempProperties;
                 tempProperties.setLocked(wantsLocked);
-                UpdateEntityOperator theOperator(this, containingElement, existingEntity, tempProperties);
+                UpdateEntityOperator theOperator(this, containingElement, entity, tempProperties);
                 recurseTreeWithOperator(&theOperator);
                 _isDirty = true;
             }
         }
     } else {
-        uint32_t preFlags = existingEntity->getDirtyFlags();
-        UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
+        uint32_t preFlags = entity->getDirtyFlags();
+        UpdateEntityOperator theOperator(this, containingElement, entity, properties);
         recurseTreeWithOperator(&theOperator);
+        entity->setOldMaximumAACube(entity->getMaximumAACube());
         _isDirty = true;
 
-        uint32_t newFlags = existingEntity->getDirtyFlags() & ~oldFlags;
+        uint32_t newFlags = entity->getDirtyFlags() & ~oldFlags;
         if (newFlags) {
             if (newFlags & EntityItem::DIRTY_SCRIPT) {
-                emit entityScriptChanging(existingEntity->getEntityItemID());
-                existingEntity->clearDirtyFlags(EntityItem::DIRTY_SCRIPT);
+                emit entityScriptChanging(entity->getEntityItemID());
+                entity->clearDirtyFlags(EntityItem::DIRTY_SCRIPT);
             }
 
             if (_simulation) { 
                 if (newFlags & ENTITY_SIMULATION_FLAGS) {
-                    _simulation->entityChanged(existingEntity);
+                    _simulation->entityChanged(entity);
                 }
             } else {
                 // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
-                existingEntity->clearDirtyFlags();
+                entity->clearDirtyFlags();
             }
         }
     }
     
-    containingElement = getContainingElement(entityID);
+    // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
+    containingElement = getContainingElement(entity->getEntityItemID());
     if (!containingElement) {
-        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" << entityID;
+        qDebug() << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID=" 
+                << entity->getEntityItemID();
         return false;
     }
     
     return true;
 }
-
 
 EntityItem* EntityTree::addEntity(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItem* result = NULL;

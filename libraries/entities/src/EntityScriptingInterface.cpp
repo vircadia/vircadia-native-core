@@ -196,22 +196,26 @@ QVector<EntityItemID> EntityScriptingInterface::findEntities(const glm::vec3& ce
     return result;
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray) {
-    return findRayIntersectionWorker(ray, Octree::TryLock);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersection(const PickRay& ray, bool precisionPicking) {
+    return findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
 }
 
-RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray) {
-    return findRayIntersectionWorker(ray, Octree::Lock);
+RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking) {
+    return findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
 }
 
 RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorker(const PickRay& ray, 
-                                                                                    Octree::lockType lockType) {
+                                                                                    Octree::lockType lockType, 
+                                                                                    bool precisionPicking) {
+
+
     RayToEntityIntersectionResult result;
     if (_entityTree) {
         OctreeElement* element;
         EntityItem* intersectedEntity = NULL;
         result.intersects = _entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate);
+                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+                                                                precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
@@ -219,6 +223,19 @@ RayToEntityIntersectionResult EntityScriptingInterface::findRayIntersectionWorke
         }
     }
     return result;
+}
+
+void EntityScriptingInterface::setLightsArePickable(bool value) {
+    if (_entityTree) {
+        _entityTree->setLightsArePickable(value);
+    }
+}
+
+bool EntityScriptingInterface::getLightsArePickable() const {
+    if (_entityTree) {
+        return _entityTree->getLightsArePickable();
+    }
+    return false;
 }
 
 

@@ -47,6 +47,13 @@ LightEntityItem::LightEntityItem(const EntityItemID& entityItemID, const EntityI
     _emptyShape.setRadius(0.0f);
 }
 
+void LightEntityItem::setDimensions(const glm::vec3& value) {
+    float maxDimension = glm::max(value.x, value.y, value.z);
+    _dimensions = glm::vec3(maxDimension, maxDimension, maxDimension); 
+    recalculateCollisionShape(); 
+}
+
+
 EntityItemProperties LightEntityItem::getProperties() const {
     EntityItemProperties properties = EntityItem::getProperties(); // get the properties from our base class
 

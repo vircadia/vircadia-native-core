@@ -46,7 +46,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual void update(const quint64& now);
-    virtual SimulationState computeSimulationState() const;
+    virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
 
@@ -73,16 +73,16 @@ public:
     
     // model related properties
     void setModelURL(const QString& url) { _modelURL = url; }
-    void setAnimationURL(const QString& url) { _animationURL = url; }
+    void setAnimationURL(const QString& url);
     static const float DEFAULT_ANIMATION_FRAME_INDEX;
     void setAnimationFrameIndex(float value) { _animationLoop.setFrameIndex(value); }
     void setAnimationSettings(const QString& value);
 
     static const bool DEFAULT_ANIMATION_IS_PLAYING;
-    void setAnimationIsPlaying(bool value) { _animationLoop.setRunning(value); }
+    void setAnimationIsPlaying(bool value);
 
     static const float DEFAULT_ANIMATION_FPS;
-    void setAnimationFPS(float value) { _animationLoop.setFPS(value); }
+    void setAnimationFPS(float value);
 
     void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
     bool getAnimationLoop() const { return _animationLoop.getLoop(); }

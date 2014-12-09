@@ -107,8 +107,8 @@ public slots:
     void nodeKilled(SharedNodePointer node);
 
 signals:
-    void scriptLoaded(const QUrl& scriptURL);
-    void errorLoadingScript(const QUrl& scriptURL);
+    void scriptLoaded(const QString& scriptFilename);
+    void errorLoadingScript(const QString& scriptFilename);
     void update(float deltaTime);
     void scriptEnding();
     void finished(const QString& fileNameString);

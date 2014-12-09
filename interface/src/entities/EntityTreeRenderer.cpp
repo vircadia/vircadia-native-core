@@ -233,7 +233,7 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
-        _tree->lockForRead();
+        _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
@@ -635,22 +635,12 @@ void EntityTreeRenderer::deleteReleasedModels() {
 }
 
 PickRay EntityTreeRenderer::computePickRay(float x, float y) {
-    float screenWidth = Application::getInstance()->getGLWidget()->width();
-    float screenHeight = Application::getInstance()->getGLWidget()->height();
-    PickRay result;
-    if (OculusManager::isConnected()) {
-        Camera* camera = Application::getInstance()->getCamera();
-        result.origin = camera->getPosition();
-        Application::getInstance()->getApplicationOverlay().computeOculusPickRay(x / screenWidth, y / screenHeight, result.direction);
-    } else {
-        ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
-        viewFrustum->computePickRay(x / screenWidth, y / screenHeight, result.origin, result.direction);
-    }
-    return result;
+    return Application::getInstance()->getCamera()->computePickRay(x, y);
 }
 
 
-RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType) {
+RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType, 
+                                                                                    bool precisionPicking) {
     RayToEntityIntersectionResult result;
     if (_tree) {
         EntityTree* entityTree = static_cast<EntityTree*>(_tree);
@@ -658,7 +648,8 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
         OctreeElement* element;
         EntityItem* intersectedEntity = NULL;
         result.intersects = entityTree->findRayIntersection(ray.origin, ray.direction, element, result.distance, result.face, 
-                                                                (void**)&intersectedEntity, lockType, &result.accurate);
+                                                                (void**)&intersectedEntity, lockType, &result.accurate, 
+                                                                precisionPicking);
         if (result.intersects && intersectedEntity) {
             result.entityID = intersectedEntity->getEntityItemID();
             result.properties = intersectedEntity->getProperties();
@@ -710,7 +701,9 @@ QScriptValueList EntityTreeRenderer::createEntityArgs(const EntityItemID& entity
 void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
     PerformanceTimer perfTimer("EntityTreeRenderer::mousePressEvent");
     PickRay ray = computePickRay(event->x(), event->y());
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock);
+    
+    bool precisionPicking = !Menu::getInstance()->isOptionChecked(MenuOption::DontDoPrecisionPicking);
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qDebug() << "mousePressEvent over entity:" << rayPickResult.entityID;
         emit mousePressOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
@@ -734,7 +727,8 @@ void EntityTreeRenderer::mousePressEvent(QMouseEvent* event, unsigned int device
 void EntityTreeRenderer::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseReleaseEvent");
     PickRay ray = computePickRay(event->x(), event->y());
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock);
+    bool precisionPicking = !Menu::getInstance()->isOptionChecked(MenuOption::DontDoPrecisionPicking);
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::Lock, precisionPicking);
     if (rayPickResult.intersects) {
         //qDebug() << "mouseReleaseEvent over entity:" << rayPickResult.entityID;
         emit mouseReleaseOnEntity(rayPickResult.entityID, MouseEvent(*event, deviceID));
@@ -768,7 +762,9 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event, unsigned int deviceI
     PerformanceTimer perfTimer("EntityTreeRenderer::mouseMoveEvent");
 
     PickRay ray = computePickRay(event->x(), event->y());
-    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock);
+    
+    bool precisionPicking = false; // for mouse moves we do not do precision picking
+    RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
         QScriptValueList entityScriptArgs = createMouseEventArgs(rayPickResult.entityID, event, deviceID);
 
@@ -885,6 +881,38 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
         EntityScriptDetails details = _entityScripts[oldEntityID];
         _entityScripts.remove(oldEntityID);
         _entityScripts[newEntityID] = details;
+    }
+}
+
+void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
+                                                    const Collision& collision) {
+    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
+    if (entityScript.property("collisionWithVoxel").isValid()) {
+        QScriptValueList args;
+        args << entityID.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScript.property("collisionWithVoxel").call(entityScript, args);
+    }
+}
+
+void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
+                                                    const Collision& collision) {
+    QScriptValue entityScriptA = loadEntityScript(idA);
+    if (entityScriptA.property("collisionWithEntity").isValid()) {
+        QScriptValueList args;
+        args << idA.toScriptValue(_entitiesScriptEngine);
+        args << idB.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
+    }
+
+    QScriptValue entityScriptB = loadEntityScript(idB);
+    if (entityScriptB.property("collisionWithEntity").isValid()) {
+        QScriptValueList args;
+        args << idB.toScriptValue(_entitiesScriptEngine);
+        args << idA.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
     }
 }
 

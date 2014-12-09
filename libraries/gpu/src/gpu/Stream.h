@@ -12,10 +12,10 @@
 #define hifi_gpu_Stream_h
 
 #include <assert.h>
-#include "InterfaceConfig.h"
+#include "GPUConfig.h"
 
-#include "gpu/Resource.h"
-#include "gpu/Format.h"
+#include "Resource.h"
+#include "Format.h"
 #include <vector>
 #include <map>
 

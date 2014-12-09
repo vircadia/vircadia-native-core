@@ -12,9 +12,9 @@
 #define hifi_gpu_Resource_h
 
 #include <assert.h>
-#include "InterfaceConfig.h"
+#include "GPUConfig.h"
 
-#include "gpu/Format.h"
+#include "Format.h"
 
 #include <vector>
 
