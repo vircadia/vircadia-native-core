@@ -14,6 +14,8 @@
 
 #include <AACube.h>
 
+#include "PhysicsEngineParams.h"
+
 #ifdef USE_BULLET_PHYSICS
 #include "ObjectMotionState.h"
 #else // USE_BULLET_PHYSICS
@@ -26,20 +28,35 @@ public:
 
 class EntityItem;
 
+// From the MotionState's perspective:
+//      Inside = physics simulation
+//      Outside = external agents (scripts, user interaction, other simulations)
+
 class EntityMotionState : public ObjectMotionState {
 public:
+    // The WorldOffset is used to keep the positions of objects in the simulation near the origin, to
+    // reduce numerical error when computing vector differences.  In other words: The EntityMotionState 
+    // class translates between the simulation-frame and the world-frame as known by the render pipeline, 
+    // various object trees, etc.  The EntityMotionState class uses a static "worldOffset" to help in
+    // the translations.
     static void setWorldOffset(const glm::vec3& offset);
     static const glm::vec3& getWorldOffset();
 
     EntityMotionState(EntityItem* item);
     virtual ~EntityMotionState();
 
-    MotionType getMotionType() const;
+    /// \return MOTION_TYPE_DYNAMIC or MOTION_TYPE_STATIC based on params set in EntityItem
+    MotionType computeMotionType() const;
 
 #ifdef USE_BULLET_PHYSICS
+    // this relays incoming position/rotation to the RigidBody
     void getWorldTransform (btTransform &worldTrans) const;
+
+    // this relays outgoing position/rotation to the EntityItem
     void setWorldTransform (const btTransform &worldTrans);
 #endif // USE_BULLET_PHYSICS
+
+    // these relay incoming values to the RigidBody
     void applyVelocities() const;
     void applyGravity() const;
 
@@ -47,9 +64,23 @@ public:
 
     void getBoundingCubes(AACube& oldCube, AACube& newCube);
 
+    bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
+
 protected:
     EntityItem* _entity;
     AACube _oldBoundingCube;
+
+    bool _sentMoving;
+    bool _notMoving;
+    bool _receivedNotMoving;
+    // TODO: Andrew to talk to Brad about what to do about lost packets ^^^
+
+    uint32_t _sentFrame;
+    glm::vec3 _sentPosition;
+    glm::quat _sentRotation;;
+    glm::vec3 _sentVelocity;
+    glm::vec3 _sentAngularVelocity;
+    glm::vec3 _sentGravity;
 };
 
 #endif // hifi_EntityMotionState_h

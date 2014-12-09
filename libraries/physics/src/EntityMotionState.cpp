@@ -16,21 +16,33 @@
 #endif // USE_BULLET_PHYSICS
 #include "EntityMotionState.h"
 
-// TODO: store _cachedWorldOffset in a more central location -- VoxelTree and others also need to know about it
+// TODO: store _worldOffset in a more central location -- VoxelTree and others also need to know about it
 // origin of physics simulation in world frame
-glm::vec3 _cachedWorldOffset(0.0f);
+glm::vec3 _worldOffset(0.0f);
 
 // static 
 void EntityMotionState::setWorldOffset(const glm::vec3& offset) {
-    _cachedWorldOffset = offset;
+    _worldOffset = offset;
 }
 
 // static 
 const glm::vec3& getWorldOffset() {
-    return _cachedWorldOffset;
+    return _worldOffset;
 }
 
-EntityMotionState::EntityMotionState(EntityItem* entity) : _entity(entity) {
+EntityMotionState::EntityMotionState(EntityItem* entity) 
+    :   _entity(entity),
+        _sentMoving(false),
+        _notMoving(true),
+        _recievedNotMoving(false),
+        _sentFrame(0),
+        _sentPosition(0.0f),
+        _sentRotation(),
+        _sentVelocity(0.0f),
+        _sentVelocity(0.0f),
+        _sentAngularVelocity(0.0f),
+        _sentGravity(0.0f)
+{
     assert(entity != NULL);
     _oldBoundingCube = _entity->getMaximumAACube();
 }
@@ -38,7 +50,7 @@ EntityMotionState::EntityMotionState(EntityItem* entity) : _entity(entity) {
 EntityMotionState::~EntityMotionState() {
 }
 
-MotionType EntityMotionState::getMotionType() const {
+MotionType EntityMotionState::computeMotionType() const {
     // HACK: According to EntityTree the meaning of "static" is "not moving" whereas
     // to Bullet it means "can't move".  For demo purposes we temporarily interpret
     // Entity::weightless to mean Bullet::static.
@@ -53,7 +65,7 @@ MotionType EntityMotionState::getMotionType() const {
 //     it is an opportunity for outside code to update the object's simulation position
 void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
     btVector3 pos;
-    glmToBullet(_entity->getPositionInMeters() - _cachedWorldOffset, pos);
+    glmToBullet(_entity->getPositionInMeters() - _worldOffset, pos);
     worldTrans.setOrigin(pos);
 
     btQuaternion rot;
@@ -70,7 +82,7 @@ void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
     if (! (updateFlags &  EntityItem::UPDATE_POSITION)) {
         glm::vec3 pos;
         bulletToGLM(worldTrans.getOrigin(), pos);
-        _entity->setPositionInMeters(pos + _cachedWorldOffset);
+        _entity->setPositionInMeters(pos + _worldOffset);
     
         glm::quat rot;
         bulletToGLM(worldTrans.getRotation(), rot);
@@ -116,3 +128,42 @@ void EntityMotionState::getBoundingCubes(AACube& oldCube, AACube& newCube) {
     _oldBoundingCube = newCube;
 }
 
+const float FIXED_SUBSTEP = 1.0f / 60.0f;
+bool EntityMotionState::shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const {
+    // TODO: Andrew to test this and make sure it works as expected
+    assert(_body);
+    float dt = (float)(simulationFrame - _sentFrame) * FIXED_SUBSTEP + subStepRemainder;
+    const float DEFAULT_UPDATE_PERIOD = 10.0f;j
+    if (dt > DEFAULT_UPDATE_PERIOD) {
+        return ! (_notMoving && _recievedNotMoving);
+    }
+    if (_sentMoving && _notMoving) {
+        return true;
+    }
+
+    // compute position error
+    glm::vec3 expectedPosition = _sentPosition + dt * (_sentVelocity + (0.5f * dt) * _sentGravity);
+
+    glm::vec3 actualPos;
+    btTransform worldTrans = _body->getWorldTransform();
+    bulletToGLM(worldTrans.getOrigin(), actualPos);
+    
+    float dx2 = glm::length2(actualPosition - expectedPosition);
+    const MAX_POSITION_ERROR_SQUARED = 0.001; // 0.001 m^2 ~~> 0.03 m
+    if (dx2 > MAX_POSITION_ERROR_SQUARED) {
+        return true;
+    }
+
+    // compute rotation error
+    float spin = glm::length(_sentAngularVelocity);
+    glm::quat expectedRotation = _sentRotation;
+    const float MIN_SPIN = 1.0e-4f;
+    if (spin > MIN_SPIN) {
+        glm::vec3 axis = _sentAngularVelocity / spin;
+        expectedRotation = glm::angleAxis(dt * spin, axis) * _sentRotation;
+    }
+    const float MIN_ROTATION_DOT = 0.98f;
+    glm::quat actualRotation;
+    bulletToGLM(worldTrans.getRotation(), actualRotation);
+    return (glm::dot(actualRotation, expectedRotation) < MIN_ROTATION_DOT);
+}

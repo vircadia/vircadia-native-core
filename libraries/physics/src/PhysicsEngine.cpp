@@ -25,7 +25,8 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
         _constraintSolver(NULL), 
         _dynamicsWorld(NULL),
         _originOffset(offset),
-        _voxels() {
+        _voxels(),
+        _frameCount(0) {
 }
 
 PhysicsEngine::~PhysicsEngine() {
@@ -38,41 +39,85 @@ void PhysicsEngine::setEntityTree(EntityTree* tree) {
     _entityTree = tree;
 }
 
-/// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
-void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
-    // relay changes
-    QSet<EntityItem*>::iterator item_itr = _changedEntities.begin();
-    while (item_itr != _changedEntities.end()) {
+void PhysicsEngine::relayIncomingChangesToSimulation() {
+    // process incoming changes
+    QSet<EntityItem*>::iterator item_itr = _incomingPhysics.begin();
+    while (item_itr != _incomingPhysics.end()) {
         EntityItem* entity = *item_itr;
         void* physicsInfo = entity->getPhysicsInfo();
         if (physicsInfo) {
             ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+            uint32_t preOutgoingFlags = motionState->getOutgoingUpdateFlags();
             updateObject(motionState, entity->getUpdateFlags());
+            uint32_t postOutgoingFlags = motionState->getOutgoingUpdateFlags();
+            if (preOutgoingFlags && !postOutgoingFlags) {
+                _outgoingPhysics.remove(entity);
+            }
         }
         entity->clearUpdateFlags();
         ++item_itr;
     } 
-    _changedEntities.clear();
+    _incomingPhysics.clear();
+}
 
-    // hunt for entities who have expired
-    // TODO: make EntityItems use an expiry to make this work faster.
-    item_itr = _mortalEntities.begin();
-    while (item_itr != _mortalEntities.end()) {
+/// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
+void PhysicsEngine::updateEntities(QSet<EntityItem*>& entitiesToDelete) {
+    // TODO: Andrew to make this work.
+    EnitySimulation::updateEntities(entitiesToDelete);
+
+    item_itr = _outgoingPhysics.begin();
+    uint32_t simulationFrame = getSimulationFrame();
+    float subStepRemainder = getSubStepRemainder();
+    while (item_itr != _outgoingPhysics.end()) {
         EntityItem* entity = *item_itr;
-        // always check to see if the lifetime has expired, for immortal entities this is always false
-        if (entity->lifetimeHasExpired()) {
-            qDebug() << "Lifetime has expired for entity:" << entity->getEntityItemID();
-            entitiesToDelete.insert(entity);
-            // remove entity from the list
-            item_itr = _mortalEntities.erase(item_itr);
-            _entities.remove(entity);
-        } else if (entity->isImmortal()) {
-            // remove entity from the list
-            item_itr = _mortalEntities.erase(item_itr);
-        } else {
-            ++item_itr;
+        void* physicsInfo = entity->getPhysicsInfo();
+        if (physicsInfo) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+            if (motionState->shouldSendUpdate(simulationFrame, subStepRemainder)) {
+                EntityItemProperties properties = entity->getProperties();
+                motionState->pushToProperties(properties);
+
+                /*
+                properties.setVelocity(newVelocity);
+                properties.setPosition(newPosition);
+                properties.setRotation(newRotation);
+                properties.setAngularVelocity(newAngularVelocity);
+                properties.setLastEdited(now);
+                */
+        
+                EntityItemID id(entity->getID());
+                _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, id, properties);
+                ++itemItr;
+            } else if (motionState->shouldRemoveFromOutgoingPhysics()) {
+                itemItr = _outgoingPhysics.erase(itemItr);
+            } else {
+                ++itemItr;
+            }
         }
     }
+
+    item_itr = _movedEntities.begin();
+    AACube domainBounds(glm::vec3(0.0f,0.0f,0.0f), 1.0f);
+    while (item_itr != _movedEntities.end()) {
+        EntityItem* entity = *item_itr;
+        void* physicsInfo = entity->getPhysicsInfo();
+        if (physicsInfo) {
+            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+    
+            AACube oldCube, newCube;
+            motionState->getBoundingCubes(oldCube, newCube);
+    
+            // check to see if this movement has sent the entity outside of the domain.
+            if (!domainBounds.touches(newCube)) {
+                //qDebug() << "Entity " << entity->getEntityItemID() << " moved out of domain bounds.";
+                entitiesToDelete << entity->getEntityItemID();
+                clearEntityState(entity);
+            } else if (newCube != oldCube) {
+                moveOperator.addEntityToMoveList(entity, oldCube, newCube);
+            }
+        }
+    }
+
     // TODO: check for entities that have exited the world boundaries
 }
 
@@ -84,9 +129,6 @@ void PhysicsEngine::addEntity(EntityItem* entity) {
     if (!physicsInfo) {
         assert(!_entities.contains(entity));
         _entities.insert(entity);
-        if (entity->isMortal()) {
-            _mortalEntities.insert(entity);
-        }
         EntityMotionState* motionState = new EntityMotionState(entity);
         if (addObject(motionState)) {
             entity->setPhysicsInfo(static_cast<void*>(motionState));
@@ -108,12 +150,11 @@ void PhysicsEngine::removeEntity(EntityItem* entity) {
         entity->setPhysicsInfo(NULL);
     }
     _entities.remove(entity);
-    _mortalEntities.remove(entity);
 }
 
 /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
 void PhysicsEngine::entityChanged(EntityItem* entity) {
-    _changedEntities.insert(entity);
+    _incomingPhysics.insert(entity);
 }
 
 void PhysicsEngine::clearEntities() {
@@ -127,8 +168,7 @@ void PhysicsEngine::clearEntities() {
         }
     }
     _entities.clear();
-    _changedEntities.clear();
-    _mortalEntities.clear();
+    _incomingPhysics.clear();
 }
 
 // virtual
@@ -165,15 +205,18 @@ void PhysicsEngine::init() {
     }
 }
 
+const float FIXED_SUBSTEP = 1.0f / 60.0f;
+
 void PhysicsEngine::stepSimulation() {
-    const float MAX_TIMESTEP = 1.0f / 30.0f;
-    const int MAX_NUM_SUBSTEPS = 2;
-    const float FIXED_SUBSTEP = 1.0f / 60.0f;
+    const int MAX_NUM_SUBSTEPS = 4;
+    const float MAX_TIMESTEP = (float)MAX_NUM_SUBSTEPS * FIXED_SUBSTEP;
 
     float dt = 1.0e-6f * (float)(_clock.getTimeMicroseconds());
     _clock.reset();
     float timeStep = btMin(dt, MAX_TIMESTEP);
-    _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
+    // TODO: Andrew to build a list of outgoingChanges when motionStates are synched, then send the updates out
+    int numSubSteps = _dynamicsWorld->stepSimulation(timeStep, MAX_NUM_SUBSTEPS, FIXED_SUBSTEP);
+    _frameCount += (uint32_t)numSubSteps;
 }
 
 bool PhysicsEngine::addVoxel(const glm::vec3& position, float scale) {
@@ -250,7 +293,7 @@ bool PhysicsEngine::addObject(ObjectMotionState* motionState) {
         btVector3 inertia(0.0f, 0.0f, 0.0f);
         float mass = 0.0f;
         btRigidBody* body = NULL;
-        switch(motionState->getMotionType()) {
+        switch(motionState->computeMotionType()) {
             case MOTION_TYPE_KINEMATIC: {
                 body = new btRigidBody(mass, motionState, shape, inertia);
                 body->setCollisionFlags(btCollisionObject::CF_KINEMATIC_OBJECT);
@@ -322,7 +365,7 @@ bool PhysicsEngine::updateObject(ObjectMotionState* motionState, uint32_t flags)
 
 // private
 void PhysicsEngine::updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags) {
-    MotionType newType = motionState->getMotionType();
+    MotionType newType = motionState->computeMotionType();
 
     // pull body out of physics engine
     _dynamicsWorld->removeRigidBody(body);

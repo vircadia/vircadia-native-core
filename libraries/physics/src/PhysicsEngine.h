@@ -112,6 +112,18 @@ public:
     /// \return true if entity updated
     bool updateObject(ObjectMotionState* motionState, uint32_t flags);
 
+    /// \return duration of fixed simulation substep
+    float getFixedSubStep() const;
+
+    /// \return number of simulation frames the physics engine has taken
+    uint32_t getFrameCount() const { return _frameCount; }
+
+    /// \return substep remainder used for Bullet MotionState extrapolation
+    // Bullet will extrapolate the positions provided to MotionState::setWorldTransform() in an effort to provide 
+    // smoother visible motion when the render frame rate does not match that of the simulation loop.  We provide 
+    // access to this fraction for improved filtering of update packets to interested parties.
+    float getSubStepRemainder() { _dynamicsWorld->getLocalTimeAccumulation(); }
+
 protected:
     void updateObjectHard(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
     void updateObjectEasy(btRigidBody* body, ObjectMotionState* motionState, uint32_t flags);
@@ -129,9 +141,11 @@ private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
 
     // EntitySimulation stuff
-    QSet<EntityItem*> _entities;
-    QSet<EntityItem*> _changedEntities;
-    QSet<EntityItem*> _mortalEntities;
+    QSet<EntityItem*> _entities; // all entities that we track
+    QSet<EntityItem*> _incomingPhysics; // entities with pending physics changes by script or packet
+    QSet<EntityItem*> _outgoingPhysics; // entites with pending transform changes by physics simulation
+
+    uint32_t _frameCount;
 };
 
 #else // USE_BULLET_PHYSICS
