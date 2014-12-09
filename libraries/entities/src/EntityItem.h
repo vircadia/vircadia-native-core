@@ -307,8 +307,6 @@ public:
 
     void* getPhysicsInfo() const { return _physicsInfo; }
     void setPhysicsInfo(void* data) { _physicsInfo = data; }
-    SimulationState getSimulationState() const { return _simulationState; }
-    void setSimulationState(SimulationState state) { _simulationState = state; }
     
 protected:
 
@@ -358,7 +356,6 @@ protected:
     // _physicsInfo is a hook reserved for use by the EntitySimulation, which is guaranteed to set _physicsInfo 
     // to a non-NULL value when the EntityItem has a representation in the physics engine.
     void* _physicsInfo; // only set by EntitySimulation
-    SimulationState _simulationState; // only set by EntitySimulation
     AACube _oldMaximumAACube;   // remember this so we know where the entity used to live in the tree
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
