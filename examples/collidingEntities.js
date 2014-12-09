@@ -43,7 +43,6 @@ function draw(deltaTime) {
 
         var properties = {
             type: "Sphere",
-            script: "file:///Users/zappoman/Development/HiFi/hifi/examples/entityScripts/changeColorOnCollision.js",
             collisionsWillMove: true,
             position: startPosition, 
             dimensions: {x: largeRadius, y: largeRadius, z: largeRadius},
@@ -85,7 +84,6 @@ function draw(deltaTime) {
         if (numberEntitiesAdded <= MAX_ENTITIES) {
             var properties = {
                 type: "Sphere",
-                script: "file:///Users/zappoman/Development/HiFi/hifi/examples/entityScripts/changeColorOnCollision.js",
                 collisionsWillMove: true,
                 position: center, 
                 dimensions: {x: entitySize, y: entitySize, z: entitySize},
