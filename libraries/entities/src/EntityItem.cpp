@@ -29,7 +29,7 @@ const float EntityItem::DEFAULT_LOCAL_RENDER_ALPHA = 1.0f;
 const float EntityItem::DEFAULT_MASS = 1.0f;
 const float EntityItem::DEFAULT_LIFETIME = EntityItem::IMMORTAL;
 const QString EntityItem::DEFAULT_USER_DATA = QString("");
-const float EntityItem::DEFAULT_DAMPING = 0.5f;
+const float EntityItem::DEFAULT_DAMPING = 2.0f;
 const glm::vec3 EntityItem::NO_VELOCITY = glm::vec3(0, 0, 0);
 const float EntityItem::EPSILON_VELOCITY_LENGTH = (1.0f / 1000.0f) / (float)TREE_SCALE; // really small: 1mm/second
 const glm::vec3 EntityItem::DEFAULT_VELOCITY = EntityItem::NO_VELOCITY;
@@ -42,7 +42,7 @@ const glm::vec3 EntityItem::DEFAULT_DIMENSIONS = glm::vec3(0.1f, 0.1f, 0.1f);
 const glm::vec3 EntityItem::DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f); // center
 const glm::vec3 EntityItem::NO_ANGULAR_VELOCITY = glm::vec3(0.0f, 0.0f, 0.0f);
 const glm::vec3 EntityItem::DEFAULT_ANGULAR_VELOCITY = NO_ANGULAR_VELOCITY;
-const float EntityItem::DEFAULT_ANGULAR_DAMPING = 0.5f;
+const float EntityItem::DEFAULT_ANGULAR_DAMPING = 2.0f;
 const bool EntityItem::DEFAULT_VISIBLE = true;
 const bool EntityItem::DEFAULT_IGNORE_FOR_COLLISIONS = false;
 const bool EntityItem::DEFAULT_COLLISIONS_WILL_MOVE = false;
@@ -58,6 +58,7 @@ void EntityItem::initFromEntityItemID(const EntityItemID& entityItemID) {
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
     
+    _lastSimulated = 0;
     _lastUpdated = 0;
     _created = 0; // TODO: when do we actually want to make this "now"
     _changedOnServer = 0;
@@ -88,12 +89,12 @@ EntityItem::EntityItem(const EntityItemID& entityItemID) {
     _lastEdited = 0;
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
+    _lastSimulated = 0;
     _lastUpdated = 0;
     _created = 0;
-    _updateFlags = 0;
+    _dirtyFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
-    _simulationState = EntityItem::Static;
 }
 
 EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties) {
@@ -101,13 +102,13 @@ EntityItem::EntityItem(const EntityItemID& entityItemID, const EntityItemPropert
     _lastEdited = 0;
     _lastEditedFromRemote = 0;
     _lastEditedFromRemoteInRemoteTime = 0;
+    _lastSimulated = 0;
     _lastUpdated = 0;
     _created = properties.getCreated();
-    _updateFlags = 0;
+    _dirtyFlags = 0;
     _changedOnServer = 0;
     initFromEntityItemID(entityItemID);
     setProperties(properties, true); // force copy
-    _simulationState = EntityItem::Static;
 }
 
 EntityPropertyFlags EntityItem::getEntityProperties(EncodeBitstreamParams& params) const {
@@ -154,7 +155,7 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
     ByteCountCoded<quint32> typeCoder = getType();
     QByteArray encodedType = typeCoder;
 
-    quint64 updateDelta = getLastUpdated() <= getLastEdited() ? 0 : getLastUpdated() - getLastEdited();
+    quint64 updateDelta = getLastSimulated() <= getLastEdited() ? 0 : getLastSimulated() - getLastEdited();
     ByteCountCoded<quint64> updateDeltaCoder = updateDelta;
     QByteArray encodedUpdateDelta = updateDeltaCoder;
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
@@ -450,9 +451,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         ByteCountCoded<quint64> updateDeltaCoder = encodedUpdateDelta;
         quint64 updateDelta = updateDeltaCoder;
         if (overwriteLocalData) {
-            _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
+            _lastSimulated = _lastUpdated = lastEditedFromBufferAdjusted + updateDelta; // don't adjust for clock skew since we already did that for _lastEdited
             if (wantDebug) {
-                qDebug() << "_lastUpdated=" << _lastUpdated;
+                qDebug() << "_lastUpdated =" << _lastUpdated;
                 qDebug() << "_lastEdited=" << _lastEdited;
                 qDebug() << "lastEditedFromBufferAdjusted=" << lastEditedFromBufferAdjusted;
             }
@@ -565,20 +566,20 @@ bool EntityItem::isRestingOnSurface() const {
             && _gravity.y < 0.0f;
 }
 
-void EntityItem::update(const quint64& updateTime) {
+void EntityItem::simulate(const quint64& now) {
     bool wantDebug = false;
     
-    if (_lastUpdated == 0) {
-        _lastUpdated = updateTime;
+    if (_lastSimulated == 0) {
+        _lastSimulated = now;
     }
 
-    float timeElapsed = (float)(updateTime - _lastUpdated) / (float)(USECS_PER_SECOND);
+    float timeElapsed = (float)(now - _lastSimulated) / (float)(USECS_PER_SECOND);
 
     if (wantDebug) {
         qDebug() << "********** EntityItem::update()";
         qDebug() << "    entity ID=" << getEntityItemID();
-        qDebug() << "    updateTime=" << updateTime;
-        qDebug() << "    _lastUpdated=" << _lastUpdated;
+        qDebug() << "    now=" << now;
+        qDebug() << "    _lastSimulated=" << _lastSimulated;
         qDebug() << "    timeElapsed=" << timeElapsed;
         qDebug() << "    hasVelocity=" << hasVelocity();
         qDebug() << "    hasGravity=" << hasGravity();
@@ -611,10 +612,10 @@ void EntityItem::update(const quint64& updateTime) {
         }
     }
 
-    _lastUpdated = updateTime;
+    _lastSimulated = now;
 
     if (wantDebug) {
-        qDebug() << "     ********** EntityItem::update() .... SETTING _lastUpdated=" << _lastUpdated;
+        qDebug() << "     ********** EntityItem::update() .... SETTING _lastSimulated=" << _lastSimulated;
     }
 
     if (hasAngularVelocity()) {
@@ -631,13 +632,13 @@ void EntityItem::update(const quint64& updateTime) {
             setRotation(rotation);
 
             // handle damping for angular velocity
-            if (getAngularDamping() > 0.0f) {
-                glm::vec3 dampingResistance = getAngularVelocity() * getAngularDamping();
-                glm::vec3 newAngularVelocity = getAngularVelocity() - (dampingResistance * timeElapsed);
+            float dampingTimescale = getAngularDamping();
+            if (dampingTimescale > 0.0f) {
+                float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
+                glm::vec3 newAngularVelocity = (1.0f - dampingFactor) * getAngularVelocity();
                 setAngularVelocity(newAngularVelocity);
                 if (wantDebug) {        
-                    qDebug() << "    getDamping():" << getDamping();
-                    qDebug() << "    dampingResistance:" << dampingResistance;
+                    qDebug() << "    dampingTimescale :" << dampingTimescale;
                     qDebug() << "    newAngularVelocity:" << newAngularVelocity;
                 }
             }
@@ -688,13 +689,15 @@ void EntityItem::update(const quint64& updateTime) {
         }
 
         // handle damping for velocity
-        glm::vec3 dampingResistance = velocity * getDamping();
-        if (wantDebug) {        
-            qDebug() << "    getDamping():" << getDamping();
-            qDebug() << "    dampingResistance:" << dampingResistance;
-            qDebug() << "    dampingResistance * timeElapsed:" << dampingResistance * timeElapsed;
+        float dampingTimescale = getDamping();
+        if (dampingTimescale > 0.0f) {
+            float dampingFactor = glm::clamp(timeElapsed / dampingTimescale, 0.0f, 1.0f);
+            velocity *= (1.0f - dampingFactor);
+            if (wantDebug) {        
+                qDebug() << "    dampingTimescale:" << dampingTimescale;
+                qDebug() << "    newVelocity:" << velocity;
+            }
         }
-        velocity -= dampingResistance * timeElapsed;
 
         if (wantDebug) {        
             qDebug() << "    velocity AFTER dampingResistance:" << velocity;
@@ -707,6 +710,7 @@ void EntityItem::update(const quint64& updateTime) {
             velocity = NO_VELOCITY;
         }
 
+        // NOTE: the simulation should NOT set any DirtyFlags on this entity
         setPosition(position); // this will automatically recalculate our collision shape
         setVelocity(velocity);
         
@@ -719,18 +723,16 @@ void EntityItem::update(const quint64& updateTime) {
     }
 }
 
-EntityItem::SimulationState EntityItem::computeSimulationState() const {
-    if (hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity()) {
-        return EntityItem::Moving;
-    }
-    if (isMortal()) {
-        return EntityItem::Mortal;
-    }
-    return EntityItem::Static;
+bool EntityItem::isMoving() const {
+    return hasVelocity() || (hasGravity() && !isRestingOnSurface()) || hasAngularVelocity();
 }
 
 bool EntityItem::lifetimeHasExpired() const { 
     return isMortal() && (getAge() > getLifetime()); 
+}
+
+quint64 EntityItem::getExpiry() const {
+    return _created + (quint64)(_lifetime * (float)USECS_PER_SECOND);
 }
 
 EntityItemProperties EntityItem::getProperties() const {
@@ -778,23 +780,23 @@ bool EntityItem::setProperties(const EntityItemProperties& properties, bool forc
         }
     }
 
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, setPositionInMeters); // this will call recalculate collision shape if needed
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, setDimensionsInMeters); // NOTE: radius is obsolete
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, setRotation);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, setMass);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, setVelocityInMeters);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, setGravityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(position, updatePositionInMeters); // this will call recalculate collision shape if needed
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(dimensions, updateDimensionsInMeters); // NOTE: radius is obsolete
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(rotation, updateRotation);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(mass, updateMass);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(velocity, updateVelocityInMeters);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(gravity, updateGravityInMeters);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(damping, setDamping);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, setLifetime);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, updateScript);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(registrationPoint, setRegistrationPoint);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, setAngularVelocity);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularVelocity, updateAngularVelocity);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(angularDamping, setAngularDamping);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(glowLevel, setGlowLevel);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, setIgnoreForCollisions);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, setCollisionsWillMove);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(ignoreForCollisions, updateIgnoreForCollisions);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionsWillMove, updateCollisionsWillMove);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
 
@@ -948,7 +950,7 @@ void EntityItem::updatePosition(const glm::vec3& value) {
     if (_position != value) {
         _position = value; 
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_POSITION;
+        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
@@ -957,7 +959,7 @@ void EntityItem::updatePositionInMeters(const glm::vec3& value) {
     if (_position != position) {
         _position = position;
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_POSITION;
+        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
@@ -965,7 +967,7 @@ void EntityItem::updateDimensions(const glm::vec3& value) {
     if (_dimensions != value) {
         _dimensions = value; 
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_SHAPE;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE;
     }
 }
 
@@ -974,7 +976,7 @@ void EntityItem::updateDimensionsInMeters(const glm::vec3& value) {
     if (_dimensions != dimensions) {
         _dimensions = dimensions; 
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_SHAPE;
+        _dirtyFlags |= EntityItem::DIRTY_SHAPE;
     }
 }
 
@@ -982,21 +984,21 @@ void EntityItem::updateRotation(const glm::quat& rotation) {
     if (_rotation != rotation) {
         _rotation = rotation; 
         recalculateCollisionShape();
-        _updateFlags |= EntityItem::UPDATE_POSITION;
+        _dirtyFlags |= EntityItem::DIRTY_POSITION;
     }
 }
 
 void EntityItem::updateMass(float value) {
     if (_mass != value) {
         _mass = value;
-        _updateFlags |= EntityItem::UPDATE_MASS;
+        _dirtyFlags |= EntityItem::DIRTY_MASS;
     }
 }
 
 void EntityItem::updateVelocity(const glm::vec3& value) { 
     if (_velocity != value) {
         _velocity = value;
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
@@ -1004,14 +1006,14 @@ void EntityItem::updateVelocityInMeters(const glm::vec3& value) {
     glm::vec3 velocity = value / (float) TREE_SCALE; 
     if (_velocity != velocity) {
         _velocity = velocity;
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateGravity(const glm::vec3& value) { 
     if (_gravity != value) {
         _gravity = value; 
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
@@ -1019,36 +1021,42 @@ void EntityItem::updateGravityInMeters(const glm::vec3& value) {
     glm::vec3 gravity = value / (float) TREE_SCALE;
     if (_gravity != gravity) {
         _gravity = gravity;
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateAngularVelocity(const glm::vec3& value) { 
     if (_angularVelocity != value) {
         _angularVelocity = value; 
-        _updateFlags |= EntityItem::UPDATE_VELOCITY;
+        _dirtyFlags |= EntityItem::DIRTY_VELOCITY;
     }
 }
 
 void EntityItem::updateIgnoreForCollisions(bool value) { 
     if (_ignoreForCollisions != value) {
         _ignoreForCollisions = value; 
-        _updateFlags |= EntityItem::UPDATE_COLLISION_GROUP;
+        _dirtyFlags |= EntityItem::DIRTY_COLLISION_GROUP;
     }
 }
 
 void EntityItem::updateCollisionsWillMove(bool value) { 
     if (_collisionsWillMove != value) {
         _collisionsWillMove = value; 
-        _updateFlags |= EntityItem::UPDATE_MOTION_TYPE;
+        _dirtyFlags |= EntityItem::DIRTY_MOTION_TYPE;
     }
 }
 
 void EntityItem::updateLifetime(float value) {
     if (_lifetime != value) {
         _lifetime = value;
-        _updateFlags |= EntityItem::UPDATE_LIFETIME;
+        _dirtyFlags |= EntityItem::DIRTY_LIFETIME;
     }
 }
 
+void EntityItem::updateScript(const QString& value) { 
+    if (_script != value) {
+        _script = value; 
+        _dirtyFlags |= EntityItem::DIRTY_SCRIPT;
+    }
+}
 

@@ -46,7 +46,7 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData);
 
     virtual void update(const quint64& now);
-    virtual SimulationState computeSimulationState() const;
+    virtual bool needsToCallUpdate() const;
     virtual void debugDump() const;
 
 

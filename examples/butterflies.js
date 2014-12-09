@@ -103,6 +103,9 @@ function updateButterflies(deltaTime) {
         var CHANCE_OF_IMPULSE = 0.04;
         for (var i = 0; i < numButterflies; i++) {
             if (Math.random() < CHANCE_OF_IMPULSE) {
+                if (!butterflies[i].isKnownID) {
+                    butterflies[i] = Entities.identifyEntity(butterflies[i]);
+                }
                 var properties = Entities.getEntityProperties(butterflies[i]);
                 if (Vec3.length(Vec3.subtract(properties.position, flockPosition)) > range) {
                     Entities.editEntity(butterflies[i], { position: flockPosition } );

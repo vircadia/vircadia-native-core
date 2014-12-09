@@ -140,24 +140,22 @@ var toolBar = (function () {
         menuItemHeight = Tool.IMAGE_HEIGHT / 2 - 2;
 
         loadURLMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model URL",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
         loadFileMenuItem = Overlays.addOverlay("text", {
-            x: newModelButton.x - menuItemWidth,
-            y: newModelButton.y + menuItemOffset + menuItemHeight,
             height: menuItemHeight,
             backgroundColor: menuBackgroundColor,
             topMargin: menuItemMargin,
             text: "Model File",
             alpha: 0.9,
+            backgroundAlpha: 0.9,
             visible: false
         });
 
@@ -465,7 +463,7 @@ function rayPlaneIntersection(pickRay, point, normal) {
 function findClickedEntity(event) {
     var pickRay = Camera.computePickRay(event.x, event.y);
 
-    var foundIntersection = Entities.findRayIntersection(pickRay);
+    var foundIntersection = Entities.findRayIntersection(pickRay, true); // want precision picking
 
     if (!foundIntersection.accurate) {
         return null;

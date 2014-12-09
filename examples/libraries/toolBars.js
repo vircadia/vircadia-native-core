@@ -138,6 +138,7 @@ ToolBar = function(x, y, direction) {
                     width: this.width,
                     height: this.height,
                     alpha: 1.0,
+                    backgroundAlpha: 1.0,
                     visible: false
                 });
     this.spacing = [];
@@ -243,7 +244,10 @@ ToolBar = function(x, y, direction) {
                 this.tools[tool].setAlpha(alpha);
             }
             if (this.back != null) {
-                Overlays.editOverlay(this.back, { alpha: alpha});
+                Overlays.editOverlay(this.back, {
+                    alpha: alpha,
+                    backgroundAlpha: alpha
+                });
             }
         } else {
             this.tools[tool].setAlpha(alpha);
@@ -263,7 +267,7 @@ ToolBar = function(x, y, direction) {
                                  ((direction == ToolBar.VERTICAL) ? 1 : 2) * ToolBar.SPACING,
                                  visible: true,
                                  backgroundColor: color,
-                                 alpha: alpha
+                                 backgroundAlpha: alpha
                                  });
         }
     }

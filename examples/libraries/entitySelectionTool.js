@@ -368,6 +368,7 @@ SelectionDisplay = (function () {
                     color: { red: 0, green: 0, blue: 0},
                     backgroundColor: { red: 255, green: 255, blue: 255 },
                     alpha: 0.7,
+                    backgroundAlpha: 0.7,
                     visible: false,
                     isFacingAvatar: true,
                     drawInFront: true,
@@ -1772,17 +1773,27 @@ SelectionDisplay = (function () {
                 var centerToZero = Vec3.subtract(center, zero);
                 var centerToIntersect = Vec3.subtract(center, result.intersection);
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
-                
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
                 var snapToInner = distanceFromCenter < innerRadius;
                 var snapAngle = snapToInner ? innerSnapAngle : 1.0;
-                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-                
+
                 // for debugging
                 if (debug) {
                     Vec3.print("    result.intersection:",result.intersection);
                     Overlays.editOverlay(rotateCurrentOverlay, { visible: true, start: center,  end: result.intersection });
+                    Vec3.print("    centerToZero:", centerToZero);
+                    Vec3.print("    centerToIntersect:", centerToIntersect);
+                    Vec3.print("    rotationNormal:", rotationNormal);
                     print("    angleFromZero:" + angleFromZero);
+                    print("    distanceFromCenter:" + distanceFromCenter);
+                    print("    snapAngle:" + snapAngle);
+                }
+                
+                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
+                
+                // for debugging
+                if (debug) {
+                    print("    angleFromZero:" + angleFromZero + " --- after snap");
                 }
 
                 var yawChange = Quat.fromVec3Degrees({ x: 0, y: angleFromZero, z: 0 });

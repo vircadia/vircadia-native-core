@@ -54,6 +54,7 @@ Model::Model(QObject* parent) :
     _blendNumber(0),
     _appliedBlendNumber(0),
     _calculatedMeshBoxesValid(false),
+    _calculatedMeshTrianglesValid(false),
     _meshGroupsKnown(false) {
     
     // we may have been created in the network thread, but we live in the main thread
@@ -269,7 +270,7 @@ void Model::init() {
         _program.addShaderFromSourceFile(QGLShader::Vertex, Application::resourcesPath() + "shaders/model.vert");
         _program.addShaderFromSourceFile(QGLShader::Fragment, Application::resourcesPath() + "shaders/model.frag");
         _program.link();
-        
+
         initProgram(_program, _locations);
         
         _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex,
@@ -515,8 +516,61 @@ void Model::setJointStates(QVector<JointState> states) {
     _boundingRadius = radius;
 }
 
-bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction,
-                                                        float& distance, BoxFace& face, QString& extraInfo) const {
+bool Model::renderTriangleProxies() {
+    if (!isActive()) {
+        return false;
+    }
+    if (_calculatedMeshTrianglesValid) {
+        int color = 0;
+        foreach (const QVector<Triangle>& meshTriangles, _calculatedMeshTriangles) {
+            switch(color) {
+                case  0: glColor3ub(  0,   0, 255); break;
+                case  1: glColor3ub(  0, 255,   0); break;
+                case  2: glColor3ub(  0, 255, 255); break;
+                case  3: glColor3ub(255,   0,   0); break;
+                case  4: glColor3ub(255,   0, 255); break;
+                case  5: glColor3ub(255, 255,   0); break;
+                case  6: glColor3ub(  0,   0, 128); break;
+                case  7: glColor3ub(  0, 128,   0); break;
+                case  8: glColor3ub(  0, 128, 128); break;
+                case  9: glColor3ub(128,   0,   0); break;
+                case 10: glColor3ub(128,   0, 128); break;
+                case 11: glColor3ub(128, 128,   0); break;
+                case 12: glColor3ub(128, 128, 255); break;
+                case 13: glColor3ub(128, 255, 128); break;
+                case 14: glColor3ub(128, 255, 255); break;
+                case 15: glColor3ub(255, 128, 128); break;
+                case 16: glColor3ub(255, 128, 255); break;
+                case 17: glColor3ub(255, 255, 128); break;
+                default: glColor3ub(255,255, 255); break;
+            }
+            
+            if (_calculatedMeshBoxes.size() > color) {
+                const AABox& box = _calculatedMeshBoxes[color];
+                glm::vec3 center = box.calcCenter();
+                glm::vec3 dimensions = box.getDimensions();
+                glPushMatrix();
+                    glTranslatef(center.x, center.y, center.z);
+                    glScalef(dimensions.x, dimensions.y, dimensions.z);
+                    Application::getInstance()->getDeferredLightingEffect()->renderWireCube(1.0f);
+                glPopMatrix();
+            }
+
+            glBegin(GL_TRIANGLES);
+            foreach (const Triangle& triangle, meshTriangles) {
+                glVertex3f( triangle.v0.x,  triangle.v0.y,  triangle.v0.z); 
+                glVertex3f( triangle.v1.x,  triangle.v1.y,  triangle.v1.z); 
+                glVertex3f( triangle.v2.x,  triangle.v2.y,  triangle.v2.z); 
+            }
+            glEnd();
+            color++;
+        }
+    }
+    return _calculatedMeshTrianglesValid;
+}
+
+bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+                                                    BoxFace& face, QString& extraInfo, bool pickAgainstTriangles) {
 
     bool intersectedSomething = false;
 
@@ -524,7 +578,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     if (!isActive()) {
         return intersectedSomething;
     }
-
+    
     // extents is the entity relative, scaled, centered extents of the entity
     glm::vec3 position = _translation;
     glm::mat4 rotation = glm::mat4_cast(_rotation);
@@ -535,34 +589,69 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     Extents modelExtents = getMeshExtents(); // NOTE: unrotated
     
     glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-    glm::vec3 corner = dimensions * -0.5f; // since we're going to do the ray picking in the model frame of reference
-    AABox overlayFrameBox(corner, dimensions);
+    glm::vec3 corner = -(dimensions * _registrationPoint); // since we're going to do the ray picking in the model frame of reference
+    AABox modelFrameBox(corner, dimensions);
 
     glm::vec3 modelFrameOrigin = glm::vec3(worldToModelMatrix * glm::vec4(origin, 1.0f));
     glm::vec3 modelFrameDirection = glm::vec3(worldToModelMatrix * glm::vec4(direction, 0.0f));
 
     // we can use the AABox's ray intersection by mapping our origin and direction into the model frame
     // and testing intersection there.
-    if (overlayFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
+    if (modelFrameBox.findRayIntersection(modelFrameOrigin, modelFrameDirection, distance, face)) {
 
         float bestDistance = std::numeric_limits<float>::max();
+        float bestTriangleDistance = std::numeric_limits<float>::max();
+        bool someTriangleHit = false;
+
         float distanceToSubMesh;
         BoxFace subMeshFace;
         int subMeshIndex = 0;
-    
+
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
+
         // If we hit the models box, then consider the submeshes...
         foreach(const AABox& subMeshBox, _calculatedMeshBoxes) {
-            const FBXGeometry& geometry = _geometry->getFBXGeometry();
 
             if (subMeshBox.findRayIntersection(origin, direction, distanceToSubMesh, subMeshFace)) {
                 if (distanceToSubMesh < bestDistance) {
-                    bestDistance = distanceToSubMesh;
-                    intersectedSomething = true;
-                    face = subMeshFace;
-                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                    if (pickAgainstTriangles) {
+                        someTriangleHit = false;
+                        if (!_calculatedMeshTrianglesValid) {
+                            recalculateMeshBoxes(pickAgainstTriangles);
+                        }
+                        // check our triangles here....
+                        const QVector<Triangle>& meshTriangles = _calculatedMeshTriangles[subMeshIndex];
+                        int t = 0;
+                        foreach (const Triangle& triangle, meshTriangles) {
+                            t++;
+                        
+                            float thisTriangleDistance;
+                            if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
+                                if (thisTriangleDistance < bestDistance) {
+                                    bestTriangleDistance = thisTriangleDistance;
+                                    someTriangleHit = true;
+
+                                    bestDistance = thisTriangleDistance;
+                                    intersectedSomething = true;
+                                    face = subMeshFace;
+                                    extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                                }
+                            }
+                        }
+                    } else {
+                        // this is the non-triangle picking case...
+                        bestDistance = distanceToSubMesh;
+                        intersectedSomething = true;
+                        face = subMeshFace;
+                        extraInfo = geometry.getModelNameOfMesh(subMeshIndex);
+                    }
                 }
-            }
+            } 
             subMeshIndex++;
+        }
+
+        if (intersectedSomething) {
+            distance = bestDistance;
         }
         
         return intersectedSomething;
@@ -571,18 +660,81 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
     return intersectedSomething;
 }
 
-void Model::recalcuateMeshBoxes() {
-    if (!_calculatedMeshBoxesValid) {
+// TODO: we seem to call this too often when things haven't actually changed... look into optimizing this
+void Model::recalculateMeshBoxes(bool pickAgainstTriangles) {
+    bool calculatedMeshTrianglesNeeded = pickAgainstTriangles && !_calculatedMeshTrianglesValid;
+
+    if (!_calculatedMeshBoxesValid || calculatedMeshTrianglesNeeded) {
         PerformanceTimer perfTimer("calculatedMeshBoxes");
         const FBXGeometry& geometry = _geometry->getFBXGeometry();
         int numberOfMeshes = geometry.meshes.size();
         _calculatedMeshBoxes.resize(numberOfMeshes);
+        _calculatedMeshTriangles.clear();
+        _calculatedMeshTriangles.resize(numberOfMeshes);
         for (int i = 0; i < numberOfMeshes; i++) {
             const FBXMesh& mesh = geometry.meshes.at(i);
             Extents scaledMeshExtents = calculateScaledOffsetExtents(mesh.meshExtents);
+
             _calculatedMeshBoxes[i] = AABox(scaledMeshExtents);
+
+            if (pickAgainstTriangles) {
+                QVector<Triangle> thisMeshTriangles;
+                for (int j = 0; j < mesh.parts.size(); j++) {
+                    const FBXMeshPart& part = mesh.parts.at(j);
+
+                    const int INDICES_PER_TRIANGLE = 3;
+                    const int INDICES_PER_QUAD = 4;
+
+                    if (part.quadIndices.size() > 0) {
+                        int numberOfQuads = part.quadIndices.size() / INDICES_PER_QUAD;
+                        int vIndex = 0;
+                        for (int q = 0; q < numberOfQuads; q++) {
+                            int i0 = part.quadIndices[vIndex++];
+                            int i1 = part.quadIndices[vIndex++];
+                            int i2 = part.quadIndices[vIndex++];
+                            int i3 = part.quadIndices[vIndex++];
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
+                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
+                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
+                            glm::vec3 v3 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i3], 1.0f)));
+                        
+                            // Sam's recommended triangle slices
+                            Triangle tri1 = { v0, v1, v3 };
+                            Triangle tri2 = { v1, v2, v3 };
+                        
+                            // NOTE: Random guy on the internet's recommended triangle slices
+                            //Triangle tri1 = { v0, v1, v2 };
+                            //Triangle tri2 = { v2, v3, v0 };
+                        
+                            thisMeshTriangles.push_back(tri1);
+                            thisMeshTriangles.push_back(tri2);
+                        }
+                    }
+
+                    if (part.triangleIndices.size() > 0) {
+                        int numberOfTris = part.triangleIndices.size() / INDICES_PER_TRIANGLE;
+                        int vIndex = 0;
+                        for (int t = 0; t < numberOfTris; t++) {
+                            int i0 = part.triangleIndices[vIndex++];
+                            int i1 = part.triangleIndices[vIndex++];
+                            int i2 = part.triangleIndices[vIndex++];
+
+                            glm::vec3 v0 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i0], 1.0f)));
+                            glm::vec3 v1 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i1], 1.0f)));
+                            glm::vec3 v2 = calculateScaledOffsetPoint(glm::vec3(mesh.modelTransform * glm::vec4(mesh.vertices[i2], 1.0f)));
+
+                            Triangle tri = { v0, v1, v2 };
+
+                            thisMeshTriangles.push_back(tri);
+                        }
+                    }
+                }
+                _calculatedMeshTriangles[i] = thisMeshTriangles;
+            }
         }
         _calculatedMeshBoxesValid = true;
+        _calculatedMeshTrianglesValid = pickAgainstTriangles;
     }
 }
 
@@ -592,7 +744,7 @@ void Model::renderSetup(RenderArgs* args) {
     // against. We cache the results of these calculations so long as the model hasn't been
     // simulated and the mesh hasn't changed.
     if (args && !_calculatedMeshBoxesValid) {
-        recalcuateMeshBoxes();
+        recalculateMeshBoxes();
     }
     
     // set up dilated textures on first render after load/simulate
@@ -842,6 +994,15 @@ Extents Model::calculateScaledOffsetExtents(const Extents& extents) const {
     Extents translatedExtents = { rotatedExtents.minimum + _translation, 
                                   rotatedExtents.maximum + _translation };
     return translatedExtents;
+}
+
+glm::vec3 Model::calculateScaledOffsetPoint(const glm::vec3& point) const {
+    // we need to include any fst scaling, translation, and rotation, which is captured in the offset matrix
+    glm::vec3 offsetPoint = glm::vec3(_geometry->getFBXGeometry().offset * glm::vec4(point, 1.0f));
+    glm::vec3 scaledPoint = ((offsetPoint + _offset) * _scale);
+    glm::vec3 rotatedPoint = _rotation * scaledPoint;
+    glm::vec3 translatedPoint = rotatedPoint + _translation;
+    return translatedPoint;
 }
 
 
@@ -1142,6 +1303,7 @@ void Model::simulate(float deltaTime, bool fullUpdate) {
                     
     if (isActive() && fullUpdate) {
         _calculatedMeshBoxesValid = false; // if we have to simulate, we need to assume our mesh boxes are all invalid
+        _calculatedMeshTrianglesValid = false;
 
         // check for scale to fit
         if (_scaleToFit && !_scaledToFit) {

@@ -40,6 +40,7 @@ progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 
@@ -50,6 +51,7 @@ progressDialog = (function () {
         textColor: textColor,
         backgroundColor: textBackground,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         visible: false
     });
 

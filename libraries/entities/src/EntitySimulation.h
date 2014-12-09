@@ -14,36 +14,61 @@
 
 #include <QSet>
 
+#include <PerfStat.h>
+
 #include "EntityTree.h"
 
 class EntitySimulation {
 public:
     EntitySimulation() : _entityTree(NULL) { }
-    virtual ~EntitySimulation() {}
+    virtual ~EntitySimulation() { setEntityTree(NULL); }
 
     /// \param tree pointer to EntityTree which is stored internally
-    virtual void setEntityTree(EntityTree* tree);
+    void setEntityTree(EntityTree* tree);
 
     /// \param[out] entitiesToDelete list of entities removed from simulation and should be deleted.
-    virtual void update(QSet<EntityItem*>& entitiesToDelete) = 0;
+    void updateEntities(QSet<EntityItem*>& entitiesToDelete);
 
     /// \param entity pointer to EntityItem to add to the simulation
     /// \sideeffect the EntityItem::_simulationState member may be updated to indicate membership to internal list
-    virtual void addEntity(EntityItem* entity) = 0;
+    void addEntity(EntityItem* entity);
 
     /// \param entity pointer to EntityItem to removed from the simulation
     /// \sideeffect the EntityItem::_simulationState member may be updated to indicate non-membership to internal list
-    virtual void removeEntity(EntityItem* entity) = 0;
+    void removeEntity(EntityItem* entity);
 
     /// \param entity pointer to EntityItem to that may have changed in a way that would affect its simulation
-    virtual void entityChanged(EntityItem* entity) = 0;
+    /// call this whenever an entity was changed from some EXTERNAL event (NOT by the EntitySimulation itself)
+    void entityChanged(EntityItem* entity);
 
-    virtual void clearEntities() = 0;
+    void clearEntities();
 
     EntityTree* getEntityTree() { return _entityTree; }
 
 protected:
+
+    // These pure virtual methods are protected because they are not to be called will-nilly. The base class
+    // calls them in the right places.
+    virtual void updateEntitiesInternal(const quint64& now) = 0;
+    virtual void addEntityInternal(EntityItem* entity) = 0;
+    virtual void removeEntityInternal(EntityItem* entity) = 0;
+    virtual void entityChangedInternal(EntityItem* entity) = 0;
+    virtual void clearEntitiesInternal() = 0;
+
+    void expireMortalEntities(const quint64& now);
+    void callUpdateOnEntitiesThatNeedIt(const quint64& now);
+    void sortEntitiesThatMoved();
+
+    // back pointer to EntityTree structure
     EntityTree* _entityTree;
+
+    // We maintain multiple lists, each for its distinct purpose.
+    // An entity may be in more than one list.
+    QSet<EntityItem*> _mortalEntities; // entities that have an expiry
+    quint64 _nextExpiry;
+    QSet<EntityItem*> _updateableEntities; // entities that need update() called
+    QSet<EntityItem*> _entitiesToBeSorted; // entities that were moved by THIS simulation and might need to be resorted in the tree
+    QSet<EntityItem*> _entitiesToDelete;
 };
 
 #endif // hifi_EntitySimulation_h

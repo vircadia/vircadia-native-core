@@ -21,6 +21,9 @@ public:
     TextEntityItem(const EntityItemID& entityItemID, const EntityItemProperties& properties);
     
     ALLOW_INSTANTIATION // This class can be instantiated
+
+    /// set dimensions in domain scale units (0.0 - 1.0) this will also reset radius appropriately
+    virtual void setDimensions(const glm::vec3& value);
     
     // methods for getting/setting all properties of an entity
     virtual EntityItemProperties getProperties() const;
@@ -44,7 +47,7 @@ public:
     virtual bool supportsDetailedRayIntersection() const { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject) const;
+                         void** intersectedObject, bool precisionPicking) const;
 
     static const QString DEFAULT_TEXT;
     void setText(const QString& value) { _text = value; }
