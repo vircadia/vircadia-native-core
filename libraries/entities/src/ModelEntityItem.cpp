@@ -397,6 +397,11 @@ void ModelEntityItem::debugDump() const {
     qDebug() << "    model URL:" << getModelURL();
 }
 
+void ModelEntityItem::setAnimationURL(const QString& url) { 
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationURL = url; 
+}
+
 void ModelEntityItem::setAnimationSettings(const QString& value) { 
     // the animations setting is a JSON string that may contain various animation settings.
     // if it includes fps, frameIndex, or running, those values will be parsed out and
@@ -448,6 +453,17 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
     }
 
     _animationSettings = value; 
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+}
+
+void ModelEntityItem::setAnimationIsPlaying(bool value) {
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationLoop.setRunning(value); 
+}
+
+void ModelEntityItem::setAnimationFPS(float value) {
+    _dirtyFlags |= EntityItem::DIRTY_UPDATEABLE;
+    _animationLoop.setFPS(value); 
 }
 
 QString ModelEntityItem::getAnimationSettings() const { 

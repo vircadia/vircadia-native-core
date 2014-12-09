@@ -31,12 +31,10 @@ void SimpleEntitySimulation::updateEntitiesInternal(const quint64& now) {
 }
 
 void SimpleEntitySimulation::addEntityInternal(EntityItem* entity) {
-    if (entity->getCollisionsWillMove()) {
-        if (entity->isMoving()) {
-            _movingEntities.insert(entity);
-        } else {
-            _movableButStoppedEntities.insert(entity);
-        }
+    if (entity->isMoving()) {
+        _movingEntities.insert(entity);
+    } else if (entity->getCollisionsWillMove()) {
+        _movableButStoppedEntities.insert(entity);
     }
 }
 
@@ -50,14 +48,10 @@ const int SIMPLE_SIMULATION_DIRTY_FLAGS = EntityItem::DIRTY_VELOCITY | EntityIte
 void SimpleEntitySimulation::entityChangedInternal(EntityItem* entity) {
     int dirtyFlags = entity->getDirtyFlags();
     if (dirtyFlags & SIMPLE_SIMULATION_DIRTY_FLAGS) {
-        if (entity->getCollisionsWillMove()) {
-            if (entity->isMoving()) {
-                _movingEntities.insert(entity);
-                _movableButStoppedEntities.remove(entity);
-            } else {
-                _movingEntities.remove(entity);
-                _movableButStoppedEntities.insert(entity);
-            }
+        if (entity->isMoving()) {
+            _movingEntities.insert(entity);
+        } else if (entity->getCollisionsWillMove()) {
+            _movableButStoppedEntities.remove(entity);
         } else {
             _movingEntities.remove(entity);
             _movableButStoppedEntities.remove(entity);
