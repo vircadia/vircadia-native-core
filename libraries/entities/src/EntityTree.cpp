@@ -137,7 +137,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
         entity->setOldMaximumAACube(entity->getMaximumAACube());
         _isDirty = true;
 
-        uint32_t newFlags = entity->getDirtyFlags() & ~oldFlags;
+        uint32_t newFlags = entity->getDirtyFlags() & ~preFlags;
         if (newFlags) {
             if (newFlags & EntityItem::DIRTY_SCRIPT) {
                 emit entityScriptChanging(entity->getEntityItemID());
@@ -145,7 +145,7 @@ bool EntityTree::updateEntityWithElement(EntityItem* entity, const EntityItemPro
             }
 
             if (_simulation) { 
-                if (newFlags & ENTITY_SIMULATION_FLAGS) {
+                if (newFlags & DIRTY_SIMULATION_FLAGS) {
                     _simulation->entityChanged(entity);
                 }
             } else {
