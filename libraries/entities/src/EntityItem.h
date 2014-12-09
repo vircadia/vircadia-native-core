@@ -49,6 +49,7 @@ public:
         DIRTY_MOTION_TYPE = 0x0010,
         DIRTY_SHAPE = 0x0020,
         DIRTY_LIFETIME = 0x0040,
+        DIRTY_UPDATEABLE = 0x0080,
         // add new simulation-relevant flags above
         // all other flags below
         DIRTY_SCRIPT = 0x8000
@@ -130,7 +131,7 @@ public:
     // perform linear extrapolation for SimpleEntitySimulation
     void simulate(const quint64& now);
     
-    bool needsToCallUpdate() const { return false; }
+    virtual bool needsToCallUpdate() const { return false; }
 
     virtual void debugDump() const;
     

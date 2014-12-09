@@ -233,7 +233,7 @@ void EntityTreeRenderer::update() {
 
 void EntityTreeRenderer::checkEnterLeaveEntities() {
     if (_tree) {
-        _tree->lockForRead();
+        _tree->lockForWrite(); // so that our scripts can do edits if they want
         glm::vec3 avatarPosition = Application::getInstance()->getAvatar()->getPosition() / (float) TREE_SCALE;
         
         if (avatarPosition != _lastAvatarPosition) {
@@ -881,6 +881,38 @@ void EntityTreeRenderer::changingEntityID(const EntityItemID& oldEntityID, const
         EntityScriptDetails details = _entityScripts[oldEntityID];
         _entityScripts.remove(oldEntityID);
         _entityScripts[newEntityID] = details;
+    }
+}
+
+void EntityTreeRenderer::entityCollisionWithVoxel(const EntityItemID& entityID, const VoxelDetail& voxel, 
+                                                    const Collision& collision) {
+    QScriptValue entityScript = getPreviouslyLoadedEntityScript(entityID);
+    if (entityScript.property("collisionWithVoxel").isValid()) {
+        QScriptValueList args;
+        args << entityID.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScript.property("collisionWithVoxel").call(entityScript, args);
+    }
+}
+
+void EntityTreeRenderer::entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, 
+                                                    const Collision& collision) {
+    QScriptValue entityScriptA = loadEntityScript(idA);
+    if (entityScriptA.property("collisionWithEntity").isValid()) {
+        QScriptValueList args;
+        args << idA.toScriptValue(_entitiesScriptEngine);
+        args << idB.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScriptA.property("collisionWithEntity").call(entityScriptA, args);
+    }
+
+    QScriptValue entityScriptB = loadEntityScript(idB);
+    if (entityScriptB.property("collisionWithEntity").isValid()) {
+        QScriptValueList args;
+        args << idB.toScriptValue(_entitiesScriptEngine);
+        args << idA.toScriptValue(_entitiesScriptEngine);
+        args << collisionToScriptValue(_entitiesScriptEngine, collision);
+        entityScriptB.property("collisionWithEntity").call(entityScriptA, args);
     }
 }
 
