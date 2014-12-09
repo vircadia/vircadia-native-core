@@ -1,3 +1,9 @@
+var SETTING_GRID_VISIBLE = 'gridVisible';
+var SETTING_GRID_SNAP_TO_GRID = 'gridSnapToGrid';
+var SETTING_GRID_MINOR_WIDTH= 'gridMinorWidth';
+var SETTING_GRID_MAJOR_EVERY = 'gridMajorEvery';
+var SETTING_GRID_COLOR = 'gridColor';
+
 Grid = function(opts) {
     var that = {};
 
@@ -12,9 +18,6 @@ Grid = function(opts) {
 
     var worldSize = 16384;
 
-    var minorGridWidth = 0.5;
-    var majorGridWidth = 1.5;
-
     var snapToGrid = false;
 
     var gridOverlay = Overlays.addOverlay("grid", {
@@ -23,7 +26,7 @@ Grid = function(opts) {
         color: { red: 0, green: 0, blue: 128 },
         alpha: 1.0,
         rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
-        minorGridWidth: 0.1,
+        minorGridSpacing: 0.1,
         majorGridEvery: 2,
     });
 
@@ -40,16 +43,38 @@ Grid = function(opts) {
     that.getSnapToGrid = function() { return snapToGrid; };
 
     that.setEnabled = function(enabled) {
-        that.enabled = enabled;
-        updateGrid();
+        if (that.enabled != enabled) {
+            that.enabled = enabled;
+
+            if (enabled) {
+                if (selectionManager.hasSelection()) {
+                    that.setPosition(selectionManager.getBottomPosition());
+                } else {
+                    that.setPosition(MyAvatar.position);
+                }
+            }
+
+            updateGrid();
+        }
     }
 
     that.setVisible = function(visible, noUpdate) {
-        that.visible = visible;
-        updateGrid();
+        if (visible != that.visible) {
+            that.visible = visible;
+            updateGrid();
 
-        if (!noUpdate) {
-            that.emitUpdate();
+            print("Setting visible");
+            if (visible) {
+                if (selectionManager.hasSelection()) {
+                    that.setPosition(selectionManager.getBottomPosition());
+                } else {
+                    that.setPosition(MyAvatar.position);
+                }
+            }
+
+            if (!noUpdate) {
+                that.emitUpdate();
+            }
         }
     }
 
@@ -171,7 +196,7 @@ Grid = function(opts) {
         Overlays.editOverlay(gridOverlay, {
             position: { x: origin.y, y: origin.y, z: -origin.y },
             visible: that.visible && that.enabled,
-            minorGridWidth: minorGridSpacing,
+            minorGridSpacing: minorGridSpacing,
             majorGridEvery: majorGridEvery,
                 color: gridColor,
                 alpha: gridAlpha,
@@ -181,7 +206,34 @@ Grid = function(opts) {
     }
 
     function cleanup() {
+        saveSettings();
+
         Overlays.deleteOverlay(gridOverlay);
+    }
+
+    function loadSettings() {
+        that.setVisible(Settings.getValue(SETTING_GRID_VISIBLE) == "true", true);
+        snapToGrid = Settings.getValue(SETTING_GRID_SNAP_TO_GRID) == "true";
+        minorGridSpacing = parseFloat(Settings.getValue(SETTING_GRID_MINOR_WIDTH), 10);
+        majorGridEvery = parseInt(Settings.getValue(SETTING_GRID_MAJOR_EVERY), 10);
+        try {
+            var newColor = JSON.parse(Settings.getValue(SETTING_GRID_COLOR));
+            if (newColor.red !== undefined && newColor.green !== undefined && newColor.blue !== undefined) {
+                gridColor.red = newColor.red;
+                gridColor.green = newColor.green;
+                gridColor.blue = newColor.blue;
+            }
+        } catch (e) {
+        }
+        updateGrid();
+    }
+
+    function saveSettings() {
+        Settings.setValue(SETTING_GRID_VISIBLE, that.visible);
+        Settings.setValue(SETTING_GRID_SNAP_TO_GRID, snapToGrid);
+        Settings.setValue(SETTING_GRID_MINOR_WIDTH, minorGridSpacing);
+        Settings.setValue(SETTING_GRID_MAJOR_EVERY, majorGridEvery);
+        Settings.setValue(SETTING_GRID_COLOR, JSON.stringify(gridColor));
     }
 
     that.addListener = function(callback) {
@@ -189,7 +241,8 @@ Grid = function(opts) {
     }
 
     Script.scriptEnding.connect(cleanup);
-    updateGrid();
+
+    loadSettings();
 
     that.onUpdate = null;
 
