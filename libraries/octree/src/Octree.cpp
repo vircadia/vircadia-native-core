@@ -46,7 +46,7 @@ Octree::Octree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage),
     _stopImport(false),
-    _lock(),
+    _lock(QReadWriteLock::Recursive),
     _isViewing(false),
     _isServer(false)
 {
