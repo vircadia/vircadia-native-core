@@ -63,7 +63,6 @@ Grid = function(opts) {
             that.visible = visible;
             updateGrid();
 
-            print("Setting visible");
             if (visible) {
                 if (selectionManager.hasSelection()) {
                     that.setPosition(selectionManager.getBottomPosition());
