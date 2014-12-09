@@ -1114,8 +1114,48 @@ template<> void Bitstream::readRawDelta(HeightfieldMaterialPointer& value, const
     }
 }
 
-HeightfieldStack::HeightfieldStack(int width, const QVector<SharedObjectPointer>& materials) :
+const quint16 EMPTY_HEIGHT = 0;
+const int BYTES_PER_LAYER = sizeof(quint16) + 4 + 1;
+
+static QByteArray encodeHeightfieldStack(int offsetX, int offsetY, int width, int height,
+        const QVector<QByteArray>& contents) {
+    QByteArray inflated(HEIGHTFIELD_DATA_HEADER_SIZE, 0);
+    qint32* header = (qint32*)inflated.data();
+    *header++ = offsetX;
+    *header++ = offsetY;
+    *header++ = width;
+    *header++ = height;    
+    foreach (const QByteArray& stack, contents) {
+        inflated.append(stack);    
+        inflated.append((const char*)&EMPTY_HEIGHT, sizeof(quint16));
+    }
+    return qCompress(inflated);
+}
+
+static QVector<QByteArray> decodeHeightfieldStack(const QByteArray& encoded,
+        int& offsetX, int& offsetY, int& width, int& height) {
+    QByteArray inflated = qUncompress(encoded);
+    const qint32* header = (const qint32*)inflated.constData();
+    offsetX = *header++;
+    offsetY = *header++;
+    width = *header++;
+    height = *header++;
+    const char* src = inflated.constData() + HEIGHTFIELD_DATA_HEADER_SIZE;
+    QVector<QByteArray> contents(width * height);
+    for (QByteArray* dest = contents.data(), *end = dest + contents.size(); dest != end; dest++) {
+        while (*(const quint16*)src != EMPTY_HEIGHT) {
+            dest->append(src, BYTES_PER_LAYER);
+            src += BYTES_PER_LAYER;
+        }
+        src += sizeof(quint16);
+    }
+    return contents;
+}
+
+HeightfieldStack::HeightfieldStack(int width, const QVector<QByteArray>& contents,
+        const QVector<SharedObjectPointer>& materials) :
     HeightfieldData(width),
+    _contents(contents),
     _materials(materials) {
 }
 
@@ -1124,7 +1164,7 @@ HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes) {
 }
 
 HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes, const HeightfieldStackPointer& reference) {
-     if (!reference) {
+    if (!reference) {
         read(in, bytes);
         return;
     }
@@ -1133,16 +1173,97 @@ HeightfieldStack::HeightfieldStack(Bitstream& in, int bytes, const HeightfieldSt
     in.readDelta(_materials, reference->getMaterials());
     reference->setDeltaData(DataBlockPointer(this));
     _width = reference->getWidth();
+    _contents = reference->getContents();
+ 
+    int offsetX, offsetY, width, height;
+    QVector<QByteArray> delta = decodeHeightfieldStack(reference->getEncodedDelta(), offsetX, offsetY, width, height);
+    if (delta.isEmpty()) {
+        return;
+    }
+    if (offsetX == 0) {
+        _contents = delta;
+        _width = width;
+        return;
+    }
+    int minX = offsetX - 1;
+    int minY = offsetY - 1;
+    const QByteArray* src = delta.constData();
+    QByteArray* dest = _contents.data() + minY * _width + minX;
+    for (int y = 0; y < height; y++, src += width, dest += _width) {
+        const QByteArray* lineSrc = src;
+        for (QByteArray* lineDest = dest, *end = dest + width; lineDest != end; lineDest++, lineSrc++) {
+            *lineDest = *lineSrc;
+        }
+    }   
 }
 
 void HeightfieldStack::write(Bitstream& out) {
+    QMutexLocker locker(&_encodedMutex);
+    if (_encoded.isEmpty()) {
+        _encoded = encodeHeightfieldStack(0, 0, _width, _contents.size() / _width, _contents);
+    }
+    out << _encoded.size();
+    out.writeAligned(_encoded);
     out << _materials;
 }
 
 void HeightfieldStack::writeDelta(Bitstream& out, const HeightfieldStackPointer& reference) {
+    if (!reference) {
+        write(out);
+        return;
+    }
+    QMutexLocker locker(&reference->getEncodedDeltaMutex());
+    if (reference->getEncodedDelta().isEmpty() || reference->getDeltaData() != this) {
+        if (reference->getWidth() != _width || reference->getContents().size() != _contents.size()) {
+            reference->setEncodedDelta(encodeHeightfieldStack(0, 0, _width, _contents.size() / _width, _contents));
+               
+        } else {
+            int height = _contents.size() / _width;
+            int minX = _width, minY = height;
+            int maxX = -1, maxY = -1;
+            const QByteArray* src = _contents.constData();
+            const QByteArray* ref = reference->getContents().constData();
+            for (int y = 0; y < height; y++) {
+                bool difference = false;
+                for (int x = 0; x < _width; x++) {
+                    if (*src++ != *ref++) {
+                        minX = qMin(minX, x);
+                        maxX = qMax(maxX, x);
+                        difference = true;
+                    }
+                }
+                if (difference) {
+                    minY = qMin(minY, y);
+                    maxY = qMax(maxY, y);
+                }
+            }
+            QVector<QByteArray> delta;
+            int deltaWidth = 0, deltaHeight = 0;
+            if (maxX >= minX) {
+                deltaWidth = maxX - minX + 1;
+                deltaHeight = maxY - minY + 1;
+                delta = QVector<QByteArray>(deltaWidth * deltaHeight);
+                QByteArray* dest = delta.data();
+                src = _contents.constData() + minY * _width + minX;
+                for (int y = 0; y < deltaHeight; y++, src += _width, dest += deltaWidth) {
+                    const QByteArray* lineSrc = src;
+                    for (QByteArray* lineDest = dest, *end = dest + deltaWidth; lineDest != end; lineDest++, lineSrc++) {
+                        *lineDest = *lineSrc;
+                    }
+                }
+            }
+            reference->setEncodedDelta(encodeHeightfieldStack(minX + 1, minY + 1, deltaWidth, deltaHeight, delta));
+        }
+        reference->setDeltaData(DataBlockPointer(this));
+    }
+    out << reference->getEncodedDelta().size();
+    out.writeAligned(reference->getEncodedDelta());
+    out.writeDelta(_materials, reference->getMaterials());
 }
 
 void HeightfieldStack::read(Bitstream& in, int bytes) {
+    int offsetX, offsetY, height;
+    _contents = decodeHeightfieldStack(_encoded = in.readAligned(bytes), offsetX, offsetY, _width, height);
     in >> _materials;
 }
 

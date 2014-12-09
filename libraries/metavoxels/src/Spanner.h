@@ -473,10 +473,11 @@ typedef QExplicitlySharedDataPointer<HeightfieldStack> HeightfieldStackPointer;
 class HeightfieldStack : public HeightfieldData {
 public:
 
-    HeightfieldStack(int width, const QVector<SharedObjectPointer>& materials);
+    HeightfieldStack(int width, const QVector<QByteArray>& contents, const QVector<SharedObjectPointer>& materials);
     HeightfieldStack(Bitstream& in, int bytes);
     HeightfieldStack(Bitstream& in, int bytes, const HeightfieldStackPointer& reference);
     
+    QVector<QByteArray>& getContents() { return _contents; }
     QVector<SharedObjectPointer>& getMaterials() { return _materials; }
     
     void write(Bitstream& out);
@@ -486,6 +487,7 @@ private:
     
     void read(Bitstream& in, int bytes);
     
+    QVector<QByteArray> _contents;
     QVector<SharedObjectPointer> _materials;
 };
 
