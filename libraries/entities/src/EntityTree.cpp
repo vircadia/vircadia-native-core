@@ -107,23 +107,29 @@ bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProp
                 UpdateEntityOperator theOperator(this, containingElement, existingEntity, tempProperties);
                 recurseTreeWithOperator(&theOperator);
                 _isDirty = true;
-                if (_simulation && existingEntity->getUpdateFlags() != 0) {
-                    _simulation->entityChanged(existingEntity);
-                }
             }
         }
     } else {
+        uint32_t preFlags = existingEntity->getDirtyFlags();
         UpdateEntityOperator theOperator(this, containingElement, existingEntity, properties);
         recurseTreeWithOperator(&theOperator);
         _isDirty = true;
 
-        if (_simulation && existingEntity->getUpdateFlags() != 0) {
-            _simulation->entityChanged(existingEntity);
-        }
+        uint32_t newFlags = existingEntity->getDirtyFlags() & ~oldFlags;
+        if (newFlags) {
+            if (newFlags & EntityItem::DIRTY_SCRIPT) {
+                emit entityScriptChanging(existingEntity->getEntityItemID());
+                existingEntity->clearDirtyFlags(EntityItem::DIRTY_SCRIPT);
+            }
 
-        uint32_t flags = existingEntity->getUpdateFlags();
-        if (flags & EntityItem::UPDATE_SCRIPT) {
-            emit entityScriptChanging(existingEntity->getEntityItemID());
+            if (_simulation) { 
+                if (newFlags & ENTITY_SIMULATION_FLAGS) {
+                    _simulation->entityChanged(existingEntity);
+                }
+            } else {
+                // normally the _simulation clears ALL updateFlags, but since there is none we do it explicitly
+                existingEntity->clearDirtyFlags();
+            }
         }
     }
     
@@ -588,7 +594,7 @@ void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entities
             clearEntityState(thisEntity);
         } else {
             uint32_t flags = thisEntity->getUpdateFlags();
-            if (flags & EntityItem::UPDATE_SCRIPT) {
+            if (flags & EntityItem::DIRTY_SCRIPT) {
                 emit entityScriptChanging(thisEntity->getEntityItemID());
             }
 
@@ -597,7 +603,7 @@ void EntityTree::updateChangedEntities(quint64 now, QSet<EntityItemID>& entities
                 _physicsEngine->updateEntity(thisEntity->getMotionState(), flags);
             }
         }
-        thisEntity->clearUpdateFlags();
+        thisEntity->clearDirtyFlags();
     }
     _changedEntities.clear();
 }
