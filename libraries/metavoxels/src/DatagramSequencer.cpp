@@ -19,7 +19,7 @@
 #include "MetavoxelMessages.h"
 
 // in sequencer parlance, a "packet" may consist of multiple datagrams.  clarify when we refer to actual datagrams
-const int MAX_DATAGRAM_SIZE = 1450;
+const int MAX_DATAGRAM_SIZE = MAX_PACKET_SIZE;
 
 const int DEFAULT_MAX_PACKET_SIZE = 3000;
 
