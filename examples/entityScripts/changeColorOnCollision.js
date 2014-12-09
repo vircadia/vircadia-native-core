@@ -9,19 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-print("changeColorOnCollision.js");
-
 (function(){ 
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    this.preload = function(myID) { 
-        print("changeColorOnCollision.js--- preload!!!");
-    };
-
     this.collisionWithEntity = function(myID, otherID, collisionInfo) { 
-        print("collisionWithEntity");
         Entities.editEntity(myID, { color: { red: getRandomInt(128,255), green: getRandomInt(128,255), blue: getRandomInt(128,255)} });
     }; 
 })
