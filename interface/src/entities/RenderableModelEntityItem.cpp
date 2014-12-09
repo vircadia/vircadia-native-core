@@ -268,7 +268,10 @@ EntityItemProperties RenderableModelEntityItem::getProperties() const {
 bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
                          void** intersectedObject, bool precisionPicking) const {
-
+    if (!_model) {
+        return true;
+    }
+    
     glm::vec3 originInMeters = origin * (float)TREE_SCALE;
     QString extraInfo;
     float localDistance;
