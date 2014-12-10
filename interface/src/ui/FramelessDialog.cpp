@@ -122,21 +122,21 @@ void FramelessDialog::mousePressEvent(QMouseEvent* mouseEvent) {
             if (hitLeft || hitRight) {
                 _isResizing = true;
                 _resizeInitialWidth = size().width();
-                QApplication::setOverrideCursor(Qt::SizeHorCursor);
+                setCursor(Qt::SizeHorCursor);
             }
         } else {
             bool hitTop = (_position == POSITION_TOP) && (abs(mouseEvent->pos().y() - size().height()) < RESIZE_HANDLE_WIDTH);
             if (hitTop) {
                 _isResizing = true;
                 _resizeInitialWidth = size().height();
-                QApplication::setOverrideCursor(Qt::SizeHorCursor);
+                setCursor(Qt::SizeHorCursor);
             }
         }
     }
 }
 
 void FramelessDialog::mouseReleaseEvent(QMouseEvent* mouseEvent) {
-    QApplication::restoreOverrideCursor();
+    unsetCursor();
     _isResizing = false;
 }
 

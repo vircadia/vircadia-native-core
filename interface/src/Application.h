@@ -211,7 +211,8 @@ public:
     EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     Environment* getEnvironment() { return &_environment; }
     bool isMousePressed() const { return _mousePressed; }
-    bool isMouseHidden() const { return _mouseHidden; }
+    bool isMouseHidden() const { return _glWidget->cursor().shape() == Qt::BlankCursor; }
+    void setCursorVisible(bool visible);
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin; }
     const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
     bool mouseOnScreen() const;
@@ -309,8 +310,6 @@ public:
 
     QStringList getRunningScripts() { return _scriptEnginesHash.keys(); }
     ScriptEngine* getScriptEngine(QString scriptHash) { return _scriptEnginesHash.contains(scriptHash) ? _scriptEnginesHash[scriptHash] : NULL; }
-
-    void setCursorVisible(bool visible);
     
     bool isLookingAtMyAvatar(Avatar* avatar);
 
@@ -567,8 +566,6 @@ private:
     int _mouseDragStartedY;
     quint64 _lastMouseMove;
     bool _lastMouseMoveWasSimulated;
-    bool _mouseHidden;
-    bool _seenMouseMove;
 
     glm::vec3 _mouseRayOrigin;
     glm::vec3 _mouseRayDirection;
