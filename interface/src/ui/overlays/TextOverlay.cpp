@@ -77,7 +77,7 @@ void TextOverlay::render(RenderArgs* args) {
         glVertex2f(_bounds.left(), _bounds.bottom());
     glEnd();
 
-    // Same font properties as textWidth()
+    // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
