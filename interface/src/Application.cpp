@@ -167,8 +167,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _raiseMirror(0.0f),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
-        _mouseHidden(false),
-        _seenMouseMove(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
@@ -1252,33 +1250,22 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-    bool showMouse = true;
-
     // Used by application overlay to determine how to draw cursor(s)
     _lastMouseMoveWasSimulated = deviceID > 0;
-
-    // If this mouse move event is emitted by a controller, dont show the mouse cursor
-    if (_lastMouseMoveWasSimulated) {
-        showMouse = false;
+    if (!_lastMouseMoveWasSimulated) {
+        _lastMouseMove = usecTimestampNow();
     }
     
     if (!_aboutToQuit) {
-        _entities.mouseMoveEvent(event, deviceID);
+        return;
     }
-
+    
+    _entities.mouseMoveEvent(event, deviceID);
+    
     _controllerScriptingInterface.emitMouseMoveEvent(event, deviceID); // send events to any registered scripts
-
     // if one of our scripts have asked to capture this event, then stop processing it
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
-    }
-
-    _lastMouseMove = usecTimestampNow();
-
-    if (_mouseHidden && showMouse && !OculusManager::isConnected() && !TV3DManager::isConnected()) {
-        getGLWidget()->setCursor(Qt::ArrowCursor);
-        _mouseHidden = false;
-        _seenMouseMove = true;
     }
 }
 
@@ -2111,13 +2098,7 @@ void Application::updateMouseRay() {
     // make sure the frustum is up-to-date
     loadViewFrustum(_myCamera, _viewFrustum);
 
-    // if the mouse pointer isn't visible, act like it's at the center of the screen
-    float x = 0.5f, y = 0.5f;
-    if (!_mouseHidden) {
-        x = getTrueMouseX() / (float)_glWidget->width();
-        y = getTrueMouseY() / (float)_glWidget->height();
-    }
-    PickRay pickRay = _myCamera.computeViewPickRay(x, y);
+    PickRay pickRay = _myCamera.computePickRay(getTrueMouseX(), getTrueMouseY());
     _mouseRayOrigin = pickRay.origin;
     _mouseRayDirection = pickRay.direction;
     
@@ -2313,23 +2294,26 @@ void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
-    // watch mouse position, if it hasn't moved, hide the cursor
+    bool hideMouse = false;
     bool underMouse = _glWidget->underMouse();
-    if (!_mouseHidden) {
-        quint64 now = usecTimestampNow();
-        int elapsed = now - _lastMouseMove;
-        const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
-        if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
-            getGLWidget()->setCursor(Qt::BlankCursor);
-            _mouseHidden = true;
-        }
+    
+    static const int HIDE_CURSOR_TIMEOUT = 1 * USECS_PER_SECOND; // 1 second
+    int elapsed = usecTimestampNow() - _lastMouseMove;
+    if ((elapsed > HIDE_CURSOR_TIMEOUT && underMouse)  ||
+        (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
+        hideMouse = true;
+    }
+    
+    if (hideMouse != isMouseHidden()) {
+        setCursorVisible(!hideMouse);
+    }
+}
+
+void Application::setCursorVisible(bool visible) {
+    if (visible) {
+        _glWidget->setCursor(Qt::ArrowCursor);
     } else {
-        // if the mouse is hidden, but we're not inside our window, then consider ourselves to be moving
-        if (!underMouse && _seenMouseMove) {
-            _lastMouseMove = usecTimestampNow();
-            getGLWidget()->setCursor(Qt::ArrowCursor);
-            _mouseHidden = false;
-        }
+        _glWidget->setCursor(Qt::BlankCursor);
     }
 }
 
@@ -2348,17 +2332,6 @@ void Application::update(float deltaTime) {
         JoystickScriptingInterface::getInstance().update();
         _prioVR.update(deltaTime);
 
-    }
-    
-    static QCursor cursor;
-    if (OculusManager::isConnected() &&
-        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)){
-        if (_window->cursor().shape() != Qt::BlankCursor) {
-            cursor = _window->cursor();
-            _window->setCursor(QCursor(Qt::BlankCursor));
-        }
-    } else if(_window->cursor().shape() == Qt::BlankCursor) {
-        _window->setCursor(cursor);
     }
     
     // Dispatch input events
@@ -4370,14 +4343,6 @@ void Application::skipVersion(QString latestVersion) {
     skipFile.open(QIODevice::WriteOnly | QIODevice::Truncate);
     skipFile.seek(0);
     skipFile.write(latestVersion.toStdString().c_str());
-}
-
-void Application::setCursorVisible(bool visible) {
-    if (visible) {
-        restoreOverrideCursor();
-    } else {
-        setOverrideCursor(Qt::BlankCursor);
-    }
 }
 
 void Application::takeSnapshot() {
