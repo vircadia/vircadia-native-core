@@ -2034,17 +2034,6 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
     connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
 
-    // set up our audio reflector
-    _audioReflector.setMyAvatar(getAvatar());
-    _audioReflector.setVoxels(_voxels.getTree());
-    _audioReflector.setAudio(getAudio());
-    _audioReflector.setAvatarManager(&_avatarManager);
-
-    connect(getAudio(), &Audio::processInboundAudio, &_audioReflector, &AudioReflector::processInboundAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::processLocalAudio, &_audioReflector, &AudioReflector::processLocalAudio,Qt::DirectConnection);
-    connect(getAudio(), &Audio::preProcessOriginalInboundAudio, &_audioReflector,
-                        &AudioReflector::preProcessOriginalInboundAudio,Qt::DirectConnection);
-
     connect(getAudio(), &Audio::muteToggled, AudioDeviceScriptingInterface::getInstance(),
         &AudioDeviceScriptingInterface::muteToggled, Qt::DirectConnection);
 
@@ -3064,12 +3053,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
         glColor3f(1,0,0);
         _geometryCache.renderSphere(originSphereRadius, 15, 15);
         
-        // draw the audio reflector overlay
-        {
-            PerformanceTimer perfTimer("audio");
-            _audioReflector.render();
-        }
-        
         //  Draw voxels
         if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             PerformanceTimer perfTimer("voxels");
@@ -3997,7 +3980,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AnimationCache", &_animationCache);
     scriptEngine->registerGlobalObject("SoundCache", &SoundCache::getInstance());
-    scriptEngine->registerGlobalObject("AudioReflector", &_audioReflector);
     scriptEngine->registerGlobalObject("Account", AccountScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Metavoxels", &_metavoxels);
 
