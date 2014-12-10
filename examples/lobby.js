@@ -62,6 +62,21 @@ function textOverlayPosition() {
                               Vec3.multiply(Quat.getUp(Camera.orientation), TEXT_DISTANCE_DOWN));
 }
 
+var panelLocationOrder = [
+  7, 8, 9, 10, 11, 12, 13,
+  0, 1, 2, 3, 4, 5, 6,
+  14, 15, 16, 17, 18, 19, 20
+];
+
+// Location index is 0-based
+function locationIndexToPanelIndex(locationIndex) {
+  return panelLocationOrder.indexOf(locationIndex) + 1;
+}
+
+// Panel index is 1-based
+function panelIndexToLocationIndex(panelIndex) {
+  return panelLocationOrder[panelIndex - 1];
+}
 
 var MAX_NUM_PANELS = 21;
 var DRONE_VOLUME = 0.3;
@@ -143,7 +158,8 @@ function changeLobbyTextures() {
   };
   
   for (var j = 0; j < NUM_PANELS; j++) {
-    textureProp["textures"]["file" + (j + 1)] = "http:" + locations[j].thumbnail_url
+    var panelIndex = locationIndexToPanelIndex(j);
+    textureProp["textures"]["file" + panelIndex] = "http:" + locations[j].thumbnail_url;
   };
   
   Overlays.editOverlay(panelWall, textureProp);
@@ -228,12 +244,13 @@ function actionStartEvent(event) {
       
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           print("Jumping to " + actionLocation.name + " at " + actionLocation.path 
-            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex);
+            + " in " + actionLocation.domain.name + " after click on panel " + panelIndex + " with location index " + locationIndex);
           
           Window.location = actionLocation;
           maybeCleanupLobby();
@@ -277,9 +294,10 @@ function handleLookAt(pickRay) {
       var panelName = result.extraInfo;
       var panelStringIndex = panelName.indexOf("Panel");
       if (panelStringIndex != -1) {
-        var panelIndex = parseInt(panelName.slice(5)) - 1;
-        if (panelIndex < locations.length) {
-          var actionLocation = locations[panelIndex];
+        var panelIndex = parseInt(panelName.slice(5));
+        var locationIndex = panelIndexToLocationIndex(panelIndex);
+        if (locationIndex < locations.length) {
+          var actionLocation = locations[locationIndex];
           
           if (actionLocation.description == "") {
               Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
