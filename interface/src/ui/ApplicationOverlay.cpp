@@ -536,7 +536,7 @@ void ApplicationOverlay::renderPointers() {
             glm::vec2 screenPos = sphericalToScreen(glm::vec2(yaw, -pitch));
             
             position = QPoint(screenPos.x, screenPos.y);
-            QCursor::setPos(application->getGLWidget()->mapToGlobal(position));
+            application->getGLWidget()->cursor().setPos(application->getGLWidget()->mapToGlobal(position));
         }
         
         _reticlePosition[MOUSE] = position;

@@ -1128,7 +1128,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _myCamera.computeViewPickRay(0.5f, 0.5f));
+                                                   _myCamera.computePickRay(getTrueMouseX(),
+                                                                            getTrueMouseY()));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1219,10 +1220,11 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), _myCamera.computeViewPickRay(0.5f, 0.5f));
+                HFActionEvent endActionEvent(HFActionEvent::endType(),
+                                             _myCamera.computePickRay(getTrueMouseX(),
+                                                                      getTrueMouseY()));
                 sendEvent(this, &endActionEvent);
             }
-            
             break;
         }
         case Qt::Key_Escape: {
@@ -1231,7 +1233,6 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
                 HFBackEvent endBackEvent(HFBackEvent::endType());
                 sendEvent(this, &endBackEvent);
             }
-            
             break;
         }
         default:
@@ -1256,7 +1257,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _lastMouseMove = usecTimestampNow();
     }
     
-    if (!_aboutToQuit) {
+    if (_aboutToQuit) {
         return;
     }
     
@@ -1267,6 +1268,7 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
     if (_controllerScriptingInterface.isMouseCaptured()) {
         return;
     }
+    
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
@@ -2297,21 +2299,19 @@ void Application::updateCursor(float deltaTime) {
     bool hideMouse = false;
     bool underMouse = _glWidget->underMouse();
     
-    static const int HIDE_CURSOR_TIMEOUT = 1 * USECS_PER_SECOND; // 1 second
+    static const int HIDE_CURSOR_TIMEOUT = 3 * USECS_PER_SECOND; // 3 second
     int elapsed = usecTimestampNow() - _lastMouseMove;
     if ((elapsed > HIDE_CURSOR_TIMEOUT && underMouse)  ||
         (OculusManager::isConnected() && Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode))) {
         hideMouse = true;
     }
     
-    if (hideMouse != isMouseHidden()) {
-        setCursorVisible(!hideMouse);
-    }
+    setCursorVisible(!hideMouse);
 }
 
 void Application::setCursorVisible(bool visible) {
     if (visible) {
-        _glWidget->setCursor(Qt::ArrowCursor);
+        _glWidget->unsetCursor();
     } else {
         _glWidget->setCursor(Qt::BlankCursor);
     }
