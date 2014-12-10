@@ -70,15 +70,13 @@ var panelLocationOrder = [
 
 // Location index is 0-based
 function locationIndexToPanelIndex(locationIndex) {
-    return panelLocationOrder.indexOf(locationIndex) + 1;
+  return panelLocationOrder.indexOf(locationIndex) + 1;
 }
 
 // Panel index is 1-based
 function panelIndexToLocationIndex(panelIndex) {
-    return panelLocationOrder[panelIndex - 1];
+  return panelLocationOrder[panelIndex - 1];
 }
-
-
 
 var MAX_NUM_PANELS = 21;
 var DRONE_VOLUME = 0.3;
