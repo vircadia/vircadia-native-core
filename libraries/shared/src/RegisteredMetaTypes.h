@@ -81,4 +81,8 @@ void collisionFromScriptValue(const QScriptValue &object, Collision& collision);
 QScriptValue quuidToScriptValue(QScriptEngine* engine, const QUuid& uuid);
 void quuidFromScriptValue(const QScriptValue& object, QUuid& uuid);
 
+//Q_DECLARE_METATYPE(QSizeF) // Don't need to to this becase it's arleady a meta type
+QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF);
+void qSizeFFromScriptValue(const QScriptValue& object, QSizeF& qSizeF);
+
 #endif // hifi_RegisteredMetaTypes_h
