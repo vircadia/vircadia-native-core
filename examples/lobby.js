@@ -329,7 +329,7 @@ function handleLookAt(pickRay) {
       if (panelStringIndex != -1) {
         var panelIndex = parseInt(panelName.slice(5));
         var locationIndex = panelIndexToLocationIndex(panelIndex);
-        if (locationIndex< locations.length) {
+        if (locationIndex < locations.length) {
           var actionLocation = locations[locationIndex];
           
           if (actionLocation.description == "") {
