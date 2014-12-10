@@ -2874,8 +2874,13 @@ void Application::updateShadowMap() {
 
         // store view matrix without translation, which we'll use for precision-sensitive objects
         updateUntranslatedViewMatrix();
-        // TODO: assign an equivalent viewTransform object to the application to match the current path which uses glMatrixStack 
-        // setViewTransform(viewTransform);
+ 
+        // Equivalent to what is happening with _untranslatedViewMatrix and the _viewMatrixTranslation
+        // the viewTransofmr object is updatded with the correct values and saved,
+        // this is what is used for rendering the Entities and avatars
+        Transform viewTransform;
+        viewTransform.setRotation(rotation);
+        setViewTransform(viewTransform);
 
         glEnable(GL_POLYGON_OFFSET_FILL);
         glPolygonOffset(1.1f, 4.0f); // magic numbers courtesy http://www.eecs.berkeley.edu/~ravir/6160/papers/shadowmaps.ppt
