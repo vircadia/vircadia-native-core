@@ -133,8 +133,8 @@ void JoystickScriptingInterface::update() {
                     
                     // global action events fire in the center of the screen
                     Application* app = Application::getInstance();
-                    PickRay pickRay = app->getCamera()->computeViewPickRay(app->getTrueMouseX(),
-                                                                           app->getTrueMouseY());
+                    PickRay pickRay = app->getCamera()->computePickRay(app->getTrueMouseX(),
+                                                                       app->getTrueMouseY());
                     HFActionEvent actionEvent(actionType, pickRay);
                     qApp->sendEvent(qApp, &actionEvent);
                 }
