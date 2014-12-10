@@ -2311,9 +2311,15 @@ void Application::updateCursor(float deltaTime) {
 
 void Application::setCursorVisible(bool visible) {
     if (visible) {
-        _glWidget->unsetCursor();
+        if (overrideCursor() != NULL) {
+            restoreOverrideCursor();
+        }
     } else {
-        _glWidget->setCursor(Qt::BlankCursor);
+        if (overrideCursor() != NULL) {
+            changeOverrideCursor(Qt::BlankCursor);
+        } else {
+            setOverrideCursor(Qt::BlankCursor);
+        }
     }
 }
 
