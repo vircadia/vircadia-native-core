@@ -123,6 +123,11 @@ Spanner* Spanner::clearAndFetchHeight(const Box& bounds, SharedObjectPointer& he
     return this;
 }
 
+Spanner* Spanner::sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+        const QColor& color) {
+    return this;
+}
+
 bool Spanner::hasOwnColors() const {
     return false;
 }
@@ -2239,6 +2244,11 @@ HeightfieldNode* HeightfieldNode::clearAndFetchHeight(const glm::vec3& translati
     return newNode;
 }
 
+HeightfieldNode* HeightfieldNode::sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+        const QColor& color) {
+    return this;
+}
+
 void HeightfieldNode::read(HeightfieldStreamState& state) {
     clearChildren();
     
@@ -2835,6 +2845,17 @@ Spanner* Heightfield::paintHeight(const glm::vec3& position, float radius, float
 Spanner* Heightfield::clearAndFetchHeight(const Box& bounds, SharedObjectPointer& heightfield) {
     HeightfieldNode* newRoot = _root->clearAndFetchHeight(getTranslation(), getRotation(),
         glm::vec3(getScale(), getScale() * _aspectY, getScale() * _aspectZ), bounds, heightfield);
+    if (_root == newRoot) {
+        return this;
+    }
+    Heightfield* newHeightfield = static_cast<Heightfield*>(clone(true));
+    newHeightfield->setRoot(HeightfieldNodePointer(newRoot));
+    return newHeightfield;
+}
+
+Spanner* Heightfield::sculptMaterial(const SharedObjectPointer& spanner, const SharedObjectPointer& material,
+        const QColor& color) {
+    HeightfieldNode* newRoot = _root->sculptMaterial(spanner, material, color);
     if (_root == newRoot) {
         return this;
     }

@@ -363,7 +363,7 @@ void MetavoxelSystem::render() {
             
         _baseVoxelProgram.bind();
         
-        foreach (const VoxelBatch& batch, _voxelBaseBatches) {
+        foreach (const MetavoxelBatch& batch, _voxelBaseBatches) {
             batch.vertexBuffer->bind();
             batch.indexBuffer->bind();
             
@@ -712,7 +712,7 @@ int BufferCursorRenderVisitor::visit(MetavoxelInfo& info) {
     }
     BufferData* buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>().data();
     if (buffer) {
-        buffer->render(true);
+        buffer->render(glm::vec3(), glm::quat(), glm::vec3(1.0f, 1.0f, 1.0f), true);
     }
     return info.isLeaf ? STOP_RECURSION : DEFAULT_ORDER;
 }
@@ -1163,7 +1163,7 @@ bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::ve
     return false;
 }
 
-void VoxelBuffer::render(bool cursor) {
+void VoxelBuffer::render(const glm::vec3& translation, const glm::quat& rotation, const glm::vec3& scale, bool cursor) {
     if (!_vertexBuffer.isCreated()) {
         _vertexBuffer.create();
         _vertexBuffer.bind();
@@ -1203,7 +1203,10 @@ void VoxelBuffer::render(bool cursor) {
         return;
     }
     
-    VoxelBatch baseBatch;
+    MetavoxelBatch baseBatch;
+    baseBatch.translation = translation;
+    baseBatch.rotation = rotation;
+    baseBatch.scale = scale;
     baseBatch.vertexBuffer = &_vertexBuffer;
     baseBatch.indexBuffer = &_indexBuffer;
     baseBatch.vertexCount = _vertexCount;
@@ -1212,6 +1215,9 @@ void VoxelBuffer::render(bool cursor) {
     
     if (!_materials.isEmpty()) {
         VoxelSplatBatch splatBatch;
+        splatBatch.translation = translation;
+        splatBatch.rotation = rotation;
+        splatBatch.scale = scale;
         splatBatch.vertexBuffer = &_vertexBuffer;
         splatBatch.indexBuffer = &_indexBuffer;
         splatBatch.vertexCount = _vertexCount;
@@ -1948,7 +1954,7 @@ int BufferRenderVisitor::visit(MetavoxelInfo& info) {
     }
     BufferDataPointer buffer = info.inputValues.at(0).getInlineValue<BufferDataPointer>();
     if (buffer) {
-        buffer->render();
+        buffer->render(glm::vec3(), glm::quat(), glm::vec3(1.0f, 1.0f, 1.0f));
     }
     return STOP_RECURSION;
 }
@@ -2195,7 +2201,16 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        const QVector<quint16>& heightContents = node->getHeight()->getContents();
+        QVector<quint16> heightContents = node->getHeight()->getContents();
+        if (node->getStack()) {
+            // clear any height values covered by stacks
+            const QByteArray* src = node->getStack()->getContents().constData();
+            for (quint16* dest = heightContents.data(), *end = dest + heightContents.size(); dest != end; dest++, src++) {
+                if (!src->isEmpty()) {
+                    *dest = 0;
+                }
+            }
+        }
         glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, width, height, 0,
             GL_RED, GL_UNSIGNED_SHORT, heightContents.constData());
     
@@ -2241,6 +2256,18 @@ void HeightfieldNodeRenderer::render(const HeightfieldNodePointer& node, const g
             glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, 1, 1, 0, GL_RED, GL_UNSIGNED_BYTE, &ZERO_VALUE);
         }
         glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    if (!_voxels && node->getStack()) {
+        QVector<VoxelPoint> vertices;
+        QVector<int> indices;
+        QVector<glm::vec3> hermiteSegments;
+        QMultiHash<VoxelCoord, int> quadIndices;
+        
+        _voxels = new VoxelBuffer(vertices, indices, hermiteSegments, quadIndices, width, node->getStack()->getMaterials());
+    }
+    
+    if (_voxels) {
+        _voxels->render(translation, rotation, scale, cursor);
     }
     
     if (cursor) {

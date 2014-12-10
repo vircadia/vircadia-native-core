@@ -26,8 +26,8 @@
 class HeightfieldBaseLayerBatch;
 class HeightfieldSplatBatch;
 class HermiteBatch;
+class MetavoxelBatch;
 class Model;
-class VoxelBatch;
 class VoxelSplatBatch;
 
 /// Renders a metavoxel tree.
@@ -86,7 +86,7 @@ public:
     void addHeightfieldBaseBatch(const HeightfieldBaseLayerBatch& batch) { _heightfieldBaseBatches.append(batch); }
     void addHeightfieldSplatBatch(const HeightfieldSplatBatch& batch) { _heightfieldSplatBatches.append(batch); }
     
-    void addVoxelBaseBatch(const VoxelBatch& batch) { _voxelBaseBatches.append(batch); }
+    void addVoxelBaseBatch(const MetavoxelBatch& batch) { _voxelBaseBatches.append(batch); }
     void addVoxelSplatBatch(const VoxelSplatBatch& batch) { _voxelSplatBatches.append(batch); }
     
     void addHermiteBatch(const HermiteBatch& batch) { _hermiteBatches.append(batch); }
@@ -123,7 +123,7 @@ private:
     
     QVector<HeightfieldBaseLayerBatch> _heightfieldBaseBatches;
     QVector<HeightfieldSplatBatch> _heightfieldSplatBatches;
-    QVector<VoxelBatch> _voxelBaseBatches;
+    QVector<MetavoxelBatch> _voxelBaseBatches;
     QVector<VoxelSplatBatch> _voxelSplatBatches;
     QVector<HermiteBatch> _hermiteBatches;
     
@@ -166,8 +166,8 @@ private:
     static void loadSplatProgram(const char* type, ProgramObject& program, SplatLocations& locations);
 };
 
-/// Base class for heightfield batches.
-class HeightfieldBatch {
+/// Base class for all batches.
+class MetavoxelBatch {
 public:
     QOpenGLBuffer* vertexBuffer;
     QOpenGLBuffer* indexBuffer;
@@ -176,6 +176,11 @@ public:
     glm::vec3 scale;
     int vertexCount;
     int indexCount;
+};
+
+/// Base class for heightfield batches.
+class HeightfieldBatch : public MetavoxelBatch {
+public:
     GLuint heightTextureID;
     glm::vec4 heightScale;
 };
@@ -199,17 +204,8 @@ public:
     int materialIndex;
 };
 
-/// Base class for voxel batches.
-class VoxelBatch {
-public:
-    QOpenGLBuffer* vertexBuffer;
-    QOpenGLBuffer* indexBuffer;
-    int vertexCount;
-    int indexCount;
-};
-
 /// A batch containing a voxel splat.
-class VoxelSplatBatch : public VoxelBatch {
+class VoxelSplatBatch : public MetavoxelBatch {
 public:
     int splatTextureIDs[4];
     glm::vec4 splatTextureScalesS;
@@ -295,7 +291,8 @@ public:
     
     virtual ~BufferData();
 
-    virtual void render(bool cursor = false) = 0;
+    virtual void render(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, bool cursor = false) = 0;
 };
 
 typedef QExplicitlySharedDataPointer<BufferData> BufferDataPointer;
@@ -340,7 +337,8 @@ public:
     bool findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
         const glm::vec3& direction, float& distance) const;
         
-    virtual void render(bool cursor = false);
+    virtual void render(const glm::vec3& translation, const glm::quat& rotation,
+        const glm::vec3& scale, bool cursor = false);
 
 private:
     
@@ -459,6 +457,8 @@ private:
     GLuint _colorTextureID;
     GLuint _materialTextureID;
     QVector<NetworkTexturePointer> _networkTextures;
+    
+    BufferDataPointer _voxels;
     
     typedef QPair<int, int> IntPair;    
     typedef QPair<QOpenGLBuffer, QOpenGLBuffer> BufferPair;
