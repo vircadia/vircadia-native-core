@@ -15,6 +15,7 @@ var panelWall = false;
 var orbShell = false;
 var reticle = false;
 var descriptionText = false;
+var showText = false;
 
 // used for formating the description text, in meters
 var textWidth = 4;
@@ -313,7 +314,7 @@ function handleLookAt(pickRay) {
           var actionLocation = locations[panelIndex];
           
           if (actionLocation.description == "") {
-              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: true });
+              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
           } else {
               // handle line wrapping
               var allWords = actionLocation.description.split(" ");
@@ -345,7 +346,7 @@ function handleLookAt(pickRay) {
                 }
               }
               formatedDescription += currentGoodLine;
-              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
+              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: showText });
             }
         } else {
           Overlays.editOverlay(descriptionText, { text: "", visible: false });
