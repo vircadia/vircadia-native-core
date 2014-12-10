@@ -158,7 +158,7 @@ function changeLobbyTextures() {
   };
   
   for (var j = 0; j < NUM_PANELS; j++) {
-    panelIndex = locationIndexToPanelIndex(j);
+    var panelIndex = locationIndexToPanelIndex(j);
     textureProp["textures"]["file" + panelIndex] = "http:" + locations[j].thumbnail_url;
   };
   
