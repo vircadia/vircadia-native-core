@@ -1520,7 +1520,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping,
                             }
                         } else {
                             std::string whatisthat = subobject.name;
-                            if (whatisthat == "WTF") {
+                            if (whatisthat == "Shape") {
                             } 
                         }
 #endif

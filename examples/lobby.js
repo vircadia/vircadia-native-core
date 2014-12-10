@@ -13,8 +13,8 @@ Script.include("libraries/globals.js");
 
 var panelWall = false;
 var orbShell = false;
-var reticle = false;
 var descriptionText = false;
+var showText = false;
 
 // used for formating the description text, in meters
 var textWidth = 4;
@@ -23,8 +23,6 @@ var numberOfLines = 2;
 var textMargin = 0.0625;
 var lineHeight = (textHeight - (2 * textMargin)) / numberOfLines;
 
-var lastMouseMove = 0;
-var IDLE_HOVER_TIME = 2000; // if you haven't moved the mouse in 2 seconds, and in HMD mode, then we use reticle for hover
 var avatarStickPosition = {};
 
 var orbNaturalExtentsMin = { x: -1.230354, y: -1.22077, z: -1.210487 };
@@ -56,13 +54,6 @@ var latinSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/latin.st
 var elevatorSound = SoundCache.getSound(HIFI_PUBLIC_BUCKET + "sounds/Lobby/elevator.stereo.raw")
 var currentMuzakInjector = null;
 var currentSound = null;
-
-var inOculusMode = false;
-
-function reticlePosition() {
-  var RETICLE_DISTANCE = 1;
-  return Vec3.sum(Camera.position, Vec3.multiply(Quat.getFront(Camera.orientation), RETICLE_DISTANCE));
-}
 
 function textOverlayPosition() {
   var TEXT_DISTANCE_OUT = 6;
@@ -124,22 +115,6 @@ function drawLobby() {
     panelWall = Overlays.addOverlay("model", panelWallProps);    
     orbShell = Overlays.addOverlay("model", orbShellProps);
     descriptionText = Overlays.addOverlay("text3d", descriptionTextProps);
-    
-    inOculusMode = Menu.isOptionChecked("Enable VR Mode");
-    
-    // for HMD wearers, create a reticle in center of screen
-    if (inOculusMode) {
-      var CURSOR_SCALE = 0.025;
-    
-      reticle = Overlays.addOverlay("billboard", {
-        url: HIFI_PUBLIC_BUCKET + "images/cursor.svg",
-        position: reticlePosition(),
-        ignoreRayIntersection: true,
-        isFacingAvatar: true,
-        alpha: 1.0,
-        scale: CURSOR_SCALE
-      });
-    }
       
     // add an attachment on this avatar so other people see them in the lobby
     MyAvatar.attach(HELMET_ATTACHMENT_URL, "Neck", {x: 0, y: 0, z: 0}, Quat.fromPitchYawRollDegrees(0, 0, 0), 1.15);
@@ -227,14 +202,8 @@ function cleanupLobby() {
   Overlays.deleteOverlay(orbShell);
   Overlays.deleteOverlay(descriptionText);
   
-  
-  if (reticle) {
-    Overlays.deleteOverlay(reticle);
-  }
-  
   panelWall = false;
   orbShell = false;
-  reticle = false;
   
   Audio.stopInjector(currentDrone);
   currentDrone = null;
@@ -313,7 +282,7 @@ function handleLookAt(pickRay) {
           var actionLocation = locations[panelIndex];
           
           if (actionLocation.description == "") {
-              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: true });
+              Overlays.editOverlay(descriptionText, { text: actionLocation.name, visible: showText });
           } else {
               // handle line wrapping
               var allWords = actionLocation.description.split(" ");
@@ -345,7 +314,7 @@ function handleLookAt(pickRay) {
                 }
               }
               formatedDescription += currentGoodLine;
-              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: true });
+              Overlays.editOverlay(descriptionText, { text: formatedDescription, visible: showText });
             }
         } else {
           Overlays.editOverlay(descriptionText, { text: "", visible: false });
@@ -358,20 +327,6 @@ function handleLookAt(pickRay) {
 function update(deltaTime) {
   maybeCleanupLobby();
   if (panelWall) {
-    
-    if (reticle) {
-      Overlays.editOverlay(reticle, {
-        position: reticlePosition()
-      });
-
-      var nowDate = new Date();
-      var now = nowDate.getTime();
-      if (now - lastMouseMove > IDLE_HOVER_TIME) {
-        var pickRay = Camera.computeViewPickRay(0.5, 0.5);
-        handleLookAt(pickRay);
-      }
-    }
-
     Overlays.editOverlay(descriptionText, { position: textOverlayPosition() });
 
     // if the reticle is up then we may need to play the next muzak
@@ -383,8 +338,6 @@ function update(deltaTime) {
 
 function mouseMoveEvent(event) {
   if (panelWall) {
-      var nowDate = new Date();
-      lastMouseMove = nowDate.getTime();
       var pickRay = Camera.computePickRay(event.x, event.y);
       handleLookAt(pickRay);
     }
