@@ -170,12 +170,6 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
 
                 quint64 now = usecTimestampNow();
         
-                Collision collision;
-                collision.penetration = penetration;
-                // for now the contactPoint is the average between the the two paricle centers
-                collision.contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
-                emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
-
                 glm::vec3 axis = glm::normalize(penetration);
                 glm::vec3 axialVelocity = glm::dot(relativeVelocity, axis) * axis;
 
@@ -232,7 +226,13 @@ void EntityCollisionSystem::updateCollisionWithEntities(EntityItem* entityA) {
                     // thereby waking up static non-moving entities.
                     _entityTree->updateEntity(entityB, propertiesB);
                     _packetSender->queueEditEntityMessage(PacketTypeEntityAddOrEdit, idB, propertiesB);
-                }      
+                }
+
+                // NOTE: Do this after updating the entities so that the callback can delete the entities if they want to
+                Collision collision;
+                collision.penetration = penetration;
+                collision.contactPoint = (0.5f * (float)TREE_SCALE) * (entityA->getPosition() + entityB->getPosition());
+                emitGlobalEntityCollisionWithEntity(entityA, entityB, collision);
             }
         }
     }

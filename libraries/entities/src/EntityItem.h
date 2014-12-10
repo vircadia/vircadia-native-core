@@ -227,8 +227,6 @@ public:
     float getSize() const; /// get maximum dimension in domain scale units (0.0 - 1.0)
     AACube getMaximumAACube() const;
     AACube getMinimumAACube() const;
-    AACube getOldMaximumAACube() const { return _oldMaximumAACube; }
-    void setOldMaximumAACube(const AACube& cube) { _oldMaximumAACube = cube; }
     AABox getAABox() const; /// axis aligned bounding box in domain scale units (0.0 - 1.0)
 
     static const QString DEFAULT_SCRIPT;
@@ -347,7 +345,6 @@ protected:
     void setRadius(float value); 
 
     AACubeShape _collisionShape;
-    AACube _oldMaximumAACube;   // remember this so we know where the entity used to live in the tree
 
     // DirtyFlags are set whenever a property changes that the EntitySimulation needs to know about.
     uint32_t _dirtyFlags;   // things that have changed from EXTERNAL changes (via script or packet) but NOT from simulation
