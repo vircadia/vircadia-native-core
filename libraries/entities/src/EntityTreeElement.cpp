@@ -475,13 +475,17 @@ bool EntityTreeElement::bestFitBounds(const glm::vec3& minPoint, const glm::vec3
 
 bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElement*& element, float& distance, BoxFace& face, 
-                         void** intersectedObject) {
+                         void** intersectedObject, bool precisionPicking, float distanceToElementCube) {
 
     // only called if we do intersect our bounding cube, but find if we actually intersect with entities...
+    int entityNumber = 0;
     
     QList<EntityItem*>::iterator entityItr = _entityItems->begin();
     QList<EntityItem*>::const_iterator entityEnd = _entityItems->end();
     bool somethingIntersected = false;
+    
+    //float bestEntityDistance = distance;
+    
     while(entityItr != entityEnd) {
         EntityItem* entity = (*entityItr);
         
@@ -513,10 +517,9 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
                 if (localDistance < distance) {
                     // now ask the entity if we actually intersect
                     if (entity->supportsDetailedRayIntersection()) {
-                    
                         if (entity->findDetailedRayIntersection(origin, direction, keepSearching, element, localDistance, 
-                                                                    localFace, intersectedObject)) {
-                                                                    
+                                                                    localFace, intersectedObject, precisionPicking)) {
+    
                             if (localDistance < distance) {
                                 distance = localDistance;
                                 face = localFace;
@@ -538,6 +541,7 @@ bool EntityTreeElement::findDetailedRayIntersection(const glm::vec3& origin, con
         }
         
         ++entityItr;
+        entityNumber++;
     }
     return somethingIntersected;
 }
@@ -757,7 +761,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     EntityTreeElement* currentContainingElement = _myTree->getContainingElement(entityItemID);
 
                     bytesForThisEntity = entityItem->readEntityDataFromBuffer(dataAt, bytesLeftToRead, args);
-                    if (entityItem->getUpdateFlags()) {
+                    if (entityItem->getDirtyFlags()) {
                         _myTree->entityChanged(entityItem);
                     }
                     bool bestFitAfter = bestFitEntityBounds(entityItem);

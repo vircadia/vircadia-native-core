@@ -12,10 +12,10 @@
 #define hifi_gpu_GLBackend_h
 
 #include <assert.h>
-#include "InterfaceConfig.h"
+#include "GPUConfig.h"
 
-#include "gpu/Context.h"
-#include "gpu/Batch.h"
+#include "Context.h"
+#include "Batch.h"
 #include <bitset>
 
 

@@ -21,6 +21,7 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include <GeometryUtil.h>
 #include <SharedUtil.h>
 
 #include <MetavoxelMessages.h>
@@ -192,7 +193,7 @@ static const float EIGHT_BIT_MAXIMUM_RECIPROCAL = 1.0f / EIGHT_BIT_MAXIMUM;
 
 void MetavoxelSystem::render() {
     // update the frustum
-    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    ViewFrustum* viewFrustum = Application::getInstance()->getDisplayViewFrustum();
     _frustum.set(viewFrustum->getFarTopLeft(), viewFrustum->getFarTopRight(), viewFrustum->getFarBottomLeft(),
         viewFrustum->getFarBottomRight(), viewFrustum->getNearTopLeft(), viewFrustum->getNearTopRight(),
         viewFrustum->getNearBottomLeft(), viewFrustum->getNearBottomRight());
@@ -1095,30 +1096,6 @@ VoxelBuffer::VoxelBuffer(const QVector<VoxelPoint>& vertices, const QVector<int>
     _materials(materials) {
 }
 
-static bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
-    glm::vec3 firstSide = v0 - v1;
-    glm::vec3 secondSide = v2 - v1;
-    glm::vec3 normal = glm::cross(secondSide, firstSide);
-    float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
-    if (dividend > 0.0f) {
-        return false; // origin below plane
-    }
-    float divisor = glm::dot(normal, direction);
-    if (divisor > -EPSILON) {
-        return false;
-    }
-    float t = dividend / divisor;
-    glm::vec3 point = origin + direction * t;
-    if (glm::dot(normal, glm::cross(point - v1, firstSide)) > 0.0f &&
-            glm::dot(normal, glm::cross(secondSide, point - v1)) > 0.0f &&
-            glm::dot(normal, glm::cross(point - v0, v2 - v0)) > 0.0f) {
-        distance = t;
-        return true;
-    }
-    return false;
-}
-
 bool VoxelBuffer::findFirstRayIntersection(const glm::vec3& entry, const glm::vec3& origin,
         const glm::vec3& direction, float& distance) const {
     float highest = _size - 1.0f;
@@ -1953,7 +1930,7 @@ private:
 
 BufferRenderVisitor::BufferRenderVisitor(const AttributePointer& attribute) :
     MetavoxelVisitor(QVector<AttributePointer>() << attribute),
-    _order(encodeOrder(Application::getInstance()->getViewFrustum()->getDirection())),
+    _order(encodeOrder(Application::getInstance()->getDisplayViewFrustum()->getDirection())),
     _containmentDepth(INT_MAX) {
 }
 

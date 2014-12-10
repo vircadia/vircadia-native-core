@@ -22,11 +22,6 @@ var velocity = {
   y: 0,
   z: 1 };
 
-var gravity = {  
-  x: 0, 
-  y: 0,
-  z: 0 };
-
 var damping = 0.1;
 
 var color = {  
@@ -42,22 +37,17 @@ function draw(deltaTime) {
         var colorGreen = { red: 0, green: 255, blue: 0 };
         var startPosition = {  
             x: 2, 
-            y: 0,
+            y: 1,
             z: 2 };
         var largeRadius = 0.5;
-        var verySlow = {  
-            x: 0.01, 
-            y: 0,
-            z: 0.01 };
 
         var properties = {
             type: "Sphere",
             collisionsWillMove: true,
             position: startPosition, 
             dimensions: {x: largeRadius, y: largeRadius, z: largeRadius},
+            registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
             color: colorGreen, 
-            velocity: verySlow, 
-            gravity: gravity, 
             damping: damping, 
             lifetime: 20
         };
@@ -71,7 +61,7 @@ function draw(deltaTime) {
 
         var center = {  
             x: 0, 
-            y: 0,
+            y: 1,
             z: 0 };
 
         var entitySize = 0.1;
@@ -97,9 +87,9 @@ function draw(deltaTime) {
                 collisionsWillMove: true,
                 position: center, 
                 dimensions: {x: entitySize, y: entitySize, z: entitySize},
+                registrationPoint: { x: 0.5, y: 0.5, z: 0.5 },
                 color: color, 
                 velocity: velocity, 
-                gravity: gravity, 
                 damping: damping, 
                 lifetime: 20
             };

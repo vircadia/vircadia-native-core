@@ -53,15 +53,15 @@ public:
     void updateCollisionSound(EntityItem* Entity, const glm::vec3 &penetration, float frequency);
 
 signals:
-    void entityCollisionWithVoxel(const EntityItemID& entityItemID, const VoxelDetail& voxel, const CollisionInfo& penetration);
-    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const CollisionInfo& penetration);
+    void entityCollisionWithVoxel(const EntityItemID& entityItemID, const VoxelDetail& voxel, const Collision& collision);
+    void entityCollisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 
 private:
     void applyHardCollision(EntityItem* entity, const CollisionInfo& collisionInfo);
 
     static bool updateOperation(OctreeElement* element, void* extraData);
-    void emitGlobalEntityCollisionWithVoxel(EntityItem* Entity, VoxelDetail* voxelDetails, const CollisionInfo& penetration);
-    void emitGlobalEntityCollisionWithEntity(EntityItem* entityA, EntityItem* entityB, const CollisionInfo& penetration);
+    void emitGlobalEntityCollisionWithVoxel(EntityItem* Entity, VoxelDetail* voxelDetails, const Collision& penetration);
+    void emitGlobalEntityCollisionWithEntity(EntityItem* entityA, EntityItem* entityB, const Collision& penetration);
 
     EntityEditPacketSender* _packetSender;
     VoxelTree* _voxels;

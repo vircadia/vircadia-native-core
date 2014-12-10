@@ -92,7 +92,7 @@ function drawLobby() {
     };
     
     var orbShellProps = {
-      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.fbx",
+      url: HIFI_PUBLIC_BUCKET + "models/sets/Lobby/Lobby_v8/forStephen1/LobbyShell1.4_LightTag.fbx",
       position: orbPosition,
       rotation: towardsMe,
       dimensions: orbDimensions,
@@ -113,6 +113,7 @@ function drawLobby() {
         text: "",
         lineHeight: lineHeight,
         alpha: 0.9,
+        backgroundAlpha: 0.9,
         ignoreRayIntersection: true,
         visible: false,
         isFacingAvatar: true

@@ -32,5 +32,9 @@ DerivedData
 interface/external/*/*
 !interface/external/*/readme.txt
 
+# ignore interface optional resources
+interface/resources/visage/*
+!interface/resources/visage/tracker.cfg
+
 # Ignore interfaceCache for Linux users
 interface/interfaceCache/

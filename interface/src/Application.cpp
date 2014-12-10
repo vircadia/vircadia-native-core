@@ -165,8 +165,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         _scaleMirror(1.0f),
         _rotateMirror(0.0f),
         _raiseMirror(0.0f),
-        _mouseX(0),
-        _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
         _lastMouseMoveWasSimulated(false),
         _mouseHidden(false),
@@ -1132,7 +1130,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (!event->isAutoRepeat()) {
                     // this starts an HFActionEvent
                     HFActionEvent startActionEvent(HFActionEvent::startType(),
-                                                   _viewFrustum.computePickRay(0.5f, 0.5f));
+                                                   _myCamera.computeViewPickRay(0.5f, 0.5f));
                     sendEvent(this, &startActionEvent);
                 }
                 
@@ -1223,7 +1221,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         case Qt::Key_Space: {
             if (!event->isAutoRepeat()) {
                 // this ends the HFActionEvent
-                HFActionEvent endActionEvent(HFActionEvent::endType(), _viewFrustum.computePickRay(0.5f, 0.5f));
+                HFActionEvent endActionEvent(HFActionEvent::endType(), _myCamera.computeViewPickRay(0.5f, 0.5f));
                 sendEvent(this, &endActionEvent);
             }
             
@@ -1254,7 +1252,6 @@ void Application::focusOutEvent(QFocusEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
-
     bool showMouse = true;
 
     // Used by application overlay to determine how to draw cursor(s)
@@ -1283,13 +1280,9 @@ void Application::mouseMoveEvent(QMouseEvent* event, unsigned int deviceID) {
         _mouseHidden = false;
         _seenMouseMove = true;
     }
-
-    _mouseX = event->x();
-    _mouseY = event->y();
 }
 
 void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
-
     if (!_aboutToQuit) {
         _entities.mousePressEvent(event, deviceID);
     }
@@ -1304,20 +1297,20 @@ void Application::mousePressEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
-            _mouseDragStartedX = _mouseX;
-            _mouseDragStartedY = _mouseY;
+            _mouseDragStartedX = getTrueMouseX();
+            _mouseDragStartedY = getTrueMouseY();
             _mousePressed = true;
-
-            if (_audio.mousePressEvent(_mouseX, _mouseY)) {
-                // stop propagation
-                return;
-            }
-
-            if (_rearMirrorTools->mousePressEvent(_mouseX, _mouseY)) {
-                // stop propagation
-                return;
+            
+            if (mouseOnScreen()) {
+                if (_audio.mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
+                
+                if (_rearMirrorTools->mousePressEvent(getMouseX(), getMouseY())) {
+                    // stop propagation
+                    return;
+                }
             }
             
             // nobody handled this - make it an action event on the _window object
@@ -1346,15 +1339,14 @@ void Application::mouseReleaseEvent(QMouseEvent* event, unsigned int deviceID) {
 
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
-            _mouseX = event->x();
-            _mouseY = event->y();
             _mousePressed = false;
             
-            checkBandwidthMeterClick();
-            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Stats) && mouseOnScreen()) {
                 // let's set horizontal offset to give stats some margin to mirror
                 int horizontalOffset = MIRROR_VIEW_WIDTH;
-                Stats::getInstance()->checkClick(_mouseX, _mouseY, _mouseDragStartedX, _mouseDragStartedY, horizontalOffset);
+                Stats::getInstance()->checkClick(getMouseX(), getMouseY(),
+                                                 getMouseDragStartedX(), getMouseDragStartedY(), horizontalOffset);
+                checkBandwidthMeterClick();
             }
             
             // fire an action end event
@@ -1547,13 +1539,13 @@ void Application::idle() {
 
 void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth) &&
         Menu::getInstance()->isOptionChecked(MenuOption::Stats) &&
         Menu::getInstance()->isOptionChecked(MenuOption::UserInterface) &&
-        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY)))
-            <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
-            && _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+        glm::compMax(glm::abs(glm::ivec2(getMouseX() - getMouseDragStartedX(),
+                                         getMouseY() - getMouseDragStartedY())))
+        <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH
+        && _bandwidthMeter.isWithinArea(getMouseX(), getMouseY(), _glWidget->width(), _glWidget->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
         // we actually hit the bandwidth meter
@@ -1665,6 +1657,48 @@ void Application::makeVoxel(glm::vec3 position,
 glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail& mouseVoxel) {
     return glm::vec3((mouseVoxel.x + mouseVoxel.s / 2.0f) * TREE_SCALE, (mouseVoxel.y + mouseVoxel.s / 2.0f) * TREE_SCALE,
         (mouseVoxel.z + mouseVoxel.s / 2.0f) * TREE_SCALE);
+}
+
+bool Application::mouseOnScreen() const {
+    if (OculusManager::isConnected()) {
+        return getMouseX() >= 0 && getMouseX() <= _glWidget->getDeviceWidth() &&
+               getMouseY() >= 0 && getMouseY() <= _glWidget->getDeviceHeight();
+    }
+    return true;
+}
+
+int Application::getMouseX() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
+        return pos.x;
+    }
+    return getTrueMouseX();
+}
+
+int Application::getMouseY() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseX(), getTrueMouseY()));
+        return pos.y;
+    }
+    return getTrueMouseY();
+}
+
+int Application::getMouseDragStartedX() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
+                                                                      getTrueMouseDragStartedY()));
+        return pos.x;
+    }
+    return getTrueMouseDragStartedX();
+}
+
+int Application::getMouseDragStartedY() const {
+    if (OculusManager::isConnected()) {
+        glm::vec2 pos = _applicationOverlay.screenToOverlay(glm::vec2(getTrueMouseDragStartedX(),
+                                                                      getTrueMouseDragStartedY()));
+        return pos.y;
+    }
+    return getTrueMouseDragStartedY();
 }
 
 FaceTracker* Application::getActiveFaceTracker() {
@@ -1897,10 +1931,6 @@ void Application::init() {
     _voxelShader.init();
     _pointShader.init();
 
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
-    QCursor::setPos(_mouseX, _mouseY);
-
     // TODO: move _myAvatar out of Application. Move relevant code to MyAvataar or AvatarManager
     _avatarManager.init();
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -1988,6 +2018,13 @@ void Application::init() {
 
     connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
             ScriptEngine::getEntityScriptingInterface(), &EntityScriptingInterface::entityCollisionWithEntity);
+
+    // connect the _entityCollisionSystem to our EntityTreeRenderer since that's what handles running entity scripts
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithVoxel,
+            &_entities, &EntityTreeRenderer::entityCollisionWithVoxel);
+
+    connect(&_entityCollisionSystem, &EntityCollisionSystem::entityCollisionWithEntity,
+            &_entities, &EntityTreeRenderer::entityCollisionWithEntity);
 
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
@@ -2077,11 +2114,13 @@ void Application::updateMouseRay() {
     // if the mouse pointer isn't visible, act like it's at the center of the screen
     float x = 0.5f, y = 0.5f;
     if (!_mouseHidden) {
-        x = _mouseX / (float)_glWidget->width();
-        y = _mouseY / (float)_glWidget->height();
+        x = getTrueMouseX() / (float)_glWidget->width();
+        y = getTrueMouseY() / (float)_glWidget->height();
     }
-    _viewFrustum.computePickRay(x, y, _mouseRayOrigin, _mouseRayDirection);
-
+    PickRay pickRay = _myCamera.computeViewPickRay(x, y);
+    _mouseRayOrigin = pickRay.origin;
+    _mouseRayDirection = pickRay.direction;
+    
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         glm::vec3 mouseRayOffset = _mouseRayOrigin - _viewFrustum.getPosition();
@@ -2310,7 +2349,18 @@ void Application::update(float deltaTime) {
         _prioVR.update(deltaTime);
 
     }
-
+    
+    static QCursor cursor;
+    if (OculusManager::isConnected() &&
+        Menu::getInstance()->isOptionChecked(MenuOption::EnableVRMode)){
+        if (_window->cursor().shape() != Qt::BlankCursor) {
+            cursor = _window->cursor();
+            _window->setCursor(QCursor(Qt::BlankCursor));
+        }
+    } else if(_window->cursor().shape() == Qt::BlankCursor) {
+        _window->setCursor(cursor);
+    }
+    
     // Dispatch input events
     _controllerScriptingInterface.updateInputControllers();
 
@@ -2910,7 +2960,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly, RenderAr
     // transform by eye offset
 
     // load the view frustum
-    loadViewFrustum(whichCamera, _viewFrustum);
+    loadViewFrustum(whichCamera, _displayViewFrustum);
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
     if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -3184,7 +3234,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     float& farVal, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
 
     // allow 3DTV/Oculus to override parameters from camera
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    _displayViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     if (OculusManager::isConnected()) {
         OculusManager::overrideOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
@@ -3513,9 +3563,6 @@ void Application::deleteVoxelAt(const VoxelDetail& voxel) {
 }
 
 void Application::resetSensors() {
-    _mouseX = _glWidget->width() / 2;
-    _mouseY = _glWidget->height() / 2;
-
     _faceshift.reset();
     _visage.reset();
     _dde.reset();
@@ -3528,7 +3575,7 @@ void Application::resetSensors() {
     QScreen* currentScreen = _window->windowHandle()->screen();
     QWindow* mainWindow = _window->windowHandle();
     QPoint windowCenter = mainWindow->geometry().center();
-    QCursor::setPos(currentScreen, windowCenter);
+    _glWidget->cursor().setPos(currentScreen, windowCenter);
     
     _myAvatar->reset();
 
