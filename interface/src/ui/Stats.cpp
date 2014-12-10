@@ -477,10 +477,6 @@ void Stats::display(
     VoxelSystem* voxels = Application::getInstance()->getVoxels();
 
     lines = _expanded ? 14 : 3;
-    bool wantSpatialProcessing = false; // Menu::getInstance()->isOptionChecked(MenuOption::AudioSpatialProcessing)
-    if (_expanded && wantSpatialProcessing) {
-        lines += 10; // spatial audio processing adds 1 spacing line and 8 extra lines of info
-    }
 
     drawBackground(backgroundColor, horizontalOffset, 0, glWidget->width() - horizontalOffset,
         lines * STATS_PELS_PER_LINE + 10);
