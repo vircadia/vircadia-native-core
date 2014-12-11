@@ -22,6 +22,8 @@ public:
     ~HMDToolsDialog();
 
     QString getDebugDetails() const;
+    QScreen* getHMDScreen() const { return _hmdScreen; }
+    bool hasHMDScreen() const { return _hmdScreenNumber >= -1; }
     
 signals:
     void closed();

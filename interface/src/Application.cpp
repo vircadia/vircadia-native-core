@@ -37,6 +37,7 @@
 #include <QOpenGLFramebufferObject>
 #include <QObject>
 #include <QWheelEvent>
+#include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QTimer>
@@ -414,9 +415,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QMutexLocker locker(&_settingsMutex);
         _previousScriptLocation = _settings->value("LastScriptLocation", QVariant("")).toString();
     }
-
-    connect(_window, &MainWindow::windowGeometryChanged,
-            _runningScriptsWidget, &RunningScriptsWidget::setBoundary);
 
     _trayIcon->show();
     
@@ -2704,6 +2702,29 @@ bool Application::isHMDMode() const {
     } else {
         return false;
     }
+}
+
+QRect Application::getDesirableApplicationGeometry() {
+    QRect applicationGeometry = getWindow()->geometry();
+    
+    // If our parent window is on the HMD, then don't use it's geometry, instead use
+    // the "main screen" geometry.
+    HMDToolsDialog* hmdTools = Menu::getInstance()->getHMDToolsDialog();
+    if (hmdTools && hmdTools->hasHMDScreen()) {
+        QScreen* hmdScreen = hmdTools->getHMDScreen();
+        QWindow* appWindow = getWindow()->windowHandle();
+        QScreen* appScreen = appWindow->screen();
+
+        // if our app's screen is the hmd screen, we don't want to place the
+        // running scripts widget on it. So we need to pick a better screen.
+        // we will use the screen for the HMDTools since it's a guarenteed
+        // better screen.
+        if (appScreen == hmdScreen) {
+            QScreen* betterScreen = hmdTools->windowHandle()->screen();
+            applicationGeometry = betterScreen->geometry();
+        }
+    }
+    return applicationGeometry;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
