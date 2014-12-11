@@ -23,8 +23,7 @@ typedef unsigned int uint32_t;
 #include <EntitySimulation.h>
 
 #include "BulletUtil.h"
-#include "ObjectMotionState.h"
-#include "ObjectMotionState.h"
+#include "EntityMotionState.h"
 #include "PositionHashKey.h"
 #include "ShapeManager.h"
 #include "ThreadSafeDynamicsWorld.h"
@@ -111,7 +110,7 @@ private:
     btHashMap<PositionHashKey, VoxelObject> _voxels;
 
     // EntitySimulation stuff
-    QSet<ObjectMotionState*> _entityMotionStates; // all entities that we track
+    QSet<EntityMotionState*> _entityMotionStates; // all entities that we track
     QSet<EntityItem*> _incomingEntityChanges; // entities with pending physics changes by script or packet
     QSet<ObjectMotionState*> _outgoingPhysics; // MotionStates with pending transform changes from physics simulation
 

@@ -12,11 +12,11 @@
 // TODO: make MotionState able to clear incoming flags
 // TODO: make MotionState::setWorldTransform() put itself on _incomingChanges list
 // TODO: give PhysicsEngine instance an _entityPacketSender
+// TODO: provide some sort of "reliable" send for "stopped" update
 
 #include "PhysicsEngine.h"
 #ifdef USE_BULLET_PHYSICS
 
-#include "EntityMotionState.h"
 #include "ShapeInfoUtil.h"
 #include "ThreadSafeDynamicsWorld.h"
 
@@ -75,7 +75,7 @@ void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
     assert(entity);
     void* physicsInfo = entity->getPhysicsInfo();
     if (physicsInfo) {
-        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        EntityMotionState* motionState = static_cast<EntityMotionState*>(physicsInfo);
         removeObject(motionState);
         entity->setPhysicsInfo(NULL);
         _entityMotionStates.remove(motionState);
@@ -89,7 +89,7 @@ void PhysicsEngine::entityChangedInternal(EntityItem* entity) {
 
 void PhysicsEngine::clearEntitiesInternal() {
     // For now we assume this would only be called on shutdown in which case we can just let the memory get lost.
-    QSet<ObjectMotionState*>::const_iterator stateItr = _entityMotionStates.begin();
+    QSet<EntityMotionState*>::const_iterator stateItr = _entityMotionStates.begin();
     for (stateItr = _entityMotionStates.begin(); stateItr != _entityMotionStates.end(); ++stateItr) {
         removeObject(*stateItr);
     }
