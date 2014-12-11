@@ -136,6 +136,13 @@ public:
     void debugDump() const;
     void setLastEdited(quint64 usecTime) { _lastEdited = usecTime; }
 
+    // Note:  DEFINE_PROPERTY(PROP_FOO, Foo, foo, type) creates the following methods and variables:
+    // type getFoo() const;
+    // void setFoo(type);
+    // bool fooChanged() const;
+    // type _foo;
+    // bool _fooChanged;
+
     DEFINE_PROPERTY(PROP_VISIBLE, Visible, visible, bool);
     DEFINE_PROPERTY_REF_WITH_SETTER(PROP_POSITION, Position, position, glm::vec3);
     DEFINE_PROPERTY_REF(PROP_DIMENSIONS, Dimensions, dimensions, glm::vec3);
