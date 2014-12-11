@@ -51,7 +51,7 @@ public:
     virtual void setProperties(const QScriptValue& properties);
     virtual QScriptValue getProperty(const QString& property);
 
-    float textWidth(const QString& text) const;  // Meters
+    QSizeF textSize(const QString& test) const;  // Meters
 
     virtual Text3DOverlay* createClone() const;
 

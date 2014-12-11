@@ -77,7 +77,7 @@ void TextOverlay::render(RenderArgs* args) {
         glVertex2f(_bounds.left(), _bounds.bottom());
     glEnd();
 
-    // Same font properties as textWidth()
+    // Same font properties as textSize()
     TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);
     
     const int leftAdjust = -1; // required to make text render relative to left edge of bounds
@@ -169,8 +169,20 @@ QScriptValue TextOverlay::getProperty(const QString& property) {
     return Overlay2D::getProperty(property);
 }
 
-float TextOverlay::textWidth(const QString& text) const {
+QSizeF TextOverlay::textSize(const QString& text) const {
+
     QFont font(SANS_FONT_FAMILY, _fontSize, DEFAULT_FONT_WEIGHT);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
-    return fontMetrics.width(qPrintable(text));
+    const int TEXT_HEIGHT_ADJUST = -2;  // Experimentally determined for the specified font
+
+    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
+
+    int width = 0;
+    for (int i = 0; i < lines.count(); i += 1) {
+        width = std::max(width, fontMetrics.width(qPrintable(lines[i])));
+    }
+
+    int height = lines.count() * (fontMetrics.height() + TEXT_HEIGHT_ADJUST);
+
+    return QSizeF(width, height);
 }

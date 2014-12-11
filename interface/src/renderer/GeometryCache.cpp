@@ -841,14 +841,14 @@ void GeometryReader::run() {
 
         if (urlValid) {
             // Let's read the binaries from the network
-            QByteArray fileBinary = _reply->readAll();
-            if (fileBinary.isEmpty() || fileBinary.isNull()) {
-                throw QString("Read File binary is empty?!");
-            }
-
             FBXGeometry fbxgeo;
             if (_url.path().toLower().endsWith(".svo")) {
+                QByteArray fileBinary = _reply->readAll();
+                if (fileBinary.isEmpty() || fileBinary.isNull()) {
+                    throw QString("Read File binary is empty?!");
+                }    
                 fbxgeo = readSVO(fileBinary);
+                
             } else if (_url.path().toLower().endsWith(".fbx")) {
                 bool grabLightmaps = true;
                 float lightmapLevel = 1.0f;
@@ -860,7 +860,7 @@ void GeometryReader::run() {
                 } else if (_url.path().toLower().endsWith("palaceoforinthilian4.fbx")) {
                     lightmapLevel = 3.5f;
                 }
-                fbxgeo = readFBX(fileBinary, _mapping, grabLightmaps, lightmapLevel);
+                fbxgeo = readFBX(_reply, _mapping, grabLightmaps, lightmapLevel);
             }
             QMetaObject::invokeMethod(geometry.data(), "setGeometry", Q_ARG(const FBXGeometry&, fbxgeo));
         } else {

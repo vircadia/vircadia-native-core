@@ -17,7 +17,9 @@
 #include <QFileInfo>
 #include <QKeyEvent>
 #include <QPainter>
+#include <QScreen>
 #include <QTableWidgetItem>
+#include <QWindow>
 
 #include "Application.h"
 #include "Menu.h"
@@ -80,10 +82,6 @@ void RunningScriptsWidget::loadSelectedScript() {
     if (selectedIndex.isValid()) {
         loadScriptFromList(selectedIndex);
     }
-}
-
-void RunningScriptsWidget::setBoundary(const QRect& rect) {
-    _boundary = rect;
 }
 
 void RunningScriptsWidget::setRunningScripts(const QStringList& list) {
@@ -153,7 +151,7 @@ void RunningScriptsWidget::showEvent(QShowEvent* event) {
         ui->filterLineEdit->setFocus();
     }
 
-    const QRect parentGeometry = parentWidget()->geometry();
+    QRect parentGeometry = Application::getInstance()->getDesirableApplicationGeometry();
     int titleBarHeight = UIUtil::getWindowTitleBarHeight(this);
     int menuBarHeight = Menu::getInstance()->geometry().height();
     int topMargin = titleBarHeight + menuBarHeight;
