@@ -8,7 +8,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-// TODO: make _incomingEntityChanges to be list of MotionState*'s.
+// TODO DONE: make _incomingChanges to be list of MotionState*'s.
 // TODO: make MotionState able to clear incoming flags
 // TODO: make MotionState::setWorldTransform() put itself on _incomingChanges list
 // TODO: give PhysicsEngine instance an _entityPacketSender
@@ -38,8 +38,6 @@ PhysicsEngine::~PhysicsEngine() {
 
 // begin EntitySimulation overrides
 void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
-    // relay outgoing changes: from physics engine to EntityItem's
-
     QSet<ObjectMotionState*>::iterator stateItr = _outgoingPhysics.begin();
     uint32_t frame = getFrameCount();
     float subStepRemainder = getSubStepRemainder();
@@ -84,7 +82,12 @@ void PhysicsEngine::removeEntityInternal(EntityItem* entity) {
 
 void PhysicsEngine::entityChangedInternal(EntityItem* entity) {
     // queue incoming changes: from external sources (script, EntityServer, etc) to physics engine
-    _incomingEntityChanges.insert(entity);
+    assert(entity);
+    void* physicsInfo = entity->getPhysicsInfo();
+    if (physicsInfo) {
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
+        _incomingChanges.insert(motionState);
+    }
 }
 
 void PhysicsEngine::clearEntitiesInternal() {
@@ -94,29 +97,34 @@ void PhysicsEngine::clearEntitiesInternal() {
         removeObject(*stateItr);
     }
     _entityMotionStates.clear();
-    _incomingEntityChanges.clear();
+    _incomingChanges.clear();
 }
 // end EntitySimulation overrides
 
 void PhysicsEngine::relayIncomingChangesToSimulation() {
     // process incoming changes
-    QSet<EntityItem*>::iterator itemItr = _incomingEntityChanges.begin();
-    while (itemItr != _incomingEntityChanges.end()) {
-        EntityItem* entity = *itemItr;
-        void* physicsInfo = entity->getPhysicsInfo();
-        if (physicsInfo) {
-            ObjectMotionState* motionState = static_cast<ObjectMotionState*>(physicsInfo);
-            uint32_t flags = entity->getDirtyFlags();
-            if (flags & DIRTY_PHYSICS_FLAGS) {
-                updateObject(motionState, flags);
-                // this incoming change will override any outgoing changes to the same parameters
-                motionState->clearOutgoingDirtyFlags(flags);
+    QSet<ObjectMotionState*>::iterator stateItr = _incomingChanges.begin();
+    while (stateItr != _incomingChanges.end()) {
+        ObjectMotionState* motionState = *stateItr;
+        motionState->clearConflictingDirtyFlags();
+        uint32_t flags = motionState->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
+
+        btRigidBody* body = motionState->_body;
+        if (body) {
+            if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
+                // a HARD update requires the body be pulled out of physics engine, changed, then reinserted
+                // but it also handles all EASY changes
+                updateObjectHard(body, motionState, flags);
+            } else if (flags) {
+                // an EASY update does NOT require that the body be pulled out of physics engine
+                updateObjectEasy(body, motionState, flags);
             }
         }
-        entity->clearDirtyFlags();
-        ++itemItr;
-    } 
-    _incomingEntityChanges.clear();
+
+        motionState->clearIncomingDirtyFlags(flags);
+        ++stateItr;
+    }
+    _incomingChanges.clear();
 }
 
 // virtual
@@ -293,22 +301,6 @@ bool PhysicsEngine::removeObject(ObjectMotionState* motionState) {
         return true;
     }
     return false;
-}
-
-bool PhysicsEngine::updateObject(ObjectMotionState* motionState, uint32_t flags) {
-    btRigidBody* body = motionState->_body;
-    if (!body) {
-        return false;
-    }
-
-    if (flags & HARD_DIRTY_PHYSICS_FLAGS) {
-        // a hard update requires the body be pulled out of physics engine, changed, then reinserted
-        updateObjectHard(body, motionState, flags);
-    } else if (flags & EASY_DIRTY_PHYSICS_FLAGS) {
-        // an easy update does not require that the body be pulled out of physics engine
-        updateObjectEasy(body, motionState, flags);
-    }
-    return true;
 }
 
 // private

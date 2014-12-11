@@ -73,11 +73,6 @@ public:
     /// \return true if Object removed
     bool removeObject(ObjectMotionState* motionState);
 
-    /// \param motionState pointer to Object's MotionState
-    /// \param flags set of bits indicating what categories of properties need to be updated
-    /// \return true if entity updated
-    bool updateObject(ObjectMotionState* motionState, uint32_t flags);
-
     /// process queue of changed from external sources
     void relayIncomingChangesToSimulation();
 
@@ -111,7 +106,7 @@ private:
 
     // EntitySimulation stuff
     QSet<EntityMotionState*> _entityMotionStates; // all entities that we track
-    QSet<EntityItem*> _incomingEntityChanges; // entities with pending physics changes by script or packet
+    QSet<ObjectMotionState*> _incomingChanges; // entities with pending physics changes by script or packet
     QSet<ObjectMotionState*> _outgoingPhysics; // MotionStates with pending transform changes from physics simulation
 
     EntityEditPacketSender* _entityPacketSender;
