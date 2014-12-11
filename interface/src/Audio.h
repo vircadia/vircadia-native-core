@@ -256,7 +256,8 @@ private:
     void processProceduralAudio(int16_t* monoInput, int numSamples);
 
     // Adds Reverb
-    void initGverb();
+    ty_gverb* createGverbFilter();
+    void configureGverbFilter(ty_gverb* filter);
     void updateGverbOptions();
     void addReverb(ty_gverb* gverb, int16_t* samples, int numSamples, QAudioFormat& format, bool noEcho = false);
 

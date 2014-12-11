@@ -495,31 +495,24 @@ bool Audio::switchOutputToAudioDevice(const QString& outputDeviceName) {
     return switchOutputToAudioDevice(getNamedAudioDeviceForMode(QAudio::AudioOutput, outputDeviceName));
 }
 
-void Audio::initGverb() {
+ty_gverb* Audio::createGverbFilter() {
     // Initialize a new gverb instance
-    _gverbLocal = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
-                            _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
-                            _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
-                            _reverbOptions->getTailLevel());
-    _gverb = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
+    ty_gverb* filter = gverb_new(_outputFormat.sampleRate(), _reverbOptions->getMaxRoomSize(), _reverbOptions->getRoomSize(),
                        _reverbOptions->getReverbTime(), _reverbOptions->getDamping(), _reverbOptions->getSpread(),
                        _reverbOptions->getInputBandwidth(), _reverbOptions->getEarlyLevel(),
                        _reverbOptions->getTailLevel());
     
+    return filter;
+}
+
+void Audio::configureGverbFilter(ty_gverb* filter) {
     // Configure the instance (these functions are not super well named - they actually set several internal variables)
-    gverb_set_roomsize(_gverbLocal, _reverbOptions->getRoomSize());
-    gverb_set_revtime(_gverbLocal, _reverbOptions->getReverbTime());
-    gverb_set_damping(_gverbLocal, _reverbOptions->getDamping());
-    gverb_set_inputbandwidth(_gverbLocal, _reverbOptions->getInputBandwidth());
-    gverb_set_earlylevel(_gverbLocal, DB_CO(_reverbOptions->getEarlyLevel()));
-    gverb_set_taillevel(_gverbLocal, DB_CO(_reverbOptions->getTailLevel()));
-    
-    gverb_set_roomsize(_gverb, _reverbOptions->getRoomSize());
-    gverb_set_revtime(_gverb, _reverbOptions->getReverbTime());
-    gverb_set_damping(_gverb, _reverbOptions->getDamping());
-    gverb_set_inputbandwidth(_gverb, _reverbOptions->getInputBandwidth());
-    gverb_set_earlylevel(_gverb, DB_CO(_reverbOptions->getEarlyLevel()));
-    gverb_set_taillevel(_gverb, DB_CO(_reverbOptions->getTailLevel()));
+    gverb_set_roomsize(filter, _reverbOptions->getRoomSize());
+    gverb_set_revtime(filter, _reverbOptions->getReverbTime());
+    gverb_set_damping(filter, _reverbOptions->getDamping());
+    gverb_set_inputbandwidth(filter, _reverbOptions->getInputBandwidth());
+    gverb_set_earlylevel(filter, DB_CO(_reverbOptions->getEarlyLevel()));
+    gverb_set_taillevel(filter, DB_CO(_reverbOptions->getTailLevel()));
 }
 
 void Audio::updateGverbOptions() {
