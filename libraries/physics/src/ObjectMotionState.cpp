@@ -52,7 +52,7 @@ ObjectMotionState::ObjectMotionState() :
         _body(NULL),
         _sentMoving(false),
         _weKnowRecipientHasReceivedNotMoving(false),
-        _outgoingDirtyFlags(0),
+        _outgoingPacketFlags(0),
         _sentFrame(0),
         _sentPosition(0.0f),
         _sentRotation(),

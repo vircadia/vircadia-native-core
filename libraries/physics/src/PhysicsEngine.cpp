@@ -9,8 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 // TODO DONE: make _incomingChanges to be list of MotionState*'s.
-// TODO: make MotionState able to clear incoming flags
+// TODO DONE: make MotionState able to clear incoming flags
 // TODO: make MotionState::setWorldTransform() put itself on _incomingChanges list
+// TODO: make sure incoming and outgoing pipelines are connected
 // TODO: give PhysicsEngine instance an _entityPacketSender
 // TODO: provide some sort of "reliable" send for "stopped" update
 
@@ -38,16 +39,16 @@ PhysicsEngine::~PhysicsEngine() {
 
 // begin EntitySimulation overrides
 void PhysicsEngine::updateEntitiesInternal(const quint64& now) {
-    QSet<ObjectMotionState*>::iterator stateItr = _outgoingPhysics.begin();
+    QSet<ObjectMotionState*>::iterator stateItr = _outgoingPackets.begin();
     uint32_t frame = getFrameCount();
     float subStepRemainder = getSubStepRemainder();
-    while (stateItr != _outgoingPhysics.end()) {
+    while (stateItr != _outgoingPackets.end()) {
         ObjectMotionState* state = *stateItr;
         if (state->shouldSendUpdate(frame, subStepRemainder)) {
             state->sendUpdate(_entityPacketSender);
             ++stateItr;
         } else if (state->isAtRest()) {
-            stateItr = _outgoingPhysics.erase(stateItr);
+            stateItr = _outgoingPackets.erase(stateItr);
         } else {
             ++stateItr;
         }
@@ -106,7 +107,6 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
     QSet<ObjectMotionState*>::iterator stateItr = _incomingChanges.begin();
     while (stateItr != _incomingChanges.end()) {
         ObjectMotionState* motionState = *stateItr;
-        motionState->clearConflictingDirtyFlags();
         uint32_t flags = motionState->getIncomingDirtyFlags() & DIRTY_PHYSICS_FLAGS;
 
         btRigidBody* body = motionState->_body;
@@ -121,7 +121,13 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
             }
         }
 
-        motionState->clearIncomingDirtyFlags(flags);
+        // NOTE: the order of operations is:
+        // (1) relayIncomingChanges()
+        // (2) step simulation
+        // (3) send outgoing packets
+        // This means incoming changes here (step (1)) should trump corresponding outgoing changes
+        motionState->clearOutgoingPacketFlags(flags); // trump
+        motionState->clearIncomingDirtyFlags(flags); // processed
         ++stateItr;
     }
     _incomingChanges.clear();

@@ -56,7 +56,6 @@ public:
 
     uint32_t getIncomingDirtyFlags() const { return _entity->getDirtyFlags(); }
     void clearIncomingDirtyFlags(uint32_t flags) { _entity->clearDirtyFlags(flags); }
-    void clearConflictingDirtyFlags() { _outgoingDirtyFlags &= ~_entity->getDirtyFlags(); }
 
 protected:
     EntityItem* _entity;

@@ -81,8 +81,7 @@ public:
 
     virtual uint32_t getIncomingDirtyFlags() const = 0;
     virtual void clearIncomingDirtyFlags(uint32_t flags) = 0;
-    void clearOutgoingDirtyFlags(uint32_t flags) { _outgoingDirtyFlags &= ~flags; }
-    virtual void clearConflictingDirtyFlags() = 0;
+    void clearOutgoingPacketFlags(uint32_t flags) { _outgoingPacketFlags &= ~flags; }
 
     bool isAtRest() const { return !(_body->isActive()) && _weKnowRecipientHasReceivedNotMoving; }
     virtual bool shouldSendUpdate(uint32_t simulationFrame, float subStepRemainder) const;
@@ -105,7 +104,7 @@ protected:
     bool _sentMoving;   // true if last update was moving
     bool _weKnowRecipientHasReceivedNotMoving;
 
-    uint32_t _outgoingDirtyFlags;
+    uint32_t _outgoingPacketFlags;
     uint32_t _sentFrame;
     glm::vec3 _sentPosition;
     glm::quat _sentRotation;;

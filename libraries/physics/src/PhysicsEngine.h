@@ -107,7 +107,7 @@ private:
     // EntitySimulation stuff
     QSet<EntityMotionState*> _entityMotionStates; // all entities that we track
     QSet<ObjectMotionState*> _incomingChanges; // entities with pending physics changes by script or packet
-    QSet<ObjectMotionState*> _outgoingPhysics; // MotionStates with pending transform changes from physics simulation
+    QSet<ObjectMotionState*> _outgoingPackets; // MotionStates with pending changes that need to be sent over wire
 
     EntityEditPacketSender* _entityPacketSender;
 

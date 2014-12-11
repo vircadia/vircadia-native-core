@@ -52,25 +52,22 @@ void EntityMotionState::getWorldTransform (btTransform &worldTrans) const {
 // This callback is invoked by the physics simulation at the end of each simulation frame...
 // iff the corresponding RigidBody is DYNAMIC and has moved.
 void EntityMotionState::setWorldTransform (const btTransform &worldTrans) {
-    uint32_t dirytFlags = _entity->getDirtyFlags();
-    if (! (dirytFlags &  EntityItem::DIRTY_POSITION)) {
-        glm::vec3 pos;
-        bulletToGLM(worldTrans.getOrigin(), pos);
-        _entity->setPositionInMeters(pos + ObjectMotionState::getWorldOffset());
-    
-        glm::quat rot;
-        bulletToGLM(worldTrans.getRotation(), rot);
-        _entity->setRotation(rot);
-    }
+    glm::vec3 pos;
+    bulletToGLM(worldTrans.getOrigin(), pos);
+    _entity->setPositionInMeters(pos + ObjectMotionState::getWorldOffset());
 
-    if (! (dirytFlags &  EntityItem::DIRTY_VELOCITY)) {
-        glm::vec3 v;
-        getVelocity(v);
-        _entity->setVelocityInMeters(v);
-        getAngularVelocity(v);
-        _entity->setAngularVelocity(v);
-    }
-    _outgoingDirtyFlags = OUTGOING_DIRTY_PHYSICS_FLAGS;
+    glm::quat rot;
+    bulletToGLM(worldTrans.getRotation(), rot);
+    _entity->setRotation(rot);
+
+    glm::vec3 v;
+    getVelocity(v);
+    _entity->setVelocityInMeters(v);
+
+    getAngularVelocity(v);
+    _entity->setAngularVelocity(v);
+
+    _outgoingPacketFlags = DIRTY_PHYSICS_FLAGS;
 }
 #endif // USE_BULLET_PHYSICS
 
