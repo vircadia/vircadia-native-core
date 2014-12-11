@@ -64,9 +64,7 @@
 #include "renderer/DeferredLightingEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
-#include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
-#include "renderer/VoxelShader.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/BandwidthMeter.h"
@@ -295,8 +293,6 @@ public:
 
     NodeBounds& getNodeBoundsDisplay()  { return _nodeBoundsDisplay; }
 
-    VoxelShader& getVoxelShader() { return _voxelShader; }
-    PointShader& getPointShader() { return _pointShader; }
     FileLogger* getLogger() { return _logger; }
 
     glm::vec2 getViewportDimensions() const { return glm::vec2(_glWidget->getDeviceWidth(), _glWidget->getDeviceHeight()); }
@@ -588,8 +584,6 @@ private:
     DeferredLightingEffect _deferredLightingEffect;
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
-    VoxelShader _voxelShader;
-    PointShader _pointShader;
 
     Audio _audio;
 
