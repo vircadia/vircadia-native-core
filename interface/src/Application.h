@@ -329,6 +329,7 @@ public:
     bool isHMDMode() const;
     
     QRect getDesirableApplicationGeometry();
+    RunningScriptsWidget* getRunningScriptsWidget() { return _runningScriptsWidget; }
 
 signals:
 

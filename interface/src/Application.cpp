@@ -142,6 +142,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
         QApplication(argc, argv),
         _window(new MainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _toolWindow(NULL),
         _nodeThread(new QThread(this)),
         _datagramProcessor(),
         _undoStack(),
@@ -371,6 +372,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer &startup_time) :
     _glWidget->setMouseTracking(true);
 
     _toolWindow = new ToolWindow();
+    qDebug() << "_toolWindow:" << _toolWindow;
     _toolWindow->setWindowFlags(_toolWindow->windowFlags() | Qt::WindowStaysOnTopHint);
     _toolWindow->setWindowTitle("Tools");
 
