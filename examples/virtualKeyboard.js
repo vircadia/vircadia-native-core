@@ -80,7 +80,7 @@ function updateTextOverlay() {
     var textLines = textText.split("\n");
     var maxLineWidth = 0;
     for (textLine in textLines) {
-        var lineWidth = Overlays.textWidth(text, textLines[textLine]);
+        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
         if (lineWidth > maxLineWidth) {
             maxLineWidth = lineWidth;
         }
@@ -92,7 +92,7 @@ function updateTextOverlay() {
     Overlays.editOverlay(text, {text: textText, font: {size: textFontSize}, topMargin: topMargin});
     var maxLineWidth = 0;
     for (textLine in textLines) {
-        var lineWidth = Overlays.textWidth(text, textLines[textLine]);
+        var lineWidth = Overlays.textSize(text, textLines[textLine]).width;
         if (lineWidth > maxLineWidth) {
             maxLineWidth = lineWidth;
         }
@@ -122,18 +122,18 @@ keyboard.onKeyRelease = function(event) {
            var textLines = textText.split("\n");
            var maxLineWidth = 0;
            for (textLine in textLines) {
-               var lineWidth = Overlays.textWidth(textSizeMeasureOverlay, textLines[textLine]);
+               var lineWidth = Overlays.textSize(textSizeMeasureOverlay, textLines[textLine]).width;
                if (lineWidth > maxLineWidth) {
                    maxLineWidth = lineWidth;
                }
            }
            var usernameLine = "--" + GlobalServices.myUsername;
-           var usernameWidth = Overlays.textWidth(textSizeMeasureOverlay, usernameLine);
+           var usernameWidth = Overlays.textSize(textSizeMeasureOverlay, usernameLine).width;
            if (maxLineWidth < usernameWidth) {
                maxLineWidth = usernameWidth;
            } else {
                var spaceableWidth = maxLineWidth - usernameWidth;
-               var spaceWidth = Overlays.textWidth(textSizeMeasureOverlay, " ");
+               var spaceWidth = Overlays.textSize(textSizeMeasureOverlay, " ").width;
                var numberOfSpaces = Math.floor(spaceableWidth / spaceWidth);
                for (var i = 0; i < numberOfSpaces; i++) {
                    usernameLine = " " + usernameLine;

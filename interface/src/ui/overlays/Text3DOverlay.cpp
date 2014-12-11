@@ -108,7 +108,7 @@ void Text3DOverlay::render(RenderArgs* args) {
         
         const int FIXED_FONT_SCALING_RATIO = FIXED_FONT_POINT_SIZE * 40.0f; // this is a ratio determined through experimentation
         
-        // Same font properties as textWidth()
+        // Same font properties as textSize()
         TextRenderer* textRenderer = TextRenderer::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
         float maxHeight = (float)textRenderer->calculateHeight("Xy") * LINE_SCALE_RATIO;
         
@@ -236,11 +236,23 @@ Text3DOverlay* Text3DOverlay::createClone() const {
     return new Text3DOverlay(this);;
 }
 
-float Text3DOverlay::textWidth(const QString& text) const {
+QSizeF Text3DOverlay::textSize(const QString& text) const {
+
     QFont font(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);  // Same font properties as render()
     QFontMetrics fontMetrics(font);
-    float scaleFactor = _lineHeight * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
-    return scaleFactor * (float)fontMetrics.width(qPrintable(text));
-}
+    const float TEXT_SCALE_ADJUST = 1.02f;  // Experimentally detemined for the specified font
+    const int TEXT_HEIGHT_ADJUST = -6;
+    float scaleFactor = _lineHeight * TEXT_SCALE_ADJUST * LINE_SCALE_RATIO / (float)FIXED_FONT_POINT_SIZE;
 
+    QStringList lines = text.split(QRegExp("\r\n|\r|\n"));
+
+    float width = 0.0f;
+    for (int i = 0; i < lines.count(); i += 1) {
+        width = std::max(width, scaleFactor * (float)fontMetrics.width(qPrintable(lines[i])));
+    }
+
+    float height = lines.count() * scaleFactor * (float)(fontMetrics.height() + TEXT_HEIGHT_ADJUST);
+
+    return QSizeF(width, height);
+}
 
