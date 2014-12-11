@@ -11,7 +11,7 @@
 // TODO DONE: make _incomingChanges to be list of MotionState*'s.
 // TODO DONE: make MotionState able to clear incoming flags
 // TODO DONE: make MotionState::setWorldTransform() put itself on _incomingChanges list
-// TODO: give PhysicsEngine instance an _entityPacketSender
+// TODO DONE: give PhysicsEngine instance an _entityPacketSender
 // TODO: make sure incoming and outgoing pipelines are connected
 // TODO: provide some sort of "reliable" send for "stopped" update
 // TODO: make sure code compiles when BULLET is not found
@@ -32,6 +32,7 @@ PhysicsEngine::PhysicsEngine(const glm::vec3& offset)
         _dynamicsWorld(NULL),
         _originOffset(offset),
         _voxels(),
+        _entityPacketSender(NULL),
         _frameCount(0) {
 }
 
@@ -135,7 +136,7 @@ void PhysicsEngine::relayIncomingChangesToSimulation() {
 }
 
 // virtual
-void PhysicsEngine::init() {
+void PhysicsEngine::init(EntityEditPacketSender* packetSender) {
     // _entityTree should be set prior to the init() call
     assert(_entityTree);
 
@@ -166,6 +167,9 @@ void PhysicsEngine::init() {
             _dynamicsWorld->addCollisionObject(groundObject);
         }
     }
+
+    assert(packetSender);
+    _entityPacketSender = packetSender;
     ObjectMotionState::setOutgoingPacketQueue(&_outgoingPackets);
 }
 

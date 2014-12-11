@@ -2070,7 +2070,7 @@ void Application::init() {
     EntityTree* tree = _entities.getTree();
     _physicsEngine.setEntityTree(tree);
     tree->setSimulation(&_physicsEngine);
-    _physicsEngine.init();
+    _physicsEngine.init(&_entityEditSender);
 #endif // USE_BULLET_PHYSICS
 }
 

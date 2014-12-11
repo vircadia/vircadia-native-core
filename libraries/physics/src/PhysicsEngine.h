@@ -45,7 +45,7 @@ public:
     void entityChangedInternal(EntityItem* entity);
     void clearEntitiesInternal();
 
-    virtual void init();
+    virtual void init(EntityEditPacketSender* packetSender);
 
     void stepSimulation();
 
